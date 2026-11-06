@@ -96,6 +96,16 @@ IsMounted = function() return false end
 UnitOnTaxi = function() return false end
 UnitIsDeadOrGhost = function() return false end
 UnitExists = function() return false end
+-- Tooltip processor: tests call the registered post-call directly.
+local tooltipPostCalls = {}
+TooltipDataProcessor = { AddTooltipPostCall = function(_, fn) tooltipPostCalls[#tooltipPostCalls + 1] = fn end }
+Enum = Enum or {}
+Enum.TooltipDataType = { Unit = 2 }
+UNITNAME_TITLE_COMPANION = "%s's Companion"
+local units = {} -- unit token -> { companion, speciesID, lines }
+UnitIsBattlePetCompanion = function(u) return units[u] and units[u].companion end
+UnitBattlePetSpeciesID = function(u) return units[u] and units[u].speciesID end
+C_TooltipInfo = { GetUnit = function(u) return units[u] and { lines = units[u].lines } end }
 -- Forever: the second value is the surname, not the realm.
 UnitFullName = function() return "Tester", "Surname" end
 GetNormalizedRealmName = function() return "Realm" end
@@ -131,7 +141,7 @@ C_ChatInfo = {
     end,
     IsAddonMessagePrefixRegistered = function() return true end,
 }
-Enum = { SendAddonMessageResult = { Success = 0, AddonMessageThrottle = 3 } }
+Enum.SendAddonMessageResult = { Success = 0, AddonMessageThrottle = 3 }
 C_PetJournal = {
     GetSummonedPetGUID = function() return "BattlePet-0-00000008B2A2" end,
     GetOwnedPetIDs = function() return { "BattlePet-0-000000000001" } end,
@@ -367,7 +377,29 @@ PetJournalPetCard.speciesID = 1
 PetJournal_UpdatePetCard(PetJournalPetCard)
 assert(not card.reserve.shown and card.status.text:find("Reserved by Ola Nord"), card.status.text)
 
--- 10. Release.
+-- 10. World tooltip: only the holder's own companion gets the lines.
+local added = {}
+local tip = { GetUnit = function(self) return "Kitty", self.unit end,
+    AddLine = function(_, text) added[#added + 1] = text end }
+GameTooltip = setmetatable(tip, { __index = GameTooltip })
+local function Hover(unit)
+    wipe(added)
+    tip.unit = unit
+    for _, fn in ipairs(tooltipPostCalls) do fn(tip, { lines = units[unit].lines }) end
+    return table.concat(added, " / ")
+end
+-- Ola holds species 1. Her own companion:
+units.mouseover = { companion = true, speciesID = 1,
+    lines = { { leftText = "Species 1" }, { leftText = "Ola Nord's Companion" }, { leftText = "Pet Level 1 Critter" } } }
+assert(Hover("mouseover"):find("Ola Nord's reserved companion"), Hover("mouseover"))
+-- Someone else's copy of the same species: nothing.
+units.mouseover.lines[2].leftText = "Fikle Faen's Companion"
+assert(Hover("mouseover") == "", "non-holder's copy must not show")
+-- Pattern characters in names don't break matching.
+assert(ns.Tooltip:OwnerOf("x", { {}, { leftText = "Ola Nord's Companion" } }) == "Ola Nord")
+assert(ns.Tooltip:OwnerOf("x", { {}, { leftText = "Pet Level 1 Critter" } }) == nil)
+
+-- 11. Release.
 SlashCmdList.DYREPARKEN("release")
 assert(R:Holder(PANDA) == nil and Printed("Released Panda Cub"))
 SlashCmdList.DYREPARKEN("list")

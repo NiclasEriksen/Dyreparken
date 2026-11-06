@@ -31,6 +31,7 @@ Menagerie\Sync.lua
 Menagerie\Summon.lua
 Menagerie\Report.lua
 Menagerie\JournalUI.lua
+Menagerie\Tooltip.lua
 
 # Party games
 Games\Framework.lua

@@ -93,6 +93,21 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   unverified: check with `/fstack`.
 - `C_PetJournal.SetCustomName` exists. We still use our own synced nicknames.
 
+## Journal list, roster and companion units (probed 2026-11-06, build 70790)
+
+- `PetJournal_InitPetButton(button, elementData)` and `PetJournal_UpdatePetCard` exist (hookable). List buttons
+  carry `.petID`, `.speciesID`, `.owned`, `.index`.
+- **The Summon/Dismiss button (`PetJournalSummonButton`) sits at the bottom left of the journal**, under the list
+  (unlike Retail). Our buttons are anchored to its right.
+- Guild roster: `GetGuildRosterInfo(i)` names are `"First Surname"` (no realm). `GetNumGuildMembers()` = 41 total,
+  6 online, and the full read was 41/41. `GetGuildRosterLastOnline(i)` returns nils for online members.
+  (unverified) the values for offline members.
+- Another player's companion as `target`: `UnitIsBattlePetCompanion` = true, `UnitBattlePetSpeciesID` = 46
+  (White Kitten), `UnitCreator` = nil, GUID `Creature-0-6864-1-2-7386-…` (npcID 7386). Tooltip lines:
+  `"White Kitten"`, `"Gnikke Guri's Companion"`, `"Pet Level 1 Critter"`. The owner comes from line 2, matched with
+  `UNITNAME_TITLE_COMPANION`.
+- (unverified) whether the unit species ID (46 for the kitten) uses the journal's numbering (Panda Cub = 5159).
+
 ## Addon messages
 
 - `C_ChatInfo.RegisterAddonMessagePrefix(prefix)`: max 16 chars. Messages max **255 bytes**, any byte except `\0`.

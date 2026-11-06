@@ -17,6 +17,7 @@ local _, ns = ...
 --    check = yours to claim (owned and free)
 --  * owner / nickname / date lines in the list button tooltip
 --  * a status line on the pet card, plus Reserve/Release and Nickname buttons
+--    (right of the Summon button, which on Forever sits bottom left)
 local JournalUI = {}
 ns.JournalUI = JournalUI
 
@@ -195,7 +196,9 @@ local function BuildCard()
     local anchor = PetJournalSummonButton or c
     card.reserve = CreateFrame("Button", nil, PetJournal, "UIPanelButtonTemplate")
     card.reserve:SetSize(90, 22)
-    card.reserve:SetPoint("RIGHT", anchor, "LEFT", -6, 0)
+    -- Forever puts the Summon/Dismiss button at the bottom left of the
+    -- journal (under the list), so our buttons go to its right, under the card.
+    card.reserve:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
     card.reserve:SetScript("OnClick", function()
         local status = Status(card.key)
         if status == "mine" then Report(ns.Registry:Release()) else Report(ns.Registry:Claim(card.key)) end
@@ -204,7 +207,7 @@ local function BuildCard()
 
     card.nick = CreateFrame("Button", nil, PetJournal, "UIPanelButtonTemplate")
     card.nick:SetSize(90, 22)
-    card.nick:SetPoint("RIGHT", card.reserve, "LEFT", -4, 0)
+    card.nick:SetPoint("LEFT", card.reserve, "RIGHT", 4, 0)
     card.nick:SetText("Nickname")
     card.nick:SetMotionScriptsWhileDisabled(true)
     card.nick:SetScript("OnClick", function() JournalUI:AskNickname() end)

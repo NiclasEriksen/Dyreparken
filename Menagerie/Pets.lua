@@ -175,8 +175,14 @@ function Pets:ProbeMore()
     end
     local total, online = GetNumGuildMembers()
     Out("roster: %s total, %s online", tostring(total), tostring(online))
-    for i = 1, math.min(total or 0, 3) do
-        Out("roster %d: name=%q lastOnline=%s", i, tostring((GetGuildRosterInfo(i))), Pack(GetGuildRosterLastOnline(i)))
+    -- Offline members are what matters for inactivity: log a few of those.
+    local shown = 0
+    for i = 1, total or 0 do
+        local name, _, _, _, _, _, _, _, online = GetGuildRosterInfo(i)
+        if not online and shown < 4 then
+            shown = shown + 1
+            Out("roster offline %d: name=%q lastOnline=%s", i, tostring(name), Pack(GetGuildRosterLastOnline(i)))
+        end
     end
     if UnitExists("target") then
         Out("target: name=%s guid=%s speciesID=%s companion=%s creator=%s",
@@ -184,11 +190,22 @@ function Pets:ProbeMore()
             tostring(UnitBattlePetSpeciesID and UnitBattlePetSpeciesID("target")),
             tostring(UnitIsBattlePetCompanion and UnitIsBattlePetCompanion("target")),
             tostring(UnitCreator and UnitCreator("target")))
+        -- Does the unit's species ID match the journal's? (Kitten = 46 from the
+        -- unit; our Panda Cub = 5159 from the journal: same numbering?)
+        local usid = UnitBattlePetSpeciesID and UnitBattlePetSpeciesID("target")
+        if usid then
+            Out("target species %s in journal: %s | owner from tooltip: %s", tostring(usid),
+                Pack(pcall(C_PetJournal.GetPetInfoBySpeciesID, usid)), tostring(ns.Tooltip:OwnerOf("target")))
+        end
+        local summoned = self:Summoned()
+        if summoned then
+            Out("your summoned pet: journal speciesID=%s", tostring((C_PetJournal.GetPetInfoByPetID(summoned))))
+        end
         local data = C_TooltipInfo and C_TooltipInfo.GetUnit and C_TooltipInfo.GetUnit("target")
         if data and data.lines then
             for i, line in ipairs(data.lines) do Out("target tooltip %d: %s", i, tostring(line.leftText)) end
         end
     else
-        Out("No target: target another player's companion and run /dp probe more.")
+        Out("No target: target a companion (yours or another player's) and run /dp probe more.")
     end
 end
