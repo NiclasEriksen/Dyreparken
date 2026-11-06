@@ -4,7 +4,7 @@
 ## Author: Hjelp
 ## Version: 0.0.1
 ## X-Flavor: forever
-## X-Protocol: 1
+## X-Protocol: 2
 ## SavedVariables: DyreparkenDB, DyreparkenDebugDB
 ## SavedVariablesPerCharacter: DyreparkenCharDB
 ## Category: Collections
@@ -22,10 +22,12 @@ Core\Events.lua
 Core\DB.lua
 Core\Comm.lua
 Core\Version.lua
+Core\Guild.lua
 
 # Menagerie: companion registry
 Menagerie\Pets.lua
 Menagerie\Registry.lua
+Menagerie\Sync.lua
 Menagerie\Summon.lua
 Menagerie\Report.lua
 Menagerie\JournalUI.lua

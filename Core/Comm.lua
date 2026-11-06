@@ -10,7 +10,8 @@ local _, ns = ...
 -- Chunk header (1 byte): "S" whole message, "F" first, "M" middle, "L" last.
 -- Chunks from one sender arrive in order on one channel.
 --
--- Handlers: ns.Comm:Register(kind, fn(msg, sender, channel)).
+-- Handlers: ns.Comm:Register(kind, fn(msg, sender, channel)); several
+-- modules may listen to the same kind (HELLO: Version and Sync).
 --
 -- Notes (Forever 1.60.1):
 --  * Trial/Veteran accounts cannot send addon messages at all.
@@ -30,7 +31,9 @@ local handlers = {}
 local partial = {} -- sender .. channel -> { parts }
 
 function Comm:Register(kind, fn)
-    handlers[kind] = fn
+    local list = handlers[kind]
+    if not list then list = {}; handlers[kind] = list end
+    list[#list + 1] = fn
 end
 
 local function Encode(msg)
@@ -87,9 +90,13 @@ local function Dispatch(data, sender, channel)
         ns.Bus:Fire("PROTOCOL_MISMATCH", sender, msg.p, msg)
         if msg.k ~= "HELLO" then return end -- HELLO is always readable, so versions can be compared
     end
-    local fn = handlers[msg.k]
     ns.Log("Comm", "<- %s from %s (%s)", msg.k, sender, channel)
-    if fn then fn(msg, sender, channel) end
+    local list = handlers[msg.k]
+    if not list then return end
+    for i = 1, #list do
+        local ok, err = pcall(list[i], msg, sender, channel)
+        if not ok then ns.Log("Comm", "handler %s failed: %s", msg.k, tostring(err)) end
+    end
 end
 
 local function OnAddonMessage(_, _, prefix, text, channel, sender)
@@ -97,8 +104,8 @@ local function OnAddonMessage(_, _, prefix, text, channel, sender)
     local raw = sender
     sender = ns.NormalizeName(sender)
     if sender == ns.PlayerKey() then return end
-    ns.Log("Comm", "raw sender %q", tostring(raw))
     if not sender then return end
+    if raw ~= sender then ns.Log("Comm", "raw sender %q", tostring(raw)) end
     local head, body = text:sub(1, 1), text:sub(2)
     local key = sender .. channel
     if head == "S" then

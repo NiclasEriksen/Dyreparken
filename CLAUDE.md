@@ -42,9 +42,11 @@ Core/Events.lua    single event frame, On/Off, OutOfCombat queue
 Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() registry
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
-Core/Commands.lua  /dp slash commands
-Menagerie/         Pets (journal access, pet keys), Registry (reservations, merge rules),
-                   Summon (auto-summon, defers to AutoCompanion), Report, JournalUI
+Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
+Core/Commands.lua  /dp slash commands (claim, release, nick, list, version, report, probe, debug)
+Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
+                   merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/LAPSE),
+                   Summon (auto-summon, defers to AutoCompanion), Report (stub), JournalUI
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
 Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + hello)
 ```
@@ -65,6 +67,9 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 - The pet key is `s:<speciesID>`. Forever returns real species IDs (see docs/FOREVER_API.md).
 
 ## Open questions (ask the user before deciding)
+
+- World companion tooltips: how to tell whose companion a unit is (needed so a nickname only shows on the holder's
+  pet). Run `/dp probe more` with another player's companion targeted.
 
 - Report: how to see other players' companions (only addon users via comms, or unit scanning)?
 - Which states block auto-summon (mounted, taxi, stealth, sitting, eating, BG/arena)?

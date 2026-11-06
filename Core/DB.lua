@@ -15,12 +15,12 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 2
+local SCHEMA = 3
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
-    -- guilds[guildKey] = { pets = { [petKey] = record }, members = { [player] = { seen = t, version = "x" } } }
-    -- record = { owner = "First Surname", at = serverTime, nick = string?, nickAt = serverTime?, rev = n }
+    -- guilds[guildName] = { claims = { [owner] = record }, lapses = { [owner] = t } }
+    -- record: see Menagerie/Registry.lua
     guilds = {},
     games = { history = {} },
     settings = {},
@@ -42,6 +42,11 @@ local MIGRATIONS = {
             local name = key:match("^(.-)%-[^%-%s]+$") or key
             if not db.guilds[name] then db.guilds[name] = g end
         end
+    end,
+    -- 3: per-pet records became per-owner records (Registry.lua). Nothing
+    -- was ever claimed under the old shape, so start the guild tables fresh.
+    [3] = function(db)
+        for name in pairs(db.guilds or {}) do db.guilds[name] = { claims = {}, lapses = {} } end
     end,
 }
 local CHAR_MIGRATIONS = {}
@@ -90,7 +95,7 @@ function DB:Guild()
     if not name then return nil end
     local g = self.global.guilds[name]
     if not g then
-        g = { pets = {}, members = {} }
+        g = { claims = {}, lapses = {} }
         self.global.guilds[name] = g
     end
     return g, name

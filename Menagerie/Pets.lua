@@ -54,6 +54,47 @@ function Pets:Owned()
     return result
 end
 
+-- Species ID from a pet key ("s:5159" -> 5159).
+function Pets:SpeciesOfKey(key)
+    return tonumber(type(key) == "string" and key:match("^s:(%d+)$"))
+end
+
+function Pets:KeyOfSpecies(speciesID)
+    return speciesID and "s:" .. speciesID or nil
+end
+
+-- Display name and icon for a pet key, whether or not we own it.
+function Pets:NameOfKey(key)
+    local sid = self:SpeciesOfKey(key)
+    if sid and C_PetJournal.GetPetInfoBySpeciesID then
+        local name = C_PetJournal.GetPetInfoBySpeciesID(sid)
+        if type(name) == "string" and name ~= "" then return name end
+    end
+    local n = type(key) == "string" and key:match("^n:(.+)$")
+    return n or tostring(key)
+end
+
+function Pets:IconOfKey(key)
+    local sid = self:SpeciesOfKey(key)
+    if sid and C_PetJournal.GetPetInfoBySpeciesID then
+        local _, icon = C_PetJournal.GetPetInfoBySpeciesID(sid)
+        return icon
+    end
+end
+
+-- Find an owned pet by (part of) its name, case-insensitive. Returns key, guid.
+function Pets:FindOwned(text)
+    text = text:lower()
+    local exact, partial
+    for key, guid in pairs(self:Owned()) do
+        local name = self:NameOfKey(key):lower()
+        if name == text then exact = exact or { key, guid } end
+        if name:find(text, 1, true) then partial = partial or { key, guid } end
+    end
+    local hit = exact or partial
+    if hit then return hit[1], hit[2] end
+end
+
 -- Development aid: print AND log what the journal API gives us on this
 -- client, so the output can be read from SavedVariables after /reload.
 local function Out(fmt, ...)
@@ -112,4 +153,42 @@ function Pets:Probe()
         Out("collected %s: %s", tostring(speciesID), Pack(pcall(PJ.GetNumCollectedInfo, speciesID)))
     end
     if PJ.PetIsSummonable then Out("summonable: %s", Pack(pcall(PJ.PetIsSummonable, guid))) end
+end
+
+-- Journal hooks, roster format, and the target (target someone's companion
+-- first). Separate from Probe so it can run without a pet out.
+function Pets:ProbeMore()
+    Out("hooks: PetJournal_InitPetButton=%s PetJournal_UpdatePetCard=%s ScrollUtil=%s TooltipDataProcessor=%s",
+        tostring(PetJournal_InitPetButton ~= nil), tostring(PetJournal_UpdatePetCard ~= nil),
+        tostring(ScrollUtil ~= nil and ScrollUtil.AddInitializedFrameCallback ~= nil),
+        tostring(TooltipDataProcessor ~= nil))
+    if PetJournal and PetJournal.ScrollBox and PetJournal.ScrollBox.ForEachFrame then
+        local n = 0
+        PetJournal.ScrollBox:ForEachFrame(function(b)
+            n = n + 1
+            if n <= 2 then
+                Out("list button %d: petID=%s speciesID=%s owned=%s index=%s", n, tostring(b.petID),
+                    tostring(b.speciesID), tostring(b.owned), tostring(b.index))
+            end
+        end)
+        Out("list buttons visible: %d", n)
+    end
+    local total, online = GetNumGuildMembers()
+    Out("roster: %s total, %s online", tostring(total), tostring(online))
+    for i = 1, math.min(total or 0, 3) do
+        Out("roster %d: name=%q lastOnline=%s", i, tostring((GetGuildRosterInfo(i))), Pack(GetGuildRosterLastOnline(i)))
+    end
+    if UnitExists("target") then
+        Out("target: name=%s guid=%s speciesID=%s companion=%s creator=%s",
+            Pack(UnitName("target")), tostring(UnitGUID("target")),
+            tostring(UnitBattlePetSpeciesID and UnitBattlePetSpeciesID("target")),
+            tostring(UnitIsBattlePetCompanion and UnitIsBattlePetCompanion("target")),
+            tostring(UnitCreator and UnitCreator("target")))
+        local data = C_TooltipInfo and C_TooltipInfo.GetUnit and C_TooltipInfo.GetUnit("target")
+        if data and data.lines then
+            for i, line in ipairs(data.lines) do Out("target tooltip %d: %s", i, tostring(line.leftText)) end
+        end
+    else
+        Out("No target: target another player's companion and run /dp probe more.")
+    end
 end

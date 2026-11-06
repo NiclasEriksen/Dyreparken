@@ -39,7 +39,8 @@ function Version:Init()
 end
 
 function Version:Hello()
-    if IsInGuild() then ns.Comm:Send("HELLO", { v = ns.VERSION }, "GUILD", nil, "BULK") end
+    -- d: registry digest, so peers can tell whether we need a sync (Sync.lua).
+    if IsInGuild() then ns.Comm:Send("HELLO", { v = ns.VERSION, d = ns.Sync:Digest() }, "GUILD", nil, "BULK") end
 end
 
 -- channel: "GUILD" or "RAID"/"PARTY". Prints results after a few seconds.
