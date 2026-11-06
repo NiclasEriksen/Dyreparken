@@ -440,6 +440,15 @@ Flush(30)
 assert(summonCalls == 3, "should stop after 3 attempts, got " .. summonCalls)
 Flush(60)
 assert(summonCalls == 3, "no more attempts after giving up")
+-- A pet summoned by hand is left alone.
+C_PetJournal.GetSummonedPetGUID = function() return "BattlePet-0-0000000000FF" end
+summonCalls = 0
+ns.Summon:Check("test")
+Flush(5)
+assert(summonCalls == 0, "must not replace a pet summoned by hand")
+C_PetJournal.GetSummonedPetGUID = function() return nil end
+summonCalls = 3 -- baseline for the assertions below
+
 -- Battlegrounds: no summon and no polling.
 IsInInstance = function() return true, "pvp" end
 ns.Summon:Check("test")

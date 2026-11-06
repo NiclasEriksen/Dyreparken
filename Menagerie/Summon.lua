@@ -6,8 +6,12 @@ local _, ns = ...
 -- Not in combat, mounted, on a taxi, flying, dead, stealthed, sitting,
 -- eating/drinking, casting or channeling, or in a battleground/arena.
 --
+-- Only when NO companion is out: one you summoned yourself is left alone.
+--
 -- Dormant by design: no OnUpdate. A few events trigger a check (entering the
--- world, combat end, dismount, claiming). If the check finds you busy, it
+-- world, combat end, dismount, claiming). A pet you dismiss yourself is NOT
+-- noticed until the next of those (decided 2026-11-06): COMPANION_UPDATE
+-- would catch it, but it fires for every nearby player's companion too. If the check finds you busy, it
 -- retries every RETRY_EVERY seconds for up to RETRY_FOR seconds, then waits
 -- for the next trigger. One timer at most.
 --
@@ -42,6 +46,7 @@ function Summon:SetEnabled(on)
     ns.Log("Summon", "auto-summon %s", on and "on" or "off")
     if on then self:Check("enabled") end
 end
+
 
 -- Out of combat these are plain values; a secret value counts as busy.
 local function Truthy(v)
@@ -107,8 +112,8 @@ function Summon:Check(reason)
     if not self:Enabled() then return end
     local key = ns.Registry:MyPet()
     if not key then return end
-    local out = ns.Pets:Summoned()
-    if out and ns.Pets:KeyOf(out) == key then return end
+    -- Any companion out counts: never replace one you summoned yourself.
+    if ns.Pets:Summoned() then return end
     local guid = ns.Pets:Owned()[key]
     if not guid then return end
 

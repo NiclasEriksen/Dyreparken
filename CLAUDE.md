@@ -63,7 +63,9 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
   locally as unknown.
 - Auto-summon only when idle: not in combat, mounted, on a taxi, flying, dead, stealthed, sitting, eating/drinking,
   casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by the per-character
-  "Auto-summon" checkbox in the journal (default on).
+  "Auto-summon" checkbox in the journal (default on). It never replaces a pet you summoned yourself. It doesn't watch
+  `COMPANION_UPDATE` (that fires for every nearby companion), so a pet you dismiss comes back only at the next
+  trigger: loading screen, leaving combat, dismounting, or claiming.
 - Counter: "x reserved of y known", where known = species this client has come across (owned, reserved, hovered).
 - No officer force-release for now: release only happens by the owner, by leaving the guild, or after inactivity.
   Build it later if it turns out to be needed.
