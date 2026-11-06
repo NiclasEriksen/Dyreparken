@@ -1,0 +1,37 @@
+## Interface: 16001
+## Title: Dyreparken
+## Notes: Guild companion registry (reserve, sync, auto-summon) and a framework for party games.
+## Author: Hjelp
+## Version: 0.0.1
+## X-Flavor: forever
+## X-Protocol: 1
+## SavedVariables: DyreparkenDB, DyreparkenDebugDB
+## SavedVariablesPerCharacter: DyreparkenCharDB
+## Category: Collections
+
+# Libraries (LibStub-registered except ChatThrottleLib, which is a global)
+Libs\LibStub\LibStub.lua
+Libs\ChatThrottleLib\ChatThrottleLib.lua
+Libs\LibSerialize\LibSerialize.lua
+Libs\LibDeflate\LibDeflate.lua
+
+# Core: load order matters, each file only uses what is above it
+Core\Init.lua
+Core\Debug.lua
+Core\Events.lua
+Core\DB.lua
+Core\Comm.lua
+Core\Version.lua
+
+# Menagerie: companion registry
+Menagerie\Pets.lua
+Menagerie\Registry.lua
+Menagerie\Summon.lua
+Menagerie\Report.lua
+Menagerie\JournalUI.lua
+
+# Party games
+Games\Framework.lua
+
+Core\Commands.lua
+Main.lua
