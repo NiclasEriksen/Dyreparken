@@ -13,3 +13,4 @@ ignore:
   - .claude
   - .luarc.json
   - .github
+  - .githooks

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Runs tools/check.sh (full, with coverage floors) on each commit being
+# pushed, in a temporary worktree, so uncommitted edits can't hide a broken
+# commit. Enable once per clone:  git config core.hooksPath .githooks
+# Skip in an emergency:           git push --no-verify
+set -u
+zero=0000000000000000000000000000000000000000
+declare -A seen
+status=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [[ "$local_sha" == "$zero" ]] && continue      # deleting a ref
+    sha=$(git rev-parse "$local_sha^{commit}" 2>/dev/null) || continue
+    [[ -n "${seen[$sha]:-}" ]] && continue          # a tag on a commit we already checked
+    seen[$sha]=1
+    tmp=$(mktemp -d)
+    git worktree add --quiet --detach "$tmp" "$sha" || { status=1; continue; }
+    echo "pre-push: checking ${local_ref#refs/*/} ($(git log -1 --format='%h %s' "$sha"))"
+    if ! "$tmp/tools/check.sh"; then
+        echo "pre-push: checks failed for $sha; push aborted (git push --no-verify to override)"
+        status=1
+    fi
+    git worktree remove --force "$tmp"
+done
+exit $status
