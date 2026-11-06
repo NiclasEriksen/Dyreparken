@@ -56,6 +56,8 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 - Released when the owner leaves the guild, or after 30 days unseen. Nicknames unlock after 7 days, max 20
   characters (`ns.Config`).
 - Auto-summon turns itself off if AutoCompanion is loaded.
+- No officer force-release for now: release only happens by the owner, by leaving the guild, or after inactivity.
+  Build it later if it turns out to be needed.
 - Anyone can run a version check. Only the group leader or an assist can start games.
 - The debug log goes to `DyreparkenDebugDB` (account-wide SavedVariables).
 - Players are keyed as `"First Surname"` and guilds by name: **no realms**, because Forever moves players between
@@ -66,5 +68,4 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 
 - Report: how to see other players' companions (only addon users via comms, or unit scanning)?
 - Which states block auto-summon (mounted, taxi, stealth, sitting, eating, BG/arena)?
-- Officer powers (force release)? The rank check can be spoofed client-side.
 - The guild "missing companions" list needs a master list of Forever companions. Where should it come from?
