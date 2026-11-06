@@ -6,7 +6,7 @@ local _, ns = ...
 --  * Seeing a newer version (or a different protocol) prints ONE line,
 --    once per version, remembered in DyreparkenCharDB.warnedVersion.
 --  * /dp version: anyone may ask the guild/group for versions (VER_REQ);
---    everyone whispers back VER (BULK priority, so it doesn't block traffic).
+--    everyone answers VER on the same channel (BULK priority).
 local Version = { seen = {} } -- seen[player] = version
 ns.Version = Version
 
@@ -28,10 +28,12 @@ function Version:Init()
         NoteVersion(sender, msg.v)
         if Version.collecting then Version.collecting[sender] = msg.v end
     end)
-    -- Answer by whisper, so a guild-wide check doesn't make everyone receive
-    -- everyone's reply.
-    ns.Comm:Register("VER_REQ", function(_, sender)
-        ns.Comm:Send("VER", { v = ns.VERSION }, "WHISPER", sender, "BULK")
+    -- Answer on the channel the request came from. (Whispers would be
+    -- quieter, but whisper targets with surnames are unverified on Forever.)
+    -- Everyone hearing everyone's version is useful anyway: NoteVersion.
+    ns.Comm:Register("VER_REQ", function(_, _, channel)
+        if channel == "WHISPER" then return end
+        ns.Comm:Send("VER", { v = ns.VERSION }, channel, nil, "BULK")
     end)
     ns.Bus:On("PROTOCOL_MISMATCH", function(sender, theirs, msg)
         if type(msg.v) == "string" then NoteVersion(sender, msg.v) end

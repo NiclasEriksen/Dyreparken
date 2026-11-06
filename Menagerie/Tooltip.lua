@@ -62,6 +62,7 @@ function Tooltip:ReservationOf(unit, lines)
     if not Plain(UnitIsBattlePetCompanion and UnitIsBattlePetCompanion(unit)) then return nil end
     local sid = Plain(UnitBattlePetSpeciesID and UnitBattlePetSpeciesID(unit))
     if type(sid) ~= "number" then return nil end
+    ns.Pets:NoteKnown(sid)
     local owner = self:OwnerOf(unit, lines)
     if not owner then return nil end
     local holder, r = ns.Registry:Holder(ns.Pets:KeyOfSpecies(sid))

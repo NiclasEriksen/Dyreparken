@@ -40,7 +40,7 @@ Add("list", "list - all reservations in the guild", function()
         rows[#rows + 1] = { name = ns.Pets:NameOfKey(key), owner = owner, nick = r and r.n }
     end
     table.sort(rows, function(a, b) return a.name < b.name end)
-    ns.Print(("%d companions reserved:"):format(#rows))
+    ns.Print(("%d reserved of %d known companions:"):format(#rows, ns.Pets:KnownCount()))
     for _, row in ipairs(rows) do
         ns.Print(("  %s - %s%s"):format(row.name, row.owner, row.nick and (' ("' .. row.nick .. '")') or ""))
     end

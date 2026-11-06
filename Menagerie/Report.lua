@@ -1,33 +1,98 @@
 local _, ns = ...
 
--- /dp report: who in the raid/party has no companion out, called out in chat.
+-- /dp report: who in the raid/party has no companion out.
 --
--- Open question: how do we see other players' companions? Options:
---  1. Ask over addon comms (only works for addon users).
---  2. Scan nearby units: companions show up as units with a creator; there is
---     no group-wide API on modern clients that lists them. Needs research on
---     Forever (UnitCreator? nameplates? secret values?).
--- Until decided, this only asks addon users (option 1).
+-- Decided 2026-11-06: only addon users are checked. There's no API to see
+-- another player's companion (only by hovering or targeting it), so players
+-- without the addon are listed locally as "unknown" and not called out.
+--
+-- Flow: PET_REQ to RAID/PARTY -> every addon user answers PET { out } on
+-- the same channel -> after WAIT seconds we compare with the group roster
+-- and post the names without a companion to group chat.
+--
+-- Answers go to the group channel, not by whisper: whisper targets with
+-- surnames ("First Surname") are unverified on Forever, and a group is small.
 local Report = {}
 ns.Report = Report
 
+local WAIT = 3
+
+local function GroupChannel()
+    if IsInRaid() then return "RAID" end
+    if IsInGroup() then return "PARTY" end
+end
+
+-- "First Surname" for a group unit (UnitName's second value is the surname).
+local function UnitKey(unit)
+    local first, surname = UnitName(unit)
+    if not first then return nil end
+    if surname and surname ~= "" then return ns.NormalizeName(first .. " " .. surname) end
+    return first
+end
+
+local function GroupMembers()
+    local list = {}
+    if IsInRaid() then
+        for i = 1, GetNumGroupMembers() do
+            local key = UnitKey("raid" .. i)
+            if key then list[#list + 1] = key end
+        end
+    else
+        list[1] = ns.PlayerKey()
+        for i = 1, GetNumSubgroupMembers() do
+            local key = UnitKey("party" .. i)
+            if key then list[#list + 1] = key end
+        end
+    end
+    return list
+end
+
+local function HasCompanion()
+    return ns.Pets:Summoned() ~= nil
+end
+
 function Report:Init()
-    ns.Comm:Register("PET_REQ", function(_, sender)
-        local guid = ns.Pets:Summoned()
-        ns.Comm:Send("PET", { out = guid and ns.Pets:KeyOf(guid) or false }, "WHISPER", sender, "BULK")
+    ns.Comm:Register("PET_REQ", function(_, _, channel)
+        if channel ~= "RAID" and channel ~= "PARTY" then return end
+        ns.Comm:Send("PET", { out = HasCompanion() }, channel, nil, "BULK")
     end)
     ns.Comm:Register("PET", function(msg, sender)
-        if Report.collecting then Report.collecting[sender] = msg.out or false end
+        if Report.collecting then Report.collecting[sender] = msg.out and true or false end
     end)
 end
 
+local function Join(list)
+    table.sort(list)
+    return table.concat(list, ", ")
+end
+
 function Report:Run()
-    if not IsInGroup() then
-        ns.Print("You're not in a group.")
-        return
-    end
-    -- TODO: send PET_REQ, wait, compare against the group roster, and post
-    -- the names to RAID/PARTY with SendChatMessage (hardware event needed?
-    -- verify on Forever; slash commands count as one).
-    ns.Print("Report: not implemented yet.")
+    local channel = GroupChannel()
+    if not channel then return ns.Print("You're not in a group.") end
+    if self.collecting then return ns.Print("A report is already running.") end
+    self.collecting = { [ns.PlayerKey()] = HasCompanion() }
+    ns.Comm:Send("PET_REQ", {}, channel)
+    ns.Print("Checking companions...")
+    C_Timer.After(WAIT, function()
+        local answers = self.collecting
+        self.collecting = nil
+        local missing, unknown, ok = {}, {}, 0
+        for _, name in ipairs(GroupMembers()) do
+            local out = answers[name]
+            if out == nil then
+                unknown[#unknown + 1] = name
+            elseif out then
+                ok = ok + 1
+            else
+                missing[#missing + 1] = name
+            end
+        end
+        if #missing > 0 then
+            SendChatMessage("Dyreparken: no companion out: " .. Join(missing) .. "!", channel)
+        else
+            ns.Print(("Everyone with the addon has a companion out (%d)."):format(ok))
+        end
+        if #unknown > 0 then ns.Print("Unknown (no addon): " .. Join(unknown)) end
+        ns.Log("Report", "ok=%d missing=%d unknown=%d", ok, #missing, #unknown)
+    end)
 end

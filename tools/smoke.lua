@@ -35,6 +35,9 @@ local function NewFrame()
     function f:Enable() self.enabled = true end
     function f:Disable() self.enabled = false end
     function f:SetMotionScriptsWhileDisabled() end
+    function f:SetChecked(v) self.checked = v end
+    function f:GetChecked() return self.checked end
+    function f:SetEnabled(v) self.enabled = v end
     function f:Click() if self.scripts.OnClick then self.scripts.OnClick(self) end end
     function f:CreateTexture()
         local t = { shown = true }
@@ -50,6 +53,7 @@ local function NewFrame()
         function t:SetPoint() end
         function t:SetJustifyH() end
         function t:SetText(x) self.text = x end
+        function t:SetTextColor() end
         return t
     end
     frames[#frames + 1] = f
@@ -96,6 +100,11 @@ IsMounted = function() return false end
 UnitOnTaxi = function() return false end
 UnitIsDeadOrGhost = function() return false end
 UnitExists = function() return false end
+UnitCastingInfo = function() return nil end
+UnitChannelInfo = function() return nil end
+IsStealthed = function() return false end
+IsInInstance = function() return false, "none" end
+UnitStandState = function() return 0 end
 -- Tooltip processor: tests call the registered post-call directly.
 local tooltipPostCalls = {}
 TooltipDataProcessor = { AddTooltipPostCall = function(_, fn) tooltipPostCalls[#tooltipPostCalls + 1] = fn end }
@@ -118,7 +127,12 @@ GetGuildRosterInfo = function(i) return roster[i] and roster[i][1] end
 GetGuildRosterLastOnline = function(i) local d = roster[i] and roster[i][2] or 0; if d == 0 then return nil end return 0, 0, d, 0 end
 C_GuildInfo = { GuildRoster = function() C_Timer.After(0.1, function() Fire("GUILD_ROSTER_UPDATE") end) end }
 GetGuildInfo = function() return "Dyreparken", "Member", 3, nil end
-IsInGroup = function() return false end
+local group = {} -- party unit -> { first, surname }
+IsInGroup = function() return #group > 0 end
+GetNumSubgroupMembers = function() return #group end
+GetNumGroupMembers = function() return #group + 1 end
+local chatSent = {}
+SendChatMessage = function(text, chan) chatSent[#chatSent + 1] = { text, chan } end
 IsInRaid = function() return false end
 UnitIsGroupLeader = function() return false end
 UnitIsGroupAssistant = function() return false end
@@ -148,14 +162,18 @@ C_PetJournal = {
     -- Real Forever shape (probed 2026-11-06): Panda Cub
     GetPetInfoByPetID = function() return 5159, nil, 1, 0, 1, 146955, false, "Panda Cub", 7831521, 5, 272330, "" end,
     GetNumPets = function() return 1, 1 end,
-    SummonPetByGUID = function() end,
+    SummonPetByGUID = function() summonCalls = (summonCalls or 0) + 1 end,
     GetPetInfoBySpeciesID = function(sid)
         if sid == 5159 then return "Panda Cub", 7831521, 5, 272330 end
         return "Species " .. sid, 1
     end,
 }
 GetFramerate = function() return 60 end
-UnitName = function() return "Tester", "Surname" end
+UnitName = function(u)
+    if u == nil or u == "player" then return "Tester", "Surname" end
+    local i = tonumber(tostring(u):match("^party(%d)$"))
+    if i and group[i] then return group[i][1], group[i][2] end
+end
 UnitGUID = function() return "Player-0000-00000001" end
 GetPlayerInfoByGUID = function() return "Warrior", "WARRIOR", "Human", "Human", 2, "Tester", "" end
 GetAutoCompleteRealms = function() return { "Realm", "OtherRealm" } end
@@ -372,6 +390,13 @@ assert(R:Holder(PANDA) == nil, "Release button should release")
 assert(card.reserve.text == "Reserve", "card should offer Reserve after release")
 card.reserve:Click()
 assert(R:Holder(PANDA) == "Tester Surname", "Reserve button should claim")
+-- Counter and Auto-summon checkbox (default on; unticking turns it off).
+assert(card.counter.text:find("reserved of"), card.counter.text)
+assert(card.auto.checked == true, "auto-summon should default to on")
+card.auto:SetChecked(false); card.auto:Click()
+assert(ns.DB.char.autoSummon == false and not ns.Summon:Enabled())
+card.auto:SetChecked(true); card.auto:Click()
+assert(ns.DB.char.autoSummon == true)
 -- Someone else's pet: no button.
 PetJournalPetCard.speciesID = 1
 PetJournal_UpdatePetCard(PetJournalPetCard)
@@ -399,7 +424,43 @@ assert(Hover("mouseover") == "", "non-holder's copy must not show")
 assert(ns.Tooltip:OwnerOf("x", { {}, { leftText = "Ola Nord's Companion" } }) == "Ola Nord")
 assert(ns.Tooltip:OwnerOf("x", { {}, { leftText = "Pet Level 1 Critter" } }) == nil)
 
--- 11. Release.
+-- 11. Auto-summon: waits while busy, summons when idle, gives up after 3 tries.
+assert(R:MyPet() == PANDA)
+local realSummoned = C_PetJournal.GetSummonedPetGUID
+C_PetJournal.GetSummonedPetGUID = function() return nil end -- pet missing, and stays missing
+summonCalls = 0
+local casting = true
+UnitCastingInfo = function() return casting and "Fishing" or nil end
+ns.Summon:Check("test")
+assert(summonCalls == 0, "must not summon while casting")
+casting = false
+Flush(4) -- the retry fires and we're idle now
+assert(summonCalls == 1, "should summon once idle, got " .. summonCalls)
+Flush(30)
+assert(summonCalls == 3, "should stop after 3 attempts, got " .. summonCalls)
+Flush(60)
+assert(summonCalls == 3, "no more attempts after giving up")
+-- Battlegrounds: no summon and no polling.
+IsInInstance = function() return true, "pvp" end
+ns.Summon:Check("test")
+Flush(10)
+assert(summonCalls == 3, "no summon in battlegrounds")
+IsInInstance = function() return false, "none" end
+C_PetJournal.GetSummonedPetGUID = realSummoned
+
+-- 12. Report: Ola (addon, no pet) is called out, Kari (no answer) is unknown.
+group = { { "Ola", "Nord" }, { "Kari", "Berg" } }
+SlashCmdList.DYREPARKEN("report")
+FromPeer("Ola Nord", "PET", { out = false })
+-- (the PARTY channel is what matters for PET_REQ; FromPeer sends on GUILD,
+-- which the PET handler doesn't check)
+Flush(4)
+assert(#chatSent == 1 and chatSent[1][2] == "PARTY" and chatSent[1][1]:find("Ola Nord") and not chatSent[1][1]:find("Kari"),
+    "report chat: " .. tostring(chatSent[1] and chatSent[1][1]))
+assert(Printed("Unknown %(no addon%): Kari Berg"), "unknown list")
+group = {}
+
+-- 13. Release.
 SlashCmdList.DYREPARKEN("release")
 assert(R:Holder(PANDA) == nil and Printed("Released Panda Cub"))
 SlashCmdList.DYREPARKEN("list")

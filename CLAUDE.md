@@ -59,6 +59,12 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 - Released when the owner leaves the guild, or after 30 days unseen. Nicknames unlock after 7 days, max 20
   characters (`ns.Config`).
 - Auto-summon turns itself off if AutoCompanion is loaded.
+- `/dp report` checks addon users only. It calls out those without a companion in group chat and lists non-users
+  locally as unknown.
+- Auto-summon only when idle: not in combat, mounted, on a taxi, flying, dead, stealthed, sitting, eating/drinking,
+  casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by the per-character
+  "Auto-summon" checkbox in the journal (default on).
+- Counter: "x reserved of y known", where known = species this client has come across (owned, reserved, hovered).
 - No officer force-release for now: release only happens by the owner, by leaving the guild, or after inactivity.
   Build it later if it turns out to be needed.
 - Anyone can run a version check. Only the group leader or an assist can start games.
@@ -69,6 +75,10 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 
 ## Open questions (ask the user before deciding)
 
-- Report: how to see other players' companions (only addon users via comms, or unit scanning)?
-- Which states block auto-summon (mounted, taxi, stealth, sitting, eating, BG/arena)?
-- The guild "missing companions" list needs a master list of Forever companions. Where should it come from?
+- Whisper targets with surnames ("First Surname") are unverified, so all replies go on the group/guild channel for now.
+- `UnitStandState` existence on Forever is unverified (sitting detection is skipped if it's missing).
+
+## Future additions
+
+- A full list of Forever companions compiled from wowhead data. It would replace "known" (species this client has
+  seen) as the denominator in "x reserved of y known", and enable a "companions the guild is missing" list.

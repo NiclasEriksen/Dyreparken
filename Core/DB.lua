@@ -24,6 +24,7 @@ local ACCOUNT_DEFAULTS = {
     guilds = {},
     games = { history = {} },
     settings = {},
+    known = {}, -- [speciesID] = true, see Pets:NoteKnown
 }
 
 local CHAR_DEFAULTS = {

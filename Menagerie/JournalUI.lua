@@ -18,6 +18,7 @@ local _, ns = ...
 --  * owner / nickname / date lines in the list button tooltip
 --  * a status line on the pet card, plus Reserve/Release and Nickname buttons
 --    (right of the Summon button, which on Forever sits bottom left)
+--  * "x reserved of y known" on the card, an Auto-summon checkbox
 local JournalUI = {}
 ns.JournalUI = JournalUI
 
@@ -139,8 +140,17 @@ local function CardSpecies()
     if c.petID then return (C_PetJournal.GetPetInfoByPetID(c.petID)) end
 end
 
+local function UpdateExtras()
+    card.counter:SetText(("Guild: %d reserved of %d known"):format(ns.Registry:Count(), ns.Pets:KnownCount()))
+    local deferring = ns.Summon:Deferring()
+    card.auto:SetChecked(ns.DB.char.autoSummon and not deferring)
+    card.auto:SetEnabled(not deferring)
+    card.autoLabel:SetTextColor(deferring and 0.5 or 1, deferring and 0.5 or 0.82, deferring and 0.5 or 0)
+end
+
 local function UpdateCard()
     if not card.status then return end
+    UpdateExtras()
     local sid = CardSpecies()
     if not sid then
         card.status:SetText("")
@@ -221,6 +231,35 @@ local function BuildCard()
     end)
     card.nick:SetScript("OnLeave", function() GameTooltip:Hide() end)
     card.nick:Hide()
+
+    -- "x reserved of y known": y = every species this client has come across
+    -- (see Pets:NoteKnown). Top right of the card.
+    card.counter = c:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    card.counter:SetPoint("TOPRIGHT", c, "TOPRIGHT", -12, -12)
+
+    -- Auto-summon toggle (per character, default on), bottom right of the
+    -- journal. Greyed out while AutoCompanion is loaded, which takes over.
+    card.auto = CreateFrame("CheckButton", nil, PetJournal, "UICheckButtonTemplate")
+    card.auto:SetSize(24, 24)
+    card.auto:SetPoint("BOTTOMRIGHT", PetJournal, "BOTTOMRIGHT", -96, 3)
+    card.autoLabel = card.auto:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    card.autoLabel:SetPoint("LEFT", card.auto, "RIGHT", 2, 0)
+    card.autoLabel:SetText("Auto-summon")
+    card.auto:SetMotionScriptsWhileDisabled(true)
+    card.auto:SetScript("OnClick", function(self)
+        ns.Summon:SetEnabled(self:GetChecked() and true or false)
+    end)
+    card.auto:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        if ns.Summon:Deferring() then
+            GameTooltip:SetText("AutoCompanion is loaded and handles summoning.")
+        else
+            GameTooltip:SetText("Auto-summon")
+            GameTooltip:AddLine("Summon your reserved companion when it's missing and you're idle.", 1, 1, 1, true)
+        end
+        GameTooltip:Show()
+    end)
+    card.auto:SetScript("OnLeave", function() GameTooltip:Hide() end)
 end
 
 ------------------------------------------------------------------------------
@@ -279,6 +318,7 @@ local function OnJournalLoaded()
     end
     if PetJournal_UpdatePetCard then hooksecurefunc("PetJournal_UpdatePetCard", UpdateCard) end
     PetJournal:HookScript("OnShow", function()
+        ns.Pets:NoteOwnedKnown()
         ns.Guild:Refresh()
         JournalUI:Refresh()
     end)
