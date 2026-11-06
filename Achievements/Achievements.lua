@@ -1,6 +1,6 @@
 local _, ns = ...
 
--- Personal achievements: evaluation, saved state, notices and sharing.
+-- Achievements: evaluation, saved state, notices, sharing, and guild sync.
 -- The plan and its decisions are in docs/ACHIEVEMENTS.md.
 --
 -- WHAT COUNTS: pets marked `a` in Data/Companions.lua (obtainable in game,
@@ -28,13 +28,31 @@ local _, ns = ...
 -- and posting to guild chat is the player's choice: /dp ach share (later a
 -- button in the panel).
 --
+-- GUILD ACHIEVEMENTS (scope "guild", ids "guild:...") come from the registry
+-- every client already has, so every client works them out itself:
+--   DB:Guild().ach[id]     = { at = earned, ann = shared, q = quiet } -- synced
+--   DB:Guild().achSeen[id] = true                                      -- local only
+-- Merge: earliest `at`, earliest `ann`. `q` marks one first noticed by a
+-- client looking for the first time (a fresh install): nobody prints a line
+-- for it, but officers can still share it. It only affects that first print,
+-- so it isn't merged or part of the digest.
+-- They ride on the registry sync (digest, SYNC) plus ACH { a = { [id] = rec } }
+-- for news. A client that finds a new one prints one line, then waits 2-8 s
+-- before broadcasting and stays quiet if someone else's ACH arrives first,
+-- so a whole online guild doesn't send it at once. Only an officer or the GM
+-- can share one to guild chat. Ids from newer versions are kept and relayed
+-- (not shown), so digests still agree across versions.
+--
 -- Dormant: checks run at login, when a pet is learned (NEW_PET_ADDED), when
--- the journal opens, and when your own adoption changes. No polling.
+-- the journal opens, when your own adoption changes, and (debounced) when
+-- the registry changes. No polling.
 local Ach = {}
 ns.Achievements = Ach
 
 local DAY = 86400
 local NOTICE_MAX = 20 -- ids per ACH_EARNED; more than any real batch
+local GUILD_MAX = 64  -- records per ACH / SYNC we accept
+local GUILD_DEBOUNCE = 5
 
 local defsById = {}
 for _, d in ipairs(ns.AchDefs) do defsById[d.id] = d end
@@ -55,6 +73,12 @@ local function Store(scope)
     if scope == "char" then return ns.DB.char.ach end
     return ns.DB.global.ach
 end
+
+local function IsOfficer()
+    local GI = C_GuildInfo
+    return (GI and GI.IsGuildOfficer and GI.IsGuildOfficer()) or (IsGuildLeader and IsGuildLeader()) or false
+end
+Ach.IsOfficer = IsOfficer
 
 ------------------------------------------------------------------------------
 -- Evaluation
@@ -108,6 +132,25 @@ function Eval.nick(d, ctx)
     local has = (r and r.k and r.n) and 1 or 0
     return has == 1, has, 1
 end
+function Eval.guildcount(d, ctx)
+    if ctx.total < d.n then return nil end
+    return ctx.caredCount >= d.n, math.min(ctx.caredCount, d.n), d.n
+end
+function Eval.guildall(d, ctx)
+    if ctx.total == 0 then return nil end
+    return ctx.caredCount >= ctx.total, ctx.caredCount, ctx.total
+end
+function Eval.guildfamily(d, ctx)
+    local need, have = 0, 0
+    for sid, e in pairs(ctx.counting) do
+        if HasTag(e, d.tag) then
+            need = need + 1
+            if ctx.cared[sid] then have = have + 1 end
+        end
+    end
+    if need == 0 then return nil end
+    return have == need, have, need
+end
 
 local function Context()
     local ctx = { now = ns.Now(), owned = {}, have = 0, ownedCount = 0 }
@@ -121,6 +164,15 @@ local function Context()
         end
     end
     ctx.record = ns.Registry:MyRecord()
+    -- Counting pets someone in the guild cares for (one pet per member).
+    ctx.cared, ctx.caredCount = {}, 0
+    for key in pairs(ns.Registry:Holders()) do
+        local sid = ns.Pets:SpeciesOfKey(key)
+        if sid and ctx.counting[sid] and not ctx.cared[sid] then
+            ctx.cared[sid] = true
+            ctx.caredCount = ctx.caredCount + 1
+        end
+    end
     return ctx
 end
 
@@ -158,14 +210,125 @@ local function Run(scope, ctx, quietAll, new)
     return quiet
 end
 
+------------------------------------------------------------------------------
+-- Guild scope
+------------------------------------------------------------------------------
+local outgoing, outgoingTimer = {}, nil -- ids we found and will broadcast
+
+local function GuildName() return (GetGuildInfo("player")) end
+
+local function GuildLine(ids)
+    local names = {}
+    for _, id in ipairs(ids) do names[#names + 1] = Ach:Link(id) end
+    local last = table.remove(names)
+    local list = #names > 0 and (table.concat(names, ", ") .. " og " .. last) or last
+    return T().guild_earned:format(GuildName() or "?", list)
+end
+
+local function Appeared(ids)
+    if #ids == 0 then return end
+    ns.Print(GuildLine(ids))
+    if IsOfficer() then ns.Print(T().guild_hint) end
+end
+
+local function Broadcast()
+    outgoingTimer = nil
+    local g = ns.DB:Guild()
+    if not g then outgoing = {}; return end
+    local a, n = {}, 0
+    for id in pairs(outgoing) do
+        if g.ach[id] then a[id] = g.ach[id]; n = n + 1 end
+    end
+    outgoing = {}
+    if n > 0 then ns.Comm:Send("ACH", { a = a }, "GUILD") end
+end
+
+local function QueueBroadcast(id)
+    outgoing[id] = true
+    if outgoingTimer then return end
+    local token = {}
+    outgoingTimer = token
+    C_Timer.After(2 + math.random() * 6, function()
+        if outgoingTimer == token then Broadcast() end
+    end)
+end
+
+local function RunGuild(ctx, new)
+    local g = ns.DB:Guild()
+    if not g then return 0 end
+    local quiet = 0
+    for _, d in ipairs(ns.AchDefs) do
+        if Scope(d) == "guild" then
+            local done = Ach:Evaluate(d, ctx)
+            if done ~= nil then
+                local firstLook = not g.achSeen[d.id]
+                g.achSeen[d.id] = true
+                if done and not g.ach[d.id] then
+                    g.ach[d.id] = { at = ctx.now, q = firstLook or nil }
+                    QueueBroadcast(d.id)
+                    if firstLook then quiet = quiet + 1 else new[#new + 1] = d.id end
+                end
+            end
+        end
+    end
+    return quiet
+end
+
+local function ValidGuildRecord(id, rec)
+    return type(id) == "string" and #id <= 64 and id:find("^guild:[%w:_]+$") ~= nil
+        and type(rec) == "table" and type(rec.at) == "number" and rec.at > 0
+        and (rec.ann == nil or (type(rec.ann) == "number" and rec.ann > 0))
+        and (rec.q == nil or rec.q == true)
+end
+
+-- Merge guild records from a peer (ACH or SYNC). Returns true if anything
+-- changed. Records new to us that aren't quiet get one line.
+function Ach:MergeGuild(list)
+    local g = ns.DB:Guild()
+    if not g or type(list) ~= "table" then return false end
+    local changed, seen, appeared = false, 0, {}
+    for id, rec in pairs(list) do
+        seen = seen + 1
+        if seen > GUILD_MAX then break end
+        if ValidGuildRecord(id, rec) then
+            outgoing[id] = nil -- someone said it for us
+            local cur = g.ach[id]
+            if not cur then
+                g.ach[id] = { at = rec.at, ann = rec.ann, q = rec.q }
+                changed = true
+                if defsById[id] and not rec.q then appeared[#appeared + 1] = id end
+            else
+                if rec.at < cur.at then cur.at = rec.at; changed = true end
+                if rec.ann and (cur.ann == nil or rec.ann < cur.ann) then cur.ann = rec.ann; changed = true end
+            end
+        end
+    end
+    table.sort(appeared)
+    Appeared(appeared)
+    if changed then ns.Bus:Fire("ACH") end
+    return changed
+end
+
+-- For the sync: every guild record (including ids from newer versions).
+function Ach:GuildRecords()
+    local g = ns.DB:Guild()
+    return g and g.ach or {}
+end
+
+function Ach:DigestParts(parts)
+    for id, rec in pairs(self:GuildRecords()) do
+        parts[#parts + 1] = "a" .. id .. "\31" .. rec.at .. "\31" .. tostring(rec.ann or "-")
+    end
+end
+
 local summarized -- the "you already have N" line, once per session
 local learned = 0 -- NEW_PET_ADDED events since the last account check
 
--- which: "account", "char", or nil for both.
+-- which: "account", "char", "guild", or nil for all.
 function Ach:Check(reason, which)
     local ctx = Context()
     local new, quiet = {}, 0
-    if which ~= "char" then
+    if which == nil or which == "account" then
         -- No pets at all: the journal isn't ready (or truly empty). Either
         -- way there's nothing to judge, and marking definitions as seen now
         -- would turn the real collection into a flood of "new" ones later.
@@ -176,30 +339,40 @@ function Ach:Check(reason, which)
             acc.owned, learned = ctx.ownedCount, 0
         end
     end
-    if which ~= "account" then
+    if which == nil or which == "char" then
         quiet = quiet + Run("char", ctx, false, new)
     end
-    ns.Log("Ach", "check (%s): %d new, %d quiet", tostring(reason), #new, quiet)
+    local newGuild = {}
+    if which == nil or which == "guild" then
+        RunGuild(ctx, newGuild)
+        Appeared(newGuild)
+    end
+    ns.Log("Ach", "check (%s): %d new, %d quiet, %d guild", tostring(reason), #new, quiet, #newGuild)
     if quiet > 0 and not summarized then
         summarized = true
         ns.Print(T().already:format(self:Count()))
     end
     if #new > 0 then self:Notify(new) end
-    if #new > 0 or quiet > 0 then ns.Bus:Fire("ACH") end
+    if #new > 0 or quiet > 0 or #newGuild > 0 then ns.Bus:Fire("ACH") end
 end
 
 -- How many achievements this character has (account + char).
 function Ach:Count()
     local n = 0
     for _, d in ipairs(ns.AchDefs) do
-        if Store(Scope(d)).got[d.id] then n = n + 1 end
+        if Scope(d) ~= "guild" and Store(Scope(d)).got[d.id] then n = n + 1 end
     end
     return n
 end
 
 function Ach:Got(id)
     local d = defsById[id]
-    return d and Store(Scope(d)).got[id]
+    if not d then return nil end
+    if Scope(d) == "guild" then
+        local g = ns.DB:Guild()
+        return g and g.ach[id]
+    end
+    return Store(Scope(d)).got[id]
 end
 
 ------------------------------------------------------------------------------
@@ -258,24 +431,34 @@ function Ach:ShareLine(id, ctx)
         local done, have, need = self:Evaluate(d, ctx)
         if done ~= nil then progress = self:Progress(d, have, need) end
     end
-    local values = { player = ns.PlayerKey(), name = self:Link(id), progress = progress }
+    local values = { player = ns.PlayerKey(), name = self:Link(id), progress = progress, guild = GuildName() or "" }
     return ((t.flavor or T().share):gsub("{(%a+)}", function(k) return values[k] end))
 end
 
 -- Post every earned, unshared achievement to guild chat. Only from a
 -- keypress or click (/dp ach share, the panel's button): Forever blocks
 -- guild chat from anything else.
+-- Can this player share this achievement now?
+function Ach:Shareable(id)
+    local d, g = defsById[id], self:Got(id)
+    if not (d and g) or g.ann ~= nil then return false end
+    return Scope(d) ~= "guild" or IsOfficer()
+end
+
 function Ach:Share()
     if not IsInGuild() then return ns.Print(T().not_in_guild) end
-    local ctx, n = Context(), 0
+    local ctx, n, guild = Context(), 0, {}
     for _, d in ipairs(ns.AchDefs) do
-        local g = Store(Scope(d)).got[d.id]
-        if g and g.ann == nil then
+        if self:Shareable(d.id) then
+            local g = self:Got(d.id)
             SendChatMessage(self:ShareLine(d.id, ctx), "GUILD")
             g.ann = ctx.now
             n = n + 1
+            if Scope(d) == "guild" then guild[d.id] = g end
         end
     end
+    -- Other officers' clients stop offering it.
+    if next(guild) then ns.Comm:Send("ACH", { a = guild }, "GUILD") end
     if n == 0 then ns.Print(T().none_to_share) else ns.Bus:Fire("ACH") end
 end
 
@@ -289,12 +472,12 @@ function Ach:List()
     local ctx, rows, got = Context(), {}, 0
     for _, d in ipairs(ns.AchDefs) do
         local done, have, need = self:Evaluate(d, ctx)
-        local g = Store(Scope(d)).got[d.id]
+        local g = self:Got(d.id)
         if done ~= nil or g then
             if g then
                 got = got + 1
                 rows[#rows + 1] = ("  |cff40ff40%s|r %s%s"):format(self:Link(d.id), date("%d.%m.%Y", g.at),
-                    g.ann == nil and " *" or "")
+                    self:Shareable(d.id) and " *" or "")
             else
                 rows[#rows + 1] = ("  |cff909090%s|r %s"):format(self:Link(d.id), self:Progress(d, have, need))
             end
@@ -318,4 +501,20 @@ function Ach:Init()
         end)
     end)
     ns.Bus:On("MY_RECORD", function() Ach:Check("MY_RECORD", "char") end)
+
+    ns.Comm:Register("ACH", function(msg, sender, channel)
+        if channel ~= "GUILD" or msg.p ~= ns.PROTOCOL then return end
+        Ach:MergeGuild(msg.a)
+    end)
+    -- The registry changes in bursts (a SYNC merges many records): check
+    -- the guild ones once it settles.
+    local guildPending
+    ns.Bus:On("REGISTRY", function()
+        if guildPending then return end
+        guildPending = true
+        C_Timer.After(GUILD_DEBOUNCE, function()
+            guildPending = false
+            Ach:Check("REGISTRY", "guild")
+        end)
+    end)
 end

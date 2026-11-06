@@ -4,8 +4,11 @@ local _, ns = ...
 --
 -- Messages (all on GUILD):
 --   HELLO  { v, d }        login announcement (Version.lua) with our digest
---   SYNC   { r, l, d }     full state: r[owner] = record, l[owner] = lapse,
+--   SYNC   { r, l, a, d }  full state: r[owner] = record, l[owner] = lapse,
+--                          a[id] = guild achievement (Achievements.lua),
 --                          d = the sender's digest after sending
+--   ACH    { a }           guild achievements someone just found or shared
+--                          (handled in Achievements.lua; part of the digest)
 --   UPD    { r }           the sender's own record changed
 --   LAPSE  { l }           lapses someone just noticed
 --
@@ -30,6 +33,7 @@ function Sync:Digest()
     local parts = {}
     for owner, r in pairs(claims) do parts[#parts + 1] = "c" .. owner .. "\31" .. r.ts end
     for owner, t in pairs(lapses) do parts[#parts + 1] = "l" .. owner .. "\31" .. t end
+    ns.Achievements:DigestParts(parts)
     if #parts == 0 then return 0 end
     table.sort(parts)
     return LibDeflate:Adler32(table.concat(parts, "\30"))
@@ -39,7 +43,8 @@ local function SendFull()
     pending = nil
     if not IsInGuild() then return end
     local claims, lapses = ns.Registry:All()
-    ns.Comm:Send("SYNC", { r = claims, l = lapses, d = Sync:Digest() }, "GUILD", nil, "BULK")
+    ns.Comm:Send("SYNC", { r = claims, l = lapses, a = ns.Achievements:GuildRecords(), d = Sync:Digest() },
+        "GUILD", nil, "BULK")
 end
 
 local function Schedule()
@@ -85,6 +90,7 @@ function Sync:Init()
     ns.Comm:Register("SYNC", function(msg)
         if not SameProtocol(msg) then return end
         MergeAll(msg.r, msg.l)
+        ns.Achievements:MergeGuild(msg.a)
         if Sync:Digest() == msg.d then
             Cancel() -- someone said it for us
         else

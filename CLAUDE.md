@@ -91,12 +91,14 @@ Core/Commands.lua  /dp slash commands (adopt, letgo, nick, list, sound, ach, ver
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
-                   merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/LAPSE),
+                   merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/LAPSE;
+                   the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp report), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
 Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
-                   /dp ach share). Plan and decisions: docs/ACHIEVEMENTS.md (read it first)
+                   /dp ach share; guild ones synced with the registry, ACH). Plan and decisions:
+                   docs/ACHIEVEMENTS.md (read it first)
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
 Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + hello)
 tools/check.sh     all offline checks (see Verify)

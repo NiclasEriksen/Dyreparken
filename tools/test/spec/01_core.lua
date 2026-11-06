@@ -179,19 +179,20 @@ return function(test, H)
         } }
         c:Login()
         local db = c.env.DyreparkenDB
-        eq(db.schema, 4)
+        eq(db.schema, 5)
         ok(db.guilds.Dyreparken and db.guilds.Dyreparken.claims and db.guilds.Dyreparken.lapses)
         no(db.guilds.Dyreparken.pets, "old shape dropped")
         ok(db.guilds["Annet Laug"].claims)
+        ok(db.guilds["Annet Laug"].ach and db.guilds["Annet Laug"].achSeen, "guild achievements (5)")
         ok(db.games.history and db.settings)
         eq(db.known, nil, "the known list is gone (4)")
         eq(c.env.DyreparkenCharDB.autoSummon, true)
-        eq(#c:Log("account migrated to 4"), 1)
+        eq(#c:Log("account migrated to 5"), 1)
 
         local d = w:AddClient("Kari Berg", { login = false })
         d.saved.DyreparkenDB = { schema = 0, junk = true }
         d:Login()
-        eq(d.env.DyreparkenDB.schema, 4)
+        eq(d.env.DyreparkenDB.schema, 5)
         no(d.env.DyreparkenDB.junk, "unmigratable data is wiped")
         eq(#d:Log("no migration 0%->1, resetting"), 1)
     end)

@@ -160,7 +160,15 @@ Coverage floor as for Menagerie (95%).
 3. ~~Core~~ (done 2026-11-06): definitions, evaluation, storage, first-run quiet, `ACH_EARNED` notices,
    `/dp ach share`. Tests in `12_achievements.lua`. The quiet rule uses `NEW_PET_ADDED`: the collection may
    grow by as many pets as were seen being learned since the last check; a bigger jump is quiet.
-4. Guild scope: sync, officer share. Tests.
+4. ~~Guild scope~~ (done 2026-11-06): `guild:count:10/25/50`, `guild:all`, `guild:family:cat`.
+   - Every client works them out from the registry.
+   - They're synced in the registry digest and SYNC, plus `ACH` for news. Merge: earliest `at` and `ann`.
+   - A client that finds one prints a line, then waits 2-8 s before broadcasting, and cancels if someone
+     else's `ACH` arrives first.
+   - A first look that finds one already met sets `q` (nobody prints a line). It doesn't touch `ann`, so
+     officers can still share it.
+   - Ids from newer versions are kept and relayed, not shown, so digests agree across versions.
+   - Tests in `13_guild_achievements.lua`.
 5. Panel.
 
 ## Decisions (2026-11-06)

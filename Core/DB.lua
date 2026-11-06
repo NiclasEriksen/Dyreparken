@@ -15,7 +15,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 4
+local SCHEMA = 5
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
@@ -56,6 +56,14 @@ local MIGRATIONS = {
     -- Data/Companions.lua now.
     [4] = function(db)
         db.known = nil
+    end,
+    -- 5: guild achievements, synced (ach) and what this client has looked at
+    -- (achSeen), see Achievements.lua.
+    [5] = function(db)
+        for _, g in pairs(db.guilds or {}) do
+            g.ach = g.ach or {}
+            g.achSeen = g.achSeen or {}
+        end
     end,
 }
 local CHAR_MIGRATIONS = {}
@@ -104,7 +112,7 @@ function DB:Guild()
     if not name then return nil end
     local g = self.global.guilds[name]
     if not g then
-        g = { claims = {}, lapses = {} }
+        g = { claims = {}, lapses = {}, ach = {}, achSeen = {} }
         self.global.guilds[name] = g
     end
     return g, name

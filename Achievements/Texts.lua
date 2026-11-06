@@ -10,6 +10,7 @@ local _, ns = ...
 --             {player}    the earner ("Ola Nord")
 --             {name}      the name in brackets ("[Alle kattene]")
 --             {progress}  "12/12"
+--             {guild}     the guild's name (guild achievements)
 --           Without a flavor the generic "share" line below is used.
 --
 -- The generic lines are format strings (%s), not placeholders.
@@ -26,6 +27,8 @@ ns.AchTexts = {
         notify_off = "Andre med Dyreparken får ikke lenger beskjed om prestasjonene dine.",
         list_header = "Prestasjoner (%d av %d):",
         days = "%d/%d dager",
+        guild_earned = "%s fikk %s!",                  -- Dyreparken fikk [Kattehuset]!
+        guild_hint = "Som offiser kan du dele det i guild-chatten med /dp ach share.",
     },
 
     -- Collection: pets you own that can be got in game (Data/Companions.lua).
@@ -69,4 +72,16 @@ ns.AchTexts = {
         flavor = "{player} har tatt vare på det samme kjæledyret i et helt år! {name}" },
     ["nick"] = { name = "Døpt", desc = "Gi kjæledyret ditt et kallenavn.",
         flavor = "{player} har gitt kjæledyret sitt et navn! {name}" },
+
+    -- Guild: the companions the guild cares for, all at once (one per member).
+    ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guildet tar vare på 10 kjæledyr samtidig.",
+        flavor = "Portene er åpne: {guild} tar vare på ti kjæledyr! {name}" },
+    ["guild:count:25"] = { name = "Full drift", desc = "Guildet tar vare på 25 kjæledyr samtidig.",
+        flavor = "{guild} tar vare på 25 kjæledyr! Dyreparken er i full drift. {name}" },
+    ["guild:count:50"] = { name = "Nordens største dyrepark", desc = "Guildet tar vare på 50 kjæledyr samtidig.",
+        flavor = "{guild} tar vare på 50 kjæledyr! {name}" },
+    ["guild:all"] = { name = "Hele parken", desc = "Guildet tar vare på alle kjæledyrene som finnes, samtidig.",
+        flavor = "Hvert eneste kjæledyr har et hjem i {guild}! {name}" },
+    ["guild:family:cat"] = { name = "Kattehuset", desc = "Hver katt har sin egen eier i guildet.",
+        flavor = "Hver eneste katt har fått sitt eget hjem i {guild}! {name}" },
 }

@@ -144,7 +144,7 @@ return function(test, H)
         c:Set("casting", "Fishing")
         c:Slash("claim panda")
         c:Zone(); c:LeaveCombat(); c:Dismount()
-        w:Run(4)
+        w:Run(5.5) -- past the guild achievements' 5 s debounce after claiming (not a summon timer)
         local pending = 0
         for _, t in ipairs(w.timers) do if t.client == c then pending = pending + 1 end end
         ok(pending <= 1, "at most one timer, got " .. pending)
