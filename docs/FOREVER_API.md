@@ -100,13 +100,15 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - **The Summon/Dismiss button (`PetJournalSummonButton`) sits at the bottom left of the journal**, under the list
   (unlike Retail). Our buttons are anchored to its right.
 - Guild roster: `GetGuildRosterInfo(i)` names are `"First Surname"` (no realm). `GetNumGuildMembers()` = 41 total,
-  6 online, and the full read was 41/41. `GetGuildRosterLastOnline(i)` returns nils for online members.
-  (unverified) the values for offline members.
+  6 online, and the full read was 41/41. `GetGuildRosterLastOnline(i)` returns nils for online members and
+  `years, months, days, hours` for offline ones (e.g. `0, 0, 0, 10` = 10 hours ago). Under an hour gives `0, 0, 0, 0`.
+- `PetJournal_InitPetButton` / `PetJournal_UpdatePetCard` only exist after `Blizzard_Collections` loads.
 - Another player's companion as `target`: `UnitIsBattlePetCompanion` = true, `UnitBattlePetSpeciesID` = 46
   (White Kitten), `UnitCreator` = nil, GUID `Creature-0-6864-1-2-7386-…` (npcID 7386). Tooltip lines:
   `"White Kitten"`, `"Gnikke Guri's Companion"`, `"Pet Level 1 Critter"`. The owner comes from line 2, matched with
   `UNITNAME_TITLE_COMPANION`.
-- (unverified) whether the unit species ID (46 for the kitten) uses the journal's numbering (Panda Cub = 5159).
+- **Unit and journal species IDs match**: your own Panda Cub as a unit reports `UnitBattlePetSpeciesID` = 5159, the
+  same as the journal. Its GUID is `Creature-0-6845-1-1-272330-…`, and npcID 272330 equals the journal's creatureID.
 
 ## Addon messages
 

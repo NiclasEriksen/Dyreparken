@@ -69,8 +69,6 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 
 ## Open questions (ask the user before deciding)
 
-- World tooltips assume `UnitBattlePetSpeciesID` uses the journal's species numbering. Verify with
-  `/dp probe more` while targeting your own companion.
 
 - Report: how to see other players' companions (only addon users via comms, or unit scanning)?
 - Which states block auto-summon (mounted, taxi, stealth, sitting, eating, BG/arena)?
