@@ -40,7 +40,8 @@ local KNOWN_EVENTS = {}
 for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER_LEAVING_WORLD
     PLAYER_REGEN_ENABLED PLAYER_REGEN_DISABLED PLAYER_MOUNT_DISPLAY_CHANGED CHAT_MSG_ADDON
     GUILD_ROSTER_UPDATE PLAYER_GUILD_UPDATE GROUP_ROSTER_UPDATE COMPANION_UPDATE BAG_UPDATE_DELAYED
-    UNIT_AURA ZONE_CHANGED_NEW_AREA PLAYER_TARGET_CHANGED UPDATE_MOUSEOVER_UNIT]]):gmatch("%S+") do
+    UNIT_AURA ZONE_CHANGED_NEW_AREA PLAYER_TARGET_CHANGED UPDATE_MOUSEOVER_UNIT CHAT_MSG_GUILD
+    CHAT_MSG_PARTY CHAT_MSG_RAID NEW_PET_ADDED PET_JOURNAL_LIST_UPDATE]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -452,7 +453,8 @@ local function SpeciesName(sid) return H.SPECIES[sid] or ("Species " .. tostring
 --   realm (adds "-Realm" to the sender name on the wire), version (TOC Version),
 --   protocol (X-Protocol), trial (can't send addon messages), addons ({ "AutoCompanion" }),
 --   login (false: create offline), debug (false: debug log off),
---   patch (function(env, c): change the stub API before the addon loads)
+--   patch (function(env, c): change the stub API before the addon loads),
+--   rank (guild rank index: 0 guild master, 1 officer, default 3 member)
 function World:AddClient(name, opts)
     opts = opts or {}
     assert(not self.byName[name], "duplicate client " .. name)
@@ -465,7 +467,7 @@ function World:AddClient(name, opts)
         trial = opts.trial, addons = opts.addons or {}, saved = {}, online = false,
         pets = {}, errors = {}, printed = {},
         state = { stand = 0, auras = {}, instance = "none" },
-        idx = #self.clients + 1, patch = opts.patch,
+        idx = #self.clients + 1, patch = opts.patch, rank = opts.rank or 3,
     }, Client)
     if opts.debug ~= false then c.saved.DyreparkenDebugDB = { enabled = true } end
     for _, sid in ipairs(opts.pets or { 5159 }) do c:GivePet(sid) end
@@ -881,7 +883,9 @@ function Client:BuildEnv()
 
     -- Guild
     env.IsInGuild = function() return c.guild ~= nil end
-    env.GetGuildInfo = function(u) if c.guild then return c.guild, "Member", 3, nil end end
+    local RANKS = { [0] = "Guild Master", [1] = "Officer" }
+    env.GetGuildInfo = function(u) if c.guild then return c.guild, RANKS[c.rank] or "Member", c.rank, nil end end
+    env.IsGuildLeader = function() return c.guild ~= nil and c.rank == 0 end
     local function Rows() return c.guild and w:Roster(c.guild) or {} end
     env.GetNumGuildMembers = function()
         local rows, online = Rows(), 0
@@ -900,7 +904,9 @@ function Client:BuildEnv()
         local d = r.days
         return math.floor(d / 365), math.floor((d % 365) / 30), (d % 365) % 30, 0
     end
-    env.C_GuildInfo = { GuildRoster = function()
+    env.C_EventUtils = { IsEventValid = function(e) return KNOWN_EVENTS[e] == true end }
+    env.C_GuildInfo = { IsGuildOfficer = function() return c.guild ~= nil and c.rank <= 1 end,
+        GuildRoster = function()
         c.rosterRequests = (c.rosterRequests or 0) + 1
         if c.rosterIgnored then return end
         w:Timer(c, 0.3, function() c:Fire("GUILD_ROSTER_UPDATE", false) end)
@@ -918,7 +924,23 @@ function Client:BuildEnv()
     env.UnitIsGroupAssistant = function() return c.assist == true end
     env.UnitInParty = function(u) return u == "player" and w:GroupOf(c.name) ~= nil end
     env.UnitInRaid = function(u) return u == "player" and env.IsInRaid() and 1 or nil end
-    env.SendChatMessage = function(text, chan) w.chat[#w.chat + 1] = { from = c.name, text = text, chan = chan } end
+    -- Guild and group chat come back to every online member, the sender included.
+    -- c.chatBlocked = "error" | "silent" simulates a client that refuses.
+    env.SendChatMessage = function(text, chan)
+        if c.chatBlocked == "error" then error("SendChatMessage: blocked", 2) end
+        if c.chatBlocked == "silent" then return end
+        w.chat[#w.chat + 1] = { from = c.name, text = text, chan = chan }
+        local g = w:GroupOf(c.name)
+        w:Timer(c, LATENCY, function()
+            for _, r in ipairs(w.clients) do
+                if r.online and chan == "GUILD" and c.guild and r.guild == c.guild then
+                    r:Fire("CHAT_MSG_GUILD", text, c.name)
+                elseif r.online and (chan == "PARTY" or chan == "RAID") and g and w:GroupOf(r.name) == g then
+                    r:Fire("CHAT_MSG_" .. chan, text, c.name)
+                end
+            end
+        end)
+    end
 
     -- Timers
     env.C_Timer = {

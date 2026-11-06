@@ -146,8 +146,18 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - Chat types: PARTY, RAID, INSTANCE_CHAT, GUILD, OFFICER, WHISPER. No CHANNEL broadcast assumed.
 - **Trial and Veteran accounts can't send addon messages** on Forever (patch 1.60.1). They can still receive.
 - Messages are untrusted: anyone can send anything on our prefix. Validate types before use.
-- `SendChatMessage` restrictions on Forever: (unverified). Posting to RAID/PARTY from a slash command should be
-  fine; test before relying on it from timers or events.
+- **`SendChatMessage(..., "GUILD")` from a timer is blocked** (probed 2026-11-06, build 70790, `/dp probe ach
+  post`). It raises `ADDON_ACTION_BLOCKED` ("tried to call the protected function 'UNKNOWN()'"), `pcall` doesn't
+  see an error, and nothing reaches chat. So posting needs a hardware event (a keypress or click), like
+  SAY/YELL on Retail. **GUILD straight from a slash command works** (`/dp probe ach now`, same day): no error,
+  and the line reached guild chat. PARTY/RAID are unprobed (`/dp probe ach group|groupnow`). `/dp report`
+  posts from a timer, so it's probably blocked in groups.
+- `C_ChatInfo.SendChatMessage` exists alongside the global `SendChatMessage`.
+- Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
+  `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
+- Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns
+  `name, rankName, rankIndex, realm`, e.g. `Dyreparken, Dyrepasser, 1, CAMWOWEU4Realm5PvE`. `IsGuildLeader()`
+  exists.
 
 ## SavedVariables
 

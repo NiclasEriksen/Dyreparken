@@ -124,6 +124,63 @@ local function Pack(...)
     return table.concat(parts, ", ")
 end
 
+-- Achievements need three things this client hasn't shown yet
+-- (docs/ACHIEVEMENTS.md, build order step 1): whether an addon may post to
+-- guild chat from a timer, which event says "you learned a pet", and how to
+-- tell an officer. A test line can be posted (and checked that it came
+-- back) to guild or group chat, either straight from the command (a keypress)
+-- or 2 s later from a timer.
+-- Found 2026-11-06: guild chat from a timer is blocked (ADDON_ACTION_BLOCKED).
+local PROBE_TEXT = "Dyreparken: test message from /dp probe ach (please ignore)."
+
+-- mode: nil (APIs only), "post" (guild, timer), "now" (guild, keypress),
+-- "group" (party/raid, timer), "groupnow" (party/raid, keypress)
+function Pets:ProbeAch(mode)
+    local GI = C_GuildInfo
+    Out("guild: GetGuildInfo=%s | IsGuildLeader=%s | C_GuildInfo.IsGuildOfficer=%s",
+        Pack(GetGuildInfo("player")), IsGuildLeader and tostring(IsGuildLeader()) or "missing",
+        GI and GI.IsGuildOfficer and tostring(GI.IsGuildOfficer()) or "missing")
+    local valid = C_EventUtils and C_EventUtils.IsEventValid
+    for _, e in ipairs({ "NEW_PET_ADDED", "PET_JOURNAL_LIST_UPDATE", "COMPANION_LEARNED", "CHAT_MSG_GUILD",
+        "CHAT_MSG_PARTY" }) do
+        Out("event %s: %s", e, valid and tostring(valid(e)) or "C_EventUtils.IsEventValid missing")
+    end
+    Out("chat: SendChatMessage=%s | C_ChatInfo.SendChatMessage=%s", type(SendChatMessage),
+        C_ChatInfo and type(C_ChatInfo.SendChatMessage) or "missing")
+    if not mode then
+        Out("Test posts: '/dp probe ach post|now' (guild chat), 'group|groupnow' (party/raid chat);"
+            .. " plain = from a timer, now = straight from the command.")
+        return
+    end
+    local group = mode == "group" or mode == "groupnow"
+    local chan, event
+    if group then
+        if not IsInGroup() then return Out("Not in a group: nothing posted.") end
+        chan = IsInRaid() and "RAID" or "PARTY"
+        event = IsInRaid() and "CHAT_MSG_RAID" or "CHAT_MSG_PARTY"
+    else
+        if not IsInGuild() then return Out("Not in a guild: nothing posted.") end
+        chan, event = "GUILD", "CHAT_MSG_GUILD"
+    end
+    local how = (mode == "now" or mode == "groupnow") and "the command" or "a timer"
+    local echoed = false
+    ns.Events:On(event, Pets, function(_, _, text)
+        -- The text may be a secret value; comparing one can throw.
+        local ok, same = pcall(function() return text == PROBE_TEXT end)
+        if ok and same then echoed = true end
+    end)
+    local function Post()
+        local send = C_ChatInfo and C_ChatInfo.SendChatMessage or SendChatMessage
+        local ok, err = pcall(send, PROBE_TEXT, chan)
+        Out("%s post from %s: %s", chan, how, ok and "no error" or ("error: " .. tostring(err)))
+        C_Timer.After(5, function()
+            ns.Events:Off(event, Pets)
+            Out("%s post from %s reached chat: %s", chan, how, tostring(echoed))
+        end)
+    end
+    if how == "a timer" then C_Timer.After(2, Post) else Post() end
+end
+
 function Pets:Probe()
     local PJ = C_PetJournal
     Out("build: %s", Pack(GetBuildInfo()))
