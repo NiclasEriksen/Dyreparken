@@ -99,6 +99,9 @@ GetAutoCompleteRealms = function() return { "Realm", "OtherRealm" } end
 GetBuildInfo = function() return "1.60.1", "70790", "Nov 4 2026", 16001 end
 Ambiguate = function(n) return n end
 
+-- Saved data as schema 1 left it, to exercise migrations.
+DyreparkenDB = { schema = 1, guilds = { ["Dyreparken-CAMWOWEU4Realm5PvE"] = { pets = {}, members = {} } } }
+
 -- Load TOC ---------------------------------------------------------------------
 local ns = {}
 local toc = assert(io.open(ADDON .. ".toc")):read("*a")
@@ -138,15 +141,17 @@ for i = before + 1, #sentAddon do
     local m = sentAddon[i]
     Fire("CHAT_MSG_ADDON", m[1], m[2], m[3], "Other Person")
 end
-assert(got and got.sender == "Other Person-Realm" and #got.msg.list == 200 and got.msg.list[200] == big[200],
+assert(got and got.sender == "Other Person" and #got.msg.list == 200 and got.msg.list[200] == big[200],
     "multi-chunk round trip failed")
 
--- Identity (Forever names have surnames; senders omit our own realm).
-assert(ns.PlayerKey() == "Tester Surname-Realm", ns.PlayerKey())
+-- Identity: "First Surname", realms ignored.
+assert(ns.PlayerKey() == "Tester Surname", ns.PlayerKey())
 assert(ns.NormalizeName("Tester Surname") == ns.PlayerKey())
-assert(ns.NormalizeName("Ola Nord-OtherRealm") == "Ola Nord-OtherRealm")
-assert(ns.NormalizeName("Kari Berg-Hansen") == "Kari Berg-Hansen-Realm", "hyphenated surname")
-assert(ns.DisplayName("Tester Surname-Realm") == "Tester Surname")
+assert(ns.NormalizeName("Tester Surname-Realm") == ns.PlayerKey())
+assert(ns.NormalizeName("Ola Nord-CAMWOWEU4Realm5PvE") == "Ola Nord", "unknown realm by pattern")
+assert(ns.NormalizeName("Kari Berg-Hansen") == "Kari Berg-Hansen", "hyphenated surname")
+-- Migration 2 rekeyed guilds without realm.
+assert(ns.DB:Guild() == DyreparkenDB.guilds["Dyreparken"])
 -- Our own echo must be ignored.
 local echoed
 ns.Comm:Register("ECHO", function() echoed = true end)

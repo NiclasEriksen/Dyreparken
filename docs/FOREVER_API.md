@@ -25,9 +25,12 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
   differ from the player's realm. The guild spans connected realms.
 - `GetAutoCompleteRealms()` returns a table (connected realms, normalized).
 - `UnitGUID("player")` looks like `Player-6841-001BD719`. `WOW_PROJECT_ID == WOW_PROJECT_CAMELOT == 18`.
-- Our key: `"First Surname-NormalizedRealm"` (`ns.PlayerKey`, `ns.NormalizeName`). A suffix after the last `-`
-  counts as a realm only if it's a known realm, or it looks like the `CAMWOW…<digit>…` pattern. That's a heuristic for
-  realms that aren't connected.
+- **Realms are ignored** (decided 2026-11-06). On Forever they're an under-the-hood detail: players move between them
+  without noticing, and only the ruleset is visible. A key with a realm in it can change silently. Player key =
+  `"First Surname"` (`ns.PlayerKey`). Guild key = guild name. `ns.NormalizeName` strips a sender's `-Realm` suffix.
+  A suffix counts as a realm if it's a known/connected realm or matches the `CAMWOW…<digit>…` pattern, so
+  hyphenated surnames survive.
+- Assumption: "First Surname" is unique among the players we meet (one guild). (unverified)
 
 ## Companion journal frames (probed 2026-11-06)
 

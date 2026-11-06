@@ -55,11 +55,13 @@ end
 -- Player identity. Forever has surnames, which changes the usual APIs:
 --   UnitName("player") / UnitFullName("player") -> "Hjelp", "Plask"
 --     (the second value is the SURNAME, not the realm)
---   CHAT_MSG_ADDON sender -> "Hjelp Plask" (same realm) or
---     "First Surname-OtherRealm" (connected realm, presumably)
---   GetNormalizedRealmName() -> "CAMWOWEU4Realm1PvE"
--- (probed 2026-11-06, build 70790). Our key is "First Surname-Realm", the
--- form the sender takes once the realm is added.
+--   CHAT_MSG_ADDON sender -> "Hjelp Plask" (same realm) or, presumably,
+--     "First Surname-SomeRealm"
+-- (probed 2026-11-06, build 70790).
+--
+-- We ignore realms entirely: on Forever they're an implementation detail
+-- (players move between them under the hood; only the ruleset matters),
+-- and this is a single-guild addon. A player's key is "First Surname".
 
 -- "Hjelp Plask" (or just "Hjelp" without a surname).
 function ns.PlayerName()
@@ -68,54 +70,35 @@ function ns.PlayerName()
     return first
 end
 
-local playerKey
 function ns.PlayerKey()
-    if not playerKey then
-        local realm = GetNormalizedRealmName()
-        -- Realm can be nil very early in loading: don't cache a bad key.
-        if not realm or realm == "" then return ns.PlayerName() .. "-?" end
-        playerKey = ns.PlayerName() .. "-" .. realm
-    end
-    return playerKey
+    return ns.PlayerName()
 end
 
--- Realm names a sender suffix can be: ours plus connected realms
--- (GetAutoCompleteRealms returns normalized names). Built lazily, once.
+-- Is this text after a "-" a realm? Realm names have no spaces; ours look
+-- like "CAMWOWEU4Realm1PvE". Checked against the realms we know of first;
+-- the pattern is a fallback so a hyphenated surname ("Berg-Hansen") isn't
+-- cut off.
 local realms
-local function KnownRealms()
+local function IsRealm(suffix)
+    if suffix:find(" ", 1, true) then return false end
     if not realms then
         local own = GetNormalizedRealmName()
-        if not own then return {} end
+        if not own then return suffix:find("%d") ~= nil end
         realms = { [own] = true }
         local list = GetAutoCompleteRealms and GetAutoCompleteRealms()
         if type(list) == "table" then
             for _, r in ipairs(list) do realms[r] = true end
         end
     end
-    return realms
+    return realms[suffix] or suffix:find("%u%l*%d") ~= nil
 end
 
--- A sender name -> "First Surname-Realm". The suffix after the last "-" only
--- counts as a realm if it is one we know, so a hyphen in a surname doesn't
--- get mistaken for a realm separator.
+-- A sender name -> "First Surname" (realm suffix stripped, if any).
 function ns.NormalizeName(name)
     if not name or name == "" then return nil end
     local base, suffix = name:match("^(.+)%-([^%-]+)$")
-    if suffix and KnownRealms()[suffix] then return name end
-    if suffix and not suffix:find(" ", 1, true) and suffix:find("%u%l*%d") then
-        -- Looks like a realm we don't know (CAMWOW... has digits): keep it.
-        return name
-    end
-    return name .. "-" .. (GetNormalizedRealmName() or "?")
-end
-
--- For display: drop our own realm, keep others.
-function ns.DisplayName(key)
-    if not key then return "?" end
-    local own = GetNormalizedRealmName()
-    local base, realm = key:match("^(.+)%-([^%-]+)$")
-    if base and realm == own then return base end
-    return key
+    if base and IsRealm(suffix) then return base end
+    return name
 end
 
 -- Character count of a UTF-8 string (string.len counts bytes).

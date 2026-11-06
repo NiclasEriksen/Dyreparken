@@ -58,6 +58,8 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 - Auto-summon turns itself off if AutoCompanion is loaded.
 - Anyone can run a version check. Only the group leader or an assist can start games.
 - The debug log goes to `DyreparkenDebugDB` (account-wide SavedVariables).
+- Players are keyed as `"First Surname"` and guilds by name: **no realms**, because Forever moves players between
+  realms invisibly. See docs/FOREVER_API.md.
 - The pet key is `s:<speciesID>`. Forever returns real species IDs (see docs/FOREVER_API.md).
 
 ## Open questions (ask the user before deciding)

@@ -15,12 +15,12 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 1
+local SCHEMA = 2
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
     -- guilds[guildKey] = { pets = { [petKey] = record }, members = { [player] = { seen = t, version = "x" } } }
-    -- record = { owner = "Name-Realm", at = serverTime, nick = string?, nickAt = serverTime?, rev = n }
+    -- record = { owner = "First Surname", at = serverTime, nick = string?, nickAt = serverTime?, rev = n }
     guilds = {},
     games = { history = {} },
     settings = {},
@@ -32,7 +32,17 @@ local CHAR_DEFAULTS = {
 }
 
 local MIGRATIONS = {
-    -- [2] = function(db) ... end,
+    -- 2: guild keys drop the realm ("Dyreparken-CAMWOWEU4Realm5PvE" -> "Dyreparken").
+    -- Realms are invisible and unstable on Forever. If two old keys collapse
+    -- into one, the first one seen wins (pre-0.1.0, these are empty anyway).
+    [2] = function(db)
+        local old = db.guilds or {}
+        db.guilds = {}
+        for key, g in pairs(old) do
+            local name = key:match("^(.-)%-[^%-%s]+$") or key
+            if not db.guilds[name] then db.guilds[name] = g end
+        end
+    end,
 }
 local CHAR_MIGRATIONS = {}
 
@@ -73,15 +83,15 @@ function DB:Init()
 end
 
 -- The registry for the player's current guild, or nil when guildless.
--- Keyed by guild name + realm so alts in other guilds don't mix data.
+-- Keyed by guild name only (no realm, see ns.PlayerKey), so alts in other
+-- guilds don't mix data.
 function DB:Guild()
-    local name, _, _, realm = GetGuildInfo("player")
+    local name = GetGuildInfo("player")
     if not name then return nil end
-    local key = name .. "-" .. (realm or GetNormalizedRealmName() or "")
-    local g = self.global.guilds[key]
+    local g = self.global.guilds[name]
     if not g then
         g = { pets = {}, members = {} }
-        self.global.guilds[key] = g
+        self.global.guilds[name] = g
     end
-    return g, key
+    return g, name
 end

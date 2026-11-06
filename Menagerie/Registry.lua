@@ -12,7 +12,7 @@ local _, ns = ...
 --  * Nicknames unlock after Config.NICKNAME_UNLOCK_DAYS of ownership, max
 --    Config.NICKNAME_MAX_LEN characters.
 --
--- record = { owner = "Name-Realm", at = t, rev = n, nick = s?, nickAt = t? }
+-- record = { owner = "First Surname", at = t, rev = n, nick = s?, nickAt = t? }
 -- `rev` counts edits by the owner (nickname changes, release) so a newer
 -- edit of the same claim wins over an older copy.
 --
