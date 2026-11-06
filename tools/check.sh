@@ -40,7 +40,7 @@ if [[ $fail -eq 0 ]]; then
     if [[ $quick -eq 1 ]]; then
         out=$(luajit tools/test/run.lua 2>&1) || { echo "$out" | tail -60; fail=1; }
     else
-        out=$(luajit tools/test/run.lua --min=Menagerie/=95 --min=Core/=90 2>&1) \
+        out=$(luajit tools/test/run.lua --min=Menagerie/=95 --min=Achievements/=95 --min=Core/=90 2>&1) \
             || { echo "$out" | tail -60; fail=1; }
     fi
     [[ $fail -eq 0 ]] && echo "$out" | tail -1

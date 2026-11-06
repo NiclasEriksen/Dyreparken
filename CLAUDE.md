@@ -51,8 +51,10 @@ A `pre-push` hook (`.githooks/`, enabled per clone with `git config core.hooksPa
   client hit a Lua error, a failed comm handler, or a tooltip error. Tests that cause errors on purpose take
   them with `c:TakeErrors()`.
 - `--coverage` reports line coverage per file and `--missed=File` lists the uncovered lines. `tools/check.sh`
-  enforces **Menagerie ≥ 95%** and **Core ≥ 90%**. Keep the sync and registry tests multi-client: races,
+  enforces **Menagerie ≥ 95%**, **Achievements ≥ 95%** and **Core ≥ 90%**. Keep the sync and registry tests multi-client: races,
   partitions, lost messages, lapses, and the randomized convergence runs in `04_sync.lua`.
+- The harness blocks guild chat posts that don't come from `c:Slash` or a `Click` (Forever does; the test then
+  fails with `ADDON_ACTION_BLOCKED`). Post to guild chat only from a keypress or click.
 - Stubs must behave like the real client (docs/FOREVER_API.md). Unknown frame methods and unknown events throw
   on purpose, and reads of globals the stubs lack are reported (`01_core.lua`). When the addon starts using
   a new API, stub it realistically in `Client:BuildEnv`.
@@ -85,13 +87,16 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
-Core/Commands.lua  /dp slash commands (adopt, letgo, nick, list, sound, version, report, probe, debug)
+Core/Commands.lua  /dp slash commands (adopt, letgo, nick, list, sound, ach, version, report, probe, debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
                    merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/LAPSE),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp report), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
+Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
+                   ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
+                   /dp ach share). Plan and decisions: docs/ACHIEVEMENTS.md (read it first)
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
 Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + hello)
 tools/check.sh     all offline checks (see Verify)

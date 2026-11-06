@@ -23,12 +23,15 @@ local ACCOUNT_DEFAULTS = {
     -- record: see Menagerie/Registry.lua
     guilds = {},
     games = { history = {} },
+    ach = { got = {}, seen = {} }, -- account-scope achievements (Achievements.lua)
     settings = {},
 }
 
 local CHAR_DEFAULTS = {
     autoSummon = true,   -- may be overridden at runtime if AutoCompanion is loaded
-    muteSummonSound = true, -- the clank when a companion is summoned (Summon:QuietSummon)
+    muteSummonSound = true,
+    achNotify = true,          -- tell other addon users when I earn an achievement
+    ach = { got = {}, seen = {} }, -- character-scope achievements (Achievements.lua) -- the clank when a companion is summoned (Summon:QuietSummon)
     warnedVersion = nil, -- newest version we've already told the player about
 }
 

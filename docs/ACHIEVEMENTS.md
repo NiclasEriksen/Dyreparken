@@ -157,7 +157,9 @@ Coverage floor as for Menagerie (95%).
 1. ~~Probes~~ (done 2026-11-06): guild chat needs a click, `NEW_PET_ADDED` exists, and `IsGuildOfficer()`
    works.
 2. Generator: `Data/Companions.lua` from the database (`--allow-unchecked` until curation is done).
-3. Core: definitions, evaluation, storage, first-run quiet, `ACH_EARNED` notices, share. Tests.
+3. ~~Core~~ (done 2026-11-06): definitions, evaluation, storage, first-run quiet, `ACH_EARNED` notices,
+   `/dp ach share`. Tests in `12_achievements.lua`. The quiet rule uses `NEW_PET_ADDED`: the collection may
+   grow by as many pets as were seen being learned since the last check; a bigger jump is quiet.
 4. Guild scope: sync, officer share. Tests.
 5. Panel.
 

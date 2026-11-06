@@ -199,10 +199,22 @@ function Frame:SetChecked(v) self.checked = not not v end
 function Frame:GetChecked() return self.checked end
 -- Like the client: a disabled button ignores clicks; a check button flips
 -- its state before OnClick runs.
+-- Runs fn as a hardware event (a keypress or click) for client c: only then
+-- may the addon post to guild chat (Forever, docs/FOREVER_API.md).
+local function Hardware(c, fn, ...)
+    if not c then return fn(...) end
+    c.hardware = (c.hardware or 0) + 1
+    local r = { pcall(fn, ...) }
+    c.hardware = c.hardware - 1
+    if not r[1] then error(r[2], 0) end
+    return unpack(r, 2, table.maxn(r))
+end
+H.Hardware = Hardware
+
 function Frame:Click()
     if not self.enabled then return end
     if self.type == "CheckButton" then self.checked = not self.checked end
-    if self.scripts.OnClick then self.scripts.OnClick(self, "LeftButton") end
+    if self.scripts.OnClick then Hardware(self.client, self.scripts.OnClick, self, "LeftButton") end
 end
 
 local Region = {}
@@ -606,7 +618,7 @@ function Client:Printed(pattern, plain)
 end
 function Client:ClearPrinted() self.printed = {} end
 
-function Client:Slash(text) return self.env.SlashCmdList.DYREPARKEN(text) end
+function Client:Slash(text) return Hardware(self, self.env.SlashCmdList.DYREPARKEN, text) end
 
 -- Debug log lines (newest last), optionally only those matching a pattern.
 function Client:Log(pattern)
@@ -798,6 +810,7 @@ function Client:BuildEnv()
     env.CreateFrame = function(ftype, name, parent, template)
         local f = setmetatable({ type = ftype, name = name, parent = parent, events = {}, scripts = {},
             shown = true, enabled = true, checked = false, textures = {}, fontStrings = {}, template = template }, Frame)
+        f.client = c
         c.frames[#c.frames + 1] = f
         if name then rawset(env, name, f) end
         return f
@@ -926,9 +939,16 @@ function Client:BuildEnv()
     env.UnitInRaid = function(u) return u == "player" and env.IsInRaid() and 1 or nil end
     -- Guild and group chat come back to every online member, the sender included.
     -- c.chatBlocked = "error" | "silent" simulates a client that refuses.
+    -- Like Forever, a GUILD post that isn't from a keypress or click (Slash,
+    -- Click) is blocked: nothing is posted, no Lua error, and the test fails
+    -- unless it takes the error (c:TakeErrors()). PARTY/RAID are unprobed.
     env.SendChatMessage = function(text, chan)
         if c.chatBlocked == "error" then error("SendChatMessage: blocked", 2) end
         if c.chatBlocked == "silent" then return end
+        if chan == "GUILD" and (c.hardware or 0) == 0 then
+            c.errors[#c.errors + 1] = "ADDON_ACTION_BLOCKED: SendChatMessage GUILD outside a keypress or click"
+            return
+        end
         w.chat[#w.chat + 1] = { from = c.name, text = text, chan = chan }
         local g = w:GroupOf(c.name)
         w:Timer(c, LATENCY, function()

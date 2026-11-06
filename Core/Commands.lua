@@ -60,6 +60,17 @@ Add("sound", "sound [on|off] - the clank when a companion is summoned (muted by 
     ns.Print(("Summon sound %s."):format(on and "on" or "muted"))
 end)
 
+Add("ach", "ach [share|notify on|off] - your achievements; share new ones in guild chat", function(arg)
+    local A = ns.Achievements
+    if arg == "share" then
+        A:Share()
+    elseif arg == "notify on" or arg == "notify off" then
+        A:SetNotify(arg == "notify on")
+    else
+        A:List()
+    end
+end)
+
 Add("version", "version [guild|group] - who runs which version", function(arg)
     local channel = arg == "group" and (IsInRaid() and "RAID" or "PARTY") or "GUILD"
     ns.Version:Check(channel)

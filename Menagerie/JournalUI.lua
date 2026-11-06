@@ -325,6 +325,7 @@ local function OnJournalLoaded()
     if PetJournal_UpdatePetCard then hooksecurefunc("PetJournal_UpdatePetCard", UpdateCard) end
     PetJournal:HookScript("OnShow", function()
         ns.Guild:Refresh()
+        ns.Achievements:Check("journal", "account")
         JournalUI:Refresh()
     end)
     ns.Bus:On("REGISTRY", function() JournalUI:Refresh() end)
