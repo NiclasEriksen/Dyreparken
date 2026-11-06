@@ -30,7 +30,11 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
   `"First Surname"` (`ns.PlayerKey`). Guild key = guild name. `ns.NormalizeName` strips a sender's `-Realm` suffix.
   A suffix counts as a realm if it's a known/connected realm or matches the `CAMWOW…<digit>…` pattern, so
   hyphenated surnames survive.
-- Assumption: "First Surname" is unique among the players we meet (one guild). (unverified)
+- **Full names ("First Surname") are unique across all rulesets** (per the user, 2026-11-06), because characters can
+  transfer between rulesets fairly freely. So the key is safe.
+- **Guilds don't span rulesets.** A guild name is only unique within its ruleset, so two guilds on different rulesets
+  could share a name and, with it, the same `DyreparkenDB.guilds` entry. That only matters for one account with alts in
+  same-named guilds on two rulesets. We accept that for now.
 
 ## Companion journal frames (probed 2026-11-06)
 
