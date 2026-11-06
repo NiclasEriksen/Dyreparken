@@ -81,8 +81,9 @@ function Pets:Probe()
         tostring(GetNormalizedRealmName()), tostring(ns.PlayerKey()))
     Out("identity: GUID=%s | GetGuildInfo=%s | GetPlayerInfoByGUID=%s",
         tostring(UnitGUID("player")), Pack(GetGuildInfo("player")),
-        Pack(GetPlayerInfoByGUID and GetPlayerInfoByGUID(UnitGUID("player"))))
-    if GetAutoCompleteRealms then Out("connected realms: %s", Pack(GetAutoCompleteRealms())) end
+        GetPlayerInfoByGUID and Pack(GetPlayerInfoByGUID(UnitGUID("player"))) or "nil")
+    local list = GetAutoCompleteRealms and GetAutoCompleteRealms()
+    Out("connected realms: %s", type(list) == "table" and table.concat(list, ", ") or tostring(list))
     local fns = { "GetOwnedPetIDs", "GetPetInfoByPetID", "GetPetInfoBySpeciesID", "GetPetInfoByIndex",
         "GetNumPets", "GetSummonedPetGUID", "SummonPetByGUID", "SetCustomName", "PetIsSummonable",
         "GetPetSummonInfo", "FindPetIDByName", "GetNumCollectedInfo", "PetIsFavorite" }

@@ -53,7 +53,8 @@ strsplit = function(d, s) local r = {} for p in (s .. d):gmatch("(.-)" .. d) do 
 DEFAULT_CHAT_FRAME = { AddMessage = function(_, m) printed[#printed + 1] = m; print("  chat: " .. m) end }
 SlashCmdList = {}
 InCombatLockdown = function() return false end
-UnitFullName = function() return "Tester", "Realm" end
+-- Forever: the second value is the surname, not the realm.
+UnitFullName = function() return "Tester", "Surname" end
 GetNormalizedRealmName = function() return "Realm" end
 GetRealmName = GetNormalizedRealmName
 IsInGuild = function() return true end
@@ -91,10 +92,10 @@ C_PetJournal = {
     SummonPetByGUID = function() end,
 }
 GetFramerate = function() return 60 end
-UnitName = function() return "Tester", nil end
+UnitName = function() return "Tester", "Surname" end
 UnitGUID = function() return "Player-0000-00000001" end
 GetPlayerInfoByGUID = function() return "Warrior", "WARRIOR", "Human", "Human", 2, "Tester", "" end
-GetAutoCompleteRealms = function() return nil end
+GetAutoCompleteRealms = function() return { "Realm", "OtherRealm" } end
 GetBuildInfo = function() return "1.60.1", "70790", "Nov 4 2026", 16001 end
 Ambiguate = function(n) return n end
 
@@ -135,10 +136,28 @@ end
 assert(#sentAddon - before > 1, "big message should be chunked")
 for i = before + 1, #sentAddon do
     local m = sentAddon[i]
-    Fire("CHAT_MSG_ADDON", m[1], m[2], m[3], "Other-Realm")
+    Fire("CHAT_MSG_ADDON", m[1], m[2], m[3], "Other Person")
 end
-assert(got and got.sender == "Other-Realm" and #got.msg.list == 200 and got.msg.list[200] == big[200],
+assert(got and got.sender == "Other Person-Realm" and #got.msg.list == 200 and got.msg.list[200] == big[200],
     "multi-chunk round trip failed")
+
+-- Identity (Forever names have surnames; senders omit our own realm).
+assert(ns.PlayerKey() == "Tester Surname-Realm", ns.PlayerKey())
+assert(ns.NormalizeName("Tester Surname") == ns.PlayerKey())
+assert(ns.NormalizeName("Ola Nord-OtherRealm") == "Ola Nord-OtherRealm")
+assert(ns.NormalizeName("Kari Berg-Hansen") == "Kari Berg-Hansen-Realm", "hyphenated surname")
+assert(ns.DisplayName("Tester Surname-Realm") == "Tester Surname")
+-- Our own echo must be ignored.
+local echoed
+ns.Comm:Register("ECHO", function() echoed = true end)
+local n0 = #sentAddon
+ns.Comm:Send("ECHO", {}, "GUILD")
+for _ = 1, 20 do
+    now = now + 0.5
+    for _, f in ipairs(frames) do if f.scripts.OnUpdate then f.scripts.OnUpdate(f, 0.5) end end
+end
+for i = n0 + 1, #sentAddon do local m = sentAddon[i]; Fire("CHAT_MSG_ADDON", m[1], m[2], m[3], "Tester Surname") end
+assert(not echoed, "own message was not filtered")
 
 -- Slash commands.
 SlashCmdList.DYREPARKEN("")

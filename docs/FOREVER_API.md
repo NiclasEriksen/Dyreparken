@@ -5,14 +5,36 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 
 ## Client
 
-- Product `wowf`, folder `_forever_`, **client 1.60.1, build 70790** (from `.build.info`, 2026-11-06).
+- Product `wowf`, folder `_forever_`, **client 1.60.1, build 70790** (from `.build.info`; `GetBuildInfo()` says built "Nov  3 2026").
   Live since 2026-11-04 (patch 1.60.1).
 - TOC `## Interface: 16001`.
 - It's the **modern Mainline engine** (12.x / Midnight-era API) with Classic-like content, not the Classic
   Era API. Retail-style addon code mostly works; Classic globals mostly don't.
-- Detection: `WOW_PROJECT_ID == WOW_PROJECT_CAMELOT` (18 seen on build 70338; it was 1 on early beta),
+- Detection: `WOW_PROJECT_ID == WOW_PROJECT_CAMELOT` (18 on live 70790; it was 1 on early beta),
   so compare the named constant, not the number. `select(4, GetBuildInfo())` returns 16001, so Retail
   checks like `>= 100000` fail. Prefer probing for the API you need.
+
+## Player identity (probed 2026-11-06, build 70790)
+
+- Characters have **surnames**. `UnitName("player")` and `UnitFullName("player")` both return `"Hjelp", "Plask"`:
+  the second value is the **surname, not the realm** (unlike Retail).
+- `CHAT_MSG_ADDON` sender: `"Hjelp Plask"` for the same realm (first + space + surname, no realm suffix).
+  Other realms presumably `"First Surname-Realm"` (unverified).
+- `GetRealmName()` = `"CAMWOW EU4 Realm 1 PvE"`, `GetNormalizedRealmName()` = `"CAMWOWEU4Realm1PvE"`.
+- `GetGuildInfo("player")` returns the guild's **home realm** as the 4th value (`CAMWOWEU4Realm5PvE`), which can
+  differ from the player's realm. The guild spans connected realms.
+- `GetAutoCompleteRealms()` returns a table (connected realms, normalized).
+- `UnitGUID("player")` looks like `Player-6841-001BD719`. `WOW_PROJECT_ID == WOW_PROJECT_CAMELOT == 18`.
+- Our key: `"First Surname-NormalizedRealm"` (`ns.PlayerKey`, `ns.NormalizeName`). A suffix after the last `-`
+  counts as a realm only if it's a known realm, or it looks like the `CAMWOW…<digit>…` pattern. That's a heuristic for
+  realms that aren't connected.
+
+## Companion journal frames (probed 2026-11-06)
+
+- Retail-style: `CollectionsJournal`, `PetJournal`, `PetJournal.ScrollBox`, `PetJournalPetCard`,
+  `PetJournalSummonButton` all exist once `Blizzard_Collections` loads.
+- Full `C_PetJournal` set, including `GetPetInfoBySpeciesID`, `GetNumCollectedInfo` (returns `1, 1` for a pet you own),
+  `PetIsSummonable`, `GetPetSummonInfo`, `FindPetIDByName`, `SetCustomName`.
 
 ## Lua
 
@@ -60,9 +82,9 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - Summoning is blocked in combat. There's a short companion-only cooldown (~1.1 s, up to 2.5 s) that starts
   when the pet appears; acting inside it gives "Ability is not ready yet".
 - Summon sound file IDs on Forever: 567569, 568424 (AutoCompanion mutes them).
-- Journal: `Blizzard_Collections` is load-on-demand; `CollectionsJournal` exists. (unverified) `PetJournal` frame
-  names and ScrollBox layout: check with `/dp probe` and `/fstack`.
-- Whether `C_PetJournal.SetCustomName` exists on Forever: (unverified); we use our own nicknames anyway.
+- Journal: `Blizzard_Collections` is load-on-demand. Frame names are above. The ScrollBox button layout is still
+  unverified: check with `/fstack`.
+- `C_PetJournal.SetCustomName` exists. We still use our own synced nicknames.
 
 ## Addon messages
 

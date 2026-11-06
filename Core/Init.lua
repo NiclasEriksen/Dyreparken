@@ -52,18 +52,70 @@ function ns.Now()
     return GetServerTime()
 end
 
--- "Name-Realm" for the player, matching what CHAT_MSG_ADDON hands us as sender.
-function ns.PlayerKey()
-    local name, realm = UnitFullName("player")
-    realm = realm and realm ~= "" and realm or GetNormalizedRealmName()
-    return name .. "-" .. (realm or "")
+-- Player identity. Forever has surnames, which changes the usual APIs:
+--   UnitName("player") / UnitFullName("player") -> "Hjelp", "Plask"
+--     (the second value is the SURNAME, not the realm)
+--   CHAT_MSG_ADDON sender -> "Hjelp Plask" (same realm) or
+--     "First Surname-OtherRealm" (connected realm, presumably)
+--   GetNormalizedRealmName() -> "CAMWOWEU4Realm1PvE"
+-- (probed 2026-11-06, build 70790). Our key is "First Surname-Realm", the
+-- form the sender takes once the realm is added.
+
+-- "Hjelp Plask" (or just "Hjelp" without a surname).
+function ns.PlayerName()
+    local first, surname = UnitName("player")
+    if surname and surname ~= "" then return first .. " " .. surname end
+    return first
 end
 
--- Sender names from the same realm can arrive without the realm suffix.
+local playerKey
+function ns.PlayerKey()
+    if not playerKey then
+        local realm = GetNormalizedRealmName()
+        -- Realm can be nil very early in loading: don't cache a bad key.
+        if not realm or realm == "" then return ns.PlayerName() .. "-?" end
+        playerKey = ns.PlayerName() .. "-" .. realm
+    end
+    return playerKey
+end
+
+-- Realm names a sender suffix can be: ours plus connected realms
+-- (GetAutoCompleteRealms returns normalized names). Built lazily, once.
+local realms
+local function KnownRealms()
+    if not realms then
+        local own = GetNormalizedRealmName()
+        if not own then return {} end
+        realms = { [own] = true }
+        local list = GetAutoCompleteRealms and GetAutoCompleteRealms()
+        if type(list) == "table" then
+            for _, r in ipairs(list) do realms[r] = true end
+        end
+    end
+    return realms
+end
+
+-- A sender name -> "First Surname-Realm". The suffix after the last "-" only
+-- counts as a realm if it is one we know, so a hyphen in a surname doesn't
+-- get mistaken for a realm separator.
 function ns.NormalizeName(name)
     if not name or name == "" then return nil end
-    if name:find("-", 1, true) then return name end
-    return name .. "-" .. (GetNormalizedRealmName() or "")
+    local base, suffix = name:match("^(.+)%-([^%-]+)$")
+    if suffix and KnownRealms()[suffix] then return name end
+    if suffix and not suffix:find(" ", 1, true) and suffix:find("%u%l*%d") then
+        -- Looks like a realm we don't know (CAMWOW... has digits): keep it.
+        return name
+    end
+    return name .. "-" .. (GetNormalizedRealmName() or "?")
+end
+
+-- For display: drop our own realm, keep others.
+function ns.DisplayName(key)
+    if not key then return "?" end
+    local own = GetNormalizedRealmName()
+    local base, realm = key:match("^(.+)%-([^%-]+)$")
+    if base and realm == own then return base end
+    return key
 end
 
 -- Character count of a UTF-8 string (string.len counts bytes).
