@@ -1,4 +1,4 @@
-# Static checks + headless smoke test (tools/check.sh). Runs on every push
+# Static checks + test suite with coverage floors (tools/check.sh). Runs on every push
 # and pull request, and before every release.
 name: Check
 

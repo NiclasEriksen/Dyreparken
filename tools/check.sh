@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# Static checks that need no game client. Run from anywhere: tools/check.sh
+# Checks that need no game client. Run from anywhere:
+#   tools/check.sh           everything, with coverage floors (CI runs this)
+#   tools/check.sh --quick   tests without coverage (a few seconds)
 #  1. Every file in the TOC exists, and every addon .lua is listed in the TOC.
 #  2. Lua 5.1 syntax (luajit parses 5.1; it also accepts goto, so we grep for that).
 #  3. Constructs WoW's Lua 5.1 lacks: goto/labels, //, bitwise operators.
-#  4. tools/smoke.lua: load the whole addon headless with stubbed APIs.
+#  4. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
+#     Coverage floors: Menagerie 95%, Core 90%. Games has none on purpose (see CLAUDE.md).
 set -u
+quick=0
+[[ "${1:-}" == "--quick" ]] && quick=1
 cd "$(dirname "$0")/.."
 fail=0
 toc=Dyreparken.toc
@@ -32,6 +37,12 @@ for f in $own; do
 done
 
 if [[ $fail -eq 0 ]]; then
-    out=$(luajit tools/smoke.lua 2>&1) || { echo "$out" | tail -20; fail=1; }
+    if [[ $quick -eq 1 ]]; then
+        out=$(luajit tools/test/run.lua 2>&1) || { echo "$out" | tail -60; fail=1; }
+    else
+        out=$(luajit tools/test/run.lua --min=Menagerie/=95 --min=Core/=90 2>&1) \
+            || { echo "$out" | tail -60; fail=1; }
+    fi
+    [[ $fail -eq 0 ]] && echo "$out" | tail -1
 fi
 [[ $fail -eq 0 ]] && echo "OK" || exit 1

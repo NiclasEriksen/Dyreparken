@@ -23,13 +23,39 @@ quirks. When you learn something new about the client, add it there with the dat
 ## Verify
 
 - `tools/check.sh` runs the TOC↔file check, a Lua 5.1 syntax check (luajit), a scan for 5.2+ syntax, and
-  `tools/smoke.lua` (headless load with stubbed APIs plus a comm round trip). Run it after every change.
-  When the addon uses a new WoW API, add a realistic stub to `tools/smoke.lua`.
+  the test suite with coverage floors (~25 s). `tools/check.sh --quick` skips coverage (~2 s).
 - The game can't run from here. For in-game checks, ask the user to `/reload` and run `/dp debug on`, then
   `/dp probe` or the feature. Then read the log at
   `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
   `serverTime  GetTime  module  message`, ring buffer of 2000; `head` is the newest index).
   Lua errors appear in-game (BugSack, if installed) or in `../../../Logs/`.
+
+## Testing
+
+**Run the tests whenever you implement something new or change something existing**, and add or update tests
+in the same change. Run `luajit tools/test/run.lua <filter>` while working, and `tools/check.sh` before
+committing. A change isn't done while a test fails or a coverage floor is missed.
+
+- `tools/test/harness.lua` simulates a world: several clients (`w:AddClient("Ola Nord", opts)`), each running
+  its own copy of the addon in its own global environment, with a shared clock (`w:Run(s)`, `w:SkipDays(n)`),
+  guild roster, group, and an addon-message network. The network can lose messages (`w.drop`), take forged
+  input (`w:InjectMessage`), and records every decoded message in `w.wire` (`w:Sent(kind)`). Clients log in
+  and out with their SavedVariables kept (`c:Reload()`). There are helpers for the journal, tooltips, popups
+  and player state. Read its header first.
+- Specs: `tools/test/spec/NN_area.lua`, each `return function(test, H) ... end`. The runner fails a test if any
+  client hit a Lua error, a failed comm handler, or a tooltip error. Tests that cause errors on purpose take
+  them with `c:TakeErrors()`.
+- `--coverage` reports line coverage per file and `--missed=File` lists the uncovered lines. `tools/check.sh`
+  enforces **Menagerie ≥ 95%** and **Core ≥ 90%**. Keep the sync and registry tests multi-client: races,
+  partitions, lost messages, lapses, and the randomized convergence runs in `04_sync.lua`.
+- Stubs must behave like the real client (docs/FOREVER_API.md). Unknown frame methods and unknown events throw
+  on purpose, and reads of globals the stubs lack are reported (`01_core.lua`). When the addon starts using
+  a new API, stub it realistically in `Client:BuildEnv`.
+- Before relying on a new test, make sure it can fail: break the code it covers once and watch it go red.
+- **Games (`Games/`) are the exception, for now.** That part is meant to stay dynamic and change shape quickly,
+  so it has no coverage floor and only light tests (`10_games.lua`). They pin what must never break: UI changes
+  are always undone, including after a reload. Don't let tests get in the way of reshaping game code. Tighten
+  this once the games protocol settles.
 
 ## Releasing
 
@@ -57,10 +83,12 @@ Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
 Core/Commands.lua  /dp slash commands (claim, release, nick, list, version, report, probe, debug)
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
                    merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/LAPSE),
-                   Summon (auto-summon, defers to AutoCompanion), Report (stub), JournalUI,
+                   Summon (auto-summon, defers to AutoCompanion), Report (/dp report), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
 Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + hello)
+tools/check.sh     all offline checks (see Verify)
+tools/test/        harness.lua (simulated clients + network), run.lua (runner, coverage), spec/*.lua
 ```
 
 ## Decisions (2026-11-06)

@@ -12,7 +12,7 @@ Commands: `/dp` lists them all.
 ## Development
 
 - Load it straight from the git checkout in `_forever_/Interface/AddOns/Dyreparken`. It reports its version as `dev`.
-- `tools/check.sh` runs the static checks and a headless smoke test (needs `luajit`). CI runs the same on every push.
+- `tools/check.sh` runs the static checks and the test suite: several simulated players syncing over a fake network, with coverage floors (needs `luajit`). `tools/check.sh --quick` skips coverage. CI runs the full check on every push.
 - Notes for contributors (and AI agents): `CLAUDE.md`, plus `docs/FOREVER_API.md` for client quirks.
 
 ## Releasing

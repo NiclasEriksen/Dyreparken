@@ -1,0 +1,11 @@
+return function(test, H)
+    test("two clients log in and say hello", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord")
+        local kari = w:AddClient("Kari Berg")
+        w:Run(15)
+        H.eq(w:Sent("HELLO", "Ola Nord"), 1)
+        H.eq(w:Sent("HELLO", "Kari Berg"), 1)
+        H.eq(ola.ns.PlayerKey(), "Ola Nord")
+    end)
+end
