@@ -11,9 +11,10 @@ local _, ns = ...
 -- Dormant by design: no OnUpdate. A few events trigger a check (entering the
 -- world, combat end, dismount, claiming). A pet you dismiss yourself is NOT
 -- noticed until the next of those (decided 2026-11-06): COMPANION_UPDATE
--- would catch it, but it fires for every nearby player's companion too. If the check finds you busy, it
--- retries every RETRY_EVERY seconds for up to RETRY_FOR seconds, then waits
--- for the next trigger. One timer at most.
+-- would catch it, but it fires for every nearby player's companion too.
+--
+-- If the check finds you busy, it retries every RETRY_EVERY seconds for up to
+-- RETRY_FOR seconds, then waits for the next trigger. One timer at most.
 --
 -- Defers to AutoCompanion: if it's loaded, auto-summon is off and we say so
 -- once per session.
