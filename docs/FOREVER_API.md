@@ -110,6 +110,19 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - **Unit and journal species IDs match**: your own Panda Cub as a unit reports `UnitBattlePetSpeciesID` = 5159, the
   same as the journal. Its GUID is `Creature-0-6845-1-1-272330-…`, and npcID 272330 equals the journal's creatureID.
 
+## All species (full export, 2026-11-06, build 70790, enUS)
+
+- Every journal filter API exists: `SetFilterChecked`/`IsFilterChecked` (`LE_PET_JOURNAL_FILTER_COLLECTED` /
+  `_NOT_COLLECTED`), `SetAllPetTypesChecked`, `SetAllPetSourcesChecked`, `GetNumPetTypes`, `GetNumPetSources`,
+  `IsPetTypeChecked`, `IsPetSourceChecked`, `SetPetTypeFilter`, `SetPetSourceChecked`, `ClearSearchFilter`. With
+  all of them on, `GetNumPets()` counts uncollected pets too, and right away (no wait for an update event).
+- **The journal lists 83 companions**: that's the "y" for "x of y". Sweeping `GetPetInfoBySpeciesID` over 1..20000
+  finds 119 species. The 36 extra are hidden, e.g. an older Panda Cub (92, while the obtainable one is 5159), Murky,
+  Zergling 94, the Ent/Furbolg pets and the Tiny dragons. Species IDs run from 39 to 5203.
+- **Source and description text are empty strings for every species** (`tooltipSource`, `tooltipDescription`),
+  so the client can't tell where a pet comes from. Use outside data (wowhead) for that.
+- Pet types are almost all Critter (110 of 119), so they're useless for grouping. Use our own tags.
+
 ## Addon messages
 
 - `C_ChatInfo.RegisterAddonMessagePrefix(prefix)`: max 16 chars. Messages max **255 bytes**, any byte except `\0`.
