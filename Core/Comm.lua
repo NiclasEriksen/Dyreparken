@@ -59,6 +59,8 @@ end
 -- channel: "GUILD", "RAID", "PARTY", "INSTANCE_CHAT", "WHISPER". prio: "BULK", "NORMAL", "ALERT".
 function Comm:Send(kind, msg, channel, target, prio)
     if channel == "GUILD" and not IsInGuild() then return false end
+    -- The server refuses these outside a group (NotInGroup); say so to the caller.
+    if (channel == "PARTY" or channel == "RAID") and not IsInGroup() then return false end
     msg.k, msg.p = kind, ns.PROTOCOL
     local data = Encode(msg)
     prio = prio or "NORMAL"

@@ -83,6 +83,6 @@ SlashCmdList.DYREPARKEN = function(input)
     local fn = commands[cmd]
     -- fn(lowercased arg, arg as typed): names and nicknames keep their case.
     if fn then return fn(arg ~= "" and arg:lower() or nil, arg) end
-    ns.Print("v" .. ns.VERSION .. " commands:")
+    ns.Print(ns.VERSION .. " commands:")
     for _, line in ipairs(help) do ns.Print("  /dp " .. line) end
 end

@@ -15,7 +15,7 @@ ns.Events:On("ADDON_LOADED", Main, function(_, _, name)
     ns.JournalUI:Init()
     ns.Tooltip:Init()
     ns.Games:Init()
-    ns.Log("Main", "loaded v%s (protocol %d)", ns.VERSION, ns.PROTOCOL)
+    ns.Log("Main", "loaded %s (protocol %d)", ns.VERSION, ns.PROTOCOL)
 end)
 
 ns.Events:On("PLAYER_LOGIN", Main, function()

@@ -38,7 +38,7 @@ function Debug:SetEnabled(on, echo)
     self.enabled, self.echo = not not on, not not echo
     DyreparkenDebugDB.enabled, DyreparkenDebugDB.echo = self.enabled, self.echo
     ns.Log = self.enabled and Write or noop
-    ns.Log("Debug", "enabled v%s, echo=%s", ns.VERSION, tostring(self.echo))
+    ns.Log("Debug", "enabled %s, echo=%s", ns.VERSION, tostring(self.echo))
 end
 
 function Debug:Clear()
