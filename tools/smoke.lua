@@ -83,13 +83,15 @@ C_ChatInfo = {
 }
 Enum = { SendAddonMessageResult = { Success = 0, AddonMessageThrottle = 3 } }
 C_PetJournal = {
-    GetSummonedPetGUID = function() return nil end,
+    GetSummonedPetGUID = function() return "BattlePet-0-00000008B2A2" end,
     GetOwnedPetIDs = function() return { "BattlePet-0-000000000001" } end,
-    GetPetInfoByPetID = function() return 42, nil, 1, 0, 0, 0, false, "Black Tabby", 132599 end,
+    -- Real Forever shape (probed 2026-11-06): Panda Cub
+    GetPetInfoByPetID = function() return 5159, nil, 1, 0, 1, 146955, false, "Panda Cub", 7831521, 5, 272330, "" end,
     GetNumPets = function() return 1, 1 end,
     SummonPetByGUID = function() end,
 }
 GetFramerate = function() return 60 end
+GetBuildInfo = function() return "1.60.1", "70790", "Nov 4 2026", 16001 end
 Ambiguate = function(n) return n end
 
 -- Load TOC ---------------------------------------------------------------------
@@ -138,7 +140,7 @@ assert(got and got.sender == "Other-Realm" and #got.msg.list == 200 and got.msg.
 SlashCmdList.DYREPARKEN("")
 SlashCmdList.DYREPARKEN("debug on")
 SlashCmdList.DYREPARKEN("probe")
-assert(ns.Pets:KeyOf("x") == "s:42")
+assert(ns.Pets:KeyOf("x") == "s:5159")
 assert(ns.Registry:ValidNickname("Mr. Whiskers"))
 assert(not ns.Registry:ValidNickname(string.rep("a", 21)))
 assert(ns.CompareVersions("0.0.10", "0.0.9") == 1)

@@ -50,8 +50,12 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - Available: `C_PetJournal.GetOwnedPetIDs`, `GetPetInfoByPetID`, `GetPetInfoByIndex`, `GetNumPets`,
   `GetSummonedPetGUID`, `SummonPetByGUID`, `PetIsFavorite`, `PetIsRevoked`.
 - **No pet battles, caging, releasing or trading** → one copy per companion, no `GetPetStats`.
-- AutoCompanion keys companions on Forever by **English species name**, not speciesID.
-  (unverified) Is speciesID returned and stable on Forever? Run `/dp probe` with a pet out.
+- **speciesID works** (probed 2026-11-06, build 70790). `GetPetInfoByPetID` returns the Retail field order:
+  `speciesID, customName, level, xp, maxXp, displayID, isFavorite, name, icon, petType, creatureID, sourceText, ...`
+  e.g. Panda Cub = `5159, nil, 1, 0, 1, 146955, false, "Panda Cub", 7831521, 5, 272330, ""`.
+  The IDs are Forever's own numbering (not Retail's), shared by every Forever client. We key pets as `s:<speciesID>`.
+  AutoCompanion keys by English name, probably because its external zone data is name-based.
+- Pet GUIDs look like `BattlePet-0-00000008B2A2`.
 - `SummonPetByGUID` **toggles**: on the pet that's out, it dismisses it.
 - Summoning is blocked in combat. There's a short companion-only cooldown (~1.1 s, up to 2.5 s) that starts
   when the pet appears; acting inside it gives "Ability is not ready yet".

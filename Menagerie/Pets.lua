@@ -4,11 +4,10 @@ local _, ns = ...
 --
 -- Pet key: the guild-wide identity of a companion "species", used for
 -- reservations and on the wire. It must be the same on every client.
---   * Prefer speciesID (locale independent).
---   * AutoCompanion avoids speciesID on Forever and keys by English name;
---     whether speciesID is reliable on Forever is UNVERIFIED. `/dp probe`
---     dumps what the journal returns so we can decide. Until then KeyOf
---     falls back to "n:<speciesName>" when there is no speciesID.
+--   * "s:<speciesID>". Forever returns real species IDs (Panda Cub = 5159,
+--     probed 2026-11-06, build 70790; Forever's own numbering, not Retail's).
+--     Locale independent, unlike the name.
+--   * Fallback "n:<speciesName>" only if a client ever returns no ID.
 -- Forever has no pet battles, caging or trading: one copy per companion.
 local Pets = {}
 ns.Pets = Pets
@@ -55,25 +54,52 @@ function Pets:Owned()
     return result
 end
 
--- Development aid: print and log what the journal API gives us on this client.
+-- Development aid: print AND log what the journal API gives us on this
+-- client, so the output can be read from SavedVariables after /reload.
+local function Out(fmt, ...)
+    local msg = fmt:format(...)
+    ns.Print(msg)
+    ns.Log("Probe", "%s", msg)
+end
+
+local function Has(t, k) return tostring(t ~= nil and t[k] ~= nil) end
+
+local function Pack(...)
+    local parts = {}
+    for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+    return table.concat(parts, ", ")
+end
+
 function Pets:Probe()
-    local P = ns.Print
-    P("Probe: C_PetJournal=" .. tostring(C_PetJournal ~= nil)
-        .. " GetOwnedPetIDs=" .. tostring(C_PetJournal and C_PetJournal.GetOwnedPetIDs ~= nil)
-        .. " SetCustomName=" .. tostring(C_PetJournal and C_PetJournal.SetCustomName ~= nil))
-    P("Frames: CollectionsJournal=" .. tostring(CollectionsJournal ~= nil)
-        .. " PetJournal=" .. tostring(PetJournal ~= nil)
-        .. " Blizzard_Collections loaded=" .. tostring(C_AddOns.IsAddOnLoaded("Blizzard_Collections")))
-    local n, owned = C_PetJournal.GetNumPets()
-    P(("GetNumPets: %s shown, %s owned"):format(tostring(n), tostring(owned)))
-    local guid = self:Summoned()
-    if guid then
-        local results = { pcall(C_PetJournal.GetPetInfoByPetID, guid) }
-        local parts = {}
-        for i = 2, math.min(#results, 13) do parts[#parts + 1] = tostring(results[i]) end
-        P("Summoned " .. tostring(guid) .. ": " .. table.concat(parts, ", "))
-        ns.Log("Probe", "summoned %s: %s", tostring(guid), table.concat(parts, ", "))
-    else
-        P("No companion summoned; summon one and probe again for its info.")
+    local PJ = C_PetJournal
+    Out("build: %s", Pack(GetBuildInfo()))
+    Out("project: WOW_PROJECT_ID=%s CAMELOT=%s", tostring(WOW_PROJECT_ID), tostring(WOW_PROJECT_CAMELOT))
+    local fns = { "GetOwnedPetIDs", "GetPetInfoByPetID", "GetPetInfoBySpeciesID", "GetPetInfoByIndex",
+        "GetNumPets", "GetSummonedPetGUID", "SummonPetByGUID", "SetCustomName", "PetIsSummonable",
+        "GetPetSummonInfo", "FindPetIDByName", "GetNumCollectedInfo", "PetIsFavorite" }
+    local have = {}
+    for _, f in ipairs(fns) do have[#have + 1] = f .. "=" .. Has(PJ, f) end
+    Out("C_PetJournal: %s", table.concat(have, " "))
+    Out("frames: CollectionsJournal=%s PetJournal=%s Blizzard_Collections=%s",
+        tostring(CollectionsJournal ~= nil), tostring(PetJournal ~= nil),
+        tostring(C_AddOns.IsAddOnLoaded("Blizzard_Collections")))
+    if PetJournal then
+        Out("PetJournal children: ScrollBox=%s PetCard=%s SummonButton=%s",
+            Has(PetJournal, "ScrollBox"), tostring(PetJournalPetCard ~= nil), tostring(PetJournalSummonButton ~= nil))
     end
+    Out("GetNumPets: %s", Pack(PJ.GetNumPets()))
+    local guid = self:Summoned()
+    if not guid then
+        Out("No companion summoned; summon one and probe again for its info.")
+        return
+    end
+    Out("summoned %s: %s", tostring(guid), Pack(pcall(PJ.GetPetInfoByPetID, guid)))
+    local speciesID = Info(guid)
+    if PJ.GetPetInfoBySpeciesID and speciesID then
+        Out("bySpecies %s: %s", tostring(speciesID), Pack(pcall(PJ.GetPetInfoBySpeciesID, speciesID)))
+    end
+    if PJ.GetNumCollectedInfo and speciesID then
+        Out("collected %s: %s", tostring(speciesID), Pack(pcall(PJ.GetNumCollectedInfo, speciesID)))
+    end
+    if PJ.PetIsSummonable then Out("summonable: %s", Pack(pcall(PJ.PetIsSummonable, guid))) end
 end

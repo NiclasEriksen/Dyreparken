@@ -27,7 +27,7 @@ quirks. When you learn something new about the client, add it there with the dat
   When the addon uses a new WoW API, add a realistic stub to `tools/smoke.lua`.
 - The game can't run from here. For in-game checks, ask the user to `/reload` and run `/dp debug on`, then
   `/dp probe` or the feature. Then read the log at
-  `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (`DyreparkenDebugDB.lines`, tab-separated
+  `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
   `serverTime  GetTime  module  message`, ring buffer of 2000; `head` is the newest index).
   Lua errors appear in-game (BugSack, if installed) or in `../../../Logs/`.
 
@@ -58,10 +58,10 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 - Auto-summon turns itself off if AutoCompanion is loaded.
 - Anyone can run a version check. Only the group leader or an assist can start games.
 - The debug log goes to `DyreparkenDebugDB` (account-wide SavedVariables).
+- The pet key is `s:<speciesID>`. Forever returns real species IDs (see docs/FOREVER_API.md).
 
 ## Open questions (ask the user before deciding)
 
-- Pet key: speciesID or English name? AutoCompanion avoids speciesID on Forever. Needs `/dp probe` output.
 - Report: how to see other players' companions (only addon users via comms, or unit scanning)?
 - Which states block auto-summon (mounted, taxi, stealth, sitting, eating, BG/arena)?
 - Officer powers (force release)? The rank check can be spoofed client-side.
