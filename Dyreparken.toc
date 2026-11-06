@@ -26,6 +26,8 @@ Core\Version.lua
 Core\Guild.lua
 
 # Menagerie: companion registry
+Data\Companions.lua
+
 Menagerie\Pets.lua
 Menagerie\Registry.lua
 Menagerie\Sync.lua

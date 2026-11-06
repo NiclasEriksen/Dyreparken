@@ -82,26 +82,17 @@ function Pets:IconOfKey(key)
     end
 end
 
--- Species this client has come across: owned, reserved by the guild, or
--- hovered in the world. Account-wide, only grows. The denominator of the
--- "x reserved of y known" counter until we have a full Forever list
--- (future: compile it from wowhead data).
-function Pets:NoteKnown(speciesID)
-    if type(speciesID) ~= "number" then return end
-    local known = ns.DB.global.known
-    if not known[speciesID] then known[speciesID] = true end
-end
-
-function Pets:NoteOwnedKnown()
-    for key in pairs(self:Owned()) do self:NoteKnown(self:SpeciesOfKey(key)) end
-end
-
-function Pets:KnownCount()
-    local known = ns.DB.global.known
-    for key in pairs(ns.Registry:Holders()) do self:NoteKnown(self:SpeciesOfKey(key)) end
-    local n = 0
-    for _ in pairs(known) do n = n + 1 end
-    return n
+-- How many companions Forever has (Data/Companions.lua): counted from the
+-- generated species list when there is one, else the stub's count.
+function Pets:Total()
+    local data = ns.Companions
+    if not data then return 0 end
+    if type(data.species) == "table" then
+        local n = 0
+        for _ in pairs(data.species) do n = n + 1 end
+        return n
+    end
+    return data.count or 0
 end
 
 -- Find an owned pet by (part of) its name, case-insensitive. Returns key, guid.

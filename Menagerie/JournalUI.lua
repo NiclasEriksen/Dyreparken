@@ -14,11 +14,14 @@ local _, ns = ...
 --
 -- What it adds:
 --  * a marker on each list button: star = yours, lock = someone else's,
---    check = yours to claim (owned and free)
---  * owner / nickname / date lines in the list button tooltip
---  * a status line on the pet card, plus Reserve/Release and Nickname buttons
+--    check = yours to adopt (owned and free)
+--  * who cares for it, nickname and how long, in the list button tooltip
+--  * a status line on the pet card, plus Adopt/Let go and Nickname buttons
 --    (right of the Summon button, which on Forever sits bottom left)
---  * "x reserved of y known" on the card, an Auto-summon checkbox
+--  * "Guild: x of y cared for (z%)" on the card, an Auto-summon checkbox
+--
+-- Wording (decided 2026-11-06): companions are adopted and cared for, never
+-- "reserved" or "claimed" in anything players read.
 local JournalUI = {}
 ns.JournalUI = JournalUI
 
@@ -44,7 +47,7 @@ local function Status(key)
     return "taken", owner, r
 end
 
-local function Since(t)
+local function Day(t)
     return date("%d %b %Y", t)
 end
 
@@ -53,12 +56,13 @@ function JournalUI:AddTooltipLines(tooltip, key)
     local status, owner, r = Status(key)
     tooltip:AddLine(" ")
     if status == "free" then
-        tooltip:AddLine("Dyreparken: not reserved", 0.5, 0.8, 0.5)
+        tooltip:AddLine("Dyreparken: looking for a home", 0.5, 0.8, 0.5)
         return
     end
-    tooltip:AddLine(("Reserved by %s"):format(status == "mine" and "you" or owner), 1, 0.82, 0)
+    tooltip:AddLine(("Cared for by %s"):format(status == "mine" and "you" or owner), 1, 0.82, 0)
     if r.n then tooltip:AddLine(('Nickname: "%s"'):format(r.n), 1, 1, 1) end
-    tooltip:AddLine("Since " .. Since(r.at), 0.7, 0.7, 0.7)
+    local how = ns.CaredFor(r.at)
+    tooltip:AddLine(how:sub(1, 1):upper() .. how:sub(2), 0.7, 0.7, 0.7)
 end
 
 ------------------------------------------------------------------------------
@@ -141,7 +145,9 @@ local function CardSpecies()
 end
 
 local function UpdateExtras()
-    card.counter:SetText(("Guild: %d reserved of %d known"):format(ns.Registry:Count(), ns.Pets:KnownCount()))
+    local n, total = ns.Registry:Count(), ns.Pets:Total()
+    local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
+    card.counter:SetText(("Guild: %d of %d cared for (%d%%)"):format(n, total, pct))
     local deferring = ns.Summon:Deferring()
     card.auto:SetChecked(ns.DB.char.autoSummon and not deferring)
     card.auto:SetEnabled(not deferring)
@@ -162,26 +168,26 @@ local function UpdateCard()
     local status, owner, r = Status(key)
     local ownedIt = ns.Pets:Owned()[key] ~= nil
     if status == "free" then
-        card.status:SetText("|cff80cc80Not reserved|r")
+        card.status:SetText("|cff80cc80Looking for a home|r")
     elseif status == "mine" then
-        local text = "|cffffd100Reserved by you|r since " .. Since(r.at)
+        local text = "|cffffd100Cared for by you|r " .. ns.CaredFor(r.at)
         if r.n then text = text .. ' - "' .. r.n .. '"' end
         card.status:SetText(text)
     else
-        local text = "|cffff8080Reserved by " .. owner .. "|r since " .. Since(r.at)
+        local text = "|cffff8080Cared for by " .. owner .. "|r " .. ns.CaredFor(r.at)
         if r.n then text = text .. ' - "' .. r.n .. '"' end
         card.status:SetText(text)
     end
 
     card.key = key
     if status == "mine" then
-        card.reserve:SetText("Release")
+        card.reserve:SetText("Let go")
         card.reserve:Enable()
         card.reserve:Show()
         card.nick:Show()
         if ns.Registry:CanNickname(r) then card.nick:Enable() else card.nick:Disable() end
     elseif status == "free" and ownedIt then
-        card.reserve:SetText("Reserve")
+        card.reserve:SetText("Adopt")
         card.reserve:Enable()
         card.reserve:Show()
         card.nick:Hide()
@@ -225,15 +231,15 @@ local function BuildCard()
         local _, r = ns.Registry:MyPet()
         if r and not ns.Registry:CanNickname(r) then
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(("You can name it from %s."):format(Since(ns.Registry:NicknameUnlocksAt(r))))
+            GameTooltip:SetText(("You can name it from %s."):format(Day(ns.Registry:NicknameUnlocksAt(r))))
             GameTooltip:Show()
         end
     end)
     card.nick:SetScript("OnLeave", function() GameTooltip:Hide() end)
     card.nick:Hide()
 
-    -- "x reserved of y known": y = every species this client has come across
-    -- (see Pets:NoteKnown). Top right of the card.
+    -- "Guild: x of y cared for (z%)": y = every companion in Forever's
+    -- journal (Pets:Total, Data/Companions.lua). Top right of the card.
     card.counter = c:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     card.counter:SetPoint("TOPRIGHT", c, "TOPRIGHT", -12, -12)
 
@@ -255,7 +261,7 @@ local function BuildCard()
             GameTooltip:SetText("AutoCompanion is loaded and handles summoning.")
         else
             GameTooltip:SetText("Auto-summon")
-            GameTooltip:AddLine("Summon your reserved companion when it's missing and you're idle.", 1, 1, 1, true)
+            GameTooltip:AddLine("Summon your companion when it's missing and you're idle.", 1, 1, 1, true)
         end
         GameTooltip:Show()
     end)
@@ -318,7 +324,6 @@ local function OnJournalLoaded()
     end
     if PetJournal_UpdatePetCard then hooksecurefunc("PetJournal_UpdatePetCard", UpdateCard) end
     PetJournal:HookScript("OnShow", function()
-        ns.Pets:NoteOwnedKnown()
         ns.Guild:Refresh()
         JournalUI:Refresh()
     end)

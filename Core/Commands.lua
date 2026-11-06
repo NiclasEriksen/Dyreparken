@@ -11,7 +11,7 @@ end
 
 local function Say(ok, msg) if msg then ns.Print(msg) end end
 
-Add("claim", "claim [name] - reserve your summoned companion, or one by name", function(_, raw)
+local function Adopt(_, raw)
     local key
     if raw and raw ~= "" then
         key = ns.Pets:FindOwned(raw)
@@ -22,17 +22,19 @@ Add("claim", "claim [name] - reserve your summoned companion, or one by name", f
         key = ns.Pets:KeyOf(guid)
     end
     Say(ns.Registry:Claim(key))
-end)
+end
+local function LetGo() Say(ns.Registry:Release()) end
 
-Add("release", "release - give up your reservation", function()
-    Say(ns.Registry:Release())
-end)
+Add("adopt", "adopt [name] - adopt your summoned companion, or one by name", Adopt)
+Add("letgo", "letgo - let your companion go", LetGo)
+-- The old names from before the wording change (2026-11-06), not in help.
+commands.claim, commands.release = Adopt, LetGo
 
 Add("nick", "nick [name] - nickname your companion (empty clears it)", function(_, raw)
     Say(ns.Registry:SetNickname(raw))
 end)
 
-Add("list", "list - all reservations in the guild", function()
+Add("list", "list - which companions the guild cares for", function()
     local holders = ns.Registry:Holders()
     local rows = {}
     for key, owner in pairs(holders) do
@@ -40,10 +42,22 @@ Add("list", "list - all reservations in the guild", function()
         rows[#rows + 1] = { name = ns.Pets:NameOfKey(key), owner = owner, nick = r and r.n }
     end
     table.sort(rows, function(a, b) return a.name < b.name end)
-    ns.Print(("%d reserved of %d known companions:"):format(#rows, ns.Pets:KnownCount()))
+    local total = ns.Pets:Total()
+    local pct = total > 0 and math.floor(#rows / total * 100 + 0.5) or 0
+    ns.Print(("The guild cares for %d of %d companions (%d%%):"):format(#rows, total, pct))
     for _, row in ipairs(rows) do
         ns.Print(("  %s - %s%s"):format(row.name, row.owner, row.nick and (' ("' .. row.nick .. '")') or ""))
     end
+end)
+
+Add("sound", "sound [on|off] - the clank when a companion is summoned (muted by default)", function(arg)
+    if ns.Summon:Deferring() then
+        return ns.Print("AutoCompanion is loaded: use its \"Mute summoning sounds\" option instead.")
+    end
+    local on
+    if arg == "on" or arg == "off" then on = arg == "on" else on = ns.DB.char.muteSummonSound and true or false end
+    ns.Summon:SetMuteSound(not on)
+    ns.Print(("Summon sound %s."):format(on and "on" or "muted"))
 end)
 
 Add("version", "version [guild|group] - who runs which version", function(arg)

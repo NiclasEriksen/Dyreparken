@@ -71,6 +71,20 @@ end
 -- and this is a single-guild addon. A player's key is "First Surname".
 
 -- "Hjelp Plask" (or just "Hjelp" without a surname).
+-- How long a companion has been cared for, to follow "cared for by X":
+-- "since today", "since yesterday", "for 5 days", "for 3 months", "for 2 years".
+-- Today/yesterday go by calendar date; the rest by whole days.
+function ns.CaredFor(t, now)
+    now = now or ns.Now()
+    if date("%Y%m%d", t) == date("%Y%m%d", now) or t > now then return "since today" end
+    if date("%Y%m%d", t) == date("%Y%m%d", now - 86400) then return "since yesterday" end
+    local days = math.max(2, math.floor((now - t) / 86400))
+    if days < 60 then return ("for %d days"):format(days) end
+    -- Rounded, so it never says "1 months": 60 days is already "2 months".
+    if days < 730 then return ("for %d months"):format(math.floor(days / 30.44 + 0.5)) end
+    return ("for %d years"):format(math.floor(days / 365.25))
+end
+
 function ns.PlayerName()
     local first, surname = UnitName("player")
     if surname and surname ~= "" then return first .. " " .. surname end

@@ -931,6 +931,11 @@ function Client:BuildEnv()
         end,
     }
 
+    -- Sound: mutes are a set of file IDs (the client forgets them on reload).
+    c.muted = {}
+    env.MuteSoundFile = function(id) c.muted[id] = true end
+    env.UnmuteSoundFile = function(id) c.muted[id] = nil end
+
     -- Settings, addons
     env.C_CVar = { GetCVar = function(k) return (c.cvars or {})[k] or "1" end,
         SetCVar = function(k, v) c.cvars = c.cvars or {}; c.cvars[k] = tostring(v) end }
@@ -976,6 +981,7 @@ function Client:BuildEnv()
     env.C_TooltipInfo = { GetUnit = function(u) local x = c.units[u]; return x and { lines = x.lines } end }
 
     -- Pet journal (Forever: GetPetInfoByPetID's real shape, probed 2026-11-06)
+    local function NoFilters() error("Dyreparken must not change the pet journal filters (see CLAUDE.md)", 2) end
     env.C_PetJournal = {
         GetSummonedPetGUID = function() return c.summoned end,
         GetOwnedPetIDs = not c.noOwnedPetIDs and function()
@@ -1012,6 +1018,11 @@ function Client:BuildEnv()
             c.summoned = c.summoned ~= guid and guid or nil
         end,
         PetIsSummonable = function() return true end,
+        -- The journal's filters: Forever has no Filter button, so a filter left
+        -- wrong empties the list for good. The addon must never change them.
+        SetFilterChecked = NoFilters, SetAllPetTypesChecked = NoFilters, SetAllPetSourcesChecked = NoFilters,
+        SetPetTypeFilter = NoFilters, SetPetSourceChecked = NoFilters, SetSearchFilter = NoFilters,
+        ClearSearchFilter = NoFilters, SetDefaultFilters = NoFilters,
         GetNumCollectedInfo = function() return 1, 1 end,
     }
     return env

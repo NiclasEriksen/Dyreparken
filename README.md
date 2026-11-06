@@ -2,8 +2,8 @@
 
 A World of Warcraft: Forever addon for the guild Dyreparken.
 
-- **Menagerie:** reserve a companion pet for your character. Reservations sync across the guild (first come, first
-  served), show in the Pet Journal and on companion tooltips, and can get a nickname after a week. Your reserved pet is
+- **Menagerie:** adopt a companion pet for your character. Adoptions sync across the guild (first come, first
+  served), show in the Pet Journal and on companion tooltips, and your companion can get a nickname after a week. It's
   summoned automatically when you're idle.
 - **Party games:** a framework for leader-run guild events (work in progress).
 

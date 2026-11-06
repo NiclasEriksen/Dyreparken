@@ -122,6 +122,18 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - **Source and description text are empty strings for every species** (`tooltipSource`, `tooltipDescription`),
   so the client can't tell where a pet comes from. Use outside data (wowhead) for that.
 - Pet types are almost all Critter (110 of 119), so they're useless for grouping. Use our own tags.
+- **The journal has no Filter button** (seen 2026-11-06, build 70790), so players are always on the default
+  filters and can't fix a wrong one in the UI. The filter API works (`SetFilterChecked`, `SetAllPetTypesChecked`,
+  `SetAllPetSourcesChecked`, `SetSearchFilter`, `SetDefaultFilters`, `IsUsingDefaultFilters`) and its state is
+  saved across sessions.
+- **Changing filters and putting them back one by one is not safe.** On 2026-11-06 a dev tool opened every
+  filter, then restored collected / not collected / each type / each source from what it had read. The list was
+  then empty (`GetNumPets()` = `0, 4`), even after switching all of those on again, and the three filter CVars
+  showed their defaults. Some filter outside those was left changed. Only `C_PetJournal.SetDefaultFilters()`
+  brought the list back.
+  Rule: don't touch journal filters in the addon. Read species with `GetPetInfoBySpeciesID` / `GetOwnedPetIDs`
+  instead. If filters must be changed (dev tools only), end with `SetDefaultFilters()` and check `GetNumPets()`.
+  Recovery for a player: `/run C_PetJournal.SetDefaultFilters()`.
 
 ## Addon messages
 

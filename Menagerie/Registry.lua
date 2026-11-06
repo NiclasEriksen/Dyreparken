@@ -218,26 +218,26 @@ function Registry:Claim(key)
     local owner = self:Holder(key)
     local me = ns.PlayerKey()
     if owner == me then return false, "It's already yours." end
-    if owner then return false, ("%s has already reserved it."):format(owner) end
+    if owner then return false, ("%s is already caring for it."):format(owner) end
     local mine = self:MyPet()
     Write({ k = key, at = ns.Now() })
     ns.Log("Registry", "claim %s (was %s)", key, tostring(mine))
-    return true, mine and ("Reserved %s (and released %s)."):format(ns.Pets:NameOfKey(key), ns.Pets:NameOfKey(mine))
-        or ("Reserved %s."):format(ns.Pets:NameOfKey(key))
+    return true, mine and ("You adopted %s (and let %s go)."):format(ns.Pets:NameOfKey(key), ns.Pets:NameOfKey(mine))
+        or ("You adopted %s."):format(ns.Pets:NameOfKey(key))
 end
 
 function Registry:Release()
     local r = self:MyRecord()
-    if not r or not r.k then return false, "You have no reservation." end
+    if not r or not r.k then return false, "You haven't adopted a companion." end
     local key = r.k
     Write({ at = r.at })
     ns.Log("Registry", "release %s", key)
-    return true, ("Released %s."):format(ns.Pets:NameOfKey(key))
+    return true, ("You let %s go."):format(ns.Pets:NameOfKey(key))
 end
 
 function Registry:SetNickname(nick)
     local key, r = self:MyPet()
-    if not key then return false, "You have no reservation." end
+    if not key then return false, "You haven't adopted a companion." end
     if not self:CanNickname(r) then
         return false, ("You can name it from %s."):format(date("%d %b %Y", self:NicknameUnlocksAt(r)))
     end
@@ -263,9 +263,9 @@ function Registry:CheckMine()
     if owner == me then return false end
     local name = ns.Pets:NameOfKey(r.k)
     if not Active(g, me, r) then
-        ns.Print(("Your reservation of %s lapsed after a long absence. Claim it again if it's still free."):format(name))
+        ns.Print(("Your %s went back to the park after your long absence. Adopt it again if it's still free."):format(name))
     else
-        ns.Print(("%s reserved %s before you did, so your claim was withdrawn."):format(owner or "?", name))
+        ns.Print(("%s adopted %s just before you did, so it went home with them."):format(owner or "?", name))
     end
     Write({ at = r.at })
     return true

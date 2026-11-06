@@ -15,7 +15,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 3
+local SCHEMA = 4
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
@@ -24,11 +24,11 @@ local ACCOUNT_DEFAULTS = {
     guilds = {},
     games = { history = {} },
     settings = {},
-    known = {}, -- [speciesID] = true, see Pets:NoteKnown
 }
 
 local CHAR_DEFAULTS = {
     autoSummon = true,   -- may be overridden at runtime if AutoCompanion is loaded
+    muteSummonSound = true, -- the clank when a companion is summoned (Summon:QuietSummon)
     warnedVersion = nil, -- newest version we've already told the player about
 }
 
@@ -48,6 +48,11 @@ local MIGRATIONS = {
     -- was ever claimed under the old shape, so start the guild tables fresh.
     [3] = function(db)
         for name in pairs(db.guilds or {}) do db.guilds[name] = { claims = {}, lapses = {} } end
+    end,
+    -- 4: the "known" species list is gone; the counter's total comes from
+    -- Data/Companions.lua now.
+    [4] = function(db)
+        db.known = nil
     end,
 }
 local CHAR_MIGRATIONS = {}

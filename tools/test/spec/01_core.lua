@@ -29,6 +29,23 @@ return function(test, H)
         eq(c.ns.NormalizeName("Kari Berg-Hansen"), "Kari Berg-Hansen")
     end)
 
+    test("how long a companion has been cared for", function()
+        local w = H.World()
+        local ns = w:AddClient("Ola Nord").ns
+        local now = w:ServerTime()
+        local today = now - (now % 86400) + 43200 -- noon, so +-6 h stays on the same date
+        eq(ns.CaredFor(today - 3600, today), "since today")
+        eq(ns.CaredFor(today + 60, today), "since today", "a clock a little ahead")
+        eq(ns.CaredFor(today - 86400, today), "since yesterday")
+        eq(ns.CaredFor(today - 2 * 86400, today), "for 2 days")
+        eq(ns.CaredFor(today - 59 * 86400, today), "for 59 days")
+        eq(ns.CaredFor(today - 60 * 86400, today), "for 2 months")
+        eq(ns.CaredFor(today - 729 * 86400, today), "for 24 months")
+        eq(ns.CaredFor(today - 200 * 86400, today), "for 7 months")
+        eq(ns.CaredFor(today - 800 * 86400, today), "for 2 years")
+        ok(ns.CaredFor(now - 3600):find("^since"), "defaults to now")
+    end)
+
     test("versions compare like releases", function()
         local w = H.World()
         local cmp = w:AddClient("Ola Nord").ns.CompareVersions
@@ -162,18 +179,19 @@ return function(test, H)
         } }
         c:Login()
         local db = c.env.DyreparkenDB
-        eq(db.schema, 3)
+        eq(db.schema, 4)
         ok(db.guilds.Dyreparken and db.guilds.Dyreparken.claims and db.guilds.Dyreparken.lapses)
         no(db.guilds.Dyreparken.pets, "old shape dropped")
         ok(db.guilds["Annet Laug"].claims)
-        ok(db.games.history and db.settings and db.known)
+        ok(db.games.history and db.settings)
+        eq(db.known, nil, "the known list is gone (4)")
         eq(c.env.DyreparkenCharDB.autoSummon, true)
-        eq(#c:Log("account migrated to 3"), 1)
+        eq(#c:Log("account migrated to 4"), 1)
 
         local d = w:AddClient("Kari Berg", { login = false })
         d.saved.DyreparkenDB = { schema = 0, junk = true }
         d:Login()
-        eq(d.env.DyreparkenDB.schema, 3)
+        eq(d.env.DyreparkenDB.schema, 4)
         no(d.env.DyreparkenDB.junk, "unmigratable data is wiped")
         eq(#d:Log("no migration 0%->1, resetting"), 1)
     end)

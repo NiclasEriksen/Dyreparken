@@ -62,7 +62,6 @@ function Tooltip:ReservationOf(unit, lines)
     if not Plain(UnitIsBattlePetCompanion and UnitIsBattlePetCompanion(unit)) then return nil end
     local sid = Plain(UnitBattlePetSpeciesID and UnitBattlePetSpeciesID(unit))
     if type(sid) ~= "number" then return nil end
-    ns.Pets:NoteKnown(sid)
     local owner = self:OwnerOf(unit, lines)
     if not owner then return nil end
     local holder, r = ns.Registry:Holder(ns.Pets:KeyOfSpecies(sid))
@@ -78,9 +77,8 @@ local function OnUnitTooltip(tooltip, data)
     local owner, r = Tooltip:ReservationOf(unit, data and data.lines)
     if not owner then return end
     if r.n then tooltip:AddLine('"' .. r.n .. '"', 1, 0.82, 0) end
-    local whose = owner == ns.PlayerKey() and "your" or (owner .. "'s")
-    tooltip:AddLine(("Dyreparken: %s reserved companion since %s"):format(whose, date("%d %b %Y", r.at)),
-        0.5, 0.8, 0.5)
+    local who = owner == ns.PlayerKey() and "you" or owner
+    tooltip:AddLine(("Dyreparken: cared for by %s %s"):format(who, ns.CaredFor(r.at)), 0.5, 0.8, 0.5)
 end
 
 function Tooltip:Init()

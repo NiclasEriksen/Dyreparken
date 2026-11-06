@@ -114,12 +114,17 @@ function Summon:Check(reason)
     local key = ns.Registry:MyPet()
     if not key then return end
     -- Any companion out counts: never replace one you summoned yourself.
-    if ns.Pets:Summoned() then return end
+    local out = ns.Pets:Summoned()
+    -- Every check is logged (not only summons): checks while a pet is out
+    -- are how a stray trigger shows up in the log.
+    ns.Log("Summon", "check (%s): out=%s", tostring(reason), tostring(out))
+    if out then return end
     local guid = ns.Pets:Owned()[key]
     if not guid then return end
 
     local busy = Busy()
     if busy then
+        ns.Log("Summon", "busy: %s", busy)
         -- PvP is a place, not a moment: don't keep polling there.
         if busy ~= "pvp" then self:Retry(reason) end
         return
@@ -148,11 +153,54 @@ function Summon:Retry(reason)
     end)
 end
 
+------------------------------------------------------------------------------
+-- Quiet summons
+------------------------------------------------------------------------------
+-- Summoning a companion on Forever plays a metal clank and an armour sound
+-- (file IDs found by AutoCompanion, see docs/FOREVER_API.md). The game uses
+-- both elsewhere too (item pickup, gear), so they're muted only for a moment
+-- after a summon call, ours or the journal's. The mute is per character
+-- (default on). WoW forgets sound mutes on reload, so nothing can stick.
+local SUMMON_SOUNDS = { 567569, 568424 }
+local QUIET_FOR = 2.5 -- the sound comes with the server's answer, plus the ~1 s cooldown retry
+local quietGen, quiet = 0, false
+
+local function SetMuted(on)
+    local fn = on and MuteSoundFile or UnmuteSoundFile
+    if not fn then return end
+    for _, id in ipairs(SUMMON_SOUNDS) do fn(id) end
+end
+
+function Summon:QuietSummon()
+    if not ns.DB.char.muteSummonSound then return end
+    if not quiet then SetMuted(true); quiet = true end
+    quietGen = quietGen + 1
+    local gen = quietGen
+    C_Timer.After(QUIET_FOR, function()
+        if gen ~= quietGen then return end
+        quiet = false
+        SetMuted(false)
+    end)
+end
+
+function Summon:SetMuteSound(on)
+    ns.DB.char.muteSummonSound = on
+    ns.Log("Summon", "summon sound %s", on and "muted" or "on")
+    if not on and quiet then
+        quiet, quietGen = false, quietGen + 1
+        SetMuted(false)
+    end
+end
+
 function Summon:Init()
     if self:Deferring() then
+        -- AutoCompanion has its own mute option; two mutes would unmute each other early.
         ns.Log("Summon", "AutoCompanion loaded, auto-summon off")
         return
     end
+    -- A post-hook: the sound comes later, with the server's answer. Also
+    -- catches the journal's Summon button and other addons.
+    hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Summon:QuietSummon() end)
     local function check(_, event) Summon:Check(event) end
     -- After a loading screen the summon can fail: give the world a moment.
     ns.Events:On("PLAYER_ENTERING_WORLD", Summon, function()
@@ -171,6 +219,6 @@ end
 
 function Summon:AnnounceDeferral()
     if self:Deferring() and ns.DB.char.autoSummon then
-        ns.Print("AutoCompanion is loaded, so Dyreparken won't auto-summon. Your reservation still shows to the guild.")
+        ns.Print("AutoCompanion is loaded, so Dyreparken won't auto-summon. The guild still sees which companion you care for.")
     end
 end
