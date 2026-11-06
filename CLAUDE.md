@@ -31,6 +31,17 @@ quirks. When you learn something new about the client, add it there with the dat
   `serverTime  GetTime  module  message`, ring buffer of 2000; `head` is the newest index).
   Lua errors appear in-game (BugSack, if installed) or in `../../../Logs/`.
 
+## Releasing
+
+- Push a tag `vX.Y.Z` (release), `vX.Y.Z-betaN` or `vX.Y.Z-alphaN`. `.github/workflows/release.yml` runs the checks,
+  then BigWigsMods/packager@v2, which uploads to CurseForge (WoW Forever, 1.60.1) and makes a GitHub release.
+- The TOC has `## Version: @project-version@`, which the packager replaces with the tag. A git checkout reports `dev`
+  (`ns.DEV`) and never shows "outdated" warnings.
+- The CurseForge project ID is the `CF_PROJECT_ID` repository secret, passed as `-p`, so it isn't in the TOC.
+- The changelog is generated from commit messages, so write them for players.
+- `.pkgmeta` lists the dev files left out of the zip: tools, docs, CLAUDE.md, README.md, .claude, .luarc.json, .github.
+- Any wire format change bumps `X-Protocol`. Any saved data change adds a migration (see Working rules).
+
 ## Layout
 
 ```

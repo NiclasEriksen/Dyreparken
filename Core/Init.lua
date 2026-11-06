@@ -6,7 +6,14 @@ ns.name = addonName
 
 local GetMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
 
-ns.VERSION = (GetMeta and GetMeta(addonName, "Version")) or "0.0.0"
+-- The packager replaces @project-version@ with the git tag (e.g. "v0.1.0").
+-- Running straight from a git checkout leaves the token in place: that's a
+-- dev build, which never claims to be outdated or newer than anyone.
+do
+    local v = (GetMeta and GetMeta(addonName, "Version")) or ""
+    ns.DEV = v == "" or v:find("@", 1, true) ~= nil
+    ns.VERSION = ns.DEV and "dev" or v
+end
 -- Wire protocol version. Bump on breaking message format changes; peers with
 -- a different protocol are ignored (and told to update, once).
 ns.PROTOCOL = tonumber(GetMeta and GetMeta(addonName, "X-Protocol")) or 1
@@ -107,16 +114,36 @@ function ns.Utf8Len(s)
     return n
 end
 
--- "1.2.3" -> comparable numbers. Returns -1, 0, 1 like a comparator.
-function ns.CompareVersions(a, b)
-    local pa, pb = {}, {}
-    for n in tostring(a):gmatch("%d+") do pa[#pa + 1] = tonumber(n) end
-    for n in tostring(b):gmatch("%d+") do pb[#pb + 1] = tonumber(n) end
-    for i = 1, math.max(#pa, #pb) do
-        local x, y = pa[i] or 0, pb[i] or 0
+-- Compare release versions like "v0.1.0", "0.1.0-beta2". Returns -1, 0, 1.
+-- Numbers before any "-" are compared first; on a tie a release beats a
+-- pre-release (0.1.0 > 0.1.0-beta2), and pre-releases compare by their
+-- trailing numbers (beta2 > beta1). "dev" equals everything.
+local function ParseVersion(v)
+    v = tostring(v or "")
+    local core, pre = v:match("^v?([%d%.]+)%-?(.*)$")
+    local nums = {}
+    for n in (core or ""):gmatch("%d+") do nums[#nums + 1] = tonumber(n) end
+    local preNums = {}
+    for n in (pre or ""):gmatch("%d+") do preNums[#preNums + 1] = tonumber(n) end
+    return nums, pre ~= nil and pre ~= "", preNums, core ~= nil
+end
+
+local function CompareLists(a, b)
+    for i = 1, math.max(#a, #b) do
+        local x, y = a[i] or 0, b[i] or 0
         if x ~= y then return x < y and -1 or 1 end
     end
     return 0
+end
+
+function ns.CompareVersions(a, b)
+    local na, preA, pnA, okA = ParseVersion(a)
+    local nb, preB, pnB, okB = ParseVersion(b)
+    if not okA or not okB then return 0 end -- "dev" or garbage
+    local c = CompareLists(na, nb)
+    if c ~= 0 then return c end
+    if preA ~= preB then return preA and -1 or 1 end
+    return CompareLists(pnA, pnB)
 end
 
 -- InCombatLockdown only: unit queries can return secret booleans on Forever.

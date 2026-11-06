@@ -13,6 +13,7 @@ ns.Version = Version
 local function NoteVersion(sender, version)
     if type(version) ~= "string" then return end
     Version.seen[sender] = version
+    if ns.DEV then return end -- a git checkout: nothing to update to
     if ns.CompareVersions(version, ns.VERSION) > 0 then
         local warned = ns.DB.char.warnedVersion
         if not warned or ns.CompareVersions(version, warned) > 0 then

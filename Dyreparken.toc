@@ -2,7 +2,7 @@
 ## Title: Dyreparken
 ## Notes: Guild companion registry (reserve, sync, auto-summon) and a framework for party games.
 ## Author: Hjelp
-## Version: 0.0.1
+## Version: @project-version@
 ## X-Flavor: forever
 ## X-Protocol: 2
 ## SavedVariables: DyreparkenDB, DyreparkenDebugDB

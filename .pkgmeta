@@ -1,0 +1,15 @@
+# BigWigsMods packager config: https://github.com/BigWigsMods/packager/wiki
+package-as: Dyreparken
+
+# Libraries are committed in Libs/, so no externals and no -nolib zip.
+enable-nolib-creation: no
+
+# Development files that don't belong in the zip players install.
+ignore:
+  - tools
+  - docs
+  - CLAUDE.md
+  - README.md
+  - .claude
+  - .luarc.json
+  - .github
