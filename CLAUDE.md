@@ -69,7 +69,6 @@ Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + h
 
 ## Open questions (ask the user before deciding)
 
-
 - Report: how to see other players' companions (only addon users via comms, or unit scanning)?
 - Which states block auto-summon (mounted, taxi, stealth, sitting, eating, BG/arena)?
 - The guild "missing companions" list needs a master list of Forever companions. Where should it come from?
