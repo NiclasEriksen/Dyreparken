@@ -74,6 +74,15 @@ function Pets:Probe()
     local PJ = C_PetJournal
     Out("build: %s", Pack(GetBuildInfo()))
     Out("project: WOW_PROJECT_ID=%s CAMELOT=%s", tostring(WOW_PROJECT_ID), tostring(WOW_PROJECT_CAMELOT))
+    -- Identity: Forever has surnames and odd realm strings; we need to know
+    -- which API matches the sender name in CHAT_MSG_ADDON.
+    Out("identity: UnitName=%s | UnitFullName=%s | GetRealmName=%s | GetNormalizedRealmName=%s | PlayerKey=%s",
+        Pack(UnitName("player")), Pack(UnitFullName("player")), tostring(GetRealmName()),
+        tostring(GetNormalizedRealmName()), tostring(ns.PlayerKey()))
+    Out("identity: GUID=%s | GetGuildInfo=%s | GetPlayerInfoByGUID=%s",
+        tostring(UnitGUID("player")), Pack(GetGuildInfo("player")),
+        Pack(GetPlayerInfoByGUID and GetPlayerInfoByGUID(UnitGUID("player"))))
+    if GetAutoCompleteRealms then Out("connected realms: %s", Pack(GetAutoCompleteRealms())) end
     local fns = { "GetOwnedPetIDs", "GetPetInfoByPetID", "GetPetInfoBySpeciesID", "GetPetInfoByIndex",
         "GetNumPets", "GetSummonedPetGUID", "SummonPetByGUID", "SetCustomName", "PetIsSummonable",
         "GetPetSummonInfo", "FindPetIDByName", "GetNumCollectedInfo", "PetIsFavorite" }

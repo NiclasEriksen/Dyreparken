@@ -94,8 +94,11 @@ end
 
 local function OnAddonMessage(_, _, prefix, text, channel, sender)
     if prefix ~= PREFIX then return end
+    local raw = sender
     sender = ns.NormalizeName(sender)
-    if not sender or sender == ns.PlayerKey() then return end
+    if sender == ns.PlayerKey() then return end
+    ns.Log("Comm", "raw sender %q", tostring(raw))
+    if not sender then return end
     local head, body = text:sub(1, 1), text:sub(2)
     local key = sender .. channel
     if head == "S" then

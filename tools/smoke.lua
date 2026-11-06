@@ -91,6 +91,10 @@ C_PetJournal = {
     SummonPetByGUID = function() end,
 }
 GetFramerate = function() return 60 end
+UnitName = function() return "Tester", nil end
+UnitGUID = function() return "Player-0000-00000001" end
+GetPlayerInfoByGUID = function() return "Warrior", "WARRIOR", "Human", "Human", 2, "Tester", "" end
+GetAutoCompleteRealms = function() return nil end
 GetBuildInfo = function() return "1.60.1", "70790", "Nov 4 2026", 16001 end
 Ambiguate = function(n) return n end
 
