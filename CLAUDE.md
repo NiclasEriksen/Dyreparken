@@ -53,6 +53,10 @@ A `pre-push` hook (`.githooks/`, enabled per clone with `git config core.hooksPa
 - `--coverage` reports line coverage per file and `--missed=File` lists the uncovered lines. `tools/check.sh`
   enforces **Menagerie ≥ 95%**, **Achievements ≥ 95%** and **Core ≥ 90%**. Keep the sync and registry tests multi-client: races,
   partitions, lost messages, lapses, and the randomized convergence runs in `04_sync.lua`.
+- Frames in the harness record anchors (`f.points`, `f.size`) and have geometry only if a test sets `f.geo`.
+  `c:OpenJournal({ sideTabs = n })` builds Forever's Collections window (side tab strip, Mounts/Pets pages,
+  `CollectionsJournal_SetTab`); `c:ClickTab(n)` presses a tab.
+  Show/Hide cascade OnShow/OnHide to shown children, like the client.
 - The harness blocks guild chat posts that don't come from `c:Slash` or a `Click` (Forever does; the test then
   fails with `ADDON_ACTION_BLOCKED`). Post to guild chat only from a keypress or click.
 - Stubs must behave like the real client (docs/FOREVER_API.md). Unknown frame methods and unknown events throw
@@ -97,7 +101,9 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
 Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
-                   /dp ach share; guild ones synced with the registry, ACH). Plan and decisions:
+                   /dp ach share; guild ones synced with the registry, ACH), Page (our side tab on the
+                   Collections window opens an achievements page that covers Blizzard's; Del per shareable one).
+                   Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first)
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
 Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + hello)

@@ -152,7 +152,7 @@ Frame.__index = function(self, k)
 end
 local function noop() end
 for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPoints", "SetAllPoints",
-    "SetMotionScriptsWhileDisabled", "SetFrameStrata", "SetFrameLevel", "SetAlpha", "EnableMouse",
+    "SetMotionScriptsWhileDisabled", "SetFrameStrata", "SetAlpha", "EnableMouse",
     "RegisterForClicks", "SetNormalTexture", "SetHighlightTexture", "SetPushedTexture", "SetJustifyH",
     "SetJustifyV", "SetFontObject", "SetWordWrap" }) do
     Frame[m] = noop
@@ -171,15 +171,30 @@ function Frame:HookScript(k, fn)
     local old = self.scripts[k]
     self.scripts[k] = old and function(...) old(...); fn(...) end or fn
 end
+-- Like the client: showing or hiding a frame also fires OnShow/OnHide on
+-- its shown descendants, whose visibility changes with it.
+local function Cascade(f, script)
+    for _, kid in ipairs(f.client and f.client.frames or {}) do
+        if kid.parent == f and kid.shown then
+            if kid.scripts[script] then kid.scripts[script](kid) end
+            Cascade(kid, script)
+        end
+    end
+end
 function Frame:Show()
     if self.shown then return end
     self.shown = true
-    if self.scripts.OnShow and self:IsVisible() then self.scripts.OnShow(self) end
+    if self:IsVisible() then
+        if self.scripts.OnShow then self.scripts.OnShow(self) end
+        Cascade(self, "OnShow")
+    end
 end
 function Frame:Hide()
     if not self.shown then return end
+    local was = self.parent == nil or self.parent:IsVisible()
     self.shown = false
     if self.scripts.OnHide then self.scripts.OnHide(self) end
+    if was then Cascade(self, "OnHide") end
 end
 function Frame:IsShown() return self.shown end
 function Frame:IsVisible()
@@ -195,6 +210,39 @@ function Frame:Enable() self.enabled = true end
 function Frame:Disable() self.enabled = false end
 function Frame:IsEnabled() return self.enabled end
 function Frame:SetEnabled(v) self.enabled = not not v end
+-- Geometry: nil (not laid out) unless a test sets f.geo = { l, r, t, b }.
+function Frame:GetLeft() return self.geo and self.geo.l end
+function Frame:GetRight() return self.geo and self.geo.r end
+function Frame:GetTop() return self.geo and self.geo.t end
+function Frame:GetBottom() return self.geo and self.geo.b end
+function Frame:GetWidth() return self.geo and (self.geo.r - self.geo.l) end
+function Frame:GetHeight() return self.geo and (self.geo.t - self.geo.b) end
+function Frame:GetObjectType() return self.type end
+function Frame:GetChildren()
+    local kids = {}
+    for _, f in ipairs(self.client.frames) do if f.parent == self then kids[#kids + 1] = f end end
+    return unpack(kids)
+end
+function Frame:GetRegions()
+    local all = {}
+    for _, t in ipairs(self.textures) do all[#all + 1] = t end
+    for _, t in ipairs(self.fontStrings) do all[#all + 1] = t end
+    return unpack(all)
+end
+function Frame:SetCheckedTexture(x) self.checkedTex = x end
+function Frame:GetFrameLevel() return self.level or 1 end
+function Frame:SetFrameLevel(n) self.level = n end
+-- StatusBar
+function Frame:SetStatusBarTexture(x) self.barTex = x end
+function Frame:SetStatusBarColor(...) self.barColor = { ... } end
+function Frame:SetMinMaxValues(a, b) self.min, self.max = a, b end
+function Frame:SetValue(v) self.value = v end
+-- Anchors and size are recorded (not laid out): f.points, f.size.
+function Frame:SetPoint(...) self.points = self.points or {}; self.points[#self.points + 1] = { ... } end
+function Frame:ClearAllPoints() self.points = {} end
+function Frame:SetSize(w, h) self.size = { w, h } end
+function Frame:SetShown(v) if v then self:Show() else self:Hide() end end
+function Frame:SetScrollChild(f) self.scrollChild = f end
 function Frame:SetChecked(v) self.checked = not not v end
 function Frame:GetChecked() return self.checked end
 -- Like the client: a disabled button ignores clicks; a check button flips
@@ -219,16 +267,27 @@ end
 
 local Region = {}
 Region.__index = Region
-for _, m in ipairs({ "SetSize", "SetPoint", "ClearAllPoints", "SetAllPoints", "SetJustifyH", "SetJustifyV",
+for _, m in ipairs({ "SetSize", "SetAllPoints", "SetJustifyH", "SetJustifyV",
     "SetDrawLayer", "SetVertexColor", "SetTexCoord", "SetWordWrap", "SetFontObject" }) do
     Region[m] = noop
 end
+function Region:SetPoint(...) self.points = self.points or {}; self.points[#self.points + 1] = { ... } end
+function Region:ClearAllPoints() self.points = {} end
 function Region:SetTexture(x) self.tex = x end
 function Region:GetTexture() return self.tex end
-function Region:SetAtlas(x) self.tex = x end
+function Region:SetAtlas(x) self.tex = x; self.atlas = x end
+function Region:GetAtlas() return self.atlas end
+function Region:SetColorTexture(...) self.color = { ... } end
+function Region:AddMaskTexture(m) self.mask = m end
+function Region:GetObjectType() return self.ftype or "Texture" end
+function Region:GetDrawLayer() return "ARTWORK" end
+function Region:GetWidth() return 16 end
+function Region:GetHeight() return 16 end
+function Region:SetDesaturated(v) self.desaturated = not not v end
 function Region:Show() self.shown = true end
 function Region:Hide() self.shown = false end
 function Region:IsShown() return self.shown end
+function Region:SetShown(v) self.shown = not not v end
 local function StripColors(x) return (tostring(x):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
 H.StripColors = StripColors
 -- .text as set, .plain without color codes (for assertions)
@@ -241,8 +300,13 @@ function Frame:CreateTexture()
     self.textures[#self.textures + 1] = t
     return t
 end
+function Frame:CreateMaskTexture()
+    local t = setmetatable({ shown = true, ftype = "MaskTexture" }, Region)
+    self.textures[#self.textures + 1] = t
+    return t
+end
 function Frame:CreateFontString()
-    local t = setmetatable({ shown = true }, Region)
+    local t = setmetatable({ shown = true, ftype = "FontString" }, Region)
     self.fontStrings[#self.fontStrings + 1] = t
     return t
 end
@@ -466,7 +530,8 @@ local function SpeciesName(sid) return H.SPECIES[sid] or ("Species " .. tostring
 --   protocol (X-Protocol), trial (can't send addon messages), addons ({ "AutoCompanion" }),
 --   login (false: create offline), debug (false: debug log off),
 --   patch (function(env, c): change the stub API before the addon loads),
---   rank (guild rank index: 0 guild master, 1 officer, default 3 member)
+--   rank (guild rank index: 0 guild master, 1 officer, default 3 member),
+--   oldTemplates (the client lacks the modern frame templates)
 function World:AddClient(name, opts)
     opts = opts or {}
     assert(not self.byName[name], "duplicate client " .. name)
@@ -479,7 +544,7 @@ function World:AddClient(name, opts)
         trial = opts.trial, addons = opts.addons or {}, saved = {}, online = false,
         pets = {}, errors = {}, printed = {},
         state = { stand = 0, auras = {}, instance = "none" },
-        idx = #self.clients + 1, patch = opts.patch, rank = opts.rank or 3,
+        idx = #self.clients + 1, patch = opts.patch, rank = opts.rank or 3, oldTemplates = opts.oldTemplates,
     }, Client)
     if opts.debug ~= false then c.saved.DyreparkenDebugDB = { enabled = true } end
     for _, sid in ipairs(opts.pets or { 5159 }) do c:GivePet(sid) end
@@ -684,7 +749,43 @@ function Client:OpenJournal(o)
     o = o or {}
     local env = self.env
     if not rawget(env, "PetJournal") then
-        local PJ = env.CreateFrame("Frame", "PetJournal")
+        -- Forever's Collections window (probed 2026-11-07), with its side tabs
+        -- along the right edge when o.sideTabs = n (laid out: geometry set):
+        -- an unnamed strip as tall as the window, 55 px past its right edge,
+        -- holding Frames CollectionsJournalTab1..n drawn with atlases. Tab 1
+        -- is Mounts, tab 2 Pets (selected). A tab switches on mouse up
+        -- (CollectionsJournal_SetTab): pages, the selected highlight, the title.
+        local CJ = env.CreateFrame("Frame", "CollectionsJournal")
+        CJ.shown = false
+        CJ.titleFS = CJ:CreateFontString()
+        CJ.GetTitleText = function(self) return self.titleFS end -- PortraitFrameMixin
+        local MJ = env.CreateFrame("Frame", "MountJournal", CJ)
+        MJ.shown = false
+        local PJ = env.CreateFrame("Frame", "PetJournal", CJ)
+        CJ.geo = o.sideTabs and { l = 0, r = 700, t = 600, b = 0 } or nil
+        local strip = env.CreateFrame("Frame", nil, CJ)
+        strip.geo = o.sideTabs and { l = 700, r = 755, t = 600, b = 0 } or nil
+        local tabs = {}
+        rawset(env, "CollectionsJournal_SetTab", function(cj, n)
+            cj.selectedTab = n
+            for i, t in ipairs(tabs) do
+                t.sel1:SetShown(i == n); t.sel2:SetShown(i == n)
+            end
+            MJ:SetShown(n == 1)
+            PJ:SetShown(n == 2)
+            cj.titleFS:SetText(n == 1 and "Mounts" or n == 2 and "Pet Journal" or "Tab " .. n)
+        end)
+        for i = 1, o.sideTabs or 0 do
+            local t = env.CreateFrame("Frame", "CollectionsJournalTab" .. i, strip)
+            t:CreateTexture():SetAtlas("common-sidetab")
+            t:CreateTexture():SetTexture("tab" .. i)
+            t.sel1 = t:CreateTexture(); t.sel1:SetAtlas("common-sidetab-selected")
+            t.sel2 = t:CreateTexture(); t.sel2:SetAtlas("common-sidetab-selected")
+            t:CreateTexture():SetAtlas("common-sidetab-hover")
+            t.geo = { l = 700, r = 755, t = 560 - (i - 1) * 57, b = 505 - (i - 1) * 57 }
+            t:SetScript("OnMouseUp", function() env.CollectionsJournal_SetTab(CJ, i) end)
+            tabs[i] = t
+        end
         PJ.shown = false
         PJ.ScrollBox = { buttons = {} }
         function PJ.ScrollBox:ForEachFrame(fn) for _, b in ipairs(self.buttons) do fn(b) end end
@@ -704,11 +805,23 @@ function Client:OpenJournal(o)
         self:Fire("ADDON_LOADED", "Blizzard_Collections")
     end
     self:ListPets(o)
+    env.CollectionsJournal:Show()
+    if env.CollectionsJournal.selectedTab == nil and rawget(env, "CollectionsJournalTab2") then
+        env.CollectionsJournal_SetTab(env.CollectionsJournal, 2)
+    end
     env.PetJournal:Show()
     return self
 end
 
-function Client:CloseJournal() self.env.PetJournal:Hide() end
+function Client:CloseJournal() self.env.CollectionsJournal:Hide() end
+
+-- Press side tab n of the Collections window: mouse down, then up (a click).
+function Client:ClickTab(n)
+    local t = self.env["CollectionsJournalTab" .. n]
+    for _, s in ipairs({ "OnMouseDown", "OnMouseUp" }) do
+        if t.scripts[s] then Hardware(self, t.scripts[s], t, "LeftButton") end
+    end
+end
 
 function Client:ListPets(o)
     o = o or {}
@@ -812,9 +925,19 @@ function Client:BuildEnv()
             shown = true, enabled = true, checked = false, textures = {}, fontStrings = {}, template = template }, Frame)
         f.client = c
         c.frames[#c.frames + 1] = f
+        -- PortraitFrameMixin, mixed in (a plain field, like the real client).
+        if template == "ButtonFrameTemplate" then f.SetTitle = function(self, t) self.titleText = t end end
         if name then rawset(env, name, f) end
         return f
     end
+    -- Templates the client has. c.oldTemplates: only the pre-Dragonflight ones.
+    local MODERN = { ButtonFrameTemplate = true, ScrollFrameTemplate = true }
+    env.C_XMLUtil = { GetTemplateInfo = function(name)
+        if MODERN[name] and c.oldTemplates then return nil end
+        return { type = "Frame", width = 0, height = 0 }
+    end }
+    env.ButtonFrameTemplate_HidePortrait = function(f) f.portraitHidden = true end
+    env.ButtonFrameTemplate_HideButtonBar = function(f) f.buttonBarHidden = true end
     env.UIParent = env.CreateFrame("Frame", "UIParent")
     env.Minimap = env.CreateFrame("Frame", "Minimap", env.UIParent)
     env.DEFAULT_CHAT_FRAME = { AddMessage = function(_, m)

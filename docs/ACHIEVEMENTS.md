@@ -6,7 +6,7 @@ This is the technical plan for the achievements in DesignDocument.md, built on t
 - Personal achievements stay local, with an "announced" flag.
 - Guild-wide achievements are synced and announced only by an officer or the GM.
 - Only obtainable pets count (curation `availability` yes or event).
-- A button in the journal opens a compact scrollable panel.
+- A tab in the Collections window opens an achievements page.
 
 Open questions are marked **Q** and collected at the end.
 
@@ -61,7 +61,7 @@ ns.Companions = {
 
 - `at` is when it was earned (server time). `ann` is when it was announced (nil = not yet).
 - Once earned, an achievement is never lost: a pet let go, or a new cat added in a patch, doesn't take it back.
-  The panel shows the current progress next to the earned date.
+  The page shows the current progress next to the earned date.
 - Migration 5 adds the tables. Wire: `X-Protocol` 3.
 
 ## 3. Detection (dormant)
@@ -100,15 +100,15 @@ timer it's blocked; from a slash command it works. So (decision 7):
     - the first client to record `at` broadcasts it (section 5), and everyone prints one local line when `at`
       first appears;
     - no officer rule is needed for that, since nothing is posted.
-  - Not in a guild: the message is skipped, and the achievement stays in the panel.
+  - Not in a guild: the message is skipped, and the achievement stays on the page.
 - **To guild chat, on request:**
-  - the **Del** button in the panel, or `/dp ach share`, posts the achievement's flavor line;
+  - the **Del** button on the page, or `/dp ach share`, posts the achievement's flavor line;
   - personal: anyone can share their own;
   - guild-wide: only an officer or the GM gets the button (`C_GuildInfo.IsGuildOfficer()`, `IsGuildLeader()`),
     and sharing one sends `ACH_SHARED { id }` so other officers' buttons go away (`ann` syncs);
   - a click is one post; there's no queue to flood.
 - **Per-character option** `/dp ach notify off` (later a checkbox): don't send `ACH_EARNED` for my achievements.
-  They're still recorded and shareable from the panel.
+  They're still recorded and shareable from the page.
 
 ## 5. Sync (guild scope only)
 
@@ -120,10 +120,10 @@ timer it's blocked; from a slash command it works. So (decision 7):
 - Trust as for the registry: shapes are validated, intent isn't. A forged `ann` could only silence an
   announcement, never post one.
 
-## 6. Panel
+## 6. Page
 
-- An **Achievements** button on the journal (next to Auto-summon) toggles a compact panel docked to the right of
-  the journal.
+- A page of the Collections window, opened with our own side tab (see build step 5; first planned as a panel
+  docked beside the journal).
 - It's a scrollable list grouped by category (Collection, Families, Loyalty, Guild):
   - each row: icon, name, progress `9/12`, and the date when earned;
   - unearned rows are dimmed, and hidden achievements stay "???" until earned;
@@ -169,7 +169,23 @@ Coverage floor as for Menagerie (95%).
      officers can still share it.
    - Ids from newer versions are kept and relayed, not shown, so digests agree across versions.
    - Tests in `13_guild_achievements.lua`.
-5. Panel.
+5. ~~Page~~ (done 2026-11-07): `Achievements/Page.lua`. Replaced the first idea, a panel docked beside the
+   journal, at the user's request: achievements are a page of the Collections window.
+   - Our own side tab under Blizzard's (Forever has them down the right edge), drawn with the same atlases. It
+     shows on every page of the window. Without side tabs: a "Prestasjoner" button left of Auto-summon.
+   - Clicking it covers the content area below the title bar. Blizzard's pages are never hidden: the Toys page
+     holds secure buttons, and addon code can't hide those in combat. While it's up, Blizzard's selected
+     highlight is hidden and the title reads "Prestasjoner".
+   - Any of Blizzard's tabs goes back (OnMouseDown hooked), as does any page showing or the window closing.
+     Their highlight and title come back unless Blizzard already set them anew.
+   - Groups: Samlingen, Familier, Lojalitet, Guilden (not shown outside a guild). Rows: icon, name and
+     description; a progress bar, or the date earned. Unearned rows are dimmed. "x av y fått" top right.
+   - **Del** on each row you can share (`Ach:Shareable`) posts that one line (`Ach:Share(id)`).
+   - Tooltips list up to 12 missing pets (family, all), or every pet in the family and who cares for it
+     (guild family), or the pets nobody cares for yet (guild all).
+   - No achievement is hidden yet, so there's no "???" row.
+   - (unverified) on Forever: the tab icon (`Achievement_General`) and the achievement icons.
+   - Tests in `14_achievements_page.lua`.
 
 ## Decisions (2026-11-06)
 
@@ -195,7 +211,7 @@ Coverage floor as for Menagerie (95%).
        kattene]!`;
      - the earner sees it too, with a hint that it can be shared.
    - **Optional, to everyone:**
-     - the panel marks unshared achievements and gives each one a **Del** button that posts its flavor line to
+     - the page marks unshared achievements and gives each one a **Del** button that posts its flavor line to
        guild chat (a click, so allowed);
      - `/dp ach share` posts all unshared ones;
      - for guild-wide achievements, the button is only there for officers and the GM.

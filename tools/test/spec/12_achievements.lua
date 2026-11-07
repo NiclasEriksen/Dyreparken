@@ -179,7 +179,7 @@ return function(test, H)
         eq(w:Sent("ACH_EARNED"), 0)
         eq(Got(ola, "family:cat").told, "none")
         ola:Slash("ach share")
-        ok(ola:Printed("Du er ikke i et guild."))
+        ok(ola:Printed("Du er ikke i en guild."))
     end)
 
     test("notices can be turned off (per character); you still see your own", function()

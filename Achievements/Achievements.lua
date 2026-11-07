@@ -25,8 +25,8 @@ local _, ns = ...
 -- NOTICES: Forever blocks guild chat from addons unless it comes from a
 -- keypress or click (docs/FOREVER_API.md). So a new achievement is sent to
 -- other addon users on the addon channel (ACH_EARNED), each prints one line,
--- and posting to guild chat is the player's choice: /dp ach share (later a
--- button in the panel).
+-- and posting to guild chat is the player's choice: /dp ach share, or the
+-- Del button on the page (Page.lua).
 --
 -- GUILD ACHIEVEMENTS (scope "guild", ids "guild:...") come from the registry
 -- every client already has, so every client works them out itself:
@@ -164,12 +164,13 @@ local function Context()
         end
     end
     ctx.record = ns.Registry:MyRecord()
-    -- Counting pets someone in the guild cares for (one pet per member).
+    -- Counting pets someone in the guild cares for (one pet per member):
+    -- species id -> who.
     ctx.cared, ctx.caredCount = {}, 0
-    for key in pairs(ns.Registry:Holders()) do
+    for key, owner in pairs(ns.Registry:Holders()) do
         local sid = ns.Pets:SpeciesOfKey(key)
         if sid and ctx.counting[sid] and not ctx.cared[sid] then
-            ctx.cared[sid] = true
+            ctx.cared[sid] = owner
             ctx.caredCount = ctx.caredCount + 1
         end
     end
@@ -181,6 +182,47 @@ function Ach:Evaluate(d, ctx)
     local fn = Eval[d.kind]
     if not fn then return nil end
     return fn(d, ctx or Context())
+end
+
+-- The pets behind an achievement, for the page's tooltips. Returns a title,
+-- a list of { text, done } sorted by name, and how many didn't fit; or nil
+-- for kinds that aren't about particular pets.
+--   family, all         the pets you're missing
+--   guildfamily         every pet in the family, and who cares for it
+--   guildall            the pets nobody cares for yet
+local DETAILS_MAX = 12
+function Ach:Details(d, ctx)
+    ctx = ctx or Context()
+    local items = {}
+    local function Name(sid) return ns.Pets:NameOfKey(ns.Pets:KeyOfSpecies(sid)) end
+    local title
+    if d.kind == "family" or d.kind == "all" then
+        title = T().tip_missing
+        for sid, e in pairs(ctx.counting) do
+            if (d.kind == "all" or HasTag(e, d.tag)) and not ctx.owned[sid] then
+                items[#items + 1] = { text = Name(sid), done = false }
+            end
+        end
+    elseif d.kind == "guildfamily" then
+        for sid, e in pairs(ctx.counting) do
+            if HasTag(e, d.tag) then
+                local who = ctx.cared[sid]
+                items[#items + 1] = { text = Name(sid) .. ": " .. (who or T().tip_no_home), done = who ~= nil }
+            end
+        end
+    elseif d.kind == "guildall" then
+        title = T().tip_no_home_title
+        for sid in pairs(ctx.counting) do
+            if not ctx.cared[sid] then items[#items + 1] = { text = Name(sid), done = false } end
+        end
+    else
+        return nil
+    end
+    if #items == 0 then return nil end
+    table.sort(items, function(x, y) return x.text < y.text end)
+    local more = math.max(0, #items - DETAILS_MAX)
+    for i = #items, DETAILS_MAX + 1, -1 do items[i] = nil end
+    return title, items, more
 end
 
 function Ach:Progress(d, have, need)
@@ -435,9 +477,6 @@ function Ach:ShareLine(id, ctx)
     return ((t.flavor or T().share):gsub("{(%a+)}", function(k) return values[k] end))
 end
 
--- Post every earned, unshared achievement to guild chat. Only from a
--- keypress or click (/dp ach share, the panel's button): Forever blocks
--- guild chat from anything else.
 -- Can this player share this achievement now?
 function Ach:Shareable(id)
     local d, g = defsById[id], self:Got(id)
@@ -445,11 +484,14 @@ function Ach:Shareable(id)
     return Scope(d) ~= "guild" or IsOfficer()
 end
 
-function Ach:Share()
+-- Post every earned, unshared achievement (or just `only`) to guild chat.
+-- Only from a keypress or click (/dp ach share, the page's Del button):
+-- Forever blocks guild chat from anything else.
+function Ach:Share(only)
     if not IsInGuild() then return ns.Print(T().not_in_guild) end
     local ctx, n, guild = Context(), 0, {}
     for _, d in ipairs(ns.AchDefs) do
-        if self:Shareable(d.id) then
+        if (only == nil or only == d.id) and self:Shareable(d.id) then
             local g = self:Got(d.id)
             SendChatMessage(self:ShareLine(d.id, ctx), "GUILD")
             g.ann = ctx.now
@@ -467,24 +509,45 @@ function Ach:SetNotify(on)
     ns.Print(on and T().notify_on or T().notify_off)
 end
 
--- /dp ach: every achievement that exists, earned or with progress.
-function Ach:List()
-    local ctx, rows, got = Context(), {}, 0
+-- Every achievement that exists or was earned, in Defs.lua order:
+-- { id, def, got, have, need } (have/need nil when it no longer exists).
+-- Guild ones only while in a guild. Also returns the context, for Details.
+function Ach:Rows(ctx)
+    ctx = ctx or Context()
+    local rows, inGuild = {}, ns.DB:Guild() ~= nil
     for _, d in ipairs(ns.AchDefs) do
-        local done, have, need = self:Evaluate(d, ctx)
-        local g = self:Got(d.id)
-        if done ~= nil or g then
-            if g then
-                got = got + 1
-                rows[#rows + 1] = ("  |cff40ff40%s|r %s%s"):format(self:Link(d.id), date("%d.%m.%Y", g.at),
-                    self:Shareable(d.id) and " *" or "")
-            else
-                rows[#rows + 1] = ("  |cff909090%s|r %s"):format(self:Link(d.id), self:Progress(d, have, need))
+        if Scope(d) ~= "guild" or inGuild then
+            local done, have, need = self:Evaluate(d, ctx)
+            local g = self:Got(d.id)
+            if done ~= nil or g then
+                rows[#rows + 1] = { id = d.id, def = d, got = g, have = have, need = need }
             end
         end
     end
+    return rows, ctx
+end
+
+-- What a row shows on the right: the date earned, or the progress.
+function Ach:RowInfo(row)
+    if row.got then return date("%d.%m.%Y", row.got.at) end
+    return self:Progress(row.def, row.have, row.need)
+end
+
+-- /dp ach: the same list as the panel, in chat.
+function Ach:List()
+    local rows, got = self:Rows(), 0
+    local lines = {}
+    for _, row in ipairs(rows) do
+        if row.got then
+            got = got + 1
+            lines[#lines + 1] = ("  |cff40ff40%s|r %s%s"):format(self:Link(row.id), self:RowInfo(row),
+                self:Shareable(row.id) and " *" or "")
+        else
+            lines[#lines + 1] = ("  |cff909090%s|r %s"):format(self:Link(row.id), self:RowInfo(row))
+        end
+    end
     ns.Print(T().list_header:format(got, #rows))
-    for _, row in ipairs(rows) do ns.Print(row) end
+    for _, line in ipairs(lines) do ns.Print(line) end
 end
 
 function Ach:Init()

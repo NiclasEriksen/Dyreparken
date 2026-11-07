@@ -39,6 +39,7 @@ Menagerie\Tooltip.lua
 Achievements\Texts.lua
 Achievements\Defs.lua
 Achievements\Achievements.lua
+Achievements\Page.lua
 
 # Party games
 Games\Framework.lua

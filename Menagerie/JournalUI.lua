@@ -19,6 +19,7 @@ local _, ns = ...
 --  * a status line on the pet card, plus Adopt/Let go and Nickname buttons
 --    (right of the Summon button, which on Forever sits bottom left)
 --  * "Guild: x of y cared for (z%)" on the card, an Auto-summon checkbox
+--  * the achievements tab and page (Achievements/Page.lua)
 --
 -- Wording (decided 2026-11-06): companions are adopted and cared for, never
 -- "reserved" or "claimed" in anything players read.
@@ -266,6 +267,9 @@ local function BuildCard()
         GameTooltip:Show()
     end)
     card.auto:SetScript("OnLeave", function() GameTooltip:Hide() end)
+
+    -- The achievements tab and page (Achievements/Page.lua).
+    ns.AchPage:Attach(PetJournal, card.auto)
 end
 
 ------------------------------------------------------------------------------

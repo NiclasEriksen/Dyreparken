@@ -5,7 +5,7 @@ local _, ns = ...
 -- (Defs.lua). Ids never change; everything here may.
 --
 --   name    shown in brackets: [Alle kattene]
---   desc    what it takes, shown in the panel
+--   desc    what it takes, shown on the page
 --   flavor  the guild chat line when shared. Placeholders:
 --             {player}    the earner ("Ola Nord")
 --             {name}      the name in brackets ("[Alle kattene]")
@@ -22,13 +22,29 @@ ns.AchTexts = {
         share_hint = "Del det i guild-chatten med /dp ach share.",
         already = "Du har allerede %d prestasjoner fra før. Se dem med /dp ach.",
         none_to_share = "Ingen nye prestasjoner å dele.",
-        not_in_guild = "Du er ikke i et guild.",
+        not_in_guild = "Du er ikke i en guild.",
         notify_on = "Andre med Dyreparken får beskjed når du får en prestasjon.",
         notify_off = "Andre med Dyreparken får ikke lenger beskjed om prestasjonene dine.",
         list_header = "Prestasjoner (%d av %d):",
         days = "%d/%d dager",
         guild_earned = "%s fikk %s!",                  -- Dyreparken fikk [Kattehuset]!
         guild_hint = "Som offiser kan du dele det i guild-chatten med /dp ach share.",
+
+        -- The page in the Collections window (Page.lua)
+        page_title = "Prestasjoner",
+        page_summary = "%d av %d fått",
+        cat_collection = "Samlingen",
+        cat_family = "Familier",
+        cat_loyalty = "Lojalitet",
+        cat_guild = "Guilden",
+        share_button = "Del",
+        share_button_tip = "Del det i guild-chatten.",
+        tip_earned = "Fått %s",
+        tip_shared = "Delt i guild-chatten.",
+        tip_missing = "Mangler:",
+        tip_no_home = "trenger et hjem",
+        tip_no_home_title = "Trenger et hjem:",
+        tip_more = "... og %d til",
     },
 
     -- Collection: pets you own that can be got in game (Data/Companions.lua).
@@ -74,14 +90,14 @@ ns.AchTexts = {
         flavor = "{player} har gitt kjæledyret sitt et navn! {name}" },
 
     -- Guild: the companions the guild cares for, all at once (one per member).
-    ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guildet tar vare på 10 kjæledyr samtidig.",
+    ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guilden tar vare på 10 kjæledyr samtidig.",
         flavor = "Portene er åpne: {guild} tar vare på ti kjæledyr! {name}" },
-    ["guild:count:25"] = { name = "Full drift", desc = "Guildet tar vare på 25 kjæledyr samtidig.",
+    ["guild:count:25"] = { name = "Full drift", desc = "Guilden tar vare på 25 kjæledyr samtidig.",
         flavor = "{guild} tar vare på 25 kjæledyr! Dyreparken er i full drift. {name}" },
-    ["guild:count:50"] = { name = "Nordens største dyrepark", desc = "Guildet tar vare på 50 kjæledyr samtidig.",
+    ["guild:count:50"] = { name = "Nordens største dyrepark", desc = "Guilden tar vare på 50 kjæledyr samtidig.",
         flavor = "{guild} tar vare på 50 kjæledyr! {name}" },
-    ["guild:all"] = { name = "Hele parken", desc = "Guildet tar vare på alle kjæledyrene som finnes, samtidig.",
+    ["guild:all"] = { name = "Hele parken", desc = "Guilden tar vare på alle kjæledyrene som finnes, samtidig.",
         flavor = "Hvert eneste kjæledyr har et hjem i {guild}! {name}" },
-    ["guild:family:cat"] = { name = "Kattehuset", desc = "Hver katt har sin egen eier i guildet.",
+    ["guild:family:cat"] = { name = "Kattehuset", desc = "Hver katt har sin egen eier i guilden.",
         flavor = "Hver eneste katt har fått sitt eget hjem i {guild}! {name}" },
 }

@@ -1,7 +1,7 @@
 local _, ns = ...
 
 -- Achievement definitions: what it takes, not what it's called (Texts.lua).
--- The order here is the order in the panel and in lists.
+-- The order here is the order on the page and in lists.
 --
 -- IDS ARE PERMANENT: saved progress and sync key on them. Rename freely in
 -- Texts.lua; never change an id here.

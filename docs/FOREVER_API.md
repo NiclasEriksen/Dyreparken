@@ -42,6 +42,17 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
   `PetJournalSummonButton` all exist once `Blizzard_Collections` loads.
 - Full `C_PetJournal` set, including `GetPetInfoBySpeciesID`, `GetNumCollectedInfo` (returns `1, 1` for a pet you own),
   `PetIsSummonable`, `GetPetSummonInfo`, `FindPetIDByName`, `SetCustomName`.
+- (probed 2026-11-07) The Collections tabs (Pets, Mounts, Toys, ...) are icon tabs down the window's
+  **right** edge, not at the bottom as on Retail. They sit in an unnamed strip frame, a direct child of
+  `CollectionsJournal` (window 703x606, title bar about 21 px), as tall as the window and 55 px wide.
+  - Tabs are **Frames** (not Buttons) named `CollectionsJournalTab1`, `2`, `3`, `5` (4 is hidden): Mounts, Pets,
+    Toys, ... 55x55, 2 px apart, no children.
+  - Regions: BACKGROUND atlas `common-sidetab`; ARTWORK the icon (50x50) masked by `common-sidetab-mask`;
+    two OVERLAY `common-sidetab-selected` (shown on the selected tab); HIGHLIGHT `common-sidetab-hover`.
+    The atlases are 55x60.
+  - `/dp probe tabs` logs all of this. `Achievements/Page.lua` finds them by position (no names needed).
+- (seen 2026-11-07) `BasicFrameTemplateWithInset` and `UIPanelScrollFrameTemplate` work (mouse wheel too), but
+  look older than the journal.
 
 ## Lua
 

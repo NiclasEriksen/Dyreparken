@@ -80,8 +80,10 @@ Add("report", "report - call out group members without a companion", function()
     ns.Report:Run()
 end)
 
-Add("probe", "probe [more|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
-    if arg == "more" then
+Add("probe", "probe [more|tabs|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
+    if arg == "tabs" then
+        ns.AchPage:Probe()
+    elseif arg == "more" then
         ns.Pets:ProbeMore()
     elseif arg and arg:find("^ach") then
         ns.Pets:ProbeAch(arg:match("^ach%s+(%a+)$"))
