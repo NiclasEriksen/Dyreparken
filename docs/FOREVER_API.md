@@ -185,6 +185,12 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   - Background art: 57 of 66 guessed `Interface\EncounterJournal\UI-EJ-BACKGROUND-*` / `UI-EJ-LOREBG-*` paths for
     classic dungeons and raids exist. The pet battle weathers exist but are small overlays (blurry when stretched);
     the loading screens that exist are the generic splash. `/dp probe bg` shows them in a gallery.
+- **Traits probe** (2026-11-08, `/dp probe life`): `PLAYER_DEAD`, `PLAYER_ALIVE`, `PLAYER_UNGHOST`,
+  `ZONE_CHANGED_NEW_AREA`, `MIRROR_TIMER_START`, `PLAYER_LEVEL_UP`, `CHAT_MSG_GUILD`, `CHAT_MSG_TEXT_EMOTE`,
+  `GROUP_ROSTER_UPDATE`, `PLAYER_FLAGS_CHANGED` and `UNIT_SPELLCAST_SUCCEEDED` are valid events. `GetZoneText`,
+  `IsResting`, `UnitIsAFK`, `UnitLevel`, `DoEmote` and `JumpOrAscendStart` exist. Out of combat they return plain
+  values: zone "Wetlands", `C_Map.GetBestMapForUnit("player")` 1437, `IsInInstance()` `false, "none"`, level 27.
+  What the events carry is still to be read from the log.
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
 - Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns

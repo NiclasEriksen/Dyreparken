@@ -90,9 +90,17 @@ function Personality.ById(id)
     for _, t in ipairs(Personality.TRAITS) do if t.id == id then return t end end
 end
 
+-- Species whose traits are pinned (species id -> two trait ids). Every
+-- species goes in here once the probed traits are in (see the header).
+Personality.PINNED = {
+    [5159] = { "kosete", "gronnfinger" }, -- Panda Cub (chosen 2026-11-08)
+}
+
 -- The species' two traits: the same on every client.
 function Personality:Traits(key)
     local sid = ns.Pets:SpeciesOfKey(key) or 0
+    local pin = self.PINNED[sid]
+    if pin then return { self.ById(pin[1]), self.ById(pin[2]) } end
     local list, n = self.TRAITS, #self.TRAITS
     local first = list[math.fmod(sid * 2654435761, 4294967296) % n + 1]
     local i = math.fmod(sid * 40503 + 12345, 4294967296) % n + 1

@@ -73,6 +73,11 @@ return function(test, H)
             seen[a[1].id], seen[a[2].id] = true, true
         end
         for _, q in ipairs(P.TRAITS) do ok(seen[q.id], q.id) end
+        -- Pinned species keep theirs, and every pin names real traits.
+        eq(P:Names(PANDA), "Kosete og Grønnfinger")
+        for sid, pin in pairs(P.PINNED) do
+            ok(P.ById(pin[1]) and P.ById(pin[2]) and pin[1] ~= pin[2], "pin " .. sid)
+        end
         -- Every pair that contradicts itself names the other way too.
         for _, q in ipairs(P.TRAITS) do
             if q.against then eq(P.ById(q.against).against, q.id) end
