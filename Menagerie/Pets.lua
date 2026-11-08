@@ -28,6 +28,14 @@ function Pets:KeyOf(guid)
     return nil
 end
 
+-- The name a companion goes by in the world: its journal name, else the species.
+function Pets:WorldName(guid)
+    local _, speciesName, _, customName = Info(guid)
+    if type(customName) == "string" and customName ~= "" then return customName end
+    if type(speciesName) == "string" and speciesName ~= "" then return speciesName end
+    return nil
+end
+
 function Pets:Summoned()
     return C_PetJournal.GetSummonedPetGUID()
 end

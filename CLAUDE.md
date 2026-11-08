@@ -95,13 +95,14 @@ Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kin
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
 Core/Activity.lua  the activity engine: game events -> activities ("boss", "quest", "pvp", "taxi", "herb", "mine",
-                   "fish", "skin", "day"), counted per
+                   "fish", "skin", "day"; for traits "dance", "cuddle", "chat", "dive", "level", "revive", "nap",
+                   "hearth", "jump", "explore"), counted per
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
                    (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
-                   English aliases; probe [more|tabs|kills|bg|ach], debug)
+                   English aliases; probe [more|tabs|kills|life|bg|ach], debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,

@@ -190,7 +190,21 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   `GROUP_ROSTER_UPDATE`, `PLAYER_FLAGS_CHANGED` and `UNIT_SPELLCAST_SUCCEEDED` are valid events. `GetZoneText`,
   `IsResting`, `UnitIsAFK`, `UnitLevel`, `DoEmote` and `JumpOrAscendStart` exist. Out of combat they return plain
   values: zone "Wetlands", `C_Map.GetBestMapForUnit("player")` 1437, `IsInInstance()` `false, "none"`, level 27.
-  What the events carry is still to be read from the log.
+  What fires (same evening, a dungeon run and Orgrimmar):
+  - Typed emotes **don't go through `DoEmote`** (the hook never fired). `CHAT_MSG_TEXT_EMOTE` does, with our own
+    GUID (12th value) and plain English text: "You burst into dance.", "You dance with Panda Cub.", "You pet Panda
+    Cub.", "You hug Panda Cub.", and "/pet" without a target: "You need to be petted."
+  - `MIRROR_TIMER_START ("BREATH", 60000, 60000, -1, 0, "Breath")` going under; the same with scale 10 while it
+    refills. Fires inside dungeons too.
+  - `PLAYER_LEVEL_UP (28, ...)`: the new level. `UnitLevel` still says 27 at that moment.
+  - `PLAYER_ALIVE` fires at **every loading screen** (entering an instance, the hearthstone), not just after dying.
+    Running back as a ghost gave `PLAYER_ALIVE` + `PLAYER_UNGHOST` on entering the instance.
+  - `C_Map.GetBestMapForUnit("player")` is **nil inside instances**; `GetZoneText()` works there ("Excavation Site:
+    Wetlands"). Outdoors: Wetlands 1437, Orgrimmar 1454, the excavation site's outside 1414.
+  - Hearthstone: `UNIT_SPELLCAST_SUCCEEDED` 8690 "Hearthstone". `CHAT_MSG_GUILD` gives the sender as plain
+    "First Surname". `JumpOrAscendStart` hooks fine. The companion is readable at all of these, except right after a
+    loading screen (back a moment later).
+  - Not seen yet: `PLAYER_DEAD` itself, our own guild chat line, `UnitIsAFK` true.
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
 - Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns

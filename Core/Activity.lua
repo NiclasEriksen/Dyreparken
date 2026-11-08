@@ -294,3 +294,123 @@ Activity:Source({
     end,
     filter = function() return 1 end,
 })
+
+------------------------------------------------------------------------------
+-- The traits' activities (probed 2026-11-08, build 70862, docs/FOREVER_API.md).
+------------------------------------------------------------------------------
+local function Own(guid)
+    return type(Plain(guid)) == "string" and guid == UnitGUID("player")
+end
+
+-- Emotes: CHAT_MSG_TEXT_EMOTE carries our own emote as text ("You dance
+-- with Panda Cub."); the DoEmote hook never fires for typed emotes. English
+-- text: the client is enUS. "cuddle" needs the companion out to be named in
+-- it: "/pet" alone ("You need to be petted.") isn't petting it.
+local DANCE = { "danc" }
+local CUDDLE = { "^you pet ", "^you hug ", "^you cuddle ", "^you love ", "^you snuggle " }
+local function Matches(text, list)
+    for _, pat in ipairs(list) do if text:find(pat) then return true end end
+    return false
+end
+function Activity.EmoteKind(text)
+    text = Plain(text)
+    if type(text) ~= "string" then return nil end
+    local lower = text:lower()
+    if Matches(lower, DANCE) then return "dance" end
+    if Matches(lower, CUDDLE) then
+        local guid = Plain(ns.Pets:Summoned())
+        local name = guid and ns.Pets:WorldName(guid)
+        if name and text:find(name, 1, true) then return "cuddle" end
+    end
+    return nil
+end
+for _, kind in ipairs({ "dance", "cuddle" }) do
+    Activity:Source({ id = kind, events = { "CHAT_MSG_TEXT_EMOTE" }, filter = function(_, text, ...)
+        if not Own((select(11, ...))) then return nil end
+        if Activity.EmoteKind(text) == kind then return 1 end
+    end })
+end
+
+-- A line of our own in guild chat (only the sender is read, never the text).
+Activity:Source({ id = "chat", events = { "CHAT_MSG_GUILD" }, filter = function(_, _, ...)
+    if Own((select(11, ...))) then return 1 end
+end })
+
+-- Under water: the breath timer starts draining (scale -1). It also fires
+-- when it refreshes, so one dive a minute at most.
+local lastDive = 0
+Activity:Source({ id = "dive", events = { "MIRROR_TIMER_START" }, filter = function(_, timer, _, _, scale)
+    if Plain(timer) ~= "BREATH" or Plain(scale) ~= -1 or GetTime() - lastDive < 60 then return nil end
+    lastDive = GetTime()
+    return 1
+end })
+
+-- A level gained (the payload's first value; UnitLevel lags behind it).
+Activity:Source({ id = "level", events = { "PLAYER_LEVEL_UP" }, filter = function(_, level)
+    return 1, tostring(Plain(level) or "?")
+end })
+
+-- Back on your feet after dying. PLAYER_ALIVE also fires at every loading
+-- screen, so only after a PLAYER_DEAD; the companion is counted a little
+-- later, once it's back out.
+local died = false
+Activity:Source({ id = "revive", events = { "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST" },
+    filter = function(event)
+        if event == "PLAYER_DEAD" then died = true; return nil end
+        if not died or UnitIsDeadOrGhost("player") then return nil end
+        died = false
+        C_Timer.After(10, function() Activity:Emit("revive", 1) end)
+    end })
+
+-- AFK in a city or an inn: a nap.
+Activity:Source({ id = "nap", events = { "PLAYER_FLAGS_CHANGED" }, unit = "player", filter = function(_, unit)
+    if unit ~= "player" then return nil end
+    if Plain(UnitIsAFK("player")) and Plain(IsResting()) then return 1 end
+end })
+
+-- Hearthstone: your own cast (8690, or by name).
+Activity:Source({ id = "hearth", events = { "UNIT_SPELLCAST_SUCCEEDED" }, unit = "player",
+    filter = function(_, unit, _, spellID)
+        if unit ~= "player" then return nil end
+        local id = Plain(spellID)
+        if id == 8690 then return 1 end
+        local name = type(id) == "number" and C_Spell and C_Spell.GetSpellName and Plain(C_Spell.GetSpellName(id))
+        if name == "Hearthstone" then return 1 end
+    end })
+
+-- Jumping: one "jump" per 10 jumps (a function hook: idle when unwanted).
+local jumps = 0
+Activity:Source({
+    id = "jump",
+    available = function() return type(JumpOrAscendStart) == "function" end,
+    hook = function(fire)
+        if type(JumpOrAscendStart) == "function" then hooksecurefunc("JumpOrAscendStart", fire) end
+    end,
+    filter = function()
+        jumps = jumps + 1
+        if jumps % 10 == 0 then return 1 end
+    end,
+})
+
+-- A place this companion has never been: the map id, or the zone's name
+-- inside instances (C_Map has no map there). Read a few seconds after the
+-- loading screen, when the companion is back out.
+function Activity.Place()
+    local map = C_Map and C_Map.GetBestMapForUnit and Plain(C_Map.GetBestMapForUnit("player"))
+    if type(map) == "number" then return "m" .. map end
+    local zone = Plain(GetZoneText())
+    if type(zone) == "string" and zone ~= "" then return "z" .. zone end
+end
+function Activity:CheckPlace()
+    local key = PetNow()
+    local place = Activity.Place()
+    if not key or not place then return end
+    local all = ns.DB.char.places
+    all[key] = all[key] or {}
+    if all[key][place] then return end
+    all[key][place] = true
+    self:Emit("explore", 1, place)
+end
+Activity:Source({ id = "explore", events = { "ZONE_CHANGED_NEW_AREA" }, filter = function()
+    C_Timer.After(5, function() Activity:CheckPlace() end)
+end })

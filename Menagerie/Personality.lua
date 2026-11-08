@@ -28,6 +28,17 @@ ns.Personality = Personality
 Personality.NOUN = {
     boss = "boss-kills", quest = "quests", taxi = "flyturer", pvp = "PvP", herb = "herbs",
     mine = "mining", fish = "fisking", skin = "skinning", day = "dager sammen",
+    dance = "dansing", cuddle = "kos", chat = "guildprat", dive = "dykking", level = "nye levels",
+    revive = "å vente på deg", nap = "lur i byen", hearth = "å dra hjem", jump = "hopping", explore = "nye steder",
+}
+
+-- The first liked thing each day gets a line; these read better than
+-- "koste seg med ..." ("%s" is the pet's name).
+Personality.FLAVOR = {
+    dance = "%s danset med deg!", cuddle = "%s elsker å bli kost med!", chat = "%s lytter fornøyd til guildpraten.",
+    dive = "%s plasket rundt med deg!", level = "%s er så stolt av deg!", revive = "%s ventet tålmodig på deg.",
+    nap = "%s tok en lur sammen med deg.", hearth = "%s er glad for å være hjemme!", jump = "%s hopper av glede!",
+    explore = "%s snuser på et nytt sted!",
 }
 
 Personality.BY_FAMILY = {
@@ -59,6 +70,16 @@ Personality.TRAITS = {
     { id = "gronnfinger", name = "Grønnfinger", desc = "Snuser på hver eneste herb.", like = "herb" },
     { id = "vannhund", name = "Vannhund", desc = "Elsker vann og fisk.", like = "fish" },
     { id = "steinhard", name = "Steinhard", desc = "Graver gjerne etter malm.", like = "mine" },
+    { id = "dansefot", name = "Dansefot", desc = "Kan ikke sitte stille når du danser.", like = "dance" },
+    { id = "kjaelen", name = "Kjælen", desc = "Elsker /pet, /hug og /cuddle.", like = "cuddle" },
+    { id = "oppdager", name = "Oppdager", desc = "Vil se hele verden, ett sted om gangen.", like = "explore" },
+    { id = "trofast", name = "Trofast", desc = "Venter på deg, uansett hva som skjer.", like = "revive" },
+    { id = "hoppetass", name = "Hoppetass", desc = "Hopper når du hopper.", like = "jump" },
+    { id = "dykker", name = "Dykker", desc = "Holder pusten lenger enn deg.", like = "dive" },
+    { id = "hjemlengsel", name = "Hjemlengsel", desc = "Borte bra, men hjemme best.", like = "hearth" },
+    { id = "ambisios", name = "Ambisiøs", desc = "Vil se deg bli sterkere.", like = "level" },
+    { id = "latsabb", name = "Latsabb", desc = "En lur i byen er det beste som finnes.", like = "nap" },
+    { id = "pratsom", name = "Pratsom", desc = "Elsker når du prater med guilden.", like = "chat" },
     { id = "kosete", name = "Kosete", desc = "Det er nok å være sammen.",
         day = function() return 2 end, dayX = 2, dayText = "Hver dag sammen" },
     { id = "nattugle", name = "Nattugle", desc = "Våkner til liv når det blir mørkt.",
@@ -157,6 +178,16 @@ function Personality:WantsContext(key)
     return false
 end
 
+-- How an activity reads in a trait's effect, where "X med kjæledyret ute"
+-- doesn't say enough.
+Personality.EFFECT = {
+    dance = "/dance med kjæledyret ute", cuddle = "/pet, /hug eller /cuddle på kjæledyret",
+    chat = "Hver linje du skriver i guildchatten", dive = "Hver gang du dykker under vann med kjæledyret ute",
+    level = "Hvert level du går opp med kjæledyret ute", revive = "Hver gang du står opp igjen etter å ha dødd",
+    nap = "/afk i en by eller et vertshus med kjæledyret ute", hearth = "Hearthstone med kjæledyret ute",
+    jump = "Hvert tiende hopp med kjæledyret ute", explore = "Hvert nytt sted kjæledyret ser sammen med deg",
+}
+
 -- What a trait does, in numbers (from ns.Config, so it can't go stale).
 function Personality:Effect(trait)
     local C = ns.Config
@@ -168,8 +199,11 @@ function Personality:Effect(trait)
     if trait.when then
         what = ("Alt dere gjør sammen %s"):format(trait.whenText)
     else
-        local noun = self.NOUN[trait.like]
-        what = ("%s med kjæledyret ute"):format(noun:sub(1, 1):upper() .. noun:sub(2))
+        what = self.EFFECT[trait.like]
+        if not what then
+            local noun = self.NOUN[trait.like]
+            what = ("%s med kjæledyret ute"):format(noun:sub(1, 1):upper() .. noun:sub(2))
+        end
     end
     return ("%s gir %d bånd-poeng (opptil %d om dagen), mot %d ellers."):format(what, C.BOND_LIKED_POINTS,
         C.BOND_LIKED_CAP, C.BOND_OTHER_POINTS)

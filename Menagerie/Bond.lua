@@ -125,14 +125,26 @@ function Bond:Seed()
     ns.Log("Bond", "seeded %s with %d (%d days)", key, days * ns.Config.BOND_DAY_POINTS, days)
 end
 
+-- Always watched while we care for a pet; the traits' own activities
+-- (dance, chat, dive...) only for a pet that likes them, so nobody else
+-- pays for those events.
 Bond.ACTIVITIES = { "day", "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin" }
+local watching = {}
 
--- Watch the activities only while we care for a pet.
 function Bond:Watch()
-    local have = ns.Registry:MyPet() ~= nil
-    for _, id in ipairs(self.ACTIVITIES) do
-        if have then ns.Activity:Want(id, Bond) else ns.Activity:Drop(id, Bond) end
+    local key = ns.Registry:MyPet()
+    local want = {}
+    if key then
+        for _, id in ipairs(self.ACTIVITIES) do want[id] = true end
+        for id in pairs((ns.Personality:Of(key))) do want[id] = true end
     end
+    for id in pairs(watching) do
+        if not want[id] then ns.Activity:Drop(id, Bond) end
+    end
+    for id in pairs(want) do
+        if not watching[id] then ns.Activity:Want(id, Bond) end
+    end
+    watching = want
 end
 
 -- What the "when" traits read (Personality.lua): the time, the group and
@@ -185,7 +197,7 @@ function Bond:OnActivity(id, n, key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then
         per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
-        flavor = ("%s koste seg med %s!"):format(name, P.NOUN[id])
+        flavor = (P.FLAVOR[id] or ("%s koste seg med " .. P.NOUN[id] .. "!")):format(name)
     elseif P:WantsContext(key) then
         -- A unit name we can't read mustn't cost the points: no bonus then.
         local ok, ctx = pcall(Bond.Context)

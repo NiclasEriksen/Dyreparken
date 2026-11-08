@@ -34,6 +34,7 @@ local CHAR_DEFAULTS = {
     achNotify = true,          -- tell other addon users when I earn an achievement
     announce = true,           -- post adoptions and nicknames to guild chat (Bonds:Announce)
     activity = {},             -- activity counters (Core/Activity.lua)
+    places = {},               -- [petKey] = { [zone] = true }: where each companion has been ("explore")
     ach = { got = {}, seen = {} }, -- character-scope achievements (Achievements.lua)
     warnedVersion = nil, -- newest version we've already told the player about
 }

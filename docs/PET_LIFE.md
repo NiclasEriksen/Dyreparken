@@ -167,8 +167,11 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
    anything done counts as liked (Nattugle 22-04, Flokkdyr with a guildmate in the group, Einstøing alone,
    Huleboer in dungeons and raids, Friluftsdyr outside them; one 25-point cap per trait), and a day multiplier
    (Kosete x2, Helgedyr x2 on weekends, Festglad x3 on Norwegian holidays). Contradicting pairs never meet.
-   Next, after the traits probe (`/dp probe life`): Dansefot, Kjælen, Oppdager, Trofast, Hoppetass, Dykker,
-   Hjemlengsel, Ambisiøs, Latsabb, Pratsom. Then **pin** every species' two traits in a list (decided
+   *The probed traits, same day:* Dansefot (dance), Kjælen (cuddle: /pet, /hug... naming the companion), Oppdager
+   (explore: a place this companion hasn't been, `char.places`), Trofast (revive: up again after PLAYER_DEAD),
+   Hoppetass (jump, per 10), Dykker (dive), Hjemlengsel (hearth), Ambisiøs (level), Latsabb (nap: AFK while
+   resting), Pratsom (chat: our own guild lines). The bond watches these only for a pet that likes them.
+   Panda Cub is pinned to Kosete and Grønnfinger. Next: **pin** every species' two traits in a list (decided
    2026-11-08: reshuffling now is fine, never after that).
 4. **Lifetime and temperament:** `g.life` sync, temperament stages, park map borders, world tooltip word.
 5. **Story:** the timeline, milestone lines, big moments in guild chat.
