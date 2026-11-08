@@ -368,14 +368,18 @@ Activity:Source({ id = "nap", events = { "PLAYER_FLAGS_CHANGED" }, unit = "playe
     if Plain(UnitIsAFK("player")) and Plain(IsResting()) then return 1 end
 end })
 
--- Hearthstone: your own cast (8690, or by name).
+-- Going home: your own Hearthstone (8690, seen on Forever 2026-11-08), or a
+-- class's own way home: the shaman's Astral Recall (556) and the druid's
+-- Teleport: Moonglade (18960), by id or by name (those two unverified).
+local HOME_IDS = { [8690] = true, [556] = true, [18960] = true }
+local HOME_NAMES = { ["Hearthstone"] = true, ["Astral Recall"] = true, ["Teleport: Moonglade"] = true }
 Activity:Source({ id = "hearth", events = { "UNIT_SPELLCAST_SUCCEEDED" }, unit = "player",
     filter = function(_, unit, _, spellID)
         if unit ~= "player" then return nil end
         local id = Plain(spellID)
-        if id == 8690 then return 1 end
+        if HOME_IDS[id] then return 1, tostring(id) end
         local name = type(id) == "number" and C_Spell and C_Spell.GetSpellName and Plain(C_Spell.GetSpellName(id))
-        if name == "Hearthstone" then return 1 end
+        if HOME_NAMES[name] then return 1, name end
     end })
 
 -- Jumping: one "jump" per 10 jumps (a function hook: idle when unwanted).

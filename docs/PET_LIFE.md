@@ -179,7 +179,7 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
    (Kosete x2, Helgedyr x2 on weekends, Festglad x3 on Norwegian holidays). Contradicting pairs never meet.
    *The probed traits, same day:* Dansefot (dance), Kjælen (cuddle: /pet, /hug... naming the companion), Oppdager
    (explore: a place this companion hasn't been, `char.places`), Trofast (revive: up again after PLAYER_DEAD),
-   Hoppetass (jump, per 10), Dykker (dive), Hjemlengsel (hearth), Ambisiøs (level), Latsabb (nap: AFK while
+   Hoppetass (jump, per 10), Dykker (dive), Hjemlengsel (hearth: the Hearthstone, Astral Recall, Teleport: Moonglade), Ambisiøs (level), Latsabb (nap: AFK while
    resting), Pratsom (chat: our own guild lines). The bond watches these only for a pet that likes them.
    **Pinned** the same day: every species' two traits are in `Data/Traits.lua` for good (Panda Cub: Kosete and
    Grønnfinger, by hand; the rest balanced, 6-7 species per trait). New species: `luajit tools/pin_traits.lua`.

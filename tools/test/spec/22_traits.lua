@@ -63,11 +63,18 @@ return function(test, H)
         eq(A:Count("level"), 1)
         eq(#ola:Log("level %+1 pet=s:5159 mine=false 28"), 1)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 8690)
-        ola.state.spellNames = { [99001] = "Hearthstone", [99002] = "Frostbolt" }
+        ola.state.spellNames = { [99001] = "Hearthstone", [99002] = "Frostbolt", [99003] = "Astral Recall",
+            [99004] = "Teleport: Moonglade" }
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 99001)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 99002)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", H.SECRET)
         eq(A:Count("hearth"), 2)
+        -- A class's own way home counts too: by id, or by name.
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 556)
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 18960)
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 99003)
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 99004)
+        eq(A:Count("hearth"), 6)
         for _ = 1, 25 do ola.env.JumpOrAscendStart() end
         eq(A:Count("jump"), 2, "one per ten jumps")
     end)
