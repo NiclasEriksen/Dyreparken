@@ -11,7 +11,11 @@ local _, ns = ...
 --             {name}      the name in brackets ("[Alle kattene]")
 --             {progress}  "12/12"
 --             {guild}     the guild's name (guild achievements)
---           Without a flavor the generic "share" line below is used.
+--             {pet}       your companion: its nickname, else its species ("Pepe")
+--             {species}   your companion's species ("Panda Cub")
+--             {nick}      its nickname ("Pepe")
+--           A line whose placeholder has no value (no companion, no nickname)
+--           falls back to `plain`, then to the generic "share" line below.
 --
 -- The generic lines are format strings (%s), not placeholders.
 ns.AchTexts = {
@@ -86,13 +90,17 @@ ns.AchTexts = {
 
     -- Loyalty: the companion you care for (per character).
     ["loyal:30"] = { name = "Bestevenner", desc = "Ta vare på det samme kjæledyret i 30 dager.",
-        flavor = "{player} og kjæledyret sitt har vært bestevenner i en hel måned! {name}" },
+        flavor = "{player} og {pet} har vært bestevenner i en hel måned! {name}",
+        plain = "{player} og kjæledyret sitt har vært bestevenner i en hel måned! {name}" },
     ["loyal:100"] = { name = "Uatskillelige", desc = "Ta vare på det samme kjæledyret i 100 dager.",
-        flavor = "{player} og kjæledyret sitt har vært uatskillelige i 100 dager! {name}" },
+        flavor = "{player} og {pet} har vært uatskillelige i 100 dager! {name}",
+        plain = "{player} og kjæledyret sitt har vært uatskillelige i 100 dager! {name}" },
     ["loyal:365"] = { name = "Venner for livet", desc = "Ta vare på det samme kjæledyret i et helt år.",
-        flavor = "{player} har tatt vare på det samme kjæledyret i et helt år! {name}" },
+        flavor = "{player} og {pet} har vært venner i et helt år! {name}",
+        plain = "{player} har tatt vare på det samme kjæledyret i et helt år! {name}" },
     ["nick"] = { name = "Døpt", desc = "Gi kjæledyret ditt et kallenavn.",
-        flavor = "{player} har gitt kjæledyret sitt et navn! {name}" },
+        flavor = "{player} har døpt {species} til «{nick}»! {name}",
+        plain = "{player} har gitt kjæledyret sitt et navn! {name}" },
 
     -- Guild: the companions the guild cares for, all at once (one per member).
     ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guilden tar vare på 10 kjæledyr samtidig.",

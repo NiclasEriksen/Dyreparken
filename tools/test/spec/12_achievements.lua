@@ -221,6 +221,18 @@ return function(test, H)
         ok(kari:Printed("Ola Nord fikk [Døpt]!", true))
         eq(ola.env.DyreparkenCharDB.ach.got.nick.told ~= nil, true)
         eq(ola.env.DyreparkenDB.ach.got.nick, nil, "character scope")
+        -- The shared lines name the pet.
+        local A = ola.ns.Achievements
+        eq(A:ShareLine("nick"), "Ola Nord har døpt Panda Cub til «Bambus»! [Døpt]")
+        eq(A:ShareLine("loyal:30"), "Ola Nord og Bambus har vært bestevenner i en hel måned! [Bestevenner]")
+        ola:Slash("nick")
+        eq(A:ShareLine("nick"), "Ola Nord har gitt kjæledyret sitt et navn! [Døpt]", "no nickname now: the plain line")
+        eq(A:ShareLine("loyal:30"), "Ola Nord og Panda Cub har vært bestevenner i en hel måned! [Bestevenner]",
+            "no nickname: the species")
+        ola:Slash("letgo")
+        eq(A:ShareLine("loyal:30"), "Ola Nord og kjæledyret sitt har vært bestevenner i en hel måned! [Bestevenner]")
+        ola.ns.AchTexts.nick.plain = nil
+        eq(A:ShareLine("nick"), "Ola Nord fikk [Døpt]!", "no plain line: the generic one")
     end)
 
     test("notices are checked: guild only, known ids only, bounded", function()

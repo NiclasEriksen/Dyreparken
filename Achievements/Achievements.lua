@@ -532,7 +532,24 @@ function Ach:ShareLine(id, ctx)
         if done ~= nil then progress = self:Progress(d, have, need) end
     end
     local values = { player = ns.PlayerKey(), name = self:Link(id), progress = progress, guild = GuildName() or "" }
-    return ((t.flavor or T().share):gsub("{(%a+)}", function(k) return values[k] end))
+    local key = ns.Registry:MyPet()
+    if key then
+        values.species = ns.Pets:NameOfKey(key)
+        values.nick = ns.Registry:Nickname(key)
+        values.pet = values.nick or values.species
+    end
+    -- The first line whose placeholders all have a value.
+    for _, line in ipairs({ t.flavor or false, t.plain or false, T().share }) do
+        if line then
+            local missing = false
+            local text = line:gsub("{(%a+)}", function(k)
+                if values[k] ~= nil then return values[k] end
+                -- Unknown placeholders stay, so typos show.
+                if k == "pet" or k == "species" or k == "nick" then missing = true end
+            end)
+            if not missing then return text end
+        end
+    end
 end
 
 -- Can this player share this achievement now?
