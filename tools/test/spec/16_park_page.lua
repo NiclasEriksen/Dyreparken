@@ -101,8 +101,8 @@ return function(test, H)
         -- Sorted by name; laid out in rows.
         local first = P._cells[1]
         eq(first.key, "s:42", "Black Tabby Cat first")
-        match(Tip(ola, kitty), "^Cornish Rex Cat / Bor hos Kari Berg siden i dag / Bånd: Bekjent %(nivå 1%)$")
-        match(Tip(ola, rabbit), "Trenger et hjem / Du har dette kjæledyret, og kan adoptere det%.")
+        match(Tip(ola, kitty), "^Cornish Rex Cat / Bor hos Kari Berg siden i dag / Bånd: Bekjent %(nivå 1%) / %S+ · liker ")
+        match(Tip(ola, rabbit), "Trenger et hjem / .* / Du har dette kjæledyret, og kan adoptere det%.")
         match(Tip(ola, panda), "Bor hos deg siden i dag")
         no(Tip(ola, panda):find("Du har", 1, true), "no \"you have it too\" on your own")
         -- Per adopts the tabby while the page is open: it lights up.

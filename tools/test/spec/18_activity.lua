@@ -13,6 +13,8 @@ return function(test, H)
         w:Run(12)
         c:Slash("adopter panda")
         c:Slash("debug off")
+        -- The bond wants its activities while you have a pet (19_bond.lua): not here.
+        for _, id in ipairs(c.ns.Bond.ACTIVITIES) do c.ns.Activity:Drop(id, c.ns.Bond) end
         return w, c, c.ns.Activity
     end
 

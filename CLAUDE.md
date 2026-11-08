@@ -94,7 +94,8 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
-Core/Activity.lua  the activity engine: game events -> activities ("boss", "quest", "pvp", "taxi", "day"), counted per
+Core/Activity.lua  the activity engine: game events -> activities ("boss", "quest", "pvp", "taxi", "herb", "mine",
+                   "fish", "skin", "day"), counted per
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
                    (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
@@ -108,7 +109,8 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp rapport), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
-                   Scenes (backgrounds behind the pet on the card, by family; candidates until probed: /dp probe bg),
+                   Personality (likes and a quirk per species, from families, a few species and a hash; liked
+                   activities give more bond points), Scenes (backgrounds behind the pet on the card, by family; candidates until probed: /dp probe bg),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
                    loads after Achievements/Page.lua so its tab comes second),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in

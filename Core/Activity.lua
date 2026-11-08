@@ -35,6 +35,11 @@ local listening = {}    -- event -> { source, ... } currently registered
 local broken = {}       -- id -> true (switched off for this session)
 local unavailable = {}  -- id -> true (an event the client lacks)
 local ENGINE = {}       -- our owner key for ns.Events
+-- Unit events (a source with `unit`) go on a frame of their own, registered
+-- for that unit only: UNIT_SPELLCAST_SUCCEEDED for every unit in a raid
+-- would be thousands of calls for nothing.
+local unitFrame = CreateFrame("Frame")
+local unitEvents = {}   -- event -> true while registered on unitFrame
 
 local function Today(now) return date("%Y%m%d", now or ns.Now()) end
 
@@ -114,6 +119,26 @@ end
 local function OnEvent(_, event, ...)
     for _, src in ipairs(listening[event] or {}) do Run(src, event, ...) end
 end
+unitFrame:SetScript("OnEvent", function(_, event, ...) OnEvent(nil, event, ...) end)
+
+local function Register(e, list)
+    local unit = list[1].unit
+    if unit then
+        local ok = pcall(unitFrame.RegisterUnitEvent, unitFrame, e, unit)
+        if ok then unitEvents[e] = true end
+        return ok
+    end
+    return ns.Events:On(e, ENGINE, OnEvent)
+end
+
+local function Unregister(e)
+    if unitEvents[e] then
+        unitFrame:UnregisterEvent(e)
+        unitEvents[e] = nil
+    else
+        ns.Events:Off(e, ENGINE)
+    end
+end
 
 -- Register the game events the wanted sources need, and only those.
 local function Update()
@@ -132,12 +157,12 @@ local function Update()
         end
     end
     for e in pairs(listening) do
-        if not need[e] then ns.Events:Off(e, ENGINE) end
+        if not need[e] then Unregister(e) end
     end
     for e, list in pairs(need) do
         if not listening[e] then
             for _, src in ipairs(list) do if src.start then src.start() end end
-            if not ns.Events:On(e, ENGINE, OnEvent) then
+            if not Register(e, list) then
                 for _, src in ipairs(list) do unavailable[src.id] = true end
                 need[e] = nil
             end
@@ -233,6 +258,31 @@ Activity:Source({
         return hk - before
     end,
 })
+
+-- Gathering: your own successful casts of Herb Gathering, Mining, Fishing
+-- or Skinning, out of combat. Known spell ids first (the classic ranks),
+-- else the spell's name. Unverified on Forever.
+local GATHER_IDS = {
+    [2366] = "herb", [2368] = "herb", [3570] = "herb", [11993] = "herb",
+    [2575] = "mine", [2576] = "mine", [3564] = "mine", [10248] = "mine",
+    [7620] = "fish", [7731] = "fish", [7732] = "fish", [18248] = "fish",
+    [8613] = "skin", [8617] = "skin", [8618] = "skin", [10768] = "skin",
+}
+local GATHER_NAMES = { ["herb gathering"] = "herb", mining = "mine", fishing = "fish", skinning = "skin" }
+function Activity.GatherKind(spellID)
+    local id = Plain(spellID)
+    if type(id) ~= "number" then return nil end
+    if GATHER_IDS[id] then return GATHER_IDS[id] end
+    local name = C_Spell and C_Spell.GetSpellName and Plain(C_Spell.GetSpellName(id))
+    return type(name) == "string" and GATHER_NAMES[name:lower()] or nil
+end
+for _, kind in ipairs({ "herb", "mine", "fish", "skin" }) do
+    Activity:Source({ id = kind, events = { "UNIT_SPELLCAST_SUCCEEDED" }, unit = "player",
+        filter = function(_, unit, _, spellID)
+            if unit ~= "player" or InCombatLockdown() then return nil end
+            if Activity.GatherKind(spellID) == kind then return 1 end
+        end })
+end
 
 -- A flight path taken (a function hook: it can't be unregistered, so it
 -- does nothing while nobody wants "taxi").

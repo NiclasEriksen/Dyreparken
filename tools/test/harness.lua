@@ -42,7 +42,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     GUILD_ROSTER_UPDATE PLAYER_GUILD_UPDATE GROUP_ROSTER_UPDATE COMPANION_UPDATE BAG_UPDATE_DELAYED
     UNIT_AURA ZONE_CHANGED_NEW_AREA PLAYER_TARGET_CHANGED UPDATE_MOUSEOVER_UNIT CHAT_MSG_GUILD
     CHAT_MSG_PARTY CHAT_MSG_RAID NEW_PET_ADDED PET_JOURNAL_LIST_UPDATE
-    ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED QUEST_TURNED_IN]]):gmatch("%S+") do
+    ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED QUEST_TURNED_IN UNIT_SPELLCAST_SUCCEEDED]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -164,6 +164,12 @@ function Frame:RegisterEvent(e)
     self.events[e] = true
 end
 function Frame:UnregisterEvent(e) self.events[e] = nil end
+function Frame:RegisterUnitEvent(e, ...)
+    if not KNOWN_EVENTS[e] then error("Attempt to register unknown event \"" .. tostring(e) .. "\"", 2) end
+    self.events[e] = true
+    self.unitFilter = self.unitFilter or {}
+    self.unitFilter[e] = { ... }
+end
 function Frame:UnregisterAllEvents() self.events = {} end
 function Frame:IsEventRegistered(e) return self.events[e] == true end
 function Frame:SetScript(k, fn) self.scripts[k] = fn end
@@ -580,7 +586,13 @@ end
 
 function Client:Fire(event, ...)
     for _, f in ipairs(self.frames) do
-        if f.events[event] and f.scripts.OnEvent then f.scripts.OnEvent(f, event, ...) end
+        local units = f.unitFilter and f.unitFilter[event]
+        local unitOK = true
+        if units then
+            unitOK = false
+            for _, u in ipairs(units) do if u == (...) then unitOK = true end end
+        end
+        if f.events[event] and unitOK and f.scripts.OnEvent then f.scripts.OnEvent(f, event, ...) end
     end
 end
 

@@ -4,10 +4,17 @@ return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
     local PANDA, KITTEN = "s:5159", "s:46"
 
+    -- A plain quirk, so a day is worth 10 (the panda's own is Kosete: 20,
+    -- see 21_personality.lua). Again after each reload: that's a new client.
+    local function Plain(c)
+        c.ns.Personality.Quirk = function() return { name = "Test", desc = "", like = "quest" } end
+    end
+
     local function Setup()
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 5159, 46 } })
         local kari = w:AddClient("Kari Berg", { pets = { 40 } })
+        Plain(ola); Plain(kari)
         w:Run(40)
         return w, ola, kari
     end
@@ -36,13 +43,13 @@ return function(test, H)
         eq(Points(ola, PANDA), nil, "a new adoption starts empty")
         -- Pretend it's from before bonds: drop the first day's visit, if any.
         w:SkipDays(45)
-        ola:Reload()
+        ola:Reload(); Plain(ola)
         w:Run(25)
         eq(Points(ola, PANDA), 450, "10 a day for 45 days")
         ok(ola:Printed("Båndet ditt med Panda Cub er nå på nivå 3: Venn!", true))
         eq(Points(kari, PANDA, "Ola Nord"), 450, "a level-up goes out at once")
         eq(kari.ns.Bond:Label(PANDA), "Venn (nivå 3)")
-        ola:Reload()
+        ola:Reload(); Plain(ola)
         w:Run(25)
         eq(Points(ola, PANDA), 450, "not seeded twice")
     end)
@@ -71,7 +78,7 @@ return function(test, H)
         -- Ten days away: nothing lost, nothing gained.
         w:SkipDays(10)
         eq(Points(ola, PANDA), 20)
-        ola:Reload()
+        ola:Reload(); Plain(ola)
         w:Run(40)
         eq(Points(ola, PANDA), 30, "back: today's visit")
         -- Another companion out doesn't count for the panda.
@@ -85,7 +92,7 @@ return function(test, H)
         local w, ola, kari = Setup()
         ola:Slash("adopter panda")
         w:SkipDays(30)
-        ola:Reload()
+        ola:Reload(); Plain(ola)
         w:Run(25)
         eq(Points(ola, PANDA), 300)
         local first = ola.ns.Registry:Life(PANDA, "Ola Nord").f
@@ -142,7 +149,7 @@ return function(test, H)
         local w, ola, kari = Setup()
         ola:Slash("adopter panda")
         w:SkipDays(45)
-        ola:Reload()
+        ola:Reload(); Plain(ola)
         w:Run(25)
         kari:OpenJournal()
         local card = kari:SelectPet(5159)

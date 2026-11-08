@@ -6,7 +6,11 @@ local _, ns = ...
 -- again picks up where you left off. Everyone sees everyone's bond.
 --
 -- Points: Config.BOND_DAY_POINTS for each calendar day with your adopted
--- companion out (the activity engine's "day"). More activities come later.
+-- companion out (the activity engine's "day"; double for a "Kosete" pet).
+-- Activities done with it out (boss kills, quests, flights, gathering...)
+-- add more: a lot for what it likes (Personality.lua), a little for the
+-- rest, each with a daily cap so nothing can be farmed. The first liked
+-- thing each day gets one line of flavor.
 -- A pet adopted before bonds existed starts with that many points per day
 -- already together, so nobody starts over.
 --
@@ -121,18 +125,47 @@ function Bond:Seed()
     ns.Log("Bond", "seeded %s with %d (%d days)", key, days * ns.Config.BOND_DAY_POINTS, days)
 end
 
--- Watch the daily visit only while we care for a pet.
+Bond.ACTIVITIES = { "day", "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin" }
+
+-- Watch the activities only while we care for a pet.
 function Bond:Watch()
-    if ns.Registry:MyPet() then
-        ns.Activity:Want("day", Bond)
-    else
-        ns.Activity:Drop("day", Bond)
+    local have = ns.Registry:MyPet() ~= nil
+    for _, id in ipairs(self.ACTIVITIES) do
+        if have then ns.Activity:Want(id, Bond) else ns.Activity:Drop(id, Bond) end
     end
 end
 
+-- Points for an activity done with our adopted pet out.
+function Bond:OnActivity(id, n, key)
+    local C = ns.Config
+    if id == "day" then
+        local q = ns.Personality:Quirk(key)
+        return self:Add(C.BOND_DAY_POINTS * (n or 1) * (q.like == "day" and 2 or 1))
+    end
+    local likes = ns.Personality:Of(key)
+    local liked = likes[id]
+    local per, cap = C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP
+    if liked then per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP end
+    local today = date("%Y%m%d", ns.Now())
+    local d = ns.DB.char.bondToday
+    if not d or d.day ~= today then
+        d = { day = today, got = {} }
+        ns.DB.char.bondToday = d
+    end
+    local room = cap - (d.got[id] or 0)
+    if room <= 0 then return nil end
+    local points = math.min(per * (n or 1), room)
+    d.got[id] = (d.got[id] or 0) + points
+    if liked and not d.flavor then
+        d.flavor = true
+        ns.Print(("|cffffd100%s koste seg med %s!|r"):format(ns.Bonds:NameOf(key), ns.Personality.NOUN[id]))
+    end
+    return self:Add(points)
+end
+
 function Bond:Init()
-    ns.Bus:On("ACTIVITY", function(id, n, _, mine)
-        if id == "day" and mine then Bond:Add(ns.Config.BOND_DAY_POINTS * (n or 1)) end
+    ns.Bus:On("ACTIVITY", function(id, n, key, mine)
+        if mine then Bond:OnActivity(id, n, key) end
     end)
     ns.Bus:On("MY_RECORD", function()
         Bond:Seed()

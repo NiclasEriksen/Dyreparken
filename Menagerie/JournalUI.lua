@@ -66,11 +66,13 @@ function JournalUI:AddTooltipLines(tooltip, key)
     if status == "free" then
         tooltip:AddLine("Dyreparken: trenger et hjem", 0.5, 0.8, 0.5)
         Nick()
+        tooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
         return
     end
     tooltip:AddLine(("Bor hos %s"):format(status == "mine" and "deg" or owner), 1, 0.82, 0)
     tooltip:AddLine(("Bånd: %s"):format(ns.Bond:Label(key)), 1, 1, 1)
     Nick()
+    tooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
     local how = ns.CaredFor(r.at)
     tooltip:AddLine(how:sub(1, 1):upper() .. how:sub(2), 0.7, 0.7, 0.7)
 end
@@ -154,7 +156,7 @@ local function CardSpecies()
     if c.petID then return (C_PetJournal.GetPetInfoByPetID(c.petID)) end
 end
 
-local PANEL_H = 58
+local PANEL_H = 72
 
 -- Blizzard's two buttons that turn the model: found by name or parentKey
 -- (unprobed on Forever), left one first. Nil if not found.
@@ -198,6 +200,7 @@ local function UpdateCard()
     if not sid then
         card.status:SetText("")
         card.nickname:SetText("")
+        card.personality:SetText("")
         card.scene:Hide()
         ns.Scenes:Paint(card, nil)
         card.bond:Hide()
@@ -221,6 +224,7 @@ local function UpdateCard()
     local species = ns.Pets:NameOfKey(key) or ""
     card.nickname:SetText(nick or species)
     card.status:SetText(nick and (species .. " · " .. text) or text)
+    card.personality:SetText(ns.Personality:Line(key))
     local scene = ns.Scenes:For(key)
     if scene then
         card.scene:SetTexture(scene)
@@ -355,6 +359,12 @@ local function BuildCard()
     card.status:SetPoint("RIGHT", panel, "CENTER", 30, 0)
     card.status:SetJustifyH("LEFT")
     card.status:SetWordWrap(false)
+    -- Its personality: the quirk and what it likes.
+    card.personality = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    card.personality:SetPoint("TOPLEFT", card.status, "BOTTOMLEFT", 0, -4)
+    card.personality:SetPoint("RIGHT", panel, "RIGHT", -12, 0)
+    card.personality:SetJustifyH("LEFT")
+    card.personality:SetWordWrap(false)
 
     -- The bond, right column: the level in a badge, its name, a slim bar.
     card.bond = CreateFrame("StatusBar", nil, panel)

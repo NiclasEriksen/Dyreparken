@@ -159,6 +159,10 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
    *Built 2026-11-08* (Menagerie/Bond.lua, protocol 5): the bond lives in `g.life` (not in the adoption record),
    which is what lets a re-adopted pet bring its bond back. The digest holds levels, not points.
 3. **Activities and likes:** more sources as probes confirm them, likes per tag, quirks, flavor lines.
+   *Built 2026-11-08* (Menagerie/Personality.lua): likes from families plus species of their own (Panda Cub:
+   herbs), eight quirks picked by species id (one adds a like; "Kosete" doubles the days). Liked activities 5 points
+   (25 a day each), others 1 (5 a day). Gathering (herb, mine, fish, skin) from your own casts, registered for the
+   player only; unverified in game. Shown on the card's third line and in tooltips.
 4. **Lifetime and temperament:** `g.life` sync, temperament stages, park map borders, world tooltip word.
 5. **Story:** the timeline, milestone lines, big moments in guild chat.
 6. **(Optional) Collection sync:** "kom til parken", "vill" for pets nobody has, the wish list on the park map.

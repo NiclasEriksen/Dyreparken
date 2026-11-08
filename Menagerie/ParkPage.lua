@@ -86,6 +86,9 @@ local function ShowTooltip(cell)
         local by = namer == ns.PlayerKey() and "deg" or namer
         GameTooltip:AddLine(("Navngitt av %s, %s"):format(by, Day(namedAt)), 0.7, 0.7, 0.7)
     end
+    local q = ns.Personality:Quirk(key)
+    GameTooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
+    GameTooltip:AddLine(q.desc, 0.6, 0.6, 0.6, true)
     if owner ~= ns.PlayerKey() and ns.Pets:Owned()[key] then
         GameTooltip:AddLine(owner and "Du har også dette kjæledyret." or "Du har dette kjæledyret, og kan adoptere det.",
             1, 1, 1)
