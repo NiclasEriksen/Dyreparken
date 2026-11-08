@@ -77,7 +77,7 @@ local function ShowTooltip(cell)
     if nick then GameTooltip:AddLine(ns.Pets:NameOfKey(key), 0.7, 0.7, 0.7) end
     if owner then
         local who = owner == ns.PlayerKey() and "deg" or owner
-        GameTooltip:AddLine(("Bor hos %s %s"):format(who, ns.CaredFor(r.at)), 1, 0.82, 0)
+        GameTooltip:AddLine(ns.Home(who, r.at), 1, 0.82, 0)
         GameTooltip:AddLine(("Bånd: %s"):format(ns.Bond:Label(key)), 1, 1, 1)
     else
         GameTooltip:AddLine("Trenger et hjem", 0.5, 0.8, 0.5)

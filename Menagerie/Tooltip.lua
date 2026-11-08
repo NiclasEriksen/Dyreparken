@@ -140,7 +140,8 @@ local function OnUnitTooltip(tooltip, data)
     local nick = ns.Registry:Nickname(r.k)
     if nick then Tooltip:ShowNickname(tooltip, nick, data) end
     local who = owner == ns.PlayerKey() and "deg" or owner
-    tooltip:AddLine(("Dyreparken: bor hos %s %s · %s"):format(who, ns.CaredFor(r.at), select(3, ns.Bond:Of(r.k))),
+    local home = ns.Home(who, r.at)
+    tooltip:AddLine(("Dyreparken: %s · %s"):format(home:sub(1, 1):lower() .. home:sub(2), select(3, ns.Bond:Of(r.k))),
         0.5, 0.8, 0.5)
     -- Resizes the tooltip to the changed lines, not only the added ones.
     if nick then tooltip:Show() end

@@ -24,12 +24,13 @@ return function(test, H)
         local w, ola = Setup()
         ola:Slash("adopter panda")
         w:Run(5)
-        Points(ola, 200) -- Venn, level 3
+        Points(ola, 300) -- Venn, level 3
         local card = ola:SelectPet(5159)
         local b = card.bond
         ok(b:IsShown())
-        eq(b.level.text, 3); eq(b.label.text, "Bånd: Venn (nivå 3)")
-        eq(b.text.text, "200 / 325")
+        eq(b.level.text, 3); eq(b.label.text, "Venn")
+        eq(b.next.text, "110 poeng til God venn")
+        eq(b.text.text, "300 / 410")
         ok(b.spark:IsShown(), "a spark at the tip")
         -- Silver: the ring greyed and tinted, the fill from dark to bright silver.
         ok(b.medal.ring.desaturated); eq(b.medal.ring.vertexColor[3], 1)
@@ -45,7 +46,7 @@ return function(test, H)
         end
         eq(#b.pips, 7)
         -- Gold from 5: the ring's own gold, glowing.
-        Points(ola, 600)
+        Points(ola, 800)
         card = ola:SelectPet(5159)
         eq(b.level.text, 5)
         no(b.medal.ring.desaturated); ok(b.medal.glow:IsShown()); ok(b.medal.glow.pulse:IsPlaying())
@@ -53,6 +54,14 @@ return function(test, H)
         Points(ola, 7000)
         card = ola:SelectPet(5159)
         eq(b.text.text, "7000"); no(b.spark:IsShown())
+        -- The level preview shows that level's own name and points (it said "Bekjent (nivå 7)").
+        Points(ola, 30)
+        ola:Slash("probe level 7")
+        eq(b.label.text, "Sjelevenn"); eq(b.level.text, 7); eq(b.next.text, "Det høyeste nivået")
+        ola:Slash("probe level 4")
+        eq(b.label.text, "God venn"); eq(b.text.text, "410 / 700")
+        ola:Slash("probe level off")
+        eq(b.label.text, "Bekjent"); eq(b.next.text, "50 poeng til Kamerat")
         -- A pet nobody holds: no bond at all.
         card = ola:SelectPet(40)
         no(b:IsShown())
@@ -62,19 +71,19 @@ return function(test, H)
         local w, ola = Setup()
         ola:Slash("adopter panda")
         w:Run(5)
-        Points(ola, 200)
+        Points(ola, 300)
         local card = ola:SelectPet(5159)
         local tip = ola.env.GameTooltip
         local p = card.bond.pips[4]
         p.scripts.OnEnter(p)
-        eq(table.concat(tip.lines, " / "), "Nivå 4: God venn / Fra 325 poeng. / Kortet får en glød under kjæledyret.")
+        eq(table.concat(tip.lines, " / "), "Nivå 4: God venn / Fra 410 poeng. / Kortet får en glød under kjæledyret.")
         p.scripts.OnLeave(p)
         p = card.bond.pips[1]
         p.scripts.OnEnter(p)
         eq(table.concat(tip.lines, " / "), "Nivå 1: Bekjent / Der alle starter. / Nådd!")
         local m = card.bond.medal
         m.scripts.OnEnter(m)
-        match(table.concat(tip.lines, " / "), "^Bånd: Venn %(nivå 3%) / 125 poeng til God venn%.")
+        match(table.concat(tip.lines, " / "), "^Bånd: Venn %(nivå 3%) / 110 poeng til God venn%.")
         m.scripts.OnLeave(m)
     end)
 

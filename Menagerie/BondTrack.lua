@@ -83,8 +83,10 @@ end
 function Track:Build(card, c, panel)
     local b = CreateFrame("StatusBar", nil, panel)
     card.bond = b
-    b:SetSize(BAR_W, 10)
-    b:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -46)
+    -- The column, top to bottom: the level's name, the stars, the bar with
+    -- the points on it, what's next. The medallion stands to its right.
+    b:SetSize(BAR_W, 13)
+    b:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -48)
     b:SetStatusBarTexture(WHITE)
     b.bg = b:CreateTexture(nil, "BACKGROUND", nil, 1)
     b.bg:SetAllPoints()
@@ -99,10 +101,13 @@ function Track:Build(card, c, panel)
     b.spark:SetSize(20, 20)
     b.spark:SetPoint("CENTER", b:GetStatusBarTexture(), "RIGHT", 0, 0)
     b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    b.text:SetPoint("TOP", b, "BOTTOM", 0, -2)
+    b.text:SetPoint("CENTER", b, "CENTER", 0, 0)
     b.label = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    b.label:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -7)
+    b.label:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -8)
     b.label:SetJustifyH("RIGHT")
+    b.next = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    b.next:SetPoint("TOPRIGHT", b, "BOTTOMRIGHT", 0, -4)
+    b.next:SetJustifyH("RIGHT")
 
     -- The medallion, rising out of the panel's top right.
     local m = CreateFrame("Frame", nil, b)
@@ -137,7 +142,7 @@ function Track:Build(card, c, panel)
     for i = 1, n do
         local p = CreateFrame("Frame", nil, b)
         p:SetSize(PIP, PIP)
-        p:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72 - (n - i) * (PIP + PIP_GAP), -26)
+        p:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72 - (n - i) * (PIP + PIP_GAP), -27)
         p.n = i
         p.star = p:CreateTexture(nil, "ARTWORK")
         p.star:SetTexture(ns.Decor.MEDIA .. "star")
@@ -169,9 +174,14 @@ function Track:Update(card, key, family)
         b:Hide()
         return
     end
-    level = ns.Decor.preview or level
+    if ns.Decor.preview then -- /dp probe level: that level, its name and its points
+        level = ns.Decor.preview
+        name, from = ns.Bond.LEVELS[level][2], ns.Bond.LEVELS[level][1]
+        nextAt = ns.Bond.LEVELS[level + 1] and ns.Bond.LEVELS[level + 1][1]
+        points = math.max(points, from)
+    end
     local tier = self.Tier(level, family)
-    b.label:SetText(("Bånd: %s (nivå %d)"):format(name, level))
+    b.label:SetText(name) -- the number is on the medallion
     b.level:SetText(level)
     -- The bar: from the tier's dark to its bright, a spark at the tip.
     b:SetMinMaxValues(from, nextAt or math.max(points, 1))
@@ -181,6 +191,8 @@ function Track:Update(card, key, family)
         CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
     b.spark:SetShown(nextAt ~= nil and points > from)
     b.text:SetText(nextAt and ("%d / %d"):format(points, nextAt) or ("%d"):format(points))
+    b.next:SetText(nextAt and ("%d poeng til %s"):format(nextAt - points, ns.Bond.LEVELS[level + 1][2])
+        or "Det høyeste nivået")
     -- The medallion: the ring greyed and tinted below gold, its disc dark in the tier.
     local m = b.medal
     m.ring:SetDesaturated(level < 5)

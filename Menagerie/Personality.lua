@@ -215,6 +215,8 @@ local function Join(words)
     return table.concat(words, ", ", 1, #words - 1) .. " og " .. words[#words]
 end
 
+Personality.Join = Join
+
 -- "Kosete og Nattugle"
 function Personality:Names(key)
     local names = {}

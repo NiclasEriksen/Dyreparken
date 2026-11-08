@@ -154,7 +154,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   characters (`ns.Config`).
 - **Bonds** (2026-11-08, docs/PET_LIFE.md): a score per carer and pet that grows (10 points a day with your adopted
   pet out, more from activities), never decays, and comes back if you adopt the pet again. Seven levels on a curve
-  to 1150 points (75, 175, 325, 525, 800, 1150: about four months of days alone, a month for an active player);
+  to 1750 points (80, 210, 410, 700, 1120, 1750: about six months of days alone, seven weeks for an active player);
   everyone sees everyone's. The loyalty achievements (ids `loyal:*`) are bond levels now. The sync digest holds bond
   levels, not points: points go out lazily (a level-up at once, else within 30 minutes).
 - **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it, after caring

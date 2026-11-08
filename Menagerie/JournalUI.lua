@@ -69,12 +69,10 @@ function JournalUI:AddTooltipLines(tooltip, key)
         tooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
         return
     end
-    tooltip:AddLine(("Bor hos %s"):format(status == "mine" and "deg" or owner), 1, 0.82, 0)
+    tooltip:AddLine(ns.Home(status == "mine" and "deg" or owner, r.at), 1, 0.82, 0)
     tooltip:AddLine(("Bånd: %s"):format(ns.Bond:Label(key)), 1, 1, 1)
     Nick()
     tooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
-    local how = ns.CaredFor(r.at)
-    tooltip:AddLine(how:sub(1, 1):upper() .. how:sub(2), 0.7, 0.7, 0.7)
 end
 
 ------------------------------------------------------------------------------
@@ -156,7 +154,8 @@ local function CardSpecies()
     if c.petID then return (C_PetJournal.GetPetInfoByPetID(c.petID)) end
 end
 
-local PANEL_H = 72
+local PANEL_H = 86 -- four lines on the left: name, home, traits, likes
+local COLUMN = 214 -- the bond column, from the panel's right edge (BondTrack.lua): the left column ends there
 local MODEL_LIFT = 34 -- the model's bottom, above the panel: clear of the turn buttons
 
 -- Blizzard's two buttons that turn the model: found by name or parentKey
@@ -209,6 +208,7 @@ local function UpdateCard()
         card.status:SetText("")
         card.nickname:SetText("")
         card.personality:SetText("")
+        card.likes:SetText("")
         card.key = nil -- the hover tooltips follow it
         card.scene:Hide()
         ns.Scenes:Paint(card, nil)
@@ -226,15 +226,17 @@ local function UpdateCard()
     if status == "free" then
         text = "|cff80cc80Trenger et hjem|r"
     elseif status == "mine" then
-        text = "|cffffd100Bor hos deg|r " .. ns.CaredFor(r.at)
+        text = "|cffffd100" .. ns.Home("deg", r.at) .. "|r"
     else
-        text = "|cffff8080Bor hos " .. owner .. "|r " .. ns.CaredFor(r.at)
+        text = "|cffff8080" .. ns.Home(owner, r.at) .. "|r"
     end
     -- Big: the nickname, else the species. Small: the species (if named) and its home.
     local species = ns.Pets:NameOfKey(key) or ""
     card.nickname:SetText(nick or species)
     card.status:SetText(nick and (species .. " · " .. text) or text)
-    card.personality:SetText(ns.Personality:Line(key))
+    card.personality:SetText(ns.Personality:Names(key))
+    local likes = ns.Personality:LikedWords(key)
+    card.likes:SetText(#likes > 0 and ("Liker %s"):format(ns.Personality.Join(likes)) or "")
     local scene = ns.Scenes:For(key)
     if scene then
         card.scene:SetTexture(scene)
@@ -361,25 +363,32 @@ local function BuildCard()
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
-    -- The left column stops short of the bond column (bar: 30 + 8 + 130 from the right).
-    card.nickname:SetPoint("RIGHT", panel, "CENTER", 30, 0)
+    -- The left column stops at the bond column; a long line ends in "...",
+    -- and hovering it tells all.
+    card.nickname:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
     card.nickname:SetJustifyH("LEFT")
     card.nickname:SetWordWrap(false)
     card.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     card.status:SetPoint("TOPLEFT", card.nickname, "BOTTOMLEFT", 0, -3)
-    card.status:SetPoint("RIGHT", panel, "CENTER", 30, 0)
+    card.status:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
     card.status:SetJustifyH("LEFT")
     card.status:SetWordWrap(false)
-    -- Its personality: the quirk and what it likes.
-    card.personality = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    card.personality:SetPoint("TOPLEFT", card.status, "BOTTOMLEFT", 0, -4)
-    card.personality:SetPoint("RIGHT", panel, "RIGHT", -12, 0)
+    -- Its personality: the traits, then what it likes.
+    card.personality = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    card.personality:SetPoint("TOPLEFT", card.status, "BOTTOMLEFT", 0, -5)
+    card.personality:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
     card.personality:SetJustifyH("LEFT")
     card.personality:SetWordWrap(false)
+    card.personality:SetTextColor(0.95, 0.75, 0.45)
+    card.likes = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    card.likes:SetPoint("TOPLEFT", card.personality, "BOTTOMLEFT", 0, -3)
+    card.likes:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
+    card.likes:SetJustifyH("LEFT")
+    card.likes:SetWordWrap(false)
     -- Hover the line: what the traits mean and do, what it likes, and why it matters.
     card.personalityHit = CreateFrame("Frame", nil, panel)
     card.personalityHit:SetPoint("TOPLEFT", card.personality, "TOPLEFT", -2, 2)
-    card.personalityHit:SetPoint("BOTTOMRIGHT", card.personality, "BOTTOMRIGHT", 2, -2)
+    card.personalityHit:SetPoint("BOTTOMRIGHT", card.likes, "BOTTOMRIGHT", 2, -2)
     card.personalityHit:EnableMouse(true)
     card.personalityHit:SetScript("OnEnter", function(self)
         if not card.key then return end

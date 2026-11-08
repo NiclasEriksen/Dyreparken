@@ -153,7 +153,7 @@ return function(test, H)
         eq(ten.bar.value, 5); eq(ten.bar.max, 10)
         eq(ten.bar.text.text, "5/10")
         eq(ten.icon.desaturated, true, "unearned rows are dimmed")
-        eq(rows["loyal:30"].bar.text.text, "0/175 poeng")
+        eq(rows["loyal:30"].bar.text.text, "0/210 poeng")
         no(rows["count:25"], "25 > 15 counting pets: no row")
         no(rows["family:dragon"], "no dragons in this list")
         for _, c in ipairs({ "collection", "family", "loyalty", "guild" }) do ok(heads[c]:IsShown(), c) end

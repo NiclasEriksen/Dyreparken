@@ -96,6 +96,16 @@ function ns.CaredFor(t, now)
     return ("i %d år"):format(math.floor(days / 365.25))
 end
 
+-- Where a pet lives, and since when, as a phrase: "Flyttet inn hos deg i
+-- dag", "... i går", else "Bor hos Kari Berg i 3 dager" (2026-11-08: "bor
+-- hos deg siden i dag" read badly). who: "deg" or a name.
+function ns.Home(who, t, now)
+    local how = ns.CaredFor(t, now)
+    if how == "siden i dag" then return ("Flyttet inn hos %s i dag"):format(who) end
+    if how == "siden i går" then return ("Flyttet inn hos %s i går"):format(who) end
+    return ("Bor hos %s %s"):format(who, how)
+end
+
 -- A time from the wire we can trust the shape of: a real number, not NaN or
 -- infinite, and not more than a day ahead of us (clocks differ a little;
 -- a far-future time would win every merge and lock the record for good).

@@ -23,18 +23,18 @@ moments.
 
 ### Bond levels (names are suggestions)
 
-A curve to 1150 for the top (changed 2026-11-08 from 6000: the user wanted roughly 1000-1250 in all), each step
-about a third longer than the last:
+A curve to 1750 for the top (changed 2026-11-08 from 6000, first to 1150, then raised to 1750), each step longer
+than the last:
 
 | Level | Name | Points (total) | Step | Days at 10 a day | At ~35 a day |
 |---|---|---|---|---|---|
 | 1 | Bekjent | 0 | | | |
-| 2 | Kamerat | 75 | 75 | 8 | 3 |
-| 3 | Venn | 175 | 100 | 18 | 5 |
-| 4 | God venn | 325 | 150 | 33 | 10 |
-| 5 | Bestevenn | 525 | 200 | 53 | 15 |
-| 6 | Uatskillelig | 800 | 275 | 80 | 23 |
-| 7 | Sjelevenn | 1150 | 350 | 115 | 33 |
+| 2 | Kamerat | 80 | 80 | 8 | 2-3 |
+| 3 | Venn | 210 | 130 | 21 | 6 |
+| 4 | God venn | 410 | 200 | 41 | 12 |
+| 5 | Bestevenn | 700 | 290 | 70 | 20 |
+| 6 | Uatskillelig | 1120 | 420 | 112 | 32 |
+| 7 | Sjelevenn | 1750 | 630 | 175 | 50 |
 
 10 a day is the pet out and nothing else; ~35 is a liked activity most days. The loyalty achievements are levels
 (Bestevenner at Venn, Uatskillelige at God venn, Venner for livet at Uatskillelig), so they follow the curve.
