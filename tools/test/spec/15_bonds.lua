@@ -236,4 +236,40 @@ return function(test, H)
         ola:Slash("adopter panda")
         eq(#Guild(), 5)
     end)
+
+    test("dagens dyr: the same pet for everyone, a new pick each day, shown on the card", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
+        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
+        local per = w:AddClient("Per Hansen", { pets = { 46 } })
+        w:Run(20)
+        eq(ola.ns.Bonds:PetOfTheDay(), nil, "nobody has adopted yet")
+        ola:OpenJournal()
+        eq(ola:SelectPet(5159).today.text, "")
+        for _, c in ipairs({ ola, kari, per }) do c:Slash("adopter") end
+        -- A made-up species isn't picked.
+        ola.ns.Registry:MergeRecord("Liv Lund", { k = "s:999999", at = 1, ts = 1 })
+        ola.ns.Registry:Changed()
+        w:Run(10)
+        local seen = {}
+        for day = 1, 20 do
+            local pick, owner = ola.ns.Bonds:PetOfTheDay()
+            eq(kari.ns.Bonds:PetOfTheDay(), pick, "day " .. day .. ": everyone agrees")
+            no(pick == "s:999999")
+            eq(owner, ola.ns.Registry:Holder(pick))
+            seen[pick] = true
+            w:SkipDays(1)
+        end
+        local n = 0
+        for _ in pairs(seen) do n = n + 1 end
+        eq(n, 3, "over 20 days every pet gets its day")
+        -- The card names it, by nickname.
+        w:SkipDays(7)
+        for _, c in ipairs({ ola, kari, per }) do c:Slash("navn Stjerne" .. c.name:sub(1, 1)) end
+        w:Run(10)
+        local pick, owner = ola.ns.Bonds:PetOfTheDay()
+        local card = ola:SelectPet(5159)
+        eq(card.today.text, ("Dagens dyr: %s (%s)"):format(ola.ns.Registry:Nickname(pick), owner))
+        match(card.today.text, "^Dagens dyr: Stjerne")
+    end)
 end

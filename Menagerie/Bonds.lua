@@ -12,6 +12,10 @@ local _, ns = ...
 -- Petting: /dp klapp sends a custom emote with the companion's nickname,
 -- from the keypress (chat is only allowed from a keypress or click).
 --
+-- Dagens dyr (pet of the day): every client picks the same adopted pet for
+-- a calendar day from the date alone (a hash over the sorted holders), so
+-- it needs no messages and everyone sees the same one. Shown on the card.
+--
 -- Announcements: adopting a companion or naming it posts one line to guild
 -- chat, so members without the addon see the park too. Only ever called from
 -- the click or command that did it (guild chat needs a hardware event).
@@ -84,6 +88,20 @@ function Bonds:Celebrate()
     table.sort(lines)
     for i = 1, math.min(#lines, MAX_OTHERS) do ns.Print(lines[i]) end
     if #lines > MAX_OTHERS then ns.Print(("... og %d til."):format(#lines - MAX_OTHERS)) end
+end
+
+-- key, owner of today's pet, or nil when nobody has adopted one.
+function Bonds:PetOfTheDay(now)
+    local keys = {}
+    local known = ns.Companions and ns.Companions.species
+    for key in pairs(ns.Registry:Holders()) do
+        if not known or known[ns.Pets:SpeciesOfKey(key) or false] then keys[#keys + 1] = key end
+    end
+    if #keys == 0 then return nil end
+    table.sort(keys)
+    local day = date("%Y%m%d", now or ns.Now())
+    local pick = keys[LibStub("LibDeflate"):Adler32("dagens dyr " .. day) % #keys + 1]
+    return pick, (ns.Registry:Holder(pick))
 end
 
 function Bonds:Init()

@@ -103,7 +103,8 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp report), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
-                   Bonds (milestone lines after login, the nickname unlock note, /dp klapp, guild announcements)
+                   Bonds (milestone lines after login, the nickname unlock note, dagens dyr, /dp klapp,
+                   guild announcements)
 Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
                    /dp ach share; guild ones synced with the registry, ACH), Page (our side tab on the

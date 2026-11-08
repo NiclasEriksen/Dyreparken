@@ -157,6 +157,8 @@ local function UpdateExtras()
     local n, total = ns.Registry:Count(), ns.Pets:Total()
     local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
     card.counter:SetText(("Guilden: %d av %d har et hjem (%d%%)"):format(n, total, pct))
+    local today, owner = ns.Bonds:PetOfTheDay()
+    card.today:SetText(today and ("Dagens dyr: %s (%s)"):format(ns.Bonds:NameOf(today), owner) or "")
     local deferring = ns.Summon:Deferring()
     card.auto:SetChecked(ns.DB.char.autoSummon and not deferring)
     card.auto:SetEnabled(not deferring)
@@ -265,6 +267,8 @@ local function BuildCard()
     -- journal (Pets:Total, Data/Companions.lua). Top right of the card.
     card.counter = c:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     card.counter:SetPoint("TOPRIGHT", c, "TOPRIGHT", -12, -12)
+    card.today = c:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    card.today:SetPoint("TOPRIGHT", card.counter, "BOTTOMRIGHT", 0, -4)
 
     -- Auto-summon toggle (per character, default on), bottom right of the
     -- journal. Greyed out while AutoCompanion is loaded, which takes over.
