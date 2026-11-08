@@ -185,4 +185,28 @@ return function(test, H)
             match(P:Effect(t), "bånd%-poeng")
         end
     end)
+
+    test("frogs and pirate pets like diving: watched for them, liked points, and a chip on the card", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
+        ola.ns.Companions = { build = 1, species = { [5159] = { a = true, t = { "frog" } }, [40] = { a = true, t = { "pirate" } } } }
+        ola.ns.Personality.PINNED = { [5159] = { "glupsk", "reiseglad" }, [40] = { "glupsk", "reiseglad" } }
+        w:Run(40)
+        ola:Slash("debug off")
+        local P, A = ola.ns.Personality, ola.ns.Activity
+        ok(P:Of("s:5159").dive, "frogs"); ok(P:Of("s:40").dive, "pirate pets")
+        ola:Slash("adopter panda") -- (the frog here)
+        w:Run(40)
+        ola.ns.Wish.OnActivity = function() end -- (no wish bonus mixed in)
+        ok(A:IsListening("MIRROR_TIMER_START"), "watched: the pet likes it")
+        local before = ola.ns.Registry:Life(PANDA, "Ola Nord")
+        before = before and before.p or 0
+        ola:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath")
+        eq(ola.ns.Registry:Life(PANDA, "Ola Nord").p - before, 5, "a liked dive")
+        ola:OpenJournal()
+        local card = ola:SelectPet(5159)
+        local found
+        for _, chip in ipairs(card.stats.chips) do if chip:IsShown() and chip.id == "dive" then found = chip end end
+        ok(found, "a dive chip"); eq(found.icon.tex, "Interface\\Icons\\Spell_Shadow_DemonBreath")
+    end)
 end

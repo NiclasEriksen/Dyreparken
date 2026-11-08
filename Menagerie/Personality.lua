@@ -36,8 +36,8 @@ end
 
 Personality.BY_FAMILY = {
     cat = { "fish" }, bird = { "taxi" }, owl = { "taxi" }, farm = { "herb", "quest" }, rabbit = { "herb" },
-    frog = { "fish" }, snake = { "herb" }, mechanical = { "mine" }, dragon = { "boss", "taxi" },
-    pirate = { "fish", "pvp" }, bug = { "herb" }, rodent = { "mine" }, wolf = { "boss" }, plant = { "herb" },
+    frog = { "fish", "dive" }, snake = { "herb" }, mechanical = { "mine" }, dragon = { "boss", "taxi" },
+    pirate = { "fish", "pvp", "dive" }, bug = { "herb" }, rodent = { "mine" }, wolf = { "boss" }, plant = { "herb" },
     festive = { "quest" }, demon = { "boss" }, ooze = { "boss" }, spirit = { "taxi" },
 }
 Personality.DEFAULT = { "quest" } -- a pet with no family we know

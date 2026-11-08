@@ -25,6 +25,7 @@ Stats.ICONS = {
     pvp = { "Interface\\Icons\\Ability_DualWield" },
     explore = { "Interface\\Icons\\INV_Misc_Map_01" },
     hearth = { "Interface\\Icons\\INV_Misc_Rune_01" },
+    dive = { "Interface\\Icons\\Spell_Shadow_DemonBreath", "Interface\\Icons\\Spell_Frost_SummonWaterElemental" },
 }
 local QUESTION = "Interface\\Icons\\INV_Misc_QuestionMark"
 
