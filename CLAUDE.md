@@ -39,7 +39,8 @@ quirks. When you learn something new about the client, add it there with the dat
 in the same change. Run `luajit tools/test/run.lua <filter>` while working, and `tools/check.sh` before
 committing. A change isn't done while a test fails or a coverage floor is missed.
 A `pre-push` hook (`.githooks/`, enabled per clone with `git config core.hooksPath .githooks`) runs the full
-`tools/check.sh` on each pushed commit in a temporary worktree and refuses the push if it fails.
+`tools/check.sh` on the newest commit of each pushed branch (once per push, not per commit) in a temporary worktree
+and refuses the push if it fails.
 
 - `tools/test/harness.lua` simulates a world: several clients (`w:AddClient("Ola Nord", opts)`), each running
   its own copy of the addon in its own global environment, with a shared clock (`w:Run(s)`, `w:SkipDays(n)`),

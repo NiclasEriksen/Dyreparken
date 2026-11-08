@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Runs tools/check.sh (full, with coverage floors) on each commit being
-# pushed, in a temporary worktree, so uncommitted edits can't hide a broken
-# commit. Enable once per clone:  git config core.hooksPath .githooks
+# Runs tools/check.sh (full, with coverage floors) on the newest commit of
+# each branch or tag being pushed (not on every commit in between: one check
+# per push), in a temporary worktree, so uncommitted edits can't hide a
+# broken commit. Enable once per clone:  git config core.hooksPath .githooks
 # Skip in an emergency:           git push --no-verify
 set -u
 zero=0000000000000000000000000000000000000000
