@@ -274,7 +274,8 @@ local function BuildCard()
     -- journal. Greyed out while AutoCompanion is loaded, which takes over.
     card.auto = CreateFrame("CheckButton", nil, PetJournal, "UICheckButtonTemplate")
     card.auto:SetSize(24, 24)
-    card.auto:SetPoint("BOTTOMRIGHT", PetJournal, "BOTTOMRIGHT", -96, 3)
+    -- Far enough left for "Tilkall automatisk" (cut off at -96, seen 2026-11-08).
+    card.auto:SetPoint("BOTTOMRIGHT", PetJournal, "BOTTOMRIGHT", -118, 3)
     card.autoLabel = card.auto:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     card.autoLabel:SetPoint("LEFT", card.auto, "RIGHT", 2, 0)
     card.autoLabel:SetText("Tilkall automatisk")

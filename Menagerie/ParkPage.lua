@@ -59,8 +59,11 @@ function Park:Records(now)
     if best then
         lines[#lines + 1] = ("|cffffd100Mest populære familie:|r %s (%d har et hjem)"):format(names[best], bestN)
     end
-    lines[#lines + 1] = ("|cffffd100Nyeste beboer:|r %s hos %s (%s)"):format(ns.Bonds:NameOf(newest.key),
-        newest.owner, ns.CaredFor(newest.at, now))
+    -- With one pet in the park, it's both the oldest and the newest: once is enough.
+    if newest.key ~= oldest.key then
+        lines[#lines + 1] = ("|cffffd100Nyeste beboer:|r %s hos %s (%s)"):format(ns.Bonds:NameOf(newest.key),
+            newest.owner, ns.CaredFor(newest.at, now))
+    end
     return lines
 end
 
@@ -82,7 +85,7 @@ local function ShowTooltip(cell)
         local by = namer == ns.PlayerKey() and "deg" or namer
         GameTooltip:AddLine(("Navngitt av %s, %s"):format(by, Day(namedAt)), 0.7, 0.7, 0.7)
     end
-    if ns.Pets:Owned()[key] then
+    if owner ~= ns.PlayerKey() and ns.Pets:Owned()[key] then
         GameTooltip:AddLine(owner and "Du har også dette kjæledyret." or "Du har dette kjæledyret, og kan adoptere det.",
             1, 1, 1)
     end
