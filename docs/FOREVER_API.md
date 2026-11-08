@@ -166,8 +166,8 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   post`). It raises `ADDON_ACTION_BLOCKED` ("tried to call the protected function 'UNKNOWN()'"), `pcall` doesn't
   see an error, and nothing reaches chat. So posting needs a hardware event (a keypress or click), like
   SAY/YELL on Retail. **GUILD straight from a slash command works** (`/dp probe ach now`, same day): no error,
-  and the line reached guild chat. PARTY/RAID are unprobed (`/dp probe ach group|groupnow`). `/dp report`
-  posts from a timer, so it's probably blocked in groups.
+  and the line reached guild chat. PARTY/RAID are unprobed (`/dp probe ach group|groupnow`). `/dp rapport`
+  no longer posts from a timer: its result dialog's button posts it (2026-11-08).
 - `C_ChatInfo.SendChatMessage` exists alongside the global `SendChatMessage`.
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.

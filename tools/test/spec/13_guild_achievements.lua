@@ -33,12 +33,18 @@ return function(test, H)
         return w, cs
     end
 
+    -- Adoption announcements (Bonds) aren't what these tests count.
+    local function DropAdoptions(w)
+        for i = #w.chat, 1, -1 do if w.chat[i].text:find(" adopterte ", 1, true) then table.remove(w.chat, i) end end
+    end
+
     local function AdoptAll(w, cs)
         for _, m in ipairs(MEMBERS) do
             local c = cs[m[1]]
             if c then c:Slash("adopt") end
         end
         w:Run(20) -- the 5 s debounce, then the 2-8 s broadcast
+        DropAdoptions(w)
     end
 
     local LINE = "Dyreparken: Dyreparken fikk [Kattehuset]!"

@@ -11,6 +11,9 @@ end
 
 local function Say(ok, msg) if msg then ns.Print(msg) end end
 
+local ON = { ["på"] = true, on = true }
+local OFF = { av = true, off = true }
+
 local function Adopt(_, raw)
     local key
     if raw and raw ~= "" then
@@ -21,11 +24,22 @@ local function Adopt(_, raw)
         if not guid then return ns.Print("Tilkall kjæledyret du vil adoptere, eller skriv navnet.") end
         key = ns.Pets:KeyOf(guid)
     end
-    Say(ns.Registry:Claim(key))
+    local ok, msg = ns.Registry:Claim(key)
+    Say(ok, msg)
+    if ok then ns.Bonds:Announce("adopt", key) end
 end
 local function LetGo() Say(ns.Registry:Release()) end
 
-local function Nick(_, raw) Say(ns.Registry:SetNickname(raw)) end
+local function Nick(_, raw)
+    local ok, msg = ns.Registry:SetNickname(raw)
+    Say(ok, msg)
+    if ok then ns.Bonds:Announce("name", (ns.Registry:MyPet())) end
+end
+
+local function Announce(arg)
+    if ON[arg or ""] or OFF[arg or ""] then ns.Bonds:SetAnnounce(ON[arg] == true)
+    else ns.Bonds:SetAnnounce(not ns.DB.char.announce) end
+end
 
 local function List()
     local holders = ns.Registry:Holders()
@@ -41,9 +55,6 @@ local function List()
         ns.Print(("  %s - %s%s"):format(row.name, row.owner, row.nick and (" («" .. row.nick .. "»)") or ""))
     end
 end
-
-local ON = { ["på"] = true, on = true }
-local OFF = { av = true, off = true }
 
 local function Sound(arg)
     if ns.Summon:Deferring() then
@@ -84,6 +95,7 @@ Add("lyd", "lyd [på|av] - klirringen når et kjæledyr tilkalles (dempet som st
 Add("prestasjoner", "prestasjoner [del|varsel på|av|ikoner] - prestasjonene dine; del nye i guild-chatten",
     Achievements)
 Add("versjon", "versjon [guild|gruppe] - hvem som har hvilken versjon", Version)
+Add("kunngjør", "kunngjør [på|av] - del adopsjoner og kallenavn i guild-chatten (på som standard)", Announce)
 Add("klapp", "klapp - klapp kjæledyret du har valgt som mål, eller ditt eget", function() ns.Bonds:Pat() end)
 Add("rapport", "rapport - rop ut dem i gruppa som ikke har kjæledyret ute", Report)
 -- The English names from before the Norwegian interface (2026-11-08), and
@@ -91,6 +103,7 @@ Add("rapport", "rapport - rop ut dem i gruppa som ikke har kjæledyret ute", Rep
 commands.adopt, commands.letgo, commands.claim, commands.release = Adopt, LetGo, Adopt, LetGo
 commands.nick, commands.list, commands.sound, commands.ach = Nick, List, Sound, Achievements
 commands.version, commands.report, commands.pat = Version, Report, commands.klapp
+commands.announce = Announce
 
 Add("probe", "probe [more|tabs|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
     if arg == "tabs" then

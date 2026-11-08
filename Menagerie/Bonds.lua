@@ -11,10 +11,17 @@ local _, ns = ...
 --
 -- Petting: /dp klapp sends a custom emote with the companion's nickname,
 -- from the keypress (chat is only allowed from a keypress or click).
+--
+-- Announcements: adopting a companion or naming it posts one line to guild
+-- chat, so members without the addon see the park too. Only ever called from
+-- the click or command that did it (guild chat needs a hardware event).
+-- Per character, on by default (/dp kunngjør). The same line isn't repeated
+-- within an hour, in case someone flips back and forth.
 local Bonds = {}
 ns.Bonds = Bonds
 
 local SHOW_AFTER = 30 -- seconds after login: the login SYNC has arrived by then
+local REPEAT_AFTER = 3600 -- seconds before the same announcement can be posted again
 local MAX_OTHERS = 5  -- guild milestone lines; the rest are counted
 
 local function Plain(v)
@@ -102,6 +109,33 @@ function Bonds:PatText()
     local key = ns.Pets:KeyOf(guid)
     local mine = ns.Registry:MyPet()
     return ("klapper %s."):format(mine == key and self:NameOf(key) or ns.Pets:NameOfKey(key))
+end
+
+local announced = {} -- kind .. key -> GetTime(), this session
+
+-- kind: "adopt" or "name". Call only right after the player's own action.
+function Bonds:Announce(kind, key)
+    if not (ns.DB.char.announce and IsInGuild() and key) then return end
+    local nick = ns.Registry:Nickname(key)
+    if kind == "name" and not nick then return end
+    local id = kind .. key .. (kind == "name" and nick or "")
+    if announced[id] and GetTime() - announced[id] < REPEAT_AFTER then return end
+    announced[id] = GetTime()
+    local me, species = ns.PlayerKey(), ns.Pets:NameOfKey(key)
+    local text
+    if kind == "adopt" then
+        text = nick and ("Dyreparken: %s adopterte %s («%s»)!"):format(me, species, nick)
+            or ("Dyreparken: %s adopterte %s!"):format(me, species)
+    else
+        text = ("Dyreparken: %s ga %s kallenavnet «%s»!"):format(me, species, nick)
+    end
+    SendChatMessage(text, "GUILD")
+end
+
+function Bonds:SetAnnounce(on)
+    ns.DB.char.announce = on
+    ns.Print(on and "Adopsjoner og kallenavn kunngjøres i guild-chatten."
+        or "Adopsjoner og kallenavn kunngjøres ikke lenger i guild-chatten.")
 end
 
 function Bonds:Pat()

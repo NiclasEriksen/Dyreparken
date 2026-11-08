@@ -181,4 +181,59 @@ return function(test, H)
         kari.ns.JournalUI:AddTooltipLines(tip, PANDA)
         match(table.concat(tip.lines, " / "), "trenger et hjem / Kallenavn: «Pepe» / Navngitt av Ola Nord")
     end)
+
+    test("adopting and naming are announced in guild chat; off with /dp kunngjør", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159, 46 } })
+        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
+        w:Run(20)
+        local function Guild()
+            local list = {}
+            for _, m in ipairs(w.chat) do if m.chan == "GUILD" then list[#list + 1] = m.text end end
+            return list
+        end
+        ola:Slash("adopter")
+        eq(Guild()[1], "Dyreparken: Ola Nord adopterte Panda Cub!")
+        w:SkipDays(7)
+        ola:Slash("navn Pepe")
+        eq(Guild()[2], "Dyreparken: Ola Nord ga Panda Cub kallenavnet «Pepe»!")
+        ola:Slash("navn Pepe")
+        eq(#Guild(), 2, "nothing changed: nothing posted")
+        ola:Slash("navn")
+        eq(#Guild(), 2, "clearing isn't announced")
+        -- The journal dialog posts too (Accept is a click).
+        ola.ns.JournalUI:AskNickname()
+        ola:PopupAccept("Pepe")
+        eq(#Guild(), 2, "the same line within an hour isn't repeated")
+        ola.ns.JournalUI:AskNickname()
+        ola:PopupAccept("Bambus", true)
+        eq(Guild()[3], "Dyreparken: Ola Nord ga Panda Cub kallenavnet «Bambus»!")
+        -- Adopting a named pet: the name comes along.
+        ola:Slash("gislipp")
+        w:Run(10) -- Ola sent a burst; the outbox paces it
+        kari:GivePet(5159)
+        kari:Slash("adopter panda")
+        eq(Guild()[4], "Dyreparken: Kari Berg adopterte Panda Cub («Bambus»)!")
+        -- The card's Adopt button.
+        ola:OpenJournal()
+        local card = ola:SelectPet(46)
+        card.reserve:Click()
+        eq(Guild()[5], "Dyreparken: Ola Nord adopterte White Kitten!")
+        -- Turned off (per character, saved).
+        ola:Slash("kunngjør av")
+        ok(ola:Printed("kunngjøres ikke lenger", true))
+        ola:Reload()
+        w:Run(20)
+        w:SkipDays(7)
+        ola:Slash("navn Tuss")
+        eq(ola.ns.Registry:Nickname("s:46"), "Tuss")
+        eq(#Guild(), 5, "named, but not announced")
+        ola:Slash("announce")
+        eq(ola.env.DyreparkenCharDB.announce, true, "toggles back on")
+        ola:Slash("kunngjør på")
+        eq(ola.env.DyreparkenCharDB.announce, true)
+        -- A failed adoption posts nothing.
+        ola:Slash("adopter panda")
+        eq(#Guild(), 5)
+    end)
 end

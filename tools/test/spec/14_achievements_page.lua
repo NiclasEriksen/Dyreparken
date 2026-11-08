@@ -4,6 +4,12 @@
 return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
 
+    -- Adoption announcements (Bonds) aren't what these tests count.
+    local function DropAdoptions(w)
+        for i = #w.chat, 1, -1 do if w.chat[i].text:find(" adopterte ", 1, true) then table.remove(w.chat, i) end end
+    end
+
+
     -- Same small list as 12_achievements: 4 cats, 15 counting pets.
     local function Fixture()
         local species = {
@@ -229,6 +235,7 @@ return function(test, H)
         -- Liv adopts the last cat: the guild has every cat.
         cs["Liv Lund"]:Slash("adopt White Kitten")
         w:Run(20)
+        DropAdoptions(w)
         ok(row.info:IsShown(), "earned while the page was open")
         ok(row.share:IsShown(), "officer: Del")
         local KP = Open(kari)

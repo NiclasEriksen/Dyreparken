@@ -916,7 +916,8 @@ function Client:PopupAccept(text, viaEnter)
     if dialog.OnShow then dialog.OnShow(frame) end
     local shown = eb.text
     eb.text = text
-    if viaEnter then dialog.EditBoxOnEnterPressed(eb) else dialog.OnAccept(frame) end
+    -- Clicking Accept or pressing Enter is a hardware event.
+    if viaEnter then Hardware(self, dialog.EditBoxOnEnterPressed, eb) else Hardware(self, dialog.OnAccept, frame) end
     self.popup = nil
     return shown, frame
 end

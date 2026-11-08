@@ -94,7 +94,7 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
-Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, rapport;
+Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
                    English aliases; probe, debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
@@ -103,7 +103,7 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp report), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
-                   Bonds (milestone lines after login, the nickname unlock note, /dp klapp)
+                   Bonds (milestone lines after login, the nickname unlock note, /dp klapp, guild announcements)
 Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
                    /dp ach share; guild ones synced with the registry, ACH), Page (our side tab on the
@@ -127,8 +127,12 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   anyone else during a holder's care doesn't count (`Registry:Nickname`). It replaces the title line of the world
   tooltip, with the species moved below it, and shows big on the journal's pet card.
 - Auto-summon turns itself off if AutoCompanion is loaded.
-- `/dp report` checks addon users only. It calls out those without a companion in group chat and lists non-users
-  locally as unknown.
+- `/dp rapport` checks addon users only and lists non-users locally as unknown. The result (who forgot their
+  companion, by nickname; or praise when everyone has one out) shows in a dialog, and its button posts it to group
+  chat (2026-11-08): posting needs a click, and the player sees the call-out first.
+- Adopting and naming are announced in guild chat from the click or command that did it (`Bonds:Announce`), per
+  character, default on, `/dp kunngjør`. Letting go and clearing a name aren't announced. The same line isn't
+  repeated within an hour.
 - Auto-summon only when idle: not in combat, mounted, on a taxi, flying, dead, stealthed, sitting, eating/drinking,
   casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by the per-character
   "Auto-summon" checkbox in the journal (default on). It never replaces a pet you summoned yourself. It doesn't watch

@@ -233,7 +233,14 @@ local function BuildCard()
     card.reserve:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
     card.reserve:SetScript("OnClick", function()
         local status = Status(card.key)
-        if status == "mine" then Report(ns.Registry:Release()) else Report(ns.Registry:Claim(card.key)) end
+        if status == "mine" then
+            Report(ns.Registry:Release())
+        else
+            local key = card.key
+            local ok, msg = ns.Registry:Claim(key)
+            Report(ok, msg)
+            if ok then ns.Bonds:Announce("adopt", key) end
+        end
     end)
     card.reserve:Hide()
 
@@ -306,15 +313,22 @@ StaticPopupDialogs["DYREPARKEN_NICKNAME"] = {
     end,
     OnAccept = function(self)
         local eb = self.editBox or self.EditBox
-        Report(ns.Registry:SetNickname(eb and eb:GetText() or ""))
+        JournalUI:Rename(eb and eb:GetText() or "")
     end,
     EditBoxOnEnterPressed = function(self)
         local parent = self:GetParent()
-        Report(ns.Registry:SetNickname(self:GetText()))
+        JournalUI:Rename(self:GetText())
         parent:Hide()
     end,
     EditBoxOnEscapePressed = function(self) self:GetParent():Hide() end,
 }
+
+-- From the dialog's Accept or Enter: a click or keypress, so it may post.
+function JournalUI:Rename(text)
+    local ok, msg = ns.Registry:SetNickname(text)
+    Report(ok, msg)
+    if ok then ns.Bonds:Announce("name", (ns.Registry:MyPet())) end
+end
 
 function JournalUI:AskNickname()
     StaticPopup_Show("DYREPARKEN_NICKNAME", ns.Config.NICKNAME_MAX_LEN)
