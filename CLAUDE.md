@@ -209,6 +209,9 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 
 ## Future additions
 
+- **Dagens dyr spotlight** (noted 2026-11-08, the user's "8"): when the card shows today's pet of the day, a small,
+  discreet crown or spotlight badge on it.
+
 - A "companions the guild is missing" list, from `Data/Companions.lua`.
 - Mute the summon clank after loading screens and landing too. The game brings the pet back on its own there, with
   no `SummonPetByGUID` call to hook, so it still clanks. AutoCompanion mutes for a window after

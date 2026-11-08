@@ -171,4 +171,27 @@ return function(test, H)
         -- Every line is there.
         for i = 1, 5 do ok(ola.ns.Strings["cuddle.line." .. i], i) end
     end)
+
+    test("the list: an adopted pet's bond level in a ring, and its nickname under the name", function()
+        local w, ola, kari = Setup()
+        local B = ola.ns.JournalUI._badges
+        local panda, bombay = B[ola:Button(5159)], B[ola:Button(40)]
+        ok(panda.ring:IsShown()); eq(panda.level.text, 1)
+        eq(panda.ring.atlas, "communities-ring-gold")
+        no(bombay.ring:IsShown(), "nobody's pet: no ring")
+        no(panda.nick:IsShown(), "no nickname yet")
+        -- A level up, and a name: the list follows.
+        local now = ola.ns.Now()
+        ola.ns.DB:Guild().life[PANDA] = { ["Ola Nord"] = { p = 500, f = now - 100 * 86400, t = now } }
+        ola.ns.DB:Guild().names[PANDA] = { ["Ola Nord"] = { n = "Pepe", at = now } }
+        ola.ns.JournalUI:Refresh()
+        eq(panda.level.text, 4)
+        ok(panda.nick:IsShown()); eq(panda.nick.text, "«Pepe»")
+        eq(panda.nick.points[1][2], ola:Button(5159).name, "under the name")
+        -- Someone else's pet shows its level too.
+        kari:Slash("adopter bombay")
+        w:Run(5)
+        ola.ns.JournalUI:Refresh()
+        ok(bombay.ring:IsShown()); eq(bombay.level.text, 1)
+    end)
 end

@@ -31,6 +31,8 @@ local ICON_TAKEN = "Interface\\LFGFrame\\UI-LFG-ICON-LOCK"
 local ICON_FREE = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
 local markers = setmetatable({}, { __mode = "k" }) -- button -> texture
+local badges = setmetatable({}, { __mode = "k" })  -- button -> { ring, level, nick }
+JournalUI._badges = badges -- (for the tests)
 local hooked = setmetatable({}, { __mode = "k" })  -- button -> true
 local speciesOf = setmetatable({}, { __mode = "k" }) -- button -> speciesID, owned
 local ownedOf = setmetatable({}, { __mode = "k" })
@@ -111,6 +113,37 @@ local function UpdateMarker(button)
     tex:Show()
 end
 
+-- An adopted pet's bond level in a small gold ring, left of the marker, and
+-- its nickname under the name (2026-11-08): the whole park at a glance.
+local function UpdateBadge(button)
+    local b = badges[button]
+    if not b then
+        b = {}
+        b.ring = button:CreateTexture(nil, "OVERLAY")
+        b.ring:SetAtlas("communities-ring-gold")
+        b.ring:SetSize(20, 20)
+        b.ring:SetPoint("RIGHT", button, "RIGHT", -26, 0)
+        b.level = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        b.level:SetPoint("CENTER", b.ring, "CENTER", 0, 0)
+        local name = rawget(button, "name")
+        if type(name) == "table" and name.GetObjectType then
+            b.nick = button:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+            b.nick:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -1)
+        end
+        badges[button] = b
+    end
+    local sid = speciesOf[button]
+    local key = sid and ns.Pets:KeyOfSpecies(sid)
+    local _, level = ns.Bond:Of(key)
+    b.ring:SetShown(level ~= nil); b.level:SetShown(level ~= nil)
+    if level then b.level:SetText(level) end
+    local nick = key and ns.Registry:Nickname(key)
+    if b.nick then
+        b.nick:SetText(nick and ns.T("list.nick", { nick = nick }) or "")
+        b.nick:SetShown(nick ~= nil)
+    end
+end
+
 local function OnButtonEnter(button)
     local sid = speciesOf[button]
     if not sid then return end
@@ -135,12 +168,13 @@ local function InitButton(button, elementData)
         button:HookScript("OnLeave", OnButtonLeave)
     end
     UpdateMarker(button)
+    UpdateBadge(button)
 end
 
 local function RefreshList()
     local box = PetJournal and PetJournal.ScrollBox
     if box and box.ForEachFrame then
-        box:ForEachFrame(function(button) UpdateMarker(button) end)
+        box:ForEachFrame(function(button) UpdateMarker(button); UpdateBadge(button) end)
     end
 end
 

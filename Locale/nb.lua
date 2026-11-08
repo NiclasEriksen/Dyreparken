@@ -292,6 +292,7 @@ L["personality.line"] = "{traits} · liker {likes}"
 -- The pet journal: list tooltips and the world tooltip
 ------------------------------------------------------------------------------
 L["tip.free"] = "Dyreparken: trenger et hjem"
+L["list.nick"] = "«{nick}»"                               -- under the species' name in the list
 L["tip.nick"] = "Kallenavn: «{nick}»"
 L["tip.named_by"] = "Navngitt av {who}, {date}"           -- {who}: a name, or home.you
 L["tip.bond"] = "Bånd: {label}"                           -- {label}: bond.label

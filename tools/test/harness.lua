@@ -969,6 +969,7 @@ function Client:ListPets(o)
         local b = env.CreateFrame("Button", nil, env.PetJournal)
         if not o.bare then b.petID, b.speciesID, b.owned = e.guid, e.sid, e.owned end
         b.sid = e.sid -- for the harness only
+        b.name = b:CreateFontString() -- the species' name, as on Retail's list buttons
         buttons[i] = b
     end
     env.PetJournal.ScrollBox.buttons = buttons
