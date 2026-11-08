@@ -169,6 +169,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   and the line reached guild chat. PARTY/RAID are unprobed (`/dp probe ach group|groupnow`). `/dp rapport`
   no longer posts from a timer: its result dialog's button posts it (2026-11-08).
 - `C_ChatInfo.SendChatMessage` exists alongside the global `SendChatMessage`.
+- Kill events (2026-11-08, build 70862, `/dp probe kills`): `ENCOUNTER_START`, `ENCOUNTER_END`, `BOSS_KILL`,
+  `PLAYER_PVP_KILLS_CHANGED` and `PARTY_KILL` are all valid events. `GetPVPSessionStats()` returns `0, 0` and
+  `GetPVPLifetimeStats()` `0, 0` on a character without PvP. Whether they fire, and what they carry, is still
+  being logged (docs/ACHIEVEMENTS.md, research).
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
 - Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns
