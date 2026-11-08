@@ -204,7 +204,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   - Hearthstone: `UNIT_SPELLCAST_SUCCEEDED` 8690 "Hearthstone". `CHAT_MSG_GUILD` gives the sender as plain
     "First Surname". `JumpOrAscendStart` hooks fine. The companion is readable at all of these, except right after a
     loading screen (back a moment later).
-  - Not seen yet: `PLAYER_DEAD` itself, our own guild chat line, `UnitIsAFK` true.
+  - `/afk` in Thunder Bluff: `PLAYER_FLAGS_CHANGED ("player")` with `UnitIsAFK("player")` true and `IsResting()`
+    true, the companion readable; again with false on coming back. Our own guild line: `CHAT_MSG_GUILD` with our
+    GUID (sender "First Surname"). The `TakeTaxiNode` hook counted a flight path ("taxi").
+  - Not seen yet: `PLAYER_DEAD` itself.
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
 - Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns
