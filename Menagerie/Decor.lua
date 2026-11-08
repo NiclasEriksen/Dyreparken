@@ -510,7 +510,7 @@ function Decor:Apply(card, key, level, color)
             d.edges[i]:SetVertexColor(e[1], e[2], e[3], 0.9)
             d.edges[i]:SetShown(not d.sliced)
             local w = d.wash[i]
-            local strong, clear = { wash[1], wash[2], wash[3], level >= 5 and 0.28 or 0.22 }, { wash[1], wash[2], wash[3], 0 }
+            local strong, clear = { wash[1], wash[2], wash[3], level >= 5 and 0.12 or 0.16 }, { wash[1], wash[2], wash[3], 0 } -- the art shows through
             local function G(o, a, b)
                 if w.SetGradient and CreateColor then w:SetGradient(o, CreateColor(unpack(a)), CreateColor(unpack(b))) end
             end

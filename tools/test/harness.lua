@@ -247,6 +247,10 @@ function Frame:SetFrameLevel(n) self.level = n end
 -- StatusBar
 function Frame:SetStatusBarTexture(x) self.barTex = x end
 function Frame:SetStatusBarColor(...) self.barColor = { ... } end
+function Frame:GetStatusBarTexture()
+    if not self.barRegion then self.barRegion = self:CreateTexture() end
+    return self.barRegion
+end
 function Frame:SetMinMaxValues(a, b) self.min, self.max = a, b end
 function Frame:SetValue(v) self.value = v end
 -- Anchors and size are recorded (not laid out): f.points, f.size.
@@ -309,6 +313,12 @@ function AnimGroup:Play() self.playing = true; self.plays = (self.plays or 0) + 
 function AnimGroup:Stop() self.playing = false end
 function AnimGroup:IsPlaying() return self.playing == true end
 function AnimGroup:GetAnimations() return unpack(self.anims) end
+-- OnFinished etc.: kept, and run by a test with g:Finish() (a one-shot group ending).
+function AnimGroup:SetScript(name, fn) self.scripts = self.scripts or {}; self.scripts[name] = fn end
+function AnimGroup:Finish()
+    self.playing = false
+    if self.scripts and self.scripts.OnFinished then self.scripts.OnFinished(self) end
+end
 for _, m in ipairs({ "Duration", "StartDelay", "Order", "Smoothing", "FromAlpha", "ToAlpha", "Degrees" }) do
     local key = m:sub(1, 1):lower() .. m:sub(2)
     Anim["Set" .. m] = function(self, v) self[key] = v end
@@ -1151,6 +1161,13 @@ function Client:BuildEnv()
     env.DoEmote = function(token, target) S.lastEmote = token end
     env.JumpOrAscendStart = function() S.jumps = (S.jumps or 0) + 1 end
     env.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
+    -- Sounds: the ones played are recorded in c.sounds. A few SOUNDKIT names.
+    env.SOUNDKIT = { UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT = 83681, UI_EPICLOOT_TOAST = 31578, LEVELUPSOUND = 888 }
+    env.PlaySound = function(id, channel)
+        c.sounds = c.sounds or {}
+        c.sounds[#c.sounds + 1] = id
+        return true
+    end
     env.C_Spell = { GetSpellName = function(id) return S.spellNames and S.spellNames[id] end }
     env.C_UnitAuras = { GetAuraDataBySpellName = function(unit, name, filter)
         assert(unit == "player" and filter == "HELPFUL")

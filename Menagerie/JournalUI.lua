@@ -244,19 +244,11 @@ local function UpdateCard()
         card.scene:Hide()
     end
     ns.Scenes:Paint(card, key)
-    -- The holder's bond with it, as a bar: everyone sees everyone's.
-    local points, level, name, from, nextAt = ns.Bond:Of(key)
-    if points then
-        card.bond.label:SetText(("Bånd: %s (nivå %d)"):format(name, level))
-        card.bond.level:SetText(level)
-        card.bond:SetMinMaxValues(from, nextAt or math.max(points, 1))
-        card.bond:SetValue(nextAt and points or math.max(points, 1)) -- the top level: full
-        card.bond.text:SetText(nextAt and ("%d / %d"):format(points, nextAt) or ("%d"):format(points))
-        card.bond:Show()
-    else
-        card.bond:Hide()
-    end
-    ns.Decor:Apply(card, key, level, ns.Scenes.TINT[card.family] or ns.Scenes.TINT.default)
+    -- The holder's bond with it: everyone sees everyone's.
+    local tint = ns.Scenes.TINT[card.family] or ns.Scenes.TINT.default
+    local _, level = ns.Bond:Of(key)
+    ns.Decor:Apply(card, key, level, tint)
+    ns.BondTrack:Update(card, key, { math.min(1, tint[1] * 1.7), math.min(1, tint[2] * 1.7), math.min(1, tint[3] * 1.7) })
 
     card.key = key
     if status == "mine" then
@@ -404,48 +396,8 @@ local function BuildCard()
     end)
     card.personalityHit:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
 
-    -- The bond, right column: the level in a badge, its name, a slim bar.
-    card.bond = CreateFrame("StatusBar", nil, panel)
-    card.bond:SetSize(130, 12)
-    card.bond:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    card.bond:SetStatusBarColor(1, 0.7, 0.2)
-    card.bond.bg = card.bond:CreateTexture(nil, "BACKGROUND")
-    card.bond.bg:SetAllPoints()
-    card.bond.bg:SetColorTexture(1, 1, 1, 0.12)
-    card.bond.badge = card.bond:CreateTexture(nil, "ARTWORK")
-    card.bond.badge:SetSize(30, 30)
-    card.bond.badge:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -9)
-    card.bond.badge:SetTexture(ns.Achievements:Icon({ id = "card:bond", icon = { "INV_ValentinesCandy",
-        "Spell_Holy_SealOfSacrifice" } }))
-    card.bond.level = card.bond:CreateFontString(nil, "OVERLAY", "NumberFontNormalLarge")
-    card.bond.level:SetPoint("CENTER", card.bond.badge, "BOTTOMRIGHT", -3, 3)
-    card.bond.label = card.bond:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    card.bond.label:SetPoint("TOPRIGHT", card.bond.badge, "TOPLEFT", -8, 1)
-    card.bond:SetPoint("BOTTOMRIGHT", card.bond.badge, "BOTTOMLEFT", -8, 3)
-    card.bond.text = card.bond:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    card.bond.text:SetPoint("CENTER", card.bond, "CENTER", 0, 0) -- on the bar, not beside it (it hit the home line)
-    -- Hover the bond: the points to the next level, and how it grows.
-    card.bond:EnableMouse(true)
-    card.bond:SetScript("OnEnter", function(self)
-        local points, level, name, _, nextAt = ns.Bond:Of(card.key)
-        if not points then return end
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(("Bånd: %s (nivå %d)"):format(name, level), 1, 0.82, 0)
-        if nextAt then
-            local nextName = ns.Bond.LEVELS[level + 1][2]
-            GameTooltip:AddLine(("%d poeng til %s."):format(nextAt - points, nextName), 1, 1, 1)
-            local decor = ns.Decor.LEVELS[level + 1]
-            if decor then
-                GameTooltip:AddLine(("På nivå %d får kortet %s."):format(level + 1, decor), 0.5, 0.8, 0.5, true)
-            end
-        else
-            GameTooltip:AddLine("Det høyeste nivået.", 1, 1, 1)
-        end
-        GameTooltip:AddLine("Vokser for hver dag kjæledyret er ute med deg, og raskere når dere gjør noe det liker."
-            .. " Båndet svekkes aldri.", 0.7, 0.7, 0.7, true)
-        GameTooltip:Show()
-    end)
-    card.bond:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
+    -- The bond, right column: a medallion, the track of levels, a bar (BondTrack.lua).
+    ns.BondTrack:Build(card, c, panel)
 
     -- Blizzard's turn buttons sit where our rows go: move them to just above
     -- the panel, so the panel's text runs the full width. (Plain buttons;

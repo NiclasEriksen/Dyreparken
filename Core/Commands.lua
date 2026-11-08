@@ -105,13 +105,15 @@ commands.nick, commands.list, commands.sound, commands.ach = Nick, List, Sound, 
 commands.version, commands.report, commands.pat = Version, Report, commands.klapp
 commands.announce = Announce
 
-Add("probe", "probe [more|tabs|kills|life|bg|decor|level <n|off> [n|off]|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
+Add("probe", "probe [more|tabs|kills|life|bg|decor|level <n|off>|celebrate [n|off]|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
     if arg and arg:find("^bg") then
         ns.Scenes:Probe(arg:match("^bg%s+(%S+)$"))
     elseif arg == "kills" then
         ns.Kills:Probe()
     elseif arg == "decor" then
         ns.Decor:Probe()
+    elseif arg == "celebrate" then
+        ns.BondTrack:Preview()
     elseif arg and arg:find("^level") then
         ns.Decor:Preview(arg:match("^level%s+(%S+)$"))
     elseif arg == "life" then
