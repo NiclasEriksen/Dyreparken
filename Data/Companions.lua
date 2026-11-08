@@ -40,12 +40,12 @@ ns.Companions = {
         [78] = { a = true, t = { "snake" } }, -- Crimson Snake
         [83] = { a = true, t = { "chicken", "mechanical" } }, -- Mechanical Chicken
         [85] = { a = true, t = { "mechanical" } }, -- Tiny Walking Bomb
-        [87] = { a = true }, -- Sprite Darter Hatchling
+        [87] = { a = true, t = { "dragon" } }, -- Sprite Darter Hatchling
         [89] = { a = true, t = { "wolf" } }, -- Worg Pup
         [90] = { a = true, t = { "bug" } }, -- Smolderweb Hatchling
         [95] = { a = true, t = { "frog", "mechanical" } }, -- Lifelike Toad
         [106] = { a = true, t = { "event" } }, -- Jubling
-        [114] = { a = true }, -- Disgusting Oozeling
+        [114] = { a = true, t = { "ooze" } }, -- Disgusting Oozeling
         [116] = { a = true, t = { "mechanical" } }, -- Tranquil Mechanical Yeti
         [117] = { a = true, t = { "event" } }, -- Tiny Snowman
         [118] = { a = true, t = { "event" } }, -- Winter Reindeer
@@ -65,12 +65,12 @@ ns.Companions = {
         [5006] = { a = true, t = { "cat" } }, -- Corrupted Kitten
         [5018] = { a = true, t = { "wolf" } }, -- Snowy Wolf Pup
         [5069] = { a = true, t = { "bird", "chicken", "farm" } }, -- Wild Chicken
-        [5075] = { a = true }, -- Excitable Slime
+        [5075] = { a = true, t = { "ooze" } }, -- Excitable Slime
         [5094] = { a = true }, -- Bitter Baitling
         [5121] = { a = true, t = { "wolf" } }, -- Prairie Wolf Pup
         [5135] = { a = true, t = { "rodent" } }, -- Shadowgale Squirrel
         [5136] = { a = true, t = { "bug" } }, -- Weevil K. Neevil
-        [5138] = { a = true }, -- Pachimari
+        [5138] = { a = true, t = { "plant" } }, -- Pachimari
         [5139] = { a = true, t = { "bird" } }, -- Galestrider Chick
         [5151] = { a = true, t = { "bug" } }, -- Plagued Cockroach
         [5152] = { a = true, t = { "bug" } }, -- Undercity Cockroach
@@ -80,13 +80,13 @@ ns.Companions = {
         [5157] = { a = true, t = { "rabbit" } }, -- Brown Rabbit
         [5158] = { a = true, t = { "bird", "owl" } }, -- Eagle Owl
         [5159] = { a = true }, -- Panda Cub
-        [5160] = { a = true }, -- Zergling
-        [5161] = { a = true }, -- Mini Diablo
+        [5160] = { a = true, t = { "bug" } }, -- Zergling
+        [5161] = { a = true, t = { "demon" } }, -- Mini Diablo
         [5162] = { a = true, t = { "pirate" } }, -- Baby Crocolisk
-        [5163] = { a = true }, -- Shen'dorei Wisp
+        [5163] = { a = true, t = { "spirit" } }, -- Shen'dorei Wisp
         [5167] = { a = true, t = { "bird" } }, -- Condor Hatchling
         [5172] = { a = true, t = { "bird" } }, -- Tallstrider Hatchling
-        [5174] = { a = true }, -- Minfernal
+        [5174] = { a = true, t = { "demon" } }, -- Minfernal
         [5176] = { a = true, t = { "farm" } }, -- Minimule
         [5183] = { a = true }, -- Spawn of Grubthor
         [5200] = { a = true, t = { "plant" } }, -- Viridian Lashling

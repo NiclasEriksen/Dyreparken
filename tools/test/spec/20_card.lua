@@ -84,7 +84,16 @@ return function(test, H)
         eq(S:For("s:40"), BY.cat[1])
         eq(S:For("s:84"), BY.dragon[1], "dragon before bird")
         eq(S:For("s:68"), BY.owl[1], "owl before bird")
-        eq(S:For("s:5159"), BY.default[1], "no family: the default")
+        eq(S:For("s:5159"), "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-ZulGurub", "the panda has its own")
+        S.BY_SPECIES = { [5159] = { "Interface\\T\\Gone" } }
+        ola.missingFiles = { ["Interface\\T\\Gone"] = true }
+        eq(S:For("s:5159"), BY.default[1], "its own missing, and no family: the default")
+        -- Tags that belong to a family.
+        ola.ns.Companions.species[341] = { a = true, t = { "event", "lantern" } }
+        ola.ns.Companions.species[83] = { a = true, t = { "chicken", "mechanical" } }
+        eq(S:Families("s:341")[1], "festive")
+        eq(S:Families("s:83")[1], "mechanical"); eq(S:Families("s:83")[2], "farm")
+        ok(ola.ns.Personality:Of("s:341").quest, "festive pets like quests")
         eq(S:For("s:999"), BY.default[1], "not in the data")
         local card = ola:SelectPet(40)
         ok(card.scene:IsShown()); eq(card.scene.tex, BY.cat[1])
@@ -92,7 +101,7 @@ return function(test, H)
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })
         kari.ns.Companions = Fixture()
-        kari.ns.Scenes.BY_FAMILY = Lists()
+        kari.ns.Scenes.BY_FAMILY, kari.ns.Scenes.BY_SPECIES = Lists(), {}
         local missing = { [BY.cat[1]] = true }
         for _, p in ipairs(BY.default) do missing[p] = true end
         kari.missingFiles = missing

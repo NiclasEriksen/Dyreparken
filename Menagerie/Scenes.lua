@@ -27,15 +27,34 @@ Scenes.BY_FAMILY = {
     mechanical = { EJ .. "Gnomeregan" },
     dragon = { EJ .. "RagefireChasm" },
     pirate = { EJ .. "Deadmines" },
+    -- Added 2026-11-08 with the families below; guesses, to re-pick in the gallery.
+    bug = { EJ .. "Maraudon" },
+    rodent = { EJ .. "Uldaman" },
+    wolf = { EJ .. "UpperBlackrockSpire" },
+    plant = { EJ .. "SunkenTemple" },
+    festive = { EJ .. "DireMaul" },
+    demon = { EJ .. "MoltenCore" },
+    ooze = { EJ .. "Naxxramas" },
+    spirit = { EJ .. "Scholomance" },
     default = { EJ .. "BlackrockDepths" },
 }
+
+-- A species with a background of its own (before its families).
+Scenes.BY_SPECIES = {
+    [5159] = { EJ .. "ZulGurub" }, -- Panda Cub (chosen 2026-11-08)
+}
+
+-- Tags that belong to a family (Data/Companions.lua tags -> family).
+Scenes.ALIAS = { event = "festive", lantern = "festive", whelp = "dragon", parrot = "bird", chicken = "farm" }
 -- The tint per family: the color at the top of the card's gradient (it
 -- fades darker toward the panel). Drawn, so always crisp.
 Scenes.TINT = {
     cat = { 0.55, 0.32, 0.12 }, bird = { 0.22, 0.42, 0.68 }, owl = { 0.12, 0.14, 0.36 },
     farm = { 0.36, 0.46, 0.14 }, rabbit = { 0.28, 0.5, 0.24 }, frog = { 0.08, 0.36, 0.26 },
     snake = { 0.52, 0.42, 0.18 }, mechanical = { 0.3, 0.36, 0.42 }, dragon = { 0.55, 0.14, 0.04 },
-    pirate = { 0.08, 0.3, 0.46 }, default = { 0.36, 0.26, 0.18 },
+    pirate = { 0.08, 0.3, 0.46 }, bug = { 0.3, 0.3, 0.12 }, rodent = { 0.45, 0.32, 0.18 },
+    wolf = { 0.3, 0.32, 0.38 }, plant = { 0.15, 0.42, 0.15 }, festive = { 0.55, 0.15, 0.2 },
+    demon = { 0.4, 0.05, 0.2 }, ooze = { 0.2, 0.45, 0.1 }, spirit = { 0.3, 0.2, 0.5 }, default = { 0.36, 0.26, 0.18 },
 }
 
 -- Dungeon backgrounds to look for (not used until seen): the classic
@@ -52,7 +71,8 @@ for _, n in ipairs(NAMES) do Scenes.EXTRA[#Scenes.EXTRA + 1] = EJ .. n end
 for _, n in ipairs(NAMES) do Scenes.EXTRA[#Scenes.EXTRA + 1] = "Interface\\EncounterJournal\\UI-EJ-LOREBG-" .. n end
 
 -- The order families are tried in, for a pet with several tags.
-Scenes.ORDER = { "dragon", "mechanical", "pirate", "owl", "frog", "snake", "cat", "rabbit", "farm", "bird" }
+Scenes.ORDER = { "dragon", "demon", "mechanical", "pirate", "owl", "frog", "snake", "spirit", "ooze", "wolf", "cat",
+    "bug", "plant", "rabbit", "rodent", "farm", "bird", "festive" }
 
 local function Exists(path)
     if not GetFileIDFromPath then return true end
@@ -81,7 +101,7 @@ function Scenes:Families(key)
     local sid = ns.Pets:SpeciesOfKey(key)
     local data = sid and ns.Companions and ns.Companions.species and ns.Companions.species[sid]
     local tags, list = {}, {}
-    for _, t in ipairs(type(data) == "table" and data.t or {}) do tags[t] = true end
+    for _, t in ipairs(type(data) == "table" and data.t or {}) do tags[self.ALIAS[t] or t] = true end
     for _, family in ipairs(self.ORDER) do
         if tags[family] then list[#list + 1] = family end
     end
@@ -91,6 +111,10 @@ end
 -- The background picture for a pet, or nil (then only the drawn layers).
 function Scenes:For(key)
     if self.preview then return self.preview end
+    local sid = ns.Pets:SpeciesOfKey(key)
+    for _, path in ipairs(sid and self.BY_SPECIES[sid] or {}) do
+        if Exists(path) then return path end
+    end
     for _, family in ipairs(self:Families(key)) do
         local path = First(family)
         if path then return path end

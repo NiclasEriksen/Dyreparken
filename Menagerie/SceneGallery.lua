@@ -19,7 +19,7 @@ Gallery.MODES = {
     bg = {
         title = "Dyreparken: bakgrunner",
         slots = { "default", "cat", "bird", "owl", "farm", "rabbit", "frog", "snake", "mechanical", "dragon",
-            "pirate" },
+            "pirate", "bug", "rodent", "wolf", "plant", "festive", "demon", "ooze", "spirit" },
         picks = function() return ns.DB.global.scenePicks end,
         changed = function() ns.Scenes:Reset() end,
     },
