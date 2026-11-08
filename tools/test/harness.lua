@@ -230,6 +230,9 @@ function Frame:GetBottom() return self.geo and self.geo.b end
 function Frame:GetWidth() return self.geo and (self.geo.r - self.geo.l) end
 function Frame:GetHeight() return self.geo and (self.geo.t - self.geo.b) end
 function Frame:GetObjectType() return self.type end
+-- The recorded anchors and size, as the client reports them.
+function Frame:GetPoint(i) local p = (self.points or {})[i or 1]; if p then return unpack(p) end end
+function Frame:GetSize() if self.size then return self.size[1], self.size[2] end return 0, 0 end
 function Frame:GetChildren()
     local kids = {}
     for _, f in ipairs(self.client.frames) do if f.parent == self then kids[#kids + 1] = f end end
@@ -348,6 +351,8 @@ function Region:SetHorizTile(v) self.horizTile = v end
 function Region:SetVertTile(v) self.vertTile = v end
 function Region:AddMaskTexture(m) self.mask = m end
 function Region:GetObjectType() return self.ftype or "Texture" end
+function Region:GetPoint(i) local p = (self.points or {})[i or 1]; if p then return unpack(p) end end
+function Region:GetSize() if self.size then return self.size[1], self.size[2] end return 0, 0 end
 function Region:GetDrawLayer() return "ARTWORK" end
 function Region:GetWidth() return 16 end
 function Region:GetHeight() return 16 end
@@ -1001,13 +1006,15 @@ function Client:PopupAccept(text, viaEnter)
     function eb:SetText(t) self.text = t end
     function eb:GetText() return self.text end
     function eb:HighlightText() end
-    local frame = { editBox = eb, Hide = function(f) f.hidden = true end }
+    -- StaticPopup_Show(which, text1, text2, data): data reaches OnAccept (and dialog.data), as in the client.
+    local data = p.args[3]
+    local frame = { editBox = eb, data = data, Hide = function(f) f.hidden = true end }
     function eb:GetParent() return frame end
     if dialog.OnShow then dialog.OnShow(frame) end
     local shown = eb.text
     eb.text = text
     -- Clicking Accept or pressing Enter is a hardware event.
-    if viaEnter then Hardware(self, dialog.EditBoxOnEnterPressed, eb) else Hardware(self, dialog.OnAccept, frame) end
+    if viaEnter then Hardware(self, dialog.EditBoxOnEnterPressed, eb) else Hardware(self, dialog.OnAccept, frame, data) end
     self.popup = nil
     return shown, frame
 end

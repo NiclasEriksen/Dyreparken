@@ -140,7 +140,13 @@ return function(test, H)
         eq(card.status.plain, "Trenger et hjem")
         card = ola:SelectPet(46)
         card.reserve:Click()
+        eq(ola.ns.Registry:MyPet(), nil, "not before it's confirmed")
+        eq(ola.popup.which, "DYREPARKEN_ADOPT")
+        eq(ola.popup.args[1], "Adoptere White Kitten?\n\nAdopsjonen blir kunngjort i guild-chatten, så hele guilden får se den."
+            .. " (Slå av med /dp kunngjør.)")
+        ola:PopupAccept()
         eq(ola.ns.Registry:MyPet(), "s:46")
+        ok(ola:Printed("Du adopterte White Kitten."))
         w:Run(1)
         eq(kari.ns.Registry:Holder("s:46"), "Ola Nord")
         eq(ola:Marker(46), MINE)
@@ -238,5 +244,29 @@ return function(test, H)
         match(err, "must not change the pet journal filters")
         ola:OpenJournal()
         ola:SelectPet(5159)
+    end)
+
+    test("adopting from the card asks first: what it lets go of, and that the guild will see it", function()
+        local w, ola, kari = Setup()
+        ola:Slash("adopter panda")
+        ola:OpenJournal()
+        local card = ola:SelectPet(46)
+        card.reserve:Click()
+        eq(ola.popup.args[1], "Adoptere White Kitten?\nDu gir da slipp på Panda Cub.\n\nAdopsjonen blir kunngjort i"
+            .. " guild-chatten, så hele guilden får se den. (Slå av med /dp kunngjør.)")
+        eq(ola.popup.args[3], "s:46", "the pet goes along with the popup")
+        -- Cancelled: nothing happens.
+        ola.popup = nil
+        eq(ola.ns.Registry:MyPet(), "s:5159")
+        -- With announcing off, no warning.
+        ola:Slash("kunngjør av")
+        card.reserve:Click()
+        eq(ola.popup.args[1], "Adoptere White Kitten?\nDu gir da slipp på Panda Cub.")
+        ola:PopupAccept()
+        eq(ola.ns.Registry:MyPet(), "s:46")
+        ok(ola:Printed("Du adopterte White Kitten (og ga slipp på Panda Cub).", true))
+        -- A popup without its pet does nothing.
+        ola.env.StaticPopupDialogs.DYREPARKEN_ADOPT.OnAccept({}, nil)
+        eq(ola.ns.Registry:MyPet(), "s:46")
     end)
 end

@@ -218,6 +218,8 @@ return function(test, H)
         ola:OpenJournal()
         local card = ola:SelectPet(46)
         card.reserve:Click()
+        eq(#Guild(), 4, "asked first")
+        ola:PopupAccept() -- the click on Adopter is what may post
         eq(Guild()[5], "Dyreparken: Ola Nord adopterte White Kitten!")
         -- Turned off (per character, saved).
         ola:Slash("kunngjør av")
