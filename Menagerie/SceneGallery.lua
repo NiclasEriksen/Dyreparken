@@ -26,7 +26,7 @@ Gallery.MODES = {
     decor = {
         title = "Dyreparken: pynt",
         slots = { "corner", "border", "frame", "glow", "sparkle", "star", "heart", "bubble", "confetti", "ribbon",
-            "moon", "leaf", "paw" },
+            "moon", "leaf", "paw", "note", "snow" },
         filter = true, -- show the selected slot's candidates only
         picks = function() return ns.DB.global.decorPicks end,
         changed = function() end,

@@ -160,7 +160,19 @@ return function(test, H)
         local files = 0
         for _, c in ipairs(list) do if not c.path:find("^atlas:") then files = files + 1 end end
         ok(ola:Printed(("%d av %d pynt-bilder finnes; galleriet viser dem."):format(files + 2, #list), true))
-        eq(#ola:Log("decor %d+ no glow: atlas:"), slots.glow - 1 - 6, "every glow but the one, and the files")
+        eq(#ola:Log("decor %d+ no glow: atlas:"), slots.glow - 1 - 6 - 1, "every glow but the one, the files, our own")
+        -- Our own particles: always there, first in their slots, and shipped.
+        local own = 0
+        for _, c in ipairs(list) do
+            if c.path:find(D.MEDIA, 1, true) == 1 then
+                own = own + 1
+                ok(D.Exists(c.path), c.path)
+                local file = io.open(c.path:gsub("^Interface\\AddOns\\Dyreparken\\", ""):gsub("\\", "/") .. ".tga", "rb")
+                ok(file, c.path .. ".tga is in Media/")
+                if file then file:close() end
+            end
+        end
+        eq(own, 11, "eleven drawn (the dot is listed once)")
         local G = ola.ns.SceneGallery
         local function Shown()
             local shown = {}

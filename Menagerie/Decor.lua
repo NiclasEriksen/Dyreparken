@@ -11,7 +11,16 @@ ns.Decor = Decor
 
 -- The slots, in the gallery's order.
 Decor.SLOTS = { "corner", "border", "frame", "glow", "sparkle", "star", "heart", "bubble", "confetti", "ribbon", "moon",
-    "leaf", "paw" }
+    "leaf", "paw", "note", "snow" }
+
+-- Our own particles (Media/Particles, drawn by tools/draw_particles.py):
+-- white with soft edges, to tint and animate. Shown first in their slots.
+Decor.MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
+local OWN = {
+    glow = { "dot" }, sparkle = { "sparkle", "dot" }, star = { "star" }, heart = { "heart" }, bubble = { "bubble" },
+    confetti = { "confetti" }, moon = { "moon" }, leaf = { "leaf" }, paw = { "paw" }, note = { "note" },
+    snow = { "snowflake" },
+}
 
 -- File paths found in the first probe (2026-11-08), per slot; the atlases
 -- come from DecorCandidates.lua (generated from the retail atlas list).
@@ -59,6 +68,7 @@ function Decor:Candidates()
     for _, slot in ipairs(self.SLOTS) do
         local pick = ns.DB.global.decorPicks[slot]
         if pick then Add(pick, slot) end
+        for _, name in ipairs(OWN[slot] or {}) do Add(self.MEDIA .. name, slot) end
         for _, p in ipairs(PATHS[slot] or {}) do Add(I .. p, slot) end
         for _, a in ipairs(ATLASES[slot] or {}) do Add("atlas:" .. a, slot) end
         for _, a in ipairs(generated[slot] or {}) do Add("atlas:" .. a, slot) end
@@ -68,6 +78,8 @@ end
 
 -- Does the client have it?
 function Decor.Exists(path)
+    -- Our own files: always there (and an addon file has no file id).
+    if path:sub(1, #Decor.MEDIA) == Decor.MEDIA then return true end
     local atlas = path:match("^atlas:(.+)$")
     if atlas then
         return C_Texture ~= nil and C_Texture.GetAtlasInfo ~= nil and C_Texture.GetAtlasInfo(atlas) ~= nil
