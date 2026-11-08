@@ -115,7 +115,8 @@ Achievements/      Texts (every player-visible achievement text, Norwegian: rena
                    debug is on), Page (the achievements SidePage;
                    Del per shareable one).
                    Plan and decisions:
-                   docs/ACHIEVEMENTS.md (read it first)
+                   docs/ACHIEVEMENTS.md (read it first). Planned next: bond, temperament and the activity engine,
+                   docs/PET_LIFE.md.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
 Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + hello)
 tools/check.sh     all offline checks (see Verify)
