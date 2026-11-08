@@ -151,7 +151,12 @@ function Gallery:Show(list, mode)
         local t = view.thumbs[i] or NewThumb(view)
         t.path = c.path
         local atlas = c.path:match("^atlas:(.+)$")
-        if atlas then t.image:SetAtlas(atlas) else t.image:SetTexture(c.path) end
+        if atlas then
+            t.image:SetAtlas(atlas)
+        else
+            t.image:SetTexture(c.path)
+            t.image:SetTexCoord(ns.Scenes.Crop(c.path))
+        end
         t.label:SetText(("%d %s"):format(c.n, (c.path:match("([^\\\\:]+)$") or c.path)))
         local col, row = (i - 1) % COLS, math.floor((i - 1) / COLS)
         t:ClearAllPoints()

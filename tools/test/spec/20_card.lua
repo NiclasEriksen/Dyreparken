@@ -97,6 +97,12 @@ return function(test, H)
         eq(S:For("s:999"), BY.default[1], "not in the data")
         local card = ola:SelectPet(40)
         ok(card.scene:IsShown()); eq(card.scene.tex, BY.cat[1])
+        eq(table.concat(card.scene.texCoord, ","), "0,1,0,1", "a whole picture")
+        -- A dungeon background: only the part of the file with the art.
+        S.BY_SPECIES = { [5159] = { "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-ZulGurub" } }
+        card = ola:SelectPet(5159)
+        eq(card.scene.tex, "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-ZulGurub")
+        eq(table.concat(card.scene.texCoord, ","), "0,0.76953125,0,0.830078125")
         -- A client without the first cat scene uses the next; with none at all, Blizzard's stays.
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })

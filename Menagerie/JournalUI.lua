@@ -237,6 +237,7 @@ local function UpdateCard()
     local scene = ns.Scenes:For(key)
     if scene then
         card.scene:SetTexture(scene)
+        card.scene:SetTexCoord(ns.Scenes.Crop(scene))
         card.scene:Show()
     else
         card.scene:Hide()

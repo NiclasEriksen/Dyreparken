@@ -185,6 +185,11 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   - Background art: 57 of 66 guessed `Interface\EncounterJournal\UI-EJ-BACKGROUND-*` / `UI-EJ-LOREBG-*` paths for
     classic dungeons and raids exist. The pet battle weathers exist but are small overlays (blurry when stretched);
     the loading screens that exist are the generic splash. `/dp probe bg` shows them in a gallery.
+    The art fills only part of each `UI-EJ-BACKGROUND-*` file: Blizzard's journal crops it with TexCoords 0-0.7695
+    across, 0-0.8301 down (`dungeonBG`). Shown whole, the art sits in the top left.
+  - **The atlas library is the modern one** (2026-11-08, `/dp probe decor`): 44 of 45 guessed retail atlas names
+    exist (`C_Texture.GetAtlasInfo`), e.g. `AftLevelup-*`, `bags-glow-*`, `ArtifactsFX-*`,
+    `UI-Frame-DiamondMetal-CornerTopLeft`, `PetJournal-FavoritesIcon`.
 - **Traits probe** (2026-11-08, `/dp probe life`): `PLAYER_DEAD`, `PLAYER_ALIVE`, `PLAYER_UNGHOST`,
   `ZONE_CHANGED_NEW_AREA`, `MIRROR_TIMER_START`, `PLAYER_LEVEL_UP`, `CHAT_MSG_GUILD`, `CHAT_MSG_TEXT_EMOTE`,
   `GROUP_ROSTER_UPDATE`, `PLAYER_FLAGS_CHANGED` and `UNIT_SPELLCAST_SUCCEEDED` are valid events. `GetZoneText`,

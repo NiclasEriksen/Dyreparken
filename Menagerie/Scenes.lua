@@ -27,17 +27,26 @@ Scenes.BY_FAMILY = {
     mechanical = { EJ .. "Gnomeregan" },
     dragon = { EJ .. "RagefireChasm" },
     pirate = { EJ .. "Deadmines" },
-    -- Added 2026-11-08 with the families below; guesses, to re-pick in the gallery.
-    bug = { EJ .. "Maraudon" },
-    rodent = { EJ .. "Uldaman" },
-    wolf = { EJ .. "UpperBlackrockSpire" },
-    plant = { EJ .. "SunkenTemple" },
-    festive = { EJ .. "DireMaul" },
+    -- Added and picked in game 2026-11-08 (the second round).
+    bug = { EJ .. "RuinsofAhnQiraj" },
+    rodent = { EJ .. "Scholomance" },
+    wolf = { EJ .. "ShadowfangKeep" },
+    plant = { EJ .. "WailingCaverns" },
+    festive = { EJ .. "TempleofAhnQiraj" },
     demon = { EJ .. "MoltenCore" },
-    ooze = { EJ .. "Naxxramas" },
-    spirit = { EJ .. "Scholomance" },
+    ooze = { EJ .. "Uldaman" },
+    spirit = { EJ .. "BlackfathomDeeps" },
     default = { EJ .. "BlackrockDepths" },
 }
+
+-- The part of a picture file that holds the art. The dungeon backgrounds
+-- fill only the top left of their file: Blizzard's own journal shows
+-- 0-0.7695 across and 0-0.8301 down (Blizzard_EncounterJournal.xml,
+-- dungeonBG); the whole file left the art in a corner (seen 2026-11-08).
+function Scenes.Crop(path)
+    if path:find("UI%-EJ%-BACKGROUND%-") then return 0, 0.76953125, 0, 0.830078125 end
+    return 0, 1, 0, 1
+end
 
 -- A species with a background of its own (before its families).
 Scenes.BY_SPECIES = {
