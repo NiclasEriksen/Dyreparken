@@ -718,7 +718,7 @@ end
 
 -- World tooltip -------------------------------------------------------------------
 -- Hover a companion: o = { species, owner ("First Surname" or nil), companion (false: not a pet) }.
--- Returns the lines the addon added.
+-- Returns the lines the addon added (and the whole tooltip, third).
 function Client:Hover(o)
     local unit = "mouseover"
     local lines = { { leftText = SpeciesName(o.species or 0) } }
@@ -727,19 +727,27 @@ function Client:Hover(o)
     end
     lines[#lines + 1] = { leftText = "Pet Level 1 Critter" }
     if o.lines then lines = o.lines end
+    for i, l in ipairs(lines) do if type(l) == "table" and l.lineIndex == nil then l.lineIndex = i end end
     self.units[unit] = { companion = o.companion ~= false, species = o.species, lines = lines,
         name = SpeciesName(o.species or 0) }
     local tip = self.env.GameTooltip
     tip:ClearLines()
+    -- The client fills in the unit's own lines before the post-calls run.
+    for _, l in ipairs(lines) do
+        if type(l.leftText) == "string" then tip:AddLine(l.leftText) end
+    end
     tip.unit = unit
     if o.unit == false then tip.unit = nil end
     local before = #tip.lines
+    local data = not o.noData and { lines = lines } or nil
+    self.lastTooltipData = data
     for _, fn in ipairs(self.tooltipCalls) do
-        fn(o.tooltip or tip, o.noData and nil or { lines = lines })
+        fn(o.tooltip or tip, data)
     end
     local added = {}
     for i = before + 1, #tip.lines do added[#added + 1] = tip.lines[i] end
-    return added, table.concat(added, " / ")
+    -- Third: every line of the tooltip as shown, after any rewriting.
+    return added, table.concat(added, " / "), tip.lines
 end
 
 -- Pet journal -----------------------------------------------------------------------
@@ -965,11 +973,46 @@ function Client:BuildEnv()
     env.ACCEPT, env.CANCEL = "Accept", "Cancel"
     env.UNITNAME_TITLE_COMPANION = "%s's Companion"
 
-    local tip = { lines = {} }
-    function tip:AddLine(text) self.lines[#self.lines + 1] = text end
+    -- lines[i] = left text; right[i], colors[i], hidden[i] per line. The
+    -- GameTooltipTextLeftN / RightN font strings read and write these.
+    local tip = { lines = {}, right = {}, colors = {}, hidden = {} }
+    function tip:GetName() return "GameTooltip" end
+    function tip:NumLines() return #self.lines end
+    for i = 1, 40 do
+        local function Side(isRight)
+            local fs = {}
+            function fs:GetText()
+                if isRight then return tip.right[i] end
+                return tip.lines[i]
+            end
+            function fs:SetText(x)
+                if isRight then tip.right[i] = x else tip.lines[i] = x or "" end
+            end
+            function fs:SetTextColor(r, g, b) if not isRight then tip.colors[i] = { r, g, b } end end
+            function fs:GetTextColor()
+                local col = tip.colors[i] or { 1, 1, 1 }
+                return col[1], col[2], col[3], 1
+            end
+            function fs:Show() if isRight then tip.rightShown = tip.rightShown or {}; tip.rightShown[i] = true
+                else tip.hidden[i] = nil end end
+            function fs:Hide() if isRight then tip.rightShown = tip.rightShown or {}; tip.rightShown[i] = nil
+                else tip.hidden[i] = true end end
+            function fs:IsShown()
+                if isRight then return (tip.rightShown or {})[i] == true end
+                return tip.lines[i] ~= nil and not tip.hidden[i]
+            end
+            return fs
+        end
+        env["GameTooltipTextLeft" .. i] = Side(false)
+        env["GameTooltipTextRight" .. i] = Side(true)
+    end
+    function tip:AddLine(text, r, g, b)
+        self.lines[#self.lines + 1] = text
+        if r then self.colors[#self.lines] = { r, g, b } end
+    end
     function tip:AddDoubleLine(a, b) self.lines[#self.lines + 1] = a .. " " .. b end
     function tip:SetText(text) self.lines = { text } end
-    function tip:ClearLines() self.lines = {} end
+    function tip:ClearLines() self.lines, self.right, self.colors, self.hidden = {}, {}, {}, {} end
     function tip:SetOwner(owner) self.owner = owner; self.lines = {} end
     function tip:IsOwned(owner) return self.owner == owner end
     function tip:Show() self.shown = true end
@@ -1142,6 +1185,17 @@ function Client:BuildEnv()
             assert(type(text) == "string" and #text <= 255, "addon message over 255 bytes")
             assert(chan ~= "WHISPER" or target, "whisper without target")
             if c.trial then return 7 end -- Trial/Veteran accounts can't send
+            -- The server's throttle (docs/FOREVER_API.md): per prefix, 10
+            -- messages, +1 per second. Over it, the message is dropped.
+            c.throttle = c.throttle or {}
+            local b = c.throttle[prefix] or { tokens = 10, at = w.t }
+            c.throttle[prefix] = b
+            b.tokens, b.at = math.min(10, b.tokens + (w.t - b.at)), w.t
+            if b.tokens < 1 then
+                w.throttled = (w.throttled or 0) + 1
+                return 3
+            end
+            b.tokens = b.tokens - 1
             w:Transmit(c, prefix, text, chan, target)
             return 0
         end,
@@ -1249,7 +1303,10 @@ function H.converged(w, names)
     for _, c in ipairs(w.clients) do
         if c.online and c.guild and (not names or names[c.name]) then
             local d = c.ns.Sync:Digest()
-            local holders = Show(c.ns.Registry:Holders())
+            local R = c.ns.Registry
+            local nicks = {}
+            for key in pairs(select(3, R:All())) do nicks[key] = R:Nickname(key) or false end
+            local holders = Show(R:Holders()) .. " names " .. Show(nicks)
             if not ref then
                 ref, refHolders = d, holders
             elseif d ~= ref or holders ~= refHolders then

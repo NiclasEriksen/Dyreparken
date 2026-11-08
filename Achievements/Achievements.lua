@@ -51,7 +51,11 @@ ns.Achievements = Ach
 
 local DAY = 86400
 local NOTICE_MAX = 20 -- ids per ACH_EARNED; more than any real batch
-local GUILD_MAX = 64  -- records per ACH / SYNC we accept
+-- Guild records we store at most. Ids from newer versions are kept (and
+-- relayed), so this leaves room for many; past it, new ids are refused.
+-- The cap is on the store, not per message: a per-message cut-off depends
+-- on table order, so clients would keep different sets and never agree.
+local GUILD_MAX = 128
 local GUILD_DEBOUNCE = 5
 
 local defsById = {}
@@ -179,8 +183,10 @@ function Eval.loyal(d, ctx)
     return days >= d.days, math.min(days, d.days), d.days
 end
 function Eval.nick(d, ctx)
-    local r = ctx.record
-    local has = (r and r.k and r.n) and 1 or 0
+    -- The holder named it themselves; an inherited name doesn't count.
+    local key = ns.Registry:MyPet()
+    local _, namer = ns.Registry:Nickname(key)
+    local has = (key and namer == ns.PlayerKey()) and 1 or 0
     return has == 1, has, 1
 end
 function Eval.guildcount(d, ctx)
@@ -369,8 +375,8 @@ end
 
 local function ValidGuildRecord(id, rec)
     return type(id) == "string" and #id <= 64 and id:find("^guild:[%w:_]+$") ~= nil
-        and type(rec) == "table" and type(rec.at) == "number" and rec.at > 0
-        and (rec.ann == nil or (type(rec.ann) == "number" and rec.ann > 0))
+        and type(rec) == "table" and ns.SaneTime(rec.at)
+        and (rec.ann == nil or ns.SaneTime(rec.ann))
         and (rec.q == nil or rec.q == true)
 end
 
@@ -379,15 +385,16 @@ end
 function Ach:MergeGuild(list)
     local g = ns.DB:Guild()
     if not g or type(list) ~= "table" then return false end
-    local changed, seen, appeared = false, 0, {}
+    local changed, appeared = false, {}
+    local stored = 0
+    for _ in pairs(g.ach) do stored = stored + 1 end
     for id, rec in pairs(list) do
-        seen = seen + 1
-        if seen > GUILD_MAX then break end
-        if ValidGuildRecord(id, rec) then
+        if ValidGuildRecord(id, rec) and (g.ach[id] or stored < GUILD_MAX) then
             outgoing[id] = nil -- someone said it for us
             local cur = g.ach[id]
             if not cur then
                 g.ach[id] = { at = rec.at, ann = rec.ann, q = rec.q }
+                stored = stored + 1
                 changed = true
                 if defsById[id] and not rec.q then appeared[#appeared + 1] = id end
             else
@@ -615,6 +622,7 @@ function Ach:Init()
         end)
     end)
     ns.Bus:On("MY_RECORD", function() Ach:Check("MY_RECORD", "char") end)
+    ns.Bus:On("MY_NAME", function() Ach:Check("MY_NAME", "char") end)
 
     ns.Comm:Register("ACH", function(msg, sender, channel)
         if channel ~= "GUILD" or msg.p ~= ns.PROTOCOL then return end

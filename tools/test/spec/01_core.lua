@@ -46,6 +46,24 @@ return function(test, H)
         ok(ns.CaredFor(now - 3600):find("^since"), "defaults to now")
     end)
 
+    test("'since yesterday' goes by the calendar across a 23-hour day (DST)", function()
+        local ffi = require("ffi")
+        pcall(ffi.cdef, "int setenv(const char*, const char*, int); int unsetenv(const char*); void tzset(void);")
+        local old = os.getenv("TZ")
+        ffi.C.setenv("TZ", "Europe/Oslo", 1); ffi.C.tzset()
+        local ok2, err = pcall(function()
+            local w = H.World()
+            local ns = w:AddClient("Ola Nord").ns
+            -- Summer time starts Sunday 29 March 2026 at 02:00.
+            local now = os.time({ year = 2026, month = 3, day = 30, hour = 0, min = 30 })
+            eq(ns.CaredFor(os.time({ year = 2026, month = 3, day = 29, hour = 22 }), now), "since yesterday")
+            eq(ns.CaredFor(os.time({ year = 2026, month = 3, day = 28, hour = 22 }), now), "for 2 days")
+        end)
+        if old then ffi.C.setenv("TZ", old, 1) else ffi.C.unsetenv("TZ") end
+        ffi.C.tzset()
+        if not ok2 then error(err, 0) end
+    end)
+
     test("versions compare like releases", function()
         local w = H.World()
         local cmp = w:AddClient("Ola Nord").ns.CompareVersions
@@ -169,6 +187,25 @@ return function(test, H)
         ok(c:Printed("Debug on %(echo to chat%)"))
     end)
 
+    test("schema 6: nicknames move from the record to the pet", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { login = false })
+        c.saved.DyreparkenDB = { schema = 5, guilds = { Dyreparken = { claims = {
+            ["Ola Nord"] = { k = "s:46", at = 10, ts = 20, n = "Pus", na = 15 },
+            ["Kari Berg"] = { k = "s:40", at = 10, ts = 30, n = "Mjau" },
+            ["Per Hansen"] = { at = 10, ts = 40 },
+        }, lapses = {}, ach = {}, achSeen = {} }, Tom = {} } }
+        c:Login()
+        local g = c.env.DyreparkenDB.guilds.Dyreparken
+        eq(g.names["s:46"]["Ola Nord"].n, "Pus")
+        eq(g.names["s:46"]["Ola Nord"].at, 15)
+        eq(g.names["s:40"]["Kari Berg"].at, 30, "no name time: the record's")
+        eq(g.claims["Ola Nord"].n, nil)
+        eq(g.claims["Ola Nord"].na, nil)
+        ok(c.env.DyreparkenDB.guilds.Tom.names)
+        eq(c.ns.Registry:Nickname("s:46"), "Pus")
+    end)
+
     test("saved data from schema 1 migrates; unknown schemas reset", function()
         local w = H.World()
         local c = w:AddClient("Ola Nord", { login = false })
@@ -179,7 +216,7 @@ return function(test, H)
         } }
         c:Login()
         local db = c.env.DyreparkenDB
-        eq(db.schema, 5)
+        eq(db.schema, 6)
         ok(db.guilds.Dyreparken and db.guilds.Dyreparken.claims and db.guilds.Dyreparken.lapses)
         no(db.guilds.Dyreparken.pets, "old shape dropped")
         ok(db.guilds["Annet Laug"].claims)
@@ -187,12 +224,12 @@ return function(test, H)
         ok(db.games.history and db.settings)
         eq(db.known, nil, "the known list is gone (4)")
         eq(c.env.DyreparkenCharDB.autoSummon, true)
-        eq(#c:Log("account migrated to 5"), 1)
+        eq(#c:Log("account migrated to 6"), 1)
 
         local d = w:AddClient("Kari Berg", { login = false })
         d.saved.DyreparkenDB = { schema = 0, junk = true }
         d:Login()
-        eq(d.env.DyreparkenDB.schema, 5)
+        eq(d.env.DyreparkenDB.schema, 6)
         no(d.env.DyreparkenDB.junk, "unmigratable data is wiped")
         eq(#d:Log("no migration 0%->1, resetting"), 1)
     end)

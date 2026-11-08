@@ -163,14 +163,23 @@ return function(test, H)
         w:Run(1)
         local rec = kari.ns.DB:Guild().ach["guild:future:thing"]
         eq(rec.at, 3); eq(rec.ann, 4)
-        -- Too many records in one message: only the first 64 are read.
-        local many = {}
-        for i = 1, 100 do many["guild:n" .. i] = { at = 5 } end
-        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = many })
+        -- The store holds at most 128 records, however they arrive; known ones still update.
+        for batch = 0, 2 do
+            local many = {}
+            for i = 1, 60 do many["guild:n" .. (batch * 60 + i)] = { at = 5 } end
+            w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = many })
+        end
         w:Run(1)
         local n = 0
-        for id in pairs(kari.ns.DB:Guild().ach) do if id:find("^guild:n") then n = n + 1 end end
-        eq(n, 64)
+        for _ in pairs(kari.ns.DB:Guild().ach) do n = n + 1 end
+        eq(n, 128)
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = 2 } } })
+        w:Run(1)
+        eq(kari.ns.DB:Guild().ach["guild:future:thing"].at, 2)
+        -- Far-future or broken times are refused.
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = 1, ann = 1 / 0 } } })
+        w:Run(1)
+        eq(kari.ns.DB:Guild().ach["guild:future:thing"].at, 2)
         eq(A:MergeGuild(nil), false)
     end)
 

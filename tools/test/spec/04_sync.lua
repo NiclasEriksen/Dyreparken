@@ -133,17 +133,49 @@ return function(test, H)
         H.assertConverged(w)
     end)
 
-    test("nicknames travel with the record and vanish when switching", function()
-        local w, ola, kari = Guild({ { "Ola Nord", { 5159, 46 } }, { "Kari Berg", { 40 } } })
+    test("a nickname reaches everyone and stays with the pet when its carer moves on", function()
+        local w, ola, kari, per = Guild({ { "Ola Nord", { 5159, 46 } }, { "Kari Berg", { 5159 } },
+            { "Per Hansen", { 40 }, offline = true } })
         ola:Slash("claim panda")
         w:SkipDays(7)
+        local m = w:Mark()
         ola:Slash("nick Mr Bambus")
         w:Run(1)
-        eq(select(2, kari.ns.Registry:Holder(PANDA)).n, "Mr Bambus")
+        eq(w:Sent("NICK", "Ola Nord", m), 1)
+        eq(kari.ns.Registry:Nickname(PANDA), "Mr Bambus")
         ola:Slash("claim kitten")
         w:Run(1)
-        eq(select(2, kari.ns.Registry:Holder(KITTEN)).n, nil)
         eq(kari.ns.Registry:Holder(PANDA), nil)
+        eq(kari.ns.Registry:Nickname(PANDA), "Mr Bambus", "free, still named")
+        eq(kari.ns.Registry:Nickname(KITTEN), nil)
+        ok(kari.ns.Registry:Claim(PANDA))
+        w:SkipDays(7)
+        kari:Slash("nick Bambi")
+        w:Run(1)
+        eq(ola.ns.Registry:Nickname(PANDA), "Bambi")
+        -- Per was away the whole time and catches up at login.
+        per:Login()
+        w:Run(30)
+        eq(per.ns.Registry:Nickname(PANDA), "Bambi")
+        H.assertConverged(w)
+    end)
+
+    test("NICK only writes the sender's own entry; junk is ignored", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        ola:Slash("claim")
+        w:SkipDays(7)
+        ola:Slash("nick Bambus")
+        w:Run(1)
+        local now = w:ServerTime()
+        -- Kari tries to rename Ola's panda: her entry is stored, but she isn't the holder.
+        local function Nick(m) m.k, m.p = "NICK", ola.ns.PROTOCOL; w:InjectMessage("Kari Berg", m) end
+        Nick({ pet = PANDA, e = { n = "Kapret", at = now + 5 } })
+        Nick({ e = { n = "Ingen", at = now } })
+        Nick({ pet = PANDA, e = "tekst" })
+        Nick({ pet = { 1 }, e = { n = "Tabell", at = now } })
+        w:Run(1)
+        eq(ola.ns.Registry:Nickname(PANDA), "Bambus")
+        eq(ola.env.DyreparkenDB.guilds.Dyreparken.names[PANDA]["Kari Berg"].n, "Kapret", "stored as Kari's")
     end)
 
     test("leaving the guild frees the pet; coming back doesn't take it back", function()
@@ -193,19 +225,105 @@ return function(test, H)
         local w, ola, liv = Guild({ { "Ola Nord", { 5159 } }, { "Liv Lund", { 72 }, offline = true } })
         local R = ola.ns.Registry
         for i = 1, 150 do
-            R:MergeRecord(("Medlem%03d Etternavn"):format(i), { k = "s:" .. (1000 + i), at = 100 + i, ts = 200 + i,
-                n = i % 3 == 0 and ("Kallenavn " .. i) or nil, na = i % 3 == 0 and 300 or nil })
+            local owner = ("Medlem%03d Etternavn"):format(i)
+            R:MergeRecord(owner, { k = "s:" .. (1000 + i), at = 100 + i, ts = 200 + i })
+            if i % 3 == 0 then R:MergeName("s:" .. (1000 + i), owner, { n = "Kallenavn " .. i, at = 300 + i }) end
         end
         R:MergeLapse("Gammel Kar", 50)
         R:Changed()
         liv:Login()
         w:Run(40)
-        eq(liv.ns.Registry:Count(), 150)
-        eq(select(2, liv.ns.Registry:Holder("s:1150")).n, "Kallenavn 150")
+        local held = 0
+        for _ in pairs(liv.ns.Registry:Holders()) do held = held + 1 end
+        eq(held, 150)
+        eq(liv.ns.Registry:Count(), 0, "made-up species don't count toward x of y")
+        eq(liv.ns.Registry:Nickname("s:1150"), "Kallenavn 150")
         local bytes = 0
         for _, m in ipairs(w.wire) do if m.kind == "SYNC" then bytes = math.max(bytes, m.bytes) end end
         ok(bytes > 254 * 3, "SYNC took " .. bytes .. " bytes")
         H.assertConverged(w)
+    end)
+
+    test("a registry too big for the server's burst still reaches a newcomer", function()
+        local w, ola, liv = Guild({ { "Ola Nord", { 5159 } }, { "Liv Lund", { 72 }, offline = true } })
+        local R = ola.ns.Registry
+        for i = 1, 200 do
+            local owner = ("Medlem%03d Etternavn"):format(i)
+            R:MergeRecord(owner, { k = "s:" .. (1000 + i), at = 100 + i, ts = 200 + i })
+            R:MergeName("s:" .. (1000 + i), owner, { n = "Navn " .. i, at = 300 + i })
+        end
+        R:Changed()
+        w.throttled = 0
+        liv:Login()
+        w:Run(90)
+        eq(w.throttled, 0, "nothing hit the server throttle")
+        local held = 0
+        for _ in pairs(liv.ns.Registry:Holders()) do held = held + 1 end
+        eq(held, 200)
+        eq(liv.ns.Registry:Count(), 0, "made-up species don't count toward x of y")
+        H.assertConverged(w)
+    end)
+
+    test("two big messages sent back to back don't mix their chunks", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        -- Names that don't compress, so each message takes many chunks.
+        local function Name(i) return ("%08x Medlem"):format((i * 2654435761) % 4294967296) end
+        local big = {}
+        for i = 1, 150 do big[Name(i)] = 1000 + i * 7919 end
+        local recs = {}
+        for i = 1, 60 do recs[Name(5000 + i)] = { k = "s:" .. (2000 + i), at = 10 + i * 31, ts = 20 + i * 37 } end
+        local before = w.chunks or 0
+        ola.ns.Comm:Send("LAPSE", { l = big }, "GUILD", nil, "BULK")
+        ola.ns.Comm:Send("SYNC", { r = recs, l = {}, n = {}, a = {}, d = 0 }, "GUILD", nil, "NORMAL")
+        w:Run(60)
+        ok(w.chunks - before > 12, "took " .. (w.chunks - before) .. " chunks")
+        local _, lapses = kari.ns.Registry:All()
+        eq(lapses[Name(150)], 1000 + 150 * 7919, "the LAPSE arrived")
+        eq(kari.ns.Registry:Holder("s:2060"), Name(5060), "the SYNC arrived")
+    end)
+
+    test("registry messages count only on the guild channel", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        w:SetGroup({ "Ola Nord", "Kari Berg", "Per Hansen" })
+        local p, now = ola.ns.PROTOCOL, w:ServerTime()
+        local rec = { k = KITTEN, at = now, ts = now }
+        for _, chan in ipairs({ "PARTY", "RAID", "WHISPER" }) do
+            w:InjectMessage("Per Hansen", { k = "UPD", p = p, r = rec }, chan, "Ola Nord")
+            w:InjectMessage("Per Hansen", { k = "SYNC", p = p, r = { ["Per Hansen"] = rec }, d = 1 }, chan, "Ola Nord")
+            w:InjectMessage("Per Hansen", { k = "LAPSE", p = p, l = { ["Kari Berg"] = now } }, chan, "Ola Nord")
+            w:InjectMessage("Per Hansen", { k = "NICK", p = p, pet = KITTEN, e = { n = "X", at = now } }, chan, "Ola Nord")
+            w:InjectMessage("Per Hansen", { k = "HELLO", p = p, v = "dev", d = 12345 }, chan, "Ola Nord")
+        end
+        local m = w:Mark()
+        w:Run(20)
+        eq(ola.ns.Registry:Holder(KITTEN), nil)
+        eq(next((select(2, ola.ns.Registry:All()))), nil, "no lapses")
+        eq(ola.ns.Registry:Nickname(KITTEN), nil)
+        eq(w:Sent("SYNC", nil, m), 0, "a HELLO off the guild channel starts no SYNC")
+    end)
+
+    test("a mismatch that never settles costs one SYNC per 30 s, not a storm", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        -- Kari refuses a record Ola keeps, so their digests never agree.
+        local R = kari.ns.Registry
+        local merge = R.MergeRecord
+        R.MergeRecord = function(self, owner, r)
+            if owner == "Rar Kar" then return false end
+            return merge(self, owner, r)
+        end
+        local now = w:ServerTime()
+        ola.ns.Registry:MergeRecord("Rar Kar", { k = KITTEN, at = now, ts = now })
+        local m = w:Mark()
+        kari:Reload()
+        R = kari.ns.Registry
+        merge = R.MergeRecord
+        R.MergeRecord = function(self, owner, r)
+            if owner == "Rar Kar" then return false end
+            return merge(self, owner, r)
+        end
+        w:Run(300)
+        local n = w:Sent("SYNC", nil, m)
+        ok(n >= 2 and n <= 2 * (300 / 30) + 2, n .. " SYNCs in 300 s")
     end)
 
     test("no chatter once everyone agrees", function()

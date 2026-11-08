@@ -3,7 +3,7 @@ local _, ns = ...
 -- The guild's companion reservations.
 --
 -- DATA MODEL: one record per character, written only by that character.
---   g.claims[owner] = { k = petKey|nil, at = claimTime, ts = editTime, n = nick?, na = nickTime? }
+--   g.claims[owner] = { k = petKey|nil, at = claimTime, ts = editTime }
 --     k nil: no reservation (released). The record is kept so the release
 --     wins over older copies still floating around.
 --     at: when this pet was claimed (server time). First come, first served.
@@ -19,6 +19,18 @@ local _, ns = ...
 -- it, the earliest `at` wins (ties: lower owner name). Every client gets the
 -- same answer from the same data, whatever order the messages arrived in.
 --
+-- NICKNAMES belong to the pet, not to an adoption: the name stays when its
+-- carer lets go, and the next carer may rename it once they've cared for it
+-- NICKNAME_UNLOCK_DAYS. Each naming is its own entry, written only by the
+-- one who named it:
+--   g.names[petKey][namer] = { n = nick|nil, at = when, x = true? }
+--     n nil: the namer cleared the name. x: void (the namer lost an adoption
+--     race and never really held the pet, see CheckMine). Merges by highest at.
+-- THE NAME of a pet is derived like the holder: the newest entry that isn't
+-- void and was set either by the current holder or before their adoption
+-- began. So a name set by someone who didn't hold the pet at the time (a
+-- partition, a forged entry) can't override the holder's.
+--
 -- The owner's client watches its own record. If it lost a race (someone
 -- claimed earlier) or lapsed, it releases and tells the player.
 --
@@ -31,6 +43,7 @@ local Config = ns.Config
 local DAY = 86400
 
 local holders, dirty = {}, true -- holders[petKey] = owner (cache)
+local builtFor -- the guild the cache was built for: joining another one (or none) rebuilds it
 
 local function G()
     return ns.DB:Guild()
@@ -40,23 +53,45 @@ end
 -- Validation and merge
 ------------------------------------------------------------------------------
 local function ValidRecord(r)
-    if type(r) ~= "table" or type(r.ts) ~= "number" or type(r.at) ~= "number" then return false end
+    if type(r) ~= "table" or not ns.SaneTime(r.ts) or not ns.SaneTime(r.at) then return false end
     if r.k ~= nil and (type(r.k) ~= "string" or #r.k > 64) then return false end
-    if r.n ~= nil and (type(r.n) ~= "string" or ns.Utf8Len(r.n) > Config.NICKNAME_MAX_LEN or r.n:find("[|\n\r]")) then
-        return false
-    end
-    if r.na ~= nil and type(r.na) ~= "number" then return false end
     return true
 end
 
 local function Copy(r)
-    return { k = r.k, at = r.at, ts = r.ts, n = r.n, na = r.na }
+    return { k = r.k, at = r.at, ts = r.ts }
+end
+
+-- The byte cap: Utf8Len counts only lead bytes, so a string of stray
+-- continuation bytes would pass as short.
+local function ValidName(n)
+    return type(n) == "string" and n ~= "" and #n <= 4 * Config.NICKNAME_MAX_LEN
+        and ns.Utf8Len(n) <= Config.NICKNAME_MAX_LEN and not n:find("[|\n\r]")
+end
+
+local function ValidEntry(e)
+    return type(e) == "table" and ns.SaneTime(e.at)
+        and (e.n == nil or ValidName(e.n)) and (e.x == nil or e.x == true)
+end
+
+-- Returns true when our data changed.
+function Registry:MergeName(key, namer, e)
+    local g = G()
+    if not g or type(key) ~= "string" or #key > 64 or not ns.SaneName(namer) or not ValidEntry(e) then
+        return false
+    end
+    local byKey = g.names[key]
+    local cur = byKey and byKey[namer]
+    if cur and cur.at >= e.at then return false end
+    if not byKey then byKey = {}; g.names[key] = byKey end
+    byKey[namer] = { n = e.n, at = e.at, x = e.x }
+    return true
 end
 
 -- Returns true when our data changed.
 function Registry:MergeRecord(owner, r)
     local g = G()
-    if not g or type(owner) ~= "string" or owner == "" or not ValidRecord(r) then return false end
+    if not g or not ns.SaneName(owner) or not ValidRecord(r) then return false end
     local cur = g.claims[owner]
     if cur and cur.ts >= r.ts then return false end
     g.claims[owner] = Copy(r)
@@ -66,7 +101,7 @@ end
 
 function Registry:MergeLapse(owner, t)
     local g = G()
-    if not g or type(owner) ~= "string" or type(t) ~= "number" then return false end
+    if not g or not ns.SaneName(owner) or not ns.SaneTime(t) then return false end
     if (g.lapses[owner] or 0) >= t then return false end
     g.lapses[owner] = t
     dirty = true
@@ -109,7 +144,8 @@ end
 
 local function Rebuild()
     wipe(holders)
-    local g = G()
+    local g, name = G()
+    builtFor = name
     if not g then dirty = false; return end
     local best = {} -- petKey -> record
     for owner, r in pairs(g.claims) do
@@ -124,6 +160,10 @@ local function Rebuild()
     dirty = false
 end
 
+local function Fresh()
+    if dirty or select(2, G()) ~= builtFor then Rebuild() end
+end
+
 function Registry:Changed()
     dirty = true
     ns.Bus:Fire("REGISTRY")
@@ -131,7 +171,7 @@ end
 
 -- owner, record for a pet key, or nil if free.
 function Registry:Holder(key)
-    if dirty then Rebuild() end
+    Fresh()
     local owner = holders[key]
     if not owner then return nil end
     return owner, G().claims[owner]
@@ -154,20 +194,25 @@ end
 -- Snapshot for sync and digests.
 function Registry:All()
     local g = G()
-    if not g then return {}, {} end
-    return g.claims, g.lapses
+    if not g then return {}, {}, {} end
+    return g.claims, g.lapses, g.names
 end
 
--- Number of distinct pets held.
+-- Number of distinct pets held. Only species in Forever's journal count
+-- (Data/Companions.lua), so a junk or hidden key from the wire can't push
+-- "x of y" past y.
 function Registry:Count()
-    if dirty then Rebuild() end
+    Fresh()
+    local known = ns.Companions and ns.Companions.species
     local n = 0
-    for _ in pairs(holders) do n = n + 1 end
+    for key in pairs(holders) do
+        if not known or known[ns.Pets:SpeciesOfKey(key) or false] then n = n + 1 end
+    end
     return n
 end
 
 function Registry:Holders()
-    if dirty then Rebuild() end
+    Fresh()
     return holders
 end
 
@@ -176,6 +221,35 @@ end
 ------------------------------------------------------------------------------
 function Registry:NicknameUnlocksAt(r)
     return r.at + Config.NICKNAME_UNLOCK_DAYS * DAY
+end
+
+-- The pet's nickname (nil if it has none), and who named it, when.
+function Registry:Nickname(key)
+    local g = G()
+    local byKey = g and key and g.names[key]
+    if not byKey then return nil end
+    local holder, hr = self:Holder(key)
+    local best, bestBy
+    for namer, e in pairs(byKey) do
+        if not e.x and (namer == holder or not hr or e.at <= hr.at)
+            and (not best or e.at > best.at or (e.at == best.at and namer < bestBy)) then
+            best, bestBy = e, namer
+        end
+    end
+    if best and best.n then return best.n, bestBy, best.at end
+end
+
+-- This character's naming entry for a pet; MY_NAME sends it (Sync).
+local function WriteName(key, e)
+    local g = G()
+    local me = ns.PlayerKey()
+    local prev = g.names[key] and g.names[key][me]
+    -- at must grow even if two edits land in the same second.
+    e.at = math.max(ns.Now(), (prev and prev.at or 0) + 1)
+    g.names[key] = g.names[key] or {}
+    g.names[key][me] = e
+    Registry:Changed()
+    ns.Bus:Fire("MY_NAME", key, e)
 end
 
 function Registry:CanNickname(r)
@@ -247,7 +321,10 @@ function Registry:SetNickname(nick)
         ok, clean = self:ValidNickname(nick)
         if not ok then return false, clean end
     end
-    Write({ k = r.k, at = r.at, n = clean, na = clean and ns.Now() or nil })
+    if self:Nickname(key) == clean then
+        return false, clean and ('It\'s already called "%s".'):format(clean) or "It has no nickname."
+    end
+    WriteName(key, { n = clean })
     return true, clean and ('Nickname set to "%s".'):format(clean) or "Nickname cleared."
 end
 
@@ -266,6 +343,9 @@ function Registry:CheckMine()
         ns.Print(("Your %s went back to the park after your long absence. Adopt it again if it's still free."):format(name))
     else
         ns.Print(("%s adopted %s just before you did, so it went home with them."):format(owner or "?", name))
+        -- We never really held it, so a name we gave it meanwhile doesn't count.
+        local mine = g.names[r.k] and g.names[r.k][me]
+        if mine and not mine.x and mine.at >= r.at then WriteName(r.k, { x = true }) end
     end
     Write({ at = r.at })
     return true

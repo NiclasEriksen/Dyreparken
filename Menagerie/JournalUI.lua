@@ -55,13 +55,15 @@ end
 -- Tooltip lines for a pet key. Used by list buttons and the world tooltip.
 function JournalUI:AddTooltipLines(tooltip, key)
     local status, owner, r = Status(key)
+    local nick = ns.Registry:Nickname(key)
     tooltip:AddLine(" ")
     if status == "free" then
         tooltip:AddLine("Dyreparken: looking for a home", 0.5, 0.8, 0.5)
+        if nick then tooltip:AddLine(('Nickname: "%s"'):format(nick), 1, 1, 1) end
         return
     end
     tooltip:AddLine(("Cared for by %s"):format(status == "mine" and "you" or owner), 1, 0.82, 0)
-    if r.n then tooltip:AddLine(('Nickname: "%s"'):format(r.n), 1, 1, 1) end
+    if nick then tooltip:AddLine(('Nickname: "%s"'):format(nick), 1, 1, 1) end
     local how = ns.CaredFor(r.at)
     tooltip:AddLine(how:sub(1, 1):upper() .. how:sub(2), 0.7, 0.7, 0.7)
 end
@@ -161,6 +163,7 @@ local function UpdateCard()
     local sid = CardSpecies()
     if not sid then
         card.status:SetText("")
+        card.nickname:SetText("")
         card.reserve:Hide()
         card.nick:Hide()
         return
@@ -168,17 +171,17 @@ local function UpdateCard()
     local key = ns.Pets:KeyOfSpecies(sid)
     local status, owner, r = Status(key)
     local ownedIt = ns.Pets:Owned()[key] ~= nil
+    local nick = ns.Registry:Nickname(key)
+    local text
     if status == "free" then
-        card.status:SetText("|cff80cc80Looking for a home|r")
+        text = "|cff80cc80Looking for a home|r"
     elseif status == "mine" then
-        local text = "|cffffd100Cared for by you|r " .. ns.CaredFor(r.at)
-        if r.n then text = text .. ' - "' .. r.n .. '"' end
-        card.status:SetText(text)
+        text = "|cffffd100Cared for by you|r " .. ns.CaredFor(r.at)
     else
-        local text = "|cffff8080Cared for by " .. owner .. "|r " .. ns.CaredFor(r.at)
-        if r.n then text = text .. ' - "' .. r.n .. '"' end
-        card.status:SetText(text)
+        text = "|cffff8080Cared for by " .. owner .. "|r " .. ns.CaredFor(r.at)
     end
+    card.status:SetText(text)
+    card.nickname:SetText(nick or "")
 
     card.key = key
     if status == "mine" then
@@ -209,6 +212,12 @@ local function BuildCard()
     card.status:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 12, 10)
     card.status:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -12, 10)
     card.status:SetJustifyH("LEFT")
+    -- The pet's nickname, big, right above the status line.
+    card.nickname = c:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+    card.nickname:SetPoint("BOTTOMLEFT", card.status, "TOPLEFT", 0, 4)
+    card.nickname:SetPoint("BOTTOMRIGHT", card.status, "TOPRIGHT", 0, 4)
+    card.nickname:SetJustifyH("LEFT")
+    card.nickname:SetWordWrap(false)
 
     local anchor = PetJournalSummonButton or c
     card.reserve = CreateFrame("Button", nil, PetJournal, "UIPanelButtonTemplate")
@@ -286,8 +295,8 @@ StaticPopupDialogs["DYREPARKEN_NICKNAME"] = {
     hideOnEscape = 1,
     OnShow = function(self)
         local eb = self.editBox or self.EditBox
-        local _, r = ns.Registry:MyPet()
-        if eb then eb:SetText(r and r.n or ""); eb:HighlightText() end
+        local key = ns.Registry:MyPet()
+        if eb then eb:SetText(key and ns.Registry:Nickname(key) or ""); eb:HighlightText() end
     end,
     OnAccept = function(self)
         local eb = self.editBox or self.EditBox

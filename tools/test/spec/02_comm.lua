@@ -79,6 +79,13 @@ return function(test, H)
         w:Run(2)
         eq(#theirs, 1)
         eq(#b:Log("bad message from Ola Nord"), 3)
+        -- A message that never ends is dropped after 64 chunks, not kept growing.
+        w:Inject("Ola Nord", "GUILD", "Fstart")
+        for _ = 1, 70 do w:Inject("Ola Nord", "GUILD", "M" .. string.rep("x", 200)) end
+        w:Inject("Ola Nord", "GUILD", "Lend")
+        w:Run(2)
+        eq(#b:Log("dropped an oversized message from Ola Nord"), 1)
+        eq(#b:Log("bad message from Ola Nord"), 3, "the tail is stray, not decoded")
     end)
 
     test("a realm suffix on the sender is stripped", function()

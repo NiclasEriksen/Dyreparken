@@ -103,17 +103,21 @@ return function(test, H)
             { k = KITTEN, at = "1", ts = 200 },              -- at not a number
             { k = 5, at = 1, ts = 200 },                     -- key not a string
             { k = string.rep("x", 65), at = 1, ts = 200 },   -- key too long
-            { k = KITTEN, at = 1, ts = 200, n = 5 },         -- nickname not a string
-            { k = KITTEN, at = 1, ts = 200, n = string.rep("æ", 21) },
-            { k = KITTEN, at = 1, ts = 200, n = "a|cffff0000red" },
-            { k = KITTEN, at = 1, ts = 200, n = "two\nlines" },
-            { k = KITTEN, at = 1, ts = 200, na = "soon" },
         }
+        local now = c.world:ServerTime()
+        bad[#bad + 1] = { k = KITTEN, at = 1, ts = 1 / 0 }          -- infinite: would win every merge
+        bad[#bad + 1] = { k = KITTEN, at = 0 / 0, ts = 300 }        -- NaN: never compares
+        bad[#bad + 1] = { k = KITTEN, at = 1, ts = now + 2 * 86400 } -- far future
+        bad[#bad + 1] = { k = KITTEN, at = -5, ts = 300 }
         for i, r in ipairs(bad) do no(R:MergeRecord("Per Hansen", r), "bad record " .. i) end
+        ok(R:MergeRecord("Siv Dahl", { at = 1, ts = now + 3600 }), "a little ahead is fine (clocks differ)")
+        no(R:MergeRecord(string.rep("x", 49), { k = KITTEN, at = 1, ts = 1 }), "owner too long")
+        no(R:MergeLapse("Per Hansen", now + 10 * 365 * 86400), "far-future lapse")
+        no(R:MergeLapse("Per Hansen", 0 / 0), "NaN lapse")
         no(R:MergeRecord("", { k = KITTEN, at = 1, ts = 1 }), "empty owner")
         no(R:MergeRecord(7, { k = KITTEN, at = 1, ts = 1 }), "owner not a string")
-        ok(R:MergeRecord("Per Hansen", { k = KITTEN, at = 1, ts = 200, n = string.rep("æ", 20), na = 5 }),
-            "20 characters is fine")
+        ok(R:MergeRecord("Per Hansen", { k = KITTEN, at = 1, ts = 200, n = "old field", na = 5 }))
+        eq(select(2, R:Holder(KITTEN)).n, nil, "records don't carry names any more")
         -- The stored copy is ours, not the caller's table.
         local r = { k = BOMBAY, at = 5, ts = 300, extra = "dropped" }
         R:MergeRecord("Liv Lund", r)
@@ -148,18 +152,19 @@ return function(test, H)
         ok(R:CanNickname(R:MyRecord()))
         okn, msg = R:SetNickname("  Bambus  ")
         ok(okn); eq(msg, 'Nickname set to "Bambus".')
-        eq(R:MyRecord().n, "Bambus")
-        eq(R:MyRecord().na, c.world:ServerTime())
+        eq(R:Nickname(PANDA), "Bambus")
+        eq(select(3, R:Nickname(PANDA)), c.world:ServerTime())
+        eq(select(2, R:SetNickname("Bambus")), 'It\'s already called "Bambus".')
         eq(select(2, R:SetNickname(string.rep("x", 21))), "Nicknames can be at most 20 characters.")
         ok(R:SetNickname(string.rep("ø", 20)), "UTF-8 counts characters")
         eq(select(2, R:SetNickname("a|b")), "Nicknames can't contain | or line breaks.")
         okn, msg = R:SetNickname("   ")
         ok(okn); eq(msg, "Nickname cleared.")
-        eq(R:MyRecord().n, nil)
-        eq(R:MyRecord().na, nil)
+        eq(R:Nickname(PANDA), nil)
+        eq(select(2, R:SetNickname("")), "It has no nickname.")
         R:SetNickname("Igjen")
         ok(R:SetNickname(nil))
-        eq(R:MyRecord().n, nil)
+        eq(R:Nickname(PANDA), nil)
         no(R:ValidNickname(nil))
         no(R:ValidNickname(""))
         eq(select(2, R:ValidNickname(" Mr. Whiskers ")), "Mr. Whiskers")
@@ -229,5 +234,108 @@ return function(test, H)
         ok(R:CheckMine())
         ok(c:Printed("Your White Kitten went back to the park after your long absence."))
         eq(R:MyRecord().k, nil)
+    end)
+
+    test("names: entries merge by newest time, bad shapes are refused", function()
+        local w, c, R = One()
+        ok(R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = 100 }))
+        no(R:MergeName(KITTEN, "Kari Berg", { n = "Eldre", at = 99 }), "older")
+        no(R:MergeName(KITTEN, "Kari Berg", { n = "Samme", at = 100 }), "same time")
+        eq(R:Nickname(KITTEN), "Pus")
+        local bad = {
+            "not a table",
+            { n = "Pus" },                             -- no time
+            { n = "Pus", at = "100" },
+            { n = 5, at = 200 },
+            { n = "", at = 200 },
+            { n = string.rep("æ", 21), at = 200 },
+            { n = "a|cffff0000red", at = 200 },
+            { n = "two\nlines", at = 200 },
+            { n = "Pus", at = 200, x = "yes" },
+            { n = "a" .. string.rep("\128", 100), at = 200 },  -- one "character" by lead bytes
+            { n = "Pus", at = 1 / 0 },
+        }
+        for i, e in ipairs(bad) do no(R:MergeName(KITTEN, "Per Hansen", e), "bad entry " .. i) end
+        no(R:MergeName(5, "Per Hansen", { n = "Pus", at = 1 }), "key not a string")
+        no(R:MergeName(string.rep("x", 65), "Per Hansen", { n = "Pus", at = 1 }), "key too long")
+        no(R:MergeName(KITTEN, "", { n = "Pus", at = 1 }), "empty namer")
+        ok(R:MergeName(KITTEN, "Per Hansen", { n = string.rep("æ", 20), at = 300, extra = 1 }), "20 characters")
+        eq(c.env.DyreparkenDB.guilds.Dyreparken.names[KITTEN]["Per Hansen"].extra, nil, "stored copy is ours")
+        eq(R:Nickname(nil), nil)
+        eq(R:Nickname(PANDA), nil, "never named")
+    end)
+
+    test("names: the pet keeps its name; only the holder renames it while caring", function()
+        local w, c, R = One()
+        -- Kari named the kitten while she cared for it, then let it go.
+        R:MergeRecord("Kari Berg", { k = KITTEN, at = 100, ts = 100 })
+        R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = 200 })
+        R:MergeRecord("Kari Berg", { at = 100, ts = 300 })
+        eq(R:Holder(KITTEN), nil)
+        eq(R:Nickname(KITTEN), "Pus", "free pets keep their name")
+        local now = c.world:ServerTime()
+        ok(R:Claim(KITTEN))
+        eq(R:Nickname(KITTEN), "Pus", "the new carer inherits it")
+        -- Someone who doesn't hold it can't rename it (forged, or a partition).
+        R:MergeName(KITTEN, "Per Hansen", { n = "Feil", at = now + 10 })
+        eq(R:Nickname(KITTEN), "Pus")
+        no(R:SetNickname("Min"), "locked for 7 days")
+        w:SkipDays(7)
+        ok(R:SetNickname("Min"))
+        local name, namer = R:Nickname(KITTEN)
+        eq(name, "Min"); eq(namer, "Ola Nord")
+        ok(R:SetNickname(""))
+        eq(R:Nickname(KITTEN), nil, "the holder can clear it")
+        -- After Ola lets go, Per's old forged entry is older than any new
+        -- adoption, but Ola's clear is newer still.
+        R:Release()
+        eq(R:Nickname(KITTEN), nil)
+    end)
+
+    test("names: a lost adoption race voids the name given meanwhile", function()
+        local w, c, R = One()
+        local t0 = c.world:ServerTime()
+        ok(R:Claim(KITTEN))
+        w:SkipDays(7)
+        ok(R:SetNickname("Tapt"))
+        -- Kari's earlier claim shows up (a partition healing).
+        R:MergeRecord("Kari Berg", { k = KITTEN, at = t0 - 5, ts = t0 })
+        R:MergeName(KITTEN, "Kari Berg", { n = "Karis", at = t0 - 1 })
+        R:Changed()
+        ok(R:CheckMine())
+        local g = c.env.DyreparkenDB.guilds.Dyreparken
+        eq(g.names[KITTEN]["Ola Nord"].x, true)
+        eq(R:Holder(KITTEN), "Kari Berg")
+        eq(R:Nickname(KITTEN), "Karis")
+        -- After Kari lets go, Ola's void entry still doesn't hide Kari's name.
+        R:MergeRecord("Kari Berg", { at = t0 - 5, ts = t0 + 999999 })
+        eq(R:Nickname(KITTEN), "Karis")
+    end)
+
+    test("names: a lapse keeps the name the holder gave", function()
+        local w, c, R = One()
+        R:MergeRecord("Kari Berg", { k = KITTEN, at = 100, ts = 100 })
+        R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = 200 })
+        R:MergeLapse("Kari Berg", 500)
+        R:Changed()
+        eq(R:Holder(KITTEN), nil)
+        eq(R:Nickname(KITTEN), "Pus")
+    end)
+
+    test("switching guilds (or leaving) doesn't reuse the old guild's holders", function()
+        local w, c, R = One()
+        ok(R:Claim(PANDA))
+        eq(R:Holder(PANDA), "Ola Nord")
+        c.guild = "Annet Laug"
+        eq(R:Holder(PANDA), nil, "a fresh guild")
+        ok(R:Claim(PANDA), "free to adopt here")
+        eq(R:Count(), 1)
+        c.guild = nil
+        eq(R:Holder(PANDA), nil)
+        eq(R:Count(), 0)
+        eq(R:Nickname(PANDA), nil)
+        eq(#c:Hover({ species = 5159, owner = "Ola Nord" }), 0)
+        c.guild = w.guildName
+        eq(R:Holder(PANDA), "Ola Nord", "back home")
     end)
 end

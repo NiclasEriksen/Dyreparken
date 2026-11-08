@@ -15,6 +15,17 @@ local _, ns = ...
 -- the reservation, so a nickname never shows on someone else's copy of the
 -- same pet.
 --
+-- The nickname takes the title line, and the species moves to a new line 2.
+-- A tooltip can't insert lines, so one is added at the end and every line
+-- from 2 down shifts by one. Each line keeps its own font string, so the
+-- title keeps the header font.
+--
+-- The tooltip data gets the same shift. Tooltip addons that draw their own
+-- panel read it instead of the font strings (PrettyTooltip: the title is
+-- data.lines[1], and native lines whose lineIndex the data doesn't list are
+-- appended as extras, so without the shift its title stays the species and
+-- the moved last line shows twice; seen 2026-11-08).
+--
 -- (unverified) whether the unit's species ID uses the same numbering as the
 -- journal (Panda Cub = 5159 in the journal). `/dp probe more` with your own
 -- companion targeted answers it.
@@ -69,6 +80,56 @@ function Tooltip:ReservationOf(unit, lines)
     return owner, r
 end
 
+local function Line(tooltip, side, i)
+    return _G[tooltip:GetName() .. "Text" .. side .. i]
+end
+
+local function CopyLine(tooltip, side, from, to)
+    local src, dst = Line(tooltip, side, from), Line(tooltip, side, to)
+    if not (src and dst) then return end
+    if src:IsShown() then
+        dst:SetText(src:GetText())
+        dst:SetTextColor(src:GetTextColor())
+        dst:Show()
+    else
+        dst:SetText(nil)
+        dst:Hide()
+    end
+end
+
+local function ShiftData(data, species, nick)
+    local lines = type(data) == "table" and data.lines
+    local first = type(lines) == "table" and lines[1]
+    if type(first) ~= "table" or Plain(first.leftText) ~= species then return end
+    for _, line in ipairs(lines) do
+        local index = type(line) == "table" and Plain(line.lineIndex)
+        if type(index) == "number" and index >= 2 then line.lineIndex = index + 1 end
+    end
+    first.leftText = nick
+    table.insert(lines, 2, { type = 0, leftText = species, leftColor = { r = 0.7, g = 0.7, b = 0.7 },
+        lineIndex = type(Plain(first.lineIndex)) == "number" and first.lineIndex + 1 or nil })
+end
+
+-- Title line = nickname, line 2 = the species name it replaced.
+function Tooltip:ShowNickname(tooltip, nick, data)
+    local title = Line(tooltip, "Left", 1)
+    local species = title and Plain(title:GetText())
+    if type(species) ~= "string" or species == nick then return end
+    local n = tooltip:NumLines()
+    tooltip:AddLine(" ")
+    for i = n + 1, 3, -1 do
+        CopyLine(tooltip, "Left", i - 1, i)
+        CopyLine(tooltip, "Right", i - 1, i)
+    end
+    title:SetText(nick)
+    local second, right = Line(tooltip, "Left", 2), Line(tooltip, "Right", 2)
+    second:SetText(species)
+    second:SetTextColor(0.7, 0.7, 0.7)
+    second:Show()
+    if right then right:SetText(nil); right:Hide() end
+    ShiftData(data, species, nick)
+end
+
 local function OnUnitTooltip(tooltip, data)
     if tooltip ~= GameTooltip or InCombatLockdown() then return end
     local ok, _, unit = pcall(tooltip.GetUnit, tooltip)
@@ -76,9 +137,12 @@ local function OnUnitTooltip(tooltip, data)
     if not unit then return end
     local owner, r = Tooltip:ReservationOf(unit, data and data.lines)
     if not owner then return end
-    if r.n then tooltip:AddLine('"' .. r.n .. '"', 1, 0.82, 0) end
+    local nick = ns.Registry:Nickname(r.k)
+    if nick then Tooltip:ShowNickname(tooltip, nick, data) end
     local who = owner == ns.PlayerKey() and "you" or owner
     tooltip:AddLine(("Dyreparken: cared for by %s %s"):format(who, ns.CaredFor(r.at)), 0.5, 0.8, 0.5)
+    -- Resizes the tooltip to the changed lines, not only the added ones.
+    if nick then tooltip:Show() end
 end
 
 function Tooltip:Init()

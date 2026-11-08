@@ -57,6 +57,9 @@ A `pre-push` hook (`.githooks/`, enabled per clone with `git config core.hooksPa
   `c:OpenJournal({ sideTabs = n })` builds Forever's Collections window (side tab strip, Mounts/Pets pages,
   `CollectionsJournal_SetTab`); `c:ClickTab(n)` presses a tab.
   Show/Hide cascade OnShow/OnHide to shown children, like the client.
+- The harness enforces the server's addon message throttle (10 per prefix, +1/s; drops go in `w.throttled`), so a
+  test sending more than that at once fails unless `Comm` paces it. `GameTooltip` has per-line font strings
+  (`GameTooltipTextLeftN`), and `c:Hover` returns the whole tooltip as its third value.
 - The harness blocks guild chat posts that don't come from `c:Slash` or a `Click` (Forever does; the test then
   fails with `ADDON_ACTION_BLOCKED`). Post to guild chat only from a keypress or click.
 - Stubs must behave like the real client (docs/FOREVER_API.md). Unknown frame methods and unknown events throw
@@ -95,7 +98,7 @@ Core/Commands.lua  /dp slash commands (adopt, letgo, nick, list, sound, ach [ico
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
-                   merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/LAPSE;
+                   merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/NICK/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp report), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
@@ -117,6 +120,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - A reservation is **one species per character**, guild-wide, first come first served by `GetServerTime()`.
 - Released when the owner leaves the guild, or after 30 days unseen. Nicknames unlock after 7 days, max 20
   characters (`ns.Config`).
+- **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it, after caring
+  for it 7 days. The name stays when they let go, and the next carer inherits it until they change it. A name set by
+  anyone else during a holder's care doesn't count (`Registry:Nickname`). It replaces the title line of the world
+  tooltip, with the species moved below it, and shows big on the journal's pet card.
 - Auto-summon turns itself off if AutoCompanion is loaded.
 - `/dp report` checks addon users only. It calls out those without a companion in group chat and lists non-users
   locally as unknown.

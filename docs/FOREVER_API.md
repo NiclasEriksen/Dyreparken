@@ -118,6 +118,11 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   (White Kitten), `UnitCreator` = nil, GUID `Creature-0-6864-1-2-7386-…` (npcID 7386). Tooltip lines:
   `"White Kitten"`, `"Gnikke Guri's Companion"`, `"Pet Level 1 Critter"`. The owner comes from line 2, matched with
   `UNITNAME_TITLE_COMPANION`.
+- **Rewriting a unit tooltip's lines** (2026-11-08, build 70862): change the font strings (`GameTooltipTextLeftN`)
+  *and* the post-call's `data.lines` (text and `lineIndex`). Tooltip addons that draw their own panel read the data:
+  PrettyTooltip takes the title from `data.lines[1]` and appends any native line whose `lineIndex` the data doesn't
+  list, so changing only the font strings left the old title and showed a moved line twice. With both changed, the
+  nickname shows as the title in PrettyTooltip as well.
 - **Unit and journal species IDs match**: your own Panda Cub as a unit reports `UnitBattlePetSpeciesID` = 5159, the
   same as the journal. Its GUID is `Creature-0-6845-1-1-272330-…`, and npcID 272330 equals the journal's creatureID.
 

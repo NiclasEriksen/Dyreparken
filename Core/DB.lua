@@ -15,11 +15,11 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 5
+local SCHEMA = 6
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
-    -- guilds[guildName] = { claims = { [owner] = record }, lapses = { [owner] = t } }
+    -- guilds[guildName] = { claims = { [owner] = record }, lapses = { [owner] = t }, names = ..., ach = ..., achSeen = ... }
     -- record: see Menagerie/Registry.lua
     guilds = {},
     games = { history = {} },
@@ -29,9 +29,9 @@ local ACCOUNT_DEFAULTS = {
 
 local CHAR_DEFAULTS = {
     autoSummon = true,   -- may be overridden at runtime if AutoCompanion is loaded
-    muteSummonSound = true,
+    muteSummonSound = true, -- the clank when a companion is summoned (Summon:QuietSummon)
     achNotify = true,          -- tell other addon users when I earn an achievement
-    ach = { got = {}, seen = {} }, -- character-scope achievements (Achievements.lua) -- the clank when a companion is summoned (Summon:QuietSummon)
+    ach = { got = {}, seen = {} }, -- character-scope achievements (Achievements.lua)
     warnedVersion = nil, -- newest version we've already told the player about
 }
 
@@ -63,6 +63,20 @@ local MIGRATIONS = {
         for _, g in pairs(db.guilds or {}) do
             g.ach = g.ach or {}
             g.achSeen = g.achSeen or {}
+        end
+    end,
+    -- 6: nicknames belong to the pet (g.names, see Registry.lua) instead of
+    -- the adoption record. A name the holder gave keeps its time.
+    [6] = function(db)
+        for _, g in pairs(db.guilds or {}) do
+            g.names = g.names or {}
+            for owner, r in pairs(g.claims or {}) do
+                if r.k and type(r.n) == "string" then
+                    g.names[r.k] = g.names[r.k] or {}
+                    g.names[r.k][owner] = { n = r.n, at = type(r.na) == "number" and r.na or r.ts }
+                end
+                r.n, r.na = nil, nil
+            end
         end
     end,
 }
@@ -112,7 +126,7 @@ function DB:Guild()
     if not name then return nil end
     local g = self.global.guilds[name]
     if not g then
-        g = { claims = {}, lapses = {}, ach = {}, achSeen = {} }
+        g = { claims = {}, lapses = {}, names = {}, ach = {}, achSeen = {} }
         self.global.guilds[name] = g
     end
     return g, name

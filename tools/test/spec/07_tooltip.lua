@@ -16,11 +16,51 @@ return function(test, H)
 
     test("the holder's companion shows its nickname and reservation", function()
         local w, ola, kari = Setup()
-        local lines = kari:Hover({ species = 46, owner = "Ola Nord" })
-        eq(lines[1], '"Pus"')
-        eq(lines[2], "Dyreparken: cared for by Ola Nord for 7 days")
-        local own = ola:Hover({ species = 46, owner = "Ola Nord" })
-        eq(own[2], "Dyreparken: cared for by you for 7 days")
+        local _, _, all = kari:Hover({ species = 46, owner = "Ola Nord" })
+        eq(table.concat(all, " / "), "Pus / White Kitten / Ola Nord's Companion / Pet Level 1 Critter"
+            .. " / Dyreparken: cared for by Ola Nord for 7 days", "the nickname takes the title")
+        local tip = kari.env.GameTooltip
+        eq(tip.colors[2][1], 0.7, "the species line is grey")
+        -- The data gets the same shift, for addons that draw from it (PrettyTooltip).
+        local data = kari.lastTooltipData.lines
+        local texts, indices = {}, {}
+        for i, l in ipairs(data) do texts[i], indices[i] = l.leftText, l.lineIndex end
+        eq(table.concat(texts, " / "), "Pus / White Kitten / Ola Nord's Companion / Pet Level 1 Critter")
+        eq(table.concat(indices, ","), "1,2,3,4", "lineIndex matches the native lines")
+        eq(data[2].leftColor.r, 0.7)
+        ok(tip.shown, "resized")
+        local _, _, own = ola:Hover({ species = 46, owner = "Ola Nord" })
+        eq(own[5], "Dyreparken: cared for by you for 7 days")
+    end)
+
+    test("the nickname shift moves right-side text and colors down with their line", function()
+        local w, ola, kari = Setup()
+        local env, T = kari.env, kari.ns.Tooltip
+        local tip = env.GameTooltip
+        tip:ClearLines()
+        tip:AddLine("White Kitten", 0, 1, 0)
+        tip:AddLine("Ola Nord's Companion")
+        env.GameTooltipTextRight2:SetText("høyre"); env.GameTooltipTextRight2:Show()
+        tip:AddLine("Pet Level 1 Critter", 0.5, 0.5, 0.5)
+        T:ShowNickname(tip, "Pus")
+        eq(table.concat(tip.lines, " / "), "Pus / White Kitten / Ola Nord's Companion / Pet Level 1 Critter")
+        eq(tip.colors[1][2], 1, "the title keeps its color")
+        eq(tip.right[3], "høyre"); ok(env.GameTooltipTextRight3:IsShown())
+        no(env.GameTooltipTextRight2:IsShown(), "the species line has no right text")
+        eq(tip.colors[4][1], 0.5)
+        -- Already shown (a second post-call): nothing changes.
+        T:ShowNickname(tip, "Pus")
+        eq(#tip.lines, 4)
+        -- Data whose title isn't the species (another addon changed it) is left alone.
+        tip:ClearLines(); tip:AddLine("White Kitten")
+        local data = { lines = { { leftText = "Noe annet", lineIndex = 1 } } }
+        T:ShowNickname(tip, "Pus", data)
+        eq(#data.lines, 1); eq(data.lines[1].leftText, "Noe annet")
+        -- Data lines without lineIndex get none.
+        tip:ClearLines(); tip:AddLine("White Kitten")
+        data = { lines = { { leftText = "White Kitten" }, { leftText = "Pet Level 1 Critter" } } }
+        T:ShowNickname(tip, "Pus", data)
+        eq(data.lines[2].leftText, "White Kitten"); eq(data.lines[2].lineIndex, nil)
     end)
 
     test("no nickname: just the reservation line", function()

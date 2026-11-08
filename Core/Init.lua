@@ -77,12 +77,29 @@ end
 function ns.CaredFor(t, now)
     now = now or ns.Now()
     if date("%Y%m%d", t) == date("%Y%m%d", now) or t > now then return "since today" end
-    if date("%Y%m%d", t) == date("%Y%m%d", now - 86400) then return "since yesterday" end
+    -- Yesterday by the calendar: noon of the day before. now - 86400 lands
+    -- is wrong around DST: just after midnight following a 23-hour day it
+    -- lands two calendar days back.
+    local d = date("*t", now)
+    local yesterday = time({ year = d.year, month = d.month, day = d.day - 1, hour = 12 })
+    if date("%Y%m%d", t) == date("%Y%m%d", yesterday) then return "since yesterday" end
     local days = math.max(2, math.floor((now - t) / 86400))
     if days < 60 then return ("for %d days"):format(days) end
     -- Rounded, so it never says "1 months": 60 days is already "2 months".
     if days < 730 then return ("for %d months"):format(math.floor(days / 30.44 + 0.5)) end
     return ("for %d years"):format(math.floor(days / 365.25))
+end
+
+-- A time from the wire we can trust the shape of: a real number, not NaN or
+-- infinite, and not more than a day ahead of us (clocks differ a little;
+-- a far-future time would win every merge and lock the record for good).
+function ns.SaneTime(t)
+    return type(t) == "number" and t == t and t > 0 and t <= ns.Now() + 86400
+end
+
+-- Player keys from the wire: "First Surname", within reason.
+function ns.SaneName(s)
+    return type(s) == "string" and s ~= "" and #s <= 48
 end
 
 function ns.PlayerName()

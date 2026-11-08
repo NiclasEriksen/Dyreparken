@@ -38,8 +38,7 @@ Add("list", "list - which companions the guild cares for", function()
     local holders = ns.Registry:Holders()
     local rows = {}
     for key, owner in pairs(holders) do
-        local _, r = ns.Registry:Holder(key)
-        rows[#rows + 1] = { name = ns.Pets:NameOfKey(key), owner = owner, nick = r and r.n }
+        rows[#rows + 1] = { name = ns.Pets:NameOfKey(key), owner = owner, nick = ns.Registry:Nickname(key) }
     end
     table.sort(rows, function(a, b) return a.name < b.name end)
     local total = ns.Pets:Total()

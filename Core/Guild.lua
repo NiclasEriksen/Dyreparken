@@ -9,7 +9,7 @@ local _, ns = ...
 -- Guild.members[name] = days offline (0 = online or seen today).
 -- Guild.complete: true only when we read as many rows as the server says
 -- the guild has. Decisions that hide claims ("left the guild") require
--- a complete roster, so a half-loaded roster can't release anyone.
+-- a complete roster, so a half-loaded (or stale) roster can't release anyone.
 --
 -- (unverified on Forever) roster name format and GetGuildRosterLastOnline;
 -- `/dp probe` logs the first rows.
@@ -19,7 +19,10 @@ ns.Guild = Guild
 local ROSTER_INTERVAL = 300 -- seconds
 local waiting
 
-local function Read()
+-- stale: the server didn't answer our request, so this is whatever the
+-- client had cached. Fine for days offline, but someone who joined since
+-- would be missing, so it never counts as complete.
+local function Read(stale)
     local total = GetNumGuildMembers()
     local members, read = {}, 0
     for i = 1, total do
@@ -34,7 +37,7 @@ local function Read()
         end
     end
     Guild.members, Guild.at = members, ns.Now()
-    Guild.complete = total > 0 and read == total
+    Guild.complete = not stale and total > 0 and read == total
     ns.Log("Guild", "roster: %d/%d rows", read, total)
     ns.Bus:Fire("ROSTER")
 end
@@ -54,7 +57,7 @@ function Guild:Refresh(force)
         if waiting then
             ns.Events:Off("GUILD_ROSTER_UPDATE", Guild)
             waiting = false
-            if GetNumGuildMembers() > 0 then Read() end
+            if GetNumGuildMembers() > 0 then Read(true) end
         end
     end)
 end
