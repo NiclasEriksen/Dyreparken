@@ -212,6 +212,7 @@ local function UpdateCard()
         card.key = nil -- the hover tooltips follow it
         card.scene:Hide()
         ns.Scenes:Paint(card, nil)
+        ns.Decor:Apply(card, nil)
         card.bond:Hide()
         card.reserve:Hide()
         card.nick:Hide()
@@ -255,6 +256,7 @@ local function UpdateCard()
     else
         card.bond:Hide()
     end
+    ns.Decor:Apply(card, key, level, ns.Scenes.TINT[card.family] or ns.Scenes.TINT.default)
 
     card.key = key
     if status == "mine" then
@@ -363,6 +365,7 @@ local function BuildCard()
     panel.edge:SetColorTexture(1, 0.82, 0, 0.35)
     card.panel = panel
     card.floor:SetPoint("CENTER", panel, "TOP", 0, MODEL_LIFT + 48) -- under the pet's feet (seen 2026-11-08)
+    ns.Decor:Build(card, c, panel)
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
@@ -431,6 +434,10 @@ local function BuildCard()
         if nextAt then
             local nextName = ns.Bond.LEVELS[level + 1][2]
             GameTooltip:AddLine(("%d poeng til %s."):format(nextAt - points, nextName), 1, 1, 1)
+            local decor = ns.Decor.LEVELS[level + 1]
+            if decor then
+                GameTooltip:AddLine(("På nivå %d får kortet %s."):format(level + 1, decor), 0.5, 0.8, 0.5, true)
+            end
         else
             GameTooltip:AddLine("Det høyeste nivået.", 1, 1, 1)
         end

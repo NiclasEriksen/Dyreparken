@@ -282,7 +282,7 @@ end
 local Region = {}
 Region.__index = Region
 for _, m in ipairs({ "SetWidth", "SetHeight", "SetAllPoints", "SetJustifyH", "SetJustifyV",
-    "SetDrawLayer", "SetVertexColor", "SetWordWrap", "SetFontObject" }) do
+    "SetDrawLayer", "SetWordWrap", "SetFontObject" }) do
     Region[m] = noop
 end
 function Region:SetPoint(...) self.points = self.points or {}; self.points[#self.points + 1] = { ... } end
@@ -291,7 +291,41 @@ function Region:SetTexture(x) self.tex = x end
 function Region:GetTexture() return self.tex end
 function Region:SetAtlas(x) self.tex = x; self.atlas = x end
 function Region:SetTexCoord(...) self.texCoord = { ... } end
+
+-- Animation groups (texture:CreateAnimationGroup): recorded, not run. The
+-- client plays them on its own (no OnUpdate in the addon).
+local AnimGroup, Anim = {}, {}
+AnimGroup.__index, Anim.__index = AnimGroup, Anim
+local ANIM_TYPES = { Alpha = true, Translation = true, Scale = true, Rotation = true }
+function AnimGroup:CreateAnimation(kind)
+    if not ANIM_TYPES[kind] then error("unknown animation type " .. tostring(kind), 2) end
+    local a = setmetatable({ kind = kind, group = self }, Anim)
+    self.anims[#self.anims + 1] = a
+    return a
+end
+function AnimGroup:SetLooping(v) self.looping = v end
+function AnimGroup:SetToFinalAlpha(v) self.finalAlpha = v end
+function AnimGroup:Play() self.playing = true; self.plays = (self.plays or 0) + 1 end
+function AnimGroup:Stop() self.playing = false end
+function AnimGroup:IsPlaying() return self.playing == true end
+function AnimGroup:GetAnimations() return unpack(self.anims) end
+for _, m in ipairs({ "Duration", "StartDelay", "Order", "Smoothing", "FromAlpha", "ToAlpha", "Degrees" }) do
+    local key = m:sub(1, 1):lower() .. m:sub(2)
+    Anim["Set" .. m] = function(self, v) self[key] = v end
+end
+function Anim:SetOffset(x, y) self.offset = { x, y } end
+function Anim:SetScaleFrom(x, y) self.scaleFrom = { x, y } end
+function Anim:SetScaleTo(x, y) self.scaleTo = { x, y } end
+function Anim:SetOrigin(point, x, y) self.origin = { point, x, y } end
+function Region:CreateAnimationGroup()
+    local g = setmetatable({ anims = {}, parent = self }, AnimGroup)
+    self.animGroups = self.animGroups or {}
+    self.animGroups[#self.animGroups + 1] = g
+    return g
+end
+function Region:SetRotation(r) self.rotation = r end
 function Region:SetSize(w, h) self.size = { w, h } end
+function Region:SetVertexColor(r, g, b, a) self.vertexColor = { r, g, b, a } end
 function Region:GetAtlas() return self.atlas end
 function Region:SetColorTexture(...) self.color = { ... } end
 function Region:SetHorizTile(v) self.horizTile = v end
