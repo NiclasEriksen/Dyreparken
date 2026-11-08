@@ -135,6 +135,7 @@ L["bond.level.7"] = "Sjelevenn"
 L["bond.label"] = "{level} (nivå {n})"                -- "Venn (nivå 3)"
 L["bond.levelup"] = "|cffffd100Båndet ditt med {pet} er nå på nivå {n}: {level}!|r"
 L["bond.liked"] = "{pet} koste seg med {activity}!"   -- the first liked thing of the day
+L["bond.full"] = "|cffffd100Båndet med {pet} er fullt for i dag. Kom tilbake i morgen!|r"
 
 ------------------------------------------------------------------------------
 -- Auto-summon
@@ -328,6 +329,13 @@ L["bond.star.from"] = "Fra {n} poeng."
 L["bond.star.decor"] = "Kortet får {decor}."
 L["bond.star.reached"] = "Nådd!"
 L["bond.next"] = "{n} poeng til {level}"
+L["bond.bar"] = "{have} / {need}"
+L["bond.bar.today"] = "{have} / {need}  (+{today})"   -- your own pet: today's points too
+L["bond.bar.top"] = "{have}"
+L["bond.bar.top_today"] = "{have}  (+{today})"
+L["bond.full.line"] = "{icon} Fullt for i dag"
+L["bond.tip.today"] = "I dag: +{n} av {max} mulige poeng."
+L["bond.tip.today_full"] = "I dag: fullt ({max} av {max}). Kom tilbake i morgen!"
 L["bond.top"] = "Det høyeste nivået"
 L["bond.celebrate.title"] = "{level}!"
 L["bond.celebrate.text"] = "{pet} og du er nå på nivå {n}."

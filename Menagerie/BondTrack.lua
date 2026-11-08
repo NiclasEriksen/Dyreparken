@@ -58,6 +58,14 @@ local function BondTip(self, card)
     else
         GameTooltip:AddLine(ns.L["bond.tip.top"], 1, 1, 1)
     end
+    if ns.Registry:MyPet() == card.key then
+        local today, max = ns.Bond:Today()
+        if today >= max then
+            GameTooltip:AddLine(ns.T("bond.tip.today_full", { max = max }), 0.4, 1, 0.4, true)
+        else
+            GameTooltip:AddLine(ns.T("bond.tip.today", { n = today, max = max }), 0.5, 0.8, 1, true)
+        end
+    end
     GameTooltip:AddLine(ns.L["bond.tip.how"], 0.7, 0.7, 0.7, true)
     GameTooltip:Show()
 end
@@ -94,6 +102,12 @@ function Track:Build(card, c, panel)
     b.edge:SetPoint("TOPLEFT", b, "TOPLEFT", -1, 1)
     b.edge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 1, -1)
     b.edge:SetColorTexture(1, 0.82, 0, 0.35)
+    -- Today's points, lit up on the bar (your own pet).
+    b.today = b:CreateTexture(nil, "ARTWORK", nil, 2)
+    b.today:SetColorTexture(1, 1, 1, 1)
+    b.today:SetBlendMode("ADD")
+    b.today:SetVertexColor(1, 1, 0.8, 0.35)
+    b.today:Hide()
     b.spark = b:CreateTexture(nil, "OVERLAY")
     b.spark:SetTexture(ns.Decor.MEDIA .. "sparkle")
     b.spark:SetBlendMode("ADD")
@@ -188,10 +202,40 @@ function Track:Update(card, key, family)
     local fill = b:GetStatusBarTexture()
     fill:SetGradient("HORIZONTAL", CreateColor(tier[1] * 0.55, tier[2] * 0.55, tier[3] * 0.55, 1),
         CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
-    b.spark:SetShown(nextAt ~= nil and points > from)
-    b.text:SetText(nextAt and ("%d / %d"):format(points, nextAt) or ("%d"):format(points))
-    b.next:SetText(nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
-        or ns.L["bond.top"])
+    -- Your own pet: what today brought, and whether the day is full.
+    local mine = ns.Registry:MyPet() == key and not ns.Decor.preview
+    local today, max = 0, 0
+    if mine then today, max = ns.Bond:Today() end
+    local full = mine and today >= max
+    b.spark:SetShown(nextAt ~= nil and points > from and not full)
+    local top = nextAt or math.max(points, 1)
+    local span = math.max(1, top - from)
+    local lo = math.max(0, math.min(1, (points - today - from) / span))
+    local hi = math.max(0, math.min(1, (points - from) / span))
+    if mine and today > 0 and hi > lo then
+        b.today:ClearAllPoints()
+        b.today:SetPoint("TOPLEFT", b, "TOPLEFT", BAR_W * lo, 0)
+        b.today:SetSize(BAR_W * (hi - lo), b:GetHeight() or 13)
+        b.today:Show()
+    else
+        b.today:Hide()
+    end
+    local vars = { have = points, need = nextAt, today = today }
+    if nextAt then
+        b.text:SetText(ns.T(mine and today > 0 and "bond.bar.today" or "bond.bar", vars))
+    else
+        b.text:SetText(ns.T(mine and today > 0 and "bond.bar.top_today" or "bond.bar.top", vars))
+    end
+    if full then
+        b.next:SetText(ns.T("bond.full.line", { icon = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t" }))
+        b.next:SetTextColor(0.4, 1, 0.4)
+        b.edge:SetColorTexture(0.4, 1, 0.4, 0.6)
+    else
+        b.next:SetText(nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
+            or ns.L["bond.top"])
+        b.next:SetTextColor(0.6, 0.6, 0.6)
+        b.edge:SetColorTexture(1, 0.82, 0, 0.35)
+    end
     -- The medallion: the ring greyed and tinted below gold, its disc dark in the tier.
     local m = b.medal
     m.ring:SetDesaturated(level < 5)

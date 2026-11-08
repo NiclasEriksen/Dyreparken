@@ -140,4 +140,72 @@ return function(test, H)
         eq(card.celebration.text.title.text, "Bekjent!")
         eq(#ola.sounds, 1)
     end)
+
+    test("a day brings at most 100 points, and the card shows today's share and when it's full", function()
+        local w, ola, kari = Setup()
+        ola:Slash("adopter panda")
+        w:Run(5)
+        Points(ola, 300)
+        ola.ns.Personality.Traits = function() -- plain: a day is 10, herbs are liked (the panda's own)
+            return { ola.ns.Personality.ById("glupsk"), ola.ns.Personality.ById("reiseglad") }
+        end
+        local card = ola:SelectPet(5159)
+        local b = card.bond
+        local function Earned() return ola.ns.Registry:Life(PANDA, "Ola Nord").p end
+        eq(b.text.text, "300 / 410", "nothing yet today")
+        no(b.today:IsShown())
+        ola.ns.Activity:CheckDay()
+        eq(Earned(), 310)
+        eq(b.text.text, "310 / 410  (+10)", "today's points on the bar")
+        ok(b.today:IsShown(), "lit up")
+        local lo, width = b.today.points[1][4], b.today.size[1]
+        ok(math.abs(lo - 128 * 90 / 200) < 1e-6, "from where today began"); ok(math.abs(width - 128 * 10 / 200) < 1e-6)
+        eq(b.next.text, "100 poeng til God venn")
+        local tip = ola.env.GameTooltip
+        b.scripts.OnEnter(b)
+        match(table.concat(tip.lines, " / "), "I dag: %+10 av 100 mulige poeng%.")
+        -- Herbs (liked, 25 a day), quests and more: the day's 100 is the limit.
+        for _ = 1, 6 do ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366) end -- 25
+        ola.ns.Personality.Traits = function()
+            return { ola.ns.Personality.ById("eventyrlysten"), ola.ns.Personality.ById("reiseglad") }
+        end
+        for _ = 1, 6 do ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1) end -- 25 (boss, liked now)
+        ola.ns.Personality.Traits = function()
+            return { ola.ns.Personality.ById("glupsk"), ola.ns.Personality.ById("steinhard") }
+        end
+        for _ = 1, 6 do ola:Fire("QUEST_TURNED_IN", 1) end -- 25 (quests, liked now)
+        eq(Earned(), 385)
+        ok(not ola:Printed("fullt for i dag", true))
+        for _ = 1, 6 do ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2575) end -- mining: 15 of 25 fit
+        eq(Earned(), 400, "100 in a day, no more")
+        ok(ola:Printed("Båndet med Panda Cub er fullt for i dag. Kom tilbake i morgen!", true))
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2575)
+        eq(Earned(), 400)
+        local fulls = 0
+        for _, l in ipairs(ola.printed) do if l:find("fullt for i dag", 1, true) then fulls = fulls + 1 end end
+        eq(fulls, 1, "said once")
+        card = ola:SelectPet(5159)
+        match(b.next.text, "Fullt for i dag$")
+        eq(b.next.color[2], 1, "in green")
+        no(b.spark:IsShown(), "the tip rests")
+        b.scripts.OnEnter(b)
+        match(table.concat(tip.lines, " / "), "I dag: fullt %(100 av 100%)%. Kom tilbake i morgen!")
+        -- Someone else's pet: no "today" (it's their day, not ours).
+        ola.ns.Bond:Watch() -- (publish: a level-up would; here, the login sync)
+        kari:Reload()
+        w:Run(40)
+        kari.ns.DB.char.bondToday = { day = os.date("%Y%m%d", kari.ns.Now()), got = {}, total = 50 } -- her own day
+        kari:OpenJournal()
+        local kb = kari:SelectPet(5159).bond
+        eq(kb.text.text, "400 / 410"); no(kb.today:IsShown()); eq(kb.next.text, "10 poeng til God venn")
+        -- A new day: room again. The day's own points fit the limit too.
+        w:SkipDays(1)
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        eq(Earned(), 405)
+        ola.ns.DB.char.bondToday.total = 95
+        ola.ns.Activity:CheckDay()
+        eq(Earned(), 410, "the day visit: only the 5 left")
+        card = ola:SelectPet(5159)
+        match(b.next.text, "Fullt for i dag$")
+    end)
 end

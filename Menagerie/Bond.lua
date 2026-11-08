@@ -167,15 +167,35 @@ function Bond.Context()
     return ctx
 end
 
--- Today's points so far, per cap key (an activity, or "trait:<id>").
+-- Today's points so far: per cap key (an activity, or "trait:<id>") and in
+-- all (total), for a calendar day.
 local function Today()
     local today = date("%Y%m%d", ns.Now())
     local d = ns.DB.char.bondToday
     if not d or d.day ~= today then
-        d = { day = today, got = {} }
+        d = { day = today, got = {}, total = 0 }
         ns.DB.char.bondToday = d
     end
+    d.total = d.total or 0 -- (a day saved before the daily limit)
     return d
+end
+
+-- Points earned today, and the most a day can bring (Config.BOND_DAILY_MAX:
+-- the day itself and every activity together, decided 2026-11-08).
+function Bond:Today()
+    return Today().total, ns.Config.BOND_DAILY_MAX
+end
+
+-- Give points within what's left of today's limit; one line when it's full.
+local function Grant(d, points, key)
+    local room = ns.Config.BOND_DAILY_MAX - d.total
+    points = math.min(points, room)
+    if points <= 0 then return nil end
+    d.total = d.total + points
+    if d.total >= ns.Config.BOND_DAILY_MAX then -- (once: a full day stops before this)
+        ns.Print(ns.T("bond.full", { pet = ns.Bonds:NameOf(key) }))
+    end
+    return Bond:Add(points)
 end
 
 -- One line of flavor a day, for the first thing the pet loved.
@@ -193,8 +213,9 @@ function Bond:OnActivity(id, n, key)
     if id == "day" then
         local now = ns.Now()
         local x, why = P:DayFactor(key, now)
-        if why and why.dayFlavor then Flavor(Today(), why.dayFlavor(name, now)) end
-        return self:Add(C.BOND_DAY_POINTS * n * x)
+        local d = Today()
+        if why and why.dayFlavor then Flavor(d, why.dayFlavor(name, now)) end
+        return Grant(d, C.BOND_DAY_POINTS * n * x, key)
     end
     local d = Today()
     local likes = P:Of(key)
@@ -214,12 +235,12 @@ function Bond:OnActivity(id, n, key)
             end
         end
     end
-    local room = cap - (d.got[capKey] or 0)
+    local room = math.min(cap - (d.got[capKey] or 0), C.BOND_DAILY_MAX - d.total)
     if room <= 0 then return nil end
     local points = math.min(per * n, room)
     d.got[capKey] = (d.got[capKey] or 0) + points
     Flavor(d, flavor)
-    return self:Add(points)
+    return Grant(d, points, key)
 end
 
 function Bond:Init()
