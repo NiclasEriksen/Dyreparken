@@ -125,4 +125,50 @@ return function(test, H)
         no(kari:SelectPet(40).wish:IsShown())
         eq(kari.ns.Wish:Today(), nil)
     end)
+
+    test("petting the pet on the card: hearts, a happy line, a sound; once a day a cuddle", function()
+        local w, ola, kari = Setup()
+        local card = ola:SelectPet(5159)
+        local m, d = card.model, card.cuddle
+        ok(m and d)
+        local function Click(dx, hold)
+            ola.cursor = { 100, 100 }
+            m.scripts.OnMouseDown(m)
+            if hold then w:Run(hold) end
+            ola.cursor = { 100 + (dx or 0), 100 }
+            m.scripts.OnMouseUp(m)
+        end
+        local A = ola.ns.Activity
+        Click()
+        local shown = 0
+        for _, p in ipairs(d.hearts) do if p:IsShown() and p.anim:IsPlaying() then shown = shown + 1 end end
+        eq(shown, #d.hearts, "a burst of hearts")
+        ok(d.bubble:IsShown()); match(d.bubble.text.text, "^Panda Cub ")
+        eq(ola.sounds[#ola.sounds], 841)
+        eq(A:Count("cuddle"), 1, "a cuddle: our adopted pet, out with us")
+        Click()
+        eq(A:Count("cuddle"), 1, "once a day")
+        -- Turning the model (a drag) or holding the button isn't petting.
+        local sounds = #ola.sounds
+        Click(30)
+        Click(0, 1)
+        eq(#ola.sounds, sounds)
+        -- Another pet's card: hearts, but no cuddle; nor with the pet put away.
+        w:SkipDays(1)
+        card = ola:SelectPet(40)
+        Click()
+        eq(A:Count("cuddle"), 1)
+        card = ola:SelectPet(5159)
+        ola.summoned = nil
+        Click()
+        eq(A:Count("cuddle"), 1)
+        ola:Summon(5159)
+        Click()
+        eq(A:Count("cuddle"), 2, "a new day")
+        -- Closing the journal ends it.
+        ola.env.PetJournalPetCard:Hide()
+        no(d.bubble:IsShown()); no(d.hearts[1]:IsShown())
+        -- Every line is there.
+        for i = 1, 5 do ok(ola.ns.Strings["cuddle.line." .. i], i) end
+    end)
 end

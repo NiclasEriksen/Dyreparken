@@ -473,6 +473,7 @@ local function BuildCard()
         info:HookScript("OnShow", function(self) self:Hide() end)
         card.titleHidden = true
     end
+    ns.Cuddle:Build(card, c, panel) -- (after the model is found: it listens for clicks on it)
     -- The pet's nickname, big, right above the status line.
     card.bond:Hide()
 

@@ -358,6 +358,15 @@ L["stats.days"] = "{n} dager ute sammen med {pet}"
 L["stats.tip"] = "{n} {what} sammen med {pet}"
 
 ------------------------------------------------------------------------------
+-- Petting the pet on the card: one of these, at random
+------------------------------------------------------------------------------
+L["cuddle.line.1"] = "{pet} koser seg!"
+L["cuddle.line.2"] = "{pet} maler fornøyd."
+L["cuddle.line.3"] = "{pet} vil ha mer!"
+L["cuddle.line.4"] = "{pet} lukker øynene og nyter det."
+L["cuddle.line.5"] = "{pet} lener seg mot hånden din."
+
+------------------------------------------------------------------------------
 -- Today's wish (your own pet)
 ------------------------------------------------------------------------------
 L["wish.line"] = "{pet} ønsker seg {activity} i dag"

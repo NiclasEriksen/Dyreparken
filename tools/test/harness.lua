@@ -1176,8 +1176,11 @@ function Client:BuildEnv()
     env.DoEmote = function(token, target) S.lastEmote = token end
     env.JumpOrAscendStart = function() S.jumps = (S.jumps or 0) + 1 end
     env.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
+    -- The cursor, in screen pixels (c.cursor = { x, y }).
+    env.GetCursorPosition = function() local p = c.cursor or { 0, 0 }; return p[1], p[2] end
     -- Sounds: the ones played are recorded in c.sounds. A few SOUNDKIT names.
-    env.SOUNDKIT = { UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT = 83681, UI_EPICLOOT_TOAST = 31578, LEVELUPSOUND = 888 }
+    env.SOUNDKIT = { UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT = 83681, UI_EPICLOOT_TOAST = 31578, LEVELUPSOUND = 888,
+        IG_CHARACTER_INFO_TAB = 841 }
     env.PlaySound = function(id, channel)
         c.sounds = c.sounds or {}
         c.sounds[#c.sounds + 1] = id

@@ -43,6 +43,7 @@ Menagerie\DecorCandidates.lua
 Menagerie\Decor.lua
 Menagerie\BondTrack.lua
 Menagerie\Stats.lua
+Menagerie\Cuddle.lua
 Menagerie\Personality.lua
 Menagerie\JournalUI.lua
 Menagerie\Tooltip.lua
