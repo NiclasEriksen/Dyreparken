@@ -94,7 +94,8 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
-Core/Commands.lua  /dp slash commands (adopt, letgo, nick, list, sound, ach [icons], version, report, probe, debug)
+Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, rapport;
+                   English aliases; probe, debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
@@ -133,12 +134,14 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   `COMPANION_UPDATE` (that fires for every nearby companion), so a pet you dismiss comes back only at the next
   trigger: loading screen, leaving combat, dismounting, or claiming.
 - The summon clank (sound files 567569, 568424) is muted for 2.5 s after any `SummonPetByGUID` call, per character,
-  default on, toggled with `/dp sound`. Off when AutoCompanion is loaded (it has its own option).
-- **Wording (players see):** companions are *adopted* and *cared for*, never "reserved" or "claimed". "Cared for by
-  Kari Berg for 3 days" / "since today" / "since yesterday" (`ns.CaredFor`), "Looking for a home", buttons Adopt / Let go,
-  `/dp adopt` / `/dp letgo` (the old `claim` / `release` still work, unlisted). Code and the wire keep the old names
-  (claim, Registry, `claims`).
-- Counter: "Guild: x of y cared for (z%)", y = every companion in Forever's journal (`Pets:Total`,
+  default on, toggled with `/dp lyd`. Off when AutoCompanion is loaded (it has its own option).
+- **Everything players read is Norwegian** (2026-11-08); developer output (`/dp probe`, `/dp debug`, the log) stays
+  English. Companions are *adoptert* and *bor hos* someone, never "reservert". "Bor hos Kari Berg i 3 dager" /
+  "siden i dag" / "siden i går" (`ns.CaredFor`), "Trenger et hjem", buttons Adopter / Gi slipp / Kallenavn, nicknames in
+  «», dates as 08.11.2026. Commands: `/dp adopter, gislipp, navn, liste, lyd, prestasjoner, versjon, rapport`; the
+  English ones (adopt, letgo, nick, list, sound, ach, version, report, and the oldest claim/release) still work,
+  unlisted. Code and the wire keep English names (claim, Registry, `claims`).
+- Counter: "Guilden: x av y har et hjem (z%)", y = every companion in Forever's journal (`Pets:Total`,
   `Data/Companions.lua`). The old "known" list is gone (migration 4).
 - No officer force-release for now: release only happens by the owner, by leaving the guild, or after inactivity.
   Build it later if it turns out to be needed.
@@ -159,4 +162,4 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - Mute the summon clank after loading screens and landing too. The game brings the pet back on its own there, with
   no `SummonPetByGUID` call to hook, so it still clanks. AutoCompanion mutes for a window after
   `PLAYER_ENTERING_WORLD` and dismounting (`AutoCompanion/Sound.lua`, `QuietSummon`).
-- A settings UI. The summon sound mute is `/dp sound` for now; it gets a checkbox there.
+- A settings UI. The summon sound mute is `/dp lyd` for now; it gets a checkbox there.

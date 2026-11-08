@@ -15,26 +15,19 @@ local function Adopt(_, raw)
     local key
     if raw and raw ~= "" then
         key = ns.Pets:FindOwned(raw)
-        if not key then return ns.Print('You have no companion matching "' .. raw .. '".') end
+        if not key then return ns.Print(("Du har ikke noe kjæledyr som passer «%s»."):format(raw)) end
     else
         local guid = ns.Pets:Summoned()
-        if not guid then return ns.Print("Summon the companion you want, or give its name.") end
+        if not guid then return ns.Print("Tilkall kjæledyret du vil adoptere, eller skriv navnet.") end
         key = ns.Pets:KeyOf(guid)
     end
     Say(ns.Registry:Claim(key))
 end
 local function LetGo() Say(ns.Registry:Release()) end
 
-Add("adopt", "adopt [name] - adopt your summoned companion, or one by name", Adopt)
-Add("letgo", "letgo - let your companion go", LetGo)
--- The old names from before the wording change (2026-11-06), not in help.
-commands.claim, commands.release = Adopt, LetGo
+local function Nick(_, raw) Say(ns.Registry:SetNickname(raw)) end
 
-Add("nick", "nick [name] - nickname your companion (empty clears it)", function(_, raw)
-    Say(ns.Registry:SetNickname(raw))
-end)
-
-Add("list", "list - which companions the guild cares for", function()
+local function List()
     local holders = ns.Registry:Holders()
     local rows = {}
     for key, owner in pairs(holders) do
@@ -43,43 +36,60 @@ Add("list", "list - which companions the guild cares for", function()
     table.sort(rows, function(a, b) return a.name < b.name end)
     local total = ns.Pets:Total()
     local pct = total > 0 and math.floor(#rows / total * 100 + 0.5) or 0
-    ns.Print(("The guild cares for %d of %d companions (%d%%):"):format(#rows, total, pct))
+    ns.Print(("Guilden har hjem til %d av %d kjæledyr (%d%%):"):format(#rows, total, pct))
     for _, row in ipairs(rows) do
-        ns.Print(("  %s - %s%s"):format(row.name, row.owner, row.nick and (' ("' .. row.nick .. '")') or ""))
+        ns.Print(("  %s - %s%s"):format(row.name, row.owner, row.nick and (" («" .. row.nick .. "»)") or ""))
     end
-end)
+end
 
-Add("sound", "sound [on|off] - the clank when a companion is summoned (muted by default)", function(arg)
+local ON = { ["på"] = true, on = true }
+local OFF = { av = true, off = true }
+
+local function Sound(arg)
     if ns.Summon:Deferring() then
-        return ns.Print("AutoCompanion is loaded: use its \"Mute summoning sounds\" option instead.")
+        return ns.Print("AutoCompanion er lastet: bruk innstillingen «Mute summoning sounds» der.")
     end
     local on
-    if arg == "on" or arg == "off" then on = arg == "on" else on = ns.DB.char.muteSummonSound and true or false end
+    if ON[arg or ""] or OFF[arg or ""] then on = ON[arg] == true else on = ns.DB.char.muteSummonSound and true or false end
     ns.Summon:SetMuteSound(not on)
-    ns.Print(("Summon sound %s."):format(on and "on" or "muted"))
-end)
+    ns.Print(on and "Tilkallingslyden er på." or "Tilkallingslyden er dempet.")
+end
 
-Add("ach", "ach [share|notify on|off|icons] - your achievements; share new ones in guild chat", function(arg)
+local function Achievements(arg)
     local A = ns.Achievements
-    if arg == "share" then
+    local word, rest = (arg or ""):match("^(%S*)%s*(.-)$")
+    if word == "del" or word == "share" then
         A:Share()
-    elseif arg == "icons" then
+    elseif word == "ikoner" or word == "icons" then
         A:ShowIcons()
-    elseif arg == "notify on" or arg == "notify off" then
-        A:SetNotify(arg == "notify on")
+    elseif (word == "varsel" or word == "notify") and (ON[rest] or OFF[rest]) then
+        A:SetNotify(ON[rest] == true)
     else
         A:List()
     end
-end)
+end
 
-Add("version", "version [guild|group] - who runs which version", function(arg)
-    local channel = arg == "group" and (IsInRaid() and "RAID" or "PARTY") or "GUILD"
-    ns.Version:Check(channel)
-end)
+local function Version(arg)
+    local group = arg == "gruppe" or arg == "group"
+    ns.Version:Check(group and (IsInRaid() and "RAID" or "PARTY") or "GUILD")
+end
 
-Add("report", "report - call out group members without a companion", function()
-    ns.Report:Run()
-end)
+local function Report() ns.Report:Run() end
+
+Add("adopter", "adopter [navn] - adopter kjæledyret du har ute, eller et ved navn", Adopt)
+Add("gislipp", "gislipp - gi slipp på kjæledyret ditt", LetGo)
+Add("navn", "navn [kallenavn] - gi kjæledyret ditt et kallenavn (tomt fjerner det)", Nick)
+Add("liste", "liste - hvilke kjæledyr som har et hjem i guilden", List)
+Add("lyd", "lyd [på|av] - klirringen når et kjæledyr tilkalles (dempet som standard)", Sound)
+Add("prestasjoner", "prestasjoner [del|varsel på|av|ikoner] - prestasjonene dine; del nye i guild-chatten",
+    Achievements)
+Add("versjon", "versjon [guild|gruppe] - hvem som har hvilken versjon", Version)
+Add("rapport", "rapport - rop ut dem i gruppa som ikke har kjæledyret ute", Report)
+-- The English names from before the Norwegian interface (2026-11-08), and
+-- the oldest ones (claim, release), still work but aren't in the help.
+commands.adopt, commands.letgo, commands.claim, commands.release = Adopt, LetGo, Adopt, LetGo
+commands.nick, commands.list, commands.sound, commands.ach = Nick, List, Sound, Achievements
+commands.version, commands.report = Version, Report
 
 Add("probe", "probe [more|tabs|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
     if arg == "tabs" then
@@ -117,6 +127,6 @@ SlashCmdList.DYREPARKEN = function(input)
     local fn = commands[cmd]
     -- fn(lowercased arg, arg as typed): names and nicknames keep their case.
     if fn then return fn(arg ~= "" and arg:lower() or nil, arg) end
-    ns.Print(ns.VERSION .. " commands:")
+    ns.Print(ns.VERSION .. " - kommandoer:")
     for _, line in ipairs(help) do ns.Print("  /dp " .. line) end
 end

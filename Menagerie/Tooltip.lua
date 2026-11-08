@@ -139,8 +139,8 @@ local function OnUnitTooltip(tooltip, data)
     if not owner then return end
     local nick = ns.Registry:Nickname(r.k)
     if nick then Tooltip:ShowNickname(tooltip, nick, data) end
-    local who = owner == ns.PlayerKey() and "you" or owner
-    tooltip:AddLine(("Dyreparken: cared for by %s %s"):format(who, ns.CaredFor(r.at)), 0.5, 0.8, 0.5)
+    local who = owner == ns.PlayerKey() and "deg" or owner
+    tooltip:AddLine(("Dyreparken: bor hos %s %s"):format(who, ns.CaredFor(r.at)), 0.5, 0.8, 0.5)
     -- Resizes the tooltip to the changed lines, not only the added ones.
     if nick then tooltip:Show() end
 end

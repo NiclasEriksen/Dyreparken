@@ -219,6 +219,6 @@ end
 
 function Summon:AnnounceDeferral()
     if self:Deferring() and ns.DB.char.autoSummon then
-        ns.Print("AutoCompanion is loaded, so Dyreparken won't auto-summon. The guild still sees which companion you care for.")
+        ns.Print("AutoCompanion er lastet, så Dyreparken tilkaller ikke automatisk. Guilden ser fortsatt hvilket kjæledyr som bor hos deg.")
     end
 end

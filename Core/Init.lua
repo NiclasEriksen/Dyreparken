@@ -71,23 +71,23 @@ end
 -- and this is a single-guild addon. A player's key is "First Surname".
 
 -- "Hjelp Plask" (or just "Hjelp" without a surname).
--- How long a companion has been cared for, to follow "cared for by X":
--- "since today", "since yesterday", "for 5 days", "for 3 months", "for 2 years".
+-- How long a companion has lived with someone, to follow "Bor hos X":
+-- "siden i dag", "siden i går", "i 5 dager", "i 3 måneder", "i 2 år".
 -- Today/yesterday go by calendar date; the rest by whole days.
 function ns.CaredFor(t, now)
     now = now or ns.Now()
-    if date("%Y%m%d", t) == date("%Y%m%d", now) or t > now then return "since today" end
+    if date("%Y%m%d", t) == date("%Y%m%d", now) or t > now then return "siden i dag" end
     -- Yesterday by the calendar: noon of the day before. now - 86400 lands
     -- is wrong around DST: just after midnight following a 23-hour day it
     -- lands two calendar days back.
     local d = date("*t", now)
     local yesterday = time({ year = d.year, month = d.month, day = d.day - 1, hour = 12 })
-    if date("%Y%m%d", t) == date("%Y%m%d", yesterday) then return "since yesterday" end
+    if date("%Y%m%d", t) == date("%Y%m%d", yesterday) then return "siden i går" end
     local days = math.max(2, math.floor((now - t) / 86400))
-    if days < 60 then return ("for %d days"):format(days) end
-    -- Rounded, so it never says "1 months": 60 days is already "2 months".
-    if days < 730 then return ("for %d months"):format(math.floor(days / 30.44 + 0.5)) end
-    return ("for %d years"):format(math.floor(days / 365.25))
+    if days < 60 then return ("i %d dager"):format(days) end
+    -- Rounded, so it never says "1 måneder": 60 days is already "2 måneder".
+    if days < 730 then return ("i %d måneder"):format(math.floor(days / 30.44 + 0.5)) end
+    return ("i %d år"):format(math.floor(days / 365.25))
 end
 
 -- A time from the wire we can trust the shape of: a real number, not NaN or

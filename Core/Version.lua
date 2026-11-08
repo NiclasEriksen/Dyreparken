@@ -18,7 +18,7 @@ local function NoteVersion(sender, version)
         local warned = ns.DB.char.warnedVersion
         if not warned or ns.CompareVersions(version, warned) > 0 then
             ns.DB.char.warnedVersion = version
-            ns.Print(("A newer version (%s) is available; you have %s."):format(version, ns.VERSION))
+            ns.Print(("En nyere versjon (%s) er ute; du har %s."):format(version, ns.VERSION))
         end
     end
 end
@@ -50,7 +50,7 @@ end
 function Version:Check(channel)
     self.collecting = { [ns.PlayerKey()] = ns.VERSION }
     if not ns.Comm:Send("VER_REQ", {}, channel) then
-        ns.Print("Not in a " .. channel:lower() .. ".")
+        ns.Print(channel == "GUILD" and "Du er ikke i en guild." or "Du er ikke i en gruppe.")
         self.collecting = nil
         return
     end
@@ -64,7 +64,8 @@ function Version:Check(channel)
             if c ~= 0 then return c > 0 end
             return a.name < b.name
         end)
-        ns.Print(("Version check (%s): %d with the addon"):format(channel, #list))
+        local where = { GUILD = "guild", PARTY = "gruppe", RAID = "raid" }
+        ns.Print(("Versjonssjekk (%s): %d med addonen"):format(where[channel] or channel, #list))
         for _, r in ipairs(list) do ns.Print("  " .. r.name .. ": " .. r.v) end
         -- TODO: list group/guild members that didn't answer (no addon).
     end)

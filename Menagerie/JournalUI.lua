@@ -49,7 +49,7 @@ local function Status(key)
 end
 
 local function Day(t)
-    return date("%d %b %Y", t)
+    return date("%d.%m.%Y", t)
 end
 
 -- Tooltip lines for a pet key. Used by list buttons and the world tooltip.
@@ -58,12 +58,12 @@ function JournalUI:AddTooltipLines(tooltip, key)
     local nick = ns.Registry:Nickname(key)
     tooltip:AddLine(" ")
     if status == "free" then
-        tooltip:AddLine("Dyreparken: looking for a home", 0.5, 0.8, 0.5)
-        if nick then tooltip:AddLine(('Nickname: "%s"'):format(nick), 1, 1, 1) end
+        tooltip:AddLine("Dyreparken: trenger et hjem", 0.5, 0.8, 0.5)
+        if nick then tooltip:AddLine(("Kallenavn: «%s»"):format(nick), 1, 1, 1) end
         return
     end
-    tooltip:AddLine(("Cared for by %s"):format(status == "mine" and "you" or owner), 1, 0.82, 0)
-    if nick then tooltip:AddLine(('Nickname: "%s"'):format(nick), 1, 1, 1) end
+    tooltip:AddLine(("Bor hos %s"):format(status == "mine" and "deg" or owner), 1, 0.82, 0)
+    if nick then tooltip:AddLine(("Kallenavn: «%s»"):format(nick), 1, 1, 1) end
     local how = ns.CaredFor(r.at)
     tooltip:AddLine(how:sub(1, 1):upper() .. how:sub(2), 0.7, 0.7, 0.7)
 end
@@ -150,7 +150,7 @@ end
 local function UpdateExtras()
     local n, total = ns.Registry:Count(), ns.Pets:Total()
     local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
-    card.counter:SetText(("Guild: %d of %d cared for (%d%%)"):format(n, total, pct))
+    card.counter:SetText(("Guilden: %d av %d har et hjem (%d%%)"):format(n, total, pct))
     local deferring = ns.Summon:Deferring()
     card.auto:SetChecked(ns.DB.char.autoSummon and not deferring)
     card.auto:SetEnabled(not deferring)
@@ -174,24 +174,24 @@ local function UpdateCard()
     local nick = ns.Registry:Nickname(key)
     local text
     if status == "free" then
-        text = "|cff80cc80Looking for a home|r"
+        text = "|cff80cc80Trenger et hjem|r"
     elseif status == "mine" then
-        text = "|cffffd100Cared for by you|r " .. ns.CaredFor(r.at)
+        text = "|cffffd100Bor hos deg|r " .. ns.CaredFor(r.at)
     else
-        text = "|cffff8080Cared for by " .. owner .. "|r " .. ns.CaredFor(r.at)
+        text = "|cffff8080Bor hos " .. owner .. "|r " .. ns.CaredFor(r.at)
     end
     card.status:SetText(text)
     card.nickname:SetText(nick or "")
 
     card.key = key
     if status == "mine" then
-        card.reserve:SetText("Let go")
+        card.reserve:SetText("Gi slipp")
         card.reserve:Enable()
         card.reserve:Show()
         card.nick:Show()
         if ns.Registry:CanNickname(r) then card.nick:Enable() else card.nick:Disable() end
     elseif status == "free" and ownedIt then
-        card.reserve:SetText("Adopt")
+        card.reserve:SetText("Adopter")
         card.reserve:Enable()
         card.reserve:Show()
         card.nick:Hide()
@@ -234,14 +234,14 @@ local function BuildCard()
     card.nick = CreateFrame("Button", nil, PetJournal, "UIPanelButtonTemplate")
     card.nick:SetSize(90, 22)
     card.nick:SetPoint("LEFT", card.reserve, "RIGHT", 4, 0)
-    card.nick:SetText("Nickname")
+    card.nick:SetText("Kallenavn")
     card.nick:SetMotionScriptsWhileDisabled(true)
     card.nick:SetScript("OnClick", function() JournalUI:AskNickname() end)
     card.nick:SetScript("OnEnter", function(self)
         local _, r = ns.Registry:MyPet()
         if r and not ns.Registry:CanNickname(r) then
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(("You can name it from %s."):format(Day(ns.Registry:NicknameUnlocksAt(r))))
+            GameTooltip:SetText(("Du kan gi det et kallenavn fra %s."):format(Day(ns.Registry:NicknameUnlocksAt(r))))
             GameTooltip:Show()
         end
     end)
@@ -260,7 +260,7 @@ local function BuildCard()
     card.auto:SetPoint("BOTTOMRIGHT", PetJournal, "BOTTOMRIGHT", -96, 3)
     card.autoLabel = card.auto:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     card.autoLabel:SetPoint("LEFT", card.auto, "RIGHT", 2, 0)
-    card.autoLabel:SetText("Auto-summon")
+    card.autoLabel:SetText("Tilkall automatisk")
     card.auto:SetMotionScriptsWhileDisabled(true)
     card.auto:SetScript("OnClick", function(self)
         ns.Summon:SetEnabled(self:GetChecked() and true or false)
@@ -268,10 +268,10 @@ local function BuildCard()
     card.auto:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         if ns.Summon:Deferring() then
-            GameTooltip:SetText("AutoCompanion is loaded and handles summoning.")
+            GameTooltip:SetText("AutoCompanion er lastet og tar seg av tilkallingen.")
         else
-            GameTooltip:SetText("Auto-summon")
-            GameTooltip:AddLine("Summon your companion when it's missing and you're idle.", 1, 1, 1, true)
+            GameTooltip:SetText("Tilkall automatisk")
+            GameTooltip:AddLine("Tilkaller kjæledyret ditt når det mangler og du ikke er opptatt.", 1, 1, 1, true)
         end
         GameTooltip:Show()
     end)
@@ -285,7 +285,7 @@ end
 -- Nickname popup
 ------------------------------------------------------------------------------
 StaticPopupDialogs["DYREPARKEN_NICKNAME"] = {
-    text = "Nickname for your companion (max %d characters, empty to clear):",
+    text = "Kallenavn på kjæledyret ditt (maks %d tegn, tomt fjerner det):",
     button1 = ACCEPT,
     button2 = CANCEL,
     hasEditBox = 1,

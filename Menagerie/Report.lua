@@ -68,11 +68,11 @@ end
 
 function Report:Run()
     local channel = GroupChannel()
-    if not channel then return ns.Print("You're not in a group.") end
-    if self.collecting then return ns.Print("A report is already running.") end
+    if not channel then return ns.Print("Du er ikke i en gruppe.") end
+    if self.collecting then return ns.Print("En rapport kjører allerede.") end
     self.collecting = { [ns.PlayerKey()] = HasCompanion() }
     ns.Comm:Send("PET_REQ", {}, channel)
-    ns.Print("Checking companions...")
+    ns.Print("Sjekker kjæledyr ...")
     C_Timer.After(WAIT, function()
         local answers = self.collecting
         self.collecting = nil
@@ -88,11 +88,11 @@ function Report:Run()
             end
         end
         if #missing > 0 then
-            SendChatMessage("Dyreparken: no companion out: " .. Join(missing) .. "!", channel)
+            SendChatMessage("Dyreparken: uten kjæledyr ute: " .. Join(missing) .. "!", channel)
         else
-            ns.Print(("Everyone with the addon has a companion out (%d)."):format(ok))
+            ns.Print(("Alle med addonen har kjæledyret sitt ute (%d)."):format(ok))
         end
-        if #unknown > 0 then ns.Print("Unknown (no addon): " .. Join(unknown)) end
+        if #unknown > 0 then ns.Print("Ukjent (uten addon): " .. Join(unknown)) end
         ns.Log("Report", "ok=%d missing=%d unknown=%d", ok, #missing, #unknown)
     end)
 end

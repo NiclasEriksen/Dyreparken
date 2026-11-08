@@ -19,8 +19,8 @@ ns.AchTexts = {
         earned_one = "%s fikk %s!",                    -- Ola Nord fikk [Alle kattene]!
         earned_many = "%s fikk %s og %s!",             -- Ola Nord fikk [A], [B] og [C]!
         share = "{player} fikk {name}!",               -- guild chat, when an achievement has no flavor
-        share_hint = "Del det i guild-chatten med /dp ach share.",
-        already = "Du har allerede %d prestasjoner fra før. Se dem med /dp ach.",
+        share_hint = "Del det i guild-chatten med /dp prestasjoner del.",
+        already = "Du har allerede %d prestasjoner fra før. Se dem med /dp prestasjoner.",
         none_to_share = "Ingen nye prestasjoner å dele.",
         not_in_guild = "Du er ikke i en guild.",
         notify_on = "Andre med Dyreparken får beskjed når du får en prestasjon.",
@@ -28,7 +28,7 @@ ns.AchTexts = {
         list_header = "Prestasjoner (%d av %d):",
         days = "%d/%d dager",
         guild_earned = "%s fikk %s!",                  -- Dyreparken fikk [Kattehuset]!
-        guild_hint = "Som offiser kan du dele det i guild-chatten med /dp ach share.",
+        guild_hint = "Som offiser kan du dele det i guild-chatten med /dp prestasjoner del.",
 
         -- The page in the Collections window (Page.lua)
         page_title = "Prestasjoner",
