@@ -25,6 +25,7 @@ ns.Events:On("PLAYER_LOGIN", Main, function()
     ns.Summon:Init()
     ns.Bonds:Init()
     ns.Bond:Init()
+    ns.Wish:Init()
     -- Let the login burst settle before talking to the guild.
     C_Timer.After(10, function()
         -- Roster first: an answer arrives before peers' SYNCs need it.

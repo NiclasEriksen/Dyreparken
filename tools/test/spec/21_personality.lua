@@ -224,6 +224,7 @@ return function(test, H)
         Give(ola, "kosete", "steinhard")
         ola:Slash("adopter panda")
         w:Run(40)
+        ola.ns.Wish.OnActivity = function() end -- (no wish today: just the likes, 26_story.lua tests wishes)
         local function Points() return ola.ns.Registry:Life(PANDA, "Ola Nord").p end
         ola.ns.Activity:CheckDay()
         eq(Points(), 20, "Kosete: a day counts double")

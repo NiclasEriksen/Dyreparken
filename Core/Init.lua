@@ -63,6 +63,7 @@ ns.Config = {
     BOND_LIKED_CAP = 25,          -- ... at most this many points a day per activity
     BOND_OTHER_POINTS = 1,        -- any other activity with it out
     BOND_OTHER_CAP = 5,           -- ... at most this many a day per activity
+    BOND_WISH_POINTS = 10,        -- today's wish done (Wish.lua), within the daily limit
     BOND_DAILY_MAX = 100,         -- the most bond points a day can bring (the day + activities, per calendar day); bounds the wire        -- characters (UTF-8 aware, see ns.Utf8Len)
     DEBUG_RING_SIZE = 2000,       -- lines kept in DyreparkenDebugDB
     COMM_PREFIX = "Dyreparken",   -- max 16 characters

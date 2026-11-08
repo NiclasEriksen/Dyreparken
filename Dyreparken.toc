@@ -48,6 +48,7 @@ Menagerie\JournalUI.lua
 Menagerie\Tooltip.lua
 Menagerie\Bonds.lua
 Menagerie\Bond.lua
+Menagerie\Wish.lua
 
 Achievements\Defs.lua
 Achievements\Achievements.lua

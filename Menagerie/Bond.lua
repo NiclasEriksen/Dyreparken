@@ -205,6 +205,11 @@ local function Flavor(d, text)
     ns.Print(("|cffffd100%s|r"):format(text))
 end
 
+-- Extra points (today's wish), within the day's limit.
+function Bond:Bonus(points, key)
+    return Grant(Today(), points, key)
+end
+
 -- Points for an activity done with our adopted pet out.
 function Bond:OnActivity(id, n, key)
     local C, P = ns.Config, ns.Personality

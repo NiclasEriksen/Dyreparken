@@ -358,6 +358,16 @@ L["stats.days"] = "{n} dager ute sammen med {pet}"
 L["stats.tip"] = "{n} {what} sammen med {pet}"
 
 ------------------------------------------------------------------------------
+-- Today's wish (your own pet)
+------------------------------------------------------------------------------
+L["wish.line"] = "{pet} ønsker seg {activity} i dag"
+L["wish.done"] = "Ønsket er oppfylt!"
+L["wish.title"] = "Dagens ønske"
+L["wish.tip"] = "Gjør det med {pet} ute i dag, så får dere {n} ekstra bånd-poeng."
+L["wish.tip.done"] = "Oppfylt! {pet} er fornøyd. Et nytt ønske kommer i morgen."
+L["wish.granted"] = "|cffffd100{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} bånd-poeng)|r"
+
+------------------------------------------------------------------------------
 -- The park (the map page)
 ------------------------------------------------------------------------------
 L["park.title"] = "Parken"

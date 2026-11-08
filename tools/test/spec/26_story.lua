@@ -67,4 +67,62 @@ return function(test, H)
         ola.env.PetJournal_UpdatePetCard(c)
         no(card.stats:IsShown())
     end)
+
+    test("today's wish: one of its likes, the same all day; doing it brings 10 points once", function()
+        local w, ola, kari = Setup()
+        local W, P = ola.ns.Wish, ola.ns.Personality
+        -- A wish is something the pet likes and you can do: never dying, a level or the day itself.
+        P.Traits = function() return { P.ById("trofast"), P.ById("ambisios") } end -- likes revive, level (+ herbs)
+        for d = 1, 30 do eq(W:For(PANDA, ("202611%02d"):format(d)), "herb", "the one doable like") end
+        P.BY_SPECIES = {}
+        P.BY_FAMILY, P.DEFAULT = {}, {}
+        eq(W:For(PANDA, "20261109"), "quest", "nothing doable liked: a quest")
+        P.BY_SPECIES = { [5159] = { "herb", "fish", "mine" } }
+        local seen = {}
+        for d = 1, 30 do seen[W:For(PANDA, ("202611%02d"):format(d))] = true end
+        ok(seen.herb and seen.fish and seen.mine, "it varies from day to day")
+        eq(W:For(PANDA, "20261109"), W:For(PANDA, "20261109"), "the same all day")
+        -- Today's: a herb, say.
+        W.For = function() return "herb" end
+        ola.ns.DB.char.wish = nil
+        local wish = W:Today()
+        eq(wish.id, "herb"); eq(wish.pet, PANDA); no(wish.done)
+        local card = ola:SelectPet(5159)
+        ok(card.wish:IsShown())
+        eq(card.wish.text.text, "Panda Cub ønsker seg herbs i dag")
+        eq(card.wish.icon.tex, "Interface\\Icons\\Trade_Herbalism")
+        card.wish.scripts.OnEnter(card.wish)
+        eq(table.concat(ola.env.GameTooltip.lines, " / "),
+            "Dagens ønske / Gjør det med Panda Cub ute i dag, så får dere 10 ekstra bånd-poeng.")
+        local function Earned() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
+        local before = Earned()
+        ola:Fire("QUEST_TURNED_IN", 1)
+        no(W:Today().done, "not what it wished for")
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        ok(W:Today().done)
+        ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+10 bånd-poeng)", true))
+        local after = Earned()
+        eq(after - before, 1 + 5 + 10, "the quest, the herb, and the wish")
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        eq(Earned(), after + 5, "once a day: the next herb is just a herb")
+        card = ola:SelectPet(5159)
+        eq(card.wish.text.text, "Ønsket er oppfylt!"); eq(card.wish.text.color[2], 1)
+        -- A new day, a new wish; the day's limit holds for it too.
+        w:SkipDays(1)
+        no(W:Today().done, "a new wish")
+        ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), got = {}, total = 97 }
+        before = Earned()
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        eq(Earned() - before, 3, "only what's left of the day")
+        -- Not with another companion out.
+        w:SkipDays(1)
+        ola:Summon(40)
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        no(W:Today().done)
+        -- Only on your own pet's card; none without a pet.
+        no(ola:SelectPet(40).wish:IsShown())
+        kari:OpenJournal()
+        no(kari:SelectPet(40).wish:IsShown())
+        eq(kari.ns.Wish:Today(), nil)
+    end)
 end
