@@ -23,19 +23,22 @@ moments.
 
 ### Bond levels (names are suggestions)
 
-| Level | Name | Points (total) |
-|---|---|---|
-| 1 | Bekjent | 0 |
-| 2 | Kamerat | 100 |
-| 3 | Venn | 300 |
-| 4 | God venn | 1 000 |
-| 5 | Bestevenn | 2 000 |
-| 6 | Uatskillelig | 3 650 |
-| 7 | Sjelevenn | 6 000 |
+A curve to 1150 for the top (changed 2026-11-08 from 6000: the user wanted roughly 1000-1250 in all), each step
+about a third longer than the last:
 
-A day together is worth 10 points, so days alone reach Venn in 30 days, God venn in 100 and Uatskillelig in a year:
-the old loyalty achievements (Bestevenner, Uatskillelige, Venner for livet) keep their pace on these levels.
-Liked activities roughly double it for an active player. `Bond.LEVELS` in Menagerie/Bond.lua.
+| Level | Name | Points (total) | Step | Days at 10 a day | At ~35 a day |
+|---|---|---|---|---|---|
+| 1 | Bekjent | 0 | | | |
+| 2 | Kamerat | 75 | 75 | 8 | 3 |
+| 3 | Venn | 175 | 100 | 18 | 5 |
+| 4 | God venn | 325 | 150 | 33 | 10 |
+| 5 | Bestevenn | 525 | 200 | 53 | 15 |
+| 6 | Uatskillelig | 800 | 275 | 80 | 23 |
+| 7 | Sjelevenn | 1150 | 350 | 115 | 33 |
+
+10 a day is the pet out and nothing else; ~35 is a liked activity most days. The loyalty achievements are levels
+(Bestevenner at Venn, Uatskillelige at God venn, Venner for livet at Uatskillelig), so they follow the curve.
+`Bond.LEVELS` in Menagerie/Bond.lua. The sync digest holds levels, so the change bumped the protocol to 6.
 
 ### Temperament stages
 

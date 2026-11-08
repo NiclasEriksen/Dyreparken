@@ -22,17 +22,21 @@ ns.Bond = Bond
 
 local PUBLISH_AFTER = 1800 -- seconds
 
--- Levels: { points needed, name }. 300 points (30 days) is "Venn", 1000
--- (100 days) "God venn", 3650 (a year) "Uatskillelig": the old loyalty
--- achievements keep their pace (Defs.lua).
+-- Levels: { points needed, name }. A curve to 1150 for the top (decided
+-- 2026-11-08: roughly 1000-1250), each step about a third longer than the
+-- last, so a new bond moves fast and the top takes devotion. At 10 points a
+-- day (the pet out, nothing else): Kamerat in 8 days, Venn 18, God venn 33,
+-- Bestevenn 53, Uatskillelig 80, Sjelevenn 115. With a liked activity most
+-- days (about 35 a day), Sjelevenn in about a month. The loyalty
+-- achievements are levels (Defs.lua), so they follow the curve.
 Bond.LEVELS = {
     { 0, "Bekjent" },
-    { 100, "Kamerat" },
-    { 300, "Venn" },
-    { 1000, "God venn" },
-    { 2000, "Bestevenn" },
-    { 3650, "Uatskillelig" },
-    { 6000, "Sjelevenn" },
+    { 75, "Kamerat" },
+    { 175, "Venn" },
+    { 325, "God venn" },
+    { 525, "Bestevenn" },
+    { 800, "Uatskillelig" },
+    { 1150, "Sjelevenn" },
 }
 local LEVELS = Bond.LEVELS
 

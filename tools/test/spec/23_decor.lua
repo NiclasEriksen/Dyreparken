@@ -251,7 +251,7 @@ return function(test, H)
         w:Run(5)
         local g = ola.ns.DB:Guild()
         local now = ola.ns.Now()
-        g.life[PANDA] = { ["Ola Nord"] = { p = 1000, f = now - 200 * 86400, t = now } } -- God venn: level 4
+        g.life[PANDA] = { ["Ola Nord"] = { p = 400, f = now - 200 * 86400, t = now } } -- God venn: level 4
         card = ola:SelectPet(5159)
         ok(d.glows[1]:IsShown()); ok(d.corners.TOPLEFT:IsShown())
         eq(#Parts(d), 4, "the Dykker's bubbles")
