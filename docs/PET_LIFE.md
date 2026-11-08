@@ -171,8 +171,8 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
    (explore: a place this companion hasn't been, `char.places`), Trofast (revive: up again after PLAYER_DEAD),
    Hoppetass (jump, per 10), Dykker (dive), Hjemlengsel (hearth), Ambisiøs (level), Latsabb (nap: AFK while
    resting), Pratsom (chat: our own guild lines). The bond watches these only for a pet that likes them.
-   Panda Cub is pinned to Kosete and Grønnfinger. Next: **pin** every species' two traits in a list (decided
-   2026-11-08: reshuffling now is fine, never after that).
+   **Pinned** the same day: every species' two traits are in `Data/Traits.lua` for good (Panda Cub: Kosete and
+   Grønnfinger, by hand; the rest balanced, 6-7 species per trait). New species: `luajit tools/pin_traits.lua`.
 4. **Lifetime and temperament:** `g.life` sync, temperament stages, park map borders, world tooltip word.
 5. **Story:** the timeline, milestone lines, big moments in guild chat.
 6. **(Optional) Collection sync:** "kom til parken", "vill" for pets nobody has, the wish list on the park map.

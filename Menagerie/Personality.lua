@@ -16,10 +16,10 @@ local _, ns = ...
 --                       with one daily cap for the trait (ctx: Bond.lua);
 --   day = fn(t) -> x    the day together is worth x times as much.
 --
--- Picking: two traits per species from its id, never a pair that contradicts
--- itself (Flokkdyr and Einstøing). The pick moves when traits are added, so
--- the plan (2026-11-08) is to pin every species' traits in a list once the
--- probed traits are in, and never reshuffle after that.
+-- Picking: every species' two traits are pinned in Data/Traits.lua and never
+-- change (decided 2026-11-08). For a species not in there, two from its id,
+-- never a pair that contradicts itself (Flokkdyr and Einstøing); that pick
+-- moves when traits are added, which is why it's pinned.
 local Personality = {}
 ns.Personality = Personality
 
@@ -111,11 +111,10 @@ function Personality.ById(id)
     for _, t in ipairs(Personality.TRAITS) do if t.id == id then return t end end
 end
 
--- Species whose traits are pinned (species id -> two trait ids). Every
--- species goes in here once the probed traits are in (see the header).
-Personality.PINNED = {
-    [5159] = { "kosete", "gronnfinger" }, -- Panda Cub (chosen 2026-11-08)
-}
+-- Every species' traits, pinned for good (Data/Traits.lua). A species that
+-- isn't in there yet (new in the journal) gets the pick below until
+-- tools/pin_traits.lua adds it.
+Personality.PINNED = ns.TraitPins or {}
 
 -- The species' two traits: the same on every client.
 function Personality:Traits(key)

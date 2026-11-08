@@ -105,12 +105,15 @@ Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prest
                    English aliases; probe [more|tabs|kills|life|bg|ach], debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
+Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
+                   After regenerating Data/Companions.lua, run `luajit tools/pin_traits.lua`: it adds new species
+                   (least-used traits) and never changes an existing line. Change a species by hand only.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
                    merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp rapport), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
-                   Personality (likes and two traits per species, from families, a few species and a hash, to be pinned;
+                   Personality (likes, and two traits per species from Data/Traits.lua;
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family; candidates until probed), SceneGallery (/dp probe bg: thumbnails of every
                    background that exists; pick one per family, saved in DyreparkenDB.scenePicks),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;

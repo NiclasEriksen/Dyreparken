@@ -73,10 +73,29 @@ return function(test, H)
             seen[a[1].id], seen[a[2].id] = true, true
         end
         for _, q in ipairs(P.TRAITS) do ok(seen[q.id], q.id) end
-        -- Pinned species keep theirs, and every pin names real traits.
+        -- Pinned species keep theirs (Data/Traits.lua).
         eq(P:Names(PANDA), "Kosete og Grønnfinger")
-        for sid, pin in pairs(P.PINNED) do
-            ok(P.ById(pin[1]) and P.ById(pin[2]) and pin[1] ~= pin[2], "pin " .. sid)
+    end)
+
+    test("every journal species is pinned to two real traits that go together", function()
+        local w = H.World()
+        local kari = w:AddClient("Kari Berg") -- the real Data/Companions.lua
+        w:Run(12)
+        local P, pins = kari.ns.Personality, kari.ns.TraitPins
+        ok(pins, "Data/Traits.lua is loaded")
+        eq(P.PINNED, pins)
+        local n = 0
+        for sid in pairs(kari.ns.Companions.species) do
+            ok(pins[sid], "species " .. sid .. " pinned (run tools/pin_traits.lua)")
+            n = n + 1
+        end
+        ok(n > 50)
+        for sid, pin in pairs(pins) do
+            local a, b = P.ById(pin[1]), P.ById(pin[2])
+            ok(a and b and a ~= b, "pin " .. sid)
+            ok(a.against ~= b.id, "pin " .. sid .. " contradicts itself")
+            local t = P:Traits("s:" .. sid)
+            eq(t[1], a); eq(t[2], b)
         end
         -- Every pair that contradicts itself names the other way too.
         for _, q in ipairs(P.TRAITS) do
