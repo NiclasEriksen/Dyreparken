@@ -157,6 +157,9 @@ end
 local PANEL_H = 86 -- four lines on the left: name, home, traits, likes
 local COLUMN = 214 -- the bond column, from the panel's right edge (BondTrack.lua): the left column ends there
 local MODEL_LIFT = 34 -- the model's bottom, above the panel: clear of the turn buttons
+local NAME_FONTS = { "GameFontNormalHuge", "GameFontNormalLarge", "GameFontNormal" } -- the name, biggest first
+-- The panel's width once laid out (nil before).
+local function panel_width(c) return c.panel and c.panel:GetWidth() end
 
 -- Blizzard's two buttons that turn the model: found by name or parentKey
 -- (unprobed on Forever), left one first. Nil if not found.
@@ -233,6 +236,13 @@ local function UpdateCard()
     -- Big: the nickname, else the species. Small: the species (if named) and its home.
     local species = ns.Pets:NameOfKey(key) or ""
     card.nickname:SetText(nick or species)
+    -- A long name steps down a size or two before it's cut short.
+    local width = panel_width(card)
+    local room = width and width - COLUMN - 14
+    for _, font in ipairs(NAME_FONTS) do
+        card.nickname:SetFontObject(font)
+        if not room or card.nickname:GetStringWidth() <= room then break end
+    end
     card.status:SetText(nick and (species .. " · " .. text) or text)
     card.fullName, card.species, card.home = nick or species, species, text -- for the hover
     card.personality:SetText(ns.Personality:Names(key))

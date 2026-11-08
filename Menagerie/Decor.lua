@@ -362,10 +362,11 @@ function Decor:Build(card, c, panel)
         d.glows[i] = t
     end
     -- 6+: light rays behind the pet, turning slowly.
-    d.rays = c:CreateTexture(nil, "BACKGROUND", nil, 5)
+    -- Over the glow, not under it: under, the glow drowned them (seen 2026-11-08).
+    d.rays = c:CreateTexture(nil, "BORDER", nil, 3)
     d.rays:SetTexture(self.MEDIA .. "rays")
     d.rays:SetBlendMode("ADD")
-    d.rays:SetSize(460, 460)
+    d.rays:SetSize(600, 600)
     d.rays:SetPoint("CENTER", panel, "TOP", 0, 150)
     d.rays:Hide()
     d.rays.turn = Loop(d.rays, "Rotation", "REPEAT")
@@ -535,7 +536,7 @@ function Decor:Apply(card, key, level, color)
         d.ribbonText:SetText(ns.Bond.LEVELS[level][2])
         d.ribbon:Show(); d.ribbonText:Show()
         d.rays:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
-        d.rays:SetAlpha(level >= 7 and 0.75 or 0.45)
+        d.rays:SetAlpha(level >= 7 and 1 or 0.8)
         d.rays.turn.a:SetDuration(level >= 7 and 40 or 70)
         d.rays:Show()
         d.rays.turn:Play()

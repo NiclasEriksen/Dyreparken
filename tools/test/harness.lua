@@ -289,7 +289,7 @@ end
 local Region = {}
 Region.__index = Region
 for _, m in ipairs({ "SetWidth", "SetHeight", "SetAllPoints", "SetJustifyH", "SetJustifyV",
-    "SetDrawLayer", "SetWordWrap", "SetFontObject" }) do
+    "SetDrawLayer", "SetWordWrap" }) do
     Region[m] = noop
 end
 function Region:SetPoint(...) self.points = self.points or {}; self.points[#self.points + 1] = { ... } end
@@ -370,6 +370,10 @@ function Region:SetTextColor(r, g, b) self.color = { r, g, b } end
 function Region:SetAlpha(a) self.alpha = a end
 function Region:SetGradient(o, a, b) self.gradient = { o, a, b } end
 function Region:SetBlendMode(m) self.blend = m end
+-- The font in use, and the text's width estimated from it (px per character).
+local FONT_W = { GameFontNormalHuge = 13, GameFontNormalLarge = 10, GameFontNormal = 8 }
+function Region:SetFontObject(f) self.font = f end
+function Region:GetStringWidth() return #(self.plain or self.text or "") * (FONT_W[self.font] or 7) end
 -- About 14 px a line, like GameFontHighlight.
 function Region:GetStringHeight()
     local _, n = (self.text or ""):gsub("\n", "")
@@ -386,8 +390,8 @@ function Frame:CreateMaskTexture()
     self.textures[#self.textures + 1] = t
     return t
 end
-function Frame:CreateFontString()
-    local t = setmetatable({ shown = true, ftype = "FontString" }, Region)
+function Frame:CreateFontString(_, _, template)
+    local t = setmetatable({ shown = true, ftype = "FontString", font = template }, Region)
     self.fontStrings[#self.fontStrings + 1] = t
     return t
 end

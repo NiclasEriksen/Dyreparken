@@ -410,4 +410,19 @@ return function(test, H)
         local r = card.decor.ribbon.points[1]
         eq(r[1], "TOP"); eq(r[5], -10, "the ribbon at the top")
     end)
+
+    test("a long name steps down a size or two before it's cut short", function()
+        local w, ola = Setup()
+        local card = ola:SelectPet(5159)
+        eq(card.nickname.font, "GameFontNormalHuge", "not laid out yet: the big one")
+        card.panel.geo = { l = 0, r = 400, t = 86, b = 0 } -- room for the name: 400 - 214 - 14 = 172 px
+        card = ola:SelectPet(5159)
+        eq(card.nickname.font, "GameFontNormalHuge", "'Panda Cub' fits big")
+        ola.ns.Registry.Nickname = function() return "Brown Prairie Dogge" end -- 19 characters
+        card = ola:SelectPet(5159)
+        eq(card.nickname.font, "GameFontNormal", "too long for the big and the large ones")
+        ola.ns.Registry.Nickname = function() return "Bambusbjørnen" end -- 14 bytes: too wide big, fits large
+        card = ola:SelectPet(5159)
+        eq(card.nickname.font, "GameFontNormalLarge")
+    end)
 end
