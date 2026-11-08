@@ -30,7 +30,7 @@ ns.AchTexts = {
         notify_on = "Andre med Dyreparken får beskjed når du får en prestasjon.",
         notify_off = "Andre med Dyreparken får ikke lenger beskjed om prestasjonene dine.",
         list_header = "Prestasjoner (%d av %d):",
-        days = "%d/%d dager",
+        points = "%d/%d poeng",
         guild_earned = "%s fikk %s!",                  -- Dyreparken fikk [Kattehuset]!
         guild_hint = "Som offiser kan du dele det i guild-chatten med /dp prestasjoner del.",
 
@@ -89,15 +89,15 @@ ns.AchTexts = {
         flavor = "Ingen er så tøff som {player}, med alle piratkjæledyrene om bord! {name}" },
 
     -- Loyalty: the companion you care for (per character).
-    ["loyal:30"] = { name = "Bestevenner", desc = "Ta vare på det samme kjæledyret i 30 dager.",
-        flavor = "{player} og {pet} har vært bestevenner i en hel måned! {name}",
-        plain = "{player} og kjæledyret sitt har vært bestevenner i en hel måned! {name}" },
-    ["loyal:100"] = { name = "Uatskillelige", desc = "Ta vare på det samme kjæledyret i 100 dager.",
-        flavor = "{player} og {pet} har vært uatskillelige i 100 dager! {name}",
-        plain = "{player} og kjæledyret sitt har vært uatskillelige i 100 dager! {name}" },
-    ["loyal:365"] = { name = "Venner for livet", desc = "Ta vare på det samme kjæledyret i et helt år.",
-        flavor = "{player} og {pet} har vært venner i et helt år! {name}",
-        plain = "{player} har tatt vare på det samme kjæledyret i et helt år! {name}" },
+    ["loyal:30"] = { name = "Bestevenner", desc = "Nå bånd-nivå Venn med kjæledyret ditt.",
+        flavor = "{player} og {pet} er blitt ordentlige venner! {name}",
+        plain = "{player} og kjæledyret sitt er blitt ordentlige venner! {name}" },
+    ["loyal:100"] = { name = "Uatskillelige", desc = "Nå bånd-nivå God venn med kjæledyret ditt.",
+        flavor = "{player} og {pet} er nå gode venner! {name}",
+        plain = "{player} og kjæledyret sitt er nå gode venner! {name}" },
+    ["loyal:365"] = { name = "Venner for livet", desc = "Nå bånd-nivå Uatskillelig med kjæledyret ditt.",
+        flavor = "{player} og {pet} er uatskillelige! {name}",
+        plain = "{player} og kjæledyret sitt er uatskillelige! {name}" },
     ["nick"] = { name = "Døpt", desc = "Gi kjæledyret ditt et kallenavn.",
         flavor = "{player} har døpt {species} til «{nick}»! {name}",
         plain = "{player} har gitt kjæledyret sitt et navn! {name}" },

@@ -31,6 +31,13 @@ local _, ns = ...
 -- began. So a name set by someone who didn't hold the pet at the time (a
 -- partition, a forged entry) can't override the holder's.
 --
+-- BONDS (Menagerie/Bond.lua) live per pet and carer, so a pet you adopt
+-- again picks up where you left off:
+--   g.life[petKey][carer] = { p = points, f = first adopted, t = last change }
+--     Written only by that carer. Points never go down, so copies merge by
+--     the highest p (then t). A copy can't claim more points than are
+--     possible since f (Config.BOND_DAILY_MAX a day), which bounds forgeries.
+--
 -- The owner's client watches its own record. If it lost a race (someone
 -- claimed earlier) or lapsed, it releases and tells the player.
 --
@@ -72,6 +79,35 @@ end
 local function ValidEntry(e)
     return type(e) == "table" and ns.SaneTime(e.at)
         and (e.n == nil or ValidName(e.n)) and (e.x == nil or e.x == true)
+end
+
+local function ValidLife(e)
+    if type(e) ~= "table" or not ns.SaneTime(e.f) or not ns.SaneTime(e.t) or e.t < e.f then return false end
+    local p = e.p
+    if type(p) ~= "number" or p ~= p or p < 0 then return false end
+    return p <= (math.floor((e.t - e.f) / DAY) + 1) * Config.BOND_DAILY_MAX
+end
+Registry.ValidLife = ValidLife
+
+-- Returns true when our data changed.
+function Registry:MergeLife(key, carer, e)
+    local g = G()
+    if not g or type(key) ~= "string" or #key > 64 or not ns.SaneName(carer) or not ValidLife(e) then
+        return false
+    end
+    local byKey = g.life[key]
+    local cur = byKey and byKey[carer]
+    if cur and (cur.p > e.p or (cur.p == e.p and cur.t >= e.t)) then return false end
+    if not byKey then byKey = {}; g.life[key] = byKey end
+    byKey[carer] = { p = e.p, f = e.f, t = e.t }
+    return true
+end
+
+-- A carer's bond entry with a pet, or nil.
+function Registry:Life(key, carer)
+    local g = G()
+    local byKey = g and key and g.life[key]
+    return byKey and byKey[carer]
 end
 
 -- Returns true when our data changed.
@@ -194,8 +230,8 @@ end
 -- Snapshot for sync and digests.
 function Registry:All()
     local g = G()
-    if not g then return {}, {}, {} end
-    return g.claims, g.lapses, g.names
+    if not g then return {}, {}, {}, {} end
+    return g.claims, g.lapses, g.names, g.life
 end
 
 -- Number of distinct pets held. Only species in Forever's journal count

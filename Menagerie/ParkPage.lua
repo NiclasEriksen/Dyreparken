@@ -78,6 +78,7 @@ local function ShowTooltip(cell)
     if owner then
         local who = owner == ns.PlayerKey() and "deg" or owner
         GameTooltip:AddLine(("Bor hos %s %s"):format(who, ns.CaredFor(r.at)), 1, 0.82, 0)
+        GameTooltip:AddLine(("Bånd: %s"):format(ns.Bond:Label(key)), 1, 1, 1)
     else
         GameTooltip:AddLine("Trenger et hjem", 0.5, 0.8, 0.5)
     end
@@ -183,3 +184,4 @@ function Park:IsOpen() return sp:IsOpen() end
 function Park:Refresh() sp:Refresh() end
 
 ns.Bus:On("REGISTRY", function() Park:Refresh() end)
+ns.Bus:On("BOND", function() Park:Refresh() end)

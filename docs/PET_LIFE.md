@@ -28,13 +28,14 @@ moments.
 | 1 | Bekjent | 0 |
 | 2 | Kamerat | 100 |
 | 3 | Venn | 300 |
-| 4 | God venn | 700 |
-| 5 | Bestevenn | 1 500 |
-| 6 | Uatskillelig | 3 000 |
+| 4 | God venn | 1 000 |
+| 5 | Bestevenn | 2 000 |
+| 6 | Uatskillelig | 3 650 |
 | 7 | Sjelevenn | 6 000 |
 
-A day together is worth about 10 points, so time alone reaches "Bestevenn" in about 5 months. Liked activities
-roughly double the pace for an active player. The curve is a tunable in `ns.Config`.
+A day together is worth 10 points, so days alone reach Venn in 30 days, God venn in 100 and Uatskillelig in a year:
+the old loyalty achievements (Bestevenner, Uatskillelige, Venner for livet) keep their pace on these levels.
+Liked activities roughly double it for an active player. `Bond.LEVELS` in Menagerie/Bond.lua.
 
 ### Temperament stages
 
@@ -155,6 +156,8 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
    *Built 2026-11-08* (`Core/Activity.lua`): sources day, boss, quest, pvp, taxi (all but day unverified in game);
    no achievements use it yet. The kills probe stays separate until its dungeon log is read.
 2. **Bond core:** daily points, levels, the card bar, the migration seed, loyalty achievements moved to levels.
+   *Built 2026-11-08* (Menagerie/Bond.lua, protocol 5): the bond lives in `g.life` (not in the adoption record),
+   which is what lets a re-adopted pet bring its bond back. The digest holds levels, not points.
 3. **Activities and likes:** more sources as probes confirm them, likes per tag, quirks, flavor lines.
 4. **Lifetime and temperament:** `g.life` sync, temperament stages, park map borders, world tooltip word.
 5. **Story:** the timeline, milestone lines, big moments in guild chat.

@@ -15,7 +15,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 6
+local SCHEMA = 7
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
@@ -81,6 +81,11 @@ local MIGRATIONS = {
             end
         end
     end,
+    -- 7: bonds between carers and pets (g.life, see Registry.lua). Empty:
+    -- each carer seeds their own from the days already together (Bond.lua).
+    [7] = function(db)
+        for _, g in pairs(db.guilds or {}) do g.life = g.life or {} end
+    end,
 }
 local CHAR_MIGRATIONS = {}
 
@@ -128,7 +133,7 @@ function DB:Guild()
     if not name then return nil end
     local g = self.global.guilds[name]
     if not g then
-        g = { claims = {}, lapses = {}, names = {}, ach = {}, achSeen = {} }
+        g = { claims = {}, lapses = {}, names = {}, life = {}, ach = {}, achSeen = {} }
         self.global.guilds[name] = g
     end
     return g, name

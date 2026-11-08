@@ -152,6 +152,7 @@ return function(test, H)
         eq(c.ns.Activity:Count("day"), 3)
         -- Unwanted: not counted.
         c.ns.Activity:Drop("day", ME)
+        c.ns.Activity:Drop("day", c.ns.Bond) -- the bond wants it too while you have a pet
         w:SkipDays(1)
         c.ns.Activity:CheckDay()
         eq(c.ns.Activity:Count("day"), 3)

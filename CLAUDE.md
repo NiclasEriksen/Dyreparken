@@ -104,12 +104,14 @@ Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prest
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
-                   merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/NICK/LAPSE, guild channel only;
+                   merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp rapport), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
                    loads after Achievements/Page.lua so its tab comes second),
+                   Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in
+                   g.life, see Registry.lua; docs/PET_LIFE.md),
                    Bonds (milestone lines after login, the nickname unlock note, dagens dyr, /dp klapp,
                    guild announcements)
 Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
@@ -132,6 +134,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - A reservation is **one species per character**, guild-wide, first come first served by `GetServerTime()`.
 - Released when the owner leaves the guild, or after 30 days unseen. Nicknames unlock after 7 days, max 20
   characters (`ns.Config`).
+- **Bonds** (2026-11-08, docs/PET_LIFE.md): a score per carer and pet that grows (10 points a day with your adopted
+  pet out, more from activities later), never decays, and comes back if you adopt the pet again. Seven levels;
+  everyone sees everyone's. The loyalty achievements (ids `loyal:*`) are bond levels now. The sync digest holds bond
+  levels, not points: points go out lazily (a level-up at once, else within 30 minutes).
 - **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it, after caring
   for it 7 days. The name stays when they let go, and the next carer inherits it until they change it. A name set by
   anyone else during a holder's care doesn't count (`Registry:Nickname`). It replaces the title line of the world

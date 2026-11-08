@@ -4,14 +4,16 @@ local _, ns = ...
 --
 -- Messages (all on GUILD):
 --   HELLO  { v, d }        login announcement (Version.lua) with our digest
---   SYNC   { r, l, n, a, d } full state: r[owner] = record, l[owner] = lapse,
+--   SYNC   { r, l, n, b, a, d } full state: r[owner] = record, l[owner] = lapse,
 --                          n[petKey][namer] = naming entry (Registry.lua),
+--                          b[petKey][carer] = bond entry (Registry.lua),
 --                          a[id] = guild achievement (Achievements.lua),
 --                          d = the sender's digest after sending
 --   ACH    { a }           guild achievements someone just found or shared
 --                          (handled in Achievements.lua; part of the digest)
 --   UPD    { r }           the sender's own record changed
 --   NICK   { pet, e }      the sender named a pet (or cleared or voided the name)
+--   BOND   { pet, e }      the sender's bond with a pet (Bond.lua)
 --   LAPSE  { l }           lapses someone just noticed
 --
 -- Flow: a client logs in and sends HELLO with its digest. Peers whose
@@ -37,8 +39,15 @@ local SYNC_GAP = 30
 
 -- Adler-32 of a canonical listing of the registry.
 function Sync:Digest()
-    local claims, lapses, names = ns.Registry:All()
+    local claims, lapses, names, life = ns.Registry:All()
     local parts = {}
+    -- Bonds by level, not points: points go out lazily (Bond.lua), and peers
+    -- shouldn't SYNC over a few points. A level change goes out at once.
+    for key, byKey in pairs(life) do
+        for carer, e in pairs(byKey) do
+            parts[#parts + 1] = "b" .. key .. "\31" .. carer .. "\31" .. ns.Bond:Level(e.p)
+        end
+    end
     for owner, r in pairs(claims) do parts[#parts + 1] = "c" .. owner .. "\31" .. r.ts end
     for owner, t in pairs(lapses) do parts[#parts + 1] = "l" .. owner .. "\31" .. t end
     for key, byKey in pairs(names) do
@@ -54,8 +63,8 @@ local function SendFull()
     pending = nil
     if not IsInGuild() then return end
     lastSent = GetTime()
-    local claims, lapses, names = ns.Registry:All()
-    ns.Comm:Send("SYNC", { r = claims, l = lapses, n = names, a = ns.Achievements:GuildRecords(), d = Sync:Digest() },
+    local claims, lapses, names, life = ns.Registry:All()
+    ns.Comm:Send("SYNC", { r = claims, l = lapses, n = names, b = life, a = ns.Achievements:GuildRecords(), d = Sync:Digest() },
         "GUILD", nil, "BULK")
 end
 
@@ -70,13 +79,26 @@ local function Schedule()
     end)
 end
 
+-- Someone told us something we know better (an older date, say): answer
+-- with a SYNC, the usual way (delayed, one at a time).
+function Sync:Nudge() Schedule() end
+
 local function Cancel()
     pending = nil
 end
 
 -- Merge a batch; returns true if anything changed.
-local function MergeAll(r, l, n)
+local function MergeAll(r, l, n, b)
     local changed = false
+    if type(b) == "table" then
+        for key, byKey in pairs(b) do
+            if type(byKey) == "table" then
+                for carer, e in pairs(byKey) do
+                    if ns.Registry:MergeLife(key, carer, e) then changed = true end
+                end
+            end
+        end
+    end
     if type(n) == "table" then
         for key, byKey in pairs(n) do
             if type(byKey) == "table" then
@@ -114,7 +136,7 @@ function Sync:Init()
     end)
     ns.Comm:Register("SYNC", function(msg, _, channel)
         if not Accept(msg, channel) then return end
-        MergeAll(msg.r, msg.l, msg.n)
+        MergeAll(msg.r, msg.l, msg.n, msg.b)
         ns.Achievements:MergeGuild(msg.a)
         if Sync:Digest() == msg.d then
             Cancel() -- someone said it for us
@@ -133,6 +155,11 @@ function Sync:Init()
         -- Only the namer writes their entry, like UPD.
         MergeAll(nil, nil, { [msg.pet] = { [sender] = msg.e } })
     end)
+    ns.Comm:Register("BOND", function(msg, sender, channel)
+        if not Accept(msg, channel) then return end
+        if type(msg.pet) ~= "string" then return end
+        MergeAll(nil, nil, nil, { [msg.pet] = { [sender] = msg.e } })
+    end)
     ns.Comm:Register("LAPSE", function(msg, _, channel)
         if not Accept(msg, channel) then return end
         MergeAll(nil, msg.l)
@@ -142,6 +169,9 @@ function Sync:Init()
     ns.Bus:On("MY_RECORD", function(_, r)
         ns.Comm:Send("UPD", { r = r }, "GUILD")
         ns.Registry:CheckMine()
+    end)
+    ns.Bus:On("MY_BOND", function(key, e)
+        ns.Comm:Send("BOND", { pet = key, e = e }, "GUILD")
     end)
     ns.Bus:On("MY_NAME", function(key, e)
         ns.Comm:Send("NICK", { pet = key, e = e }, "GUILD")

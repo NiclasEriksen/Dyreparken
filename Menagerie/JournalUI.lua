@@ -69,6 +69,7 @@ function JournalUI:AddTooltipLines(tooltip, key)
         return
     end
     tooltip:AddLine(("Bor hos %s"):format(status == "mine" and "deg" or owner), 1, 0.82, 0)
+    tooltip:AddLine(("Bånd: %s"):format(ns.Bond:Label(key)), 1, 1, 1)
     Nick()
     local how = ns.CaredFor(r.at)
     tooltip:AddLine(how:sub(1, 1):upper() .. how:sub(2), 0.7, 0.7, 0.7)
@@ -172,6 +173,7 @@ local function UpdateCard()
     if not sid then
         card.status:SetText("")
         card.nickname:SetText("")
+        card.bond:Hide()
         card.reserve:Hide()
         card.nick:Hide()
         return
@@ -190,6 +192,17 @@ local function UpdateCard()
     end
     card.status:SetText(text)
     card.nickname:SetText(nick or "")
+    -- The holder's bond with it, as a bar: everyone sees everyone's.
+    local points, level, name, from, nextAt = ns.Bond:Of(key)
+    if points then
+        card.bond.label:SetText(("Bånd: %s (nivå %d)"):format(name, level))
+        card.bond:SetMinMaxValues(from, nextAt or math.max(points, 1))
+        card.bond:SetValue(nextAt and points or math.max(points, 1)) -- the top level: full
+        card.bond.text:SetText(nextAt and ("%d / %d"):format(points, nextAt) or ("%d"):format(points))
+        card.bond:Show()
+    else
+        card.bond:Hide()
+    end
 
     card.key = key
     if status == "mine" then
@@ -226,6 +239,20 @@ local function BuildCard()
     card.nickname:SetPoint("BOTTOMRIGHT", card.status, "TOPRIGHT", 0, 4)
     card.nickname:SetJustifyH("LEFT")
     card.nickname:SetWordWrap(false)
+    -- The bond bar, bottom right of the card (the model's turn buttons are in the middle).
+    card.bond = CreateFrame("StatusBar", nil, c)
+    card.bond:SetSize(170, 12)
+    card.bond:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -14, 12)
+    card.bond:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
+    card.bond:SetStatusBarColor(0.85, 0.55, 0.15)
+    card.bond.bg = card.bond:CreateTexture(nil, "BACKGROUND")
+    card.bond.bg:SetAllPoints()
+    card.bond.bg:SetColorTexture(0, 0, 0, 0.5)
+    card.bond.text = card.bond:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    card.bond.text:SetPoint("CENTER")
+    card.bond.label = card.bond:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    card.bond.label:SetPoint("BOTTOMRIGHT", card.bond, "TOPRIGHT", 0, 3)
+    card.bond:Hide()
 
     local anchor = PetJournalSummonButton or c
     card.reserve = CreateFrame("Button", nil, PetJournal, "UIPanelButtonTemplate")
@@ -367,6 +394,7 @@ local function OnJournalLoaded()
         JournalUI:Refresh()
     end)
     ns.Bus:On("REGISTRY", function() JournalUI:Refresh() end)
+    ns.Bus:On("BOND", function() JournalUI:Refresh() end)
 end
 
 function JournalUI:Init()

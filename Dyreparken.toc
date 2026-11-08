@@ -4,7 +4,7 @@
 ## Author: Hjelp
 ## Version: @project-version@
 ## X-Flavor: forever
-## X-Protocol: 4
+## X-Protocol: 5
 ## SavedVariables: DyreparkenDB, DyreparkenDebugDB
 ## SavedVariablesPerCharacter: DyreparkenCharDB
 ## Category: Collections
@@ -38,6 +38,7 @@ Menagerie\Report.lua
 Menagerie\JournalUI.lua
 Menagerie\Tooltip.lua
 Menagerie\Bonds.lua
+Menagerie\Bond.lua
 
 Achievements\Texts.lua
 Achievements\Defs.lua

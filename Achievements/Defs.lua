@@ -12,7 +12,8 @@ local _, ns = ...
 --   all               own every pet that counts
 --   family  tag       own every counting pet with this tag (skipped while the
 --                     tag has no counting pets)
---   loyal   days      care for the same companion this many days  (char)
+--   bond    level     reach this bond level with your companion (Menagerie/Bond.lua) (char).
+--                     Ids loyal:N are from when it counted days; ids are permanent.
 --   nick              have given your companion a nickname          (char)
 --   activity act n    n of an activity (Core/Activity.lua: "boss", "quest", ...); pet = true counts
 --                     only with your adopted companion out. Hidden while the client can't produce it.
@@ -50,9 +51,9 @@ ns.AchDefs = {
     { id = "family:bird", kind = "family", tag = "bird", cat = "family", icon = "Spell_Nature_RavenForm" },
     { id = "family:pirate", kind = "family", tag = "pirate", cat = "family", icon = { "INV_Helmet_66", "INV_Misc_Bandana_03", CARRIER } },
 
-    { id = "loyal:30", kind = "loyal", days = 30, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCandy", "Spell_Holy_SealOfSacrifice" } },
-    { id = "loyal:100", kind = "loyal", days = 100, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCard02", "Spell_Holy_SealOfSacrifice" } },
-    { id = "loyal:365", kind = "loyal", days = 365, scope = "char", cat = "loyalty", icon = { "Achievement_WorldEvent_Valentine", "Spell_Holy_SealOfSacrifice" } },
+    { id = "loyal:30", kind = "bond", level = 3, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCandy", "Spell_Holy_SealOfSacrifice" } },
+    { id = "loyal:100", kind = "bond", level = 4, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCard02", "Spell_Holy_SealOfSacrifice" } },
+    { id = "loyal:365", kind = "bond", level = 6, scope = "char", cat = "loyalty", icon = { "Achievement_WorldEvent_Valentine", "Spell_Holy_SealOfSacrifice" } },
     { id = "nick", kind = "nick", scope = "char", cat = "loyalty", icon = { "INV_Inscription_Parchment", "INV_Misc_Note_01" } },
 
     { id = "guild:count:10", kind = "guildcount", n = 10, scope = "guild", cat = "guild",

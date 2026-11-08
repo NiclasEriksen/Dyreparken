@@ -69,7 +69,7 @@ return function(test, H)
         ola:Slash("claim")
         w:Run(2)
         liv:Login()
-        w:Run(30)
+        w:Run(35) -- past Liv's daily visit (30 s after login), whose BOND is in flight at 30
         eq(ola.ns.Registry:Holder(RABBIT), "Liv Lund")
         eq(kari.ns.Registry:Holder(RABBIT), "Liv Lund")
         eq(liv.ns.Registry:Holder(PANDA), "Ola Nord")

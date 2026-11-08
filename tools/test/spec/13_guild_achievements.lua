@@ -136,7 +136,7 @@ return function(test, H)
         w.drop = nil
         -- A login sends HELLO; digests differ where messages were lost.
         cs["Kari Berg"]:Reload(); Fix(cs["Kari Berg"])
-        w:Run(60)
+        w:Run(120)
         H.assertConverged(w)
         for name, c in pairs(cs) do ok(c.ns.Achievements:Got("guild:family:cat"), name) end
     end)

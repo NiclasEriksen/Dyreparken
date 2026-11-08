@@ -177,10 +177,13 @@ function Eval.family(d, ctx)
     if need == 0 then return nil end
     return have == need, have, need
 end
-function Eval.loyal(d, ctx)
-    local r = ctx.record
-    local days = (r and r.k) and math.max(0, math.floor((ctx.now - r.at) / DAY)) or 0
-    return days >= d.days, math.min(days, d.days), d.days
+-- Bond points with the pet you care for, against the level's threshold.
+function Eval.bond(d)
+    local need = ns.Bond.LEVELS[d.level][1]
+    local key = ns.Registry:MyPet()
+    local e = key and ns.Registry:Life(key, ns.PlayerKey())
+    local have = e and e.p or 0
+    return have >= need, math.min(have, need), need
 end
 function Eval.nick(d, ctx)
     -- The holder named it themselves; an inherited name doesn't count.
@@ -289,7 +292,7 @@ function Ach:Details(d, ctx)
 end
 
 function Ach:Progress(d, have, need)
-    if d.kind == "loyal" then return T().days:format(have, need) end
+    if d.kind == "bond" then return T().points:format(have, need) end
     return ("%d/%d"):format(have, need)
 end
 
@@ -391,7 +394,7 @@ end
 function Ach:MergeGuild(list)
     local g = ns.DB:Guild()
     if not g or type(list) ~= "table" then return false end
-    local changed, appeared = false, {}
+    local changed, behind, appeared = false, false, {}
     local stored = 0
     for _ in pairs(g.ach) do stored = stored + 1 end
     for id, rec in pairs(list) do
@@ -406,13 +409,15 @@ function Ach:MergeGuild(list)
             else
                 if rec.at < cur.at then cur.at = rec.at; changed = true end
                 if rec.ann and (cur.ann == nil or rec.ann < cur.ann) then cur.ann = rec.ann; changed = true end
+                -- The sender has a later date, or no share we know of: they're behind.
+                if cur.at < rec.at or (cur.ann and (rec.ann == nil or cur.ann < rec.ann)) then behind = true end
             end
         end
     end
     table.sort(appeared)
     Appeared(appeared)
     if changed then ns.Bus:Fire("ACH") end
-    return changed
+    return changed, behind
 end
 
 -- For the sync: every guild record (including ids from newer versions).
@@ -662,11 +667,14 @@ function Ach:Init()
         end)
     end)
     ns.Bus:On("MY_RECORD", function() Ach:Check("MY_RECORD", "char") end)
+    ns.Bus:On("BOND", function() Ach:Check("BOND", "char") end)
     ns.Bus:On("MY_NAME", function() Ach:Check("MY_NAME", "char") end)
 
     ns.Comm:Register("ACH", function(msg, sender, channel)
         if channel ~= "GUILD" or msg.p ~= ns.PROTOCOL then return end
-        Ach:MergeGuild(msg.a)
+        local _, behind = Ach:MergeGuild(msg.a)
+        -- Nobody else would correct them: their ACH "said it for us".
+        if behind then ns.Sync:Nudge() end
     end)
     -- The registry changes in bursts (a SYNC merges many records): check
     -- the guild ones once it settles.
