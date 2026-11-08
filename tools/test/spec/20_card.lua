@@ -212,9 +212,8 @@ return function(test, H)
     test("the probe also looks for every classic dungeon's art", function()
         local w, ola = Setup()
         local list = ola.ns.Scenes:Candidates()
-        local probe = 0
-        for _, c in ipairs(list) do if c.family == "probe" then probe = probe + 1 end end
-        ok(probe >= 60, probe .. " extra candidates")
+        -- Every name twice (background and lore), each listed once even if a family uses it.
+        ok(#list >= 66, #list .. " candidates")
         ola:Slash("probe bg")
         eq(#ola:Log("bg %d+ YES probe: Interface\\EncounterJournal\\UI%-EJ%-LOREBG%-Naxxramas"), 1)
     end)

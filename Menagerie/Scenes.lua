@@ -12,16 +12,22 @@ ns.Scenes = Scenes
 local EJ = "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-"
 
 -- family tag -> candidates. "default" is for pets without a listed family.
--- Probed 2026-11-08 (build 70862): three dungeon backgrounds exist. The pet
--- battle weathers exist too, but they're small overlays: stretched over the
--- card they're a blur (seen in game). The loading screens that exist are the
--- generic WoW splash. Families without a scene keep Blizzard's background.
+-- Picked in game from the gallery, 2026-11-08 (build 70862): dungeon
+-- backgrounds (UI-EJ-BACKGROUND-*). The pet battle weathers are small
+-- overlays (a blur when stretched) and the loading screens that exist are
+-- the generic splash, so neither is used.
 Scenes.BY_FAMILY = {
+    cat = { EJ .. "TheStockade" },
+    bird = { EJ .. "ShadowfangKeep" },
+    owl = { EJ .. "ScarletMonastery" },
+    farm = { EJ .. "Karazhan" },
+    rabbit = { EJ .. "RazorfenDowns" },
     frog = { EJ .. "WailingCaverns" },
-    snake = { EJ .. "WailingCaverns" },
+    snake = { EJ .. "RazorfenKraul" },
     mechanical = { EJ .. "Gnomeregan" },
-    dragon = { EJ .. "BlackrockDepths" },
-    default = {},
+    dragon = { EJ .. "RagefireChasm" },
+    pirate = { EJ .. "Deadmines" },
+    default = { EJ .. "BlackrockDepths" },
 }
 -- The tint per family: the color at the top of the card's gradient (it
 -- fades darker toward the panel). Drawn, so always crisp.

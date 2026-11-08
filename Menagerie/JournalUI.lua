@@ -348,7 +348,7 @@ local function BuildCard()
     panel.edge:SetHeight(1)
     panel.edge:SetColorTexture(1, 0.82, 0, 0.35)
     card.panel = panel
-    card.floor:SetPoint("CENTER", panel, "TOP", 0, MODEL_LIFT + 58) -- under the pet's feet (seen 2026-11-08)
+    card.floor:SetPoint("CENTER", panel, "TOP", 0, MODEL_LIFT + 48) -- under the pet's feet (seen 2026-11-08)
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
