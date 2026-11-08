@@ -219,6 +219,6 @@ end
 
 function Summon:AnnounceDeferral()
     if self:Deferring() and ns.DB.char.autoSummon then
-        ns.Print("AutoCompanion er lastet, så Dyreparken tilkaller ikke automatisk. Guilden ser fortsatt hvilket kjæledyr som bor hos deg.")
+        ns.Print(ns.L["summon.deferred"])
     end
 end

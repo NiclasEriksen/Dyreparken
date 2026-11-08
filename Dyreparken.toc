@@ -18,6 +18,7 @@ Libs\LibDeflate\LibDeflate.lua
 
 # Core: load order matters, each file only uses what is above it
 Core\Init.lua
+Locale\nb.lua
 Core\Debug.lua
 Core\Events.lua
 Core\DB.lua
@@ -47,7 +48,6 @@ Menagerie\Tooltip.lua
 Menagerie\Bonds.lua
 Menagerie\Bond.lua
 
-Achievements\Texts.lua
 Achievements\Defs.lua
 Achievements\Achievements.lua
 Achievements\Kills.lua

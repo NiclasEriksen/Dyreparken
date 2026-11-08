@@ -36,7 +36,7 @@ ns.Companions = {
 **Hand-written** in `Achievements/Defs.lua`: the definitions.
 
 ```lua
-{ id = "family:cat", kind = "family", tag = "cat", icon = ... },   -- texts: Achievements/Texts.lua
+{ id = "family:cat", kind = "family", tag = "cat", icon = ... },   -- texts: Locale/nb.lua (ns.AchTexts)
 { id = "count:25", kind = "count", n = 25, name = "...", desc = "25 companions" },
 { id = "loyal:30", kind = "loyal", days = 30, scope = "char", name = "Bestevenner I" },
 { id = "nick", kind = "nick", scope = "char", name = "Døpt" },
@@ -208,7 +208,7 @@ that moment (in combat), or only after combat ends (the probe logs both). Build 
 ## Decisions (2026-11-06)
 
 1. **Names are Norwegian.**
-   - Every player-visible text of an achievement lives in one place, `Achievements/Texts.lua`, keyed by id:
+   - Every player-visible text of an achievement lives in one place, `Locale/nb.lua` (the `ns.AchTexts` table at its end; moved there 2026-11-08 with every other string), keyed by id:
      name, description and flavor. Renaming is a one-line change there. Ids never change.
 2. **Count tiers:** 10, 25, 50, plus "all of them" (every obtainable pet).
 3. **Personal collection achievements count the pets you own.**

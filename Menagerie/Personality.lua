@@ -23,23 +23,16 @@ local _, ns = ...
 local Personality = {}
 ns.Personality = Personality
 
--- Activities (Core/Activity.lua) as players read them: the guild's own
--- words (herbs, kills, quests, mining, skinning), decided 2026-11-08.
-Personality.NOUN = {
-    boss = "boss-kills", quest = "quests", taxi = "flyturer", pvp = "PvP", herb = "herbs",
-    mine = "mining", fish = "fisking", skin = "skinning", day = "dager sammen",
-    dance = "dansing", cuddle = "kos", chat = "guildprat", dive = "dykking", level = "nye levels",
-    revive = "å vente på deg", nap = "lur i byen", hearth = "å dra hjem", jump = "hopping", explore = "nye steder",
-}
+local L = ns.L
 
--- The first liked thing each day gets a line; these read better than
--- "koste seg med ..." ("%s" is the pet's name).
-Personality.FLAVOR = {
-    dance = "%s danset med deg!", cuddle = "%s elsker å bli kost med!", chat = "%s lytter fornøyd til guildpraten.",
-    dive = "%s plasket rundt med deg!", level = "%s er så stolt av deg!", revive = "%s ventet tålmodig på deg.",
-    nap = "%s tok en lur sammen med deg.", hearth = "%s er glad for å være hjemme!", jump = "%s hopper av glede!",
-    explore = "%s snuser på et nytt sted!",
-}
+-- Activities (Core/Activity.lua) as players read them, and the line for the
+-- first liked one of the day (Locale/nb.lua: activity.*).
+Personality.NOUN, Personality.FLAVOR = {}, {}
+for _, id in ipairs({ "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin", "day", "dance", "cuddle", "chat",
+    "dive", "level", "revive", "nap", "hearth", "jump", "explore" }) do
+    Personality.NOUN[id] = L["activity." .. id]
+    if ns.Strings["activity." .. id .. ".flavor"] then Personality.FLAVOR[id] = L["activity." .. id .. ".flavor"] end
+end
 
 Personality.BY_FAMILY = {
     cat = { "fish" }, bird = { "taxi" }, owl = { "taxi" }, farm = { "herb", "quest" }, rabbit = { "herb" },
@@ -54,59 +47,54 @@ Personality.BY_SPECIES = {
     [5159] = { "herb" }, -- Panda Cub: bamboo
 }
 
--- Norwegian holidays the Festglad pets celebrate ("MMDD" -> name).
-Personality.HOLIDAYS = {
-    ["0101"] = "1. nyttårsdag", ["0517"] = "17. mai", ["0623"] = "St. Hans", ["1224"] = "julaften",
-    ["1225"] = "1. juledag", ["1231"] = "nyttårsaften",
-}
+-- The holidays the Festglad pets celebrate ("MMDD" -> name, Locale/nb.lua: holiday.*).
+Personality.HOLIDAYS = {}
+for _, day in ipairs({ "0101", "0517", "0623", "1224", "1225", "1231" }) do
+    Personality.HOLIDAYS[day] = L["holiday." .. day]
+end
 
 local function Hour(t) return tonumber(date("%H", t)) end
 
--- ids are permanent (they'll key the pinned list); names and texts can change.
+-- ids are permanent (they key the pinned list). What players read about a
+-- trait is in Locale/nb.lua (trait.<id>.name, .desc, and for some .when,
+-- .day, .flavor, .dayflavor), filled in below.
 Personality.TRAITS = {
-    { id = "glupsk", name = "Glupsk", desc = "Spiser alt, og elsker belønningen etter en quest.", like = "quest" },
-    { id = "eventyrlysten", name = "Eventyrlysten", desc = "Vil alltid være med på boss-kills.", like = "boss" },
-    { id = "reiseglad", name = "Reiseglad", desc = "Elsker å fly.", like = "taxi" },
-    { id = "rampete", name = "Rampete", desc = "Liker litt bråk.", like = "pvp" },
-    { id = "gronnfinger", name = "Grønnfinger", desc = "Snuser på hver eneste herb.", like = "herb" },
-    { id = "vannhund", name = "Vannhund", desc = "Elsker vann og fisk.", like = "fish" },
-    { id = "steinhard", name = "Steinhard", desc = "Graver gjerne etter malm.", like = "mine" },
-    { id = "dansefot", name = "Dansefot", desc = "Kan ikke sitte stille når du danser.", like = "dance" },
-    { id = "kjaelen", name = "Kjælen", desc = "Elsker /pet, /hug og /cuddle.", like = "cuddle" },
-    { id = "oppdager", name = "Oppdager", desc = "Vil se hele verden, ett sted om gangen.", like = "explore" },
-    { id = "trofast", name = "Trofast", desc = "Venter på deg, uansett hva som skjer.", like = "revive" },
-    { id = "hoppetass", name = "Hoppetass", desc = "Hopper når du hopper.", like = "jump" },
-    { id = "dykker", name = "Dykker", desc = "Holder pusten lenger enn deg.", like = "dive" },
-    { id = "hjemlengsel", name = "Hjemlengsel", desc = "Borte bra, men hjemme best.", like = "hearth" },
-    { id = "ambisios", name = "Ambisiøs", desc = "Vil se deg bli sterkere.", like = "level" },
-    { id = "latsabb", name = "Latsabb", desc = "En lur i byen er det beste som finnes.", like = "nap" },
-    { id = "pratsom", name = "Pratsom", desc = "Elsker når du prater med guilden.", like = "chat" },
-    { id = "kosete", name = "Kosete", desc = "Det er nok å være sammen.",
-        day = function() return 2 end, dayX = 2, dayText = "Hver dag sammen" },
-    { id = "nattugle", name = "Nattugle", desc = "Våkner til liv når det blir mørkt.",
-        when = function(ctx) local h = Hour(ctx.t); return h >= 22 or h < 4 end,
-        whenText = "mellom kl. 22 og 04", flavor = "%s elsker nattlige eventyr!" },
-    { id = "festglad", name = "Festglad", desc = "Elsker 17. mai, St. Hans, jul og nyttår.",
-        day = function(t) return Personality.HOLIDAYS[date("%m%d", t)] and 3 or 1 end, dayX = 3,
-        dayFlavor = function(name, t) return ("%s feirer %s med deg!"):format(name, Personality.HOLIDAYS[date("%m%d", t)]) end,
-        dayText = "En høytidsdag sammen (17. mai, St. Hans, julaften, 1. juledag, nyttårsaften, 1. nyttårsdag)" },
-    { id = "helgedyr", name = "Helgedyr", desc = "Lever for helgene.",
-        day = function(t) local w = tonumber(date("%w", t)); return (w == 0 or w == 6) and 2 or 1 end, dayX = 2,
-        dayFlavor = function(name) return ("%s elsker helg!"):format(name) end,
-        dayText = "En lørdag eller søndag sammen" },
-    { id = "flokkdyr", name = "Flokkdyr", desc = "Trives best i flokk.", against = "einstoing",
-        when = function(ctx) return ctx.guildmates > 0 end,
-        whenText = "med en fra guilden i gruppen", flavor = "%s koste seg i flokken!" },
-    { id = "einstoing", name = "Einstøing", desc = "Vil helst ha deg for seg selv.", against = "flokkdyr",
-        when = function(ctx) return not ctx.group end,
-        whenText = "uten noen gruppe", flavor = "%s nøt å ha deg for seg selv!" },
-    { id = "huleboer", name = "Huleboer", desc = "Føler seg hjemme i mørke ganger.", against = "friluftsdyr",
-        when = function(ctx) return ctx.instance end,
-        whenText = "i dungeons og raids", flavor = "%s trives i mørket!" },
-    { id = "friluftsdyr", name = "Friluftsdyr", desc = "Elsker frisk luft.", against = "huleboer",
-        when = function(ctx) return not ctx.instance end,
-        whenText = "ute i verden (ikke i dungeons)", flavor = "%s nøt den friske luften!" },
+    { id = "glupsk", like = "quest" },
+    { id = "eventyrlysten", like = "boss" },
+    { id = "reiseglad", like = "taxi" },
+    { id = "rampete", like = "pvp" },
+    { id = "gronnfinger", like = "herb" },
+    { id = "vannhund", like = "fish" },
+    { id = "steinhard", like = "mine" },
+    { id = "dansefot", like = "dance" },
+    { id = "kjaelen", like = "cuddle" },
+    { id = "oppdager", like = "explore" },
+    { id = "trofast", like = "revive" },
+    { id = "hoppetass", like = "jump" },
+    { id = "dykker", like = "dive" },
+    { id = "hjemlengsel", like = "hearth" },
+    { id = "ambisios", like = "level" },
+    { id = "latsabb", like = "nap" },
+    { id = "pratsom", like = "chat" },
+    { id = "kosete", day = function() return 2 end, dayX = 2 },
+    { id = "nattugle", when = function(ctx) local h = Hour(ctx.t); return h >= 22 or h < 4 end },
+    { id = "festglad", day = function(t) return Personality.HOLIDAYS[date("%m%d", t)] and 3 or 1 end, dayX = 3,
+        dayFlavor = function(name, t)
+            return ns.T("trait.festglad.dayflavor", { pet = name, holiday = Personality.HOLIDAYS[date("%m%d", t)] })
+        end },
+    { id = "helgedyr", day = function(t) local w = tonumber(date("%w", t)); return (w == 0 or w == 6) and 2 or 1 end,
+        dayX = 2, dayFlavor = function(name) return ns.T("trait.helgedyr.dayflavor", { pet = name }) end },
+    { id = "flokkdyr", against = "einstoing", when = function(ctx) return ctx.guildmates > 0 end },
+    { id = "einstoing", against = "flokkdyr", when = function(ctx) return not ctx.group end },
+    { id = "huleboer", against = "friluftsdyr", when = function(ctx) return ctx.instance end },
+    { id = "friluftsdyr", against = "huleboer", when = function(ctx) return not ctx.instance end },
 }
+for _, t in ipairs(Personality.TRAITS) do
+    local k = "trait." .. t.id
+    t.name, t.desc = L[k .. ".name"], L[k .. ".desc"]
+    if t.when then t.whenText, t.flavor = L[k .. ".when"], L[k .. ".flavor"] end
+    if t.day then t.dayText = L[k .. ".day"] end
+end
 
 function Personality.ById(id)
     for _, t in ipairs(Personality.TRAITS) do if t.id == id then return t end end
@@ -179,40 +167,37 @@ function Personality:WantsContext(key)
 end
 
 -- How an activity reads in a trait's effect, where "X med kjæledyret ute"
--- doesn't say enough.
-Personality.EFFECT = {
-    dance = "/dance med kjæledyret ute", cuddle = "/pet, /hug eller /cuddle på kjæledyret",
-    chat = "Hver linje du skriver i guildchatten", dive = "Hver gang du dykker under vann med kjæledyret ute",
-    level = "Hvert level du går opp med kjæledyret ute", revive = "Hver gang du står opp igjen etter å ha dødd",
-    nap = "/afk i en by eller et vertshus med kjæledyret ute", hearth = "Hearthstone med kjæledyret ute",
-    jump = "Hvert tiende hopp med kjæledyret ute", explore = "Hvert nytt sted kjæledyret ser sammen med deg",
-}
+-- doesn't say enough (Locale/nb.lua: effect.activity.*).
+Personality.EFFECT = {}
+for _, id in ipairs({ "dance", "cuddle", "chat", "dive", "level", "revive", "nap", "hearth", "jump", "explore" }) do
+    Personality.EFFECT[id] = L["effect.activity." .. id]
+end
 
 -- What a trait does, in numbers (from ns.Config, so it can't go stale).
 function Personality:Effect(trait)
     local C = ns.Config
     if trait.day then
-        return ("%s gir %s så mange bånd-poeng (%d i stedet for %d)."):format(trait.dayText,
-            trait.dayX == 3 and "tre ganger" or "dobbelt", C.BOND_DAY_POINTS * trait.dayX, C.BOND_DAY_POINTS)
+        return ns.T("effect.day", { when = trait.dayText, times = L["effect.times." .. trait.dayX],
+            n = C.BOND_DAY_POINTS * trait.dayX, base = C.BOND_DAY_POINTS })
     end
     local what
     if trait.when then
-        what = ("Alt dere gjør sammen %s"):format(trait.whenText)
+        what = ns.T("effect.when", { when = trait.whenText })
     else
         what = self.EFFECT[trait.like]
         if not what then
             local noun = self.NOUN[trait.like]
-            what = ("%s med kjæledyret ute"):format(noun:sub(1, 1):upper() .. noun:sub(2))
+            what = ns.T("effect.activity", { activity = noun:sub(1, 1):upper() .. noun:sub(2) })
         end
     end
-    return ("%s gir %d bånd-poeng (opptil %d om dagen), mot %d ellers."):format(what, C.BOND_LIKED_POINTS,
-        C.BOND_LIKED_CAP, C.BOND_OTHER_POINTS)
+    return ns.T("effect.liked", { what = what, n = C.BOND_LIKED_POINTS, cap = C.BOND_LIKED_CAP,
+        other = C.BOND_OTHER_POINTS })
 end
 
 -- "herbs, quests og flyturer"
 local function Join(words)
     if #words <= 1 then return words[1] or "" end
-    return table.concat(words, ", ", 1, #words - 1) .. " og " .. words[#words]
+    return table.concat(words, L["list.sep"], 1, #words - 1) .. L["list.and"] .. words[#words]
 end
 
 Personality.Join = Join
@@ -236,7 +221,7 @@ end
 function Personality:Line(key)
     local words = self:LikedWords(key)
     if #words == 0 then return self:Names(key) end
-    return ("%s · liker %s"):format(self:Names(key), Join(words))
+    return ns.T("personality.line", { traits = self:Names(key), likes = Join(words) })
 end
 
 -- Both traits explained, for a tooltip: name, what it means, what it does.

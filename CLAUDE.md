@@ -89,6 +89,11 @@ and refuses the push if it fails.
 Dyreparken.toc     load order (each file only uses files above it)
 Libs/              LibStub, ChatThrottleLib (global), LibSerialize, LibDeflate. Don't edit.
 Core/Init.lua      ns, Config tunables, Bus (internal events), helpers (Now = GetServerTime)
+                   ns.L / ns.T / ns.Fill: the strings (below)
+Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" = "Flyttet inn hos {who} i dag"),
+                   grouped by area; named {placeholders}; the achievement texts (ns.AchTexts) at its end. Loads right
+                   after Init. Code never holds player text: add a key here and use ns.L[key] / ns.T(key, vars).
+                   Developer output (/dp probe, /dp debug, the log) stays English in the code.
 Core/Debug.lua     ns.Log(module, fmt, ...) → SavedVariables ring buffer; no-op when off
 Core/Events.lua    single event frame, On/Off, OutOfCombat queue
 Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() registry
@@ -130,7 +135,7 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    g.life, see Registry.lua; docs/PET_LIFE.md),
                    Bonds (milestone lines after login, the nickname unlock note, dagens dyr, /dp klapp,
                    guild announcements)
-Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
+Achievements/      Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
                    /dp ach share; guild ones synced with the registry, ACH), Kills (research probe for boss/PvP kills, only while
                    debug is on), Page (the achievements SidePage;
@@ -176,6 +181,8 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   trigger: loading screen, leaving combat, dismounting, or claiming.
 - The summon clank (sound files 567569, 568424) is muted for 2.5 s after any `SummonPetByGUID` call, per character,
   default on, toggled with `/dp lyd`. Off when AutoCompanion is loaded (it has its own option).
+- **Strings live in Locale/nb.lua** (2026-11-08): one Lua file per language (English later: Locale/en.lua, falling
+  back to Norwegian), named placeholders ({pet}, {n}), keys grouped by area. Prepared for a full text pass.
 - **Everything players read is Norwegian** (2026-11-08); developer output (`/dp probe`, `/dp debug`, the log) stays
   English. Companions are *adoptert* and *bor hos* someone, never "reservert". "Bor hos Kari Berg i 3 dager" /
   "siden i dag" / "siden i går" (`ns.CaredFor`), "Trenger et hjem", buttons Adopter / Gi slipp / Kallenavn, nicknames in

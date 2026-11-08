@@ -64,32 +64,30 @@ end
 function Report:Message(missing, ok, unknown)
     if #missing == 1 then
         local pet = PetOf(missing[1])
-        return pet and ("Dyreparken: %s har glemt %s hjemme!"):format(missing[1], pet)
-            or ("Dyreparken: %s har ikke kjæledyret sitt ute!"):format(missing[1])
+        return ns.T(pet and "report.one_pet" or "report.one", { player = missing[1], pet = pet })
     end
     if #missing > 1 then
         table.sort(missing)
-        local head = "Dyreparken: Disse har glemt kjæledyret hjemme: "
+        local head = ns.L["report.many"]
         local text, shown = head, 0
         for i, name in ipairs(missing) do
             local pet = PetOf(name)
-            local item = (i > 1 and ", " or "") .. name .. (pet and (" (" .. pet .. ")") or "")
+            local item = (i > 1 and ", " or "") .. (pet and ns.T("report.many_item_pet", { player = name, pet = pet }) or name)
             local rest = #missing - i
             -- Leave room for the " og N til!" tail if more would follow.
             if #text + #item + (rest > 0 and 14 or 1) > MAX_CHAT then break end
             text, shown = text .. item, i
         end
-        if shown < #missing then return text .. (" og %d til!"):format(#missing - shown) end
+        if shown < #missing then return text .. ns.T("report.many_more", { n = #missing - shown }) end
         return text .. "!"
     end
     if ok < 2 then return nil end
-    if unknown == 0 then return ("Dyreparken: Alle %d har kjæledyret ute. For en gjeng!"):format(ok) end
-    return ("Dyreparken: Alle %d med Dyreparken har kjæledyret ute!"):format(ok)
+    return ns.T(unknown == 0 and "report.all" or "report.all_users", { n = ok })
 end
 
 StaticPopupDialogs["DYREPARKEN_REPORT"] = {
     text = "%s",
-    button1 = "Del i gruppechatten",
+    button1 = ns.L["report.button"],
     button2 = CANCEL,
     timeout = 0,
     whileDead = 1,
@@ -107,11 +105,11 @@ end
 
 function Report:Run()
     local channel = GroupChannel()
-    if not channel then return ns.Print("Du er ikke i en gruppe.") end
-    if self.collecting then return ns.Print("En rapport kjører allerede.") end
+    if not channel then return ns.Print(ns.L["report.no_group"]) end
+    if self.collecting then return ns.Print(ns.L["report.running"]) end
     self.collecting = { [ns.PlayerKey()] = HasCompanion() }
     ns.Comm:Send("PET_REQ", {}, channel)
-    ns.Print("Sjekker kjæledyr ...")
+    ns.Print(ns.L["report.checking"])
     C_Timer.After(WAIT, function()
         local answers = self.collecting
         self.collecting = nil
@@ -126,8 +124,8 @@ function Report:Run()
                 missing[#missing + 1] = name
             end
         end
-        if #missing == 0 then ns.Print(("Alle med addonen har kjæledyret sitt ute (%d)."):format(ok)) end
-        if #unknown > 0 then ns.Print("Ukjent (uten addon): " .. Join(unknown)) end
+        if #missing == 0 then ns.Print(ns.T("report.all_local", { n = ok })) end
+        if #unknown > 0 then ns.Print(ns.T("report.unknown", { list = Join(unknown) })) end
         local text = self:Message(missing, ok, #unknown)
         if text then
             self.pending = text

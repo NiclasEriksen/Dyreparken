@@ -294,14 +294,14 @@ end
 
 -- ok, cleaned nickname (or error message)
 function Registry:ValidNickname(nick)
-    if type(nick) ~= "string" then return false, "Du har ikke skrevet noe kallenavn." end
+    if type(nick) ~= "string" then return false, ns.L["nick.empty"] end
     nick = strtrim(nick)
     local len = ns.Utf8Len(nick)
-    if len == 0 then return false, "Du har ikke skrevet noe kallenavn." end
+    if len == 0 then return false, ns.L["nick.empty"] end
     if len > Config.NICKNAME_MAX_LEN then
-        return false, ("Kallenavn kan ha maks %d tegn."):format(Config.NICKNAME_MAX_LEN)
+        return false, ns.T("nick.too_long", { n = Config.NICKNAME_MAX_LEN })
     end
-    if nick:find("[|\n\r]") then return false, "Kallenavn kan ikke inneholde | eller linjeskift." end
+    if nick:find("[|\n\r]") then return false, ns.L["nick.bad_chars"] end
     return true, nick
 end
 
@@ -322,41 +322,41 @@ end
 
 function Registry:Claim(key)
     local g = G()
-    if not g then return false, "Du er ikke i en guild." end
-    if not key then return false, "Ukjent kjæledyr." end
-    if not ns.Pets:Owned()[key] then return false, "Du har ikke det kjæledyret." end
+    if not g then return false, ns.L["adopt.no_guild"] end
+    if not key then return false, ns.L["adopt.unknown"] end
+    if not ns.Pets:Owned()[key] then return false, ns.L["adopt.not_owned"] end
     local owner = self:Holder(key)
     local me = ns.PlayerKey()
-    if owner == me then return false, "Det bor allerede hos deg." end
-    if owner then return false, ("Det bor allerede hos %s."):format(owner) end
+    if owner == me then return false, ns.L["adopt.yours"] end
+    if owner then return false, ns.T("adopt.taken", { owner = owner }) end
     local mine = self:MyPet()
     Write({ k = key, at = ns.Now() })
     ns.Log("Registry", "claim %s (was %s)", key, tostring(mine))
-    local msg = mine and ("Du adopterte %s (og ga slipp på %s)."):format(ns.Pets:NameOfKey(key), ns.Pets:NameOfKey(mine))
-        or ("Du adopterte %s."):format(ns.Pets:NameOfKey(key))
+    local msg = ns.T(mine and "adopt.done_swap" or "adopt.done", { pet = ns.Pets:NameOfKey(key),
+        old = mine and ns.Pets:NameOfKey(mine) })
     -- A name it got from an earlier carer comes along: introduce it.
     local nick, namer = self:Nickname(key)
     if nick then
-        msg = msg .. (namer == me and (" Det heter fortsatt «%s»."):format(nick)
-            or (" Det heter «%s», et navn det fikk av %s. Ta godt vare på det!"):format(nick, namer))
+        msg = msg .. (namer == me and ns.T("adopt.keeps_own_name", { nick = nick })
+            or ns.T("adopt.inherits_name", { nick = nick, namer = namer }))
     end
     return true, msg
 end
 
 function Registry:Release()
     local r = self:MyRecord()
-    if not r or not r.k then return false, "Du har ikke adoptert noe kjæledyr." end
+    if not r or not r.k then return false, ns.L["release.none"] end
     local key = r.k
     Write({ at = r.at })
     ns.Log("Registry", "release %s", key)
-    return true, ("Du ga slipp på %s."):format(ns.Pets:NameOfKey(key))
+    return true, ns.T("release.done", { pet = ns.Pets:NameOfKey(key) })
 end
 
 function Registry:SetNickname(nick)
     local key, r = self:MyPet()
-    if not key then return false, "Du har ikke adoptert noe kjæledyr." end
+    if not key then return false, ns.L["nick.no_pet"] end
     if not self:CanNickname(r) then
-        return false, ("Du kan gi det et kallenavn fra %s."):format(date("%d.%m.%Y", self:NicknameUnlocksAt(r)))
+        return false, ns.T("nick.locked", { date = date("%d.%m.%Y", self:NicknameUnlocksAt(r)) })
     end
     local clear = nick == nil or strtrim(nick) == ""
     local ok, clean = true, nil
@@ -365,10 +365,10 @@ function Registry:SetNickname(nick)
         if not ok then return false, clean end
     end
     if self:Nickname(key) == clean then
-        return false, clean and ("Det heter allerede «%s»."):format(clean) or "Det har ikke noe kallenavn."
+        return false, clean and ns.T("nick.same", { nick = clean }) or ns.L["nick.none"]
     end
     WriteName(key, { n = clean })
-    return true, clean and ("Kallenavnet er nå «%s»."):format(clean) or "Kallenavnet er fjernet."
+    return true, clean and ns.T("nick.set", { nick = clean }) or ns.L["nick.cleared"]
 end
 
 -- Our own record lost a race or lapsed: release it and say why. Called after
@@ -383,9 +383,9 @@ function Registry:CheckMine()
     if owner == me then return false end
     local name = ns.Pets:NameOfKey(r.k)
     if not Active(g, me, r) then
-        ns.Print(("%s gikk tilbake til parken mens du var lenge borte. Adopter det igjen hvis det fortsatt er ledig."):format(name))
+        ns.Print(ns.T("lapse.away", { pet = name }))
     else
-        ns.Print(("%s rakk å adoptere %s rett før deg, så det bor der nå."):format(owner or "?", name))
+        ns.Print(ns.T("lapse.beaten", { owner = owner or ns.L["lapse.unknown_owner"], pet = name }))
         -- We never really held it, so a name we gave it meanwhile doesn't count.
         local mine = g.names[r.k] and g.names[r.k][me]
         if mine and not mine.x and mine.at >= r.at then WriteName(r.k, { x = true }) end

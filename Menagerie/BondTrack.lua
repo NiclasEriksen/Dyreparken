@@ -47,19 +47,18 @@ local function BondTip(self, card)
     local points, level, name, _, nextAt = ns.Bond:Of(card.key)
     if not points then return end
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(("Bånd: %s (nivå %d)"):format(name, level), 1, 0.82, 0)
+    GameTooltip:SetText(ns.T("bond.tip.title", { level = name, n = level }), 1, 0.82, 0)
     if nextAt then
         local nextName = ns.Bond.LEVELS[level + 1][2]
-        GameTooltip:AddLine(("%d poeng til %s."):format(nextAt - points, nextName), 1, 1, 1)
+        GameTooltip:AddLine(ns.T("bond.tip.to_next", { n = nextAt - points, level = nextName }), 1, 1, 1)
         local decor = ns.Decor.LEVELS[level + 1]
         if decor then
-            GameTooltip:AddLine(("På nivå %d får kortet %s."):format(level + 1, decor), 0.5, 0.8, 0.5, true)
+            GameTooltip:AddLine(ns.T("bond.tip.next_decor", { n = level + 1, decor = decor }), 0.5, 0.8, 0.5, true)
         end
     else
-        GameTooltip:AddLine("Det høyeste nivået.", 1, 1, 1)
+        GameTooltip:AddLine(ns.L["bond.tip.top"], 1, 1, 1)
     end
-    GameTooltip:AddLine("Vokser for hver dag kjæledyret er ute med deg, og raskere når dere gjør noe det liker."
-        .. " Båndet svekkes aldri.", 0.7, 0.7, 0.7, true)
+    GameTooltip:AddLine(ns.L["bond.tip.how"], 0.7, 0.7, 0.7, true)
     GameTooltip:Show()
 end
 
@@ -68,13 +67,13 @@ local function PipTip(self, card)
     local n = self.n
     local l = ns.Bond.LEVELS[n]
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(("Nivå %d: %s"):format(n, l[2]), 1, 0.82, 0)
-    GameTooltip:AddLine(n == 1 and "Der alle starter." or ("Fra %d poeng."):format(l[1]), 1, 1, 1)
+    GameTooltip:SetText(ns.T("bond.star.title", { n = n, level = l[2] }), 1, 0.82, 0)
+    GameTooltip:AddLine(n == 1 and ns.L["bond.star.first"] or ns.T("bond.star.from", { n = l[1] }), 1, 1, 1)
     if ns.Decor.LEVELS[n] then
-        GameTooltip:AddLine(("Kortet får %s."):format(ns.Decor.LEVELS[n]), 0.5, 0.8, 0.5, true)
+        GameTooltip:AddLine(ns.T("bond.star.decor", { decor = ns.Decor.LEVELS[n] }), 0.5, 0.8, 0.5, true)
     end
     local _, level = ns.Bond:Of(card.key)
-    if level and n <= level then GameTooltip:AddLine("Nådd!", 0.4, 1, 0.4) end
+    if level and n <= level then GameTooltip:AddLine(ns.L["bond.star.reached"], 0.4, 1, 0.4) end
     GameTooltip:Show()
 end
 
@@ -191,8 +190,8 @@ function Track:Update(card, key, family)
         CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
     b.spark:SetShown(nextAt ~= nil and points > from)
     b.text:SetText(nextAt and ("%d / %d"):format(points, nextAt) or ("%d"):format(points))
-    b.next:SetText(nextAt and ("%d poeng til %s"):format(nextAt - points, ns.Bond.LEVELS[level + 1][2])
-        or "Det høyeste nivået")
+    b.next:SetText(nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
+        or ns.L["bond.top"])
     -- The medallion: the ring greyed and tinted below gold, its disc dark in the tier.
     local m = b.medal
     m.ring:SetDesaturated(level < 5)
@@ -325,10 +324,10 @@ function Track:Celebrate(card, key, level)
         p:Show(); p.anim:Play()
     end
     local name = ns.Bond.LEVELS[level][2]
-    cel.text.title:SetText(("%s!"):format(name))
+    cel.text.title:SetText(ns.T("bond.celebrate.title", { level = name }))
     local decor = ns.Decor.LEVELS[level]
-    cel.text.sub:SetText(("%s og du er nå på nivå %d.%s"):format(ns.Bonds:NameOf(key), level,
-        decor and ("\nNy pynt: %s."):format(decor) or ""))
+    cel.text.sub:SetText(ns.T("bond.celebrate.text", { pet = ns.Bonds:NameOf(key), n = level })
+        .. (decor and ("\n" .. ns.T("bond.celebrate.decor", { decor = decor })) or ""))
     cel.text:Show(); cel.text.anim:Play()
     for _, s in ipairs(self.SOUNDS) do
         local id = SOUNDKIT and SOUNDKIT[s]

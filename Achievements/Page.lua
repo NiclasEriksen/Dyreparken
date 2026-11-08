@@ -31,7 +31,7 @@ local function ShowTooltip(r)
     GameTooltip:SetText(A():Name(it.id))
     if tx.desc then GameTooltip:AddLine(tx.desc, 1, 1, 1, true) end
     if it.got then
-        GameTooltip:AddLine(T().tip_earned:format(date("%d.%m.%Y", it.got.at)), 0.25, 1, 0.25)
+        GameTooltip:AddLine(ns.Fill(T().tip_earned, { date = date("%d.%m.%Y", it.got.at) }), 0.25, 1, 0.25)
         if type(it.got.ann) == "number" then GameTooltip:AddLine(T().tip_shared, 0.7, 0.7, 0.7) end
     elseif it.need then
         GameTooltip:AddLine(A():Progress(it.def, it.have, it.need), 0.7, 0.7, 0.7)
@@ -47,7 +47,7 @@ local function ShowTooltip(r)
                 GameTooltip:AddLine(item.text, 0.6, 0.6, 0.6)
             end
         end
-        if more > 0 then GameTooltip:AddLine(T().tip_more:format(more), 0.6, 0.6, 0.6) end
+        if more > 0 then GameTooltip:AddLine(ns.Fill(T().tip_more, { n = more }), 0.6, 0.6, 0.6) end
     end
     GameTooltip:Show()
 end

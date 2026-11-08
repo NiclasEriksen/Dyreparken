@@ -135,14 +135,8 @@ Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
 }
 
 -- What each level adds, for the bond's tooltip ("på nivå 3: ...").
-Decor.LEVELS = {
-    [2] = "en kant og et skjær i familiens farge",
-    [3] = "sølvkant og sølvhjørner",
-    [4] = "en glød under kjæledyret",
-    [5] = "gull overalt, og gnister som flyr",
-    [6] = "et bånd med navnet på nivået, og lysstråler",
-    [7] = "hjerter, og alt gull skinner",
-}
+Decor.LEVELS = {}
+for n = 2, 7 do Decor.LEVELS[n] = ns.L["decor.level." .. n] end
 
 -- The border's color by level (2: the family's own).
 local function EdgeColor(level, family)

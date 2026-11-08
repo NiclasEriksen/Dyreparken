@@ -48,21 +48,21 @@ function Park:Records(now)
             if names[tag] then families[tag] = (families[tag] or 0) + 1 end
         end
     end
-    if not oldest then return { "Ingen har adoptert et kjæledyr ennå. Bli den første!" } end
+    if not oldest then return { ns.L["park.empty"] } end
     local lines = {}
-    lines[1] = ("|cffffd100Lengste vennskap:|r %s og %s (%s)"):format(ns.Bonds:NameOf(oldest.key), oldest.owner,
-        ns.CaredFor(oldest.at, now))
+    lines[1] = ns.T("park.oldest", { pet = ns.Bonds:NameOf(oldest.key), owner = oldest.owner,
+        time = ns.CaredFor(oldest.at, now) })
     local best, bestN
     for tag, n in pairs(families) do
         if not best or n > bestN or (n == bestN and names[tag] < names[best]) then best, bestN = tag, n end
     end
     if best then
-        lines[#lines + 1] = ("|cffffd100Mest populære familie:|r %s (%d har et hjem)"):format(names[best], bestN)
+        lines[#lines + 1] = ns.T("park.family", { family = names[best], n = bestN })
     end
     -- With one pet in the park, it's both the oldest and the newest: once is enough.
     if newest.key ~= oldest.key then
-        lines[#lines + 1] = ("|cffffd100Nyeste beboer:|r %s hos %s (%s)"):format(ns.Bonds:NameOf(newest.key),
-            newest.owner, ns.CaredFor(newest.at, now))
+        lines[#lines + 1] = ns.T("park.newest", { pet = ns.Bonds:NameOf(newest.key), owner = newest.owner,
+            time = ns.CaredFor(newest.at, now) })
     end
     return lines
 end
@@ -76,22 +76,22 @@ local function ShowTooltip(cell)
     GameTooltip:SetText(nick or ns.Pets:NameOfKey(key))
     if nick then GameTooltip:AddLine(ns.Pets:NameOfKey(key), 0.7, 0.7, 0.7) end
     if owner then
-        local who = owner == ns.PlayerKey() and "deg" or owner
+        local who = owner == ns.PlayerKey() and ns.L["home.you"] or owner
         GameTooltip:AddLine(ns.Home(who, r.at), 1, 0.82, 0)
-        GameTooltip:AddLine(("Bånd: %s"):format(ns.Bond:Label(key)), 1, 1, 1)
+        GameTooltip:AddLine(ns.T("tip.bond", { label = ns.Bond:Label(key) }), 1, 1, 1)
     else
-        GameTooltip:AddLine("Trenger et hjem", 0.5, 0.8, 0.5)
+        GameTooltip:AddLine(ns.L["park.free"], 0.5, 0.8, 0.5)
     end
     if nick then
-        local by = namer == ns.PlayerKey() and "deg" or namer
-        GameTooltip:AddLine(("Navngitt av %s, %s"):format(by, Day(namedAt)), 0.7, 0.7, 0.7)
+        local by = namer == ns.PlayerKey() and ns.L["home.you"] or namer
+        GameTooltip:AddLine(ns.T("tip.named_by", { who = by, date = Day(namedAt) }), 0.7, 0.7, 0.7)
     end
     GameTooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
     for _, t in ipairs(ns.Personality:Traits(key)) do
         GameTooltip:AddLine(("%s: %s"):format(t.name, ns.Personality:Effect(t)), 0.9, 0.75, 0.3, true)
     end
     if owner ~= ns.PlayerKey() and ns.Pets:Owned()[key] then
-        GameTooltip:AddLine(owner and "Du har også dette kjæledyret." or "Du har dette kjæledyret, og kan adoptere det.",
+        GameTooltip:AddLine(ns.L[owner and "park.also_yours" or "park.can_adopt"],
             1, 1, 1)
     end
     GameTooltip:Show()
@@ -163,20 +163,20 @@ end
 
 local function Build(p)
     page = p.frame
-    page.summary = ns.SidePage:CounterBox(p, "Har et hjem")
+    page.summary = ns.SidePage:CounterBox(p, ns.L["park.counter"])
     child = ns.SidePage:ScrollInset(p)
     records = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     records:SetPoint("TOPLEFT", child, "TOPLEFT", 8, -8)
     records:SetPoint("RIGHT", child, "RIGHT", -8, 0)
     records:SetJustifyH("LEFT")
     legend = child:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    legend:SetText(("I farger: har et hjem.  Grå: trenger et hjem.  |T%s:14|t Du kan adoptere det."):format(READY))
+    legend:SetText(ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) }))
     Park._page, Park._records, Park._legend = page, records, legend
 end
 
 sp = ns.SidePage:New({
     id = "Park",
-    title = "Parken",
+    title = ns.L["park.title"],
     icon = ns.Achievements:Icon({ id = "page:park", icon = { "INV_Box_PetCarrier_01", "Ability_Hunter_BeastCall" } }),
     build = Build,
     refresh = Redraw,

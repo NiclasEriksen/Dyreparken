@@ -18,6 +18,41 @@ end
 -- a different protocol are ignored (and told to update, once).
 ns.PROTOCOL = tonumber(GetMeta and GetMeta(addonName, "X-Protocol")) or 1
 
+------------------------------------------------------------------------------
+-- Strings players read: Locale/nb.lua (loaded right after this file) fills
+-- ns.L with every one of them, keyed like "card.home.today", so they can be
+-- edited in one place and translated (decided 2026-11-08). Developer output
+-- (/dp probe, /dp debug, the log) stays English, in the code.
+--   ns.L[key]         the text as it is
+--   ns.T(key, vars)   with its {named} placeholders filled from vars; a
+--                     placeholder without a value is left as it is
+-- A missing key shows as the key itself (and is logged), never an error.
+------------------------------------------------------------------------------
+local strings = {} -- the texts themselves; ns.L reads and writes through to them
+ns.Strings = strings -- (for the tests: every key)
+ns.L = setmetatable({}, {
+    __newindex = strings,
+    __index = function(_, key)
+        local s = strings[key]
+        if s ~= nil then return s end
+        if ns.Log then ns.Log("Locale", "missing string %s", tostring(key)) end
+        return key
+    end,
+})
+
+-- A text with its {named} placeholders filled from vars.
+function ns.Fill(s, vars)
+    if vars and type(s) == "string" then
+        s = s:gsub("{([%w_]+)}", function(k)
+            local v = vars[k]
+            if v ~= nil then return tostring(v) end
+        end)
+    end
+    return s
+end
+
+function ns.T(key, vars) return ns.Fill(ns.L[key], vars) end
+
 -- Tunables. Keep them here so they're easy to find and change.
 ns.Config = {
     INACTIVE_RELEASE_DAYS = 30,   -- reservation released after this long unseen
@@ -80,30 +115,35 @@ end
 -- How long a companion has lived with someone, to follow "Bor hos X":
 -- "siden i dag", "siden i går", "i 5 dager", "i 3 måneder", "i 2 år".
 -- Today/yesterday go by calendar date; the rest by whole days.
-function ns.CaredFor(t, now)
-    now = now or ns.Now()
-    if date("%Y%m%d", t) == date("%Y%m%d", now) or t > now then return "siden i dag" end
+-- How long ago t was, by the calendar: "today", "yesterday", or "days",
+-- "months", "years" with a count.
+local function Ago(t, now)
+    if date("%Y%m%d", t) == date("%Y%m%d", now) or t > now then return "today" end
     -- Yesterday by the calendar: noon of the day before. now - 86400 lands
     -- is wrong around DST: just after midnight following a 23-hour day it
     -- lands two calendar days back.
     local d = date("*t", now)
     local yesterday = time({ year = d.year, month = d.month, day = d.day - 1, hour = 12 })
-    if date("%Y%m%d", t) == date("%Y%m%d", yesterday) then return "siden i går" end
+    if date("%Y%m%d", t) == date("%Y%m%d", yesterday) then return "yesterday" end
     local days = math.max(2, math.floor((now - t) / 86400))
-    if days < 60 then return ("i %d dager"):format(days) end
+    if days < 60 then return "days", days end
     -- Rounded, so it never says "1 måneder": 60 days is already "2 måneder".
-    if days < 730 then return ("i %d måneder"):format(math.floor(days / 30.44 + 0.5)) end
-    return ("i %d år"):format(math.floor(days / 365.25))
+    if days < 730 then return "months", math.floor(days / 30.44 + 0.5) end
+    return "years", math.floor(days / 365.25)
+end
+
+function ns.CaredFor(t, now)
+    local kind, n = Ago(t, now or ns.Now())
+    return ns.T("time." .. kind, { n = n })
 end
 
 -- Where a pet lives, and since when, as a phrase: "Flyttet inn hos deg i
 -- dag", "... i går", else "Bor hos Kari Berg i 3 dager" (2026-11-08: "bor
--- hos deg siden i dag" read badly). who: "deg" or a name.
+-- hos deg siden i dag" read badly). who: a name, or ns.L["home.you"].
 function ns.Home(who, t, now)
-    local how = ns.CaredFor(t, now)
-    if how == "siden i dag" then return ("Flyttet inn hos %s i dag"):format(who) end
-    if how == "siden i går" then return ("Flyttet inn hos %s i går"):format(who) end
-    return ("Bor hos %s %s"):format(who, how)
+    local kind = Ago(t, now or ns.Now())
+    if kind == "today" or kind == "yesterday" then return ns.T("home." .. kind, { who = who }) end
+    return ns.T("home.since", { who = who, how = ns.CaredFor(t, now) })
 end
 
 -- A time from the wire we can trust the shape of: a real number, not NaN or

@@ -18,10 +18,10 @@ local function Adopt(_, raw)
     local key
     if raw and raw ~= "" then
         key = ns.Pets:FindOwned(raw)
-        if not key then return ns.Print(("Du har ikke noe kjæledyr som passer «%s»."):format(raw)) end
+        if not key then return ns.Print(ns.T("cmd.adopt.nomatch", { text = raw })) end
     else
         local guid = ns.Pets:Summoned()
-        if not guid then return ns.Print("Tilkall kjæledyret du vil adoptere, eller skriv navnet.") end
+        if not guid then return ns.Print(ns.L["cmd.adopt.nothing"]) end
         key = ns.Pets:KeyOf(guid)
     end
     local ok, msg = ns.Registry:Claim(key)
@@ -50,20 +50,21 @@ local function List()
     table.sort(rows, function(a, b) return a.name < b.name end)
     local total = ns.Pets:Total()
     local pct = total > 0 and math.floor(#rows / total * 100 + 0.5) or 0
-    ns.Print(("Guilden har hjem til %d av %d kjæledyr (%d%%):"):format(#rows, total, pct))
+    ns.Print(ns.T("cmd.list.head", { n = #rows, total = total, pct = pct }))
     for _, row in ipairs(rows) do
-        ns.Print(("  %s - %s%s"):format(row.name, row.owner, row.nick and (" («" .. row.nick .. "»)") or ""))
+        ns.Print(ns.T(row.nick and "cmd.list.row_nick" or "cmd.list.row", { pet = row.name, owner = row.owner,
+            nick = row.nick }))
     end
 end
 
 local function Sound(arg)
     if ns.Summon:Deferring() then
-        return ns.Print("AutoCompanion er lastet: bruk innstillingen «Mute summoning sounds» der.")
+        return ns.Print(ns.L["cmd.sound.deferred"])
     end
     local on
     if ON[arg or ""] or OFF[arg or ""] then on = ON[arg] == true else on = ns.DB.char.muteSummonSound and true or false end
     ns.Summon:SetMuteSound(not on)
-    ns.Print(on and "Tilkallingslyden er på." or "Tilkallingslyden er dempet.")
+    ns.Print(ns.L[on and "cmd.sound.on" or "cmd.sound.off"])
 end
 
 local function Achievements(arg)
@@ -87,17 +88,19 @@ end
 
 local function Report() ns.Report:Run() end
 
-Add("adopter", "adopter [navn] - adopter kjæledyret du har ute, eller et ved navn", Adopt)
-Add("gislipp", "gislipp - gi slipp på kjæledyret ditt", LetGo)
-Add("navn", "navn [kallenavn] - gi kjæledyret ditt et kallenavn (tomt fjerner det)", Nick)
-Add("liste", "liste - hvilke kjæledyr som har et hjem i guilden", List)
-Add("lyd", "lyd [på|av] - klirringen når et kjæledyr tilkalles (dempet som standard)", Sound)
-Add("prestasjoner", "prestasjoner [del|varsel på|av|ikoner] - prestasjonene dine; del nye i guild-chatten",
-    Achievements)
-Add("versjon", "versjon [guild|gruppe] - hvem som har hvilken versjon", Version)
-Add("kunngjør", "kunngjør [på|av] - del adopsjoner og kallenavn i guild-chatten (på som standard)", Announce)
-Add("klapp", "klapp - klapp kjæledyret du har valgt som mål, eller ditt eget", function() ns.Bonds:Pat() end)
-Add("rapport", "rapport - rop ut dem i gruppa som ikke har kjæledyret ute", Report)
+-- The command words are code (both the Norwegian and the old English ones
+-- work); what the help says about them is text (Locale/nb.lua, cmd.help.*).
+local L = ns.L
+Add("adopter", L["cmd.help.adopter"], Adopt)
+Add("gislipp", L["cmd.help.gislipp"], LetGo)
+Add("navn", L["cmd.help.navn"], Nick)
+Add("liste", L["cmd.help.liste"], List)
+Add("lyd", L["cmd.help.lyd"], Sound)
+Add("prestasjoner", L["cmd.help.prestasjoner"], Achievements)
+Add("versjon", L["cmd.help.versjon"], Version)
+Add("kunngjør", L["cmd.help.kunngjor"], Announce)
+Add("klapp", L["cmd.help.klapp"], function() ns.Bonds:Pat() end)
+Add("rapport", L["cmd.help.rapport"], Report)
 -- The English names from before the Norwegian interface (2026-11-08), and
 -- the oldest ones (claim, release), still work but aren't in the help.
 commands.adopt, commands.letgo, commands.claim, commands.release = Adopt, LetGo, Adopt, LetGo
@@ -153,6 +156,6 @@ SlashCmdList.DYREPARKEN = function(input)
     local fn = commands[cmd]
     -- fn(lowercased arg, arg as typed): names and nicknames keep their case.
     if fn then return fn(arg ~= "" and arg:lower() or nil, arg) end
-    ns.Print(ns.VERSION .. " - kommandoer:")
+    ns.Print(ns.T("cmd.help.head", { version = ns.VERSION }))
     for _, line in ipairs(help) do ns.Print("  /dp " .. line) end
 end

@@ -30,13 +30,13 @@ local PUBLISH_AFTER = 1800 -- seconds
 -- Sjelevenn in about seven weeks. The loyalty achievements are levels
 -- (Defs.lua), so they follow the curve.
 Bond.LEVELS = {
-    { 0, "Bekjent" },
-    { 80, "Kamerat" },
-    { 210, "Venn" },
-    { 410, "God venn" },
-    { 700, "Bestevenn" },
-    { 1120, "Uatskillelig" },
-    { 1750, "Sjelevenn" },
+    { 0, ns.L["bond.level.1"] },
+    { 80, ns.L["bond.level.2"] },
+    { 210, ns.L["bond.level.3"] },
+    { 410, ns.L["bond.level.4"] },
+    { 700, ns.L["bond.level.5"] },
+    { 1120, ns.L["bond.level.6"] },
+    { 1750, ns.L["bond.level.7"] },
 }
 local LEVELS = Bond.LEVELS
 
@@ -63,7 +63,7 @@ end
 function Bond:Label(key)
     local p, level, name = self:Of(key)
     if not p then return nil end
-    return ("%s (nivå %d)"):format(name, level)
+    return ns.T("bond.label", { level = name, n = level })
 end
 
 ------------------------------------------------------------------------------
@@ -104,7 +104,7 @@ function Bond:Add(points)
     local level, name = self:Level(p)
     ns.Log("Bond", "%s +%d -> %d (level %d)", key, points, p, level)
     if level > oldLevel then
-        ns.Print(("|cffffd100Båndet ditt med %s er nå på nivå %d: %s!|r"):format(ns.Bonds:NameOf(key), level, name))
+        ns.Print(ns.T("bond.levelup", { pet = ns.Bonds:NameOf(key), n = level, level = name }))
         Publish(key)
     elseif not e then
         Publish(key) -- a new bond: everyone should know of it
@@ -201,14 +201,15 @@ function Bond:OnActivity(id, n, key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then
         per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
-        flavor = (P.FLAVOR[id] or ("%s koste seg med " .. P.NOUN[id] .. "!")):format(name)
+        flavor = P.FLAVOR[id] and ns.Fill(P.FLAVOR[id], { pet = name })
+            or ns.T("bond.liked", { pet = name, activity = P.NOUN[id] })
     elseif P:WantsContext(key) then
         -- A unit name we can't read mustn't cost the points: no bonus then.
         local ok, ctx = pcall(Bond.Context)
         for _, t in ipairs(ok and P:Fitting(key, ctx) or {}) do
             if (d.got["trait:" .. t.id] or 0) < C.BOND_LIKED_CAP then
                 capKey, per, cap = "trait:" .. t.id, C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
-                flavor = t.flavor:format(name)
+                flavor = ns.Fill(t.flavor, { pet = name })
                 break
             end
         end

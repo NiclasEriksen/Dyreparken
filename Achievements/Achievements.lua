@@ -292,7 +292,7 @@ function Ach:Details(d, ctx)
 end
 
 function Ach:Progress(d, have, need)
-    if d.kind == "bond" then return T().points:format(have, need) end
+    if d.kind == "bond" then return ns.Fill(T().points, { have = have, need = need }) end
     return ("%d/%d"):format(have, need)
 end
 
@@ -329,8 +329,8 @@ local function GuildLine(ids)
     local names = {}
     for _, id in ipairs(ids) do names[#names + 1] = Ach:Link(id) end
     local last = table.remove(names)
-    local list = #names > 0 and (table.concat(names, ", ") .. " og " .. last) or last
-    return T().guild_earned:format(GuildName() or "?", list)
+    local list = #names > 0 and (table.concat(names, ns.L["list.sep"]) .. ns.L["list.and"] .. last) or last
+    return ns.Fill(T().guild_earned, { guild = GuildName() or "?", list = list })
 end
 
 local function Appeared(ids)
@@ -461,7 +461,7 @@ function Ach:Check(reason, which)
     ns.Log("Ach", "check (%s): %d new, %d quiet, %d guild", tostring(reason), #new, quiet, #newGuild)
     if quiet > 0 and not summarized then
         summarized = true
-        ns.Print(T().already:format(self:Count()))
+        ns.Print(ns.Fill(T().already, { n = self:Count() }))
     end
     if #new > 0 then self:Notify(new) end
     if #new > 0 or quiet > 0 or #newGuild > 0 then ns.Bus:Fire("ACH") end
@@ -497,9 +497,9 @@ end
 
 local function EarnedLine(who, ids)
     local names = Links(ids)
-    if #names == 1 then return T().earned_one:format(who, names[1]) end
+    if #names == 1 then return ns.Fill(T().earned_one, { player = who, name = names[1] }) end
     local last = table.remove(names)
-    return T().earned_many:format(who, table.concat(names, ", "), last)
+    return ns.Fill(T().earned_many, { player = who, list = table.concat(names, ns.L["list.sep"]), last = last })
 end
 Ach.EarnedLine = EarnedLine
 
@@ -632,7 +632,7 @@ function Ach:List()
             lines[#lines + 1] = ("  |cff909090%s|r %s"):format(self:Link(row.id), self:RowInfo(row))
         end
     end
-    ns.Print(T().list_header:format(got, #rows))
+    ns.Print(ns.Fill(T().list_header, { n = got, total = #rows }))
     for _, line in ipairs(lines) do ns.Print(line) end
 end
 

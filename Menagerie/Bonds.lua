@@ -44,10 +44,10 @@ function Bonds:Milestone(at, now)
     now = now or ns.Now()
     local days = DayNumber(now) - DayNumber(at)
     if days <= 0 then return nil end
-    if days == 30 then return "1 måned" end
-    if days == 100 then return "100 dager" end
+    if days == 30 then return ns.L["milestone.month"] end
+    if days == 100 then return ns.L["milestone.days100"] end
     local a, n = date("*t", at), date("*t", now)
-    if a.month == n.month and a.day == n.day then return ("%d år"):format(n.year - a.year) end
+    if a.month == n.month and a.day == n.day then return ns.T("milestone.years", { n = n.year - a.year }) end
 end
 
 -- What a pet is called: its nickname, or the species name.
@@ -68,13 +68,12 @@ function Bonds:Celebrate()
     if key and char.bondDay ~= today then
         char.bondDay = today
         local m = self:Milestone(r.at, now)
-        if m then ns.Print(Gold(("I dag har %s bodd hos deg i %s!"):format(self:NameOf(key), m))) end
+        if m then ns.Print(Gold(ns.T("milestone.mine", { pet = self:NameOf(key), time = m }))) end
     end
     if key and ns.Registry:CanNickname(r) and char.toldNameUnlock ~= r.at then
         char.toldNameUnlock = r.at
         local named = ns.Registry:Nickname(key)
-        ns.Print(named and ("Nå kan du gi %s et nytt kallenavn hvis du vil: /dp navn"):format(named)
-            or ("Nå kan du gi %s et kallenavn: /dp navn"):format(ns.Pets:NameOfKey(key)))
+        ns.Print(ns.T(named and "nick.unlocked_rename" or "nick.unlocked", { pet = named or ns.Pets:NameOfKey(key) }))
     end
 
     if g.bondDay == today then return end
@@ -83,11 +82,11 @@ function Bonds:Celebrate()
     for petKey, owner in pairs(ns.Registry:Holders()) do
         local _, rec = ns.Registry:Holder(petKey)
         local m = owner ~= me and self:Milestone(rec.at, now)
-        if m then lines[#lines + 1] = ("%s og %s feirer %s sammen i dag!"):format(owner, self:NameOf(petKey), m) end
+        if m then lines[#lines + 1] = ns.T("milestone.other", { owner = owner, pet = self:NameOf(petKey), time = m }) end
     end
     table.sort(lines)
     for i = 1, math.min(#lines, MAX_OTHERS) do ns.Print(lines[i]) end
-    if #lines > MAX_OTHERS then ns.Print(("... og %d til."):format(#lines - MAX_OTHERS)) end
+    if #lines > MAX_OTHERS then ns.Print(ns.T("milestone.more", { n = #lines - MAX_OTHERS })) end
 end
 
 -- key, owner of today's pet, or nil when nobody has adopted one.
@@ -118,9 +117,8 @@ function Bonds:PatText()
         local owner, r = ns.Tooltip:ReservationOf("target")
         local nick = owner and ns.Registry:Nickname(r.k)
         owner = owner or ns.Tooltip:OwnerOf("target")
-        if owner == me or not owner then return ("klapper %s."):format(nick or species) end
-        if nick then return ("klapper %s (%s sin %s)."):format(nick, owner, species) end
-        return ("klapper %s sin %s."):format(owner, species)
+        if owner == me or not owner then return ns.T("pat.own", { pet = nick or species }) end
+        return ns.T(nick and "pat.other_nick" or "pat.other", { nick = nick, owner = owner, species = species })
     end
     local guid = ns.Pets:Summoned()
     if not guid then return nil end
@@ -142,23 +140,21 @@ function Bonds:Announce(kind, key)
     local me, species = ns.PlayerKey(), ns.Pets:NameOfKey(key)
     local text
     if kind == "adopt" then
-        text = nick and ("Dyreparken: %s adopterte %s («%s»)!"):format(me, species, nick)
-            or ("Dyreparken: %s adopterte %s!"):format(me, species)
+        text = ns.T(nick and "announce.adopt_nick" or "announce.adopt", { player = me, species = species, nick = nick })
     else
-        text = ("Dyreparken: %s ga %s kallenavnet «%s»!"):format(me, species, nick)
+        text = ns.T("announce.name", { player = me, species = species, nick = nick })
     end
     SendChatMessage(text, "GUILD")
 end
 
 function Bonds:SetAnnounce(on)
     ns.DB.char.announce = on
-    ns.Print(on and "Adopsjoner og kallenavn kunngjøres i guild-chatten."
-        or "Adopsjoner og kallenavn kunngjøres ikke lenger i guild-chatten.")
+    ns.Print(ns.L[on and "announce.on" or "announce.off"])
 end
 
 function Bonds:Pat()
-    if ns.InCombat() then return ns.Print("Ikke nå, du er i kamp.") end
+    if ns.InCombat() then return ns.Print(ns.L["pat.combat"]) end
     local text = self:PatText()
-    if not text then return ns.Print("Tilkall kjæledyret ditt, eller velg et kjæledyr som mål.") end
+    if not text then return ns.Print(ns.L["pat.nothing"]) end
     SendChatMessage(text, "EMOTE")
 end

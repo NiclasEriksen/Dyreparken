@@ -58,19 +58,19 @@ function JournalUI:AddTooltipLines(tooltip, key)
     local nick, namer, namedAt = ns.Registry:Nickname(key)
     local function Nick()
         if not nick then return end
-        tooltip:AddLine(("Kallenavn: «%s»"):format(nick), 1, 1, 1)
-        local by = namer == ns.PlayerKey() and "deg" or namer
-        tooltip:AddLine(("Navngitt av %s, %s"):format(by, Day(namedAt)), 0.7, 0.7, 0.7)
+        tooltip:AddLine(ns.T("tip.nick", { nick = nick }), 1, 1, 1)
+        local by = namer == ns.PlayerKey() and ns.L["home.you"] or namer
+        tooltip:AddLine(ns.T("tip.named_by", { who = by, date = Day(namedAt) }), 0.7, 0.7, 0.7)
     end
     tooltip:AddLine(" ")
     if status == "free" then
-        tooltip:AddLine("Dyreparken: trenger et hjem", 0.5, 0.8, 0.5)
+        tooltip:AddLine(ns.L["tip.free"], 0.5, 0.8, 0.5)
         Nick()
         tooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
         return
     end
-    tooltip:AddLine(ns.Home(status == "mine" and "deg" or owner, r.at), 1, 0.82, 0)
-    tooltip:AddLine(("Bånd: %s"):format(ns.Bond:Label(key)), 1, 1, 1)
+    tooltip:AddLine(ns.Home(status == "mine" and ns.L["home.you"] or owner, r.at), 1, 0.82, 0)
+    tooltip:AddLine(ns.T("tip.bond", { label = ns.Bond:Label(key) }), 1, 1, 1)
     Nick()
     tooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
 end
@@ -183,12 +183,12 @@ local BOX_GAP = 6 -- between the boxes on the "Total Pets" row
 local function UpdateExtras()
     local n, total = ns.Registry:Count(), ns.Pets:Total()
     local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
-    card.counter:SetText(("%d av %d (%d%%)"):format(n, total, pct))
-    card.guildBox.tip = ("Guilden: %d av %d kjæledyr har et hjem (%d%%)."):format(n, total, pct)
+    card.counter:SetText(ns.T("card.guild.value", { n = n, total = total, pct = pct }))
+    card.guildBox.tip = ns.T("card.guild.tip", { n = n, total = total, pct = pct })
     local today, owner = ns.Bonds:PetOfTheDay()
     card.today:SetText(today and ns.Bonds:NameOf(today) or "-")
-    card.todayBox.tip = today and ("Dagens dyr: %s, som bor hos %s."):format(ns.Bonds:NameOf(today), owner)
-        or "Dagens dyr: ingen har adoptert et kjæledyr ennå."
+    card.todayBox.tip = today and ns.T("card.today.tip", { pet = ns.Bonds:NameOf(today), owner = owner })
+        or ns.L["card.today.none"]
     -- "Dagens dyr" fills the row up to the card's right edge, wherever the
     -- row starts: a fixed width ran past the window (seen 2026-11-08). A long
     -- name is cut short; the tooltip has it whole.
@@ -224,9 +224,9 @@ local function UpdateCard()
     local nick = ns.Registry:Nickname(key)
     local text
     if status == "free" then
-        text = "|cff80cc80Trenger et hjem|r"
+        text = "|cff80cc80" .. ns.L["card.free"] .. "|r"
     elseif status == "mine" then
-        text = "|cffffd100" .. ns.Home("deg", r.at) .. "|r"
+        text = "|cffffd100" .. ns.Home(ns.L["home.you"], r.at) .. "|r"
     else
         text = "|cffff8080" .. ns.Home(owner, r.at) .. "|r"
     end
@@ -237,7 +237,7 @@ local function UpdateCard()
     card.fullName, card.species, card.home = nick or species, species, text -- for the hover
     card.personality:SetText(ns.Personality:Names(key))
     local likes = ns.Personality:LikedWords(key)
-    card.likes:SetText(#likes > 0 and ("Liker %s"):format(ns.Personality.Join(likes)) or "")
+    card.likes:SetText(#likes > 0 and ns.T("card.likes", { list = ns.Personality.Join(likes) }) or "")
     local scene = ns.Scenes:For(key)
     if scene then
         card.scene:SetTexture(scene)
@@ -255,13 +255,13 @@ local function UpdateCard()
 
     card.key = key
     if status == "mine" then
-        card.reserve:SetText("Gi slipp")
+        card.reserve:SetText(ns.L["card.letgo"])
         card.reserve:Enable()
         card.reserve:Show()
         card.nick:Show()
         if ns.Registry:CanNickname(r) then card.nick:Enable() else card.nick:Disable() end
     elseif status == "free" and ownedIt then
-        card.reserve:SetText("Adopter")
+        card.reserve:SetText(ns.L["card.adopt"])
         card.reserve:Enable()
         card.reserve:Show()
         card.nick:Hide()
@@ -414,8 +414,7 @@ local function BuildCard()
         if #words > 0 then
             GameTooltip:AddLine(("Liker: %s"):format(table.concat(words, ", ")), 0.5, 0.8, 0.5, true)
         end
-        GameTooltip:AddLine("Gjør det den liker mens den er ute med deg, så vokser båndet raskere.", 0.7, 0.7, 0.7,
-            true)
+        GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     card.personalityHit:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
@@ -474,14 +473,14 @@ local function BuildCard()
     card.nick = CreateFrame("Button", nil, PetJournal, "UIPanelButtonTemplate")
     card.nick:SetSize(90, 22)
     card.nick:SetPoint("LEFT", card.reserve, "RIGHT", 4, 0)
-    card.nick:SetText("Kallenavn")
+    card.nick:SetText(ns.L["card.nick"])
     card.nick:SetMotionScriptsWhileDisabled(true)
     card.nick:SetScript("OnClick", function() JournalUI:AskNickname() end)
     card.nick:SetScript("OnEnter", function(self)
         local _, r = ns.Registry:MyPet()
         if r and not ns.Registry:CanNickname(r) then
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(("Du kan gi det et kallenavn fra %s."):format(Day(ns.Registry:NicknameUnlocksAt(r))))
+            GameTooltip:SetText(ns.T("card.nick.locked", { date = Day(ns.Registry:NicknameUnlocksAt(r)) }))
             GameTooltip:Show()
         end
     end)
@@ -492,13 +491,13 @@ local function BuildCard()
     -- "Guilden x av y": y = every companion in Forever's journal
     -- (Pets:Total, Data/Companions.lua). Then "Dagens dyr".
     local count = rawget(PetJournal, "PetCount") or rawget(_G, "PetJournalPetCount")
-    card.guildBox = InfoBox("Guilden", 140)
+    card.guildBox = InfoBox(ns.L["card.guild"], 140)
     if count then
         card.guildBox:SetPoint("LEFT", count, "RIGHT", BOX_GAP, 0)
     else
         card.guildBox:SetPoint("BOTTOMLEFT", c, "TOPLEFT", 160, 8)
     end
-    card.todayBox = InfoBox("Dagens dyr", 140)
+    card.todayBox = InfoBox(ns.L["card.today"], 140)
     card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", BOX_GAP, 0)
     card.counter, card.today = card.guildBox.value, card.todayBox.value
 
@@ -510,7 +509,7 @@ local function BuildCard()
     card.auto:SetPoint("BOTTOMRIGHT", PetJournal, "BOTTOMRIGHT", -118, 3)
     card.autoLabel = card.auto:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     card.autoLabel:SetPoint("LEFT", card.auto, "RIGHT", 2, 0)
-    card.autoLabel:SetText("Tilkall automatisk")
+    card.autoLabel:SetText(ns.L["card.auto"])
     card.auto:SetMotionScriptsWhileDisabled(true)
     card.auto:SetScript("OnClick", function(self)
         ns.Summon:SetEnabled(self:GetChecked() and true or false)
@@ -518,10 +517,10 @@ local function BuildCard()
     card.auto:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         if ns.Summon:Deferring() then
-            GameTooltip:SetText("AutoCompanion er lastet og tar seg av tilkallingen.")
+            GameTooltip:SetText(ns.L["card.auto.deferred"])
         else
-            GameTooltip:SetText("Tilkall automatisk")
-            GameTooltip:AddLine("Tilkaller kjæledyret ditt når det mangler og du ikke er opptatt.", 1, 1, 1, true)
+            GameTooltip:SetText(ns.L["card.auto"])
+            GameTooltip:AddLine(ns.L["card.auto.tip"], 1, 1, 1, true)
         end
         GameTooltip:Show()
     end)
@@ -535,7 +534,7 @@ end
 -- Nickname popup
 ------------------------------------------------------------------------------
 StaticPopupDialogs["DYREPARKEN_NICKNAME"] = {
-    text = "Kallenavn på kjæledyret ditt (maks %d tegn, tomt fjerner det):",
+    text = ns.T("card.nick.popup", { n = "%d" }), -- StaticPopup_Show fills in the number
     button1 = ACCEPT,
     button2 = CANCEL,
     hasEditBox = 1,

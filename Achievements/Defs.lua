@@ -1,10 +1,10 @@
 local _, ns = ...
 
--- Achievement definitions: what it takes, not what it's called (Texts.lua).
+-- Achievement definitions: what it takes, not what it's called (Locale/nb.lua, ns.AchTexts).
 -- The order here is the order on the page and in lists.
 --
 -- IDS ARE PERMANENT: saved progress and sync key on them. Rename freely in
--- Texts.lua; never change an id here.
+-- Locale/nb.lua (ns.AchTexts); never change an id here.
 --
 -- Kinds (see Achievements.lua for how each is evaluated):
 --   count   n         own n pets that count toward achievements (hidden if
