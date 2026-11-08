@@ -135,31 +135,73 @@ function Bond:Watch()
     end
 end
 
--- Points for an activity done with our adopted pet out.
-function Bond:OnActivity(id, n, key)
-    local C = ns.Config
-    if id == "day" then
-        local q = ns.Personality:Quirk(key)
-        return self:Add(C.BOND_DAY_POINTS * (n or 1) * (q.like == "day" and 2 or 1))
+-- What the "when" traits read (Personality.lua): the time, the group and
+-- its guildmates, and whether we're in a dungeon or raid (not a
+-- battleground). Built only for a pet that has such a trait.
+function Bond.Context()
+    local ctx = { t = ns.Now(), group = IsInGroup() == true, guildmates = 0 }
+    local inside, kind = IsInInstance()
+    ctx.instance = inside == true and (kind == "party" or kind == "raid")
+    if ctx.group then
+        local me = ns.PlayerKey()
+        for _, key in ipairs(ns.GroupKeys()) do
+            if key ~= me and ns.Guild:IsMember(key) then ctx.guildmates = ctx.guildmates + 1 end
+        end
     end
-    local likes = ns.Personality:Of(key)
-    local liked = likes[id]
-    local per, cap = C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP
-    if liked then per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP end
+    return ctx
+end
+
+-- Today's points so far, per cap key (an activity, or "trait:<id>").
+local function Today()
     local today = date("%Y%m%d", ns.Now())
     local d = ns.DB.char.bondToday
     if not d or d.day ~= today then
         d = { day = today, got = {} }
         ns.DB.char.bondToday = d
     end
-    local room = cap - (d.got[id] or 0)
-    if room <= 0 then return nil end
-    local points = math.min(per * (n or 1), room)
-    d.got[id] = (d.got[id] or 0) + points
-    if liked and not d.flavor then
-        d.flavor = true
-        ns.Print(("|cffffd100%s koste seg med %s!|r"):format(ns.Bonds:NameOf(key), ns.Personality.NOUN[id]))
+    return d
+end
+
+-- One line of flavor a day, for the first thing the pet loved.
+local function Flavor(d, text)
+    if d.flavor or not text then return end
+    d.flavor = true
+    ns.Print(("|cffffd100%s|r"):format(text))
+end
+
+-- Points for an activity done with our adopted pet out.
+function Bond:OnActivity(id, n, key)
+    local C, P = ns.Config, ns.Personality
+    local name = ns.Bonds:NameOf(key)
+    n = n or 1
+    if id == "day" then
+        local now = ns.Now()
+        local x, why = P:DayFactor(key, now)
+        if why and why.dayFlavor then Flavor(Today(), why.dayFlavor(name, now)) end
+        return self:Add(C.BOND_DAY_POINTS * n * x)
     end
+    local d = Today()
+    local likes = P:Of(key)
+    local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
+    if likes[id] then
+        per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
+        flavor = ("%s koste seg med %s!"):format(name, P.NOUN[id])
+    elseif P:WantsContext(key) then
+        -- A unit name we can't read mustn't cost the points: no bonus then.
+        local ok, ctx = pcall(Bond.Context)
+        for _, t in ipairs(ok and P:Fitting(key, ctx) or {}) do
+            if (d.got["trait:" .. t.id] or 0) < C.BOND_LIKED_CAP then
+                capKey, per, cap = "trait:" .. t.id, C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
+                flavor = t.flavor:format(name)
+                break
+            end
+        end
+    end
+    local room = cap - (d.got[capKey] or 0)
+    if room <= 0 then return nil end
+    local points = math.min(per * n, room)
+    d.got[capKey] = (d.got[capKey] or 0) + points
+    Flavor(d, flavor)
     return self:Add(points)
 end
 

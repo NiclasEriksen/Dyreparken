@@ -153,6 +153,24 @@ function ns.UnitKey(unit)
     return first
 end
 
+-- Everyone in our group as "First Surname", us included (empty when solo).
+function ns.GroupKeys()
+    local list = {}
+    if IsInRaid() then
+        for i = 1, GetNumGroupMembers() do
+            local key = ns.UnitKey("raid" .. i)
+            if key then list[#list + 1] = key end
+        end
+    elseif IsInGroup() then
+        list[1] = ns.PlayerKey()
+        for i = 1, GetNumSubgroupMembers() do
+            local key = ns.UnitKey("party" .. i)
+            if key then list[#list + 1] = key end
+        end
+    end
+    return list
+end
+
 -- Character count of a UTF-8 string (string.len counts bytes).
 function ns.Utf8Len(s)
     local _, n = s:gsub("[^\128-\191]", "")

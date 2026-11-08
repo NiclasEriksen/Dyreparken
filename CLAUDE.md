@@ -109,8 +109,8 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp rapport), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
-                   Personality (likes and a quirk per species, from families, a few species and a hash; liked
-                   activities give more bond points), Scenes (backgrounds behind the pet on the card, by family; candidates until probed), SceneGallery (/dp probe bg: thumbnails of every
+                   Personality (likes and two traits per species, from families, a few species and a hash, to be pinned;
+                   liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family; candidates until probed), SceneGallery (/dp probe bg: thumbnails of every
                    background that exists; pick one per family, saved in DyreparkenDB.scenePicks),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
                    loads after Achievements/Page.lua so its tab comes second),

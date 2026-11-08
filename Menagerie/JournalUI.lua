@@ -374,22 +374,17 @@ local function BuildCard()
     card.personality:SetPoint("RIGHT", panel, "RIGHT", -12, 0)
     card.personality:SetJustifyH("LEFT")
     card.personality:SetWordWrap(false)
-    -- Hover the line: what the quirk means, what it likes, and why it matters.
+    -- Hover the line: what the traits mean and do, what it likes, and why it matters.
     card.personalityHit = CreateFrame("Frame", nil, panel)
     card.personalityHit:SetPoint("TOPLEFT", card.personality, "TOPLEFT", -2, 2)
     card.personalityHit:SetPoint("BOTTOMRIGHT", card.personality, "BOTTOMRIGHT", 2, -2)
     card.personalityHit:EnableMouse(true)
     card.personalityHit:SetScript("OnEnter", function(self)
         if not card.key then return end
-        local _, list, quirk = ns.Personality:Of(card.key)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(quirk.name, 1, 0.82, 0)
-        GameTooltip:AddLine(quirk.desc, 1, 1, 1, true)
-        GameTooltip:AddLine(ns.Personality:Effect(quirk), 1, 0.82, 0, true)
-        local words = {}
-        for _, act in ipairs(list) do
-            if act ~= "day" then words[#words + 1] = ns.Personality.NOUN[act] end
-        end
+        GameTooltip:ClearLines()
+        ns.Personality:Describe(GameTooltip, card.key)
+        local words = ns.Personality:LikedWords(card.key)
         if #words > 0 then
             GameTooltip:AddLine(("Liker: %s"):format(table.concat(words, ", ")), 0.5, 0.8, 0.5, true)
         end

@@ -121,15 +121,17 @@ local function Try(fn, ...)
     return b ~= nil and Args(a, b) or Show(a)
 end
 
--- Guildmates (addon users or not) in our group, by the roster snapshot.
+-- Guildmates (addon users or not) in our group, by the roster snapshot. A
+-- unit name that can't be read is an "error" here, which is the finding.
 local function GroupInfo()
     if type(GetNumGroupMembers) ~= "function" then return "missing" end
     local n = GetNumGroupMembers()
     if n == 0 then return "solo" end
-    local mates, prefix = 0, IsInRaid() and "raid" or "party"
-    for i = 1, n do
-        local ok, key = pcall(ns.UnitKey, prefix .. i)
-        if ok and key and key ~= ns.PlayerKey() and ns.Guild:IsMember(key) then mates = mates + 1 end
+    local ok, keys = pcall(ns.GroupKeys)
+    if not ok then return n .. " (names: error)" end
+    local mates = 0
+    for _, key in ipairs(keys) do
+        if key ~= ns.PlayerKey() and ns.Guild:IsMember(key) then mates = mates + 1 end
     end
     return ("%d (guildmates %d)"):format(n, mates)
 end

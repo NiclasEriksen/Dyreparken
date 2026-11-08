@@ -236,10 +236,13 @@ return function(test, H)
         local hit = card.personalityHit
         hit.scripts.OnEnter(hit)
         local text = table.concat(tip.lines, " / ")
-        local q = ola.ns.Personality:Quirk("s:5159")
-        match(text, "^" .. q.name .. " / ")
-        ok(text:find(q.desc, 1, true), "what the quirk means")
-        ok(text:find(ola.ns.Personality:Effect(q), 1, true), "and what it does")
+        local traits = ola.ns.Personality:Traits("s:5159")
+        eq(#traits, 2)
+        match(text, "^" .. traits[1].name .. " / ")
+        for _, q in ipairs(traits) do
+            ok(text:find(q.name .. " / " .. q.desc, 1, true), "what each trait means")
+            ok(text:find(ola.ns.Personality:Effect(q), 1, true), "and what it does")
+        end
         match(text, "Liker: herbs")
         match(text, "vokser båndet raskere%.$")
         hit.scripts.OnLeave(hit)

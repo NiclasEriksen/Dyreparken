@@ -163,6 +163,13 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
    herbs), eight quirks picked by species id (one adds a like; "Kosete" doubles the days). Liked activities 5 points
    (25 a day each), others 1 (5 a day). Gathering (herb, mine, fish, skin) from your own casts, registered for the
    player only; unverified in game. Shown on the card's third line and in tooltips.
+   *Two traits per pet, 2026-11-08:* traits of three kinds: a liked activity (the first eight), a moment when
+   anything done counts as liked (Nattugle 22-04, Flokkdyr with a guildmate in the group, Einstøing alone,
+   Huleboer in dungeons and raids, Friluftsdyr outside them; one 25-point cap per trait), and a day multiplier
+   (Kosete x2, Helgedyr x2 on weekends, Festglad x3 on Norwegian holidays). Contradicting pairs never meet.
+   Next, after the traits probe (`/dp probe life`): Dansefot, Kjælen, Oppdager, Trofast, Hoppetass, Dykker,
+   Hjemlengsel, Ambisiøs, Latsabb, Pratsom. Then **pin** every species' two traits in a list (decided
+   2026-11-08: reshuffling now is fine, never after that).
 4. **Lifetime and temperament:** `g.life` sync, temperament stages, park map borders, world tooltip word.
 5. **Story:** the timeline, milestone lines, big moments in guild chat.
 6. **(Optional) Collection sync:** "kom til parken", "vill" for pets nobody has, the wish list on the park map.

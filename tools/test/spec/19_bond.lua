@@ -4,10 +4,11 @@ return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
     local PANDA, KITTEN = "s:5159", "s:46"
 
-    -- A plain quirk, so a day is worth 10 (the panda's own is Kosete: 20,
-    -- see 21_personality.lua). Again after each reload: that's a new client.
+    -- Plain traits, so a day is worth 10 and nothing hangs on the clock or
+    -- the group (see 21_personality.lua). Again after each reload: that's a
+    -- new client.
     local function Plain(c)
-        c.ns.Personality.Quirk = function() return { name = "Test", desc = "", like = "quest" } end
+        c.ns.Personality.Traits = function() return { { id = "test", name = "Test", desc = "", like = "quest" } } end
     end
 
     local function Setup()

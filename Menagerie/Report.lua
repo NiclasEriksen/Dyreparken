@@ -27,22 +27,10 @@ local function GroupChannel()
     if IsInGroup() then return "PARTY" end
 end
 
-local UnitKey = ns.UnitKey
 
 local function GroupMembers()
-    local list = {}
-    if IsInRaid() then
-        for i = 1, GetNumGroupMembers() do
-            local key = UnitKey("raid" .. i)
-            if key then list[#list + 1] = key end
-        end
-    else
-        list[1] = ns.PlayerKey()
-        for i = 1, GetNumSubgroupMembers() do
-            local key = UnitKey("party" .. i)
-            if key then list[#list + 1] = key end
-        end
-    end
+    local list = ns.GroupKeys()
+    if #list == 0 then list[1] = ns.PlayerKey() end
     return list
 end
 
