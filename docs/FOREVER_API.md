@@ -54,6 +54,12 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 - (seen 2026-11-07) `BasicFrameTemplateWithInset` and `UIPanelScrollFrameTemplate` work (mouse wheel too), but
   look older than the journal.
 
+- (probed 2026-11-08, `/dp probe card`) `PetJournalPetCard`'s title row is a Button `PetInfo`
+  (`PetJournalPetCardPetInfo`, at TOPLEFT 6,-6, 208 wide) holding `icon` (38), `name`, `subName` (hidden), `favorite`,
+  `isDead`, `new` and `newGlow`. The card's own frame art is `ShadowOverlay` (TopLeft/TopRight/... corners,
+  `PetJournalPetCardTop` and so on), and `PetBackground` is its background texture. The model is `modelScene`
+  with `RotateLeftButton`/`RotateRightButton`. We hide `PetInfo` (JournalUI).
+
 ## Lua
 
 - **Lua 5.1** (WoW-modified): no `goto`, no `//`, no bitwise operators (`bit.band`, `bit.bor`, …), no `_ENV`,

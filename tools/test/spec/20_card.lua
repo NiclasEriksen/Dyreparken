@@ -398,4 +398,16 @@ return function(test, H)
         kari:Slash("probe card")
         ok(kari:Printed("Open the pet journal first.", true))
     end)
+
+    test("Blizzard's title row (icon and name) is hidden, and stays hidden; the ribbon takes the top", function()
+        local w, ola = Setup()
+        local card = ola:SelectPet(5159)
+        local info = ola.env.PetJournalPetCard.PetInfo
+        no(info:IsShown(), "hidden")
+        ok(card.titleHidden)
+        info:Show() -- Blizzard's update showing it again
+        no(info:IsShown(), "and kept hidden")
+        local r = card.decor.ribbon.points[1]
+        eq(r[1], "TOP"); eq(r[5], -10, "the ribbon at the top")
+    end)
 end

@@ -215,7 +215,7 @@ function Frame:IsVisible()
 end
 function Frame:GetParent() return self.parent end
 function Frame:SetParent(p) self.parent = p end
-function Frame:GetName() return self.name end
+function Frame:GetName() return self.frameName end
 function Frame:SetText(t) self.text = t end
 function Frame:GetText() return self.text end
 function Frame:Enable() self.enabled = true end
@@ -906,6 +906,10 @@ function Client:OpenJournal(o)
         PJ.ScrollBox = { buttons = {} }
         function PJ.ScrollBox:ForEachFrame(fn) for _, b in ipairs(self.buttons) do fn(b) end end
         local petCard = env.CreateFrame("Frame", "PetJournalPetCard", PJ)
+        -- Its title row: the pet's icon and name (Forever, /dp probe card 2026-11-08).
+        petCard.PetInfo = env.CreateFrame("Button", "PetJournalPetCardPetInfo", petCard)
+        petCard.PetInfo.icon = petCard.PetInfo:CreateTexture()
+        petCard.PetInfo.name = petCard.PetInfo:CreateFontString()
         -- The "Total Pets" box (o.noPetCount leaves it out).
         if not o.noPetCount then PJ.PetCount = env.CreateFrame("Frame", nil, PJ) end
         -- The model with its two turn buttons (parentKeys, like Retail's
@@ -1050,7 +1054,7 @@ function Client:BuildEnv()
 
     -- Frames
     env.CreateFrame = function(ftype, name, parent, template)
-        local f = setmetatable({ type = ftype, name = name, parent = parent, events = {}, scripts = {},
+        local f = setmetatable({ type = ftype, frameName = name, parent = parent, events = {}, scripts = {},
             shown = true, enabled = true, checked = false, textures = {}, fontStrings = {}, template = template }, Frame)
         f.client = c
         c.frames[#c.frames + 1] = f

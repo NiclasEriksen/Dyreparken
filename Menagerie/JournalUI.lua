@@ -448,6 +448,15 @@ local function BuildCard()
     end
     ns.Log("Journal", "rotate buttons %s", left and "moved above the panel" or "not found")
     card.rotate = left and { left, right } or nil
+    -- Blizzard's title row (the pet's icon and name at the top) says what the
+    -- list and our panel already say: hidden, and kept hidden, for room at
+    -- the top (2026-11-08). Dragging and the pet's tooltip stay on the list.
+    local info = rawget(c, "PetInfo")
+    if info then
+        info:Hide()
+        info:HookScript("OnShow", function(self) self:Hide() end)
+        card.titleHidden = true
+    end
     -- The pet's nickname, big, right above the status line.
     card.bond:Hide()
 
@@ -652,7 +661,8 @@ function JournalUI:ProbeCard()
     local function Describe(obj, parent, depth)
         local ok, kind = pcall(obj.GetObjectType, obj)
         local name = obj.GetName and obj:GetName() or nil
-        local w, h = obj.GetSize and obj:GetSize()
+        local w, h
+        if obj.GetSize then w, h = obj:GetSize() end
         local point, rel, relPoint, x, y = nil, nil, nil, nil, nil
         if obj.GetPoint then point, rel, relPoint, x, y = obj:GetPoint(1) end
         local relName = rel and ((rel.GetName and rel:GetName()) or KeyOf(parent, rel)) or "-"
