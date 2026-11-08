@@ -102,7 +102,7 @@ Core/Activity.lua  the activity engine: game events -> activities ("boss", "ques
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
-                   English aliases; probe [more|tabs|kills|life|bg|ach], debug)
+                   English aliases; probe [more|tabs|kills|life|bg|decor|ach], debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
@@ -114,8 +114,9 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp rapport), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
                    Personality (likes, and two traits per species from Data/Traits.lua;
-                   liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family; candidates until probed), SceneGallery (/dp probe bg: thumbnails of every
-                   background that exists; pick one per family, saved in DyreparkenDB.scenePicks),
+                   liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour), SceneGallery (/dp probe bg and decor: thumbnails of every
+                   background that exists; pick one per family, saved in DyreparkenDB.scenePicks), Decor (pet card decorations; so far the
+                   art probe, /dp probe decor, picks in DyreparkenDB.decorPicks),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
                    loads after Achievements/Page.lua so its tab comes second),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in

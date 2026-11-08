@@ -26,6 +26,7 @@ local ACCOUNT_DEFAULTS = {
     ach = { got = {}, seen = {} }, -- account-scope achievements (Achievements.lua)
     settings = {},
     scenePicks = {}, -- family -> background path, picked in /dp probe bg (SceneGallery.lua)
+    decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor (Decor.lua)
 }
 
 local CHAR_DEFAULTS = {

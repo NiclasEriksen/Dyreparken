@@ -1011,6 +1011,11 @@ function Client:BuildEnv()
         if c.missingFiles and c.missingFiles[path] then return nil end
         return 100000 + #path
     end
+    -- Atlases the client has: those in c.atlases (none by default).
+    env.C_Texture = { GetAtlasInfo = function(name)
+        if c.atlases and c.atlases[name] then return { width = 64, height = 64, file = 1 } end
+        return nil
+    end }
     env.ButtonFrameTemplate_HidePortrait = function(f) f.portraitHidden = true end
     env.ButtonFrameTemplate_HideButtonBar = function(f) f.buttonBarHidden = true end
     env.UIParent = env.CreateFrame("Frame", "UIParent")

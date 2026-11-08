@@ -131,6 +131,41 @@ return function(test, H)
         no(ola.ns.JournalUI._card.sky:IsShown())
     end)
 
+    test("/dp probe decor: a gallery of decoration art that exists, picked per slot", function()
+        local w, ola = Setup()
+        local list = ola.ns.Decor:Candidates()
+        local star, atlas = list[1], "atlas:bags-glow-orange"
+        ola.missingFiles = { [list[2] ] = true }
+        ola.atlases = { ["bags-glow-orange"] = true }
+        local atlases = 0
+        for _, p in ipairs(list) do if p:find("^atlas:") then atlases = atlases + 1 end end
+        ola:Slash("probe decor")
+        local have = #list - 1 - (atlases - 1)
+        ok(ola:Printed(("%d av %d pynt-bilder finnes; galleriet viser dem."):format(have, #list), true))
+        eq(#ola:Log("decor 2 no: "), 1)
+        local G = ola.ns.SceneGallery
+        local shown, glow = {}, nil
+        for _, t in ipairs(G._thumbs) do
+            if t:IsShown() then shown[#shown + 1] = t end
+            if t.path == atlas then glow = t end
+        end
+        eq(#shown, have)
+        eq(shown[1].image.tex, star)
+        eq(glow.image.atlas, "bags-glow-orange", "an atlas is shown as one")
+        match(glow.label.text, "bags%-glow%-orange$")
+        -- Pick it as the glow.
+        for _, b in ipairs(G._frame.families) do if b.family == "glow" then b:Click() end end
+        glow.scripts.OnClick(glow, "LeftButton")
+        eq(ola.env.DyreparkenDB.decorPicks.glow, atlas)
+        eq(#ola:Log("decor pick glow = atlas:bags%-glow%-orange"), 1)
+        eq(ola.env.DyreparkenDB.scenePicks.glow, nil, "the background picks are their own")
+        glow.scripts.OnClick(glow, "RightButton")
+        eq(ola.env.DyreparkenDB.decorPicks.glow, nil)
+        -- Without C_Texture, no atlas exists.
+        ola.env.C_Texture = nil
+        no(ola.ns.Decor.Exists(atlas))
+    end)
+
     test("/dp probe bg opens a gallery of what exists; picks become the family's background", function()
         local w, ola = Setup()
         ola.ns.Scenes.BY_FAMILY = Lists()
