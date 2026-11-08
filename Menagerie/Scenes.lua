@@ -106,9 +106,29 @@ local function Gradient(t, orientation, a, b)
     end
 end
 
+-- The light over the card by the player's clock: { from hour, name, color
+-- at the top, alpha at the top } (it fades out toward the panel). Day has
+-- none: the scene as it is.
+Scenes.SKY = {
+    { 0, "natt", { 0.04, 0.07, 0.25 }, 0.5 },
+    { 5, "morgen", { 0.95, 0.55, 0.45 }, 0.22 },
+    { 8, "dag" },
+    { 17, "kveld", { 1, 0.62, 0.18 }, 0.22 },
+    { 20, "skumring", { 0.36, 0.2, 0.5 }, 0.32 },
+    { 22, "natt", { 0.04, 0.07, 0.25 }, 0.5 },
+}
+
+-- The sky for hour h (0-23).
+function Scenes:Sky(h)
+    local sky = self.SKY[1]
+    for _, s in ipairs(self.SKY) do if h >= s[1] then sky = s end end
+    return sky
+end
+
 -- Draw the tinted layers on the card for a pet (nil: clear them).
 function Scenes:Paint(card, key)
     if not key then
+        card.sky:Hide()
         card.tint:Hide(); card.floor:Hide()
         for _, e in ipairs(card.edges) do e:Hide() end
         return
@@ -127,6 +147,15 @@ function Scenes:Paint(card, key)
     end
     card.floor:Show()
     card.family = family
+    local sky = self:Sky(tonumber(date("%H", ns.Now())))
+    card.skyName = sky[2]
+    if sky[3] then
+        local k = sky[3]
+        Gradient(card.sky, "VERTICAL", { k[1], k[2], k[3], sky[4] * 0.3 }, { k[1], k[2], k[3], sky[4] })
+        card.sky:Show()
+    else
+        card.sky:Hide()
+    end
 end
 
 -- Every candidate once, numbered, in a stable order.

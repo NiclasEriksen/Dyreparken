@@ -317,6 +317,12 @@ local function BuildCard()
     card.tint:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
     card.tint:SetColorTexture(1, 1, 1, 1)
     card.tint:Hide()
+    -- The light of the hour over the scene (Scenes.SKY).
+    card.sky = c:CreateTexture(nil, "BACKGROUND", nil, 3)
+    card.sky:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
+    card.sky:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
+    card.sky:SetColorTexture(1, 1, 1, 1)
+    card.sky:Hide()
     card.edges = {}
     for i, side in ipairs({ "TOP", "LEFT", "RIGHT" }) do
         local t = c:CreateTexture(nil, "BACKGROUND", nil, 3)

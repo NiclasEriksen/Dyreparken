@@ -105,6 +105,32 @@ return function(test, H)
         eq(kari.ns.Scenes:For("s:46"), nil)
     end)
 
+    test("the light follows the clock: morning, day, evening, dusk and night", function()
+        local w, ola = Setup()
+        local function At(h)
+            local now = ola.ns.Now()
+            local t = os.date("*t", now)
+            t.hour, t.min = h, 30
+            w:Skip(os.time(t) - now)
+            local card = ola:SelectPet(40)
+            return card.skyName, card.sky:IsShown(), card.sky.gradient
+        end
+        local S = ola.ns.Scenes
+        eq(S:Sky(0)[2], "natt"); eq(S:Sky(4)[2], "natt"); eq(S:Sky(5)[2], "morgen"); eq(S:Sky(12)[2], "dag")
+        eq(S:Sky(17)[2], "kveld"); eq(S:Sky(20)[2], "skumring"); eq(S:Sky(22)[2], "natt"); eq(S:Sky(23)[2], "natt")
+        local name, shown = At(12)
+        eq(name, "dag"); no(shown, "the day is the scene as it is")
+        name, shown = At(23)
+        eq(name, "natt"); ok(shown)
+        name, shown = At(18)
+        eq(name, "kveld"); ok(shown)
+        -- No pet: no sky.
+        local c = ola.env.PetJournalPetCard
+        c.speciesID, c.petID = nil, nil
+        ola.env.PetJournal_UpdatePetCard(c)
+        no(ola.ns.JournalUI._card.sky:IsShown())
+    end)
+
     test("/dp probe bg opens a gallery of what exists; picks become the family's background", function()
         local w, ola = Setup()
         ola.ns.Scenes.BY_FAMILY = Lists()
