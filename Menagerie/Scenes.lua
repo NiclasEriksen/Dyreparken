@@ -55,6 +55,9 @@ end
 
 local found = {} -- family -> path or false (cached)
 local function First(family)
+    -- A pick made in the gallery (SceneGallery.lua) comes first.
+    local pick = ns.DB.global.scenePicks[family]
+    if pick then return pick end
     if found[family] == nil then
         found[family] = false
         for _, path in ipairs(Scenes.BY_FAMILY[family] or {}) do
@@ -63,6 +66,9 @@ local function First(family)
     end
     return found[family] or nil
 end
+
+-- Forget the cached lookups (after picks change).
+function Scenes:Reset() wipe(found) end
 
 -- A pet's families in our order (first = the one that sets its look).
 function Scenes:Families(key)
@@ -154,15 +160,14 @@ function Scenes:Probe(arg)
         ns.Print(("Bakgrunn %d på kortet: %s (finnes: %s). /dp probe bg off for å avslutte."):format(n, c.path,
             tostring(Exists(c.path))))
     else
-        local have = 0
+        local have = {}
         for i, c in ipairs(list) do
             local ok = Exists(c.path)
-            if ok then have = have + 1 end
-            local msg = ("bg %d %s %s: %s"):format(i, ok and "YES" or "no", c.family, c.path)
-            ns.Log("Probe", "%s", msg)
-            if ok then ns.Print(msg) end
+            if ok then have[#have + 1] = { n = i, path = c.path } end
+            ns.Log("Probe", "bg %d %s %s: %s", i, ok and "YES" or "no", c.family, c.path)
         end
-        ns.Print(("%d av %d bakgrunner finnes. Forhåndsvis med /dp probe bg <nr>."):format(have, #list))
+        ns.Print(("%d av %d bakgrunner finnes; galleriet viser dem."):format(#have, #list))
+        ns.SceneGallery:Show(have)
     end
     ns.JournalUI:Refresh() -- redraw the card
 end

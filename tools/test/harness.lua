@@ -153,7 +153,8 @@ Frame.__index = function(self, k)
 end
 local function noop() end
 for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPoints", "SetAllPoints",
-    "SetMotionScriptsWhileDisabled", "SetFrameStrata", "SetAlpha", "EnableMouse",
+    "SetMotionScriptsWhileDisabled", "SetFrameStrata", "SetAlpha", "EnableMouse", "SetMovable", "RegisterForDrag",
+    "StartMoving", "StopMovingOrSizing",
     "RegisterForClicks", "SetNormalTexture", "SetHighlightTexture", "SetPushedTexture", "SetJustifyH",
     "SetJustifyV", "SetFontObject", "SetWordWrap" }) do
     Frame[m] = noop
@@ -164,6 +165,8 @@ function Frame:RegisterEvent(e)
     self.events[e] = true
 end
 function Frame:UnregisterEvent(e) self.events[e] = nil end
+function Frame:LockHighlight() self.highlightLocked = true end
+function Frame:UnlockHighlight() self.highlightLocked = false end
 function Frame:RegisterUnitEvent(e, ...)
     if not KNOWN_EVENTS[e] then error("Attempt to register unknown event \"" .. tostring(e) .. "\"", 2) end
     self.events[e] = true

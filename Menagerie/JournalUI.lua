@@ -157,6 +157,7 @@ local function CardSpecies()
 end
 
 local PANEL_H = 72
+local MODEL_LIFT = 34 -- the model's bottom, above the panel: clear of the turn buttons
 
 -- Blizzard's two buttons that turn the model: found by name or parentKey
 -- (unprobed on Forever), left one first. Nil if not found.
@@ -201,6 +202,7 @@ local function UpdateCard()
         card.status:SetText("")
         card.nickname:SetText("")
         card.personality:SetText("")
+        card.key = nil -- the hover tooltips follow it
         card.scene:Hide()
         ns.Scenes:Paint(card, nil)
         card.bond:Hide()
@@ -346,7 +348,7 @@ local function BuildCard()
     panel.edge:SetHeight(1)
     panel.edge:SetColorTexture(1, 0.82, 0, 0.35)
     card.panel = panel
-    card.floor:SetPoint("CENTER", panel, "TOP", 0, 44) -- where the model stands (seen 2026-11-08)
+    card.floor:SetPoint("CENTER", panel, "TOP", 0, MODEL_LIFT + 14) -- under the pet's feet
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
@@ -365,6 +367,29 @@ local function BuildCard()
     card.personality:SetPoint("RIGHT", panel, "RIGHT", -12, 0)
     card.personality:SetJustifyH("LEFT")
     card.personality:SetWordWrap(false)
+    -- Hover the line: what the quirk means, what it likes, and why it matters.
+    card.personalityHit = CreateFrame("Frame", nil, panel)
+    card.personalityHit:SetPoint("TOPLEFT", card.personality, "TOPLEFT", -2, 2)
+    card.personalityHit:SetPoint("BOTTOMRIGHT", card.personality, "BOTTOMRIGHT", 2, -2)
+    card.personalityHit:EnableMouse(true)
+    card.personalityHit:SetScript("OnEnter", function(self)
+        if not card.key then return end
+        local _, list, quirk = ns.Personality:Of(card.key)
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(quirk.name, 1, 0.82, 0)
+        GameTooltip:AddLine(quirk.desc, 1, 1, 1, true)
+        local words = {}
+        for _, act in ipairs(list) do
+            if act ~= "day" then words[#words + 1] = ns.Personality.NOUN[act] end
+        end
+        if #words > 0 then
+            GameTooltip:AddLine(("Liker: %s"):format(table.concat(words, ", ")), 0.5, 0.8, 0.5, true)
+        end
+        GameTooltip:AddLine("Gjør det den liker mens den er ute med deg, så vokser båndet raskere.", 0.7, 0.7, 0.7,
+            true)
+        GameTooltip:Show()
+    end)
+    card.personalityHit:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
 
     -- The bond, right column: the level in a badge, its name, a slim bar.
     card.bond = CreateFrame("StatusBar", nil, panel)
@@ -386,6 +411,24 @@ local function BuildCard()
     card.bond:SetPoint("BOTTOMRIGHT", card.bond.badge, "BOTTOMLEFT", -8, 3)
     card.bond.text = card.bond:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     card.bond.text:SetPoint("CENTER", card.bond, "CENTER", 0, 0) -- on the bar, not beside it (it hit the home line)
+    -- Hover the bond: the points to the next level, and how it grows.
+    card.bond:EnableMouse(true)
+    card.bond:SetScript("OnEnter", function(self)
+        local points, level, name, _, nextAt = ns.Bond:Of(card.key)
+        if not points then return end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(("Bånd: %s (nivå %d)"):format(name, level), 1, 0.82, 0)
+        if nextAt then
+            local nextName = ns.Bond.LEVELS[level + 1][2]
+            GameTooltip:AddLine(("%d poeng til %s."):format(nextAt - points, nextName), 1, 1, 1)
+        else
+            GameTooltip:AddLine("Det høyeste nivået.", 1, 1, 1)
+        end
+        GameTooltip:AddLine("Vokser for hver dag kjæledyret er ute med deg, og raskere når dere gjør noe det liker."
+            .. " Båndet blekner aldri.", 0.7, 0.7, 0.7, true)
+        GameTooltip:Show()
+    end)
+    card.bond:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
 
     -- Blizzard's turn buttons sit where our rows go: move them to just above
     -- the panel, so the panel's text runs the full width. (Plain buttons;
@@ -396,6 +439,15 @@ local function BuildCard()
         left:SetPoint("BOTTOMRIGHT", panel, "TOP", -3, 6)
         right:ClearAllPoints()
         right:SetPoint("BOTTOMLEFT", panel, "TOP", 3, 6)
+        -- The model (their parent) ends just above them, so the pet stands
+        -- clear of the buttons instead of behind them (seen 2026-11-08).
+        local model = left:GetParent()
+        if model and model ~= c then
+            model:ClearAllPoints()
+            model:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
+            model:SetPoint("BOTTOMRIGHT", panel, "TOPRIGHT", 0, MODEL_LIFT)
+            card.model = model
+        end
     end
     if not left then
         -- They stay wherever they are, likely mid-panel: keep our text clear of the middle.
@@ -447,13 +499,13 @@ local function BuildCard()
     -- "Guilden x av y": y = every companion in Forever's journal
     -- (Pets:Total, Data/Companions.lua). Then "Dagens dyr".
     local count = rawget(PetJournal, "PetCount") or rawget(_G, "PetJournalPetCount")
-    card.guildBox = InfoBox("Guilden", 130)
+    card.guildBox = InfoBox("Guilden", 150)
     if count then
         card.guildBox:SetPoint("LEFT", count, "RIGHT", 8, 0)
     else
         card.guildBox:SetPoint("BOTTOMLEFT", c, "TOPLEFT", 160, 8)
     end
-    card.todayBox = InfoBox("Dagens dyr", 150)
+    card.todayBox = InfoBox("Dagens dyr", 140)
     card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", 8, 0)
     card.counter, card.today = card.guildBox.value, card.todayBox.value
 

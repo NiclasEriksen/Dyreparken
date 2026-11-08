@@ -11,9 +11,10 @@ local _, ns = ...
 local Personality = {}
 ns.Personality = Personality
 
--- Activities (Core/Activity.lua) as players read them.
+-- Activities (Core/Activity.lua) as players read them: the guild's own
+-- words (herbs, kills, quests), decided 2026-11-08.
 Personality.NOUN = {
-    boss = "boss-drap", quest = "oppdrag", taxi = "flyturer", pvp = "PvP", herb = "urtesanking",
+    boss = "boss-kills", quest = "quests", taxi = "flyturer", pvp = "PvP", herb = "herbs",
     mine = "gruvedrift", fish = "fisking", skin = "flåing", day = "dager sammen",
 }
 
@@ -30,11 +31,11 @@ Personality.BY_SPECIES = {
 }
 
 Personality.QUIRKS = {
-    { name = "Glupsk", desc = "Spiser alt, og elsker belønningen etter et oppdrag.", like = "quest" },
-    { name = "Eventyrlysten", desc = "Vil alltid være med når det er bosser å slå.", like = "boss" },
+    { name = "Glupsk", desc = "Spiser alt, og elsker belønningen etter en quest.", like = "quest" },
+    { name = "Eventyrlysten", desc = "Vil alltid være med på boss-kills.", like = "boss" },
     { name = "Reiseglad", desc = "Elsker å fly.", like = "taxi" },
     { name = "Rampete", desc = "Liker litt bråk.", like = "pvp" },
-    { name = "Grønnfinger", desc = "Snuser på hver eneste urt.", like = "herb" },
+    { name = "Grønnfinger", desc = "Snuser på hver eneste herb.", like = "herb" },
     { name = "Vannhund", desc = "Elsker vann og fisk.", like = "fish" },
     { name = "Steinhard", desc = "Graver gjerne etter malm.", like = "mine" },
     { name = "Kosete", desc = "Det er nok å være sammen: hver dag teller dobbelt.", like = "day" },
@@ -65,13 +66,13 @@ function Personality:Of(key)
     return likes, list, quirk
 end
 
--- "urtesanking, oppdrag og flyturer"
+-- "herbs, quests og flyturer"
 local function Join(words)
     if #words <= 1 then return words[1] or "" end
     return table.concat(words, ", ", 1, #words - 1) .. " og " .. words[#words]
 end
 
--- "Glupsk · liker urtesanking og oppdrag" (the quirk's own like included;
+-- "Glupsk · liker herbs og quests" (the quirk's own like included;
 -- "dager sammen" reads oddly as a like, so Kosete just says so in its desc).
 function Personality:Line(key)
     local _, list, quirk = self:Of(key)

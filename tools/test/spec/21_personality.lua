@@ -26,7 +26,7 @@ return function(test, H)
         local likes, list, quirk = P:Of(PANDA)
         eq(list[1], "herb", "the panda's own: bamboo")
         eq(quirk.name, "Kosete")
-        eq(P:Line(PANDA), "Kosete · liker urtesanking", "dager sammen isn't listed as a like")
+        eq(P:Line(PANDA), "Kosete · liker herbs", "dager sammen isn't listed as a like")
         ok(likes.day)
         local cat = { P:Of("s:40") }
         ok(cat[1].fish, "cats like fishing")
@@ -35,9 +35,9 @@ return function(test, H)
         ok(P:Of("s:72").quest, "no family: quests")
         -- Joined in Norwegian.
         P.QUIRKS = { { name = "Glupsk", desc = "", like = "quest" } }
-        eq(P:Line("s:84"), "Glupsk · liker boss-drap, flyturer og oppdrag")
+        eq(P:Line("s:84"), "Glupsk · liker boss-kills, flyturer og quests")
         P.QUIRKS = { { name = "Kosete", desc = "", like = "day" } }
-        eq(P:Line("s:999"), "Kosete · liker oppdrag")
+        eq(P:Line("s:999"), "Kosete · liker quests")
         P.BY_FAMILY, P.DEFAULT = {}, {}
         eq(P:Line("s:999"), "Kosete", "nothing liked but the days")
     end)
@@ -92,7 +92,7 @@ return function(test, H)
         eq(Points(), 20, "Kosete: a day counts double")
         Herb(ola)
         eq(Points(), 25, "a liked activity: 5")
-        ok(ola:Printed("Panda Cub koste seg med urtesanking!", true))
+        ok(ola:Printed("Panda Cub koste seg med herbs!", true))
         for _ = 1, 10 do Herb(ola) end
         eq(Points(), 45, "at most 25 a day from herbs")
         ola:Fire("QUEST_TURNED_IN", 1)
@@ -116,15 +116,15 @@ return function(test, H)
         local w, ola, P = Setup()
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
-        eq(card.personality.text, "Kosete · liker urtesanking")
+        eq(card.personality.text, "Kosete · liker herbs")
         local tip = ola.env.GameTooltip
         tip:ClearLines()
         ola.ns.JournalUI:AddTooltipLines(tip, PANDA)
-        match(table.concat(tip.lines, " / "), "trenger et hjem / Kosete · liker urtesanking$")
+        match(table.concat(tip.lines, " / "), "trenger et hjem / Kosete · liker herbs$")
         ola:Slash("adopter panda")
         tip:ClearLines()
         ola.ns.JournalUI:AddTooltipLines(tip, PANDA)
-        match(table.concat(tip.lines, " / "), "Bånd: .* / Kosete · liker urtesanking / Siden i dag$")
+        match(table.concat(tip.lines, " / "), "Bånd: .* / Kosete · liker herbs / Siden i dag$")
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil
         ola.env.PetJournal_UpdatePetCard(c)

@@ -25,6 +25,7 @@ local ACCOUNT_DEFAULTS = {
     games = { history = {} },
     ach = { got = {}, seen = {} }, -- account-scope achievements (Achievements.lua)
     settings = {},
+    scenePicks = {}, -- family -> background path, picked in /dp probe bg (SceneGallery.lua)
 }
 
 local CHAR_DEFAULTS = {

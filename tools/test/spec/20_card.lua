@@ -97,23 +97,54 @@ return function(test, H)
         eq(kari.ns.Scenes:For("s:46"), nil)
     end)
 
-    test("/dp probe bg lists what exists and previews one on the card", function()
+    test("/dp probe bg opens a gallery of what exists; picks become the family's background", function()
         local w, ola = Setup()
         ola.ns.Scenes.BY_FAMILY = Lists()
         local list = ola.ns.Scenes:Candidates()
         ola.missingFiles = { [list[2].path] = true }
         ola:Slash("probe bg")
-        ok(ola:Printed(("bg 1 YES default: %s"):format(list[1].path), true))
-        no(ola:Printed(("bg 2 "), true), "only the ones that exist are printed")
-        ok(ola:Printed(("%d av %d bakgrunner finnes."):format(#list - 1, #list), true))
+        ok(ola:Printed(("%d av %d bakgrunner finnes; galleriet viser dem."):format(#list - 1, #list), true))
         eq(#ola:Log("bg 2 no "), 1, "all of them are logged")
-        ola:Slash("probe bg 5")
-        eq(ola:SelectPet(68).scene.tex, list[5].path, "previewed on any pet")
-        ok(ola:Printed("/dp probe bg off", true))
+        eq(#ola:Log("bg 1 YES default: "), 1)
+        local G = ola.ns.SceneGallery
+        ok(G._frame:IsShown())
+        local shown = {}
+        for _, t in ipairs(G._thumbs) do if t:IsShown() then shown[#shown + 1] = t end end
+        eq(#shown, #list - 1, "a thumbnail for each one that exists")
+        eq(shown[1].image.tex, list[1].path)
+        match(shown[2].label.text, "^3 ", "numbered as in the list")
+        -- Pick for owls: choose the family, click the picture.
+        local owlButton
+        for _, b in ipairs(G._frame.families) do if b.family == "owl" then owlButton = b end end
+        owlButton:Click()
+        ok(owlButton.highlightLocked)
+        local pick = shown[3] -- a cat picture, for the owl
+        pick.scripts.OnClick(pick, "LeftButton")
+        eq(ola.env.DyreparkenDB.scenePicks.owl, pick.path, "saved")
+        eq(pick.used.text, "owl"); ok(pick.border:IsShown())
+        match(owlButton.text, "%*$")
+        eq(ola.ns.Scenes:For("s:68"), pick.path, "the owl uses it now")
+        eq(ola:SelectPet(68).scene.tex, pick.path)
+        eq(#ola:Log("bg pick owl = "), 1)
+        -- Kept after a reload.
+        ola:Reload(); ola.ns.Companions = Fixture()
+        ola.ns.Scenes.BY_FAMILY = Lists()
+        w:Run(20)
+        ola:OpenJournal()
+        eq(ola.ns.Scenes:For("s:68"), pick.path)
+        -- Right-click clears it.
+        ola:Slash("probe bg")
+        local again = ola.ns.SceneGallery._thumbs[3]
+        eq(again.path, pick.path)
+        again.scripts.OnClick(again, "RightButton")
+        eq(ola.env.DyreparkenDB.scenePicks.owl, nil)
+        no(ola.ns.Scenes:For("s:68") == again.path, "back to the built-in choice")
+        -- Preview one by number, as before.
+        ola:Slash("probe bg 3")
+        eq(ola:SelectPet(40).scene.tex, list[3].path)
         ola:Slash("probe bg 999")
         ok(ola:Printed("Ingen bakgrunn nr. 999", true))
         ola:Slash("probe bg off")
-        eq(ola:SelectPet(68).scene.tex, ola.ns.Scenes.BY_FAMILY.owl[1])
         local seen = {}
         for _, c in ipairs(list) do no(seen[c.path], "listed once"); seen[c.path] = true end
     end)
@@ -125,6 +156,10 @@ return function(test, H)
         eq(model.RotateLeftButton.points[1][2], card.panel)
         eq(model.RotateLeftButton.points[1][3], "TOP")
         eq(model.RotateRightButton.points[1][1], "BOTTOMLEFT")
+        -- The model itself ends above the buttons, so the pet stands clear of them.
+        local bottom = model.points[#model.points]
+        eq(bottom[1], "BOTTOMRIGHT"); eq(bottom[2], card.panel); eq(bottom[5], 34)
+        eq(card.model, model)
         local last = card.status.points[#card.status.points]
         eq(last[4], 30, "rows run past the middle, up to the bond column")
         eq(#ola:Log("rotate buttons moved above the panel"), 1)
@@ -181,6 +216,47 @@ return function(test, H)
         for _, c in ipairs(list) do if c.family == "probe" then probe = probe + 1 end end
         ok(probe >= 60, probe .. " extra candidates")
         ola:Slash("probe bg")
-        ok(ola:Printed("bg %d+ YES probe: Interface\\EncounterJournal\\UI%-EJ%-LOREBG%-Naxxramas"))
+        eq(#ola:Log("bg %d+ YES probe: Interface\\EncounterJournal\\UI%-EJ%-LOREBG%-Naxxramas"), 1)
+    end)
+
+    test("hovering the personality and the bond explains them", function()
+        local w, ola = Setup()
+        ola:Slash("adopter panda")
+        w:Run(40)
+        ola:OpenJournal()
+        local card = ola:SelectPet(5159)
+        local tip = ola.env.GameTooltip
+        local hit = card.personalityHit
+        hit.scripts.OnEnter(hit)
+        local text = table.concat(tip.lines, " / ")
+        local q = ola.ns.Personality:Quirk("s:5159")
+        match(text, "^" .. q.name .. " / ")
+        ok(text:find(q.desc, 1, true), "what the quirk means")
+        match(text, "Liker: herbs")
+        match(text, "vokser båndet raskere%.$")
+        hit.scripts.OnLeave(hit)
+        card.bond.scripts.OnEnter(card.bond)
+        text = table.concat(tip.lines, " / ")
+        match(text, "^Bånd: Bekjent %(nivå 1%) / %d+ poeng til Kamerat%. / Vokser for hver dag")
+        card.bond.scripts.OnLeave(card.bond)
+        -- At the top level.
+        local now = w:ServerTime()
+        ola.ns.Registry:MergeLife("s:5159", "Ola Nord", { p = 9000, f = now - 200 * 86400, t = now })
+        card = ola:SelectPet(5159)
+        card.bond.scripts.OnEnter(card.bond)
+        match(table.concat(tip.lines, " / "), "Det høyeste nivået%.")
+        -- A free pet: nothing to explain on the bond; the personality still tells.
+        card = ola:SelectPet(40)
+        tip:ClearLines()
+        card.bond.scripts.OnEnter(card.bond)
+        eq(#tip.lines, 0)
+        card.personalityHit.scripts.OnEnter(card.personalityHit)
+        ok(#tip.lines >= 2)
+        local c = ola.env.PetJournalPetCard
+        c.speciesID, c.petID = nil, nil
+        ola.env.PetJournal_UpdatePetCard(c)
+        tip:ClearLines()
+        card.personalityHit.scripts.OnEnter(card.personalityHit)
+        eq(#tip.lines, 0, "no pet: no tooltip")
     end)
 end

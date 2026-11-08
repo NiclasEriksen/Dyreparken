@@ -180,6 +180,11 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   - `PARTY_KILL` fires for every kill in the group, but **both GUIDs are secret**: who killed what can't be read.
   - `QUEST_TURNED_IN (questID, xp, money)`, plain values.
   - `C_PetJournal.GetSummonedPetGUID()` is **readable in combat** (not secret).
+  - Herb gathering is seen through `UNIT_SPELLCAST_SUCCEEDED` registered for the player (`RegisterUnitEvent`), out of
+    combat: the activity engine counted it, with the companion out (2026-11-08).
+  - Background art: 57 of 66 guessed `Interface\EncounterJournal\UI-EJ-BACKGROUND-*` / `UI-EJ-LOREBG-*` paths for
+    classic dungeons and raids exist. The pet battle weathers exist but are small overlays (blurry when stretched);
+    the loading screens that exist are the generic splash. `/dp probe bg` shows them in a gallery.
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
 - Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns
