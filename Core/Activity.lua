@@ -1,0 +1,246 @@
+local _, ns = ...
+
+-- The activity engine: game events become activities ("boss", "quest",
+-- "day", ...) that the bond score, achievements and pet stories all listen
+-- to (docs/PET_LIFE.md). Nobody else registers these game events.
+--
+-- A SOURCE is declared once (Activity:Source): the game events it reads, a
+-- filter that turns one event into a count (or nothing), and its id. The
+-- engine does the shared work: it reads the summoned companion, waits until
+-- combat is over before doing so (the companion can be unreadable in
+-- combat, and nothing here is urgent), counts, and fires
+--   Bus "ACTIVITY" (id, n, petKey, mine)
+-- petKey: the summoned companion (or nil), mine: it's the one you adopted.
+--
+-- ON DEMAND: a game event is registered only while some consumer wants an
+-- activity that reads it (Activity:Want / :Drop, keyed by owner). With no
+-- consumers the engine costs nothing. The debug log wants everything, so
+-- `/dp debug on` shows every activity with its payload.
+--
+-- DEGRADES, NEVER BREAKS: an event the client lacks makes its sources
+-- unavailable (Activity:Available; achievements on them stay hidden). A
+-- filter that throws is logged once and switched off for the session.
+--
+-- COUNTERS (per character, saved): char.activity[id] =
+--   { total, mine, day = "YYYYMMDD", today, pets = { [petKey] = n } }
+-- `mine` counts only what happened with your adopted companion out; `pets`
+-- counts per companion. Counted only while someone listens: an activity
+-- nobody wants isn't watched.
+local Activity = {}
+ns.Activity = Activity
+
+local sources = {}      -- id -> source
+local wanted = {}       -- id -> { [owner] = true }
+local listening = {}    -- event -> { source, ... } currently registered
+local broken = {}       -- id -> true (switched off for this session)
+local unavailable = {}  -- id -> true (an event the client lacks)
+local ENGINE = {}       -- our owner key for ns.Events
+
+local function Today(now) return date("%Y%m%d", now or ns.Now()) end
+
+local function Plain(v)
+    if v == nil or (issecretvalue and issecretvalue(v)) then return nil end
+    return v
+end
+Activity.Plain = Plain
+
+------------------------------------------------------------------------------
+-- Counting
+------------------------------------------------------------------------------
+local function Counter(id)
+    local all = ns.DB.char.activity
+    local c = all[id]
+    if not c then
+        c = { total = 0, mine = 0, today = 0, pets = {} }
+        all[id] = c
+    end
+    return c
+end
+
+-- total, mine, today (for the current day), and the count for petKey.
+function Activity:Count(id, petKey)
+    local c = ns.DB.char.activity[id]
+    if not c then return 0, 0, 0, 0 end
+    local today = c.day == Today() and c.today or 0
+    return c.total, c.mine, today, petKey and c.pets[petKey] or 0
+end
+
+-- The companion out right now: key, and whether it's the adopted one.
+local function PetNow()
+    local guid = Plain(ns.Pets:Summoned())
+    local key = guid and ns.Pets:KeyOf(guid)
+    if not key then return nil, false end
+    return key, ns.Registry:MyPet() == key
+end
+
+-- Count n of an activity and tell the listeners. Out of combat only.
+function Activity:Emit(id, n, extra)
+    if ns.InCombat() then
+        return ns.Events:OutOfCombat(function() Activity:Emit(id, n, extra) end)
+    end
+    n = n or 1
+    local key, mine = PetNow()
+    local c = Counter(id)
+    local today = Today()
+    if c.day ~= today then c.day, c.today = today, 0 end
+    c.total, c.today = c.total + n, c.today + n
+    if mine then c.mine = c.mine + n end
+    if key then c.pets[key] = (c.pets[key] or 0) + n end
+    ns.Log("Activity", "%s +%d pet=%s mine=%s %s", id, n, tostring(key), tostring(mine), tostring(extra or ""))
+    ns.Bus:Fire("ACTIVITY", id, n, key, mine)
+end
+
+------------------------------------------------------------------------------
+-- Sources and registration
+------------------------------------------------------------------------------
+-- src: { id, events = { ... }, filter = fn(event, ...) -> n (or nil to
+-- skip), extra; hook = fn(fire) for sources driven by a function hook;
+-- start = fn() when it starts being watched; available = fn() -> bool }
+function Activity:Source(src)
+    sources[src.id] = src
+end
+
+local function Run(src, event, ...)
+    if broken[src.id] or not next(wanted[src.id] or {}) then return end
+    local ok, n, extra = pcall(src.filter, event, ...)
+    if not ok then
+        broken[src.id] = true
+        ns.Log("Activity", "%s switched off: %s", src.id, tostring(n))
+        return
+    end
+    if n then Activity:Emit(src.id, n, extra) end
+end
+
+local function OnEvent(_, event, ...)
+    for _, src in ipairs(listening[event] or {}) do Run(src, event, ...) end
+end
+
+-- Register the game events the wanted sources need, and only those.
+local function Update()
+    local need = {}
+    for id, owners in pairs(wanted) do
+        local src = sources[id]
+        if src and next(owners) and not broken[id] then
+            for _, e in ipairs(src.events or {}) do
+                need[e] = need[e] or {}
+                table.insert(need[e], src)
+            end
+            if src.hook and not src.hooked then
+                src.hooked = true
+                src.hook(function(...) Run(src, "hook", ...) end)
+            end
+        end
+    end
+    for e in pairs(listening) do
+        if not need[e] then ns.Events:Off(e, ENGINE) end
+    end
+    for e, list in pairs(need) do
+        if not listening[e] then
+            for _, src in ipairs(list) do if src.start then src.start() end end
+            if not ns.Events:On(e, ENGINE, OnEvent) then
+                for _, src in ipairs(list) do unavailable[src.id] = true end
+                need[e] = nil
+            end
+        end
+    end
+    listening = need
+end
+
+function Activity:Want(id, owner)
+    wanted[id] = wanted[id] or {}
+    wanted[id][owner] = true
+    Update()
+end
+
+function Activity:Drop(id, owner)
+    if wanted[id] then wanted[id][owner] = nil end
+    Update()
+end
+
+-- Can this client produce the activity at all?
+function Activity:Available(id)
+    local src = sources[id]
+    if not src or unavailable[id] or broken[id] then return false end
+    if src.available then return src.available() end
+    return true
+end
+
+function Activity:IsListening(event) return listening[event] ~= nil end
+
+-- The debug log wants every activity, so it shows what this client fires.
+local DEBUG = {}
+function Activity:SetDebug(on)
+    for id in pairs(sources) do
+        if on then self:Want(id, DEBUG) else self:Drop(id, DEBUG) end
+    end
+end
+ns.Bus:On("DEBUG", function(on) if ns.DB.char then Activity:SetDebug(on) end end)
+
+------------------------------------------------------------------------------
+-- The daily visit: once a calendar day, the first time your adopted
+-- companion is out (checked after login and after any summon).
+------------------------------------------------------------------------------
+function Activity:CheckDay()
+    if not next(wanted.day or {}) then return end
+    local key, mine = PetNow()
+    local c = ns.DB.char.activity.day
+    if mine and not (c and c.day == Today()) then self:Emit("day", 1, key) end
+end
+
+Activity:Source({ id = "day", events = {} })
+
+function Activity:Init()
+    if ns.Debug.enabled then self:SetDebug(true) end
+    C_Timer.After(30, function() Activity:CheckDay() end)
+    hooksecurefunc(C_PetJournal, "SummonPetByGUID", function()
+        -- The summon lands a moment later.
+        C_Timer.After(2, function() Activity:CheckDay() end)
+    end)
+end
+
+------------------------------------------------------------------------------
+-- The first sources. Each event is unverified on Forever until a probe says
+-- otherwise (docs/FOREVER_API.md); a missing one only hides its activity.
+------------------------------------------------------------------------------
+-- A boss died (any difficulty). ENCOUNTER_END: id, name, difficulty, size, success.
+Activity:Source({ id = "boss", events = { "ENCOUNTER_END" }, filter = function(_, id, name, _, _, success)
+    if Plain(success) ~= 1 then return nil end
+    return 1, tostring(Plain(name) or Plain(id) or "?")
+end })
+
+-- A quest handed in.
+Activity:Source({ id = "quest", events = { "QUEST_TURNED_IN" }, filter = function(_, questID)
+    return 1, tostring(Plain(questID) or "?")
+end })
+
+-- Honorable kills: the session counter went up (by how much).
+local lastHK
+local function SessionHK()
+    if type(GetPVPSessionStats) ~= "function" then return nil end
+    return Plain((GetPVPSessionStats()))
+end
+Activity:Source({
+    id = "pvp",
+    events = { "PLAYER_PVP_KILLS_CHANGED" },
+    available = function() return type(GetPVPSessionStats) == "function" end,
+    start = function() lastHK = SessionHK() end,
+    filter = function()
+        local hk = SessionHK()
+        if type(hk) ~= "number" then return nil end
+        local before = lastHK
+        lastHK = hk
+        if not before or hk <= before then return nil end
+        return hk - before
+    end,
+})
+
+-- A flight path taken (a function hook: it can't be unregistered, so it
+-- does nothing while nobody wants "taxi").
+Activity:Source({
+    id = "taxi",
+    available = function() return type(TakeTaxiNode) == "function" end,
+    hook = function(fire)
+        if type(TakeTaxiNode) == "function" then hooksecurefunc("TakeTaxiNode", fire) end
+    end,
+    filter = function() return 1 end,
+})

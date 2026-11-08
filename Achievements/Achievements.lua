@@ -189,6 +189,12 @@ function Eval.nick(d, ctx)
     local has = (key and namer == ns.PlayerKey()) and 1 or 0
     return has == 1, has, 1
 end
+function Eval.activity(d)
+    if not ns.Activity:Available(d.act) then return nil end
+    local total, mine = ns.Activity:Count(d.act)
+    local have = d.pet and mine or total
+    return have >= d.n, math.min(have, d.n), d.n
+end
 function Eval.guildcount(d, ctx)
     if ctx.total < d.n then return nil end
     return ctx.caredCount >= d.n, math.min(ctx.caredCount, d.n), d.n
@@ -625,8 +631,25 @@ function Ach:List()
     for _, line in ipairs(lines) do ns.Print(line) end
 end
 
+-- Ask the activity engine to watch what our activity achievements count;
+-- they're checked again when one happens.
+function Ach:WatchActivities()
+    local any = false
+    for _, d in ipairs(ns.AchDefs) do
+        if d.kind == "activity" then
+            any = true
+            ns.Activity:Want(d.act, Ach)
+        end
+    end
+    if any and not self.watching then
+        self.watching = true
+        ns.Bus:On("ACTIVITY", function() Ach:Check("activity", "char") end)
+    end
+end
+
 function Ach:Init()
     ns.Comm:Register("ACH_EARNED", OnEarned)
+    self:WatchActivities()
     local pending
     ns.Events:On("NEW_PET_ADDED", Ach, function()
         learned = learned + 1

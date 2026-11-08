@@ -20,7 +20,8 @@ local _, ns = ...
 local Kills = {}
 ns.Kills = Kills
 
-local EVENTS = { "ENCOUNTER_START", "ENCOUNTER_END", "BOSS_KILL", "PLAYER_PVP_KILLS_CHANGED", "PARTY_KILL" }
+local EVENTS = { "ENCOUNTER_START", "ENCOUNTER_END", "BOSS_KILL", "PLAYER_PVP_KILLS_CHANGED", "PARTY_KILL",
+    "QUEST_TURNED_IN" }
 local PVP = { PLAYER_PVP_KILLS_CHANGED = true, PARTY_KILL = true }
 
 local function Show(v)
@@ -78,6 +79,7 @@ function Kills:Probe()
     local valid = C_EventUtils and C_EventUtils.IsEventValid
     local parts = {}
     for _, e in ipairs(EVENTS) do parts[#parts + 1] = e .. "=" .. (valid and tostring(valid(e)) or "?") end
+    parts[#parts + 1] = "TakeTaxiNode=" .. tostring(type(TakeTaxiNode) == "function")
     local msg = ("kills probe: %s | %s | pet=%s | debug log %s"):format(table.concat(parts, " "), Stats(),
         self:PetState(), ns.Debug.enabled and "on (listening)" or "OFF: /dp debug on to listen")
     ns.Print(msg)

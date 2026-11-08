@@ -25,6 +25,7 @@ Core\Comm.lua
 Core\Version.lua
 Core\Guild.lua
 Core\SidePage.lua
+Core\Activity.lua
 
 # Menagerie: companion registry
 Data\Companions.lua

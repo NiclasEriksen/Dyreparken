@@ -152,6 +152,8 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
    or out of combat. Partly done (kills). Build only on what works.
 1. **Activity engine:** sources, on-demand registration, counters and caps, the `activity` achievement kind, the
    kills probe folded in. First sources: the daily presence and whatever passed the probe.
+   *Built 2026-11-08* (`Core/Activity.lua`): sources day, boss, quest, pvp, taxi (all but day unverified in game);
+   no achievements use it yet. The kills probe stays separate until its dungeon log is read.
 2. **Bond core:** daily points, levels, the card bar, the migration seed, loyalty achievements moved to levels.
 3. **Activities and likes:** more sources as probes confirm them, likes per tag, quirks, flavor lines.
 4. **Lifetime and temperament:** `g.life` sync, temperament stages, park map borders, world tooltip word.

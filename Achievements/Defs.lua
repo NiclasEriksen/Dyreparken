@@ -14,6 +14,9 @@ local _, ns = ...
 --                     tag has no counting pets)
 --   loyal   days      care for the same companion this many days  (char)
 --   nick              have given your companion a nickname          (char)
+--   activity act n    n of an activity (Core/Activity.lua: "boss", "quest", ...); pet = true counts
+--                     only with your adopted companion out. Hidden while the client can't produce it.
+--                                                                    (char)
 --   guildcount  n     the guild cares for n counting pets at once  (guild)
 --   guildall          the guild cares for every counting pet       (guild)
 --   guildfamily tag   the guild cares for every counting pet with this tag

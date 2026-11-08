@@ -42,7 +42,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     GUILD_ROSTER_UPDATE PLAYER_GUILD_UPDATE GROUP_ROSTER_UPDATE COMPANION_UPDATE BAG_UPDATE_DELAYED
     UNIT_AURA ZONE_CHANGED_NEW_AREA PLAYER_TARGET_CHANGED UPDATE_MOUSEOVER_UNIT CHAT_MSG_GUILD
     CHAT_MSG_PARTY CHAT_MSG_RAID NEW_PET_ADDED PET_JOURNAL_LIST_UPDATE
-    ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED]]):gmatch("%S+") do
+    ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED QUEST_TURNED_IN]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1121,6 +1121,7 @@ function Client:BuildEnv()
         return math.floor(d / 365), math.floor((d % 365) / 30), (d % 365) % 30, 0
     end
     -- Honorable kills, honor (S.hk, S.honor); lifetime: kills, highest rank.
+    env.TakeTaxiNode = function(i) S.taxi = i end
     env.GetPVPSessionStats = function() return S.hk or 0, S.honor or 0 end
     env.GetPVPLifetimeStats = function() return S.lifetimeHK or 0, 0 end
     env.C_EventUtils = { IsEventValid = function(e) return KNOWN_EVENTS[e] == true end }

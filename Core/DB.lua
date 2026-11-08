@@ -32,6 +32,7 @@ local CHAR_DEFAULTS = {
     muteSummonSound = true, -- the clank when a companion is summoned (Summon:QuietSummon)
     achNotify = true,          -- tell other addon users when I earn an achievement
     announce = true,           -- post adoptions and nicknames to guild chat (Bonds:Announce)
+    activity = {},             -- activity counters (Core/Activity.lua)
     ach = { got = {}, seen = {} }, -- character-scope achievements (Achievements.lua)
     warnedVersion = nil, -- newest version we've already told the player about
 }

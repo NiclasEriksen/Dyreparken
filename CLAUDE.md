@@ -94,6 +94,9 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
+Core/Activity.lua  the activity engine: game events -> activities ("boss", "quest", "pvp", "taxi", "day"), counted per
+                   character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
+                   (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
