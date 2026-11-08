@@ -1,0 +1,184 @@
+-- Bonds: milestone lines at login, the nickname unlock note, petting
+-- (/dp klapp), and the name history in the journal and on adoption.
+return function(test, H)
+    local eq, ok, no, match = H.eq, H.ok, H.no, H.match
+    local PANDA = "s:5159"
+
+    local function Count(c, text)
+        local n = 0
+        for _, line in ipairs(c.printed) do if line:find(text, 1, true) then n = n + 1 end end
+        return n
+    end
+
+    -- Ola adopts the panda, Kari the cat; then time passes.
+    local function Setup()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
+        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
+        w:Run(40)
+        ola:Slash("adopter")
+        w:Run(1)
+        return w, ola, kari
+    end
+
+    test("milestones: by calendar day, 1 month, 100 days, every year", function()
+        local w = H.World()
+        local B = w:AddClient("Ola Nord").ns.Bonds
+        local at = os.time({ year = 2026, month = 1, day = 10, hour = 23 })
+        local function On(y, m, d, h) return B:Milestone(at, os.time({ year = y, month = m, day = d, hour = h or 1 })) end
+        eq(On(2026, 1, 10, 23), nil, "the same day")
+        eq(On(2026, 2, 8), nil)
+        eq(On(2026, 2, 9), "1 måned", "30 calendar days, even an hour past midnight")
+        eq(On(2026, 2, 10), nil)
+        eq(On(2026, 4, 20), "100 dager")
+        eq(On(2027, 1, 10), "1 år")
+        eq(On(2028, 1, 10), "2 år")
+        eq(On(2028, 1, 11), nil)
+    end)
+
+    test("a month together: one line for you, one for the guild, once a day", function()
+        local w, ola, kari = Setup()
+        w:SkipDays(30)
+        ola:Reload(); kari:Reload()
+        w:Run(25)
+        eq(Count(ola, "bodd hos deg"), 0, "not right at login: the sync comes first")
+        w:Run(15)
+        ok(ola:Printed("I dag har Panda Cub bodd hos deg i 1 måned!", true))
+        ok(kari:Printed("Ola Nord og Panda Cub feirer 1 måned sammen i dag!", true))
+        no(ola:Printed("Ola Nord og Panda Cub", true), "your own isn't in the guild list")
+        -- Again the same day: nothing new.
+        ola:Reload(); kari:Reload()
+        w:Run(40)
+        eq(Count(ola, "bodd hos deg"), 1)
+        eq(Count(kari, "feirer"), 1)
+        -- The next day there's no milestone.
+        w:SkipDays(1)
+        kari:Reload()
+        w:Run(40)
+        eq(Count(kari, "feirer"), 1)
+    end)
+
+    test("the nickname is used, and long guild lists are cut", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
+        w:Run(20)
+        ola:Slash("adopter")
+        w:SkipDays(7)
+        ola:Slash("navn Pepe")
+        local R = ola.ns.Registry
+        local now = w:ServerTime()
+        for i = 1, 7 do
+            local owner = ("Medlem%d Etternavn"):format(i)
+            w:AddMember(owner)
+            R:MergeRecord(owner, { k = "s:" .. (40 + i), at = now - 7 * 86400, ts = now })
+        end
+        R:Changed()
+        w:SkipDays(93)
+        ola:Reload()
+        w:Run(40)
+        ok(ola:Printed("I dag har Pepe bodd hos deg i 100 dager!", true))
+        eq(Count(ola, "feirer 100 dager sammen i dag!"), 5)
+        ok(ola:Printed("... og 2 til.", true))
+    end)
+
+    test("nickname unlock: told once per adoption, inherited names too", function()
+        local w, ola, kari = Setup()
+        w:SkipDays(7)
+        ola:Reload()
+        w:Run(40)
+        ok(ola:Printed("Nå kan du gi Panda Cub et kallenavn: /dp navn", true))
+        ola:Reload()
+        w:Run(40)
+        eq(Count(ola, "Nå kan du gi"), 1)
+        ola:Slash("navn Pepe")
+        ola:Slash("gislipp")
+        w:Run(1)
+        -- Kari adopts the named panda and gets the note a week later.
+        kari:GivePet(5159)
+        kari:Slash("adopter panda")
+        ok(kari:Printed("Du adopterte Panda Cub. Det heter «Pepe», et navn det fikk av Ola Nord. Ta godt vare på det!",
+            true))
+        w:SkipDays(7)
+        kari:Reload()
+        w:Run(40)
+        ok(kari:Printed("Nå kan du gi Pepe et nytt kallenavn hvis du vil: /dp navn", true))
+    end)
+
+    test("adopting your own named pet again keeps its name quietly", function()
+        local w, ola = Setup()
+        w:SkipDays(7)
+        ola:Slash("navn Pepe")
+        ola:Slash("gislipp")
+        ola:Slash("adopter")
+        ok(ola:Printed("Du adopterte Panda Cub. Det heter fortsatt «Pepe».", true))
+    end)
+
+    test("no guild: no milestones", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { guild = false })
+        w:Run(40)
+        c.ns.Bonds:Celebrate()
+        eq(#c.printed, 0)
+    end)
+
+    test("klapp: your own pet by nickname, others' with their owner", function()
+        local w, ola, kari = Setup()
+        w:SkipDays(7)
+        ola:Slash("navn Pepe")
+        w:Run(1)
+        local function Emotes(c)
+            local list = {}
+            for _, m in ipairs(w.chat) do if m.from == c.name and m.chan == "EMOTE" then list[#list + 1] = m.text end end
+            return list
+        end
+        ola:Slash("klapp")
+        eq(Emotes(ola)[1], "klapper Pepe.", "your own summoned pet")
+        ola:Target({ species = 5159, owner = "Ola Nord" })
+        ola:Slash("klapp")
+        eq(Emotes(ola)[2], "klapper Pepe.", "your own, targeted")
+        kari:Target({ species = 5159, owner = "Ola Nord" })
+        kari:Slash("klapp")
+        eq(Emotes(kari)[1], "klapper Pepe (Ola Nord sin Panda Cub).")
+        kari:Target({ species = 46, owner = "Per Hansen" })
+        kari:Slash("pat")
+        eq(Emotes(kari)[2], "klapper Per Hansen sin White Kitten.", "no reservation: the owner from the tooltip")
+        kari:Target({ species = 46 })
+        kari:Slash("klapp")
+        eq(Emotes(kari)[3], "klapper White Kitten.", "no owner line")
+        kari:Target({ species = 46, name = H.SECRET })
+        kari:Slash("klapp")
+        eq(#Emotes(kari), 3, "unreadable name: nothing")
+        -- Not a companion: your own pet instead (Kari's cat isn't adopted: species name).
+        kari:Target({ species = 46, companion = false })
+        kari:Slash("klapp")
+        eq(Emotes(kari)[4], "klapper Bombay Cat.")
+        kari:Summon(nil)
+        kari:Target(nil)
+        kari:Slash("klapp")
+        ok(kari:Printed("Tilkall kjæledyret ditt, eller velg et kjæledyr som mål.", true))
+        kari:EnterCombat()
+        kari:Slash("klapp")
+        ok(kari:Printed("Ikke nå, du er i kamp.", true))
+        eq(#Emotes(kari), 4)
+    end)
+
+    test("the journal tooltip says who named the pet, and when", function()
+        local w, ola, kari = Setup()
+        w:SkipDays(7)
+        ola:Slash("navn Pepe")
+        w:Run(1)
+        local today = os.date("%d.%m.%Y", w:ServerTime())
+        local tip = kari.env.GameTooltip
+        tip:ClearLines()
+        kari.ns.JournalUI:AddTooltipLines(tip, PANDA)
+        match(table.concat(tip.lines, " / "), "Kallenavn: «Pepe» / Navngitt av Ola Nord, " .. today:gsub("%.", "%%."))
+        tip:ClearLines()
+        ola.ns.JournalUI:AddTooltipLines(ola.env.GameTooltip, PANDA)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Navngitt av deg")
+        ola:Slash("gislipp")
+        w:Run(1)
+        tip:ClearLines()
+        kari.ns.JournalUI:AddTooltipLines(tip, PANDA)
+        match(table.concat(tip.lines, " / "), "trenger et hjem / Kallenavn: «Pepe» / Navngitt av Ola Nord")
+    end)
+end

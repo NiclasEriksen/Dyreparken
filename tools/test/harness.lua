@@ -750,6 +750,18 @@ function Client:Hover(o)
     return added, table.concat(added, " / "), tip.lines
 end
 
+-- Target a companion (same o as Hover; nil clears the target).
+function Client:Target(o)
+    if not o then self.units.target = nil; return end
+    local lines = { { leftText = SpeciesName(o.species or 0) } }
+    if o.owner then
+        lines[2] = { leftText = (self.env.UNITNAME_TITLE_COMPANION or "%s's Companion"):format(o.owner) }
+    end
+    lines[#lines + 1] = { leftText = "Pet Level 1 Critter" }
+    self.units.target = { companion = o.companion ~= false, species = o.species, lines = lines,
+        name = o.name or SpeciesName(o.species or 0) }
+end
+
 -- Pet journal -----------------------------------------------------------------------
 -- Loads "Blizzard_Collections" (stub frames) on first open, shows it, and
 -- lists the owned pets plus `o.extra` unowned species.

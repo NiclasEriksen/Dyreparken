@@ -84,12 +84,13 @@ Add("lyd", "lyd [på|av] - klirringen når et kjæledyr tilkalles (dempet som st
 Add("prestasjoner", "prestasjoner [del|varsel på|av|ikoner] - prestasjonene dine; del nye i guild-chatten",
     Achievements)
 Add("versjon", "versjon [guild|gruppe] - hvem som har hvilken versjon", Version)
+Add("klapp", "klapp - klapp kjæledyret du har valgt som mål, eller ditt eget", function() ns.Bonds:Pat() end)
 Add("rapport", "rapport - rop ut dem i gruppa som ikke har kjæledyret ute", Report)
 -- The English names from before the Norwegian interface (2026-11-08), and
 -- the oldest ones (claim, release), still work but aren't in the help.
 commands.adopt, commands.letgo, commands.claim, commands.release = Adopt, LetGo, Adopt, LetGo
 commands.nick, commands.list, commands.sound, commands.ach = Nick, List, Sound, Achievements
-commands.version, commands.report = Version, Report
+commands.version, commands.report, commands.pat = Version, Report, commands.klapp
 
 Add("probe", "probe [more|tabs|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
     if arg == "tabs" then

@@ -296,8 +296,15 @@ function Registry:Claim(key)
     local mine = self:MyPet()
     Write({ k = key, at = ns.Now() })
     ns.Log("Registry", "claim %s (was %s)", key, tostring(mine))
-    return true, mine and ("Du adopterte %s (og ga slipp på %s)."):format(ns.Pets:NameOfKey(key), ns.Pets:NameOfKey(mine))
+    local msg = mine and ("Du adopterte %s (og ga slipp på %s)."):format(ns.Pets:NameOfKey(key), ns.Pets:NameOfKey(mine))
         or ("Du adopterte %s."):format(ns.Pets:NameOfKey(key))
+    -- A name it got from an earlier carer comes along: introduce it.
+    local nick, namer = self:Nickname(key)
+    if nick then
+        msg = msg .. (namer == me and (" Det heter fortsatt «%s»."):format(nick)
+            or (" Det heter «%s», et navn det fikk av %s. Ta godt vare på det!"):format(nick, namer))
+    end
+    return true, msg
 end
 
 function Registry:Release()

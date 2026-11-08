@@ -55,15 +55,21 @@ end
 -- Tooltip lines for a pet key. Used by list buttons and the world tooltip.
 function JournalUI:AddTooltipLines(tooltip, key)
     local status, owner, r = Status(key)
-    local nick = ns.Registry:Nickname(key)
+    local nick, namer, namedAt = ns.Registry:Nickname(key)
+    local function Nick()
+        if not nick then return end
+        tooltip:AddLine(("Kallenavn: «%s»"):format(nick), 1, 1, 1)
+        local by = namer == ns.PlayerKey() and "deg" or namer
+        tooltip:AddLine(("Navngitt av %s, %s"):format(by, Day(namedAt)), 0.7, 0.7, 0.7)
+    end
     tooltip:AddLine(" ")
     if status == "free" then
         tooltip:AddLine("Dyreparken: trenger et hjem", 0.5, 0.8, 0.5)
-        if nick then tooltip:AddLine(("Kallenavn: «%s»"):format(nick), 1, 1, 1) end
+        Nick()
         return
     end
     tooltip:AddLine(("Bor hos %s"):format(status == "mine" and "deg" or owner), 1, 0.82, 0)
-    if nick then tooltip:AddLine(("Kallenavn: «%s»"):format(nick), 1, 1, 1) end
+    Nick()
     local how = ns.CaredFor(r.at)
     tooltip:AddLine(how:sub(1, 1):upper() .. how:sub(2), 0.7, 0.7, 0.7)
 end

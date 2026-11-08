@@ -94,7 +94,7 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
-Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, rapport;
+Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, rapport;
                    English aliases; probe, debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
@@ -103,6 +103,7 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp report), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
+                   Bonds (milestone lines after login, the nickname unlock note, /dp klapp)
 Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
                    /dp ach share; guild ones synced with the registry, ACH), Page (our side tab on the
