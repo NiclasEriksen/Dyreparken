@@ -234,6 +234,7 @@ local function UpdateCard()
     local species = ns.Pets:NameOfKey(key) or ""
     card.nickname:SetText(nick or species)
     card.status:SetText(nick and (species .. " · " .. text) or text)
+    card.fullName, card.species, card.home = nick or species, species, text -- for the hover
     card.personality:SetText(ns.Personality:Names(key))
     local likes = ns.Personality:LikedWords(key)
     card.likes:SetText(#likes > 0 and ("Liker %s"):format(ns.Personality.Join(likes)) or "")
@@ -373,6 +374,20 @@ local function BuildCard()
     card.status:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
     card.status:SetJustifyH("LEFT")
     card.status:SetWordWrap(false)
+    -- Hover the name or the home line: both in full (a long one ends in "...").
+    card.nameHit = CreateFrame("Frame", nil, panel)
+    card.nameHit:SetPoint("TOPLEFT", card.nickname, "TOPLEFT", -2, 2)
+    card.nameHit:SetPoint("BOTTOMRIGHT", card.status, "BOTTOMRIGHT", 2, -2)
+    card.nameHit:EnableMouse(true)
+    card.nameHit:SetScript("OnEnter", function(self)
+        if not card.key then return end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(card.fullName, 1, 0.82, 0)
+        if card.fullName ~= card.species then GameTooltip:AddLine(card.species, 1, 1, 1) end
+        GameTooltip:AddLine(card.home, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    card.nameHit:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
     -- Its personality: the traits, then what it likes.
     card.personality = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     card.personality:SetPoint("TOPLEFT", card.status, "BOTTOMLEFT", 0, -5)
