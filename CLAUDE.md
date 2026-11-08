@@ -97,7 +97,7 @@ Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
-                   English aliases; probe, debug)
+                   English aliases; probe [more|tabs|kills|ach], debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
@@ -111,7 +111,8 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    guild announcements)
 Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
-                   /dp ach share; guild ones synced with the registry, ACH), Page (the achievements SidePage;
+                   /dp ach share; guild ones synced with the registry, ACH), Kills (research probe for boss/PvP kills, only while
+                   debug is on), Page (the achievements SidePage;
                    Del per shareable one).
                    Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first)

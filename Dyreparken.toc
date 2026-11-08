@@ -41,6 +41,7 @@ Menagerie\Bonds.lua
 Achievements\Texts.lua
 Achievements\Defs.lua
 Achievements\Achievements.lua
+Achievements\Kills.lua
 Achievements\Page.lua
 Menagerie\ParkPage.lua
 

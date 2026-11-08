@@ -41,7 +41,8 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     PLAYER_REGEN_ENABLED PLAYER_REGEN_DISABLED PLAYER_MOUNT_DISPLAY_CHANGED CHAT_MSG_ADDON
     GUILD_ROSTER_UPDATE PLAYER_GUILD_UPDATE GROUP_ROSTER_UPDATE COMPANION_UPDATE BAG_UPDATE_DELAYED
     UNIT_AURA ZONE_CHANGED_NEW_AREA PLAYER_TARGET_CHANGED UPDATE_MOUSEOVER_UNIT CHAT_MSG_GUILD
-    CHAT_MSG_PARTY CHAT_MSG_RAID NEW_PET_ADDED PET_JOURNAL_LIST_UPDATE]]):gmatch("%S+") do
+    CHAT_MSG_PARTY CHAT_MSG_RAID NEW_PET_ADDED PET_JOURNAL_LIST_UPDATE
+    ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1119,6 +1120,9 @@ function Client:BuildEnv()
         local d = r.days
         return math.floor(d / 365), math.floor((d % 365) / 30), (d % 365) % 30, 0
     end
+    -- Honorable kills, honor (S.hk, S.honor); lifetime: kills, highest rank.
+    env.GetPVPSessionStats = function() return S.hk or 0, S.honor or 0 end
+    env.GetPVPLifetimeStats = function() return S.lifetimeHK or 0, 0 end
     env.C_EventUtils = { IsEventValid = function(e) return KNOWN_EVENTS[e] == true end }
     env.C_GuildInfo = { IsGuildOfficer = function() return c.guild ~= nil and c.rank <= 1 end,
         GuildRoster = function()

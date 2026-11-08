@@ -194,6 +194,17 @@ Coverage floor as for Menagerie (95%).
      it has (`GetFileIDFromPath`); `/dp ach icons` previews them all in chat for picking by eye.
    - Tests in `14_achievements_page.lua`.
 
+## Research: boss and PvP kills with your companion out (2026-11-08)
+
+Idea: count boss kills and honorable kills while your companion is out ("Bosskamerat" 1/10/50, "Kampklar"
+25/100), shown per pet in tooltips and on the park map. Killing blows are out: they'd need the combat log, which
+Midnight's restrictions lock down and which would break the dormancy rule.
+
+Unknowns, probed by `Achievements/Kills.lua` (listens only while `/dp debug on`; `/dp probe kills` shows which
+events exist): do `ENCOUNTER_END` / `BOSS_KILL` fire for Forever's bosses, and with what; do
+`PLAYER_PVP_KILLS_CHANGED` and `GetPVPSessionStats` track honorable kills; is the summoned companion readable at
+that moment (in combat), or only after combat ends (the probe logs both). Build the feature on the log's answers.
+
 ## Decisions (2026-11-06)
 
 1. **Names are Norwegian.**

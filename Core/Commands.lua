@@ -105,8 +105,10 @@ commands.nick, commands.list, commands.sound, commands.ach = Nick, List, Sound, 
 commands.version, commands.report, commands.pat = Version, Report, commands.klapp
 commands.announce = Announce
 
-Add("probe", "probe [more|tabs|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
-    if arg == "tabs" then
+Add("probe", "probe [more|tabs|kills|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
+    if arg == "kills" then
+        ns.Kills:Probe()
+    elseif arg == "tabs" then
         ns.AchPage:Probe()
     elseif arg == "more" then
         ns.Pets:ProbeMore()
