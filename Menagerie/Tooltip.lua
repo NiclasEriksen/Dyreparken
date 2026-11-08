@@ -130,11 +130,32 @@ function Tooltip:ShowNickname(tooltip, nick, data)
     ShiftData(data, species, nick)
 end
 
+-- A companion the client has no name for yet shows as "Unknown"
+-- (UNKNOWNOBJECT), on its nameplate and as the tooltip's title: new species
+-- not in the journal, e.g. Azurky (5179), seen 2026-11-09. Its species id
+-- still gives the name, so the title gets it (the nameplate is the game's).
+function Tooltip:NameUnknown(tooltip, data, unit)
+    local title = Line(tooltip, "Left", 1)
+    local text = title and Plain(title:GetText())
+    if text ~= (UNKNOWNOBJECT or "Unknown") then return end
+    if not Plain(UnitIsBattlePetCompanion and UnitIsBattlePetCompanion(unit)) then return end
+    local sid = Plain(UnitBattlePetSpeciesID and UnitBattlePetSpeciesID(unit))
+    local name = type(sid) == "number" and C_PetJournal.GetPetInfoBySpeciesID(sid)
+    name = Plain(name)
+    if type(name) ~= "string" or name == "" then return end
+    title:SetText(name)
+    local first = type(data) == "table" and type(data.lines) == "table" and data.lines[1]
+    if type(first) == "table" and Plain(first.leftText) == text then first.leftText = name end
+    tooltip:Show()
+    ns.Log("Tooltip", "named an unknown companion: species %d = %s", sid, name)
+end
+
 local function OnUnitTooltip(tooltip, data)
     if tooltip ~= GameTooltip or InCombatLockdown() then return end
     local ok, _, unit = pcall(tooltip.GetUnit, tooltip)
     unit = ok and Plain(unit)
     if not unit then return end
+    Tooltip:NameUnknown(tooltip, data, unit)
     local owner, r = Tooltip:ReservationOf(unit, data and data.lines)
     if not owner then return end
     local nick = ns.Registry:Nickname(r.k)

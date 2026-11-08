@@ -127,4 +127,19 @@ return function(test, H)
         eq(#c:Log("no TooltipDataProcessor"), 1)
         eq(#c.tooltipCalls, 0)
     end)
+
+    test("a companion the client has no name for: the title gets its species' name", function()
+        local w, ola, kari = Setup()
+        -- Someone's new companion the client calls "Unknown" (Azurky, 2026-11-09).
+        local lines = { { leftText = "Unknown" }, { leftText = "Per Hansen's Companion" }, { leftText = "Pet Level 1 Critter" } }
+        local _, _, all = kari:Hover({ species = 5159, lines = lines })
+        eq(all[1], "Panda Cub", "named from its species")
+        eq(kari.lastTooltipData.lines[1].leftText, "Panda Cub", "in the data too, for tooltip addons")
+        eq(#kari:Log("named an unknown companion: species 5159 = Panda Cub"), 1)
+        -- A real name stays; a non-companion called Unknown stays too.
+        _, _, all = kari:Hover({ species = 5159, owner = "Per Hansen" })
+        eq(all[1], "Panda Cub")
+        _, _, all = kari:Hover({ species = 5159, companion = false, lines = { { leftText = "Unknown" } } })
+        eq(all[1], "Unknown")
+    end)
 end

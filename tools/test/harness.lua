@@ -1114,6 +1114,7 @@ function Client:BuildEnv()
     env.StaticPopup_Show = function(which, ...) c.popup = { which = which, args = { ... } } end
     env.ACCEPT, env.CANCEL = "Accept", "Cancel"
     env.UNITNAME_TITLE_COMPANION = "%s's Companion"
+    env.UNKNOWNOBJECT = "Unknown" -- a unit the client has no name for yet
 
     -- lines[i] = left text; right[i], colors[i], hidden[i] per line. The
     -- GameTooltipTextLeftN / RightN font strings read and write these.

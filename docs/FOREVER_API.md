@@ -129,6 +129,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   PrettyTooltip takes the title from `data.lines[1]` and appends any native line whose `lineIndex` the data doesn't
   list, so changing only the font strings left the old title and showed a moved line twice. With both changed, the
   nickname shows as the title in PrettyTooltip as well.
+- A companion the client has no creature name for (2026-11-09: Azurky, species 5179, hidden from the journal) shows
+  "Unknown" (`UNKNOWNOBJECT`) on its nameplate and as its tooltip title. Its `UnitBattlePetSpeciesID` still works,
+  so Tooltip.lua puts the species' name (`GetPetInfoBySpeciesID`) in the title; whether that returns a name for a
+  hidden species on Forever is unverified. The nameplate stays the game's.
 - **Unit and journal species IDs match**: your own Panda Cub as a unit reports `UnitBattlePetSpeciesID` = 5159, the
   same as the journal. Its GUID is `Creature-0-6845-1-1-272330-…`, and npcID 272330 equals the journal's creatureID.
 
