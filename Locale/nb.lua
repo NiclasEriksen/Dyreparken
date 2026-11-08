@@ -352,6 +352,12 @@ L["decor.level.6"] = "et bånd med navnet på nivået, og lysstråler"
 L["decor.level.7"] = "hjerter, og alt gull skinner"
 
 ------------------------------------------------------------------------------
+-- What you've done together (the chips at the top of the card)
+------------------------------------------------------------------------------
+L["stats.days"] = "{n} dager ute sammen med {pet}"
+L["stats.tip"] = "{n} {what} sammen med {pet}"
+
+------------------------------------------------------------------------------
 -- The park (the map page)
 ------------------------------------------------------------------------------
 L["park.title"] = "Parken"

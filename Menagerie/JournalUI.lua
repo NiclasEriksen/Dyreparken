@@ -216,6 +216,7 @@ local function UpdateCard()
         card.scene:Hide()
         ns.Scenes:Paint(card, nil)
         ns.Decor:Apply(card, nil)
+        ns.Stats:Update(card, nil)
         card.bond:Hide()
         card.reserve:Hide()
         card.nick:Hide()
@@ -261,6 +262,7 @@ local function UpdateCard()
     local tint = ns.Scenes.TINT[card.family] or ns.Scenes.TINT.default
     local _, level = ns.Bond:Of(key)
     ns.Decor:Apply(card, key, level, tint)
+    ns.Stats:Update(card, key) -- (after the decorations: it sits under the ribbon when there is one)
     ns.BondTrack:Update(card, key, { math.min(1, tint[1] * 1.7), math.min(1, tint[2] * 1.7), math.min(1, tint[3] * 1.7) })
 
     card.key = key
@@ -371,6 +373,7 @@ local function BuildCard()
     card.panel = panel
     card.floor:SetPoint("CENTER", panel, "TOP", 0, MODEL_LIFT + 48) -- under the pet's feet (seen 2026-11-08)
     ns.Decor:Build(card, c, panel)
+    ns.Stats:Build(card, c)
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
