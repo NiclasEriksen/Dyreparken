@@ -828,7 +828,17 @@ function Client:OpenJournal(o)
         PJ.shown = false
         PJ.ScrollBox = { buttons = {} }
         function PJ.ScrollBox:ForEachFrame(fn) for _, b in ipairs(self.buttons) do fn(b) end end
-        env.CreateFrame("Frame", "PetJournalPetCard", PJ)
+        local petCard = env.CreateFrame("Frame", "PetJournalPetCard", PJ)
+        -- The "Total Pets" box (o.noPetCount leaves it out).
+        if not o.noPetCount then PJ.PetCount = env.CreateFrame("Frame", nil, PJ) end
+        -- The model with its two turn buttons (parentKeys, like Retail's
+        -- ModelScene; o.noRotate leaves them out).
+        if not o.noRotate then
+            local model = env.CreateFrame("Frame", nil, petCard)
+            petCard.modelScene = model
+            model.RotateLeftButton = env.CreateFrame("Button", nil, model)
+            model.RotateRightButton = env.CreateFrame("Button", nil, model)
+        end
         env.CreateFrame("Button", "PetJournalSummonButton", PJ)
         if o.scrollUtil then
             self.scrollCallbacks = {}

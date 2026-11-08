@@ -169,14 +169,14 @@ return function(test, H)
     test("counter: cared for of every companion in Forever, with a percentage", function()
         local w, ola = Setup()
         local card = ola:SelectPet(5159)
-        eq(card.counter.text, "Guilden: 2 av 83 har et hjem (2%)", "the stub's count")
+        eq(card.counter.text, "2 av 83 (2%)", "the stub's count")
         -- A generated species list replaces the stub's count.
         ola.ns.Companions.species = { [5159] = true, [46] = true, [40] = true, [68] = true }
         ola:SelectPet(5159)
-        eq(card.counter.text, "Guilden: 2 av 4 har et hjem (50%)")
+        eq(card.counter.text, "2 av 4 (50%)")
         ola.ns.Companions = nil
         ola:SelectPet(5159)
-        eq(card.counter.text, "Guilden: 2 av 0 har et hjem (0%)", "no data: no division by zero")
+        eq(card.counter.text, "2 av 0 (0%)", "no data: no division by zero")
     end)
 
     test("the Auto-summon checkbox (default on, per character)", function()

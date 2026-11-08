@@ -9,22 +9,19 @@ local _, ns = ...
 local Scenes = {}
 ns.Scenes = Scenes
 
-local PB, EJ, LS = "Interface\\PetBattles\\", "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-",
-    "Interface\\Glues\\LoadingScreens\\"
+local EJ = "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-"
 
 -- family tag -> candidates. "default" is for pets without a listed family.
+-- Probed 2026-11-08 (build 70862): three dungeon backgrounds exist. The pet
+-- battle weathers exist too, but they're small overlays: stretched over the
+-- card they're a blur (seen in game). The loading screens that exist are the
+-- generic WoW splash. Families without a scene keep Blizzard's background.
 Scenes.BY_FAMILY = {
-    cat = { LS .. "LoadScreenElwynnForest", LS .. "LoadScreenGoldshire", PB .. "Weather-Darkness" },
-    bird = { PB .. "Weather-Sunlight", LS .. "LoadScreenWestfall" },
-    owl = { PB .. "Weather-Moonlight", LS .. "LoadScreenDarnassus" },
-    farm = { LS .. "LoadScreenWestfall", PB .. "Weather-Sunlight" },
-    rabbit = { LS .. "LoadScreenElwynnForest", PB .. "Weather-Sunlight" },
-    frog = { PB .. "Weather-Rain", EJ .. "WailingCaverns", PB .. "Weather-Mud" },
-    snake = { PB .. "Weather-Sandstorm", EJ .. "WailingCaverns" },
-    mechanical = { PB .. "Weather-StaticField", EJ .. "Gnomeregan" },
-    dragon = { PB .. "Weather-BurntEarth", EJ .. "BlackrockDepths" },
-    pirate = { EJ .. "TheDeadmines", LS .. "LoadScreenDeadmines", PB .. "Weather-Rain" },
-    default = { LS .. "LoadScreenEasternKingdom", LS .. "LoadScreenKalimdor", PB .. "Weather-Sunlight" },
+    frog = { EJ .. "WailingCaverns" },
+    snake = { EJ .. "WailingCaverns" },
+    mechanical = { EJ .. "Gnomeregan" },
+    dragon = { EJ .. "BlackrockDepths" },
+    default = {},
 }
 -- The order families are tried in, for a pet with several tags.
 Scenes.ORDER = { "dragon", "mechanical", "pirate", "owl", "frog", "snake", "cat", "rabbit", "farm", "bird" }
@@ -67,7 +64,7 @@ function Scenes:Candidates()
     local families = { "default" }
     for _, f in ipairs(self.ORDER) do families[#families + 1] = f end
     for _, f in ipairs(families) do
-        for _, path in ipairs(self.BY_FAMILY[f]) do
+        for _, path in ipairs(self.BY_FAMILY[f] or {}) do
             if not seen[path] then
                 seen[path] = true
                 list[#list + 1] = { path = path, family = f }

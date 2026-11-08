@@ -11,6 +11,13 @@ return function(test, H)
         } }
     end
 
+    -- Test lists, so the tests check the rules, not today's picks.
+    local function Lists()
+        return { cat = { "Interface\\T\\Cat1", "Interface\\T\\Cat2" }, dragon = { "Interface\\T\\Dragon" },
+            owl = { "Interface\\T\\Owl" }, bird = { "Interface\\T\\Bird", "Interface\\T\\Cat1" },
+            default = { "Interface\\T\\Default" } }
+    end
+
     local function Setup()
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
@@ -42,10 +49,18 @@ return function(test, H)
         -- Everything sits on the panel, which stays under the model's buttons.
         local panel = card.panel
         eq(panel.level, ola.env.PetJournalPetCard:GetFrameLevel(), "below the model and its rotate buttons")
-        eq(card.counter.points[1][2], panel); eq(card.today.points[1][2], panel)
         eq(card.nickname.points[1][2], panel)
-        match(card.counter.text, "^Guilden: 1 av 5 har et hjem")
-        match(card.today.text, "^Dagens dyr: Pepe %(Ola Nord%)$")
+        -- The guild's numbers: boxes on the "Total Pets" row, right of it.
+        local PJ = ola.env.PetJournal
+        eq(card.guildBox.points[1][2], PJ.PetCount, "next to Total Pets")
+        eq(card.todayBox.points[1][2], card.guildBox)
+        eq(card.guildBox.label.text, "Guilden"); eq(card.counter.text, "1 av 5 (20%)")
+        eq(card.todayBox.label.text, "Dagens dyr"); eq(card.today.text, "Pepe")
+        card.todayBox.scripts.OnEnter(card.todayBox)
+        eq(ola.env.GameTooltip.lines[1], "Dagens dyr: Pepe, som bor hos Ola Nord.")
+        card.todayBox.scripts.OnLeave(card.todayBox)
+        card.guildBox.scripts.OnEnter(card.guildBox)
+        eq(ola.env.GameTooltip.lines[1], "Guilden: 1 av 5 kjæledyr har et hjem (20%).")
         -- No pet selected: everything clears.
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil
@@ -56,6 +71,7 @@ return function(test, H)
     test("scenes: by family, the first one the client has, else the default", function()
         local w, ola = Setup()
         local S = ola.ns.Scenes
+        S.BY_FAMILY = Lists()
         local BY = S.BY_FAMILY
         eq(S:For("s:40"), BY.cat[1])
         eq(S:For("s:84"), BY.dragon[1], "dragon before bird")
@@ -68,6 +84,7 @@ return function(test, H)
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })
         kari.ns.Companions = Fixture()
+        kari.ns.Scenes.BY_FAMILY = Lists()
         local missing = { [BY.cat[1]] = true }
         for _, p in ipairs(BY.default) do missing[p] = true end
         kari.missingFiles = missing
@@ -82,6 +99,7 @@ return function(test, H)
 
     test("/dp probe bg lists what exists and previews one on the card", function()
         local w, ola = Setup()
+        ola.ns.Scenes.BY_FAMILY = Lists()
         local list = ola.ns.Scenes:Candidates()
         ola.missingFiles = { [list[2].path] = true }
         ola:Slash("probe bg")
@@ -98,5 +116,36 @@ return function(test, H)
         eq(ola:SelectPet(68).scene.tex, ola.ns.Scenes.BY_FAMILY.owl[1])
         local seen = {}
         for _, c in ipairs(list) do no(seen[c.path], "listed once"); seen[c.path] = true end
+    end)
+
+    test("Blizzard's turn buttons move above the panel; without them the text stays clear of the middle", function()
+        local w, ola = Setup()
+        local card = ola:SelectPet(40)
+        local model = ola.env.PetJournalPetCard.modelScene
+        eq(model.RotateLeftButton.points[1][2], card.panel)
+        eq(model.RotateLeftButton.points[1][3], "TOP")
+        eq(model.RotateRightButton.points[1][1], "BOTTOMLEFT")
+        local last = card.status.points[#card.status.points]
+        eq(last[4], 40, "rows run past the middle")
+        eq(#ola:Log("rotate buttons moved above the panel"), 1)
+        local w2 = H.World()
+        local kari = w2:AddClient("Kari Berg", { pets = { 40 } })
+        w2:Run(20)
+        kari:OpenJournal({ noRotate = true })
+        card = kari:SelectPet(40)
+        last = card.status.points[#card.status.points]
+        eq(last[4], -52, "narrow")
+        eq(#kari:Log("rotate buttons not found"), 1)
+    end)
+
+    test("without a Total Pets box, the guild boxes sit above the card", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { pets = { 40 } })
+        w:Run(20)
+        c:OpenJournal({ noPetCount = true })
+        local card = c:SelectPet(40)
+        eq(card.guildBox.points[1][2], c.env.PetJournalPetCard)
+        eq(card.today.text, "-", "nobody adopted: no pet of the day")
+        match(card.todayBox.tip, "ingen har adoptert")
     end)
 end

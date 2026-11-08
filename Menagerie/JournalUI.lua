@@ -154,14 +154,37 @@ local function CardSpecies()
     if c.petID then return (C_PetJournal.GetPetInfoByPetID(c.petID)) end
 end
 
-local PANEL_H = 74
+local PANEL_H = 58
+
+-- Blizzard's two buttons that turn the model: found by name or parentKey
+-- (unprobed on Forever), left one first. Nil if not found.
+local function RotateButtons(root)
+    local left, right
+    local function Scan(f, depth)
+        for _, child in ipairs({ f:GetChildren() }) do
+            local tag = child:GetName() or ""
+            for k, v in pairs(f) do
+                if v == child and type(k) == "string" then tag = tag .. k end
+            end
+            if child:GetObjectType() == "Button" and tag:find("Rotate") then
+                if tag:find("Left") then left = child elseif tag:find("Right") then right = child end
+            end
+            if depth < 3 then Scan(child, depth + 1) end
+        end
+    end
+    Scan(root, 1)
+    if left and right then return left, right end
+end
 
 local function UpdateExtras()
     local n, total = ns.Registry:Count(), ns.Pets:Total()
     local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
-    card.counter:SetText(("Guilden: %d av %d har et hjem (%d%%)"):format(n, total, pct))
+    card.counter:SetText(("%d av %d (%d%%)"):format(n, total, pct))
+    card.guildBox.tip = ("Guilden: %d av %d kjæledyr har et hjem (%d%%)."):format(n, total, pct)
     local today, owner = ns.Bonds:PetOfTheDay()
-    card.today:SetText(today and ("Dagens dyr: %s (%s)"):format(ns.Bonds:NameOf(today), owner) or "")
+    card.today:SetText(today and ns.Bonds:NameOf(today) or "-")
+    card.todayBox.tip = today and ("Dagens dyr: %s, som bor hos %s."):format(ns.Bonds:NameOf(today), owner)
+        or "Dagens dyr: ingen har adoptert et kjæledyr ennå."
     local deferring = ns.Summon:Deferring()
     card.auto:SetChecked(ns.DB.char.autoSummon and not deferring)
     card.auto:SetEnabled(not deferring)
@@ -239,6 +262,28 @@ local function Report(ok, msg)
     if msg then ns.Print(msg) end
 end
 
+-- A box like Blizzard's "Total Pets": a label left, a value right, a tooltip (box.tip).
+local function InfoBox(label, width)
+    local box = CreateFrame("Frame", nil, PetJournal, ns.SidePage.Template("InsetFrameTemplate3"))
+    box:SetSize(width, 20)
+    box.label = box:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    box.label:SetPoint("LEFT", box, "LEFT", 10, 0)
+    box.label:SetText(label)
+    box.value = box:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    box.value:SetPoint("RIGHT", box, "RIGHT", -10, 0)
+    box.value:SetPoint("LEFT", box.label, "RIGHT", 6, 0)
+    box.value:SetJustifyH("RIGHT")
+    box.value:SetWordWrap(false)
+    box:EnableMouse(true)
+    box:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
+        GameTooltip:SetText(self.tip or label, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    box:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
+    return box
+end
+
 local function BuildCard()
     local c = PetJournalPetCard
     if not c or card.status then return end
@@ -269,18 +314,18 @@ local function BuildCard()
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
-    card.nickname:SetPoint("RIGHT", panel, "CENTER", -52, 0)
+    card.nickname:SetPoint("RIGHT", panel, "CENTER", 40, 0)
     card.nickname:SetJustifyH("LEFT")
     card.nickname:SetWordWrap(false)
     card.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     card.status:SetPoint("TOPLEFT", card.nickname, "BOTTOMLEFT", 0, -3)
-    card.status:SetPoint("RIGHT", panel, "CENTER", -52, 0)
+    card.status:SetPoint("RIGHT", panel, "CENTER", 40, 0)
     card.status:SetJustifyH("LEFT")
     card.status:SetWordWrap(false)
 
     -- The bond, right column: the level in a badge, its name, a slim bar.
     card.bond = CreateFrame("StatusBar", nil, panel)
-    card.bond:SetSize(120, 8)
+    card.bond:SetSize(150, 8)
     card.bond:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     card.bond:SetStatusBarColor(1, 0.7, 0.2)
     card.bond.bg = card.bond:CreateTexture(nil, "BACKGROUND")
@@ -291,13 +336,31 @@ local function BuildCard()
     card.bond.badge:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -9)
     card.bond.badge:SetTexture(ns.Achievements:Icon({ id = "card:bond", icon = { "INV_ValentinesCandy",
         "Spell_Holy_SealOfSacrifice" } }))
-    card.bond.level = card.bond:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
-    card.bond.level:SetPoint("BOTTOMRIGHT", card.bond.badge, "BOTTOMRIGHT", 2, -2)
+    card.bond.level = card.bond:CreateFontString(nil, "OVERLAY", "NumberFontNormalLarge")
+    card.bond.level:SetPoint("CENTER", card.bond.badge, "BOTTOMRIGHT", -3, 3)
     card.bond.label = card.bond:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     card.bond.label:SetPoint("TOPRIGHT", card.bond.badge, "TOPLEFT", -8, 1)
     card.bond:SetPoint("BOTTOMRIGHT", card.bond.badge, "BOTTOMLEFT", -8, 3)
     card.bond.text = card.bond:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     card.bond.text:SetPoint("RIGHT", card.bond, "LEFT", -6, 0)
+
+    -- Blizzard's turn buttons sit where our rows go: move them to just above
+    -- the panel, so the panel's text runs the full width. (Plain buttons;
+    -- moving them taints nothing.) Seen in the middle of the panel, 2026-11-08.
+    local left, right = RotateButtons(c)
+    if left then
+        left:ClearAllPoints()
+        left:SetPoint("BOTTOMRIGHT", panel, "TOP", -3, 6)
+        right:ClearAllPoints()
+        right:SetPoint("BOTTOMLEFT", panel, "TOP", 3, 6)
+    end
+    if not left then
+        -- They stay wherever they are, likely mid-panel: keep our text clear of the middle.
+        card.nickname:SetPoint("RIGHT", panel, "CENTER", -52, 0)
+        card.status:SetPoint("RIGHT", panel, "CENTER", -52, 0)
+    end
+    ns.Log("Journal", "rotate buttons %s", left and "moved above the panel" or "not found")
+    card.rotate = left and { left, right } or nil
     -- The pet's nickname, big, right above the status line.
     card.bond:Hide()
 
@@ -337,13 +400,19 @@ local function BuildCard()
     card.nick:SetScript("OnLeave", function() GameTooltip:Hide() end)
     card.nick:Hide()
 
-    -- "Guild: x of y cared for (z%)": y = every companion in Forever's
-    -- journal (Pets:Total, Data/Companions.lua). Top right of the card.
-    -- With "Dagens dyr", a quiet footer along the panel's bottom edge.
-    card.counter = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    card.counter:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 12, 6)
-    card.today = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    card.today:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -12, 6)
+    -- The guild's numbers: boxes like Blizzard's "Total Pets", on its row.
+    -- "Guilden x av y": y = every companion in Forever's journal
+    -- (Pets:Total, Data/Companions.lua). Then "Dagens dyr".
+    local count = rawget(PetJournal, "PetCount") or rawget(_G, "PetJournalPetCount")
+    card.guildBox = InfoBox("Guilden", 150)
+    if count then
+        card.guildBox:SetPoint("LEFT", count, "RIGHT", 8, 0)
+    else
+        card.guildBox:SetPoint("BOTTOMLEFT", c, "TOPLEFT", 160, 8)
+    end
+    card.todayBox = InfoBox("Dagens dyr", 190)
+    card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", 8, 0)
+    card.counter, card.today = card.guildBox.value, card.todayBox.value
 
     -- Auto-summon toggle (per character, default on), bottom right of the
     -- journal. Greyed out while AutoCompanion is loaded, which takes over.
