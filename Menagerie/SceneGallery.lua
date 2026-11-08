@@ -25,13 +25,16 @@ Gallery.MODES = {
     },
     decor = {
         title = "Dyreparken: pynt",
-        slots = { "corner", "border", "glow", "sparkle", "star", "heart", "bubble", "confetti", "ribbon", "frame" },
+        slots = { "corner", "border", "frame", "glow", "sparkle", "star", "heart", "bubble", "confetti", "ribbon",
+            "moon", "leaf", "paw" },
+        filter = true, -- show the selected slot's candidates only
         picks = function() return ns.DB.global.decorPicks end,
         changed = function() end,
     },
 }
 
-local views = {} -- mode -> { frame, grid, thumbs, selected }
+local views = {} -- mode -> { frame, grid, thumbs, selected, all, shown }
+local Layout -- below
 
 local function UsedBy(view, path)
     local list = {}
@@ -49,8 +52,8 @@ local function Redraw(view)
         b:SetText(b.family .. (view.cfg.picks()[b.family] and " *" or ""))
         if b.family == view.selected then b:LockHighlight() else b:UnlockHighlight() end
     end
-    view.frame.hint:SetText(("Valgt: %s. Klikk et bilde for å velge det, høyreklikk for å fjerne."):format(
-        view.selected))
+    view.frame.hint:SetText(("Valgt: %s%s. Klikk et bilde for å velge det, høyreklikk for å fjerne."):format(
+        view.selected, view.cfg.filter and (" (%d bilder)"):format(view.shown or 0) or ""))
 end
 
 local function OnClick(view, t, button)
@@ -91,7 +94,11 @@ local function Build(mode)
         b:SetSize(84, 20)
         b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
         b.family = f
-        b:SetScript("OnClick", function() view.selected = f; Redraw(view) end)
+        b:SetScript("OnClick", function()
+            view.selected = f
+            if cfg.filter then Layout(view) end
+            Redraw(view)
+        end)
         frame.families[i] = b
         x = x + 88
         if x + 84 > width - 10 then x, y = 12, y - 24 end
@@ -114,18 +121,20 @@ local function NewThumb(view)
     local t = CreateFrame("Button", nil, view.grid)
     t:SetSize(THUMB_W, THUMB_H + 28)
     t:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    t.backing = t:CreateTexture(nil, "BACKGROUND", nil, 1)
+    t.backing:SetPoint("TOPLEFT")
+    t.backing:SetSize(THUMB_W, THUMB_H)
     t.image = t:CreateTexture(nil, "ARTWORK")
+    t.image.box = t.backing
     t.image:SetPoint("TOPLEFT")
     t.image:SetSize(THUMB_W, THUMB_H)
-    t.backing = t:CreateTexture(nil, "BACKGROUND", nil, 1)
-    t.backing:SetAllPoints(t.image)
     t.backing:SetColorTexture(0.12, 0.1, 0.08, 1) -- so a glow or a sparkle shows
     t.border = t:CreateTexture(nil, "BACKGROUND")
     t.border:SetPoint("TOPLEFT", -3, 3)
     t.border:SetSize(THUMB_W + 6, THUMB_H + 6)
     t.border:SetColorTexture(1, 0.82, 0, 1)
     t.label = t:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    t.label:SetPoint("TOPLEFT", t.image, "BOTTOMLEFT", 0, -2)
+    t.label:SetPoint("TOPLEFT", t.backing, "BOTTOMLEFT", 0, -2)
     t.label:SetPoint("RIGHT", t, "RIGHT")
     t.label:SetJustifyH("LEFT")
     t.label:SetWordWrap(false)
@@ -142,28 +151,54 @@ local function NewThumb(view)
     return t
 end
 
--- Show the candidates that exist: { n, path } (a file path, or "atlas:name").
+-- Fit an atlas into the thumbnail at its own proportions (files fill it).
+local function Fit(image, atlas)
+    local info = atlas and C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+    local w, h = THUMB_W, THUMB_H
+    if info and info.width and info.height and info.width > 0 and info.height > 0 then
+        local scale = math.min(THUMB_W / info.width, THUMB_H / info.height, 1.5)
+        w, h = info.width * scale, info.height * scale
+    end
+    image:ClearAllPoints()
+    image:SetPoint("CENTER", image.box, "CENTER")
+    image:SetSize(w, h)
+end
+
+-- Lay out the thumbnails: all of them, or the selected slot's.
+function Layout(view)
+    for _, t in ipairs(view.thumbs) do t:Hide() end
+    local shown = 0
+    for _, c in ipairs(view.all) do
+        if not view.cfg.filter or c.slot == view.selected then
+            shown = shown + 1
+            local t = view.thumbs[shown] or NewThumb(view)
+            t.path = c.path
+            local atlas = c.path:match("^atlas:(.+)$")
+            if atlas then
+                t.image:SetTexCoord(0, 1, 0, 1)
+                t.image:SetAtlas(atlas)
+            else
+                t.image:SetTexture(c.path)
+                t.image:SetTexCoord(ns.Scenes.Crop(c.path))
+            end
+            Fit(t.image, atlas)
+            t.label:SetText(("%d %s"):format(c.n, (c.path:match("([^\\\\:]+)$") or c.path)))
+            local col, row = (shown - 1) % COLS, math.floor((shown - 1) / COLS)
+            t:ClearAllPoints()
+            t:SetPoint("TOPLEFT", view.grid, "TOPLEFT", col * (THUMB_W + GAP), -row * (THUMB_H + 36))
+            t:Show()
+        end
+    end
+    view.grid:SetHeight(math.max(1, math.ceil(shown / COLS)) * (THUMB_H + 36))
+    view.shown = shown
+end
+
+-- Show the candidates that exist: { n, path, slot } (a file path, or "atlas:name").
 function Gallery:Show(list, mode)
     mode = mode or "bg"
     local view = views[mode] or Build(mode)
-    for _, t in ipairs(view.thumbs) do t:Hide() end
-    for i, c in ipairs(list) do
-        local t = view.thumbs[i] or NewThumb(view)
-        t.path = c.path
-        local atlas = c.path:match("^atlas:(.+)$")
-        if atlas then
-            t.image:SetAtlas(atlas)
-        else
-            t.image:SetTexture(c.path)
-            t.image:SetTexCoord(ns.Scenes.Crop(c.path))
-        end
-        t.label:SetText(("%d %s"):format(c.n, (c.path:match("([^\\\\:]+)$") or c.path)))
-        local col, row = (i - 1) % COLS, math.floor((i - 1) / COLS)
-        t:ClearAllPoints()
-        t:SetPoint("TOPLEFT", view.grid, "TOPLEFT", col * (THUMB_W + GAP), -row * (THUMB_H + 36))
-        t:Show()
-    end
-    view.grid:SetHeight(math.ceil(#list / COLS) * (THUMB_H + 36))
+    view.all = list
+    Layout(view)
     Redraw(view)
     view.frame:Show()
     Gallery._frame, Gallery._thumbs = view.frame, view.thumbs

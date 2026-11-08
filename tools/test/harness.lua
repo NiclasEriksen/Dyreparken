@@ -281,7 +281,7 @@ end
 
 local Region = {}
 Region.__index = Region
-for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetAllPoints", "SetJustifyH", "SetJustifyV",
+for _, m in ipairs({ "SetWidth", "SetHeight", "SetAllPoints", "SetJustifyH", "SetJustifyV",
     "SetDrawLayer", "SetVertexColor", "SetWordWrap", "SetFontObject" }) do
     Region[m] = noop
 end
@@ -291,6 +291,7 @@ function Region:SetTexture(x) self.tex = x end
 function Region:GetTexture() return self.tex end
 function Region:SetAtlas(x) self.tex = x; self.atlas = x end
 function Region:SetTexCoord(...) self.texCoord = { ... } end
+function Region:SetSize(w, h) self.size = { w, h } end
 function Region:GetAtlas() return self.atlas end
 function Region:SetColorTexture(...) self.color = { ... } end
 function Region:SetHorizTile(v) self.horizTile = v end

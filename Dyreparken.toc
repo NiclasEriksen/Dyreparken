@@ -38,6 +38,7 @@ Menagerie\Summon.lua
 Menagerie\Report.lua
 Menagerie\Scenes.lua
 Menagerie\SceneGallery.lua
+Menagerie\DecorCandidates.lua
 Menagerie\Decor.lua
 Menagerie\Personality.lua
 Menagerie\JournalUI.lua

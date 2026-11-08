@@ -146,39 +146,54 @@ return function(test, H)
         no(ola.ns.JournalUI._card.sky:IsShown())
     end)
 
-    test("/dp probe decor: a gallery of decoration art that exists, picked per slot", function()
+    test("/dp probe decor: decoration art that exists, one slot at a time, picked per slot", function()
         local w, ola = Setup()
-        local list = ola.ns.Decor:Candidates()
-        local star, atlas = list[1], "atlas:bags-glow-orange"
-        ola.missingFiles = { [list[2] ] = true }
-        ola.atlases = { ["bags-glow-orange"] = true }
-        local atlases = 0
-        for _, p in ipairs(list) do if p:find("^atlas:") then atlases = atlases + 1 end end
+        local D = ola.ns.Decor
+        local list = D:Candidates()
+        local slots = {}
+        for _, c in ipairs(list) do slots[c.slot] = (slots[c.slot] or 0) + 1 end
+        for _, slot in ipairs(D.SLOTS) do ok(slot == "paw" or slots[slot], slot .. " has candidates") end
+        ok(#list > 300, "the generated atlas lists are in")
+        -- The client has the file paths and two atlases.
+        ola.atlases = { ["bags-glow-orange"] = true, ["AftLevelup-WhiteStarBurst"] = true }
         ola:Slash("probe decor")
-        local have = #list - 1 - (atlases - 1)
-        ok(ola:Printed(("%d av %d pynt-bilder finnes; galleriet viser dem."):format(have, #list), true))
-        eq(#ola:Log("decor 2 no: "), 1)
+        local files = 0
+        for _, c in ipairs(list) do if not c.path:find("^atlas:") then files = files + 1 end end
+        ok(ola:Printed(("%d av %d pynt-bilder finnes; galleriet viser dem."):format(files + 2, #list), true))
+        eq(#ola:Log("decor %d+ no glow: atlas:"), slots.glow - 1 - 6, "every glow but the one, and the files")
         local G = ola.ns.SceneGallery
-        local shown, glow = {}, nil
-        for _, t in ipairs(G._thumbs) do
-            if t:IsShown() then shown[#shown + 1] = t end
-            if t.path == atlas then glow = t end
+        local function Shown()
+            local shown = {}
+            for _, t in ipairs(G._thumbs) do if t:IsShown() then shown[#shown + 1] = t end end
+            return shown
         end
-        eq(#shown, have)
-        eq(shown[1].image.tex, star)
+        -- The first slot: corners (files only).
+        for _, t in ipairs(Shown()) do ok(not t.path:find("^atlas:"), t.path) end
+        match(G._frame.hint.text, "^Valgt: corner %(2 bilder%)")
+        -- The glow slot: its files and the one atlas.
+        local glowButton
+        for _, b in ipairs(G._frame.families) do if b.family == "glow" then glowButton = b end end
+        glowButton:Click()
+        local glow
+        for _, t in ipairs(Shown()) do if t.path == "atlas:bags-glow-orange" then glow = t end end
+        ok(glow, "the glow atlas is shown in its slot")
         eq(glow.image.atlas, "bags-glow-orange", "an atlas is shown as one")
-        match(glow.label.text, "bags%-glow%-orange$")
-        -- Pick it as the glow.
-        for _, b in ipairs(G._frame.families) do if b.family == "glow" then b:Click() end end
+        eq(glow.image.size[1], 64 * 1.5, "at its own proportions (64x64, scaled up at most 1.5x)")
+        for _, t in ipairs(Shown()) do ok(t.path ~= "atlas:AftLevelup-WhiteStarBurst", "a star isn't a glow") end
         glow.scripts.OnClick(glow, "LeftButton")
-        eq(ola.env.DyreparkenDB.decorPicks.glow, atlas)
+        eq(ola.env.DyreparkenDB.decorPicks.glow, "atlas:bags-glow-orange")
         eq(#ola:Log("decor pick glow = atlas:bags%-glow%-orange"), 1)
         eq(ola.env.DyreparkenDB.scenePicks.glow, nil, "the background picks are their own")
+        -- A pick stays a candidate in its slot, even if no list has it any more.
+        ola.env.DyreparkenDB.decorPicks.heart = "atlas:somewhere-else"
+        local found
+        for _, c in ipairs(D:Candidates()) do if c.path == "atlas:somewhere-else" then found = c.slot end end
+        eq(found, "heart")
         glow.scripts.OnClick(glow, "RightButton")
         eq(ola.env.DyreparkenDB.decorPicks.glow, nil)
         -- Without C_Texture, no atlas exists.
         ola.env.C_Texture = nil
-        no(ola.ns.Decor.Exists(atlas))
+        no(D.Exists("atlas:bags-glow-orange"))
     end)
 
     test("/dp probe bg opens a gallery of what exists; picks become the family's background", function()
