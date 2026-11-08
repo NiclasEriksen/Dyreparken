@@ -187,7 +187,8 @@ From AutoCompanion (written for Forever, in this AddOns folder):
     the loading screens that exist are the generic splash. `/dp probe bg` shows them in a gallery.
     The art fills only part of each `UI-EJ-BACKGROUND-*` file: Blizzard's journal crops it with TexCoords 0-0.7695
     across, 0-0.8301 down (`dungeonBG`). Shown whole, the art sits in the top left.
-  - **Animation groups** (2026-11-08): an Alpha animation waiting out its `SetStartDelay` already applies its
+  - **Animation groups** (2026-11-08, inferred from what showed, not yet confirmed by the fix): an Alpha animation
+    waiting out its `SetStartDelay` seems to apply its
     start value, so a fade-out (from 1) delayed inside a group showed the particle fully opaque and still until it
     began. Build timelines in steps (`SetOrder`) instead of delays within one step.
   - **The atlas library is the modern one** (2026-11-08, `/dp probe decor`): 40 of 45 guessed retail atlas names
