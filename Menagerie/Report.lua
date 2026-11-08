@@ -27,13 +27,7 @@ local function GroupChannel()
     if IsInGroup() then return "PARTY" end
 end
 
--- "First Surname" for a group unit (UnitName's second value is the surname).
-local function UnitKey(unit)
-    local first, surname = UnitName(unit)
-    if not first then return nil end
-    if surname and surname ~= "" then return ns.NormalizeName(first .. " " .. surname) end
-    return first
-end
+local UnitKey = ns.UnitKey
 
 local function GroupMembers()
     local list = {}

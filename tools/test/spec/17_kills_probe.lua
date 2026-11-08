@@ -75,4 +75,63 @@ return function(test, H)
         c:Slash("probe kills")
         ok(c:Printed("ENCOUNTER_END=?", true))
     end)
+
+    test("the traits probe: events, emotes, jumps and casts with their context, only while debugging", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { pets = { 5159 } })
+        local kari = w:AddClient("Kari Berg")
+        w:Run(12)
+        ok(Listening(c, "PLAYER_DEAD")); ok(Listening(c, "MIRROR_TIMER_START"))
+        c.state.zone, c.state.resting, c.state.afk = "Stormwind City", true, true
+        c:Fire("PLAYER_DEAD")
+        eq(#c:Log("PLAYER_DEAD %(%) | zone=Stormwind City map=1429 instance=%[false, none%] resting=true afk=true "
+            .. "group=solo level=10 time=%d%d:%d%d pet=s:5159"), 1)
+        c:Fire("MIRROR_TIMER_START", "BREATH", 60, 60, -1, false, "Breath")
+        eq(#c:Log("MIRROR_TIMER_START %(BREATH, 60"), 1)
+        -- Guildmates in the group are counted.
+        w:SetGroup({ "Ola Nord", "Kari Berg", "Per Ukjent" })
+        c:Fire("GROUP_ROSTER_UPDATE")
+        eq(#c:Log("GROUP_ROSTER_UPDATE %(%) | .* group=3 %(guildmates 1%)"), 1)
+        -- Chat: the sender, never the text; emotes only our own.
+        c:Fire("CHAT_MSG_GUILD", "hemmelig", "Kari Berg", "", "", "", "", 0, 0, "", 0, 1, "Player-0000-00000002")
+        eq(#c:Log("CHAT_MSG_GUILD sender=Kari Berg own=false"), 1)
+        eq(#c:Log("hemmelig"), 0)
+        c:Fire("CHAT_MSG_TEXT_EMOTE", "You dance.", "Ola Nord", "", "", "", "", 0, 0, "", 0, 1, c.env.UnitGUID("player"))
+        c:Fire("CHAT_MSG_TEXT_EMOTE", "Kari dances.", "Kari Berg", "", "", "", "", 0, 0, "", 0, 1, H.SECRET)
+        eq(#c:Log("CHAT_MSG_TEXT_EMOTE %(You dance.%)"), 1)
+        eq(#c:Log("Kari dances"), 0)
+        c.env.DoEmote("DANCE")
+        eq(#c:Log("DoEmote %(DANCE, nil%) | zone="), 1)
+        for _ = 1, 3 do c.env.JumpOrAscendStart() end
+        eq(#c:Log("jump #1 swimming=false"), 1)
+        eq(#c:Log("jump #"), 1, "one line per 5 s")
+        w:Run(6)
+        c.env.JumpOrAscendStart()
+        eq(#c:Log("jump #4"), 1)
+        c.state.spellNames = { [8690] = "Hearthstone" }
+        c:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 8690)
+        eq(#c:Log("cast 8690 Hearthstone combat=false"), 1)
+        -- Off: the events are let go.
+        c:Slash("debug off")
+        no(Listening(c, "PLAYER_DEAD"))
+        no(c.ns.Kills._unitFrame.events.UNIT_SPELLCAST_SUCCEEDED)
+        -- Missing and failing APIs are named, not fatal.
+        c.env.IsResting, c.env.UnitIsAFK = nil, function() error("nope") end
+        c.env.C_Map = nil
+        match(c.ns.Kills:Context(), "map=missing .* resting=missing afk=error")
+    end)
+
+    test("/dp probe life: which events and functions exist, and the context", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        w:Run(12)
+        c:Slash("probe life")
+        ok(c:Printed("PLAYER_DEAD=true", true)); ok(c:Printed("DoEmote=true", true))
+        ok(c:Printed("zone=Elwynn Forest", true)); ok(c:Printed("debug log on (listening)", true))
+        c:Slash("debug off")
+        c.env.C_EventUtils, c.env.GetNumGroupMembers = nil, nil
+        c:Slash("probe life")
+        ok(c:Printed("PLAYER_DEAD=?", true)); ok(c:Printed("group=missing", true))
+        ok(c:Printed("OFF: /dp debug on", true))
+    end)
 end

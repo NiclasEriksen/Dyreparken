@@ -145,6 +145,14 @@ function ns.NormalizeName(name)
     return name
 end
 
+-- "First Surname" for a group unit (UnitName's second value is the surname).
+function ns.UnitKey(unit)
+    local first, surname = UnitName(unit)
+    if not first then return nil end
+    if surname and surname ~= "" then return ns.NormalizeName(first .. " " .. surname) end
+    return first
+end
+
 -- Character count of a UTF-8 string (string.len counts bytes).
 function ns.Utf8Len(s)
     local _, n = s:gsub("[^\128-\191]", "")

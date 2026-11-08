@@ -88,3 +88,125 @@ function Kills:Probe()
 end
 
 ns.Bus:On("DEBUG", function(on) Kills:Sync(on) end)
+
+------------------------------------------------------------------------------
+-- The traits probe (2026-11-08, docs/PET_LIFE.md): the events and state the
+-- new personality traits would read, logged the same way (debug log only).
+--   Trofast      PLAYER_DEAD, PLAYER_ALIVE, PLAYER_UNGHOST
+--   Oppdager     ZONE_CHANGED_NEW_AREA + C_Map.GetBestMapForUnit / GetZoneText
+--   Dykker       MIRROR_TIMER_START (timer name: "BREATH" under water)
+--   Ambisiøs     PLAYER_LEVEL_UP
+--   Latsabb      PLAYER_FLAGS_CHANGED (player) + UnitIsAFK + IsResting
+--   Pratsom      CHAT_MSG_GUILD: only the sender is logged, never the text
+--   Dansefot/Kjælen  DoEmote (hook) + CHAT_MSG_TEXT_EMOTE (our own only)
+--   Hoppetass    JumpOrAscendStart (hook; one line per 5 s with the count)
+--   Hjemlengsel  your own casts (UNIT_SPELLCAST_SUCCEEDED, player): id and name
+--   Flokkdyr     GROUP_ROSTER_UPDATE: group size and guildmates in it
+-- Each line ends with the context: zone, map, instance, resting, AFK, group,
+-- level and the companion.
+------------------------------------------------------------------------------
+local LIFE = { "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "ZONE_CHANGED_NEW_AREA", "MIRROR_TIMER_START",
+    "PLAYER_LEVEL_UP", "CHAT_MSG_GUILD", "CHAT_MSG_TEXT_EMOTE", "GROUP_ROSTER_UPDATE" }
+local UNIT_LIFE = { "PLAYER_FLAGS_CHANGED", "UNIT_SPELLCAST_SUCCEEDED" }
+local FUNCS = { "GetZoneText", "IsResting", "UnitIsAFK", "UnitLevel", "DoEmote", "JumpOrAscendStart" }
+local lifeOwner, lifeOn, hooked = {}, false, false
+local unitFrame = CreateFrame("Frame")
+Kills._unitFrame = unitFrame
+local jumps, jumpAt = 0, 0
+
+local function Try(fn, ...)
+    if type(fn) ~= "function" then return "missing" end
+    local ok, a, b = pcall(fn, ...)
+    if not ok then return "error" end
+    return b ~= nil and Args(a, b) or Show(a)
+end
+
+-- Guildmates (addon users or not) in our group, by the roster snapshot.
+local function GroupInfo()
+    if type(GetNumGroupMembers) ~= "function" then return "missing" end
+    local n = GetNumGroupMembers()
+    if n == 0 then return "solo" end
+    local mates, prefix = 0, IsInRaid() and "raid" or "party"
+    for i = 1, n do
+        local ok, key = pcall(ns.UnitKey, prefix .. i)
+        if ok and key and key ~= ns.PlayerKey() and ns.Guild:IsMember(key) then mates = mates + 1 end
+    end
+    return ("%d (guildmates %d)"):format(n, mates)
+end
+
+function Kills:Context()
+    local map = C_Map and C_Map.GetBestMapForUnit and Try(C_Map.GetBestMapForUnit, "player") or "missing"
+    return ("zone=%s map=%s instance=[%s] resting=%s afk=%s group=%s level=%s time=%s pet=%s"):format(
+        Try(GetZoneText), map, Try(IsInInstance), Try(IsResting), Try(UnitIsAFK, "player"), GroupInfo(),
+        Try(UnitLevel, "player"), date("%H:%M"), self:PetState())
+end
+
+local function OnLife(_, event, ...)
+    if event == "CHAT_MSG_GUILD" or event == "CHAT_MSG_TEXT_EMOTE" then
+        local text, sender = ...
+        local guid = select(12, ...)
+        local own = not (issecretvalue and issecretvalue(guid)) and guid == UnitGUID("player")
+        if event == "CHAT_MSG_GUILD" then
+            ns.Log("Life", "%s sender=%s own=%s", event, Show(sender), tostring(own))
+        elseif own then
+            ns.Log("Life", "%s (%s) | %s", event, Show(text), Kills:Context())
+        end
+        return
+    end
+    if event == "UNIT_SPELLCAST_SUCCEEDED" then
+        local id = select(3, ...)
+        local name = C_Spell and C_Spell.GetSpellName and not (issecretvalue and issecretvalue(id))
+            and C_Spell.GetSpellName(id)
+        ns.Log("Life", "cast %s %s combat=%s", Show(id), Show(name), tostring(InCombatLockdown()))
+        return
+    end
+    ns.Log("Life", "%s (%s) | %s", event, Args(...), Kills:Context())
+end
+unitFrame:SetScript("OnEvent", OnLife)
+
+local function Hook()
+    if hooked then return end
+    hooked = true
+    if type(DoEmote) == "function" then
+        hooksecurefunc("DoEmote", function(token, target)
+            if lifeOn then ns.Log("Life", "DoEmote (%s, %s) | %s", Show(token), Show(target), Kills:Context()) end
+        end)
+    end
+    if type(JumpOrAscendStart) == "function" then
+        hooksecurefunc("JumpOrAscendStart", function()
+            if not lifeOn then return end
+            jumps = jumps + 1
+            if GetTime() - jumpAt >= 5 then
+                jumpAt = GetTime()
+                ns.Log("Life", "jump #%d swimming=%s flying=%s", jumps, Try(IsSwimming), Try(IsFlying))
+            end
+        end)
+    end
+end
+
+function Kills:SyncLife(on)
+    lifeOn = on
+    for _, e in ipairs(LIFE) do
+        if on then ns.Events:On(e, lifeOwner, OnLife) else ns.Events:Off(e, lifeOwner) end
+    end
+    for _, e in ipairs(UNIT_LIFE) do
+        if on then pcall(unitFrame.RegisterUnitEvent, unitFrame, e, "player") else unitFrame:UnregisterEvent(e) end
+    end
+    if on then Hook() end
+end
+
+-- /dp probe life
+function Kills:ProbeLife()
+    local valid = C_EventUtils and C_EventUtils.IsEventValid
+    local parts = {}
+    for _, list in ipairs({ LIFE, UNIT_LIFE }) do
+        for _, e in ipairs(list) do parts[#parts + 1] = e .. "=" .. (valid and tostring(valid(e)) or "?") end
+    end
+    for _, f in ipairs(FUNCS) do parts[#parts + 1] = f .. "=" .. tostring(type(_G[f]) == "function") end
+    local msg = ("life probe: %s | %s | debug log %s"):format(table.concat(parts, " "), self:Context(),
+        ns.Debug.enabled and "on (listening)" or "OFF: /dp debug on to listen")
+    ns.Print(msg)
+    ns.Log("Probe", "%s", msg)
+end
+
+ns.Bus:On("DEBUG", function(on) Kills:SyncLife(on) end)

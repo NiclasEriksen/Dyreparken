@@ -69,7 +69,7 @@ return function(test, H)
         local filters = 0
         for _, f in ipairs(ola.frames) do
             local u = f.unitFilter and f.unitFilter.UNIT_SPELLCAST_SUCCEEDED
-            if u and f.events.UNIT_SPELLCAST_SUCCEEDED then
+            if u and f.events.UNIT_SPELLCAST_SUCCEEDED and f ~= ola.ns.Kills._unitFrame then -- (the debug probe's own)
                 filters = filters + 1
                 eq(u[1], "player"); eq(#u, 1)
             end

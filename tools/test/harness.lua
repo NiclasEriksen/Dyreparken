@@ -42,7 +42,9 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     GUILD_ROSTER_UPDATE PLAYER_GUILD_UPDATE GROUP_ROSTER_UPDATE COMPANION_UPDATE BAG_UPDATE_DELAYED
     UNIT_AURA ZONE_CHANGED_NEW_AREA PLAYER_TARGET_CHANGED UPDATE_MOUSEOVER_UNIT CHAT_MSG_GUILD
     CHAT_MSG_PARTY CHAT_MSG_RAID NEW_PET_ADDED PET_JOURNAL_LIST_UPDATE
-    ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED QUEST_TURNED_IN UNIT_SPELLCAST_SUCCEEDED]]):gmatch("%S+") do
+    ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED QUEST_TURNED_IN UNIT_SPELLCAST_SUCCEEDED
+    PLAYER_DEAD PLAYER_ALIVE PLAYER_UNGHOST MIRROR_TIMER_START PLAYER_LEVEL_UP PLAYER_FLAGS_CHANGED
+    CHAT_MSG_TEXT_EMOTE]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1085,6 +1087,19 @@ function Client:BuildEnv()
     env.UnitChannelInfo = function() return S.channeling end
     env.IsInInstance = function() return S.instance ~= "none", S.instance end
     env.UnitStandState = function() return S.stand end
+    env.IsSwimming = function() return S.swimming or false end
+    env.IsResting = function() return S.resting or false end
+    env.UnitIsAFK = function(u) return u == "player" and S.afk or false end
+    env.UnitLevel = function() return S.level or 10 end
+    env.GetZoneText = function() return S.zone or "Elwynn Forest" end
+    -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
+    env.C_Map = {
+        GetBestMapForUnit = function(u) assert(u == "player"); return S.map or 1429 end,
+        GetMapInfo = function(id) return { mapID = id, name = (S.mapNames or {})[id] or ("Map " .. id) } end,
+    }
+    -- Emotes and jumps: what the player pressed (hooked by the addon).
+    env.DoEmote = function(token, target) S.lastEmote = token end
+    env.JumpOrAscendStart = function() S.jumps = (S.jumps or 0) + 1 end
     env.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
     env.C_Spell = { GetSpellName = function(id) return S.spellNames and S.spellNames[id] end }
     env.C_UnitAuras = { GetAuraDataBySpellName = function(unit, name, filter)
