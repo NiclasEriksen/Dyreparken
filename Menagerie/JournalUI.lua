@@ -328,7 +328,7 @@ local function BuildCard()
     card.floor = c:CreateTexture(nil, "BORDER")
     card.floor:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
     card.floor:SetVertexColor(0, 0, 0, 0.45)
-    card.floor:SetSize(230, 44)
+    card.floor:SetSize(200, 36)
     card.floor:Hide()
 
     -- The panel: a dark strip along the bottom. It sits below the model's
@@ -348,7 +348,7 @@ local function BuildCard()
     panel.edge:SetHeight(1)
     panel.edge:SetColorTexture(1, 0.82, 0, 0.35)
     card.panel = panel
-    card.floor:SetPoint("CENTER", panel, "TOP", 0, MODEL_LIFT + 14) -- under the pet's feet
+    card.floor:SetPoint("CENTER", panel, "TOP", 0, MODEL_LIFT + 58) -- under the pet's feet (seen 2026-11-08)
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
@@ -378,6 +378,7 @@ local function BuildCard()
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:SetText(quirk.name, 1, 0.82, 0)
         GameTooltip:AddLine(quirk.desc, 1, 1, 1, true)
+        GameTooltip:AddLine(ns.Personality:Effect(quirk), 1, 0.82, 0, true)
         local words = {}
         for _, act in ipairs(list) do
             if act ~= "day" then words[#words + 1] = ns.Personality.NOUN[act] end

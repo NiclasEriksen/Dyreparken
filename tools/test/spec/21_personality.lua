@@ -38,6 +38,8 @@ return function(test, H)
         eq(P:Line("s:84"), "Glupsk · liker boss-kills, flyturer og quests")
         P.QUIRKS = { { name = "Kosete", desc = "", like = "day" } }
         eq(P:Line("s:999"), "Kosete · liker quests")
+        eq(P:Effect({ like = "quest" }), "Quests med kjæledyret ute gir 5 bånd-poeng (opptil 25 om dagen), mot 1 ellers.")
+        eq(P:Effect({ like = "day" }), "Hver dag sammen gir dobbelt så mange bånd-poeng (20 i stedet for 10).")
         P.BY_FAMILY, P.DEFAULT = {}, {}
         eq(P:Line("s:999"), "Kosete", "nothing liked but the days")
     end)

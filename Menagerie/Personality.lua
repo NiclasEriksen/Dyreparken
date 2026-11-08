@@ -66,6 +66,18 @@ function Personality:Of(key)
     return likes, list, quirk
 end
 
+-- What a quirk does, in numbers (from ns.Config, so it can't go stale).
+function Personality:Effect(quirk)
+    local C = ns.Config
+    if quirk.like == "day" then
+        return ("Hver dag sammen gir dobbelt så mange bånd-poeng (%d i stedet for %d)."):format(
+            C.BOND_DAY_POINTS * 2, C.BOND_DAY_POINTS)
+    end
+    local noun = self.NOUN[quirk.like]
+    return ("%s med kjæledyret ute gir %d bånd-poeng (opptil %d om dagen), mot %d ellers."):format(
+        noun:sub(1, 1):upper() .. noun:sub(2), C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP, C.BOND_OTHER_POINTS)
+end
+
 -- "herbs, quests og flyturer"
 local function Join(words)
     if #words <= 1 then return words[1] or "" end
