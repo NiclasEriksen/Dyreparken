@@ -126,7 +126,7 @@ return function(test, H)
         eq(model.RotateLeftButton.points[1][3], "TOP")
         eq(model.RotateRightButton.points[1][1], "BOTTOMLEFT")
         local last = card.status.points[#card.status.points]
-        eq(last[4], 40, "rows run past the middle")
+        eq(last[4], 30, "rows run past the middle, up to the bond column")
         eq(#ola:Log("rotate buttons moved above the panel"), 1)
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })
@@ -147,5 +147,40 @@ return function(test, H)
         eq(card.guildBox.points[1][2], c.env.PetJournalPetCard)
         eq(card.today.text, "-", "nobody adopted: no pet of the day")
         match(card.todayBox.tip, "ingen har adoptert")
+    end)
+
+    test("layers: a gradient tinted by family, dark edges, a floor shadow; cleared with no pet", function()
+        local w, ola = Setup()
+        local S = ola.ns.Scenes
+        local card = ola:SelectPet(84) -- bird and dragon: the dragon sets the look
+        eq(card.family, "dragon")
+        local g = card.tint.gradient
+        eq(g[1], "VERTICAL")
+        eq(g[3].r, S.TINT.dragon[1], "the family's color at the top")
+        ok(g[2].r < g[3].r, "darker toward the panel")
+        ok(card.tint:IsShown()); ok(card.floor:IsShown())
+        eq(#card.edges, 3)
+        for _, e in ipairs(card.edges) do ok(e:IsShown()); ok(e.gradient, e.side) end
+        eq(card.edges[2].gradient[2].a, 0.7, "left edge: dark at the edge")
+        eq(card.edges[3].gradient[3].a, 0.7, "right edge: dark at the edge")
+        eq(ola:SelectPet(5159).family, "default")
+        local c = ola.env.PetJournalPetCard
+        c.speciesID, c.petID = nil, nil
+        ola.env.PetJournal_UpdatePetCard(c)
+        no(card.tint:IsShown()); no(card.floor:IsShown()); no(card.edges[1]:IsShown())
+        -- Without gradients (an older client), a flat tint.
+        ola.env.CreateColor = nil
+        card = ola:SelectPet(40)
+        ok(card.tint:IsShown())
+    end)
+
+    test("the probe also looks for every classic dungeon's art", function()
+        local w, ola = Setup()
+        local list = ola.ns.Scenes:Candidates()
+        local probe = 0
+        for _, c in ipairs(list) do if c.family == "probe" then probe = probe + 1 end end
+        ok(probe >= 60, probe .. " extra candidates")
+        ola:Slash("probe bg")
+        ok(ola:Printed("bg %d+ YES probe: Interface\\EncounterJournal\\UI%-EJ%-LOREBG%-Naxxramas"))
     end)
 end

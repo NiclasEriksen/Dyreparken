@@ -298,6 +298,7 @@ function Region:SetText(x) self.text = x; self.plain = x and StripColors(x) end
 function Region:GetText() return self.text end
 function Region:SetTextColor(r, g, b) self.color = { r, g, b } end
 function Region:SetAlpha(a) self.alpha = a end
+function Region:SetGradient(o, a, b) self.gradient = { o, a, b } end
 function Region:SetBlendMode(m) self.blend = m end
 -- About 14 px a line, like GameFontHighlight.
 function Region:GetStringHeight()
@@ -1067,6 +1068,7 @@ function Client:BuildEnv()
     env.UnitChannelInfo = function() return S.channeling end
     env.IsInInstance = function() return S.instance ~= "none", S.instance end
     env.UnitStandState = function() return S.stand end
+    env.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
     env.C_Spell = { GetSpellName = function(id) return S.spellNames and S.spellNames[id] end }
     env.C_UnitAuras = { GetAuraDataBySpellName = function(unit, name, filter)
         assert(unit == "player" and filter == "HELPFUL")

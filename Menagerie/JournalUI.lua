@@ -199,6 +199,7 @@ local function UpdateCard()
         card.status:SetText("")
         card.nickname:SetText("")
         card.scene:Hide()
+        ns.Scenes:Paint(card, nil)
         card.bond:Hide()
         card.reserve:Hide()
         card.nick:Hide()
@@ -227,6 +228,7 @@ local function UpdateCard()
     else
         card.scene:Hide()
     end
+    ns.Scenes:Paint(card, key)
     -- The holder's bond with it, as a bar: everyone sees everyone's.
     local points, level, name, from, nextAt = ns.Bond:Of(key)
     if points then
@@ -288,11 +290,40 @@ local function BuildCard()
     local c = PetJournalPetCard
     if not c or card.status then return end
     -- The scene behind the model (Scenes.lua), under everything else.
+    -- The backdrop, in layers (Scenes.lua): dungeon art where the family has
+    -- one, a gradient tinted by family, dark edges, and a floor shadow under
+    -- the model. Nothing is stretched past its size: the tint and edges are
+    -- drawn, not pictures.
     card.scene = c:CreateTexture(nil, "BACKGROUND", nil, 1)
     card.scene:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
     card.scene:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
     card.scene:SetAlpha(0.8)
     card.scene:Hide()
+    card.tint = c:CreateTexture(nil, "BACKGROUND", nil, 2)
+    card.tint:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
+    card.tint:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
+    card.tint:SetColorTexture(1, 1, 1, 1)
+    card.tint:Hide()
+    card.edges = {}
+    for i, side in ipairs({ "TOP", "LEFT", "RIGHT" }) do
+        local t = c:CreateTexture(nil, "BACKGROUND", nil, 3)
+        t:SetColorTexture(1, 1, 1, 1)
+        if side == "TOP" then
+            t:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4); t:SetPoint("TOPRIGHT", c, "TOPRIGHT", -4, -4)
+            t:SetHeight(70)
+        else
+            t:SetPoint("TOP" .. side, c, "TOP" .. side, side == "LEFT" and 4 or -4, -4)
+            t:SetPoint("BOTTOM" .. side, c, "BOTTOM" .. side, side == "LEFT" and 4 or -4, 4)
+            t:SetWidth(70)
+        end
+        t.side = side
+        card.edges[i] = t
+    end
+    card.floor = c:CreateTexture(nil, "BORDER")
+    card.floor:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+    card.floor:SetVertexColor(0, 0, 0, 0.45)
+    card.floor:SetSize(230, 44)
+    card.floor:Hide()
 
     -- The panel: a dark strip along the bottom. It sits below the model's
     -- frame level, so Blizzard's rotate buttons stay on top, in the gap
@@ -311,21 +342,23 @@ local function BuildCard()
     panel.edge:SetHeight(1)
     panel.edge:SetColorTexture(1, 0.82, 0, 0.35)
     card.panel = panel
+    card.floor:SetPoint("CENTER", panel, "TOP", 0, 44) -- where the model stands (seen 2026-11-08)
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
-    card.nickname:SetPoint("RIGHT", panel, "CENTER", 40, 0)
+    -- The left column stops short of the bond column (bar: 30 + 8 + 130 from the right).
+    card.nickname:SetPoint("RIGHT", panel, "CENTER", 30, 0)
     card.nickname:SetJustifyH("LEFT")
     card.nickname:SetWordWrap(false)
     card.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     card.status:SetPoint("TOPLEFT", card.nickname, "BOTTOMLEFT", 0, -3)
-    card.status:SetPoint("RIGHT", panel, "CENTER", 40, 0)
+    card.status:SetPoint("RIGHT", panel, "CENTER", 30, 0)
     card.status:SetJustifyH("LEFT")
     card.status:SetWordWrap(false)
 
     -- The bond, right column: the level in a badge, its name, a slim bar.
     card.bond = CreateFrame("StatusBar", nil, panel)
-    card.bond:SetSize(150, 8)
+    card.bond:SetSize(130, 12)
     card.bond:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     card.bond:SetStatusBarColor(1, 0.7, 0.2)
     card.bond.bg = card.bond:CreateTexture(nil, "BACKGROUND")
@@ -342,7 +375,7 @@ local function BuildCard()
     card.bond.label:SetPoint("TOPRIGHT", card.bond.badge, "TOPLEFT", -8, 1)
     card.bond:SetPoint("BOTTOMRIGHT", card.bond.badge, "BOTTOMLEFT", -8, 3)
     card.bond.text = card.bond:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    card.bond.text:SetPoint("RIGHT", card.bond, "LEFT", -6, 0)
+    card.bond.text:SetPoint("CENTER", card.bond, "CENTER", 0, 0) -- on the bar, not beside it (it hit the home line)
 
     -- Blizzard's turn buttons sit where our rows go: move them to just above
     -- the panel, so the panel's text runs the full width. (Plain buttons;
@@ -404,13 +437,13 @@ local function BuildCard()
     -- "Guilden x av y": y = every companion in Forever's journal
     -- (Pets:Total, Data/Companions.lua). Then "Dagens dyr".
     local count = rawget(PetJournal, "PetCount") or rawget(_G, "PetJournalPetCount")
-    card.guildBox = InfoBox("Guilden", 150)
+    card.guildBox = InfoBox("Guilden", 130)
     if count then
         card.guildBox:SetPoint("LEFT", count, "RIGHT", 8, 0)
     else
         card.guildBox:SetPoint("BOTTOMLEFT", c, "TOPLEFT", 160, 8)
     end
-    card.todayBox = InfoBox("Dagens dyr", 190)
+    card.todayBox = InfoBox("Dagens dyr", 150)
     card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", 8, 0)
     card.counter, card.today = card.guildBox.value, card.todayBox.value
 
