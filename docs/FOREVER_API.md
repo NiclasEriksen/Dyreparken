@@ -191,6 +191,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
     waiting out its `SetStartDelay` seems to apply its
     start value, so a fade-out (from 1) delayed inside a group showed the particle fully opaque and still until it
     began. Build timelines in steps (`SetOrder`) instead of delays within one step.
+    Two groups playing on one region and touching the same thing (a Scale in each, a Translation in each) don't add
+    up: hearts flickered to full size and swaying leaves jumped sideways or blinked. Give each motion its own region
+    (a holder frame for the path, an inner frame for the sway, the texture for spin or throb). Same evening; the
+    layered version is still to be seen in game.
   - **The atlas library is the modern one** (2026-11-08, `/dp probe decor`): 40 of 45 guessed retail atlas names
     exist (`C_Texture.GetAtlasInfo`), e.g. `AftLevelup-*`, `bags-glow-*`, `ArtifactsFX-*`,
     `UI-Frame-DiamondMetal-CornerTopLeft`, `PetJournal-FavoritesIcon`.

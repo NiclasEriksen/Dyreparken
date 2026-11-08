@@ -55,46 +55,51 @@ return function(test, H)
         for _, e in ipairs(d.edges) do no(e:IsShown()) end
         eq(#Parts(d), 0)
         Level(1)
-        for _, e in ipairs(d.edges) do no(e:IsShown()) end
+        no(d.border:IsShown())
         no(d.wash[1]:IsShown())
         Level(2)
-        for i = 1, 4 do ok(d.edges[i]:IsShown(), "a border"); ok(d.wash[i]:IsShown(), "a wash of color") end
-        eq(Color(d.edges[1])[1], math.min(1, cat[1] * 1.7), "in the family's color")
+        ok(d.border:IsShown(), "a border: the picked frame")
+        eq(d.border.atlas, "loottoast-itemborder-gold")
+        eq(table.concat(d.border.slice, ","), "18,18,18,18", "nine-sliced around the card")
+        eq(d.border.sliceMode, 0)
+        for i = 1, 4 do no(d.edges[i]:IsShown(), "no drawn edges where it slices"); ok(d.wash[i]:IsShown(), "a wash") end
+        ok(d.border.desaturated)
+        eq(Color(d.border)[1], math.min(1, cat[1] * 1.7), "in the family's color")
         no(d.corners.TOPLEFT:IsShown())
         Level(3)
         local n = 0
         for point, t in pairs(d.corners) do ok(t:IsShown(), point); n = n + 1 end
         eq(n, 4)
-        eq(table.concat(d.corners.BOTTOMRIGHT.texCoord, ","), "1,0,1,0", "mirrored into each corner")
+        eq(d.corners.TOPLEFT.atlas, "StoneFrameCorner-TopLeft", "the picked corner")
         ok(d.corners.TOPLEFT.desaturated, "silver corners")
-        eq(Color(d.edges[1])[3], 1, "a silver border")
+        eq(Color(d.border)[3], 1, "a silver border")
         no(d.glows[1]:IsShown())
         Level(4)
         for _, g in ipairs(d.glows) do ok(g:IsShown()); ok(g.breathe:IsPlaying(), "it breathes") end
         eq(d.glows[1].breathe.a.toAlpha, 1, "at full strength at its peak")
         eq(#Parts(d), 0)
         Level(5)
-        no(d.corners.TOPLEFT.desaturated, "gold corners")
-        eq(Color(d.edges[1])[3], 0.25, "a gold border")
+        no(d.corners.TOPLEFT.desaturated, "gilded corners")
+        no(d.border.desaturated, "the frame's own gold"); eq(Color(d.border)[3], 1)
         eq(Color(d.glows[1])[3], 0.25, "a gold glow")
         eq(#Parts(d), 6, "sparks")
-        eq(Parts(d)[1].tex, D.MEDIA .. "sparkle")
+        eq(Parts(d)[1].icon.tex, D.MEDIA .. "sparkle")
         eq(Playing(d), 6)
         no(d.ribbon:IsShown()); no(d.rays:IsShown())
         Level(6)
         ok(d.ribbon:IsShown()); eq(d.ribbonText.text, "Uatskillelig")
         ok(d.rays:IsShown()); ok(d.rays.turn:IsPlaying(), "turning rays")
         local slow = d.rays.turn.a.duration
-        no(d.edges[1].shimmer:IsPlaying())
+        no(d.border.shimmer:IsPlaying())
         Level(7)
         eq(d.ribbonText.text, "Sjelevenn")
         eq(#Parts(d), 10, "sparks and hearts")
-        ok(d.edges[1].shimmer:IsPlaying(), "the gold edge glows")
+        ok(d.border.shimmer:IsPlaying(), "the gold edge glows")
         ok(d.rays.turn.a.duration < slow, "the rays turn faster")
         -- Back down: everything above goes.
         Level(1)
         no(d.ribbon:IsShown()); no(d.glows[1]:IsShown()); no(d.glows[1].breathe:IsPlaying())
-        no(d.rays.turn:IsPlaying()); no(d.edges[1].shimmer:IsPlaying())
+        no(d.rays.turn:IsPlaying()); no(d.border.shimmer:IsPlaying())
         eq(#Parts(d), 0); eq(Playing(d), 0)
     end)
 
@@ -105,7 +110,7 @@ return function(test, H)
         D:Apply(card, PANDA, 1)
         local parts = Parts(d)
         eq(#parts, 4, "a Dykker's bubbles; no stars by day")
-        eq(parts[1].tex, D.MEDIA .. "bubble")
+        eq(parts[1].icon.tex, D.MEDIA .. "bubble")
         local g = parts[1].anim
         ok(g:IsPlaying()); eq(g.looping, "REPEAT")
         -- The timeline: wait unseen, move and fade in, move on and fade out.
@@ -121,25 +126,27 @@ return function(test, H)
             ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById(trait) } end
             D:Apply(card, PANDA, 1)
             local p = Parts(d)[1]
-            eq(p.tex, D.MEDIA .. D.KINDS[kind].tex)
+            eq(p.icon.tex, D.MEDIA .. D.KINDS[kind].tex)
             return p
         end
         local leaf = Kind("gronnfinger", "leaf")
         ok(leaf.anim.moveA.offset[2] < 0, "leaves fall")
         ok(leaf.sway:IsPlaying()); ok(leaf.tilt:IsPlaying()); eq(leaf.sway.looping, "BOUNCE")
         local heart = Kind("kosete", "heart")
-        ok(heart.throb:IsPlaying()); eq(heart.throb.a.scaleTo[1], 1.3); no(heart.sway:IsPlaying(), "only what it does")
+        ok(heart.throb:IsPlaying()); eq(heart.throb.a.scaleTo[1], 1.25); no(heart.sway:IsPlaying(), "only what it does")
+        eq(heart.anim, heart.plain, "no scale on its path: the beat is the only scaling (it flickered)")
+        no(heart.plain.grow)
         At(w, ola, 5, 17, 12)
         local confetti = Kind("festglad", "confetti")
         ok(confetti.spin:IsPlaying()); ok(confetti.sway:IsPlaying())
-        ok(Parts(d)[1].vertexColor[1] ~= Parts(d)[4].vertexColor[1] or Parts(d)[1].vertexColor[3] ~= Parts(d)[4].vertexColor[3],
+        ok(Parts(d)[1].icon.vertexColor[1] ~= Parts(d)[4].icon.vertexColor[1] or Parts(d)[1].icon.vertexColor[3] ~= Parts(d)[4].icon.vertexColor[3],
             "in many colors")
         -- Sparks fly out from the pet, quickly, shrinking.
         At(w, ola, 9, 21, 12)
         ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("glupsk") } end
         D:Apply(card, PANDA, 5)
         local spark = Parts(d)[1]
-        eq(spark.tex, D.MEDIA .. "sparkle")
+        eq(spark.icon.tex, D.MEDIA .. "sparkle")
         ok(spark.anim.moveA.duration < 1, "fast"); eq(spark.anim.moveA.smoothing, "OUT")
         eq(spark.anim.grow.scaleTo[1], 0.3); ok(spark.spin:IsPlaying())
         -- Stars twinkle in place at night.
@@ -154,8 +161,43 @@ return function(test, H)
         eq(#Parts(d), 0, "the day after")
         At(w, ola, 12, 3, 12)
         D:Apply(card, PANDA, 1)
-        eq(#Parts(d), 5); eq(Parts(d)[1].tex, D.MEDIA .. "snowflake")
+        eq(#Parts(d), 5); eq(Parts(d)[1].icon.tex, D.MEDIA .. "snowflake")
         ok(Parts(d)[1].spin:IsPlaying())
+    end)
+
+    test("one moving group per layer, for every kind: two groups on one region fight (seen in game)", function()
+        local w, ola, card, d = Setup()
+        At(w, ola, 12, 24, 23) -- julaften at night in December
+        local D = ola.ns.Decor
+        local all = {}
+        for id in pairs(D.TRAITS) do all[#all + 1] = id end
+        local i = 0
+        ola.ns.Personality.Traits = function()
+            i = i + 1
+            return { ola.ns.Personality.ById(all[(i - 1) % #all + 1]) }
+        end
+        for _ = 1, #all do
+            for _, level in ipairs({ 1, 5, 7 }) do
+                D:Apply(card, PANDA, level)
+                for _, p in ipairs(Parts(d)) do
+                    local by = {}
+                    for _, g in ipairs(p.groups) do
+                        if g:IsPlaying() then
+                            local region = g.parent
+                            by[region] = (by[region] or 0) + 1
+                            eq(by[region], 1, "one group per region")
+                        end
+                    end
+                    ok(p.anim:IsPlaying())
+                    eq(p.anim.parent, p, "the path on the holder")
+                    if p.sway:IsPlaying() then eq(p.sway.parent, p.inner) end
+                end
+            end
+        end
+        for name, k in pairs(D.KINDS) do
+            local n = (k.spin and 1 or 0) + (k.tilt and 1 or 0) + (k.throb and 1 or 0)
+            ok(n <= 1, name .. ": spin, tilt and throb share the texture")
+        end
     end)
 
     test("never more particles than the pool; the same pet keeps its layout", function()
@@ -218,5 +260,26 @@ return function(test, H)
         no(d.corners.TOPLEFT:IsShown())
         ola:Slash("probe level 99")
         no(d.corners.TOPLEFT:IsShown(), "out of range: off")
+    end)
+
+    test("the stone corner is mirrored by its atlas coordinates; without slicing, drawn edges", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
+        ola.atlases = { ["StoneFrameCorner-TopLeft"] = true }
+        ola.env.Enum.UITextureSliceMode = nil -- a client that can't nine-slice
+        w:Run(20)
+        ola:OpenJournal()
+        local card = ola:SelectPet(5159)
+        local d = card.decor
+        local file = ola.env.C_Texture.GetAtlasInfo("StoneFrameCorner-TopLeft").file
+        eq(d.corners.TOPLEFT.atlas, "StoneFrameCorner-TopLeft", "the original as it is")
+        eq(d.corners.BOTTOMRIGHT.tex, file)
+        eq(table.concat(d.corners.BOTTOMRIGHT.texCoord, ","), "0.5,0.25,0.375,0.125", "mirrored both ways")
+        eq(table.concat(d.corners.TOPRIGHT.texCoord, ","), "0.5,0.25,0.125,0.375")
+        eq(table.concat(d.corners.BOTTOMLEFT.texCoord, ","), "0.25,0.5,0.375,0.125")
+        no(d.sliced)
+        ola.ns.Decor:Apply(card, PANDA, 2, { 0.5, 0.5, 0.5 })
+        no(d.border:IsShown())
+        for _, e in ipairs(d.edges) do ok(e:IsShown(), "drawn edges instead") end
     end)
 end

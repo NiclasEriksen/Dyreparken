@@ -155,7 +155,7 @@ Frame.__index = function(self, k)
 end
 local function noop() end
 for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPoints", "SetAllPoints",
-    "SetMotionScriptsWhileDisabled", "SetFrameStrata", "SetAlpha", "EnableMouse", "SetMovable", "RegisterForDrag",
+    "SetMotionScriptsWhileDisabled", "SetFrameStrata", "EnableMouse", "SetMovable", "RegisterForDrag",
     "StartMoving", "StopMovingOrSizing",
     "RegisterForClicks", "SetNormalTexture", "SetHighlightTexture", "SetPushedTexture", "SetJustifyH",
     "SetJustifyV", "SetFontObject", "SetWordWrap" }) do
@@ -324,8 +324,13 @@ function Region:CreateAnimationGroup()
     return g
 end
 function Region:SetRotation(r) self.rotation = r end
+Frame.CreateAnimationGroup = Region.CreateAnimationGroup
+function Frame:SetAlpha(a) self.alpha = a end
 function Region:SetSize(w, h) self.size = { w, h } end
 function Region:SetVertexColor(r, g, b, a) self.vertexColor = { r, g, b, a } end
+-- Nine-slice a texture (Retail 10.0+): the margins stay, the middle stretches.
+function Region:SetTextureSliceMargins(l, t, r, b) self.slice = { l, t, r, b } end
+function Region:SetTextureSliceMode(m) self.sliceMode = m end
 function Region:GetAtlas() return self.atlas end
 function Region:SetColorTexture(...) self.color = { ... } end
 function Region:SetHorizTile(v) self.horizTile = v end
@@ -1049,7 +1054,10 @@ function Client:BuildEnv()
     end
     -- Atlases the client has: those in c.atlases (none by default).
     env.C_Texture = { GetAtlasInfo = function(name)
-        if c.atlases and c.atlases[name] then return { width = 64, height = 64, file = 1 } end
+        if c.atlases and c.atlases[name] then
+            return { width = 64, height = 64, file = 4000 + #name, leftTexCoord = 0.25, rightTexCoord = 0.5,
+                topTexCoord = 0.125, bottomTexCoord = 0.375 }
+        end
         return nil
     end }
     env.ButtonFrameTemplate_HidePortrait = function(f) f.portraitHidden = true end
@@ -1313,6 +1321,7 @@ function Client:BuildEnv()
     env.Enum = {
         SendAddonMessageResult = { Success = 0, AddonMessageThrottle = 3, NotInGroup = 5, AddOnMessageLockdown = 11 },
         TooltipDataType = { Unit = 2 },
+        UITextureSliceMode = { Stretched = 0, Tiled = 1 },
     }
 
     -- Units (companions in the world)
