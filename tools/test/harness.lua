@@ -251,6 +251,8 @@ function Frame:SetValue(v) self.value = v end
 function Frame:SetPoint(...) self.points = self.points or {}; self.points[#self.points + 1] = { ... } end
 function Frame:ClearAllPoints() self.points = {} end
 function Frame:SetSize(w, h) self.size = { w, h } end
+function Frame:SetWidth(w) self.size = { w, self.size and self.size[2] } end
+function Frame:SetHeight(h) self.size = { self.size and self.size[1], h } end
 function Frame:SetShown(v) if v then self:Show() else self:Hide() end end
 function Frame:SetScrollChild(f) self.scrollChild = f end
 function Frame:SetChecked(v) self.checked = not not v end

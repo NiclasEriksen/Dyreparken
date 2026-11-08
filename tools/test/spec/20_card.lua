@@ -61,6 +61,14 @@ return function(test, H)
         card.todayBox.scripts.OnLeave(card.todayBox)
         card.guildBox.scripts.OnEnter(card.guildBox)
         eq(ola.env.GameTooltip.lines[1], "Guilden: 1 av 5 kjæledyr har et hjem (20%).")
+        -- Laid out: "Dagens dyr" ends at the card's right edge, never past it.
+        ola.env.PetJournalPetCard.geo = { l = 300, r = 700, t = 500, b = 0 }
+        card.guildBox.geo = { l = 400, r = 540, t = 530, b = 510 }
+        ola.env.PetJournal_UpdatePetCard(ola.env.PetJournalPetCard)
+        eq(card.todayBox.size[1], 154)
+        card.guildBox.geo = { l = 560, r = 690, t = 530, b = 510 }
+        ola.env.PetJournal_UpdatePetCard(ola.env.PetJournalPetCard)
+        eq(card.todayBox.size[1], 80, "a cramped row still leaves room for the label")
         -- No pet selected: everything clears.
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil

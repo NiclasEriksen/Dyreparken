@@ -179,6 +179,8 @@ local function RotateButtons(root)
     if left and right then return left, right end
 end
 
+local BOX_GAP = 6 -- between the boxes on the "Total Pets" row
+
 local function UpdateExtras()
     local n, total = ns.Registry:Count(), ns.Pets:Total()
     local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
@@ -188,6 +190,11 @@ local function UpdateExtras()
     card.today:SetText(today and ns.Bonds:NameOf(today) or "-")
     card.todayBox.tip = today and ("Dagens dyr: %s, som bor hos %s."):format(ns.Bonds:NameOf(today), owner)
         or "Dagens dyr: ingen har adoptert et kjæledyr ennå."
+    -- "Dagens dyr" fills the row up to the card's right edge, wherever the
+    -- row starts: a fixed width ran past the window (seen 2026-11-08). A long
+    -- name is cut short; the tooltip has it whole.
+    local right, from = PetJournalPetCard:GetRight(), card.guildBox:GetRight()
+    if right and from then card.todayBox:SetWidth(math.max(80, right - from - BOX_GAP)) end
     local deferring = ns.Summon:Deferring()
     card.auto:SetChecked(ns.DB.char.autoSummon and not deferring)
     card.auto:SetEnabled(not deferring)
@@ -426,7 +433,7 @@ local function BuildCard()
             GameTooltip:AddLine("Det høyeste nivået.", 1, 1, 1)
         end
         GameTooltip:AddLine("Vokser for hver dag kjæledyret er ute med deg, og raskere når dere gjør noe det liker."
-            .. " Båndet blekner aldri.", 0.7, 0.7, 0.7, true)
+            .. " Båndet svekkes aldri.", 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
     card.bond:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
@@ -500,14 +507,14 @@ local function BuildCard()
     -- "Guilden x av y": y = every companion in Forever's journal
     -- (Pets:Total, Data/Companions.lua). Then "Dagens dyr".
     local count = rawget(PetJournal, "PetCount") or rawget(_G, "PetJournalPetCount")
-    card.guildBox = InfoBox("Guilden", 150)
+    card.guildBox = InfoBox("Guilden", 140)
     if count then
-        card.guildBox:SetPoint("LEFT", count, "RIGHT", 8, 0)
+        card.guildBox:SetPoint("LEFT", count, "RIGHT", BOX_GAP, 0)
     else
         card.guildBox:SetPoint("BOTTOMLEFT", c, "TOPLEFT", 160, 8)
     end
     card.todayBox = InfoBox("Dagens dyr", 140)
-    card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", 8, 0)
+    card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", BOX_GAP, 0)
     card.counter, card.today = card.guildBox.value, card.todayBox.value
 
     -- Auto-summon toggle (per character, default on), bottom right of the
