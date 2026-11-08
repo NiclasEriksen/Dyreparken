@@ -171,8 +171,15 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - `C_ChatInfo.SendChatMessage` exists alongside the global `SendChatMessage`.
 - Kill events (2026-11-08, build 70862, `/dp probe kills`): `ENCOUNTER_START`, `ENCOUNTER_END`, `BOSS_KILL`,
   `PLAYER_PVP_KILLS_CHANGED` and `PARTY_KILL` are all valid events. `GetPVPSessionStats()` returns `0, 0` and
-  `GetPVPLifetimeStats()` `0, 0` on a character without PvP. Whether they fire, and what they carry, is still
-  being logged (docs/ACHIEVEMENTS.md, research).
+  `GetPVPLifetimeStats()` `0, 0` on a character without PvP.
+- **What fires** (2026-11-08, build 70862, a 5-player dungeon, kills probe):
+  - `ENCOUNTER_START (id, name, difficulty, size)` and `ENCOUNTER_END (id, name, difficulty, size, success, table)`
+    fire for dungeon bosses with plain values (e.g. `3482, "Relic Guardian", 1, 5, 1`). A wipe has `success = 0`
+    (and, dead, no companion out). The 6th value is a table (unexplored).
+  - `BOSS_KILL` never fired: use `ENCOUNTER_END`.
+  - `PARTY_KILL` fires for every kill in the group, but **both GUIDs are secret**: who killed what can't be read.
+  - `QUEST_TURNED_IN (questID, xp, money)`, plain values.
+  - `C_PetJournal.GetSummonedPetGUID()` is **readable in combat** (not secret).
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
 - Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns

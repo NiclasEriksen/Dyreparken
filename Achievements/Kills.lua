@@ -20,9 +20,10 @@ local _, ns = ...
 local Kills = {}
 ns.Kills = Kills
 
-local EVENTS = { "ENCOUNTER_START", "ENCOUNTER_END", "BOSS_KILL", "PLAYER_PVP_KILLS_CHANGED", "PARTY_KILL",
-    "QUEST_TURNED_IN" }
-local PVP = { PLAYER_PVP_KILLS_CHANGED = true, PARTY_KILL = true }
+-- Settled 2026-11-08 (docs/FOREVER_API.md): bosses and quests work, and
+-- PARTY_KILL is all secret (dropped). Still open: honorable kills.
+local EVENTS = { "ENCOUNTER_START", "ENCOUNTER_END", "BOSS_KILL", "PLAYER_PVP_KILLS_CHANGED", "QUEST_TURNED_IN" }
+local PVP = { PLAYER_PVP_KILLS_CHANGED = true }
 
 local function Show(v)
     if issecretvalue and issecretvalue(v) then return "<secret>" end

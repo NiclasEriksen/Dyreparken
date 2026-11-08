@@ -59,14 +59,14 @@ Rules that keep it fair and cheap:
 | Activity | How we'd notice it (cheap) | Liked by (tags) |
 |---|---|---|
 | A day together | first login of the day with the pet out (no event) | everyone |
-| Quests | `QUEST_TURNED_IN` | farm, rabbit, everyone a little |
+| Quests | `QUEST_TURNED_IN` (confirmed 2026-11-08) | farm, rabbit, everyone a little |
 | Flight paths | `hooksecurefunc("TakeTaxiNode")`, or the taxi end at `PLAYER_CONTROL_GAINED` | bird, owl, dragon |
 | Herbs | `UNIT_SPELLCAST_SUCCEEDED` (player only) with the Herb Gathering spell, out of combat | bug, rabbit, farm |
 | Mining | the same, Mining | mechanical |
 | Fishing | the same, or `LOOT_OPENED` + `IsFishingLoot()` | cat, pirate, frog |
 | Diving | `MIRROR_TIMER_START` "BREATH" (fires when you go under) | frog, snake, pirate |
-| Critter hunting | `PARTY_KILL` (attacker = you) and the target is a critter | cat, snake, owl |
-| Boss kills | `ENCOUNTER_END` success / `BOSS_KILL` (being probed) | dragon, everyone |
+| ~~Critter hunting~~ | ~~`PARTY_KILL`~~: its GUIDs are secret on Forever (2026-11-08). Not possible. | |
+| Boss kills | `ENCOUNTER_END` with success (confirmed 2026-11-08; `BOSS_KILL` doesn't fire) | dragon, everyone |
 | PvP | `PLAYER_PVP_KILLS_CHANGED` (honorable kills) | pirate, dragon |
 | New zones | `ZONE_CHANGED_NEW_AREA`: a zone this pet hasn't visited | bird, owl |
 | Night owl | any activity between 22 and 04 server time | owl |
