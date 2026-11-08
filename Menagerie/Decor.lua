@@ -103,51 +103,79 @@ end
 ------------------------------------------------------------------------------
 -- On the card (2026-11-08). Two sources of decoration, both behind the pet
 -- (textures on the card itself, which the model's frame draws over):
---   the BOND LEVEL of the pet's holder: every level adds something, so a
---     pet that has been loved long looks it, to everyone;
---   the pet's TRAITS (and the date): small particles, e.g. bubbles for a
---     Dykker, stars for a Nattugle at night, confetti on a holiday.
+--   the BOND LEVEL of the pet's holder: every level adds something you can
+--     see from across the room, so a pet that has been loved long looks it;
+--   the pet's TRAITS (and the date): particles, each kind with its own
+--     motion: leaves sway down, hearts throb, sparks fly, confetti spins...
 -- Moving parts are animation groups: the client plays them, no OnUpdate.
 -- They run only while the card shows something; Apply(card, nil) and the
 -- card's OnHide stop them all. A pool of particles is made once.
+--
+-- A particle's MAIN group is a timeline in steps (orders), never delays
+-- inside a step: the client applies a waiting Alpha animation's start value
+-- during its delay, which left particles opaque and still (seen 2026-11-08).
+--   1 wait, invisible   2 move and fade in   3 move on and fade out
+-- Its other motions are groups of their own, played alongside: sway (side
+-- to side), spin, tilt (rock), throb (beat).
 ------------------------------------------------------------------------------
-local POOL = 16
-local GOLD = { 1, 0.82, 0.3 }
+local POOL = 24
+local GOLD = { 1, 0.8, 0.25 }
+local SILVER = { 0.82, 0.88, 1 }
 Decor.ART = { -- the picks from the gallery (2026-11-08)
     corner = "Interface\\DialogFrame\\UI-DialogBox-Gold-Corner",
     ribbon = "atlas:UI-Frame-Venthyr-Ribbon",
-    crown = "atlas:titleprestige-starcrown",
 }
 
 -- What each level adds, for the bond's tooltip ("på nivå 3: ...").
 Decor.LEVELS = {
-    [2] = "en kant i familiens farge",
-    [3] = "gullhjørner",
+    [2] = "en kant og et skjær i familiens farge",
+    [3] = "sølvkant og sølvhjørner",
     [4] = "en glød under kjæledyret",
-    [5] = "glitter som stiger",
-    [6] = "et bånd med navnet på nivået",
-    [7] = "en krone, hjerter og en gullkant som gløder",
+    [5] = "gull overalt, og gnister som flyr",
+    [6] = "et bånd med navnet på nivået, og lysstråler",
+    [7] = "hjerter, og alt gull skinner",
 }
 
--- Particles per trait: { texture, motion, count, color }. "when" limits it
--- to a moment (Personality's own rules: night, holidays, weekends).
+-- The border's color by level (2: the family's own).
+local function EdgeColor(level, family)
+    if level >= 5 then return GOLD end
+    if level >= 3 then return SILVER end
+    return family
+end
+
+-- Kinds of particles: the texture, the path, the extra motions, and sizes.
+--   path: rise, fall, burst (flies out from the pet), twinkle (in place),
+--   steps (paw prints along the ground)
+Decor.KINDS = {
+    heart = { tex = "heart", path = "rise", throb = true, size = { 16, 24 }, dur = { 5, 7 } },
+    bubble = { tex = "bubble", path = "rise", sway = 8, size = { 10, 20 }, dur = { 5, 8 } },
+    leaf = { tex = "leaf", path = "fall", sway = 26, tilt = 35, size = { 14, 22 }, dur = { 7, 10 } },
+    confetti = { tex = "confetti", path = "fall", sway = 14, spin = 1.2, size = { 8, 12 }, dur = { 4, 6 } },
+    snow = { tex = "snowflake", path = "fall", sway = 12, spin = 6, size = { 10, 16 }, dur = { 9, 12 } },
+    note = { tex = "note", path = "rise", sway = 16, tilt = 20, size = { 16, 22 }, dur = { 5, 7 } },
+    spark = { tex = "sparkle", path = "burst", spin = 1.5, size = { 12, 22 }, dur = { 1.4, 2.2 } },
+    star = { tex = "star", path = "twinkle", spin = 8, size = { 10, 18 }, dur = { 2, 3.5 } },
+    paw = { tex = "paw", path = "steps", size = { 16, 18 }, dur = { 4, 4 } },
+}
+
+-- Particles per trait: { kind, how many, color }. "when" limits it to a
+-- moment (Personality's own rules: night, holidays, weekends).
 local function Night(t) local h = tonumber(date("%H", t)); return h >= 20 or h < 5 end
 local function Holiday(t) return ns.Personality.HOLIDAYS[date("%m%d", t)] ~= nil end
 local function Weekend(t) local w = tonumber(date("%w", t)); return w == 0 or w == 6 end
 Decor.TRAITS = {
-    nattugle = { tex = "star", motion = "twinkle", n = 4, color = { 0.85, 0.9, 1 }, when = Night },
-    festglad = { tex = "confetti", motion = "fall", n = 8, color = "rainbow", when = Holiday },
-    helgedyr = { tex = "note", motion = "rise", n = 3, color = { 1, 0.9, 0.6 }, when = Weekend },
-    dansefot = { tex = "note", motion = "rise", n = 3, color = { 1, 0.85, 0.95 } },
-    kosete = { tex = "heart", motion = "rise", n = 2, color = { 1, 0.45, 0.55 } },
-    kjaelen = { tex = "heart", motion = "rise", n = 2, color = { 1, 0.55, 0.7 } },
-    dykker = { tex = "bubble", motion = "rise", n = 4, color = { 0.7, 0.9, 1 } },
-    vannhund = { tex = "bubble", motion = "rise", n = 3, color = { 0.6, 0.85, 1 } },
-    gronnfinger = { tex = "leaf", motion = "fall", n = 3, color = { 0.55, 0.85, 0.4 } },
-    oppdager = { tex = "paw", motion = "floor", n = 3, color = { 0.9, 0.8, 0.65 } },
-    hoppetass = { tex = "paw", motion = "floor", n = 3, color = { 0.9, 0.8, 0.65 } },
+    nattugle = { kind = "star", n = 5, color = { 0.85, 0.9, 1 }, when = Night },
+    festglad = { kind = "confetti", n = 10, color = "rainbow", when = Holiday },
+    helgedyr = { kind = "note", n = 3, color = { 1, 0.9, 0.6 }, when = Weekend },
+    dansefot = { kind = "note", n = 3, color = { 1, 0.8, 0.95 } },
+    kosete = { kind = "heart", n = 2, color = { 1, 0.45, 0.55 } },
+    kjaelen = { kind = "heart", n = 2, color = { 1, 0.55, 0.7 } },
+    dykker = { kind = "bubble", n = 4, color = { 0.7, 0.9, 1 } },
+    vannhund = { kind = "bubble", n = 3, color = { 0.6, 0.85, 1 } },
+    gronnfinger = { kind = "leaf", n = 3, color = { 0.55, 0.85, 0.4 } },
+    oppdager = { kind = "paw", n = 4, color = { 0.9, 0.8, 0.65 } },
+    hoppetass = { kind = "paw", n = 4, color = { 0.9, 0.8, 0.65 } },
 }
--- Every pet, in December: a little snow.
 local function December(t) return date("%m", t) == "12" end
 local RAINBOW = { { 1, 0.35, 0.35 }, { 1, 0.8, 0.25 }, { 0.4, 0.85, 0.4 }, { 0.35, 0.65, 1 }, { 0.85, 0.45, 1 } }
 
@@ -166,34 +194,72 @@ local function Rng(seed)
     end
 end
 
+-- A looping group with one animation of a kind, origin in the middle.
+local function Loop(t, kind, looping)
+    local g = t:CreateAnimationGroup()
+    g:SetLooping(looping)
+    local a = g:CreateAnimation(kind)
+    if a.SetOrigin and kind ~= "Translation" and kind ~= "Alpha" then a:SetOrigin("CENTER", 0, 0) end
+    a:SetSmoothing("IN_OUT")
+    g.a = g.a or a
+    return g, a
+end
+
+local function NewParticle(c)
+    local t = c:CreateTexture(nil, "BORDER", nil, 6)
+    t:Hide()
+    t:SetAlpha(0) -- unseen at rest: only the timeline shows it
+    local g = t:CreateAnimationGroup()
+    g:SetLooping("REPEAT")
+    g.hold = g:CreateAnimation("Alpha"); g.hold:SetFromAlpha(0); g.hold:SetToAlpha(0); g.hold:SetOrder(1)
+    g.moveA = g:CreateAnimation("Translation"); g.moveA:SetOrder(2)
+    g.fadeIn = g:CreateAnimation("Alpha"); g.fadeIn:SetFromAlpha(0); g.fadeIn:SetToAlpha(1); g.fadeIn:SetOrder(2)
+    g.moveB = g:CreateAnimation("Translation"); g.moveB:SetOrder(3)
+    g.fadeOut = g:CreateAnimation("Alpha"); g.fadeOut:SetFromAlpha(1); g.fadeOut:SetToAlpha(0); g.fadeOut:SetOrder(3)
+    g.grow = g:CreateAnimation("Scale"); g.grow:SetOrder(3); g.grow:SetOrigin("CENTER", 0, 0)
+    t.anim = g
+    t.sway = Loop(t, "Translation", "BOUNCE")
+    t.spin = Loop(t, "Rotation", "REPEAT")
+    t.tilt = Loop(t, "Rotation", "BOUNCE")
+    t.throb = Loop(t, "Scale", "BOUNCE")
+    t.extras = { t.sway, t.spin, t.tilt, t.throb }
+    return t
+end
+
 -- Build the textures once (JournalUI's BuildCard): c = the card frame, panel
 -- = its bottom panel (particles live above it).
 function Decor:Build(card, c, panel)
     local d = { c = c, panel = panel, parts = {} }
     card.decor = d
-    -- Level 2 and 7: a thin border, in the family's color (gold at 7).
-    d.edges = {}
+    -- 2+: a border (family, then silver, then gold), and a wash of color in
+    -- from the edges.
+    d.edges, d.wash = {}, {}
     for i, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
         local t = c:CreateTexture(nil, "BORDER", nil, 2)
         t:SetColorTexture(1, 1, 1, 1)
+        local w = c:CreateTexture(nil, "BACKGROUND", nil, 4)
+        w:SetColorTexture(1, 1, 1, 1)
         if side == "TOP" or side == "BOTTOM" then
-            t:SetPoint(side .. "LEFT", c, side .. "LEFT", 4, side == "TOP" and -4 or 4)
-            t:SetPoint(side .. "RIGHT", c, side .. "RIGHT", -4, side == "TOP" and -4 or 4)
-            t:SetHeight(2)
+            local y = side == "TOP" and -4 or 4
+            t:SetPoint(side .. "LEFT", c, side .. "LEFT", 4, y); t:SetPoint(side .. "RIGHT", c, side .. "RIGHT", -4, y)
+            t:SetHeight(3)
+            w:SetPoint(side .. "LEFT", c, side .. "LEFT", 4, y); w:SetPoint(side .. "RIGHT", c, side .. "RIGHT", -4, y)
+            w:SetHeight(60)
         else
-            t:SetPoint("TOP" .. side, c, "TOP" .. side, side == "LEFT" and 4 or -4, -4)
-            t:SetPoint("BOTTOM" .. side, c, "BOTTOM" .. side, side == "LEFT" and 4 or -4, 4)
-            t:SetWidth(2)
+            local x = side == "LEFT" and 4 or -4
+            t:SetPoint("TOP" .. side, c, "TOP" .. side, x, -4); t:SetPoint("BOTTOM" .. side, c, "BOTTOM" .. side, x, 4)
+            t:SetWidth(3)
+            w:SetPoint("TOP" .. side, c, "TOP" .. side, x, -4); w:SetPoint("BOTTOM" .. side, c, "BOTTOM" .. side, x, 4)
+            w:SetWidth(60)
         end
-        t:Hide()
-        -- Level 7: the gold edge glows.
-        t.shimmer = t:CreateAnimationGroup()
-        t.shimmer:SetLooping("BOUNCE")
-        local s = t.shimmer:CreateAnimation("Alpha")
-        s:SetFromAlpha(0.45); s:SetToAlpha(1); s:SetDuration(1.8); s:SetSmoothing("IN_OUT")
-        d.edges[i] = t
+        w.side = side
+        t:Hide(); w:Hide()
+        -- 7: the gold edge glows.
+        t.shimmer = Loop(t, "Alpha", "BOUNCE")
+        t.shimmer.a:SetFromAlpha(0.5); t.shimmer.a:SetToAlpha(1); t.shimmer.a:SetDuration(1.6)
+        d.edges[i], d.wash[i] = t, w
     end
-    -- Level 3: gold corners (the picked piece is a top left; the rest mirror it).
+    -- 3+: corners (the picked piece is a top left; the rest mirror it).
     d.corners = {}
     local FLIP = { TOPLEFT = { 0, 1, 0, 1 }, TOPRIGHT = { 1, 0, 0, 1 }, BOTTOMLEFT = { 0, 1, 1, 0 },
         BOTTOMRIGHT = { 1, 0, 1, 0 } }
@@ -201,117 +267,141 @@ function Decor:Build(card, c, panel)
         local t = c:CreateTexture(nil, "BORDER", nil, 3)
         SetArt(t, self.ART.corner)
         t:SetTexCoord(unpack(tc))
-        t:SetSize(32, 32)
-        local x = point:find("LEFT") and 4 or -4
-        local y = point:find("TOP") and -4 or 4
-        t:SetPoint(point, c, point, x, y)
+        t:SetSize(52, 52)
+        t:SetPoint(point, c, point, point:find("LEFT") and 2 or -2, point:find("TOP") and -2 or 2)
         t:Hide()
         d.corners[point] = t
     end
-    -- Level 4: a soft glow under the pet, breathing.
-    d.glow = c:CreateTexture(nil, "BORDER", nil, 1)
-    d.glow:SetTexture(self.MEDIA .. "dot")
-    d.glow:SetBlendMode("ADD")
-    d.glow:SetSize(300, 140)
-    d.glow:SetPoint("CENTER", panel, "TOP", 0, 110)
-    d.glow:Hide()
-    d.breathe = d.glow:CreateAnimationGroup()
-    d.breathe:SetLooping("BOUNCE")
-    local a = d.breathe:CreateAnimation("Alpha")
-    a:SetFromAlpha(0.35); a:SetToAlpha(0.7); a:SetDuration(2.5); a:SetSmoothing("IN_OUT")
-    -- Level 6: a ribbon at the top with the level's name; 7: a crown on it.
+    -- 4+: a glow under the pet, breathing: a wide one and a bright core.
+    d.glows = {}
+    for i, size in ipairs({ { 420, 260 }, { 220, 110 } }) do
+        local t = c:CreateTexture(nil, "BORDER", nil, i)
+        t:SetTexture(self.MEDIA .. "dot")
+        t:SetBlendMode("ADD")
+        t:SetSize(size[1], size[2])
+        t:SetPoint("CENTER", panel, "TOP", 0, i == 1 and 120 or 90)
+        t:Hide()
+        t.breathe = Loop(t, "Alpha", "BOUNCE")
+        t.breathe.a:SetFromAlpha(i == 1 and 0.55 or 0.7); t.breathe.a:SetToAlpha(1); t.breathe.a:SetDuration(2.2)
+        d.glows[i] = t
+    end
+    -- 6+: light rays behind the pet, turning slowly.
+    d.rays = c:CreateTexture(nil, "BACKGROUND", nil, 5)
+    d.rays:SetTexture(self.MEDIA .. "rays")
+    d.rays:SetBlendMode("ADD")
+    d.rays:SetSize(460, 460)
+    d.rays:SetPoint("CENTER", panel, "TOP", 0, 150)
+    d.rays:Hide()
+    d.rays.turn = Loop(d.rays, "Rotation", "REPEAT")
+    d.rays.turn.a:SetDegrees(-360); d.rays.turn.a:SetSmoothing("NONE")
+    -- 6+: a ribbon with the level's name, under the title row.
     d.ribbon = c:CreateTexture(nil, "BORDER", nil, 4)
     SetArt(d.ribbon, self.ART.ribbon)
-    d.ribbon:SetSize(220, 44)
-    d.ribbon:SetPoint("TOP", c, "TOP", 0, -52)
+    d.ribbon:SetSize(240, 46)
+    d.ribbon:SetPoint("TOP", c, "TOP", 0, -64)
     d.ribbon:Hide()
     d.ribbonText = c:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     d.ribbonText:SetPoint("CENTER", d.ribbon, "CENTER", 0, 2)
     d.ribbonText:Hide()
-    d.crown = c:CreateTexture(nil, "BORDER", nil, 5)
-    SetArt(d.crown, self.ART.crown)
-    d.crown:SetSize(56, 36)
-    d.crown:SetPoint("BOTTOM", d.ribbon, "TOP", 0, -10)
-    d.crown:Hide()
-    -- The particle pool: each with its own animation (move, fade, grow).
-    for i = 1, POOL do
-        local t = c:CreateTexture(nil, "BORDER", nil, 6)
-        t:Hide()
-        local g = t:CreateAnimationGroup()
-        g:SetLooping("REPEAT")
-        -- One timeline (all order 1): wait, then move while fading in and
-        -- out. At rest a particle is invisible (alpha 0), so it never sits
-        -- still and visible while it waits for its turn.
-        g.move = g:CreateAnimation("Translation")
-        g.fadeIn = g:CreateAnimation("Alpha")
-        g.fadeIn:SetFromAlpha(0); g.fadeIn:SetToAlpha(1)
-        g.fadeOut = g:CreateAnimation("Alpha")
-        g.fadeOut:SetFromAlpha(1); g.fadeOut:SetToAlpha(0)
-        for _, a in ipairs({ g.move, g.fadeIn, g.fadeOut }) do a:SetOrder(1) end
-        t:SetAlpha(0)
-        t.anim = g
-        d.parts[i] = t
-    end
+    for i = 1, POOL do d.parts[i] = NewParticle(c) end
     c:HookScript("OnHide", function() Decor:Stop(card) end)
 end
 
 function Decor:Stop(card)
     local d = card.decor
     if not d then return end
-    for _, t in ipairs(d.parts) do t.anim:Stop(); t:Hide() end
-    d.breathe:Stop()
+    for _, t in ipairs(d.parts) do
+        t.anim:Stop()
+        for _, g in ipairs(t.extras) do g:Stop() end
+        t:Hide()
+    end
+    for _, t in ipairs(d.glows) do t.breathe:Stop() end
     for _, e in ipairs(d.edges) do e.shimmer:Stop() end
+    d.rays.turn:Stop()
 end
 
--- One particle: where it starts and how it moves. (x, y) from the panel's
--- top left; the area is the card above the panel.
+-- One particle: where it starts, its timeline and its extra motions.
+-- (x, y) from the panel's top left; the area is the card above the panel.
 local function Launch(t, spec, rng, i, n, panel)
+    local k = Decor.KINDS[spec.kind]
     local width = panel:GetWidth() or 400
-    local tex = spec.tex
-    t:SetTexture(Decor.MEDIA .. tex)
+    t:SetTexture(Decor.MEDIA .. k.tex)
     local c = spec.color
     if c == "rainbow" then c = RAINBOW[(i - 1) % #RAINBOW + 1] end
     t:SetVertexColor(c[1], c[2], c[3], 1)
-    local size = rng(14, 24)
-    if tex == "bubble" then size = rng(10, 20) end
+    local size = rng(k.size[1], k.size[2])
     t:SetSize(size, size)
-    local g = t.anim
-    local x = width * (i - 0.5) / n + rng(-20, 20)
-    local y, dx, dy, dur
-    if spec.motion == "rise" then
-        y, dx, dy, dur = rng(10, 60), rng(-20, 20), rng(140, 220), rng(5, 8)
-    elseif spec.motion == "fall" then
-        y, dx, dy, dur = rng(260, 320), rng(-30, 30), -rng(180, 240), rng(6, 9)
-    elseif spec.motion == "twinkle" then
-        y, dx, dy, dur = rng(200, 320), 0, 0, rng(1.5, 3)
-    else -- floor: paw prints along the ground
-        x, y, dx, dy, dur = width * 0.25 + (i - 1) * 34, rng(16, 30), 0, 0, 3
-        t:SetRotation(-0.4)
+    t:SetRotation(0)
+    local dur = rng(k.dur[1], k.dur[2])
+    local x, y, dx, dy = width * (i - 0.5) / n + rng(-20, 20), 0, 0, 0
+    local grow = 1
+    if k.path == "rise" then
+        y, dx, dy = rng(10, 70), rng(-20, 20), rng(150, 230)
+    elseif k.path == "fall" then
+        y, dx, dy = rng(270, 330), rng(-30, 30), -rng(200, 260)
+    elseif k.path == "burst" then -- out from around the pet, in every direction
+        local a = rng(0, 2 * math.pi)
+        x, y = width / 2 + rng(-30, 30), rng(70, 130)
+        dx, dy, grow = math.cos(a) * rng(90, 150), math.sin(a) * rng(60, 120), 0.3
+    elseif k.path == "twinkle" then
+        y, grow = rng(190, 320), 1.6
+    else -- steps: paw prints, one after another, along the ground
+        x, y = width * 0.22 + (i - 1) * 36, 20 + (i % 2) * 12
+        t:SetRotation(-0.3)
     end
     t:ClearAllPoints()
     t:SetPoint("CENTER", panel, "TOPLEFT", x, y)
-    g.move:SetOffset(dx, dy)
-    local wait = (i - 1) * dur / n -- staggered, so they don't all go at once
-    g.move:SetStartDelay(wait); g.move:SetDuration(dur)
-    g.fadeIn:SetStartDelay(wait); g.fadeIn:SetDuration(dur * 0.3)
-    g.fadeOut:SetStartDelay(wait + dur * 0.6); g.fadeOut:SetDuration(dur * 0.4)
+    local g = t.anim
+    local wait = (i - 1) * dur / n + 0.01 -- staggered, so they don't all go at once
+    g.hold:SetDuration(wait)
+    local first = k.path == "burst" and 0.35 or 0.4
+    g.moveA:SetOffset(dx * first, dy * first); g.moveA:SetDuration(dur * first)
+    g.fadeIn:SetDuration(dur * (k.path == "burst" and 0.1 or 0.25))
+    g.moveB:SetOffset(dx * (1 - first), dy * (1 - first)); g.moveB:SetDuration(dur * (1 - first))
+    g.fadeOut:SetDuration(dur * (1 - first))
+    g.grow:SetScaleFrom(1, 1); g.grow:SetScaleTo(grow, grow); g.grow:SetDuration(dur * (1 - first))
+    if k.path == "burst" then g.moveA:SetSmoothing("OUT") else g.moveA:SetSmoothing("NONE") end
     t:Show()
     g:Play()
+    -- Its own motions, alongside.
+    if k.sway then
+        t.sway.a:SetOffset(rng(0.6, 1) * k.sway * (i % 2 == 0 and 1 or -1), 0)
+        t.sway.a:SetDuration(rng(1.1, 1.8))
+        t.sway:Play()
+    end
+    if k.spin then
+        t.spin.a:SetDegrees((i % 2 == 0 and 360 or -360))
+        t.spin.a:SetDuration(k.spin * rng(0.8, 1.3))
+        t.spin.a:SetSmoothing("NONE")
+        t.spin:Play()
+    end
+    if k.tilt then
+        t.tilt.a:SetDegrees(k.tilt * (i % 2 == 0 and 1 or -1))
+        t.tilt.a:SetDuration(rng(0.9, 1.4))
+        t.tilt:Play()
+    end
+    if k.throb then
+        t.throb.a:SetScaleFrom(1, 1); t.throb.a:SetScaleTo(1.3, 1.3)
+        t.throb.a:SetDuration(0.32)
+        t.throb:Play()
+    end
 end
 
 -- The particle specs for a pet right now: its traits', December's snow,
--- and the bond's sparkles (5+) and hearts (7).
+-- and the bond's sparks (5+) and hearts (7).
 function Decor:Specs(key, level, t)
     local list = {}
     for _, trait in ipairs(ns.Personality:Traits(key)) do
         local spec = self.TRAITS[trait.id]
         if spec and (not spec.when or spec.when(t)) then list[#list + 1] = spec end
     end
-    if December(t) then list[#list + 1] = { tex = "snowflake", motion = "fall", n = 4, color = { 1, 1, 1 } } end
-    if level >= 5 then list[#list + 1] = { tex = "sparkle", motion = "rise", n = 4, color = GOLD } end
-    if level >= 7 then list[#list + 1] = { tex = "heart", motion = "rise", n = 3, color = { 1, 0.4, 0.5 } } end
+    if December(t) then list[#list + 1] = { kind = "snow", n = 5, color = { 1, 1, 1 } } end
+    if level >= 5 then list[#list + 1] = { kind = "spark", n = 6, color = GOLD } end
+    if level >= 7 then list[#list + 1] = { kind = "heart", n = 4, color = { 1, 0.4, 0.5 } } end
     return list
 end
+
+local function Bright(c, f) return math.min(1, c[1] * f), math.min(1, c[2] * f), math.min(1, c[3] * f) end
 
 -- Show the decorations for a pet (nil: none). level: its holder's bond
 -- level (nil when nobody holds it); color: the family's tint.
@@ -319,31 +409,57 @@ function Decor:Apply(card, key, level, color)
     local d = card.decor
     if not d then return end
     self:Stop(card)
-    for _, e in ipairs(d.edges) do e:Hide() end
+    for i = 1, 4 do d.edges[i]:Hide(); d.wash[i]:Hide() end
     for _, t in pairs(d.corners) do t:Hide() end
-    d.glow:Hide(); d.ribbon:Hide(); d.ribbonText:Hide(); d.crown:Hide()
+    for _, t in ipairs(d.glows) do t:Hide() end
+    d.rays:Hide(); d.ribbon:Hide(); d.ribbonText:Hide()
     d.used = 0
     if not key then return end
     level = self.preview or level or 0
+    color = color or GOLD
     if level >= 2 then
-        local c = level >= 7 and GOLD or color or GOLD
-        for _, e in ipairs(d.edges) do
-            e:SetVertexColor(math.min(1, c[1] * 1.6), math.min(1, c[2] * 1.6), math.min(1, c[3] * 1.6), 0.8)
-            e:Show()
+        local e = EdgeColor(level, { Bright(color, 1.7) })
+        local wash = level >= 5 and GOLD or { Bright(color, 1.7) }
+        for i = 1, 4 do
+            d.edges[i]:SetVertexColor(e[1], e[2], e[3], 0.9)
+            d.edges[i]:Show()
+            local w = d.wash[i]
+            local strong, clear = { wash[1], wash[2], wash[3], level >= 5 and 0.28 or 0.22 }, { wash[1], wash[2], wash[3], 0 }
+            local function G(o, a, b)
+                if w.SetGradient and CreateColor then w:SetGradient(o, CreateColor(unpack(a)), CreateColor(unpack(b))) end
+            end
+            if w.side == "TOP" then G("VERTICAL", clear, strong)
+            elseif w.side == "BOTTOM" then G("VERTICAL", strong, clear)
+            elseif w.side == "LEFT" then G("HORIZONTAL", strong, clear)
+            else G("HORIZONTAL", clear, strong) end
+            w:Show()
         end
     end
-    if level >= 3 then for _, t in pairs(d.corners) do t:Show() end end
+    if level >= 3 then
+        local tint = level >= 5 and { 1, 1, 1 } or SILVER
+        for _, t in pairs(d.corners) do
+            t:SetDesaturated(level < 5)
+            t:SetVertexColor(tint[1], tint[2], tint[3], 1)
+            t:Show()
+        end
+    end
     if level >= 4 then
-        local c = color or GOLD
-        d.glow:SetVertexColor(math.min(1, c[1] * 1.8), math.min(1, c[2] * 1.8), math.min(1, c[3] * 1.8), 1)
-        d.glow:Show()
-        d.breathe:Play()
+        local g = level >= 5 and GOLD or { Bright(color, 2.2) }
+        for _, t in ipairs(d.glows) do
+            t:SetVertexColor(g[1], g[2], g[3], 1)
+            t:Show()
+            t.breathe:Play()
+        end
     end
     if level >= 6 then
         d.ribbonText:SetText(ns.Bond.LEVELS[level][2])
         d.ribbon:Show(); d.ribbonText:Show()
+        d.rays:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
+        d.rays:SetAlpha(level >= 7 and 0.75 or 0.45)
+        d.rays.turn.a:SetDuration(level >= 7 and 40 or 70)
+        d.rays:Show()
+        d.rays.turn:Play()
     end
-    if level >= 7 then d.crown:Show() end
     if level >= 7 then for _, e in ipairs(d.edges) do e.shimmer:Play() end end
     -- Particles, up to the pool's size.
     local rng = Rng((ns.Pets:SpeciesOfKey(key) or 1) * 7919 + level)

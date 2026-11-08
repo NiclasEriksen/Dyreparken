@@ -128,8 +128,10 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
 - **Pet card (journal):** under the big nickname, "Tam · Bestevenn (nivå 5)" and a **progress bar** to the next bond
   level. Hovering shows the likes and the quirk, and this bond's numbers: "12 boss-drap, 340 urter, 31 dager".
 - **Card decorations** (built 2026-11-08, Menagerie/Decor.lua): the holder's bond level dresses the card, one
-  thing per level: 2 a border in the family color, 3 gold corners, 4 a glow under the pet, 5 rising sparkles, 6 a
-  ribbon with the level's name, 7 a crown, hearts and a glowing gold edge. Traits add particles (Dykker bubbles,
+  thing per level: 2 a border and a wash of the family color, 3 silver border and corners, 4 a strong glow under
+  the pet, 5 everything gold and sparks flying, 6 a ribbon with the level's name and slowly turning light rays, 7
+  hearts, brighter and faster rays and a glowing gold edge. (Reworked the same evening: the first version's levels
+  looked too alike, and the crown was clumsy.) Traits add particles (Dykker bubbles,
   Nattugle stars at night, Festglad confetti on holidays...), and every pet gets snow in December. The bond's
   tooltip says what the next level adds. The card's light follows the clock.
 - **World tooltip:** under the species line, the temperament: "Pepe / Panda Cub / tam og kosete".

@@ -116,8 +116,9 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    Personality (likes, and two traits per species from Data/Traits.lua;
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour), SceneGallery (/dp probe bg and decor: thumbnails of every
                    background that exists; pick one per family, saved in DyreparkenDB.scenePicks), Decor (pet card decorations: one more per bond level of the holder
-                   (border, gold corners, glow, sparkles, ribbon, crown and hearts), particles from traits and the date
-                   (bubbles, night stars, holiday confetti, December snow); animation groups only, stopped when hidden. Also
+                   (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
+                   particles from traits and the date, each kind with its own motion (sway, spin, tilt, throb); animation
+                   groups only, timelines in steps (never Alpha delays inside a step), stopped when hidden. Also
                    the art probe /dp probe decor; DecorCandidates.lua is GENERATED from the retail atlas list, dev only),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
                    loads after Achievements/Page.lua so its tab comes second),

@@ -147,8 +147,30 @@ def snowflake():
     return m
 
 
+def rays():
+    """A sunburst: 12 soft, tapering rays (drawn bigger: 128x128)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    for k in range(12):
+        a = k * math.pi / 6
+        w = 0.09
+        pts = [(0, 0), (math.cos(a - w), math.sin(a - w)), (math.cos(a + w), math.sin(a + w))]
+        poly(d, [(x * 1.0, y * 1.0) for x, y in pts], fill=200)
+    m = m.filter(ImageFilter.GaussianBlur(SS * 3))
+    # fade toward the edge
+    fade = Image.new("L", (BIG, BIG), 0)
+    px = fade.load()
+    for y in range(0, BIG, 2):
+        for x in range(0, BIG, 2):
+            r = math.hypot((x + 0.5) / BIG * 2 - 1, (y + 0.5) / BIG * 2 - 1)
+            v = int(255 * max(0.0, 1 - r) ** 1.2)
+            px[x, y] = v; px[min(x + 1, BIG - 1), y] = v; px[x, min(y + 1, BIG - 1)] = v
+            px[min(x + 1, BIG - 1), min(y + 1, BIG - 1)] = v
+    return ImageChops.multiply(m, fade)
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
-          "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake}
+          "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "rays": rays}
+BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 
 
 def write_tga(path, mask):
@@ -167,8 +189,9 @@ def main():
     sheet = Image.new("RGBA", (SIZE * len(SHAPES), SIZE), (40, 32, 26, 255))
     for i, (name, fn) in enumerate(SHAPES.items()):
         big = fn().filter(ImageFilter.GaussianBlur(SS * 0.6))
+        size = BIGGER.get(name, SIZE)
+        write_tga(os.path.join(OUT, name + ".tga"), big.resize((size, size), Image.LANCZOS))
         mask = big.resize((SIZE, SIZE), Image.LANCZOS)
-        write_tga(os.path.join(OUT, name + ".tga"), mask)
         sheet.paste(Image.new("RGBA", (SIZE, SIZE), (255, 255, 255, 255)), (i * SIZE, 0), mask)
         print("wrote", name)
     return sheet
