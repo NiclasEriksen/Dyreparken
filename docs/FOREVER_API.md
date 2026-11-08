@@ -195,6 +195,9 @@ From AutoCompanion (written for Forever, in this AddOns folder):
     up: hearts flickered to full size and swaying leaves jumped sideways or blinked. Give each motion its own region
     (a holder frame for the path, an inner frame for the sway, the texture for spin or throb). Same evening; the
     layered version is still to be seen in game.
+    After layering, hearts (Scale), notes and leaves (Rotation, Translation) still blinked, all on `BOUNCE` loops,
+    while `REPEAT` spins were smooth: `BOUNCE` seems to blink where it turns. Back-and-forth now is a `REPEAT` loop
+    of relative steps that add up to nothing (out, back past the middle, home). To be confirmed in game.
   - **The atlas library is the modern one** (2026-11-08, `/dp probe decor`): 40 of 45 guessed retail atlas names
     exist (`C_Texture.GetAtlasInfo`), e.g. `AftLevelup-*`, `bags-glow-*`, `ArtifactsFX-*`,
     `UI-Frame-DiamondMetal-CornerTopLeft`, `PetJournal-FavoritesIcon`.

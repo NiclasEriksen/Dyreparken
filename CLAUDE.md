@@ -119,7 +119,8 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits and the date, each kind with its own motion (sway, spin, tilt, throb); animation
                    groups only, timelines in steps (never Alpha delays inside a step), one playing group per region
-                   (holder frame: path; inner frame: sway; texture: spin/tilt/throb), stopped when hidden. Also
+                   (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
+                   come home instead), stopped when hidden. Also
                    the art probe /dp probe decor; DecorCandidates.lua is GENERATED from the retail atlas list, dev only),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
                    loads after Achievements/Page.lua so its tab comes second),

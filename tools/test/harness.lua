@@ -314,6 +314,7 @@ for _, m in ipairs({ "Duration", "StartDelay", "Order", "Smoothing", "FromAlpha"
     Anim["Set" .. m] = function(self, v) self[key] = v end
 end
 function Anim:SetOffset(x, y) self.offset = { x, y } end
+function Anim:SetScale(x, y) self.scale = { x, y } end
 function Anim:SetScaleFrom(x, y) self.scaleFrom = { x, y } end
 function Anim:SetScaleTo(x, y) self.scaleTo = { x, y } end
 function Anim:SetOrigin(point, x, y) self.origin = { point, x, y } end

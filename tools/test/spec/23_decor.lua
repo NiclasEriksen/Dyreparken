@@ -70,7 +70,7 @@ return function(test, H)
         local n = 0
         for point, t in pairs(d.corners) do ok(t:IsShown(), point); n = n + 1 end
         eq(n, 4)
-        eq(d.corners.TOPLEFT.atlas, "StoneFrameCorner-TopLeft", "the picked corner")
+        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the picked corner")
         ok(d.corners.TOPLEFT.desaturated, "silver corners")
         eq(Color(d.border)[3], 1, "a silver border")
         no(d.glows[1]:IsShown())
@@ -131,9 +131,19 @@ return function(test, H)
         end
         local leaf = Kind("gronnfinger", "leaf")
         ok(leaf.anim.moveA.offset[2] < 0, "leaves fall")
-        ok(leaf.sway:IsPlaying()); ok(leaf.tilt:IsPlaying()); eq(leaf.sway.looping, "BOUNCE")
+        ok(leaf.sway:IsPlaying()); ok(leaf.tilt:IsPlaying())
+        -- Swings loop seamlessly: steps that add up to nothing, never BOUNCE (it blinked).
+        local function Sum(g, f) local n = 0; for _, a in ipairs(g.steps) do n = n + f(a) end; return n end
+        eq(leaf.sway.looping, "REPEAT")
+        ok(leaf.sway.steps[1].offset[1] ~= 0, "it does sway")
+        ok(math.abs(Sum(leaf.sway, function(a) return a.offset[1] end)) < 1e-9, "and comes home")
+        ok(math.abs(Sum(leaf.tilt, function(a) return a.degrees end)) < 1e-9)
+        eq(leaf.tilt.steps[1].smoothing, "OUT"); eq(leaf.tilt.steps[3].smoothing, "IN", "a pendulum")
         local heart = Kind("kosete", "heart")
-        ok(heart.throb:IsPlaying()); eq(heart.throb.a.scaleTo[1], 1.25); no(heart.sway:IsPlaying(), "only what it does")
+        ok(heart.throb:IsPlaying()); no(heart.sway:IsPlaying(), "only what it does")
+        local up, down = heart.throb.steps[1].scale[1], heart.throb.steps[2].scale[1]
+        eq(up, 1.25); ok(math.abs(up * down - 1) < 1e-9, "a beat that ends at its own size")
+        eq(heart.throb.looping, "REPEAT")
         eq(heart.anim, heart.plain, "no scale on its path: the beat is the only scaling (it flickered)")
         no(heart.plain.grow)
         At(w, ola, 5, 17, 12)
@@ -200,6 +210,25 @@ return function(test, H)
         end
     end)
 
+    test("no BOUNCE loops anywhere on the card (they blinked where they turned)", function()
+        local w, ola, card, d = Setup("dykker", "gronnfinger")
+        At(w, ola, 12, 24, 23)
+        ola.ns.Decor:Apply(card, PANDA, 7)
+        local seen = 0
+        local function Check(region)
+            for _, g in ipairs(region.animGroups or {}) do
+                seen = seen + 1
+                ok(g.looping ~= "BOUNCE", "a BOUNCE loop")
+            end
+        end
+        for _, p in ipairs(d.parts) do Check(p); Check(p.inner); Check(p.icon) end
+        for _, t in ipairs(d.glows) do Check(t) end
+        Check(d.border); Check(d.rays)
+        ok(seen > 100)
+        eq(d.glows[1].breathe.looping, "REPEAT")
+        eq(d.border.shimmer.a.toAlpha, 1)
+    end)
+
     test("never more particles than the pool; the same pet keeps its layout", function()
         local w, ola, card, d = Setup("dykker", "kosete")
         local D = ola.ns.Decor
@@ -262,17 +291,17 @@ return function(test, H)
         no(d.corners.TOPLEFT:IsShown(), "out of range: off")
     end)
 
-    test("the stone corner is mirrored by its atlas coordinates; without slicing, drawn edges", function()
+    test("the corner is mirrored by its atlas coordinates; without slicing, drawn edges", function()
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
-        ola.atlases = { ["StoneFrameCorner-TopLeft"] = true }
+        ola.atlases = { ["AdventuresFrame-Corner-Small-TopLeft"] = true }
         ola.env.Enum.UITextureSliceMode = nil -- a client that can't nine-slice
         w:Run(20)
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
         local d = card.decor
-        local file = ola.env.C_Texture.GetAtlasInfo("StoneFrameCorner-TopLeft").file
-        eq(d.corners.TOPLEFT.atlas, "StoneFrameCorner-TopLeft", "the original as it is")
+        local file = ola.env.C_Texture.GetAtlasInfo("AdventuresFrame-Corner-Small-TopLeft").file
+        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the original as it is")
         eq(d.corners.BOTTOMRIGHT.tex, file)
         eq(table.concat(d.corners.BOTTOMRIGHT.texCoord, ","), "0.5,0.25,0.375,0.125", "mirrored both ways")
         eq(table.concat(d.corners.TOPRIGHT.texCoord, ","), "0.5,0.25,0.125,0.375")

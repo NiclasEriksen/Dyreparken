@@ -120,13 +120,17 @@ end
 --       1 wait, invisible   2 move and fade in   3 move on and fade out
 --   an INNER frame: the sway (side to side);
 --   the TEXTURE: one of spin, tilt (rock) or throb (beat).
+-- Back-and-forth motions are never BOUNCE loops: those blinked where they
+-- turned (hearts, notes, leaves, while REPEAT spins were smooth). They're
+-- REPEAT loops of steps that end where they began: out, back past the
+-- middle, home (Swing below).
 ------------------------------------------------------------------------------
 local POOL = 24
 local GOLD = { 1, 0.8, 0.25 }
 local SILVER = { 0.82, 0.88, 1 }
 Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
     border = "loottoast-itemborder-gold", -- an item frame, nine-sliced around the card
-    corner = "StoneFrameCorner-TopLeft",
+    corner = "AdventuresFrame-Corner-Small-TopLeft",
     ribbon = "UI-Frame-Neutral-Ribbon",
 }
 
@@ -232,6 +236,54 @@ local function Timeline(holder, grow)
     return g
 end
 
+-- A back-and-forth motion as a REPEAT loop of steps (see the header):
+-- Translation and Rotation swing out, across and home like a pendulum;
+-- Scale beats (up, back down, rest). Steps are relative, so they add up to
+-- nothing over a loop and it never jumps.
+local function Swing(region, kind)
+    local g = region:CreateAnimationGroup()
+    g:SetLooping("REPEAT")
+    g.kind = kind
+    g.steps = {}
+    for i = 1, 3 do
+        local a = g:CreateAnimation(kind == "Scale" and (i == 3 and "Translation" or "Scale") or kind)
+        a:SetOrder(i)
+        if a.SetOrigin and kind ~= "Translation" and not (kind == "Scale" and i == 3) then a:SetOrigin("CENTER", 0, 0) end
+        g.steps[i] = a
+    end
+    return g
+end
+
+-- Set a swing's size (pixels, degrees, or a scale factor) and one loop's length.
+local function SetSwing(g, amount, period)
+    local a1, a2, a3 = g.steps[1], g.steps[2], g.steps[3]
+    if g.kind == "Scale" then -- a beat: up quickly, down, then a rest (a still step)
+        a1:SetScale(amount, amount); a1:SetDuration(period * 0.3); a1:SetSmoothing("OUT")
+        a2:SetScale(1 / amount, 1 / amount); a2:SetDuration(period * 0.4); a2:SetSmoothing("IN_OUT")
+        a3:SetOffset(0, 0); a3:SetDuration(period * 0.3)
+        return
+    end
+    -- A pendulum: fastest through the middle, still at the ends.
+    local set = g.kind == "Rotation" and function(a, v) a:SetDegrees(v) end or function(a, v) a:SetOffset(v, 0) end
+    set(a1, amount); a1:SetDuration(period / 4); a1:SetSmoothing("OUT")
+    set(a2, -2 * amount); a2:SetDuration(period / 2); a2:SetSmoothing("IN_OUT")
+    set(a3, amount); a3:SetDuration(period / 4); a3:SetSmoothing("IN")
+end
+Decor.SetSwing = SetSwing
+
+-- A breathing alpha, lo -> hi -> lo, as a REPEAT loop (not BOUNCE).
+local function Pulse(region, lo, hi, period)
+    local g = region:CreateAnimationGroup()
+    g:SetLooping("REPEAT")
+    local up = g:CreateAnimation("Alpha")
+    up:SetFromAlpha(lo); up:SetToAlpha(hi); up:SetDuration(period / 2); up:SetSmoothing("IN_OUT"); up:SetOrder(1)
+    local down = g:CreateAnimation("Alpha")
+    down:SetFromAlpha(hi); down:SetToAlpha(lo); down:SetDuration(period / 2); down:SetSmoothing("IN_OUT")
+    down:SetOrder(2)
+    g.a = up
+    return g
+end
+
 local function NewParticle(c)
     local holder = CreateFrame("Frame", nil, c)
     holder:SetFrameLevel(c:GetFrameLevel()) -- under the model's frame: behind the pet
@@ -242,10 +294,10 @@ local function NewParticle(c)
     holder.inner:SetAllPoints()
     holder.icon = holder.inner:CreateTexture(nil, "ARTWORK")
     holder.icon:SetAllPoints()
-    holder.sway = Loop(holder.inner, "Translation", "BOUNCE")
+    holder.sway = Swing(holder.inner, "Translation")
     holder.spin = Loop(holder.icon, "Rotation", "REPEAT")
-    holder.tilt = Loop(holder.icon, "Rotation", "BOUNCE")
-    holder.throb = Loop(holder.icon, "Scale", "BOUNCE")
+    holder.tilt = Swing(holder.icon, "Rotation")
+    holder.throb = Swing(holder.icon, "Scale")
     holder.groups = { holder.plain, holder.growing, holder.sway, holder.spin, holder.tilt, holder.throb }
     holder.anim = holder.plain
     return holder
@@ -269,8 +321,7 @@ function Decor:Build(card, c, panel)
         d.border:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
     end
     d.border:Hide()
-    d.border.shimmer = Loop(d.border, "Alpha", "BOUNCE") -- 7: it glows
-    d.border.shimmer.a:SetFromAlpha(0.55); d.border.shimmer.a:SetToAlpha(1); d.border.shimmer.a:SetDuration(1.6)
+    d.border.shimmer = Pulse(d.border, 0.55, 1, 3.2) -- 7: it glows
     d.edges, d.wash = {}, {}
     for i, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
         local t = c:CreateTexture(nil, "BORDER", nil, 2)
@@ -299,7 +350,7 @@ function Decor:Build(card, c, panel)
     for _, point in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
         local t = c:CreateTexture(nil, "BORDER", nil, 3)
         SetAtlasFlipped(t, self.ART.corner, point:find("RIGHT") ~= nil, point:find("BOTTOM") ~= nil)
-        t:SetSize(55, 52)
+        t:SetSize(48, 48)
         t:SetPoint(point, c, point, point:find("LEFT") and 2 or -2, point:find("TOP") and -2 or 2)
         t:Hide()
         d.corners[point] = t
@@ -313,8 +364,7 @@ function Decor:Build(card, c, panel)
         t:SetSize(size[1], size[2])
         t:SetPoint("CENTER", panel, "TOP", 0, i == 1 and 120 or 90)
         t:Hide()
-        t.breathe = Loop(t, "Alpha", "BOUNCE")
-        t.breathe.a:SetFromAlpha(i == 1 and 0.55 or 0.7); t.breathe.a:SetToAlpha(1); t.breathe.a:SetDuration(2.2)
+        t.breathe = Pulse(t, i == 1 and 0.55 or 0.7, 1, 4.4)
         d.glows[i] = t
     end
     -- 6+: light rays behind the pet, turning slowly.
@@ -398,8 +448,7 @@ local function Launch(p, spec, rng, i, n, panel)
     g:Play()
     -- Its own motions, alongside, each on its own layer.
     if k.sway then
-        p.sway.a:SetOffset(rng(0.6, 1) * k.sway * (i % 2 == 0 and 1 or -1), 0)
-        p.sway.a:SetDuration(rng(1.1, 1.8))
+        SetSwing(p.sway, rng(0.6, 1) * k.sway * (i % 2 == 0 and 1 or -1), rng(2.2, 3.6))
         p.sway:Play()
     end
     if k.spin then
@@ -408,12 +457,10 @@ local function Launch(p, spec, rng, i, n, panel)
         p.spin.a:SetSmoothing("NONE")
         p.spin:Play()
     elseif k.tilt then
-        p.tilt.a:SetDegrees(k.tilt * (i % 2 == 0 and 1 or -1))
-        p.tilt.a:SetDuration(rng(0.9, 1.4))
+        SetSwing(p.tilt, k.tilt * (i % 2 == 0 and 1 or -1), rng(1.8, 2.8))
         p.tilt:Play()
     elseif k.throb then
-        p.throb.a:SetScaleFrom(1, 1); p.throb.a:SetScaleTo(1.25, 1.25)
-        p.throb.a:SetDuration(0.4)
+        SetSwing(p.throb, 1.25, 0.9)
         p.throb:Play()
     end
 end
