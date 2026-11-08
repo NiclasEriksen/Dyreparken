@@ -12,10 +12,10 @@ local Personality = {}
 ns.Personality = Personality
 
 -- Activities (Core/Activity.lua) as players read them: the guild's own
--- words (herbs, kills, quests, mining), decided 2026-11-08.
+-- words (herbs, kills, quests, mining, skinning), decided 2026-11-08.
 Personality.NOUN = {
     boss = "boss-kills", quest = "quests", taxi = "flyturer", pvp = "PvP", herb = "herbs",
-    mine = "mining", fish = "fisking", skin = "flåing", day = "dager sammen",
+    mine = "mining", fish = "fisking", skin = "skinning", day = "dager sammen",
 }
 
 Personality.BY_FAMILY = {
