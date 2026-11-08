@@ -44,7 +44,7 @@ function Park:Records(now)
         end
         local sid = ns.Pets:SpeciesOfKey(key)
         local data = sid and ns.Companions and ns.Companions.species and ns.Companions.species[sid]
-        for _, tag in ipairs(data and data.t or {}) do
+        for _, tag in ipairs(type(data) == "table" and data.t or {}) do
             if names[tag] then families[tag] = (families[tag] or 0) + 1 end
         end
     end

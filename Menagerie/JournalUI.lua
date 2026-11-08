@@ -154,6 +154,8 @@ local function CardSpecies()
     if c.petID then return (C_PetJournal.GetPetInfoByPetID(c.petID)) end
 end
 
+local PANEL_H = 74
+
 local function UpdateExtras()
     local n, total = ns.Registry:Count(), ns.Pets:Total()
     local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
@@ -173,6 +175,7 @@ local function UpdateCard()
     if not sid then
         card.status:SetText("")
         card.nickname:SetText("")
+        card.scene:Hide()
         card.bond:Hide()
         card.reserve:Hide()
         card.nick:Hide()
@@ -190,12 +193,22 @@ local function UpdateCard()
     else
         text = "|cffff8080Bor hos " .. owner .. "|r " .. ns.CaredFor(r.at)
     end
-    card.status:SetText(text)
-    card.nickname:SetText(nick or "")
+    -- Big: the nickname, else the species. Small: the species (if named) and its home.
+    local species = ns.Pets:NameOfKey(key) or ""
+    card.nickname:SetText(nick or species)
+    card.status:SetText(nick and (species .. " · " .. text) or text)
+    local scene = ns.Scenes:For(key)
+    if scene then
+        card.scene:SetTexture(scene)
+        card.scene:Show()
+    else
+        card.scene:Hide()
+    end
     -- The holder's bond with it, as a bar: everyone sees everyone's.
     local points, level, name, from, nextAt = ns.Bond:Of(key)
     if points then
         card.bond.label:SetText(("Bånd: %s (nivå %d)"):format(name, level))
+        card.bond.level:SetText(level)
         card.bond:SetMinMaxValues(from, nextAt or math.max(points, 1))
         card.bond:SetValue(nextAt and points or math.max(points, 1)) -- the top level: full
         card.bond.text:SetText(nextAt and ("%d / %d"):format(points, nextAt) or ("%d"):format(points))
@@ -229,29 +242,63 @@ end
 local function BuildCard()
     local c = PetJournalPetCard
     if not c or card.status then return end
-    card.status = c:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    card.status:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 12, 10)
-    card.status:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -12, 10)
-    card.status:SetJustifyH("LEFT")
-    -- The pet's nickname, big, right above the status line.
-    card.nickname = c:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    card.nickname:SetPoint("BOTTOMLEFT", card.status, "TOPLEFT", 0, 4)
-    card.nickname:SetPoint("BOTTOMRIGHT", card.status, "TOPRIGHT", 0, 4)
+    -- The scene behind the model (Scenes.lua), under everything else.
+    card.scene = c:CreateTexture(nil, "BACKGROUND", nil, 1)
+    card.scene:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
+    card.scene:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
+    card.scene:SetAlpha(0.8)
+    card.scene:Hide()
+
+    -- The panel: a dark strip along the bottom. It sits below the model's
+    -- frame level, so Blizzard's rotate buttons stay on top, in the gap
+    -- between our left column (name, home) and right column (the bond).
+    -- The guild line runs along its bottom edge.
+    local panel = CreateFrame("Frame", nil, c)
+    panel:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 4, 4)
+    panel:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
+    panel:SetHeight(PANEL_H)
+    panel:SetFrameLevel(c:GetFrameLevel())
+    panel.bg = panel:CreateTexture(nil, "BACKGROUND")
+    panel.bg:SetAllPoints()
+    panel.bg:SetColorTexture(0, 0, 0, 0.6)
+    panel.edge = panel:CreateTexture(nil, "BORDER")
+    panel.edge:SetPoint("TOPLEFT"); panel.edge:SetPoint("TOPRIGHT")
+    panel.edge:SetHeight(1)
+    panel.edge:SetColorTexture(1, 0.82, 0, 0.35)
+    card.panel = panel
+
+    card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+    card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
+    card.nickname:SetPoint("RIGHT", panel, "CENTER", -52, 0)
     card.nickname:SetJustifyH("LEFT")
     card.nickname:SetWordWrap(false)
-    -- The bond bar, bottom right of the card (the model's turn buttons are in the middle).
-    card.bond = CreateFrame("StatusBar", nil, c)
-    card.bond:SetSize(170, 12)
-    card.bond:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -14, 12)
+    card.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    card.status:SetPoint("TOPLEFT", card.nickname, "BOTTOMLEFT", 0, -3)
+    card.status:SetPoint("RIGHT", panel, "CENTER", -52, 0)
+    card.status:SetJustifyH("LEFT")
+    card.status:SetWordWrap(false)
+
+    -- The bond, right column: the level in a badge, its name, a slim bar.
+    card.bond = CreateFrame("StatusBar", nil, panel)
+    card.bond:SetSize(120, 8)
     card.bond:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    card.bond:SetStatusBarColor(0.85, 0.55, 0.15)
+    card.bond:SetStatusBarColor(1, 0.7, 0.2)
     card.bond.bg = card.bond:CreateTexture(nil, "BACKGROUND")
     card.bond.bg:SetAllPoints()
-    card.bond.bg:SetColorTexture(0, 0, 0, 0.5)
+    card.bond.bg:SetColorTexture(1, 1, 1, 0.12)
+    card.bond.badge = card.bond:CreateTexture(nil, "ARTWORK")
+    card.bond.badge:SetSize(30, 30)
+    card.bond.badge:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, -9)
+    card.bond.badge:SetTexture(ns.Achievements:Icon({ id = "card:bond", icon = { "INV_ValentinesCandy",
+        "Spell_Holy_SealOfSacrifice" } }))
+    card.bond.level = card.bond:CreateFontString(nil, "OVERLAY", "NumberFontNormal")
+    card.bond.level:SetPoint("BOTTOMRIGHT", card.bond.badge, "BOTTOMRIGHT", 2, -2)
+    card.bond.label = card.bond:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    card.bond.label:SetPoint("TOPRIGHT", card.bond.badge, "TOPLEFT", -8, 1)
+    card.bond:SetPoint("BOTTOMRIGHT", card.bond.badge, "BOTTOMLEFT", -8, 3)
     card.bond.text = card.bond:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    card.bond.text:SetPoint("CENTER")
-    card.bond.label = card.bond:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    card.bond.label:SetPoint("BOTTOMRIGHT", card.bond, "TOPRIGHT", 0, 3)
+    card.bond.text:SetPoint("RIGHT", card.bond, "LEFT", -6, 0)
+    -- The pet's nickname, big, right above the status line.
     card.bond:Hide()
 
     local anchor = PetJournalSummonButton or c
@@ -292,10 +339,11 @@ local function BuildCard()
 
     -- "Guild: x of y cared for (z%)": y = every companion in Forever's
     -- journal (Pets:Total, Data/Companions.lua). Top right of the card.
-    card.counter = c:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    card.counter:SetPoint("TOPRIGHT", c, "TOPRIGHT", -12, -12)
-    card.today = c:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    card.today:SetPoint("TOPRIGHT", card.counter, "BOTTOMRIGHT", 0, -4)
+    -- With "Dagens dyr", a quiet footer along the panel's bottom edge.
+    card.counter = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    card.counter:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 12, 6)
+    card.today = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    card.today:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -12, 6)
 
     -- Auto-summon toggle (per character, default on), bottom right of the
     -- journal. Greyed out while AutoCompanion is loaded, which takes over.

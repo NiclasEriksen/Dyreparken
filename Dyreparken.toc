@@ -35,6 +35,7 @@ Menagerie\Registry.lua
 Menagerie\Sync.lua
 Menagerie\Summon.lua
 Menagerie\Report.lua
+Menagerie\Scenes.lua
 Menagerie\JournalUI.lua
 Menagerie\Tooltip.lua
 Menagerie\Bonds.lua

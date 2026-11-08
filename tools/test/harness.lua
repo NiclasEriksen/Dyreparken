@@ -268,7 +268,7 @@ end
 
 local Region = {}
 Region.__index = Region
-for _, m in ipairs({ "SetSize", "SetAllPoints", "SetJustifyH", "SetJustifyV",
+for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetAllPoints", "SetJustifyH", "SetJustifyV",
     "SetDrawLayer", "SetVertexColor", "SetTexCoord", "SetWordWrap", "SetFontObject" }) do
     Region[m] = noop
 end

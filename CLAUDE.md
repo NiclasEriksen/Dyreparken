@@ -100,7 +100,7 @@ Core/Activity.lua  the activity engine: game events -> activities ("boss", "ques
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
-                   English aliases; probe [more|tabs|kills|ach], debug)
+                   English aliases; probe [more|tabs|kills|bg|ach], debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
@@ -108,6 +108,7 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), Report (/dp rapport), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
+                   Scenes (backgrounds behind the pet on the card, by family; candidates until probed: /dp probe bg),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
                    loads after Achievements/Page.lua so its tab comes second),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in
