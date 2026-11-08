@@ -24,6 +24,7 @@ Core\DB.lua
 Core\Comm.lua
 Core\Version.lua
 Core\Guild.lua
+Core\SidePage.lua
 
 # Menagerie: companion registry
 Data\Companions.lua
@@ -41,6 +42,7 @@ Achievements\Texts.lua
 Achievements\Defs.lua
 Achievements\Achievements.lua
 Achievements\Page.lua
+Menagerie\ParkPage.lua
 
 # Party games
 Games\Framework.lua

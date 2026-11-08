@@ -30,6 +30,11 @@ ns.AchTexts = {
         guild_earned = "%s fikk %s!",                  -- Dyreparken fikk [Kattehuset]!
         guild_hint = "Som offiser kan du dele det i guild-chatten med /dp prestasjoner del.",
 
+        -- Families in the plural, for "Mest populære familie" (Menagerie/ParkPage.lua).
+        families = { cat = "katter", farm = "gårdsdyr", owl = "ugler", rabbit = "kaniner", snake = "slanger",
+            frog = "frosker og padder", mechanical = "mekaniske kjæledyr", dragon = "drager", bird = "fugler",
+            pirate = "piratkjæledyr" },
+
         -- The page in the Collections window (Page.lua)
         page_title = "Prestasjoner",
         page_count = "Fått",

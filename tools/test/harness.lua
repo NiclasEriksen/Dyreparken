@@ -296,6 +296,13 @@ H.StripColors = StripColors
 function Region:SetText(x) self.text = x; self.plain = x and StripColors(x) end
 function Region:GetText() return self.text end
 function Region:SetTextColor(r, g, b) self.color = { r, g, b } end
+function Region:SetAlpha(a) self.alpha = a end
+function Region:SetBlendMode(m) self.blend = m end
+-- About 14 px a line, like GameFontHighlight.
+function Region:GetStringHeight()
+    local _, n = (self.text or ""):gsub("\n", "")
+    return self.text and (n + 1) * 14 or 0
+end
 
 function Frame:CreateTexture()
     local t = setmetatable({ shown = true }, Region)

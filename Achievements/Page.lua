@@ -1,91 +1,25 @@
 local _, ns = ...
 
--- The achievements page of the Collections window.
---
--- Forever's Collections window has its tabs (Pets, Mounts, Toys, ...) down
--- the right edge (docs/FOREVER_API.md). We add a tab of our own under them,
--- built from the same atlases, on every page of the window. Clicking it
--- shows our page; clicking any of Blizzard's tabs goes back.
---
--- TAINT AND COMBAT: we never touch Blizzard's tab list or call its SetTab,
--- and never hide its pages (the Toys page holds secure buttons, which addon
--- code can't hide in combat). Our page simply COVERS the content area below
--- the title bar, above whatever page is showing. While it's up, Blizzard's
--- selected-tab highlight is hidden (a texture, no state) and the window
--- title reads "Prestasjoner"; both come back when we leave, unless Blizzard
--- already set them anew. The window's portrait and border reach into the
--- content area, so they're lifted above our page while it's up (frame
--- levels only), else the page cuts the round portrait in half. We leave when:
---   * one of Blizzard's tabs is pressed (OnMouseDown, hooked),
---   * one of its pages shows (OnShow, hooked: a tab we didn't see),
---   * the window hides.
+-- The achievements page of the Collections window (a SidePage, see
+-- Core/SidePage.lua for the tab, covering and leaving).
 --
 -- The page: grouped by category (Defs.lua `cat`); each row an icon, name and
 -- description, a progress bar or the date earned, and a Del button on what
 -- you can share (Ach:Shareable; a click, so Forever lets it post to guild
 -- chat). Hovering a row lists the pets behind it (Ach:Details).
--- Built on first use, refreshed only while shown.
---
--- Without side tabs (a Retail-style window), a "Prestasjoner" button left of
--- Auto-summon opens the page instead.
 local Page = {}
 ns.AchPage = Page
 
-local ROW_H, HEADER_H, TITLE_H = 46, 26, 21
+local ROW_H, HEADER_H = 46, 26
 local CATS = { "collection", "family", "loyalty", "guild" }
 local ICON = "Interface\\Icons\\Achievement_General" -- (unverified) on Forever
-local SELECTED = "common-sidetab-selected"
 
-local host, journal, page, child, tab, textButton
+local sp, page, child -- the SidePage, its frame, the scroll child
 local rows, headers = {}, {} -- id -> row, cat -> font string
-local hidden = {}            -- Blizzard's selected highlights we hid
-local lifted = {}            -- frame -> its level before we lifted it
-local savedPortrait          -- { texture, its old file, ours as reported }
-local LIFT = { "NineSlice", "PortraitContainer", "TitleContainer", "CloseButton" }
-local savedTitle             -- the window title we replaced
 Page._rows, Page._headers = rows, headers
 
 local function T() return ns.AchTexts.generic end
 local function A() return ns.Achievements end
-
-------------------------------------------------------------------------------
--- Finding the side tabs
-------------------------------------------------------------------------------
--- What starts at or past the window's right edge. On Forever the tabs sit in
--- an unnamed strip as tall as the window (probed 2026-11-07); a frame at
--- least half the window's height is such a container (look inside, two
--- levels at most), anything smaller is a tab. Returns the shown tabs top to
--- bottom.
-local function SideTabs()
-    local right = host:GetRight()
-    local tabs = {}
-    if not right then return tabs end
-    local tall = (host:GetHeight() or 0) / 2
-    local function Scan(parent, depth)
-        for _, f in ipairs({ parent:GetChildren() }) do
-            local left = f ~= tab and f:IsShown() and f:GetLeft()
-            if left and left >= right - 8 then
-                if (f:GetHeight() or 0) >= tall then
-                    if depth < 2 then Scan(f, depth + 1) end
-                else
-                    tabs[#tabs + 1] = f
-                end
-            end
-        end
-    end
-    Scan(host, 1)
-    table.sort(tabs, function(a, b) return (a:GetTop() or 0) > (b:GetTop() or 0) end)
-    return tabs
-end
-
--- A tab's "selected" highlight textures (atlas common-sidetab-selected).
-local function SelectedRegions(f)
-    local list = {}
-    for _, r in ipairs({ f:GetRegions() }) do
-        if r.GetAtlas and r:GetAtlas() == SELECTED then list[#list + 1] = r end
-    end
-    return list
-end
 
 ------------------------------------------------------------------------------
 -- Rows
@@ -217,8 +151,7 @@ local function FillRow(r, it)
     end
 end
 
-function Page:Refresh()
-    if not (page and page:IsVisible()) then return end
+local function Redraw()
     local list, ctx = A():Rows()
     Page.ctx = ctx
     local byCat = {}
@@ -256,244 +189,36 @@ function Page:Refresh()
 end
 
 ------------------------------------------------------------------------------
--- Showing and leaving the page
+-- The page
 ------------------------------------------------------------------------------
-local function TitleText()
-    local get = rawget(host, "GetTitleText") -- PortraitFrameMixin
-    return get and get(host)
-end
-
--- The first template the client has (C_XMLUtil.GetTemplateInfo), or nil.
-local function Template(name)
-    local X = C_XMLUtil
-    if X and X.GetTemplateInfo and X.GetTemplateInfo(name) then return name end
-end
-
--- Our background: the window's own (its Bg region, an atlas or a tiled
--- texture), so the page looks like part of it; else the classic rock.
-local function MirrorBackground(dst)
-    local src = rawget(host, "Bg")
-    if src and src.GetObjectType and src:GetObjectType() == "Frame" then src = (src:GetRegions()) end
-    local atlas = src and src.GetAtlas and src:GetAtlas()
-    local tex = src and src.GetTexture and src:GetTexture()
-    if atlas then
-        dst:SetAtlas(atlas)
-        return "atlas " .. atlas
-    end
-    tex = tex or "Interface\\FrameGeneral\\UI-Background-Rock"
-    dst:SetTexture(tex, "REPEAT", "REPEAT")
-    dst:SetHorizTile(true)
-    dst:SetVertTile(true)
-    return "texture " .. tostring(tex)
-end
-
-local function Build()
-    -- The whole window below the title bar, on top of whatever page shows.
-    -- Laid out like the pet page: a counter box at the top, centered like
-    -- "Total Pets", and the list in an inset that starts below the portrait.
-    page = CreateFrame("Frame", "DyreparkenAchievementsPage", host)
-    page:SetPoint("TOPLEFT", host, "TOPLEFT", 0, -TITLE_H)
-    page:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 0, 0)
-    page:SetFrameLevel(host:GetFrameLevel() + 500)
-    page:EnableMouse(true)
-    page.bg = page:CreateTexture(nil, "BACKGROUND")
-    page.bg:SetAllPoints()
-    ns.Log("Ach", "page background: %s", MirrorBackground(page.bg))
-
-    local box = CreateFrame("Frame", nil, page, Template("InsetFrameTemplate3"))
-    box:SetSize(150, 20)
-    box:SetPoint("TOP", host, "TOP", 0, -36)
-    box.label = box:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    box.label:SetPoint("LEFT", box, "LEFT", 10, 0)
-    box.label:SetText(T().page_count)
-    page.summary = box:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    page.summary:SetPoint("RIGHT", box, "RIGHT", -10, 0)
-
-    local inset = CreateFrame("Frame", nil, page, Template("InsetFrameTemplate"))
-    inset:SetPoint("TOPLEFT", host, "TOPLEFT", 4, -60)
-    inset:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -6, 26)
-    local scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", 4, -4)
-    scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 4)
-    child = CreateFrame("Frame", nil, scroll)
-    child:SetSize((host:GetWidth() or 703) - 44, 1)
-    scroll:SetScrollChild(child)
-    page:SetScript("OnShow", function() Page:Refresh() end)
+local function Build(p)
+    -- Laid out like the pet page: a counter box at the top and the list in an
+    -- inset that starts below the portrait.
+    page = p.frame
+    page.summary = ns.SidePage:CounterBox(p, T().page_count)
+    child = ns.SidePage:ScrollInset(p)
     Page._page = page
-    page:Hide()
 end
 
-function Page:IsOpen() return page ~= nil and page:IsVisible() end
+sp = ns.SidePage:New({ id = "Achievements", title = T().page_title, icon = ICON, build = Build, refresh = Redraw })
 
-function Page:Open()
-    if not page then Build() end
-    if page:IsShown() then return end
-    -- Blizzard's tab looks unselected while we're up.
-    for _, f in ipairs(SideTabs()) do
-        for _, r in ipairs(SelectedRegions(f)) do
-            if r:IsShown() then r:Hide(); hidden[#hidden + 1] = r end
-        end
-    end
-    local fs = TitleText()
-    if fs then
-        savedTitle = fs:GetText()
-        fs:SetText(T().page_title)
-    end
-    if tab.selected then tab.selected:Show() end
-    -- The window's border, portrait, title and close button go above our
-    -- page, all by the same amount so their own order stays (lifting only
-    -- the border hid the title, seen 2026-11-07). Mixin parentKeys are plain
-    -- fields: rawget, no errors if one is missing.
-    local low
-    for _, key in ipairs(LIFT) do
-        local f = rawget(host, key)
-        if f and f.SetFrameLevel then
-            lifted[f] = f:GetFrameLevel()
-            low = math.min(low or lifted[f], lifted[f])
-        end
-    end
-    for f, level in pairs(lifted) do f:SetFrameLevel(page:GetFrameLevel() + 10 + level - low) end
-    -- Our icon in the round portrait.
-    local portrait = rawget(host, "PortraitContainer")
-    portrait = portrait and rawget(portrait, "portrait")
-    if portrait then
-        savedPortrait = { portrait, portrait:GetTexture() }
-        portrait:SetTexture(ICON)
-        savedPortrait[3] = portrait:GetTexture() -- as the client reports ours
-    end
-    page:Show()
-end
+function Page:Refresh() sp:Refresh() end
+function Page:IsOpen() return sp:IsOpen() end
+function Page:Open() sp:Open() end
+function Page:Close() sp:Close() end
+function Page:Layout() ns.SidePage:Layout() end
 
-function Page:Close()
-    if not (page and page:IsShown()) then return end
-    page:Hide()
-    if tab.selected then tab.selected:Hide() end
-    -- Put back what we hid, unless Blizzard has selected a tab since (then
-    -- its own update already drew the right one).
-    local any = false
-    for _, f in ipairs(SideTabs()) do
-        for _, r in ipairs(SelectedRegions(f)) do any = any or r:IsShown() end
-    end
-    if not any then
-        for _, r in ipairs(hidden) do r:Show() end
-    end
-    hidden = {}
-    for f, level in pairs(lifted) do f:SetFrameLevel(level) end
-    lifted = {}
-    -- The portrait back, unless Blizzard has set a new one since.
-    if savedPortrait then
-        local p, old, ours = savedPortrait[1], savedPortrait[2], savedPortrait[3]
-        if p:GetTexture() == ours and old then p:SetTexture(old) end
-        savedPortrait = nil
-    end
-    local fs = TitleText()
-    if fs and fs:GetText() == T().page_title then fs:SetText(savedTitle) end
-    savedTitle = nil
-end
-
-------------------------------------------------------------------------------
--- Our tab
-------------------------------------------------------------------------------
-local hooked = setmetatable({}, { __mode = "k" })
-
-local function ButtonTip(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(T().page_title)
-    GameTooltip:Show()
-end
-
--- Our tab under the last of Blizzard's, the same size and spacing; and
--- leave our page when one of theirs is pressed. Runs each time the window
--- shows: tabs only have a position once it's laid out.
-function Page:Layout()
-    local tabs = SideTabs()
-    ns.Log("Ach", "layout: %d side tabs", #tabs)
-    for _, f in ipairs(tabs) do
-        if not hooked[f] then
-            hooked[f] = true
-            f:HookScript("OnMouseDown", function() Page:Close() end)
-        end
-    end
-    if #tabs == 0 then
-        tab:Hide()
-        textButton:Show()
-        return
-    end
-    local last = tabs[#tabs]
-    local gap = 2
-    if #tabs >= 2 then gap = math.max(0, (tabs[#tabs - 1]:GetBottom() or 0) - (last:GetTop() or 0)) end
-    tab:SetSize(last:GetWidth() or 55, last:GetHeight() or 55)
-    tab:ClearAllPoints()
-    tab:SetPoint("TOPLEFT", last, "BOTTOMLEFT", 0, -gap)
-    tab:Show()
-    textButton:Hide()
-end
-
-local function BuildTab()
-    -- Like Forever's side tabs (probed 2026-11-07): background, the icon
-    -- masked to the tab's shape, a selected and a hover highlight. The
-    -- atlases are 55x60 on a 55x55 tab.
-    tab = CreateFrame("Button", nil, host)
-    tab:SetSize(55, 55)
-    tab.bg = tab:CreateTexture(nil, "BACKGROUND")
-    tab.bg:SetAtlas("common-sidetab")
-    tab.bg:SetSize(55, 60)
-    tab.bg:SetPoint("CENTER")
-    tab.icon = tab:CreateTexture(nil, "ARTWORK")
-    tab.icon:SetTexture(ICON)
-    tab.icon:SetSize(50, 50)
-    tab.icon:SetPoint("CENTER")
-    tab.mask = tab:CreateMaskTexture()
-    tab.mask:SetAtlas("common-sidetab-mask")
-    tab.mask:SetSize(55, 60)
-    tab.mask:SetPoint("CENTER")
-    tab.icon:AddMaskTexture(tab.mask)
-    tab.selected = tab:CreateTexture(nil, "OVERLAY")
-    tab.selected:SetAtlas(SELECTED)
-    tab.selected:SetSize(55, 60)
-    tab.selected:SetPoint("CENTER")
-    tab.selected:Hide()
-    tab.hover = tab:CreateTexture(nil, "HIGHLIGHT")
-    tab.hover:SetAtlas("common-sidetab-hover")
-    tab.hover:SetSize(55, 60)
-    tab.hover:SetPoint("CENTER")
-    tab:SetScript("OnClick", function() Page:Open() end)
-    tab:SetScript("OnEnter", ButtonTip)
-    tab:SetScript("OnLeave", HideTooltip)
-    tab:Hide()
-    Page._tab = tab
-end
-
--- Called once by JournalUI when Blizzard_Collections loads. `anchor` is the
--- Auto-summon checkbox, for the fallback button.
+-- Called once by JournalUI when Blizzard_Collections loads.
 function Page:Attach(petJournal, anchor)
-    journal = petJournal
-    host = petJournal:GetParent() or petJournal -- CollectionsJournal
-    BuildTab()
-
-    textButton = CreateFrame("Button", nil, petJournal, "UIPanelButtonTemplate")
-    textButton:SetSize(110, 22)
-    textButton:SetPoint("RIGHT", anchor, "LEFT", -6, 0)
-    textButton:SetText(T().page_title)
-    textButton:SetScript("OnClick", function() Page:Open() end)
-    Page._button = textButton
-
-    -- Leave when another page shows (a tab we didn't see pressed) or the
-    -- window closes.
-    for _, f in ipairs({ host:GetChildren() }) do
-        if f:GetObjectType() == "Frame" and f:GetName() then
-            f:HookScript("OnShow", function() Page:Close() end)
-        end
-    end
-    host:HookScript("OnHide", function() Page:Close() end)
-    host:HookScript("OnShow", function() Page:Layout() end)
-    if host:IsVisible() then Page:Layout() end
+    ns.SidePage:Attach(petJournal, anchor)
+    Page._tab, Page._button = sp.tab, sp.button
     ns.Bus:On("ACH", function() Page:Refresh() end)
     ns.Bus:On("REGISTRY", function() Page:Refresh() end)
 end
 
 -- /dp probe tabs: what the side tabs look like, to match them.
 function Page:Probe()
+    local host = ns.SidePage:Host()
     if not host then return ns.Print("Open the pet journal first.") end
     local L = function(...) ns.Log("Probe", ...) end
     L("host %s %s right=%s level=%s", tostring(host:GetName()), host:GetObjectType(), tostring(host:GetRight()),
@@ -507,7 +232,7 @@ function Page:Probe()
             tostring(f:IsShown()), tostring(f:GetLeft()), tostring(f:GetRight()), tostring(f:GetTop()),
             tostring(f:GetBottom()), tostring(f:GetWidth()), tostring(f:GetHeight()))
     end
-    local tabs = SideTabs()
+    local tabs = ns.SidePage:SideTabs()
     for i, f in ipairs(tabs) do
         L("tab %d %s %s l=%s t=%s w=%s h=%s kids=%d", i, tostring(f:GetName()), f:GetObjectType(),
             tostring(f:GetLeft()), tostring(f:GetTop()), tostring(f:GetWidth()), tostring(f:GetHeight()),

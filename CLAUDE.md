@@ -94,6 +94,8 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
+Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
+                   (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
                    English aliases; probe, debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
@@ -101,14 +103,16 @@ Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay o
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
                    merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/NICK/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
-                   Summon (auto-summon, defers to AutoCompanion), Report (/dp report), JournalUI,
+                   Summon (auto-summon, defers to AutoCompanion), Report (/dp rapport), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
+                   ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
+                   loads after Achievements/Page.lua so its tab comes second),
                    Bonds (milestone lines after login, the nickname unlock note, dagens dyr, /dp klapp,
                    guild announcements)
 Achievements/      Texts (every player-visible achievement text, Norwegian: rename here), Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
-                   /dp ach share; guild ones synced with the registry, ACH), Page (our side tab on the
-                   Collections window opens an achievements page that covers Blizzard's; Del per shareable one).
+                   /dp ach share; guild ones synced with the registry, ACH), Page (the achievements SidePage;
+                   Del per shareable one).
                    Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first)
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
