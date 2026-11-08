@@ -324,7 +324,7 @@ function Decor:Apply(card, key, level, color)
     d.glow:Hide(); d.ribbon:Hide(); d.ribbonText:Hide(); d.crown:Hide()
     d.used = 0
     if not key then return end
-    level = level or 0
+    level = self.preview or level or 0
     if level >= 2 then
         local c = level >= 7 and GOLD or color or GOLD
         for _, e in ipairs(d.edges) do
@@ -354,4 +354,19 @@ function Decor:Apply(card, key, level, color)
             Launch(d.parts[d.used], spec, rng, i, spec.n, d.panel)
         end
     end
+end
+
+-- /dp probe level <1-7>: show the card dressed as that bond level, for any
+-- pet, until /dp probe level off (development).
+function Decor:Preview(arg)
+    local n = tonumber(arg)
+    if n and n >= 1 and n <= #ns.Bond.LEVELS then
+        self.preview = math.floor(n)
+        ns.Print(("Kortet vises som nivå %d (%s). /dp probe level off for å avslutte."):format(self.preview,
+            ns.Bond.LEVELS[self.preview][2]))
+    else
+        self.preview = nil
+        ns.Print("Kortet viser det virkelige nivået igjen.")
+    end
+    ns.JournalUI:Refresh()
 end
