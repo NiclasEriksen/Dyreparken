@@ -24,38 +24,42 @@ local _, ns = ...
 -- with "guild:", which the sync relies on).
 --
 -- Decided 2026-11-06: nothing rewards adopting often (no "adopted N pets").
--- Icons: classic icon paths, (unverified) on Forever; a missing one shows as
--- a question mark. The pet carrier stands in where nothing fits better yet.
+-- icon: one candidate or a list, best first. A candidate is an icon name
+-- (under Interface\Icons\), a full path, or a file id (a number, from an
+-- icon database). The client shows the first one it has (Ach:Icon), so a
+-- wrong guess never shows as a blank. `/dp ach icons` previews every
+-- candidate in chat. Names are guesses at Forever's icons until previewed.
+local CARRIER = "INV_Box_PetCarrier_01"
 ns.AchDefs = {
-    { id = "count:10", kind = "count", n = 10, cat = "collection", icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
-    { id = "count:25", kind = "count", n = 25, cat = "collection", icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
-    { id = "count:50", kind = "count", n = 50, cat = "collection", icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
-    { id = "count:all", kind = "all", cat = "collection", icon = "Interface\\Icons\\Ability_Mount_WhiteTiger" },
+    { id = "count:10", kind = "count", n = 10, cat = "collection", icon = { "INV_Box_Birdcage_01", "INV_Misc_PetBiscuit_01", CARRIER } },
+    { id = "count:25", kind = "count", n = 25, cat = "collection", icon = { "Ability_Hunter_BeastTaming", CARRIER } },
+    { id = "count:50", kind = "count", n = 50, cat = "collection", icon = { "Ability_Hunter_BeastCall", CARRIER } },
+    { id = "count:all", kind = "all", cat = "collection", icon = { "Ability_Hunter_BeastMastery", "Ability_Mount_WhiteTiger" } },
 
-    { id = "family:cat", kind = "family", tag = "cat", cat = "family", icon = "Interface\\Icons\\Ability_Druid_CatForm" },
-    { id = "family:farm", kind = "family", tag = "farm", cat = "family", icon = "Interface\\Icons\\Spell_Magic_PolymorphChicken" },
-    { id = "family:owl", kind = "family", tag = "owl", cat = "family", icon = "Interface\\Icons\\Ability_Hunter_Pet_Owl" },
-    { id = "family:rabbit", kind = "family", tag = "rabbit", cat = "family", icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
-    { id = "family:snake", kind = "family", tag = "snake", cat = "family", icon = "Interface\\Icons\\Ability_Hunter_Pet_WindSerpent" },
-    { id = "family:frog", kind = "family", tag = "frog", cat = "family", icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
-    { id = "family:mechanical", kind = "family", tag = "mechanical", cat = "family", icon = "Interface\\Icons\\INV_Misc_Gear_01" },
-    { id = "family:dragon", kind = "family", tag = "dragon", cat = "family", icon = "Interface\\Icons\\INV_Misc_Head_Dragon_01" },
-    { id = "family:bird", kind = "family", tag = "bird", cat = "family", icon = "Interface\\Icons\\Spell_Nature_RavenForm" },
-    { id = "family:pirate", kind = "family", tag = "pirate", cat = "family", icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
+    { id = "family:cat", kind = "family", tag = "cat", cat = "family", icon = { "INV_Pet_Cats_CalicoCat", "Ability_Druid_CatForm" } },
+    { id = "family:farm", kind = "family", tag = "farm", cat = "family", icon = "Spell_Magic_PolymorphChicken" },
+    { id = "family:owl", kind = "family", tag = "owl", cat = "family", icon = "Ability_Hunter_Pet_Owl" },
+    { id = "family:rabbit", kind = "family", tag = "rabbit", cat = "family", icon = { "Spell_Magic_PolymorphRabbit", CARRIER } },
+    { id = "family:snake", kind = "family", tag = "snake", cat = "family", icon = { "Ability_Hunter_CobraShot", "Ability_Hunter_SerpentSwiftness", "Ability_Hunter_Quickshot", "Ability_Hunter_Pet_WindSerpent" } },
+    { id = "family:frog", kind = "family", tag = "frog", cat = "family", icon = { "Spell_Shaman_Hex", CARRIER } },
+    { id = "family:mechanical", kind = "family", tag = "mechanical", cat = "family", icon = { "INV_Misc_Gear_01", "Trade_Engineering" } },
+    { id = "family:dragon", kind = "family", tag = "dragon", cat = "family", icon = "INV_Misc_Head_Dragon_01" },
+    { id = "family:bird", kind = "family", tag = "bird", cat = "family", icon = "Spell_Nature_RavenForm" },
+    { id = "family:pirate", kind = "family", tag = "pirate", cat = "family", icon = { "INV_Helmet_66", "INV_Misc_Bandana_03", CARRIER } },
 
-    { id = "loyal:30", kind = "loyal", days = 30, scope = "char", cat = "loyalty", icon = "Interface\\Icons\\Spell_Holy_SealOfSacrifice" },
-    { id = "loyal:100", kind = "loyal", days = 100, scope = "char", cat = "loyalty", icon = "Interface\\Icons\\Spell_Holy_SealOfSacrifice" },
-    { id = "loyal:365", kind = "loyal", days = 365, scope = "char", cat = "loyalty", icon = "Interface\\Icons\\Spell_Holy_SealOfSacrifice" },
-    { id = "nick", kind = "nick", scope = "char", cat = "loyalty", icon = "Interface\\Icons\\INV_Misc_Note_01" },
+    { id = "loyal:30", kind = "loyal", days = 30, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCandy", "Spell_Holy_SealOfSacrifice" } },
+    { id = "loyal:100", kind = "loyal", days = 100, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCard02", "Spell_Holy_SealOfSacrifice" } },
+    { id = "loyal:365", kind = "loyal", days = 365, scope = "char", cat = "loyalty", icon = { "Achievement_WorldEvent_Valentine", "Spell_Holy_SealOfSacrifice" } },
+    { id = "nick", kind = "nick", scope = "char", cat = "loyalty", icon = { "INV_Inscription_Parchment", "INV_Misc_Note_01" } },
 
     { id = "guild:count:10", kind = "guildcount", n = 10, scope = "guild", cat = "guild",
-        icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
+        icon = { "Achievement_GuildPerk_EverybodysFriend", CARRIER } },
     { id = "guild:count:25", kind = "guildcount", n = 25, scope = "guild", cat = "guild",
-        icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
+        icon = { "Achievement_GuildPerk_MrPopularity", CARRIER } },
     { id = "guild:count:50", kind = "guildcount", n = 50, scope = "guild", cat = "guild",
-        icon = "Interface\\Icons\\INV_Box_PetCarrier_01" },
+        icon = { "Achievement_GuildPerk_MrPopularity_Rank2", CARRIER } },
     { id = "guild:all", kind = "guildall", scope = "guild", cat = "guild",
-        icon = "Interface\\Icons\\Ability_Mount_WhiteTiger" },
+        icon = { "Achievement_GuildPerk_MassResurrection", "Ability_Mount_WhiteTiger" } },
     { id = "guild:family:cat", kind = "guildfamily", tag = "cat", scope = "guild", cat = "guild",
-        icon = "Interface\\Icons\\Ability_Druid_CatForm" },
+        icon = { "INV_Pet_Cats_SilverTabbyCat", "Ability_Druid_CatForm" } },
 }

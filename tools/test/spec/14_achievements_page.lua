@@ -77,6 +77,15 @@ return function(test, H)
         eq(env.CollectionsJournal.titleFS.text, "Prestasjoner")
         ok(P._page.level > env.CollectionsJournal:GetFrameLevel() + 100, "above every page")
         ok(env.PetJournal:IsShown(), "their page isn't hidden, only covered")
+        local CJ = env.CollectionsJournal
+        ok(CJ.NineSlice.level > P._page.level, "the border stays on top")
+        eq(CJ.PortraitContainer.level, CJ.NineSlice.level + 1, "so do the portrait, the title, the close button")
+        eq(CJ.TitleContainer.level, CJ.NineSlice.level + 2, "in their own order")
+        eq(CJ.CloseButton.level, CJ.NineSlice.level + 2)
+        local portrait = CJ.PortraitContainer.portrait
+        eq(portrait.tex, "Interface\\Icons\\Achievement_General", "our icon in the portrait")
+        eq(P._page.bg.tex, 2002, "the window's own background")
+        ok(P._page.bg.horizTile and P._page.bg.vertTile)
         tab:Click()
         ok(P:IsOpen(), "pressing it again stays, like their tabs")
 
@@ -86,6 +95,13 @@ return function(test, H)
         no(tab.selected:IsShown())
         ok(Selected(ola, 2))
         eq(env.CollectionsJournal.titleFS.text, "Pet Journal")
+        eq(CJ.NineSlice.level, 3, "put back"); eq(CJ.PortraitContainer.level, 4); eq(CJ.TitleContainer.level, 5)
+        eq(portrait.tex, 1001, "their portrait back")
+        -- Blizzard set a new portrait while we were up: theirs stays.
+        tab:Click()
+        portrait:SetTexture(1003)
+        ola:ClickTab(2)
+        eq(portrait.tex, 1003)
 
         -- To Mounts: only Mounts is selected afterwards.
         tab:Click()
@@ -137,7 +153,7 @@ return function(test, H)
         for _, c in ipairs({ "collection", "family", "loyalty", "guild" }) do ok(heads[c]:IsShown(), c) end
         eq(heads.collection.text, "Samlingen")
         eq(heads.guild.text, "Guilden")
-        match(P._page.summary.text, "^1 av %d+ fått$")
+        match(P._page.summary.text, "^1/%d+$")
         no(cat.share:IsShown(), "quiet on the first run: nothing to share")
         eq(cat.info.points[1][2], cat, "no Del: at the right edge")
     end)
@@ -237,7 +253,7 @@ return function(test, H)
         ola:OpenJournal({ sideTabs = 2 })
         -- Not tabs: a hidden button in the strip, and a button three levels down.
         local env = ola.env
-        local strip = select(3, env.CollectionsJournal:GetChildren())
+        local strip = env.CollectionsJournalTab1:GetParent()
         local hidden = env.CreateFrame("Button", nil, strip)
         hidden.geo, hidden.shown = { l = 702, r = 752, t = 10, b = 0 }, false
         local deep = env.CreateFrame("Frame", nil, env.CollectionsJournal)
@@ -253,5 +269,62 @@ return function(test, H)
         local w2, liv = Setup({ 40 })
         liv:OpenJournal({ sideTabs = 1 })
         eq(liv.ns.AchPage._tab.points[1][5], -2)
+    end)
+
+    test("icons: the first candidate the client has; /dp ach icons previews them", function()
+        local w = H.World()
+        local missing = {
+            ["Interface\\Icons\\INV_Box_Birdcage_01"] = true,
+            ["Interface\\Icons\\Ability_Hunter_Pet_Owl"] = true,
+        }
+        local ola = Fix(w:AddClient("Ola Nord", { pets = { 40 } }))
+        ola.missingFiles = missing
+        w:Run(12)
+        local A = ola.ns.Achievements
+        local D = A.defsById
+        eq(A:Icon(D["count:10"]), "Interface\\Icons\\INV_Misc_PetBiscuit_01", "the first one is missing")
+        eq(A:Icon(D["family:owl"]), A.NO_ICON, "none there: a question mark")
+        eq(A:Icon({ id = "t:num", icon = { 12345, "X" } }), 12345, "file ids are taken as they are")
+        eq(A:Icon({ id = "t:path", icon = "Interface\\Foo\\Bar" }), "Interface\\Foo\\Bar", "full paths stay")
+        eq(A:Icon({ id = "t:bad", icon = { true } }), A.NO_ICON)
+        ola:Slash("ach icons")
+        local line = ola:Printed("Ti små venner: ", true)
+        match(line, "|TInterface\\Icons\\INV_Box_Birdcage_01:24|t INV_Box_Birdcage_01 %(missing%)", "drawn and marked")
+        match(line, "|TInterface\\Icons\\INV_Misc_PetBiscuit_01:24|t INV_Misc_PetBiscuit_01   ")
+        local P = Open(ola)
+        eq(P._rows["count:10"].icon.tex, "Interface\\Icons\\INV_Misc_PetBiscuit_01")
+        -- A client without GetFileIDFromPath takes the first.
+        local kari = Fix(w:AddClient("Kari Berg", { pets = { 40 }, patch = function(env) env.GetFileIDFromPath = nil end }))
+        w:Run(12)
+        eq(kari.ns.Achievements:Icon(D["count:10"]), "Interface\\Icons\\INV_Box_Birdcage_01")
+    end)
+
+    test("the background: the window's atlas, or the texture in its Bg frame, or the rock", function()
+        local function BgWith(setup)
+            local w = H.World()
+            local c = Fix(w:AddClient("Ola Nord", { pets = { 40 } }))
+            w:Run(12)
+            c:OpenJournal({ sideTabs = 2 })
+            setup(c.env.CollectionsJournal, c.env)
+            c.ns.AchPage._tab:Click()
+            return c.ns.AchPage._page.bg
+        end
+        eq(BgWith(function(cj) cj.Bg:SetAtlas("UI-Frame-Bg") end).atlas, "UI-Frame-Bg")
+        eq(BgWith(function(cj, env)
+            cj.Bg = env.CreateFrame("Frame", nil, cj)
+            cj.Bg:CreateTexture():SetTexture(3003)
+        end).tex, 3003)
+        eq(BgWith(function(cj) cj.Bg = nil end).tex, "Interface\\FrameGeneral\\UI-Background-Rock")
+        -- No portrait texture, nothing to lift: still opens.
+        local w = H.World()
+        local c = Fix(w:AddClient("Ola Nord", { pets = { 40 } }))
+        w:Run(12)
+        c:OpenJournal({ sideTabs = 2 })
+        local cj = c.env.CollectionsJournal
+        cj.PortraitContainer.portrait = nil
+        cj.NineSlice, cj.TitleContainer, cj.CloseButton = nil, nil, nil
+        c.ns.AchPage._tab:Click()
+        ok(c.ns.AchPage:IsOpen())
+        c:ClickTab(2)
     end)
 end

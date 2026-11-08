@@ -32,7 +32,7 @@ ns.AchTexts = {
 
         -- The page in the Collections window (Page.lua)
         page_title = "Prestasjoner",
-        page_summary = "%d av %d fått",
+        page_count = "Fått",
         cat_collection = "Samlingen",
         cat_family = "Familier",
         cat_loyalty = "Lojalitet",

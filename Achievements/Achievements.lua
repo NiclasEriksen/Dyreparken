@@ -67,6 +67,57 @@ end
 
 function Ach:Link(id) return "[" .. self:Name(id) .. "]" end
 
+------------------------------------------------------------------------------
+-- Icons (Defs.lua: one candidate or a list, best first)
+------------------------------------------------------------------------------
+local NO_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
+Ach.NO_ICON = NO_ICON
+
+local function Candidates(d)
+    local list = type(d.icon) == "table" and d.icon or { d.icon }
+    local out = {}
+    for _, c in ipairs(list) do
+        if type(c) == "string" and not c:find("\\") then c = "Interface\\Icons\\" .. c end
+        out[#out + 1] = c
+    end
+    return out
+end
+
+-- Does the client have this icon? File ids are taken on trust; paths are
+-- looked up (GetFileIDFromPath). Without that API, every path is assumed to
+-- exist.
+local function Exists(c)
+    if type(c) == "number" then return true end
+    if type(c) ~= "string" then return false end
+    if not GetFileIDFromPath then return true end
+    return GetFileIDFromPath(c) ~= nil
+end
+
+local iconCache = {}
+function Ach:Icon(d)
+    local hit = iconCache[d.id]
+    if hit then return hit end
+    local icon = NO_ICON
+    for _, c in ipairs(Candidates(d)) do
+        if Exists(c) then icon = c; break end
+    end
+    iconCache[d.id] = icon
+    return icon
+end
+
+-- /dp ach icons: every achievement with its candidates drawn in chat, so
+-- icons can be picked by eye. (development)
+function Ach:ShowIcons()
+    for _, d in ipairs(ns.AchDefs) do
+        local parts = {}
+        for _, c in ipairs(Candidates(d)) do
+            local name = type(c) == "string" and c:gsub("^Interface\\Icons\\", "") or tostring(c)
+            parts[#parts + 1] = ("|T%s:24|t %s%s"):format(tostring(c), name, Exists(c) and "" or " (missing)")
+        end
+        ns.Print(("%s: %s"):format(self:Name(d.id), table.concat(parts, "   ")))
+    end
+end
+
 local function Scope(d) return d.scope or "account" end
 
 local function Store(scope)

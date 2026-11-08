@@ -278,6 +278,8 @@ function Region:GetTexture() return self.tex end
 function Region:SetAtlas(x) self.tex = x; self.atlas = x end
 function Region:GetAtlas() return self.atlas end
 function Region:SetColorTexture(...) self.color = { ... } end
+function Region:SetHorizTile(v) self.horizTile = v end
+function Region:SetVertTile(v) self.vertTile = v end
 function Region:AddMaskTexture(m) self.mask = m end
 function Region:GetObjectType() return self.ftype or "Texture" end
 function Region:GetDrawLayer() return "ARTWORK" end
@@ -759,6 +761,15 @@ function Client:OpenJournal(o)
         CJ.shown = false
         CJ.titleFS = CJ:CreateFontString()
         CJ.GetTitleText = function(self) return self.titleFS end -- PortraitFrameMixin
+        -- PortraitFrameTemplate's parentKeys: border, portrait, title, close
+        -- button (frames), and the background (a tiled texture).
+        CJ.NineSlice = env.CreateFrame("Frame", nil, CJ); CJ.NineSlice.level = 3
+        CJ.PortraitContainer = env.CreateFrame("Frame", nil, CJ); CJ.PortraitContainer.level = 4
+        CJ.PortraitContainer.portrait = CJ.PortraitContainer:CreateTexture()
+        CJ.PortraitContainer.portrait:SetTexture(1001) -- Pets' portrait, a file id
+        CJ.TitleContainer = env.CreateFrame("Frame", nil, CJ); CJ.TitleContainer.level = 5
+        CJ.CloseButton = env.CreateFrame("Button", "CollectionsJournalCloseButton", CJ); CJ.CloseButton.level = 5
+        CJ.Bg = CJ:CreateTexture(); CJ.Bg:SetTexture(2002)
         local MJ = env.CreateFrame("Frame", "MountJournal", CJ)
         MJ.shown = false
         local PJ = env.CreateFrame("Frame", "PetJournal", CJ)
@@ -936,6 +947,11 @@ function Client:BuildEnv()
         if MODERN[name] and c.oldTemplates then return nil end
         return { type = "Frame", width = 0, height = 0 }
     end }
+    -- Paths the client has: every one, except those in c.missingFiles.
+    env.GetFileIDFromPath = function(path)
+        if c.missingFiles and c.missingFiles[path] then return nil end
+        return 100000 + #path
+    end
     env.ButtonFrameTemplate_HidePortrait = function(f) f.portraitHidden = true end
     env.ButtonFrameTemplate_HideButtonBar = function(f) f.buttonBarHidden = true end
     env.UIParent = env.CreateFrame("Frame", "UIParent")

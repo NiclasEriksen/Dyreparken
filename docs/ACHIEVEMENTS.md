@@ -179,12 +179,19 @@ Coverage floor as for Menagerie (95%).
    - Any of Blizzard's tabs goes back (OnMouseDown hooked), as does any page showing or the window closing.
      Their highlight and title come back unless Blizzard already set them anew.
    - Groups: Samlingen, Familier, Lojalitet, Guilden (not shown outside a guild). Rows: icon, name and
-     description; a progress bar, or the date earned. Unearned rows are dimmed. "x av y fått" top right.
+     description; a progress bar, or the date earned. Unearned rows are dimmed.
    - **Del** on each row you can share (`Ach:Shareable`) posts that one line (`Ach:Share(id)`).
    - Tooltips list up to 12 missing pets (family, all), or every pet in the family and who cares for it
      (guild family), or the pets nobody cares for yet (guild all).
    - No achievement is hidden yet, so there's no "???" row.
-   - (unverified) on Forever: the tab icon (`Achievement_General`) and the achievement icons.
+   - The window's border, round portrait, title and close button (`NineSlice`, `PortraitContainer`,
+     `TitleContainer`, `CloseButton`) are lifted above the page while it's up, by the same amount so their order
+     stays. Lifting only the border hid the title; not lifting cut the portrait in half (seen 2026-11-07).
+     Our icon shows in the portrait meanwhile.
+   - Laid out like the pet page: the window's own background (`Bg`), a "Fått x/y" box centered at the top like
+     "Total Pets", and the list in an inset starting below the portrait.
+   - Icons: each achievement lists candidates, best first (names, paths or file ids). The client shows the first
+     it has (`GetFileIDFromPath`); `/dp ach icons` previews them all in chat for picking by eye.
    - Tests in `14_achievements_page.lua`.
 
 ## Decisions (2026-11-06)

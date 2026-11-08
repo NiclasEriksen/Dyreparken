@@ -91,7 +91,7 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
-Core/Commands.lua  /dp slash commands (adopt, letgo, nick, list, sound, ach, version, report, probe, debug)
+Core/Commands.lua  /dp slash commands (adopt, letgo, nick, list, sound, ach [icons], version, report, probe, debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,

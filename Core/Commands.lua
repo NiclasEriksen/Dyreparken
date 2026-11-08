@@ -60,10 +60,12 @@ Add("sound", "sound [on|off] - the clank when a companion is summoned (muted by 
     ns.Print(("Summon sound %s."):format(on and "on" or "muted"))
 end)
 
-Add("ach", "ach [share|notify on|off] - your achievements; share new ones in guild chat", function(arg)
+Add("ach", "ach [share|notify on|off|icons] - your achievements; share new ones in guild chat", function(arg)
     local A = ns.Achievements
     if arg == "share" then
         A:Share()
+    elseif arg == "icons" then
+        A:ShowIcons()
     elseif arg == "notify on" or arg == "notify off" then
         A:SetNotify(arg == "notify on")
     else

@@ -13,7 +13,9 @@ local _, ns = ...
 -- the title bar, above whatever page is showing. While it's up, Blizzard's
 -- selected-tab highlight is hidden (a texture, no state) and the window
 -- title reads "Prestasjoner"; both come back when we leave, unless Blizzard
--- already set them anew. We leave when:
+-- already set them anew. The window's portrait and border reach into the
+-- content area, so they're lifted above our page while it's up (frame
+-- levels only), else the page cuts the round portrait in half. We leave when:
 --   * one of Blizzard's tabs is pressed (OnMouseDown, hooked),
 --   * one of its pages shows (OnShow, hooked: a tab we didn't see),
 --   * the window hides.
@@ -29,15 +31,17 @@ local _, ns = ...
 local Page = {}
 ns.AchPage = Page
 
-local ROW_H, HEADER_H, TITLE_H = 46, 26, 26
+local ROW_H, HEADER_H, TITLE_H = 46, 26, 21
 local CATS = { "collection", "family", "loyalty", "guild" }
-local NO_ICON = "Interface\\Icons\\INV_Misc_QuestionMark"
 local ICON = "Interface\\Icons\\Achievement_General" -- (unverified) on Forever
 local SELECTED = "common-sidetab-selected"
 
 local host, journal, page, child, tab, textButton
 local rows, headers = {}, {} -- id -> row, cat -> font string
 local hidden = {}            -- Blizzard's selected highlights we hid
+local lifted = {}            -- frame -> its level before we lifted it
+local savedPortrait          -- { texture, its old file, ours as reported }
+local LIFT = { "NineSlice", "PortraitContainer", "TitleContainer", "CloseButton" }
 local savedTitle             -- the window title we replaced
 Page._rows, Page._headers = rows, headers
 
@@ -182,7 +186,7 @@ end
 
 local function FillRow(r, it)
     r.data = it
-    r.icon:SetTexture(it.def.icon or NO_ICON)
+    r.icon:SetTexture(A():Icon(it.def))
     r.icon:SetDesaturated(not it.got)
     r.name:SetText(A():Name(it.id))
     r.desc:SetText((ns.AchTexts[it.id] or {}).desc or "")
@@ -248,7 +252,7 @@ function Page:Refresh()
         end
     end
     child:SetHeight(y)
-    page.summary:SetText(T().page_summary:format(earned, #list))
+    page.summary:SetText(("%d/%d"):format(earned, #list))
 end
 
 ------------------------------------------------------------------------------
@@ -259,25 +263,58 @@ local function TitleText()
     return get and get(host)
 end
 
+-- The first template the client has (C_XMLUtil.GetTemplateInfo), or nil.
+local function Template(name)
+    local X = C_XMLUtil
+    if X and X.GetTemplateInfo and X.GetTemplateInfo(name) then return name end
+end
+
+-- Our background: the window's own (its Bg region, an atlas or a tiled
+-- texture), so the page looks like part of it; else the classic rock.
+local function MirrorBackground(dst)
+    local src = rawget(host, "Bg")
+    if src and src.GetObjectType and src:GetObjectType() == "Frame" then src = (src:GetRegions()) end
+    local atlas = src and src.GetAtlas and src:GetAtlas()
+    local tex = src and src.GetTexture and src:GetTexture()
+    if atlas then
+        dst:SetAtlas(atlas)
+        return "atlas " .. atlas
+    end
+    tex = tex or "Interface\\FrameGeneral\\UI-Background-Rock"
+    dst:SetTexture(tex, "REPEAT", "REPEAT")
+    dst:SetHorizTile(true)
+    dst:SetVertTile(true)
+    return "texture " .. tostring(tex)
+end
+
 local function Build()
-    -- The content area below the title bar, on top of whatever page shows.
+    -- The whole window below the title bar, on top of whatever page shows.
+    -- Laid out like the pet page: a counter box at the top, centered like
+    -- "Total Pets", and the list in an inset that starts below the portrait.
     page = CreateFrame("Frame", "DyreparkenAchievementsPage", host)
-    page:SetPoint("TOPLEFT", host, "TOPLEFT", 4, -TITLE_H)
-    page:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -4, 4)
+    page:SetPoint("TOPLEFT", host, "TOPLEFT", 0, -TITLE_H)
+    page:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", 0, 0)
     page:SetFrameLevel(host:GetFrameLevel() + 500)
     page:EnableMouse(true)
     page.bg = page:CreateTexture(nil, "BACKGROUND")
     page.bg:SetAllPoints()
-    page.bg:SetColorTexture(0.06, 0.05, 0.04, 1)
-    page.summary = page:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    page.summary:SetPoint("TOPRIGHT", page, "TOPRIGHT", -14, -10)
-    page.heading = page:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    page.heading:SetPoint("TOPLEFT", page, "TOPLEFT", 14, -10)
-    page.heading:SetText(T().page_title)
+    ns.Log("Ach", "page background: %s", MirrorBackground(page.bg))
 
-    local scroll = CreateFrame("ScrollFrame", nil, page, "UIPanelScrollFrameTemplate")
-    scroll:SetPoint("TOPLEFT", page, "TOPLEFT", 8, -34)
-    scroll:SetPoint("BOTTOMRIGHT", page, "BOTTOMRIGHT", -28, 8)
+    local box = CreateFrame("Frame", nil, page, Template("InsetFrameTemplate3"))
+    box:SetSize(150, 20)
+    box:SetPoint("TOP", host, "TOP", 0, -36)
+    box.label = box:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    box.label:SetPoint("LEFT", box, "LEFT", 10, 0)
+    box.label:SetText(T().page_count)
+    page.summary = box:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    page.summary:SetPoint("RIGHT", box, "RIGHT", -10, 0)
+
+    local inset = CreateFrame("Frame", nil, page, Template("InsetFrameTemplate"))
+    inset:SetPoint("TOPLEFT", host, "TOPLEFT", 4, -60)
+    inset:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -6, 26)
+    local scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
+    scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", 4, -4)
+    scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 4)
     child = CreateFrame("Frame", nil, scroll)
     child:SetSize((host:GetWidth() or 703) - 44, 1)
     scroll:SetScrollChild(child)
@@ -303,6 +340,27 @@ function Page:Open()
         fs:SetText(T().page_title)
     end
     if tab.selected then tab.selected:Show() end
+    -- The window's border, portrait, title and close button go above our
+    -- page, all by the same amount so their own order stays (lifting only
+    -- the border hid the title, seen 2026-11-07). Mixin parentKeys are plain
+    -- fields: rawget, no errors if one is missing.
+    local low
+    for _, key in ipairs(LIFT) do
+        local f = rawget(host, key)
+        if f and f.SetFrameLevel then
+            lifted[f] = f:GetFrameLevel()
+            low = math.min(low or lifted[f], lifted[f])
+        end
+    end
+    for f, level in pairs(lifted) do f:SetFrameLevel(page:GetFrameLevel() + 10 + level - low) end
+    -- Our icon in the round portrait.
+    local portrait = rawget(host, "PortraitContainer")
+    portrait = portrait and rawget(portrait, "portrait")
+    if portrait then
+        savedPortrait = { portrait, portrait:GetTexture() }
+        portrait:SetTexture(ICON)
+        savedPortrait[3] = portrait:GetTexture() -- as the client reports ours
+    end
     page:Show()
 end
 
@@ -320,6 +378,14 @@ function Page:Close()
         for _, r in ipairs(hidden) do r:Show() end
     end
     hidden = {}
+    for f, level in pairs(lifted) do f:SetFrameLevel(level) end
+    lifted = {}
+    -- The portrait back, unless Blizzard has set a new one since.
+    if savedPortrait then
+        local p, old, ours = savedPortrait[1], savedPortrait[2], savedPortrait[3]
+        if p:GetTexture() == ours and old then p:SetTexture(old) end
+        savedPortrait = nil
+    end
     local fs = TitleText()
     if fs and fs:GetText() == T().page_title then fs:SetText(savedTitle) end
     savedTitle = nil
@@ -432,6 +498,10 @@ function Page:Probe()
     local L = function(...) ns.Log("Probe", ...) end
     L("host %s %s right=%s level=%s", tostring(host:GetName()), host:GetObjectType(), tostring(host:GetRight()),
         tostring(host:GetFrameLevel()))
+    for _, key in ipairs({ "NineSlice", "PortraitContainer", "TitleContainer", "CloseButton", "Bg", "TopTileStreaks" }) do
+        local f = rawget(host, key)
+        L("host.%s: %s level=%s", key, tostring(f ~= nil), tostring(f and f.GetFrameLevel and f:GetFrameLevel()))
+    end
     for i, f in ipairs({ host:GetChildren() }) do
         L("child %d %s %s shown=%s l=%s r=%s t=%s b=%s w=%s h=%s", i, tostring(f:GetName()), f:GetObjectType(),
             tostring(f:IsShown()), tostring(f:GetLeft()), tostring(f:GetRight()), tostring(f:GetTop()),
