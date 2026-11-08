@@ -57,6 +57,18 @@ end
 
 local function Gold(text) return "|cffffd100" .. text .. "|r" end
 
+-- Once per adoption, when naming opens up (the bond reached NICKNAME_LEVEL):
+-- after login, or right when the level is reached (Bond.lua).
+function Bonds:TellNameUnlock()
+    local key, r = ns.Registry:MyPet()
+    local char = ns.DB.char
+    if key and ns.Registry:CanNickname(r) and char.toldNameUnlock ~= r.at then
+        char.toldNameUnlock = r.at
+        local named = ns.Registry:Nickname(key)
+        ns.Print(ns.T(named and "nick.unlocked_rename" or "nick.unlocked", { pet = named or ns.Pets:NameOfKey(key) }))
+    end
+end
+
 function Bonds:Celebrate()
     local g = ns.DB:Guild()
     if not g then return end
@@ -70,11 +82,7 @@ function Bonds:Celebrate()
         local m = self:Milestone(r.at, now)
         if m then ns.Print(Gold(ns.T("milestone.mine", { pet = self:NameOf(key), time = m }))) end
     end
-    if key and ns.Registry:CanNickname(r) and char.toldNameUnlock ~= r.at then
-        char.toldNameUnlock = r.at
-        local named = ns.Registry:Nickname(key)
-        ns.Print(ns.T(named and "nick.unlocked_rename" or "nick.unlocked", { pet = named or ns.Pets:NameOfKey(key) }))
-    end
+    self:TellNameUnlock()
 
     if g.bondDay == today then return end
     g.bondDay = today

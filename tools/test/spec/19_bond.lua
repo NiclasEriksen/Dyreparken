@@ -29,17 +29,19 @@ return function(test, H)
         local w = H.World()
         local B = w:AddClient("Ola Nord").ns.Bond
         local function L(p) return { B:Level(p) } end
-        eq(table.concat(L(0), ","), "1,Bekjent,0,80")
-        eq(table.concat(L(79), ","), "1,Bekjent,0,80")
-        eq(table.concat(L(210), ","), "3,Venn,210,410")
-        eq(table.concat(L(1120), ","), "6,Uatskillelig,1120,1750")
-        -- A curve: every step longer than the last, the top at 1750 (decided 2026-11-08).
+        eq(table.concat(L(0), ","), "1,Bekjent,0,100")
+        eq(table.concat(L(99), ","), "1,Bekjent,0,100")
+        eq(table.concat(L(270), ","), "3,Venn,270,530")
+        eq(table.concat(L(1440), ","), "6,Uatskillelig,1440,2250")
+        -- A curve: every step longer than the last, the top at 2250 (decided 2026-11-09): 30 days at
+        -- the daily limit, at the very least.
         local gap = 0
         for i = 2, #B.LEVELS do
             local g = B.LEVELS[i][1] - B.LEVELS[i - 1][1]
             ok(g > gap, "step " .. i .. " longer"); gap = g
         end
-        eq(B.LEVELS[#B.LEVELS][1], 1750)
+        eq(B.LEVELS[#B.LEVELS][1], 2250)
+        eq(B.LEVELS[#B.LEVELS][1] / w.clients[1].ns.Config.BOND_DAILY_MAX, 30)
         local top = L(9999)
         eq(top[1], 7); eq(top[2], "Sjelevenn"); eq(top[4], nil, "nothing after the top")
     end)
@@ -131,11 +133,11 @@ return function(test, H)
         local bad = {
             "no", { p = 10, t = now }, { p = 10, f = now, t = now - 5 }, { p = -1, f = now, t = now },
             { p = 0 / 0, f = now, t = now }, { p = "9", f = now, t = now },
-            { p = 301, f = now - 2 * day, t = now }, -- more than 3 days can bring
+            { p = 226, f = now - 2 * day, t = now }, -- more than 3 days can bring (75 a day)
             { p = 1, f = now, t = now + 3 * day },   -- from the future
         }
         for i, e in ipairs(bad) do no(R:MergeLife(KITTEN, "Ola Nord", e), "bad " .. i) end
-        ok(R:MergeLife(KITTEN, "Ola Nord", { p = 300, f = now - 2 * day, t = now }), "exactly the cap")
+        ok(R:MergeLife(KITTEN, "Ola Nord", { p = 225, f = now - 2 * day, t = now }), "exactly the cap")
         no(R:MergeLife(5, "Ola Nord", { p = 1, f = now, t = now }))
         no(R:MergeLife(KITTEN, "", { p = 1, f = now, t = now }))
         -- BOND writes only the sender's entry.
@@ -163,9 +165,9 @@ return function(test, H)
         local card = kari:SelectPet(5159)
         ok(card.bond:IsShown())
         eq(card.bond.label.text, "Venn"); eq(card.bond.level.text, 3)
-        eq(card.bond.next.text, "110 poeng til God venn")
-        eq(card.bond.text.text, "300 / 410")
-        eq(card.bond.min, 210); eq(card.bond.max, 410); eq(card.bond.value, 300)
+        eq(card.bond.next.text, "230 poeng til God venn")
+        eq(card.bond.text.text, "300 / 530")
+        eq(card.bond.min, 270); eq(card.bond.max, 530); eq(card.bond.value, 300)
         card = kari:SelectPet(46)
         no(card.bond:IsShown(), "a free pet: no bar")
         -- The top level: a full bar.

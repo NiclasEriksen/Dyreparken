@@ -423,6 +423,20 @@ function World:ServerTime() return self.server + math.floor(self.t) end
 function World:Skip(seconds) self.server = self.server + seconds end
 function World:SkipDays(days) self:Skip(days * 86400) end
 
+-- Bring every online client's adopted pet up to the bond level that allows a
+-- nickname (Config.NICKNAME_LEVEL), through Bond:Add like real points (it's
+-- published the same way). For tests that name pets; it was 7 days of care
+-- until 2026-11-09.
+function World:Befriend()
+    for _, c in ipairs(self.clients) do
+        if c.online and c.ns.Registry:MyPet() then
+            local need = c.ns.Bond.LEVELS[c.ns.Config.NICKNAME_LEVEL][1]
+            local p = c.ns.Bond:Of(c.ns.Registry:MyPet()) or 0
+            if p < need then c.ns.Bond:Add(need - p) end
+        end
+    end
+end
+
 -- Advance time in small steps: every online client's OnUpdate (that's how
 -- ChatThrottleLib sends), message delivery, and C_Timer callbacks.
 function World:Run(seconds, step)

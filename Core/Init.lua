@@ -56,7 +56,7 @@ function ns.T(key, vars) return ns.Fill(ns.L[key], vars) end
 -- Tunables. Keep them here so they're easy to find and change.
 ns.Config = {
     INACTIVE_RELEASE_DAYS = 30,   -- reservation released after this long unseen
-    NICKNAME_UNLOCK_DAYS = 7,     -- days a pet must be yours before you can name it
+    NICKNAME_LEVEL = 3,           -- the bond level (Venn) at which a pet's carer may name it (Bond.lua)
     NICKNAME_MAX_LEN = 20,
     BOND_DAY_POINTS = 10,         -- bond points for a day with your adopted companion out
     BOND_LIKED_POINTS = 5,        -- an activity your companion likes (Personality.lua), with it out
@@ -64,7 +64,7 @@ ns.Config = {
     BOND_OTHER_POINTS = 1,        -- any other activity with it out
     BOND_OTHER_CAP = 5,           -- ... at most this many a day per activity
     BOND_WISH_POINTS = 10,        -- today's wish done (Wish.lua), within the daily limit
-    BOND_DAILY_MAX = 100,         -- the most bond points a day can bring (the day + activities, per calendar day); bounds the wire        -- characters (UTF-8 aware, see ns.Utf8Len)
+    BOND_DAILY_MAX = 75,         -- the most bond points a day can bring (the day + activities, per calendar day); bounds the wire        -- characters (UTF-8 aware, see ns.Utf8Len)
     DEBUG_RING_SIZE = 2000,       -- lines kept in DyreparkenDebugDB
     COMM_PREFIX = "Dyreparken",   -- max 16 characters
 }

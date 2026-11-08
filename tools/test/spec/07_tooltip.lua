@@ -9,6 +9,7 @@ return function(test, H)
         w:Run(20)
         ola:Slash("claim")
         w:SkipDays(7)
+        w:Befriend()
         ola:Slash("nick Pus")
         w:Run(1)
         return w, ola, kari
@@ -18,7 +19,7 @@ return function(test, H)
         local w, ola, kari = Setup()
         local _, _, all = kari:Hover({ species = 46, owner = "Ola Nord" })
         eq(table.concat(all, " / "), "Pus / White Kitten / Ola Nord's Companion / Pet Level 1 Critter"
-            .. " / Dyreparken: bor hos Ola Nord i 7 dager · Bekjent", "the nickname takes the title")
+            .. " / Dyreparken: bor hos Ola Nord i 7 dager · Venn", "the nickname takes the title")
         local tip = kari.env.GameTooltip
         eq(tip.colors[2][1], 0.7, "the species line is grey")
         -- The data gets the same shift, for addons that draw from it (PrettyTooltip).
@@ -30,7 +31,7 @@ return function(test, H)
         eq(data[2].leftColor.r, 0.7)
         ok(tip.shown, "resized")
         local _, _, own = ola:Hover({ species = 46, owner = "Ola Nord" })
-        eq(own[5], "Dyreparken: bor hos deg i 7 dager · Bekjent")
+        eq(own[5], "Dyreparken: bor hos deg i 7 dager · Venn")
     end)
 
     test("the nickname shift moves right-side text and colors down with their line", function()

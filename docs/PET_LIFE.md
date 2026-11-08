@@ -23,19 +23,20 @@ moments.
 
 ### Bond levels (names are suggestions)
 
-A curve to 1750 for the top (changed 2026-11-08 from 6000, first to 1150, then raised to 1750), each step longer
-than the last:
+A curve to 2250 for the top, with at most 75 points a day (changed 2026-11-09; before: 6000, 1150, 1750, and 100
+a day), so the very fastest bond takes 30 days. Each step is longer than the last:
 
-| Level | Name | Points (total) | Step | Days at 10 a day | At ~35 a day |
-|---|---|---|---|---|---|
-| 1 | Bekjent | 0 | | | |
-| 2 | Kamerat | 80 | 80 | 8 | 2-3 |
-| 3 | Venn | 210 | 130 | 21 | 6 |
-| 4 | God venn | 410 | 200 | 41 | 12 |
-| 5 | Bestevenn | 700 | 290 | 70 | 20 |
-| 6 | Uatskillelig | 1120 | 420 | 112 | 32 |
-| 7 | Sjelevenn | 1750 | 630 | 175 | 50 |
+| Level | Name | Points (total) | Step | Days at 10 a day | At ~45 a day | At 75 a day |
+|---|---|---|---|---|---|---|
+| 1 | Bekjent | 0 | | | | |
+| 2 | Kamerat | 100 | 100 | 10 | 3 | 2 |
+| 3 | Venn | 270 | 170 | 27 | 6 | 4 |
+| 4 | God venn | 530 | 260 | 53 | 12 | 8 |
+| 5 | Bestevenn | 900 | 370 | 90 | 20 | 12 |
+| 6 | Uatskillelig | 1440 | 540 | 144 | 32 | 20 |
+| 7 | Sjelevenn | 2250 | 810 | 225 | 50 | 30 |
 
+Venn also unlocks naming the pet (Config.NICKNAME_LEVEL; it was 7 days of care). The protocol went to 7.
 10 a day is the pet out and nothing else; ~35 is a liked activity most days. The loyalty achievements are levels
 (Bestevenner at Venn, Uatskillelige at God venn, Venner for livet at Uatskillelig), so they follow the curve.
 `Bond.LEVELS` in Menagerie/Bond.lua. The sync digest holds levels, so the change bumped the protocol to 6.

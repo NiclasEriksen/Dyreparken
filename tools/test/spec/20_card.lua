@@ -52,7 +52,7 @@ return function(test, H)
         ok(card.bond:IsShown())
         eq(card.bond.level.text, 3, "the level in the badge")
         eq(card.bond.label.text, "Venn", "the name; the number is on the medallion")
-        eq(card.bond.text.text, "300 / 410")
+        eq(card.bond.text.text, "300 / 530")
         -- Everything sits on the panel, which stays under the model's buttons.
         local panel = card.panel
         eq(panel.level, ola.env.PetJournalPetCard:GetFrameLevel(), "below the model and its rotate buttons")
@@ -361,7 +361,7 @@ return function(test, H)
         hit.scripts.OnLeave(hit)
         card.bond.scripts.OnEnter(card.bond)
         text = table.concat(tip.lines, " / ")
-        match(text, "^Bånd: Bekjent %(nivå 1%) / %d+ poeng til Kamerat%. / På nivå 2 får kortet en kant og et skjær i familiens farge%. / I dag: %+%d+ av 100 mulige poeng%. / Vokser for hver dag")
+        match(text, "^Bånd: Bekjent %(nivå 1%) / %d+ poeng til Kamerat%. / På nivå 2 får kortet en kant og et skjær i familiens farge%. / I dag: %+%d+ av 75 mulige poeng%. / Vokser for hver dag")
         card.bond.scripts.OnLeave(card.bond)
         -- At the top level.
         local now = w:ServerTime()

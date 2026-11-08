@@ -22,21 +22,21 @@ ns.Bond = Bond
 
 local PUBLISH_AFTER = 1800 -- seconds
 
--- Levels: { points needed, name }. A curve to 1750 for the top (decided
--- 2026-11-08), each step longer than the last, so a new bond moves fast and
--- the top takes devotion. At 10 points a day (the pet out, nothing else):
--- Kamerat in 8 days, Venn 21, God venn 41, Bestevenn 70, Uatskillelig 112,
--- Sjelevenn 175. With a liked activity most days (about 35 a day),
--- Sjelevenn in about seven weeks. The loyalty achievements are levels
--- (Defs.lua), so they follow the curve.
+-- Levels: { points needed, name }. A curve to 2250 for the top, each step
+-- longer than the last, with at most Config.BOND_DAILY_MAX (75) a day: 30
+-- days to Sjelevenn at the very least (decided 2026-11-09). At 10 a day
+-- (the pet out, nothing else): Kamerat in 10 days, Venn 27, God venn 53,
+-- Bestevenn 90, Uatskillelig 144, Sjelevenn 225. A casual player (~45 a
+-- day): 3, 6, 12, 20, 32 and 50 days. Venn unlocks nicknames
+-- (Config.NICKNAME_LEVEL). The loyalty achievements are levels (Defs.lua).
 Bond.LEVELS = {
     { 0, ns.L["bond.level.1"] },
-    { 80, ns.L["bond.level.2"] },
-    { 210, ns.L["bond.level.3"] },
-    { 410, ns.L["bond.level.4"] },
-    { 700, ns.L["bond.level.5"] },
-    { 1120, ns.L["bond.level.6"] },
-    { 1750, ns.L["bond.level.7"] },
+    { 100, ns.L["bond.level.2"] },
+    { 270, ns.L["bond.level.3"] },
+    { 530, ns.L["bond.level.4"] },
+    { 900, ns.L["bond.level.5"] },
+    { 1440, ns.L["bond.level.6"] },
+    { 2250, ns.L["bond.level.7"] },
 }
 local LEVELS = Bond.LEVELS
 
@@ -105,6 +105,7 @@ function Bond:Add(points)
     ns.Log("Bond", "%s +%d -> %d (level %d)", key, points, p, level)
     if level > oldLevel then
         ns.Print(ns.T("bond.levelup", { pet = ns.Bonds:NameOf(key), n = level, level = name }))
+        ns.Bonds:TellNameUnlock()
         Publish(key)
     elseif not e then
         Publish(key) -- a new bond: everyone should know of it

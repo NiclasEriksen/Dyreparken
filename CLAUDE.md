@@ -157,17 +157,18 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 
 - Libraries: minimal (no Ace3).
 - A reservation is **one species per character**, guild-wide, first come first served by `GetServerTime()`.
-- Released when the owner leaves the guild, or after 30 days unseen. Nicknames unlock after 7 days, max 20
+- Released when the owner leaves the guild, or after 30 days unseen. Nicknames unlock at bond level Venn (3), max 20
   characters (`ns.Config`).
 - **Bonds** (2026-11-08, docs/PET_LIFE.md): a score per carer and pet that grows (10 points a day with your adopted
   pet out, more from activities), never decays, and comes back if you adopt the pet again. Seven levels on a curve
-  to 1750 points (80, 210, 410, 700, 1120, 1750: about six months of days alone, seven weeks for an active player);
-  at most 100 points a calendar day (Config.BOND_DAILY_MAX: the day and every activity together; the bar shows
+  to 2250 points (100, 270, 530, 900, 1440, 2250, decided 2026-11-09: 30 days at the very least, seven months of
+  days alone, about seven weeks for a casual player); at most 75 points a calendar day (Config.BOND_DAILY_MAX: the day and every activity together; the bar shows
   today's share and "Fullt for i dag");
   everyone sees everyone's. The loyalty achievements (ids `loyal:*`) are bond levels now. The sync digest holds bond
   levels, not points: points go out lazily (a level-up at once, else within 30 minutes).
-- **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it, after caring
-  for it 7 days. The name stays when they let go, and the next carer inherits it until they change it. A name set by
+- **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it,
+  once their bond reaches Venn (level 3; it was 7 days of care until 2026-11-09). The name stays when they let go,
+  and the next carer inherits it until they change it. A name set by
   anyone else during a holder's care doesn't count (`Registry:Nickname`). It replaces the title line of the world
   tooltip, with the species moved below it, and shows big on the journal's pet card.
 - Auto-summon turns itself off if AutoCompanion is loaded.

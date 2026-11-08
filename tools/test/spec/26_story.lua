@@ -110,7 +110,7 @@ return function(test, H)
         -- A new day, a new wish; the day's limit holds for it too.
         w:SkipDays(1)
         no(W:Today().done, "a new wish")
-        ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), got = {}, total = 97 }
+        ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), got = {}, total = 72 }
         before = Earned()
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         eq(Earned() - before, 3, "only what's left of the day")
@@ -191,7 +191,7 @@ return function(test, H)
         no(panda.nick:IsShown(), "no nickname yet")
         -- A level up, and a name: the list follows.
         local now = ola.ns.Now()
-        ola.ns.DB:Guild().life[PANDA] = { ["Ola Nord"] = { p = 500, f = now - 100 * 86400, t = now } }
+        ola.ns.DB:Guild().life[PANDA] = { ["Ola Nord"] = { p = 600, f = now - 100 * 86400, t = now } }
         ola.ns.DB:Guild().names[PANDA] = { ["Ola Nord"] = { n = "Pepe", at = now } }
         ola:Button(5159).name:SetText("Panda Cub") -- (as Blizzard's list does)
         ola.ns.JournalUI:Refresh()

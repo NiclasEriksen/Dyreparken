@@ -80,6 +80,7 @@ local function PipTip(self, card)
     if ns.Decor.LEVELS[n] then
         GameTooltip:AddLine(ns.T("bond.star.decor", { decor = ns.Decor.LEVELS[n] }), 0.5, 0.8, 0.5, true)
     end
+    if n == ns.Config.NICKNAME_LEVEL then GameTooltip:AddLine(ns.L["bond.star.nick"], 0.5, 0.8, 0.5, true) end
     local _, level = ns.Bond:Of(card.key)
     if level and n <= level then GameTooltip:AddLine(ns.L["bond.star.reached"], 0.4, 1, 0.4) end
     GameTooltip:Show()

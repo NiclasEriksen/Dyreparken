@@ -541,7 +541,8 @@ local function BuildCard()
         local _, r = ns.Registry:MyPet()
         if r and not ns.Registry:CanNickname(r) then
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(ns.T("card.nick.locked", { date = Day(ns.Registry:NicknameUnlocksAt(r)) }))
+            GameTooltip:SetText(ns.T("card.nick.locked", { level = ns.Bond.LEVELS[ns.Config.NICKNAME_LEVEL][2],
+                n = ns.Config.NICKNAME_LEVEL }), 1, 1, 1, 1, true)
             GameTooltip:Show()
         end
     end)

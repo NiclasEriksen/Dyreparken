@@ -20,8 +20,9 @@ local _, ns = ...
 -- same answer from the same data, whatever order the messages arrived in.
 --
 -- NICKNAMES belong to the pet, not to an adoption: the name stays when its
--- carer lets go, and the next carer may rename it once they've cared for it
--- NICKNAME_UNLOCK_DAYS. Each naming is its own entry, written only by the
+-- carer lets go, and the next carer may rename it once their bond with it
+-- reaches Config.NICKNAME_LEVEL (Venn; it was 7 days of care until
+-- 2026-11-09). Only checked by the carer's own client. Each naming is its own entry, written only by the
 -- one who named it:
 --   g.names[petKey][namer] = { n = nick|nil, at = when, x = true? }
 --     n nil: the namer cleared the name. x: void (the namer lost an adoption
@@ -255,10 +256,6 @@ end
 ------------------------------------------------------------------------------
 -- Nicknames
 ------------------------------------------------------------------------------
-function Registry:NicknameUnlocksAt(r)
-    return r.at + Config.NICKNAME_UNLOCK_DAYS * DAY
-end
-
 -- The pet's nickname (nil if it has none), and who named it, when.
 function Registry:Nickname(key)
     local g = G()
@@ -288,8 +285,11 @@ local function WriteName(key, e)
     ns.Bus:Fire("MY_NAME", key, e)
 end
 
+-- May the holder of r name the pet? Once their bond reaches NICKNAME_LEVEL.
 function Registry:CanNickname(r)
-    return r and r.k and ns.Now() >= self:NicknameUnlocksAt(r)
+    if not (r and r.k) then return false end
+    local _, level = ns.Bond:Of(r.k)
+    return (level or 0) >= Config.NICKNAME_LEVEL
 end
 
 -- ok, cleaned nickname (or error message)
@@ -356,7 +356,7 @@ function Registry:SetNickname(nick)
     local key, r = self:MyPet()
     if not key then return false, ns.L["nick.no_pet"] end
     if not self:CanNickname(r) then
-        return false, ns.T("nick.locked", { date = date("%d.%m.%Y", self:NicknameUnlocksAt(r)) })
+        return false, ns.T("nick.locked", { level = ns.Bond.LEVELS[Config.NICKNAME_LEVEL][2], n = Config.NICKNAME_LEVEL })
     end
     local clear = nick == nil or strtrim(nick) == ""
     local ok, clean = true, nil

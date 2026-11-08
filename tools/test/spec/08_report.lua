@@ -38,6 +38,7 @@ return function(test, H)
         local kari = c["Kari Berg"]
         kari:Slash("adopter")
         w:SkipDays(7)
+        w:Befriend()
         kari:Slash("navn Mjau")
         kari:Summon(nil)
         w:Run(1)
