@@ -51,6 +51,7 @@ return function(test, H)
         card = ola:SelectPet(5159)
         chips = Shown(card.stats)
         eq(#chips, 5)
+        eq(#ola.ns.Stats:For(PANDA), 5, "the list itself stops at five (seven kinds were done)")
         eq(chips[1].id, "day"); eq(chips[2].id, "herb"); eq(chips[3].id, "quest")
         -- A missing icon: a question mark, not a hole.
         ola.missingFiles = { ["Interface\\Icons\\Trade_Herbalism"] = true }
