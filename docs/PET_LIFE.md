@@ -139,7 +139,7 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
   tooltip says what the next level adds. The card's light follows the clock.
 - **The card's story** (built 2026-11-08): chips at the top with what you've done together (days out, boss-kills,
   herbs...: Stats.lua); today's wish under them (one of the pet's likes a day, +10 when done: Wish.lua); a click on
-  the pet gives hearts and a happy line, and once a day a cuddle (Cuddle.lua). In the list: an adopted pet's bond
+  the pet answers quietly (a ripple, a few hearts, a glow; no text), and once a day it's a cuddle (Cuddle.lua). In the list: an adopted pet's bond
   level in a gold ring, and its nickname under the name.
 - **World tooltip:** under the species line, the temperament: "Pepe / Panda Cub / tam og kosete".
 - **Park map:** the icon border is colored by temperament stage, and the tooltip carries the story.

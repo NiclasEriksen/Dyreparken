@@ -292,7 +292,7 @@ L["personality.line"] = "{traits} · liker {likes}"
 -- The pet journal: list tooltips and the world tooltip
 ------------------------------------------------------------------------------
 L["tip.free"] = "Dyreparken: trenger et hjem"
-L["list.nick"] = "«{nick}»"                               -- under the species' name in the list
+L["list.nick"] = "«{nick}»"                               -- after the species' name in the list
 L["tip.nick"] = "Kallenavn: «{nick}»"
 L["tip.named_by"] = "Navngitt av {who}, {date}"           -- {who}: a name, or home.you
 L["tip.bond"] = "Bånd: {label}"                           -- {label}: bond.label
@@ -357,15 +357,6 @@ L["decor.level.7"] = "hjerter, og alt gull skinner"
 ------------------------------------------------------------------------------
 L["stats.days"] = "{n} dager ute sammen med {pet}"
 L["stats.tip"] = "{n} {what} sammen med {pet}"
-
-------------------------------------------------------------------------------
--- Petting the pet on the card: one of these, at random
-------------------------------------------------------------------------------
-L["cuddle.line.1"] = "{pet} koser seg!"
-L["cuddle.line.2"] = "{pet} maler fornøyd."
-L["cuddle.line.3"] = "{pet} vil ha mer!"
-L["cuddle.line.4"] = "{pet} lukker øynene og nyter det."
-L["cuddle.line.5"] = "{pet} lener seg mot hånden din."
 
 ------------------------------------------------------------------------------
 -- Today's wish (your own pet)

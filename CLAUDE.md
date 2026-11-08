@@ -144,7 +144,7 @@ Achievements/      Defs (ids, kinds;
                    Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first). Planned next: bond, temperament and the activity engine,
                    docs/PET_LIFE.md.
-Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble, confetti, note, paw, leaf, moon, snowflake):
+Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble, confetti, note, paw, leaf, moon, snowflake, ring, rays):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history

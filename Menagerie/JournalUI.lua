@@ -127,8 +127,8 @@ local function UpdateBadge(button)
         b.level:SetPoint("CENTER", b.ring, "CENTER", 0, 0)
         local name = rawget(button, "name")
         if type(name) == "table" and name.GetObjectType then
+            b.name = name
             b.nick = button:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-            b.nick:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -1)
         end
         badges[button] = b
     end
@@ -139,7 +139,11 @@ local function UpdateBadge(button)
     if level then b.level:SetText(level) end
     local nick = key and ns.Registry:Nickname(key)
     if b.nick then
+        -- On the name's own row, right after it (under it spilled out of the
+        -- button: seen 2026-11-08).
         b.nick:SetText(nick and ns.T("list.nick", { nick = nick }) or "")
+        b.nick:ClearAllPoints()
+        b.nick:SetPoint("LEFT", b.name, "LEFT", b.name:GetStringWidth() + 5, 0)
         b.nick:SetShown(nick ~= nil)
     end
 end

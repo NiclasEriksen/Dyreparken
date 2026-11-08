@@ -126,7 +126,7 @@ return function(test, H)
         eq(kari.ns.Wish:Today(), nil)
     end)
 
-    test("petting the pet on the card: hearts, a happy line, a sound; once a day a cuddle", function()
+    test("petting the pet on the card: a ripple, a few hearts, a glow, a sound; once a day a cuddle", function()
         local w, ola, kari = Setup()
         local card = ola:SelectPet(5159)
         local m, d = card.model, card.cuddle
@@ -140,20 +140,31 @@ return function(test, H)
         end
         local A = ola.ns.Activity
         Click()
+        ok(d.ripple:IsShown()); ok(d.ripple.anim:IsPlaying(), "a ripple")
         local shown = 0
         for _, p in ipairs(d.hearts) do if p:IsShown() and p.anim:IsPlaying() then shown = shown + 1 end end
-        eq(shown, #d.hearts, "a burst of hearts")
-        ok(d.bubble:IsShown()); match(d.bubble.text.text, "^Panda Cub ")
+        eq(shown, 4, "a few hearts")
+        ok(d.glow.anim:IsPlaying(), "a glow under the pet")
+        eq(d.bubble, nil, "no text")
         eq(ola.sounds[#ola.sounds], 841)
         eq(A:Count("cuddle"), 1, "a cuddle: our adopted pet, out with us")
         Click()
         eq(A:Count("cuddle"), 1, "once a day")
+        -- Where you clicked: the card at 300,200 on the screen, scale 1.25.
+        local c = ola.env.PetJournalPetCard
+        c.geo, c.scale = { l = 300, r = 700, t = 700, b = 200 }, 1.25
+        ola.cursor = { 500, 500 }
+        m.scripts.OnMouseDown(m); m.scripts.OnMouseUp(m)
+        local at = d.ripple.points[#d.ripple.points]
+        eq(at[2], c); eq(at[3], "BOTTOMLEFT"); eq(at[4], 500 / 1.25 - 300); eq(at[5], 500 / 1.25 - 200)
+        eq(d.hearts[1].points[#d.hearts[1].points][4], 100, "the hearts rise from there too")
+        c.geo = nil
         -- Turning the model (a drag) or holding the button isn't petting.
         local sounds = #ola.sounds
         Click(30)
         Click(0, 1)
         eq(#ola.sounds, sounds)
-        -- Another pet's card: hearts, but no cuddle; nor with the pet put away.
+        -- Another pet's card: no cuddle; nor with the pet put away.
         w:SkipDays(1)
         card = ola:SelectPet(40)
         Click()
@@ -167,9 +178,7 @@ return function(test, H)
         eq(A:Count("cuddle"), 2, "a new day")
         -- Closing the journal ends it.
         ola.env.PetJournalPetCard:Hide()
-        no(d.bubble:IsShown()); no(d.hearts[1]:IsShown())
-        -- Every line is there.
-        for i = 1, 5 do ok(ola.ns.Strings["cuddle.line." .. i], i) end
+        no(d.ripple:IsShown()); no(d.hearts[1]:IsShown()); no(d.glow:IsShown())
     end)
 
     test("the list: an adopted pet's bond level in a ring, and its nickname under the name", function()
@@ -184,10 +193,12 @@ return function(test, H)
         local now = ola.ns.Now()
         ola.ns.DB:Guild().life[PANDA] = { ["Ola Nord"] = { p = 500, f = now - 100 * 86400, t = now } }
         ola.ns.DB:Guild().names[PANDA] = { ["Ola Nord"] = { n = "Pepe", at = now } }
+        ola:Button(5159).name:SetText("Panda Cub") -- (as Blizzard's list does)
         ola.ns.JournalUI:Refresh()
         eq(panda.level.text, 4)
         ok(panda.nick:IsShown()); eq(panda.nick.text, "«Pepe»")
-        eq(panda.nick.points[1][2], ola:Button(5159).name, "under the name")
+        local at = panda.nick.points[#panda.nick.points]
+        eq(at[2], ola:Button(5159).name); eq(at[1], "LEFT"); eq(at[4], #"Panda Cub" * 7 + 5, "right after the name, on its row")
         -- Someone else's pet shows its level too.
         kari:Slash("adopter bombay")
         w:Run(5)

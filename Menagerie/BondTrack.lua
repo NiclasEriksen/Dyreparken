@@ -113,8 +113,11 @@ function Track:Build(card, c, panel)
     b.spark:SetBlendMode("ADD")
     b.spark:SetSize(20, 20)
     b.spark:SetPoint("CENTER", b:GetStatusBarTexture(), "RIGHT", 0, 0)
+    -- The points, on the bar only while you hover it (on all the time, it
+    -- was noise: seen 2026-11-08).
     b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     b.text:SetPoint("CENTER", b, "CENTER", 0, 0)
+    b.text:Hide()
     b.label = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     b.label:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -8)
     b.label:SetJustifyH("RIGHT")
@@ -173,8 +176,8 @@ function Track:Build(card, c, panel)
         b.pips[i] = p
     end
     b:EnableMouse(true)
-    b:SetScript("OnEnter", function(self) BondTip(self, card) end)
-    b:SetScript("OnLeave", Hide)
+    b:SetScript("OnEnter", function(self) self.text:Show(); BondTip(self, card) end)
+    b:SetScript("OnLeave", function(self) self.text:Hide(); Hide(self) end)
     self:BuildCelebration(card, c, panel)
     b:Hide()
 end

@@ -147,6 +147,14 @@ def snowflake():
     return m
 
 
+def ring():
+    """A soft ring, for a ripple."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    ellipse(d, 0, 0, 0.9, 0.9, 255)
+    ellipse(d, 0, 0, 0.72, 0.72, 0)
+    return m.filter(ImageFilter.GaussianBlur(SS * 1.5))
+
+
 def rays():
     """A sunburst: 12 soft, tapering rays (drawn bigger: 128x128)."""
     m = canvas(); d = ImageDraw.Draw(m)
@@ -169,7 +177,7 @@ def rays():
 
 
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
-          "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "rays": rays}
+          "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 
 

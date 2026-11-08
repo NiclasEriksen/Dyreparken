@@ -224,6 +224,7 @@ function Frame:IsEnabled() return self.enabled end
 function Frame:SetEnabled(v) self.enabled = not not v end
 -- Geometry: nil (not laid out) unless a test sets f.geo = { l, r, t, b }.
 function Frame:GetLeft() return self.geo and self.geo.l end
+function Frame:GetEffectiveScale() return self.scale or 1 end
 function Frame:GetRight() return self.geo and self.geo.r end
 function Frame:GetTop() return self.geo and self.geo.t end
 function Frame:GetBottom() return self.geo and self.geo.b end

@@ -153,6 +153,8 @@ return function(test, H)
         local b = card.bond
         local function Earned() return ola.ns.Registry:Life(PANDA, "Ola Nord").p end
         eq(b.text.text, "300 / 410", "nothing yet today")
+        no(b.text:IsShown(), "the points show only on hover")
+        b.scripts.OnEnter(b); ok(b.text:IsShown()); b.scripts.OnLeave(b); no(b.text:IsShown())
         no(b.today:IsShown())
         ola.ns.Activity:CheckDay()
         eq(Earned(), 310)
