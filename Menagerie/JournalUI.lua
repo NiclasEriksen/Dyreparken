@@ -84,7 +84,8 @@ local function UpdateGuildBoxes()
     card.guildBox.tip = ns.T("card.guild.tip", { n = n, total = total, pct = pct })
     local today, owner = ns.Bonds:PetOfTheDay()
     card.today:SetText(today and ns.Registry:NameOf(today) or "-")
-    card.todayBox.tip = today and ns.T("card.today.tip", { pet = ns.Registry:NameOf(today), owner = owner })
+    card.todayBox.tip = today and (ns.T("card.today.tip", { pet = ns.Registry:NameOf(today), owner = owner })
+        .. (ns.Pets:SpeciesOfKey(today) and "\n|cffa0a0a0" .. ns.L["card.today.click"] .. "|r" or ""))
         or ns.L["card.today.none"]
     SizeTodayBox()
 end
@@ -164,17 +165,44 @@ local function UpdateCard()
     ns.CardActions:Update(card, key)
 end
 
--- A box like Blizzard's "Total Pets": a label left, a value right, a tooltip (box.tip).
-local function InfoBox(label, width)
+-- A click on "Dagens dyr": that pet in the journal, by Blizzard's own
+-- PetJournal_SelectSpecies (it scrolls the list, and leaves the filters
+-- alone), or just its card. Unverified on Forever (2026-11-09): without
+-- either it does nothing, and says so in the log.
+function JournalUI:ShowPetOfTheDay()
+    local today = ns.Bonds:PetOfTheDay()
+    local sid = today and ns.Pets:SpeciesOfKey(today)
+    if not sid or ns.InCombat() then return end
+    local fn, args = rawget(_G, "PetJournal_SelectSpecies"), { PetJournal, sid }
+    if not fn then fn, args = rawget(_G, "PetJournal_ShowPetCardBySpeciesID"), { sid } end
+    if not fn then return ns.Log("UI", "no way to show species %d in the journal", sid) end
+    local ok, err = pcall(fn, unpack(args))
+    ns.Log("UI", "pet of the day %d shown: %s", sid, ok and "ok" or tostring(err))
+end
+
+-- A box like Blizzard's "Total Pets": a label left, a value right, a tooltip
+-- (box.tip). With an icon instead of the label, the value follows the icon:
+-- "Dagens dyr" cut the pet's name short ("Br...", creative review 2026-11-09).
+local function InfoBox(label, width, icon)
     local box = CreateFrame("Frame", nil, PetJournal, ns.SidePage.Template("InsetFrameTemplate3"))
     box:SetSize(width, 20)
     box.label = box:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     box.label:SetPoint("LEFT", box, "LEFT", 10, 0)
-    box.label:SetText(label)
     box.value = box:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     box.value:SetPoint("RIGHT", box, "RIGHT", -10, 0)
-    box.value:SetPoint("LEFT", box.label, "RIGHT", 6, 0)
-    box.value:SetJustifyH("RIGHT")
+    if icon then
+        box.icon = box:CreateTexture(nil, "OVERLAY")
+        box.icon:SetTexture(icon[1])
+        box.icon:SetVertexColor(icon[2], icon[3], icon[4], 1)
+        box.icon:SetSize(14, 14)
+        box.icon:SetPoint("LEFT", box, "LEFT", 7, 0)
+        box.value:SetPoint("LEFT", box.icon, "RIGHT", 4, 0)
+        box.value:SetJustifyH("LEFT")
+    else
+        box.label:SetText(label)
+        box.value:SetPoint("LEFT", box.label, "RIGHT", 6, 0)
+        box.value:SetJustifyH("RIGHT")
+    end
     box.value:SetWordWrap(false)
     box:EnableMouse(true)
     ns.SetTip(box, "ANCHOR_BOTTOM", function(self) return self.tip or label end)
@@ -287,7 +315,8 @@ local function BuildCard()
     -- Its personality: the traits, then what it likes.
     card.personality = Line("GameFontNormalSmall", card.status, 5)
     card.personality:SetTextColor(0.95, 0.75, 0.45)
-    card.likes = Line("GameFontDisableSmall", card.personality, 3)
+    card.likes = Line("GameFontHighlightSmall", card.personality, 3)
+    card.likes:SetTextColor(0.8, 0.76, 0.66) -- (was the disabled grey: hard to read, creative review 2026-11-09)
     -- Hover the lines: what the traits mean and do, what it likes, and why it matters.
     card.personalityHit = HitOver(card.personality, card.likes, function()
         if not ns.Personality:Known(card.key) then
@@ -358,8 +387,10 @@ local function BuildCard()
     else
         card.guildBox:SetPoint("BOTTOMLEFT", c, "TOPLEFT", 160, 8)
     end
-    card.todayBox = InfoBox(ns.L["card.today"], 140)
+    card.todayBox = InfoBox(ns.L["card.today"], 140,
+        { "Interface\\AddOns\\Dyreparken\\Media\\Particles\\star", 1, 0.82, 0.3 })
     card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", BOX_GAP, 0)
+    card.todayBox:SetScript("OnMouseUp", function() JournalUI:ShowPetOfTheDay() end)
     card.counter, card.today = card.guildBox.value, card.todayBox.value
 
     -- The fallback tab buttons (SidePage) line up right to left from here,

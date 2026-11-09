@@ -168,7 +168,7 @@ Achievements/      Defs (ids, kinds;
                    docs/PET_LIFE.md.
 Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble, confetti, note, paw, leaf, moon, snowflake, ring, rays,
                    and since 2026-11-09 feather, ember, gear, wisp, coin, grain, seed, clover, zee, speech, crumb, cloud,
-                   pebble, chevron, bolt, halo, sword, drop, butterfly, mist):
+                   pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history

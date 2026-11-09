@@ -42,8 +42,9 @@ local ICON = "Interface\\Icons\\"
 Activity.KINDS = {
     { "day", always = true, wish = false, icons = { ICON .. "INV_Misc_PocketWatch_01" } },
     { "boss", always = true, icons = { "Interface\\TargetingFrame\\UI-TargetingFrame-Skull" } },
-    { "quest", always = true, -- (the gossip icon is missing on Forever)
-        icons = { "Interface\\GossipFrame\\ActiveQuestIcon", ICON .. "INV_Misc_Note_01" } },
+    { "quest", always = true, -- the quest giver's "!" (the "?" read as "unknown", creative review 2026-11-09)
+        icons = { "Interface\\GossipFrame\\AvailableQuestIcon", ICON .. "INV_Misc_Book_09",
+            ICON .. "INV_Misc_Note_01" } },
     { "taxi", always = true,
         icons = { "Interface\\TaxiFrame\\UI-Taxi-Icon-Green", ICON .. "Ability_Mount_Gryphon_01" } },
     { "pvp", always = true, icons = { ICON .. "Ability_DualWield" } },

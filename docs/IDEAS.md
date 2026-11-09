@@ -6,6 +6,11 @@ drop. Each idea notes what it builds on.
 
 ## UI fixes (from the screenshot)
 
+Done 2026-11-09: Dagens dyr (a gold star instead of the label, and a click shows the pet in the journal through
+`PetJournal_SelectSpecies`, unverified on Forever), the quest chip (the quest giver's "!", a book as fallback), the
+list's "free" mark (a little house), and the likes line (light text). Still open: the empty space, the level shown
+three times.
+
 - **"Dagens dyr" is cut off** ("Br…"). The box only gets the room left of the card's right edge
   (JournalUI: `todayBox`). Show the nickname or a short name with the rest on hover, and **make the box clickable**:
   it jumps to that pet in the list. Useful, and a reason to look at it every day.

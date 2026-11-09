@@ -60,9 +60,11 @@ return function(test, H)
         eq(card.guildBox.points[1][2], PJ.PetCount, "next to Total Pets")
         eq(card.todayBox.points[1][2], card.guildBox)
         eq(card.guildBox.label.text, "Guilden"); eq(card.counter.text, "1 av 5 (20%)")
-        eq(card.todayBox.label.text, "Dagens dyr"); eq(card.today.text, "Pepe")
+        -- "Dagens dyr": a gold star instead of the label (the name was cut short), the name right after it.
+        eq(card.todayBox.label.text, nil); eq(card.today.text, "Pepe")
+        match(card.todayBox.icon.tex, "Particles\\star$"); eq(card.today.points[2][2], card.todayBox.icon)
         card.todayBox.scripts.OnEnter(card.todayBox)
-        eq(ola.env.GameTooltip.lines[1], "Dagens dyr: Pepe, som bor hos Ola Nord.")
+        eq(ola.env.GameTooltip.lines[1], "Dagens dyr: Pepe, som bor hos Ola Nord.\n|cffa0a0a0Klikk for å se det.|r")
         card.todayBox.scripts.OnLeave(card.todayBox)
         card.guildBox.scripts.OnEnter(card.guildBox)
         eq(ola.env.GameTooltip.lines[1], "Guilden: 1 av 5 dyr har et hjem (20%).")
@@ -73,7 +75,7 @@ return function(test, H)
         eq(card.todayBox.size[1], 154)
         card.guildBox.geo = { l = 560, r = 690, t = 530, b = 510 }
         ola.env.PetJournal_UpdatePetCard(ola.env.PetJournalPetCard)
-        eq(card.todayBox.size[1], 80, "a cramped row still leaves room for the label")
+        eq(card.todayBox.size[1], 80, "a cramped row still leaves room for the name")
         -- No pet selected: everything clears.
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil
@@ -554,5 +556,36 @@ return function(test, H)
         ola.ns.Registry.Nickname = function() return "Bambusbjørnen" end -- 14 bytes: too wide big, fits large
         card = ola:SelectPet(5159)
         eq(card.nickname.font, "GameFontNormalLarge")
+    end)
+
+    test("a click on Dagens dyr shows that pet in the journal; the likes line is readable", function()
+        local w, ola = H.Setup{ ola = { 5159, 46 }, journal = true }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local card = ola:SelectPet(46)
+        eq(card.species, "White Kitten")
+        card.todayBox.scripts.OnMouseUp(card.todayBox)
+        eq(ola.selectedSpecies, 5159, "Blizzard's own selection: the list scrolls to it")
+        eq(card.species, "Panda Cub")
+        -- Not in combat; and without the journal's function, nothing (said in the log).
+        ola:SelectPet(46)
+        ola.state.combat = true
+        card.todayBox.scripts.OnMouseUp(card.todayBox)
+        eq(card.species, "White Kitten")
+        ola.state.combat = false
+        rawset(ola.env, "PetJournal_SelectSpecies", nil)
+        card.todayBox.scripts.OnMouseUp(card.todayBox)
+        eq(card.species, "White Kitten")
+        eq(#ola:Log("no way to show species 5159"), 1)
+        -- The likes: light text now, not the disabled grey.
+        eq(card.likes.font, "GameFontHighlightSmall")
+        eq(card.likes.color[1], 0.8)
+    end)
+
+    test("the quest chip is the quest giver's \"!\", and the list marks a pet that needs a home with a house", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        eq(ola.ns.Stats.Icon("quest"), "Interface\\GossipFrame\\AvailableQuestIcon")
+        ola.env.GetFileIDFromPath = function(p) return not p:find("GossipFrame") and 1 or nil end
+        eq(ola.ns.Stats.Icon("quest"), "Interface\\Icons\\INV_Misc_Book_09", "a book where the client lacks it")
     end)
 end

@@ -367,6 +367,7 @@ L["card.guild.value"] = "{n} av {total} ({pct}%)"
 L["card.guild.tip"] = "Guilden: {n} av {total} dyr har et hjem ({pct}%)."
 L["card.today"] = "Dagens dyr"
 L["card.today.tip"] = "Dagens dyr: {pet}, som bor hos {owner}."
+L["card.today.click"] = "Klikk for å se det."
 L["card.today.none"] = "Dagens dyr: ingen har adoptert et dyr ennå."
 L["card.out.on"] = "Med deg"                                 -- the badge on the card: this pet is the one kept out
 L["card.out.off"] = "Ta med ut"                             -- ... and when it isn't

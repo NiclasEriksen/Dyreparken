@@ -1021,6 +1021,14 @@ function Client:OpenJournal(o)
             rawset(env, "PetJournal_InitPetButton", function() end)
         end
         rawset(env, "PetJournal_UpdatePetCard", function() end)
+        -- Selects a species and shows its card (Blizzard_Collections; o.noSelect: missing).
+        if not o.noSelect then
+            rawset(env, "PetJournal_SelectSpecies", function(pj, sid)
+                assert(pj == env.PetJournal, "PetJournal_SelectSpecies(PetJournal, speciesID)")
+                self.selectedSpecies = sid
+                self:SelectPet(sid)
+            end)
+        end
         self.loaded.Blizzard_Collections = true
         self:Fire("ADDON_LOADED", "Blizzard_Collections")
     end

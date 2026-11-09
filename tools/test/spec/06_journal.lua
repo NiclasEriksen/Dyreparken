@@ -2,7 +2,7 @@
 return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
     local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
-    local MINE, TAKEN, FREE = MEDIA .. "heart", MEDIA .. "paw", MEDIA .. "ring"
+    local MINE, TAKEN, FREE = MEDIA .. "heart", MEDIA .. "paw", MEDIA .. "house"
 
     -- Ola owns Panda Cub (reserved) and White Kitten (free); Kari holds Bombay Cat.
     local function Setup(journalOpts, olaOpts)

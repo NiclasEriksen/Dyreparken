@@ -10,12 +10,13 @@ ns.JournalList = JournalList
 
 -- The list's markers, from our own drawn set (Media/Particles; 2026-11-09:
 -- the raid star, padlock and tick didn't fit the card's style): a heart for
--- yours, a paw for someone else's, a ring for one you could give a home.
+-- yours, a paw for someone else's, a little house for one that needs a home
+-- (a green ring until 2026-11-09: it looked like the bond level's ring next to it).
 local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 local MARKERS = {
     mine = { MEDIA .. "heart", 1, 0.45, 0.55 },
     taken = { MEDIA .. "paw", 0.65, 0.65, 0.65 },
-    free = { MEDIA .. "ring", 0.45, 0.9, 0.45 },
+    free = { MEDIA .. "house", 0.45, 0.9, 0.45 },
 }
 
 local markers = setmetatable({}, { __mode = "k" }) -- button -> texture

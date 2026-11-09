@@ -385,12 +385,22 @@ def mist():
     return m
 
 
+def house():
+    """A little house with a door: the list's mark for a pet that needs a home."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(-0.88, 0.12), (0, 0.86), (0.88, 0.12)])                 # roof
+    poly(d, [(0.42, 0.5), (0.42, 0.78), (0.6, 0.78), (0.6, 0.35)])    # chimney
+    poly(d, [(-0.62, 0.16), (0.62, 0.16), (0.62, -0.8), (-0.62, -0.8)])  # walls
+    poly(d, [(-0.2, -0.8), (-0.2, -0.22), (0.2, -0.22), (0.2, -0.8)], fill=0)  # the door, open
+    return m
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
           "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays,
           "feather": feather, "ember": ember, "gear": gear, "wisp": wisp, "coin": coin, "grain": grain,
           "seed": seed, "clover": clover, "zee": zee, "speech": speech, "crumb": crumb, "cloud": cloud,
           "pebble": pebble, "chevron": chevron, "bolt": bolt, "halo": halo, "sword": sword, "drop": drop,
-          "butterfly": butterfly, "mist": mist}
+          "butterfly": butterfly, "mist": mist, "house": house}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 
