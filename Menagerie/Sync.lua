@@ -81,7 +81,7 @@ local function SendFull()
     for i, msg in ipairs(parts) do
         msg.i, msg.of = i, #parts
         if i == #parts then msg.d = Sync:Digest() end
-        ns.Comm:Send("SYNC", msg, "GUILD", nil, "BULK")
+        ns.Comm:Send("SYNC", msg, "GUILD")
     end
 end
 
@@ -115,7 +115,7 @@ function Sync:AskBonds(key)
     local now = GetTime()
     if lastAsk and now - lastAsk < ASK_GAP then return end
     asked[key], lastAsk = true, now
-    ns.Comm:Send("BOND_REQ", { pet = key }, "GUILD", nil, "BULK")
+    ns.Comm:Send("BOND_REQ", { pet = key }, "GUILD")
 end
 
 -- Someone told us something we know better (an older date, say): answer
@@ -187,15 +187,13 @@ end
 
 -- Registry traffic only counts on the guild channel: a whisper or party
 -- message comes from anyone, guild member or not.
-local function Accept(msg, channel) return msg.p == ns.PROTOCOL and channel == "GUILD" end
 
 function Sync:Init()
-    ns.Comm:Register("HELLO", function(msg, _, channel)
-        if not Accept(msg, channel) then return end
-        if msg.d ~= Sync:Digest() then Schedule() end
-    end)
+    -- (HELLO gets through with any protocol: Version compares them; we don't)
+    ns.Comm:Register("HELLO", function(msg)
+        if msg.p == ns.PROTOCOL and msg.d ~= Sync:Digest() then Schedule() end
+    end, "GUILD")
     ns.Comm:Register("SYNC", function(msg, sender, channel)
-        if not Accept(msg, channel) then return end
         if TooBig(msg) then
             ns.Log("Sync", "refused a SYNC from %s: too many entries", tostring(sender))
             return
@@ -211,37 +209,33 @@ function Sync:Init()
             -- We know things the sender doesn't: answer soon (a hold ends here).
             Later(2 + math.random() * 6)
         end
-    end)
+    end, "GUILD")
     ns.Bus:On("COMM_INCOMING", function(_, channel)
         if channel == "GUILD" then Hold() end
     end)
     ns.Comm:Register("UPD", function(msg, sender, channel)
-        if not Accept(msg, channel) then return end
         -- Only the owner writes their record. Relayed copies come via SYNC.
         MergeAll({ [sender] = msg.r }, nil)
-    end)
+    end, "GUILD")
     ns.Comm:Register("NICK", function(msg, sender, channel)
-        if not Accept(msg, channel) then return end
         if type(msg.pet) ~= "string" then return end
         -- Only the namer writes their entry, like UPD.
         MergeAll(nil, nil, { [msg.pet] = { [sender] = msg.e } })
-    end)
+    end, "GUILD")
     ns.Comm:Register("BOND", function(msg, sender, channel)
-        if not Accept(msg, channel) then return end
         if type(msg.pet) ~= "string" then return end
         MergeAll(nil, nil, nil, { [msg.pet] = { [sender] = msg.e } })
-    end)
+    end, "GUILD")
     ns.Comm:Register("BOND_REQ", function(msg, _, channel)
-        if not Accept(msg, channel) or not ns.Registry.ValidKey(msg.pet) then return end
+        if not ns.Registry.ValidKey(msg.pet) then return end
         local e = ns.Registry:Life(msg.pet, ns.PlayerKey())
         if e and ns.Comm:MayReply("BOND:" .. msg.pet, channel) then
-            ns.Comm:Send("BOND", { pet = msg.pet, e = e }, "GUILD", nil, "BULK")
+            ns.Comm:Send("BOND", { pet = msg.pet, e = e }, "GUILD")
         end
-    end)
+    end, "GUILD")
     ns.Comm:Register("LAPSE", function(msg, _, channel)
-        if not Accept(msg, channel) then return end
         MergeAll(nil, msg.l)
-    end)
+    end, "GUILD")
 
     -- Our own edits go out right away.
     ns.Bus:On("MY_RECORD", function(_, r)
@@ -259,7 +253,7 @@ function Sync:Init()
         local added = ns.Registry:CheckRoster()
         if added then
             ns.Registry:Changed()
-            ns.Comm:Send("LAPSE", { l = added }, "GUILD", nil, "BULK")
+            ns.Comm:Send("LAPSE", { l = added }, "GUILD")
             ns.Registry:CheckMine()
         end
     end)

@@ -34,7 +34,7 @@ function Version:Init()
     -- Everyone hearing everyone's version is useful anyway: NoteVersion.
     ns.Comm:Register("VER_REQ", function(_, _, channel)
         if channel == "WHISPER" or not ns.Comm:MayReply("VER", channel) then return end
-        ns.Comm:Send("VER", { v = ns.VERSION }, channel, nil, "BULK")
+        ns.Comm:Send("VER", { v = ns.VERSION }, channel)
     end)
     ns.Bus:On("PROTOCOL_MISMATCH", function(sender, theirs, msg)
         if type(msg.v) == "string" then NoteVersion(sender, msg.v) end
@@ -43,7 +43,7 @@ end
 
 function Version:Hello()
     -- d: registry digest, so peers can tell whether we need a sync (Sync.lua).
-    if IsInGuild() then ns.Comm:Send("HELLO", { v = ns.VERSION, d = ns.Sync:Digest() }, "GUILD", nil, "BULK") end
+    if IsInGuild() then ns.Comm:Send("HELLO", { v = ns.VERSION, d = ns.Sync:Digest() }, "GUILD") end
 end
 
 -- channel: "GUILD" or "RAID"/"PARTY". Prints results after a few seconds.

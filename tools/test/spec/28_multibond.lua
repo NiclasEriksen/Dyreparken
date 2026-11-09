@@ -13,14 +13,12 @@ return function(test, H)
         w:Run(40)
         -- A clean slate: no bonds from the logins' day visits.
         for _, c in ipairs({ ola, kari }) do
-            c.ns.DB:Guild().life = {}
-            c.ns.DB.char.bondToday, c.ns.DB.char.activity.day = nil, nil
+            c:ForgetBonds()
         end
         ola:Slash("adopter panda")
         w:Run(2)
         for _, c in ipairs({ ola, kari }) do -- (no wish or first bonuses, or Kosete days, mixed in)
-            c.ns.Wish.OnActivity = function() end
-            c.realFirst, c.ns.Bond.First = c.ns.Bond.First, function() end
+            c:NoBonuses()
             c.ns.Personality.Traits = function()
                 return { c.ns.Personality.ById("glupsk"), c.ns.Personality.ById("reiseglad") }
             end

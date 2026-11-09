@@ -69,6 +69,13 @@ function Guild:IsMember(name)
     return nil
 end
 
+-- An officer or the guild leader (C_GuildInfo.IsGuildOfficer works on
+-- Forever, docs/FOREVER_API.md).
+function Guild:IsOfficer()
+    local GI = C_GuildInfo
+    return (GI and GI.IsGuildOfficer and GI.IsGuildOfficer()) or (IsGuildLeader and IsGuildLeader()) or false
+end
+
 function Guild:DaysOffline(name)
     return self.members[name]
 end

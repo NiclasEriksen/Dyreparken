@@ -821,6 +821,20 @@ function Client:LeaveCombat() self.state.combat = false; self:Fire("PLAYER_REGEN
 function Client:Mount() self.state.mounted = true; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 function Client:Dismount() self.state.mounted = false; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 function Client:Summon(sid) self.summoned = sid and self:GuidOf(sid) or nil end
+
+-- A clean bond slate: no bonds, nothing earned today, no day visits yet
+-- (logins give the pet out a day; tests that count from zero call this).
+function Client:ForgetBonds()
+    self.ns.DB:Guild().life = {}
+    self.ns.DB.char.bondToday, self.ns.DB.char.activity.day = nil, nil
+end
+
+-- Only the activities' own points: no wish and no first-time bonuses mixed
+-- in (26_story.lua and 28_multibond.lua test those). c.realFirst keeps Bond.First.
+function Client:NoBonuses()
+    self.ns.Wish.OnActivity = function() end
+    self.realFirst, self.ns.Bond.First = self.ns.Bond.First, function() end
+end
 function Client:Zone()
     self:Fire("PLAYER_LEAVING_WORLD")
     self:Fire("PLAYER_ENTERING_WORLD", false, false)

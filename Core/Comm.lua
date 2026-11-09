@@ -23,8 +23,11 @@ local _, ns = ...
 -- Size: a message over MAX_PARTS chunks is dropped by every receiver, so
 -- it isn't sent at all (logged); SYNC goes in parts (Sync.lua).
 --
--- Handlers: ns.Comm:Register(kind, fn(msg, sender, channel)); several
--- modules may listen to the same kind (HELLO: Version and Sync).
+-- Handlers: ns.Comm:Register(kind, fn(msg, sender, channel), from); several
+-- modules may listen to the same kind (HELLO: Version and Sync). from:
+-- "GUILD" or "GROUP" (party or raid): a message of that kind arriving on any
+-- other channel never reaches fn. Only HELLO gets through with another
+-- protocol (versions can be compared); its handlers check msg.p themselves.
 --
 -- Notes (Forever 1.60.1):
 --  * Trial/Veteran accounts cannot send addon messages at all.
@@ -78,9 +81,9 @@ local function Drain()
     end
 end
 
-local function Queue(prio, text, channel, target, cb, kind)
+local function Queue(text, channel, target, cb, kind)
     last = last + 1
-    outbox[last] = { prio = prio, text = text, channel = channel, target = target, cb = cb, kind = kind }
+    outbox[last] = { text = text, channel = channel, target = target, cb = cb, kind = kind }
     if not waiting then Drain() end
 end
 
@@ -97,10 +100,14 @@ function Comm:MayReply(kind, channel)
     return true
 end
 
-function Comm:Register(kind, fn)
+local FROM = { GUILD = { GUILD = true }, GROUP = { PARTY = true, RAID = true } }
+function Comm:Register(kind, fn, from)
     local list = handlers[kind]
     if not list then list = {}; handlers[kind] = list end
-    list[#list + 1] = fn
+    local only = from and assert(FROM[from], "Comm:Register: from is GUILD or GROUP")
+    list[#list + 1] = only and function(msg, sender, channel)
+        if only[channel] then return fn(msg, sender, channel) end
+    end or fn
 end
 
 local function Encode(msg)
@@ -122,14 +129,14 @@ local function OnSent(kind, sent)
     if not sent then ns.Log("Comm", "send of %s not delivered", tostring(kind)) end
 end
 
--- channel: "GUILD", "RAID", "PARTY", "INSTANCE_CHAT", "WHISPER". prio: "BULK", "NORMAL", "ALERT".
-function Comm:Send(kind, msg, channel, target, prio)
+-- channel: "GUILD", "RAID", "PARTY", "INSTANCE_CHAT", "WHISPER". (No
+-- priorities: the outbox is first in, first out.)
+function Comm:Send(kind, msg, channel, target)
     if channel == "GUILD" and not IsInGuild() then return false end
     -- The server refuses these outside a group (NotInGroup); say so to the caller.
     if (channel == "PARTY" or channel == "RAID") and not IsInGroup() then return false end
     msg.k, msg.p = kind, ns.PROTOCOL
     local data = Encode(msg)
-    prio = prio or "NORMAL"
     local n = #data
     if n > CHUNK * MAX_PARTS then
         -- Every receiver would drop it: don't spend the channel on it.
@@ -137,13 +144,13 @@ function Comm:Send(kind, msg, channel, target, prio)
         return false
     end
     if n <= CHUNK then
-        Queue(prio, "S" .. data, channel, target, OnSent, kind)
+        Queue("S" .. data, channel, target, OnSent, kind)
     else
         local pos = 1
         while pos <= n do
             local final = pos + CHUNK > n
             local head = pos == 1 and "F" or (final and "L" or "M")
-            Queue(prio, head .. data:sub(pos, pos + CHUNK - 1), channel, target, final and OnSent or nil, kind)
+            Queue(head .. data:sub(pos, pos + CHUNK - 1), channel, target, final and OnSent or nil, kind)
             pos = pos + CHUNK
         end
     end

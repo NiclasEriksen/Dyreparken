@@ -30,7 +30,7 @@ function Playdate:Announce(answer)
     local now = GetTime()
     if lastSent and now - lastSent < (answer and ANSWER_EVERY or PLAY_EVERY) then return end
     lastSent = now
-    ns.Comm:Send("PLAY", { pet = key }, channel, nil, "BULK")
+    ns.Comm:Send("PLAY", { pet = key }, channel)
 end
 
 -- Soon, once: group changes come in bursts.
@@ -45,8 +45,7 @@ function Playdate:Heard(sender, theirs)
     local mine = PetOut()
     if not mine or ns.Guild:IsMember(sender) ~= true then return end
     if ns.Bond:Playdate(mine) then
-        -- (a nickname is the holder's: theirs only if the pet lives with them)
-        local friend = ns.Registry:Holder(theirs) == sender and ns.Bonds:NameOf(theirs) or ns.Pets:NameOfKey(theirs)
+        local friend = ns.Bonds:NameFor(theirs, sender)
         ns.PrintGold(ns.T("play.line", { pet = ns.Bonds:NameOf(mine), friend = friend, owner = sender }))
         ns.Log("Bond", "playdate: %s with %s's %s", mine, sender, theirs)
         ns.Bond:Bonus(ns.Config.BOND_PLAY_POINTS, mine)
@@ -55,11 +54,9 @@ function Playdate:Heard(sender, theirs)
 end
 
 function Playdate:Init()
-    ns.Comm:Register("PLAY", function(msg, sender, channel)
-        if channel ~= "PARTY" and channel ~= "RAID" then return end
-        if not ns.Registry.ValidKey(msg.pet) then return end
-        Playdate:Heard(sender, msg.pet)
-    end)
+    ns.Comm:Register("PLAY", function(msg, sender)
+        if ns.Registry.ValidKey(msg.pet) then Playdate:Heard(sender, msg.pet) end
+    end, "GROUP")
     ns.Events:On("GROUP_ROSTER_UPDATE", Playdate, function() Playdate:Soon() end)
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Playdate:Soon() end)
 end

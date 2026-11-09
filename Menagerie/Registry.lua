@@ -250,14 +250,15 @@ function Registry:Holder(key)
     return owner, G().claims[owner]
 end
 
--- The pet this character holds (won), if any: key, record.
-function Registry:MyPet()
+-- The pet a member holds (won), if any: key, record.
+function Registry:PetOf(carer)
     local g = G()
-    if not g then return nil end
-    local me = ns.PlayerKey()
-    local r = g.claims[me]
-    if r and r.k and self:Holder(r.k) == me then return r.k, r end
+    local r = g and carer and g.claims[carer]
+    if r and r.k and self:Holder(r.k) == carer then return r.k, r end
 end
+
+-- The pet this character holds, if any: key, record.
+function Registry:MyPet() return self:PetOf(ns.PlayerKey()) end
 
 function Registry:MyRecord()
     local g = G()

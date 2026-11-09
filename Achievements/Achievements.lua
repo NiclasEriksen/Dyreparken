@@ -129,11 +129,7 @@ local function Store(scope)
     return ns.DB.global.ach
 end
 
-local function IsOfficer()
-    local GI = C_GuildInfo
-    return (GI and GI.IsGuildOfficer and GI.IsGuildOfficer()) or (IsGuildLeader and IsGuildLeader()) or false
-end
-Ach.IsOfficer = IsOfficer
+local function IsOfficer() return ns.Guild:IsOfficer() end
 
 ------------------------------------------------------------------------------
 -- Evaluation
@@ -523,7 +519,7 @@ function Ach:Notify(ids)
 end
 
 local function OnEarned(msg, sender, channel)
-    if channel ~= "GUILD" or type(msg.a) ~= "table" then return end
+    if type(msg.a) ~= "table" then return end
     local ids = {}
     for i = 1, math.min(#msg.a, NOTICE_MAX) do
         local id = msg.a[i]
@@ -670,7 +666,7 @@ function Ach:CheckCharSoon(reason)
 end
 
 function Ach:Init()
-    ns.Comm:Register("ACH_EARNED", OnEarned)
+    ns.Comm:Register("ACH_EARNED", OnEarned, "GUILD")
     self:WatchActivities()
     local pending
     ns.Events:On("NEW_PET_ADDED", Ach, function()
@@ -687,12 +683,11 @@ function Ach:Init()
     ns.Bus:On("BOND", function() Ach:CheckCharSoon("BOND") end)
     ns.Bus:On("MY_NAME", function() Ach:Check("MY_NAME", "char") end)
 
-    ns.Comm:Register("ACH", function(msg, sender, channel)
-        if channel ~= "GUILD" or msg.p ~= ns.PROTOCOL then return end
+    ns.Comm:Register("ACH", function(msg)
         local _, behind = Ach:MergeGuild(msg.a)
         -- Nobody else would correct them: their ACH "said it for us".
         if behind then ns.Sync:Nudge() end
-    end)
+    end, "GUILD")
     -- The registry changes in bursts (a SYNC merges many records): check
     -- the guild ones once it settles.
     local guildPending

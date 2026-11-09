@@ -6,7 +6,7 @@
 #  2. Lua 5.1 syntax (luajit parses 5.1; it also accepts goto, so we grep for that).
 #  3. Constructs WoW's Lua 5.1 lacks: goto/labels, //, bitwise operators.
 #  4. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
-#     Coverage floors: Menagerie 95%, Core 90%. Games has none on purpose (see CLAUDE.md).
+#     Coverage floors: Menagerie 95%, Achievements 95%, Core 90%. Games has none on purpose (see CLAUDE.md).
 set -u
 quick=0
 [[ "${1:-}" == "--quick" ]] && quick=1
@@ -24,10 +24,13 @@ while IFS= read -r f; do
 done < <(find . -name '*.lua' -not -path './Libs/*' -not -path './tools/*')
 
 own=$(find . -name '*.lua' -not -path './Libs/*' -not -path './tools/*')
-for f in $own; do
-    out=$(luajit -e "local f, e = loadfile('$f'); if not f then io.stderr:write(e, '\n'); os.exit(1) end" 2>&1) \
-        || { echo "SYNTAX: $out"; fail=1; }
-done
+# One luajit for every file (a process per file was most of this step's time).
+out=$(luajit -e "local bad = false
+for _, f in ipairs(arg) do
+    local ok, e = loadfile(f)
+    if not ok then io.stderr:write('SYNTAX: ', e, '\n'); bad = true end
+end
+os.exit(bad and 1 or 0)" $own 2>&1) || { echo "$out"; fail=1; }
 # Strip comments and strings roughly, then look for 5.2+ syntax.
 for f in $own; do
     hits=$(sed -E 's/--.*$//; s/"([^"\\]|\\.)*"//g; s/'"'"'([^'"'"'\\]|\\.)*'"'"'//g' "$f" \

@@ -126,8 +126,7 @@ end
 -- middle, home (Swing below).
 ------------------------------------------------------------------------------
 local POOL = 24
-local GOLD = { 1, 0.8, 0.25 }
-local SILVER = { 0.82, 0.88, 1 }
+local GOLD, SILVER = ns.Scenes.GOLD, ns.Scenes.SILVER
 Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
     border = "loottoast-itemborder-gold", -- an item frame, nine-sliced around the card
     corner = "AdventuresFrame-Corner-Small-TopLeft",
@@ -138,12 +137,6 @@ Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
 Decor.LEVELS = {}
 for n = 2, 7 do Decor.LEVELS[n] = ns.L["decor.level." .. n] end
 
--- The border's color by level (2: the family's own).
-local function EdgeColor(level, family)
-    if level >= 5 then return GOLD end
-    if level >= 3 then return SILVER end
-    return family
-end
 
 -- Kinds of particles: the texture, the path, the extra motions, and sizes.
 --   path: rise, fall, burst (flies out from the pet), twinkle (in place),
@@ -466,7 +459,7 @@ function Decor:Specs(key, level, t)
     return list
 end
 
-local function Bright(c, f) return math.min(1, c[1] * f), math.min(1, c[2] * f), math.min(1, c[3] * f) end
+local Bright = ns.Scenes.Bright
 
 -- Show the decorations for a pet (nil: none). level: its holder's bond
 -- level (nil when nobody holds it); color: the family's tint.
@@ -496,8 +489,8 @@ function Decor:Apply(card, key, level, color)
     level = self.preview or level or 0
     color = color or GOLD
     if level >= 2 then
-        local e = EdgeColor(level, { Bright(color, 1.7) })
-        local wash = level >= 5 and GOLD or { Bright(color, 1.7) }
+        local e = ns.Scenes.Tier(level, Bright(color, 1.7)) -- (the border: 2 has the family's own)
+        local wash = level >= 5 and GOLD or Bright(color, 1.7)
         if d.sliced then
             -- The frame is gold: grey it for the family color and silver.
             d.border:SetDesaturated(level < 5)
@@ -529,7 +522,7 @@ function Decor:Apply(card, key, level, color)
         end
     end
     if level >= 4 then
-        local g = level >= 5 and GOLD or { Bright(color, 2.2) }
+        local g = level >= 5 and GOLD or Bright(color, 2.2)
         for _, t in ipairs(d.glows) do
             t:SetVertexColor(g[1], g[2], g[3], 1)
             t:Show()

@@ -18,17 +18,11 @@ ns.BondTrack = Track
 local WHITE = "Interface\\Buttons\\WHITE8X8"
 local DISC = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local RING = "communities-ring-gold"
-local GOLD, SILVER = { 1, 0.8, 0.25 }, { 0.82, 0.88, 1 }
+local GOLD = ns.Scenes.GOLD
 local BAR_W, PIP, PIP_GAP = 128, 14, 5
 -- The level-up sound: the first of these the client knows.
 Track.SOUNDS = { "UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT", "UI_EPICLOOT_TOAST", "LEVELUPSOUND" }
 
--- The tier color for a level: the family's (2 and below), silver (3-4), gold (5+).
-function Track.Tier(level, family)
-    if level >= 5 then return GOLD end
-    if level >= 3 then return SILVER end
-    return family or GOLD
-end
 
 local Pulse, Fade, Scale, Hide = ns.Anim.Pulse, ns.Anim.Fade, ns.Anim.Scale, ns.HideTip
 
@@ -205,8 +199,8 @@ function Track:Pause(card)
     for _, p in ipairs(b.pips) do p.halo.pulse:Stop() end
 end
 
--- Show the holder's bond with the pet (none: hidden). family: its tint.
-function Track:Update(card, key, family)
+-- Show the holder's bond with the pet (none: hidden). color: the family's tint, brightened.
+function Track:Update(card, key, color)
     local b = card.bond
     local points, level, name, from, nextAt, shownMine = ns.Bond:Shown(key)
     if not points then
@@ -220,7 +214,7 @@ function Track:Update(card, key, family)
         points = math.max(points, from)
         if nextAt then points = math.min(points, nextAt - 1) end -- within the level shown
     end
-    local tier = self.Tier(level, family)
+    local tier = ns.Scenes.Tier(level, color)
     b.label:SetText(name) -- the number is on the medallion
     b.level:SetText(level)
     -- The bar: from the tier's dark to its bright, a spark at the tip.

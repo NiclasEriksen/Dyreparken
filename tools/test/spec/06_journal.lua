@@ -179,10 +179,12 @@ return function(test, H)
         eq(card.counter.text, "2 av 83 (2%)", "the stub's count")
         -- A generated species list replaces the stub's count.
         ola.ns.Companions.species = { [5159] = true, [46] = true, [40] = true, [68] = true }
-        ola:SelectPet(5159)
+        ola:SelectPet(46)
+        eq(card.counter.text, "2 av 83 (2%)", "a pick doesn't redraw the guild's boxes")
+        ola.ns.JournalUI:Refresh() -- (the guild's boxes: redrawn on a refresh, not on a pick)
         eq(card.counter.text, "2 av 4 (50%)")
         ola.ns.Companions = nil
-        ola:SelectPet(5159)
+        ola.ns.JournalUI:Refresh()
         eq(card.counter.text, "2 av 0 (0%)", "no data: no division by zero")
     end)
 

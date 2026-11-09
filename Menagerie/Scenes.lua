@@ -158,8 +158,31 @@ function Scenes:Sky(h)
     return sky
 end
 
--- Draw the tinted layers on the card for a pet (nil: clear them).
+-- The card's colors by bond level, shared by the border (Decor) and the
+-- bond track: the family's own up to 2, silver at 3-4, gold from 5.
+Scenes.GOLD, Scenes.SILVER = { 1, 0.8, 0.25 }, { 0.82, 0.88, 1 }
+function Scenes.Tier(level, family)
+    if level >= 5 then return Scenes.GOLD end
+    if level >= 3 then return Scenes.SILVER end
+    return family or Scenes.GOLD
+end
+
+-- A color made brighter by f (capped at 1), as a new table.
+function Scenes.Bright(c, f)
+    return { math.min(1, c[1] * f), math.min(1, c[2] * f), math.min(1, c[3] * f) }
+end
+
+-- Draw the card's background for a pet: the picture and the tinted layers
+-- (nil: clear them). Returns the family's tint.
 function Scenes:Paint(card, key)
+    local scene = key and self:For(key)
+    if scene then
+        card.scene:SetTexture(scene)
+        card.scene:SetTexCoord(self.Crop(scene))
+        card.scene:Show()
+    else
+        card.scene:Hide()
+    end
     if not key then
         card.sky:Hide()
         card.tint:Hide(); card.floor:Hide()
@@ -189,6 +212,7 @@ function Scenes:Paint(card, key)
     else
         card.sky:Hide()
     end
+    return c
 end
 
 -- Every candidate once, numbered, in a stable order.

@@ -19,9 +19,8 @@ local SCHEMA = 8
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
-    -- guilds[guildName] = { claims = { [owner] = record }, lapses = { [owner] = t }, names = ..., ach = ..., achSeen = ... }
-    -- record: see Menagerie/Registry.lua
-    guilds = {},
+    guilds = {}, -- [guildName] = GUILD_DEFAULTS' shape
+
     games = { history = {} },
     ach = { got = {}, seen = {} }, -- account-scope achievements (Achievements.lua)
     settings = {},
@@ -29,9 +28,20 @@ local ACCOUNT_DEFAULTS = {
     decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor (Decor.lua)
 }
 
+-- Each guild's shared data (Menagerie/Registry.lua has the shapes). A new
+-- field only needs a line here; a migration only when old data must change.
+local GUILD_DEFAULTS = {
+    claims = {},  -- [owner] = record
+    lapses = {},  -- [owner] = time their record lapsed
+    names = {},   -- [petKey] = { [namer] = nickname entry }
+    life = {},    -- [petKey] = { [carer] = bond entry }
+    ach = {},     -- guild achievements earned
+    achSeen = {}, -- guild achievements looked at
+}
+
 local CHAR_DEFAULTS = {
     autoSummon = true,   -- may be overridden at runtime if AutoCompanion is loaded
-    activePet = nil,     -- the pet auto-summon keeps out ("Hold ute" on its card); nil: the adopted one
+    activePet = nil,     -- the pet auto-summon keeps out ("Med deg" on its card); nil: the adopted one
     muteSummonSound = true, -- the clank when a companion is summoned (Summon:QuietSummon)
     achNotify = true,          -- tell other addon users when I earn an achievement
     announce = true,           -- post adoptions and nicknames to guild chat (Bonds:Announce)
@@ -155,13 +165,18 @@ end
 -- The registry for the player's current guild, or nil when guildless.
 -- Keyed by guild name only (no realm, see ns.PlayerKey), so alts in other
 -- guilds don't mix data.
+local filled = {} -- guild tables given their defaults this session
 function DB:Guild()
     local name = GetGuildInfo("player")
     if not name then return nil end
     local g = self.global.guilds[name]
     if not g then
-        g = { claims = {}, lapses = {}, names = {}, life = {}, ach = {}, achSeen = {} }
+        g = {}
         self.global.guilds[name] = g
+    end
+    if filled[name] ~= g then
+        ApplyDefaults(g, GUILD_DEFAULTS)
+        filled[name] = g
     end
     return g, name
 end

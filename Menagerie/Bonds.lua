@@ -52,6 +52,13 @@ function Bonds:NameOf(key)
     return ns.Registry:Nickname(key) or ns.Pets:NameOfKey(key)
 end
 
+-- A pet as someone's: its nickname only if it lives with them (the name is
+-- its holder's), else the species.
+function Bonds:NameFor(key, carer)
+    if carer and ns.Registry:Holder(key) == carer then return self:NameOf(key) end
+    return ns.Pets:NameOfKey(key)
+end
+
 local Gold = ns.Gold
 
 -- Once per adoption, when naming opens up (the bond reached NICKNAME_LEVEL):
@@ -127,8 +134,7 @@ function Bonds:PatText()
     end
     local key = ns.Pets:OutKey()
     if not key then return nil end
-    local mine = ns.Registry:MyPet()
-    return ns.T("pat.own", { pet = mine == key and self:NameOf(key) or ns.Pets:NameOfKey(key) })
+    return ns.T("pat.own", { pet = self:NameFor(key, me) })
 end
 
 local announced = {} -- kind .. key -> GetTime(), this session

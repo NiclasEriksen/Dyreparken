@@ -18,8 +18,7 @@ return function(test, H)
         w:Run(40)
         -- The half day the panda earned out at login, before any adoption: forgotten,
         -- these tests count from the adoption (any pet of yours bonds, 2026-11-09).
-        ola.ns.DB:Guild().life = {}
-        ola.ns.DB.char.bondToday, ola.ns.DB.char.activity.day = nil, nil
+        ola:ForgetBonds()
         return w, ola, ola.ns.Personality
     end
 

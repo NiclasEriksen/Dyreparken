@@ -37,13 +37,12 @@ end
 
 function Report:Init()
     ns.Comm:Register("PET_REQ", function(_, _, channel)
-        if channel ~= "RAID" and channel ~= "PARTY" then return end
         if not ns.Comm:MayReply("PET", channel) then return end
-        ns.Comm:Send("PET", { out = HasCompanion() }, channel, nil, "BULK")
-    end)
+        ns.Comm:Send("PET", { out = HasCompanion() }, channel)
+    end, "GROUP")
     ns.Comm:Register("PET", function(msg, sender)
         if Report.collecting then Report.collecting[sender] = msg.out and true or false end
-    end)
+    end, "GROUP")
 end
 
 local function Join(list)
@@ -53,9 +52,8 @@ end
 
 -- What a member's companion is called, if they have adopted one.
 local function PetOf(name)
-    for key, owner in pairs(ns.Registry:Holders()) do
-        if owner == name then return ns.Registry:Nickname(key) or ns.Pets:NameOfKey(key) end
-    end
+    local key = ns.Registry:PetOf(name)
+    return key and ns.Bonds:NameOf(key)
 end
 
 -- The line for group chat, or nil when there's nothing to say.

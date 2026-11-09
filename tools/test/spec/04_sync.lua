@@ -276,8 +276,8 @@ return function(test, H)
         local recs = {}
         for i = 1, 60 do recs[Name(5000 + i)] = { k = "s:" .. (2000 + i), at = 10 + i * 31, ts = 20 + i * 37 } end
         local before = w.chunks or 0
-        ola.ns.Comm:Send("LAPSE", { l = big }, "GUILD", nil, "BULK")
-        ola.ns.Comm:Send("SYNC", { r = recs, l = {}, n = {}, a = {}, d = 0 }, "GUILD", nil, "NORMAL")
+        ola.ns.Comm:Send("LAPSE", { l = big }, "GUILD")
+        ola.ns.Comm:Send("SYNC", { r = recs, l = {}, n = {}, a = {}, d = 0 }, "GUILD")
         w:Run(60)
         ok(w.chunks - before > 12, "took " .. (w.chunks - before) .. " chunks")
         local _, lapses = kari.ns.Registry:All()

@@ -113,7 +113,7 @@ end
 
 -- An adopted pet's bond level in a small gold ring, left of the marker, and
 -- its nickname under the name (2026-11-08): the whole park at a glance.
-local function UpdateBadge(button)
+local function UpdateBadge(button, ctx)
     local b = badges[button]
     if not b then
         b = {}
@@ -145,10 +145,10 @@ local function UpdateBadge(button)
     local key = sid and ns.Pets:KeyOfSpecies(sid)
     -- Your level with it, in gold; else its carer's, in grey.
     local p, level, _, _, _, mine = ns.Bond:Shown(key)
-    if mine and p == 0 and key ~= ns.Registry:MyPet() then -- one of yours, no bond yet: its carer's, if any
+    if mine and p == 0 and key ~= ctx.myPet then -- one of yours, no bond yet: its carer's, if any
         level, mine = select(2, ns.Bond:Of(key)), false
     end
-    b.out:SetShown(key ~= nil and key == ns.Summon:ActiveKey())
+    b.out:SetShown(key ~= nil and key == ctx.active)
     b.ring:SetShown(level ~= nil); b.level:SetShown(level ~= nil)
     if level then
         b.level:SetText(level)
@@ -185,6 +185,11 @@ local function OnButtonLeave(button)
     if GameTooltip:IsOwned(button) then GameTooltip:Hide() end
 end
 
+-- What every list button's badge compares with, read once per refresh.
+local function ListContext()
+    return { myPet = ns.Registry:MyPet(), active = ns.Summon:ActiveKey() }
+end
+
 local function InitButton(button, elementData)
     local sid, owned = ButtonSpecies(button, elementData)
     speciesOf[button], ownedOf[button] = sid, owned
@@ -194,13 +199,14 @@ local function InitButton(button, elementData)
         button:HookScript("OnLeave", OnButtonLeave)
     end
     UpdateMarker(button)
-    UpdateBadge(button)
+    UpdateBadge(button, ListContext())
 end
 
 local function RefreshList()
     local box = PetJournal and PetJournal.ScrollBox
     if box and box.ForEachFrame then
-        box:ForEachFrame(function(button) UpdateMarker(button); UpdateBadge(button) end)
+        local ctx = ListContext() -- (the same for every button)
+        box:ForEachFrame(function(button) UpdateMarker(button); UpdateBadge(button, ctx) end)
     end
 end
 
@@ -243,7 +249,18 @@ end
 
 local BOX_GAP = 6 -- between the boxes on the "Total Pets" row
 
-local function UpdateExtras()
+-- "Dagens dyr" fills the row up to the card's right edge, wherever the row
+-- starts: a fixed width ran past the window (seen 2026-11-08). A long name is
+-- cut short; the tooltip has it whole. (Two reads: cheap on every pick.)
+local function SizeTodayBox()
+    local right, from = PetJournalPetCard:GetRight(), card.guildBox:GetRight()
+    if right and from then card.todayBox:SetWidth(math.max(80, right - from - BOX_GAP)) end
+end
+
+-- The guild's boxes above the card: the same whichever pet is picked, so
+-- redrawn on a refresh (registry, bonds, opening), not on every pick.
+local function UpdateGuildBoxes()
+    if not card.counter then return end
     local n, total = ns.Registry:Count(), ns.Pets:Total()
     local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
     card.counter:SetText(ns.T("card.guild.value", { n = n, total = total, pct = pct }))
@@ -252,13 +269,7 @@ local function UpdateExtras()
     card.today:SetText(today and ns.Bonds:NameOf(today) or "-")
     card.todayBox.tip = today and ns.T("card.today.tip", { pet = ns.Bonds:NameOf(today), owner = owner })
         or ns.L["card.today.none"]
-    -- "Dagens dyr" fills the row up to the card's right edge, wherever the
-    -- row starts: a fixed width ran past the window (seen 2026-11-08). A long
-    -- name is cut short; the tooltip has it whole.
-    local right, from = PetJournalPetCard:GetRight(), card.guildBox:GetRight()
-    if right and from then card.todayBox:SetWidth(math.max(80, right - from - BOX_GAP)) end
-    -- "Med deg": is the pet on the card the one kept out (OutBadge.lua)?
-    ns.OutBadge:Update(card, card.key)
+    SizeTodayBox()
 end
 
 local function UpdateCard()
@@ -274,8 +285,8 @@ local function UpdateCard()
         card.personality:SetText("")
         card.likes:SetText("")
         card.key = nil -- the hover tooltips follow it
-        UpdateExtras()
-        card.scene:Hide()
+        SizeTodayBox()
+        ns.OutBadge:Update(card, nil)
         ns.Scenes:Paint(card, nil)
         ns.Decor:Apply(card, nil)
         ns.Stats:Update(card, nil)
@@ -317,26 +328,17 @@ local function UpdateCard()
         card.personality:SetText(ns.L["personality.unknown"])
         card.likes:SetText("")
     end
-    local scene = ns.Scenes:For(key)
-    if scene then
-        card.scene:SetTexture(scene)
-        card.scene:SetTexCoord(ns.Scenes.Crop(scene))
-        card.scene:Show()
-    else
-        card.scene:Hide()
-    end
-    ns.Scenes:Paint(card, key)
-    -- The holder's bond with it: everyone sees everyone's.
-    local tint = ns.Scenes.TINT[card.family] or ns.Scenes.TINT.default
+    local tint = ns.Scenes:Paint(card, key) -- (the picture, the light; the family's tint)
     local _, level = ns.Bond:Shown(key) -- your bond with it, or its carer's
     ns.Decor:Apply(card, key, level, tint)
     ns.Stats:Update(card, key) -- (after the decorations: it sits under the ribbon when there is one)
     ns.Wish:Update(card, key) -- (under the chips)
     ns.Sync:AskBonds(key) -- others' bonds with it (not in the full sync)
-    ns.BondTrack:Update(card, key, { math.min(1, tint[1] * 1.7), math.min(1, tint[2] * 1.7), math.min(1, tint[3] * 1.7) })
+    ns.BondTrack:Update(card, key, ns.Scenes.Bright(tint, 1.7))
 
     card.key = key
-    UpdateExtras() -- (after the key: "Med deg" is about this pet)
+    SizeTodayBox()
+    ns.OutBadge:Update(card, key) -- "Med deg": is this the pet kept out?
     if status == "mine" then
         card.reserve:SetText(ns.L["card.letgo"])
         card.reserve:Enable()
@@ -354,7 +356,8 @@ local function UpdateCard()
     end
 end
 
-local function Report(ok, msg)
+-- An action's ok, message: the message is shown either way.
+local function Report(_, msg)
     if msg then ns.Print(msg) end
 end
 
@@ -549,8 +552,6 @@ local function BuildCard()
         card.titleHidden = true
     end
     ns.Cuddle:Build(card, c, panel) -- (after the model is found: it listens for clicks on it)
-    -- The pet's nickname, big, right above the status line.
-    card.bond:Hide()
 
     local anchor = PetJournalSummonButton or c
     card.reserve = CreateFrame("Button", nil, PetJournal, "UIPanelButtonTemplate")
@@ -684,6 +685,7 @@ end
 function JournalUI:Refresh()
     if not (PetJournal and PetJournal:IsVisible()) then return end
     if ns.SidePage:AnyOpen() then return end -- under our page: refreshed when it closes
+    UpdateGuildBoxes()
     RefreshList()
     UpdateCard()
 end

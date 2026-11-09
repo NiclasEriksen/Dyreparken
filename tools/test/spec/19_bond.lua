@@ -20,8 +20,7 @@ return function(test, H)
         -- These tests are about the adopted pet's bond: forget the half days the
         -- pets out at login earned (any pet of yours bonds, 2026-11-09).
         for _, c in ipairs({ ola, kari }) do
-            c.ns.DB:Guild().life = {}
-            c.ns.DB.char.bondToday, c.ns.DB.char.activity.day = nil, nil
+            c:ForgetBonds()
         end
         return w, ola, kari
     end

@@ -95,16 +95,16 @@ Personality.TRAITS = {
     { id = "huleboer", against = "friluftsdyr", when = function(ctx) return ctx.instance end },
     { id = "friluftsdyr", against = "huleboer", when = function(ctx) return not ctx.instance end },
 }
+local byId = {}
 for _, t in ipairs(Personality.TRAITS) do
+    byId[t.id] = t
     local k = "trait." .. t.id
     t.name, t.desc = L[k .. ".name"], L[k .. ".desc"]
     if t.when then t.whenText, t.flavor = L[k .. ".when"], L[k .. ".flavor"] end
     if t.day then t.dayText = L[k .. ".day"] end
 end
 
-function Personality.ById(id)
-    for _, t in ipairs(Personality.TRAITS) do if t.id == id then return t end end
-end
+function Personality.ById(id) return byId[id] end
 
 -- Every species' traits, pinned for good (Data/Traits.lua). A species that
 -- isn't in there yet (new in the journal) gets the pick below until

@@ -150,8 +150,7 @@ return function(test, H)
         ola.ns.Personality.Traits = function() -- plain: a day is 10, herbs are liked (the panda's own)
             return { ola.ns.Personality.ById("glupsk"), ola.ns.Personality.ById("reiseglad") }
         end
-        ola.ns.Wish.OnActivity = function() end -- (just the activities: 26_story.lua tests wishes)
-        ola.ns.Bond.First = function() end -- (and no first-kill bonus: 28_multibond.lua)
+        ola:NoBonuses() -- (just the activities)
         local card = ola:SelectPet(5159)
         local b = card.bond
         local function Earned() return ola.ns.Registry:Life(PANDA, "Ola Nord").p end
