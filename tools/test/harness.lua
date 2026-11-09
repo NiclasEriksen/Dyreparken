@@ -1235,7 +1235,7 @@ function Client:BuildEnv()
     env.GetZoneText = function() return S.zone or "Elwynn Forest" end
     -- The chat formats skill-ups and reputation are read with (enUS GlobalStrings).
     env.SKILL_RANK_UP = "Your skill in %s has increased to %d."
-    env.FACTION_STANDING_INCREASED = "Your %s reputation has increased by %d."
+    env.FACTION_STANDING_INCREASED = "Reputation with %s increased by %d." -- (Forever's, 2026-11-09)
     -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
     env.C_Map = {
         GetBestMapForUnit = function(u) assert(u == "player"); return S.map or 1429 end,

@@ -234,10 +234,12 @@ From AutoCompanion (written for Forever, in this AddOns folder):
     true, the companion readable; again with false on coming back. Our own guild line: `CHAT_MSG_GUILD` with our
     GUID (sender "First Surname"). The `TakeTaxiNode` hook counted a flight path ("taxi").
   - Not seen yet: `PLAYER_DEAD` itself.
-- **Skill-ups and reputation** (2026-11-09, unverified): read from `CHAT_MSG_SKILL` and
+- **Skill-ups and reputation** (2026-11-09): read from `CHAT_MSG_SKILL` and
   `CHAT_MSG_COMBAT_FACTION_CHANGE`, matched against the client's own `SKILL_RANK_UP` ("Your skill in %s has
-  increased to %d.") and `FACTION_STANDING_INCREASED` ("Your %s reputation has increased by %d."). If Forever lacks
-  the events or the strings, the activities are just unavailable. `/dp probe life` shows both and logs the lines.
+  increased to %d.") and `FACTION_STANDING_INCREASED`, which on Forever reads "Reputation with %s increased by
+  %d." (not Retail's wording; `/dp probe life`, 2026-11-09). Both events exist. **Skill-ups verified** the same day:
+  a weapon skill-up ("Two-Handed Axes") with the pet out logged `skill +1` and its bond point. Reputation: not
+  seen yet. If Forever lacks the events or the strings, the activities are just unavailable.
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
 - Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns

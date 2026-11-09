@@ -75,7 +75,7 @@ Rules that keep it fair and cheap:
 | New zones | `ZONE_CHANGED_NEW_AREA`: a zone this pet hasn't visited | bird, owl |
 | Night owl | any activity between 22 and 04 server time | owl |
 | Petted | a guildmate's `/dp klapp` on your pet (a small addon message) | everyone |
-| Skill-ups | `CHAT_MSG_SKILL` matched with `SKILL_RANK_UP` (2026-11-09, unverified) | mechanical, farm |
+| Skill-ups | `CHAT_MSG_SKILL` matched with `SKILL_RANK_UP` (verified 2026-11-09) | mechanical, farm |
 | Reputation | `CHAT_MSG_COMBAT_FACTION_CHANGE` matched with `FACTION_STANDING_INCREASED` (unverified) | festive, spirit, dragon |
 
 Liked activities give full points; anything else gives a little.

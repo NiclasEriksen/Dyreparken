@@ -218,7 +218,7 @@ return function(test, H)
         A:Want("skill", "test"); A:Want("rep", "test")
         ola:Fire("CHAT_MSG_SKILL", "Your skill in Swords has increased to 45.")
         ola:Fire("CHAT_MSG_SKILL", "Your skill in Swords is now Journeyman.") -- not a skill-up
-        ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Your Stormwind reputation has increased by 25.")
+        ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with Stormwind increased by 25.")
         ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Your Stormwind reputation has decreased by 25.")
         eq(table.concat(seen, ","), "skill:Swords,rep:Stormwind")
         eq(A:Count("skill"), 1); eq(A:Count("rep"), 1)

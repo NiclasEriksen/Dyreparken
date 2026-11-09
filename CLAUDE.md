@@ -190,7 +190,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   once per pet a session (BOND_REQ); they may be a little behind, by design. Wish and nicknames stay adoption-only.
 - **More ways to bond** (2026-11-09): firsts together (a boss this pet hasn't seen fall, a place it hasn't been: 10
   points), playdates (15, once a day per pet, with a guildmate's pet out in the group; Menagerie/Playdate.lua), and
-  skill-ups and reputation as activities (unverified on Forever; `/dp probe life`). All at the pet's rate, within
+  skill-ups (verified 2026-11-09) and reputation (unverified on Forever; `/dp probe life`) as activities. All at the pet's rate, within
   its day.
 - **A personality is a surprise** (2026-11-09): traits, likes and trait particles show only for a pet you've
   collected or that someone in the guild has adopted (`Personality:Known`); otherwise "Ukjent personlighet".
