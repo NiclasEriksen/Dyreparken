@@ -5,11 +5,13 @@ return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
     local PANDA = "s:5159"
 
-    -- Ola, the journal open, the panda's traits given (by id).
+    -- Ola, the journal open, the panda's traits given (by id; none: no
+    -- particles of their own). The families' ambience is left out here, so
+    -- the counts are the traits' and the bond's (it has tests of its own).
     local function Setup(...)
         local ids = { ... }
-        if #ids == 0 then ids = { "glupsk", "reiseglad" } end -- no particles of their own
         local w, ola = H.Setup{ ola = { 5159, 40 }, settle = "bond", journal = true, each = function(c)
+            c.ns.Decor.FAMILY = {}
             c.ns.Personality.Traits = function()
                 local list = {}
                 for _, id in ipairs(ids) do list[#list + 1] = c.ns.Personality.ById(id) end
@@ -151,7 +153,7 @@ return function(test, H)
             "in many colors")
         -- Sparks fly out from the pet, quickly, shrinking.
         At(w, ola, 9, 21, 12)
-        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("glupsk") } end
+        ola.ns.Personality.Traits = function() return {} end
         D:Apply(card, PANDA, 5)
         local spark = Parts(d)[1]
         eq(spark.icon.tex, D.MEDIA .. "sparkle")
@@ -243,7 +245,7 @@ return function(test, H)
     end)
 
     test("on the card: the holder's level shows, the tooltip says what's next, and hiding stops it all", function()
-        local w, ola, card, d = Setup("dykker", "glupsk")
+        local w, ola, card, d = Setup("dykker")
         At(w, ola, 9, 21, 12)
         ola:Slash("adopter panda")
         w:Run(5)
@@ -308,5 +310,113 @@ return function(test, H)
         ola.ns.Decor:Apply(card, PANDA, 2, { 0.5, 0.5, 0.5 })
         no(d.border:IsShown())
         for _, e in ipairs(d.edges) do ok(e:IsShown(), "drawn edges instead") end
+    end)
+
+    test("every pet has its family's ambience, always, soft, and last in the pool", function()
+        local w, ola = H.Setup{ ola = { 5159, 40 }, settle = "bond", journal = true, each = function(c)
+            c.ns.Personality.Traits = function() return {} end
+        end }
+        local D = ola.ns.Decor
+        At(w, ola, 9, 21, 12)
+        local card = ola:SelectPet(40) -- a Bombay: a cat, nobody's
+        local d = card.decor
+        local parts = Parts(d)
+        eq(#parts, D.FAMILY.cat.n, "a cat's motes, with no bond at all")
+        eq(parts[1].icon.tex, D.MEDIA .. "dot")
+        eq(parts[1].icon.blend, "ADD", "motes are light")
+        eq(parts[1].icon.vertexColor[4], D.FAMILY_ALPHA, "softer than the traits")
+        ok(parts[1].anim:IsPlaying())
+        card = ola:SelectPet(5159) -- the panda has no family: the default
+        eq(#Parts(d), D.FAMILY.default.n)
+        -- Every family has one, and each is a kind there is.
+        for _, family in ipairs(ola.ns.Scenes.ORDER) do
+            local spec = D.FAMILY[family]
+            ok(spec, family .. " has an ambience")
+            ok(D.KINDS[spec.kind], family .. ": " .. spec.kind)
+        end
+        -- When the pool runs out, it's the ambience that goes.
+        D.TRAITS.kosete = { kind = "heart", n = 40, color = { 1, 0, 0 } }
+        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("kosete") } end
+        D:Apply(card, PANDA, 1)
+        eq(#Parts(d), #d.parts)
+        for _, p in ipairs(Parts(d)) do eq(p.icon.tex, D.MEDIA .. "heart") end
+    end)
+
+    test("every trait shows itself; the ones with a moment only then", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 }, settle = "bond", journal = true, each = function(c)
+            c.ns.Decor.FAMILY = {}
+        end }
+        local D, P = ola.ns.Decor, ola.ns.Personality
+        for _, t in ipairs(P.TRAITS) do
+            local spec = D.TRAITS[t.id]
+            ok(spec, t.id .. " has particles")
+            ok(D.KINDS[spec.kind], t.id .. ": " .. spec.kind)
+        end
+        -- Every texture a kind uses is drawn (tools/draw_particles.py).
+        for name, k in pairs(D.KINDS) do
+            local f = io.open("Media/Particles/" .. k.tex .. ".tga", "rb")
+            ok(f, name .. ": Media/Particles/" .. k.tex .. ".tga"); if f then f:close() end
+            local n = (k.spin and 1 or 0) + (k.tilt and 1 or 0) + ((k.throb or k.flap) and 1 or 0)
+            ok(n <= 1, name .. ": spin, tilt, throb and flap share the texture")
+        end
+        At(w, ola, 9, 21, 12)
+        local card = ola:SelectPet(5159)
+        local d = card.decor
+        local function With(id)
+            P.Traits = function() return { P.ById(id) } end
+            D:Apply(card, PANDA, 1)
+            return Parts(d)
+        end
+        eq(#With("flokkdyr"), 0, "alone: no flock")
+        eq(#With("einstoing"), 1, "a lone wisp")
+        w:SetGroup({ "Ola Nord", "Kari Berg" })
+        eq(#With("flokkdyr"), D.TRAITS.flokkdyr.n, "with a guildmate")
+        eq(#With("einstoing"), 0)
+        eq(#With("friluftsdyr"), 2, "butterflies outdoors")
+        eq(#With("huleboer"), 0)
+        ola.state.instance = "party"
+        eq(#With("huleboer"), 3, "drips in a dungeon")
+        eq(#With("friluftsdyr"), 0)
+        eq(#With("nattugle"), 0, "stars only at night")
+        At(w, ola, 9, 21, 23)
+        eq(#With("nattugle"), 5)
+    end)
+
+    test("the new motions: wings flap, z's grow from the pet, wind blows across, embers glow", function()
+        local w, ola, card, d = Setup()
+        local D, P = ola.ns.Decor, ola.ns.Personality
+        At(w, ola, 9, 21, 12)
+        local function With(id)
+            P.Traits = function() return { P.ById(id) } end
+            D:Apply(card, PANDA, 1)
+            return Parts(d)[1]
+        end
+        local fly = With("friluftsdyr")
+        eq(fly.icon.tex, D.MEDIA .. "butterfly")
+        ok(fly.throb:IsPlaying())
+        eq(fly.throb.steps[1].scale[2], 1, "a flap: across only")
+        ok(math.abs(fly.throb.steps[1].scale[1] * fly.throb.steps[2].scale[1] - 1) < 1e-9, "and open again")
+        ok(fly.sway:IsPlaying())
+        local z = With("latsabb")
+        eq(z.icon.tex, D.MEDIA .. "zee")
+        local width = d.panel:GetWidth() or 400
+        ok(math.abs(z.points[1][4] - width / 2) <= 50, "from around the pet")
+        ok(z.anim.moveA.offset[2] > 0, "rising"); eq(z.anim.grow.scaleTo[1], 1.8, "and growing")
+        local cloud = With("reiseglad")
+        ok(cloud.anim.moveA.offset[1] + cloud.anim.moveB.offset[1] > 100, "blown across")
+        eq(cloud.icon.vertexColor[4], 0.6)
+        eq(cloud.icon.blend, "BLEND")
+        local halo = With("trofast")
+        eq(halo.points[1][4], width / 2, "right over the pet")
+        eq(halo.anim.grow.scaleTo[1], 1.08, "breathing a little"); eq(halo.anim.moveA.offset[1], 0)
+        local speech = With("pratsom")
+        ok(speech.anim == speech.plain, "a bubble keeps its size: only the beat")
+        D.FAMILY = { default = D.FAMILY.default }
+        D.FAMILY.default = { kind = "ember", n = 2, color = { 1, 0.5, 0 } }
+        P.Traits = function() return {} end
+        D:Apply(card, PANDA, 1)
+        local ember = Parts(d)[1]
+        eq(ember.icon.blend, "ADD"); ok(ember.throb:IsPlaying(), "it flickers")
+        ok(ember.throb.steps[1].duration < 0.3, "quickly")
     end)
 end

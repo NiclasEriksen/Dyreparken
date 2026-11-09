@@ -120,6 +120,7 @@ local PROBES = {
     { "card", function() ns.JournalUI:ProbeCard() end },
     { "bg", function(a) ns.Scenes:Probe(a) end, "<family>" },
     { "decor", function() ns.Decor:Probe() end },
+    { "frames", function() ns.Decor:ProbeFrames() end },
     { "level", function(a) ns.Decor:Preview(a) end, "<n|off>" },
     { "celebrate", function() ns.BondTrack:Preview() end },
     { "ach", function(a) ns.Pets:ProbeAch(a) end, "[post|now|group|groupnow]" },

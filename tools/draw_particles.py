@@ -176,9 +176,223 @@ def rays():
     return ImageChops.multiply(m, fade)
 
 
+# Family ambience and the rest of the traits (2026-11-09).
+def rot(pts, a, cx=0, cy=0):
+    c, s = math.cos(a), math.sin(a)
+    return [(cx + x * c - y * s, cy + x * s + y * c) for x, y in pts]
+
+
+def oval(cx, cy, rx, ry, a=0, n=120):
+    return rot([(rx * math.cos(2 * math.pi * i / n), ry * math.sin(2 * math.pi * i / n)) for i in range(n)], a, cx, cy)
+
+
+def drop_pts(rx, ry, m, cy=0):
+    """A teardrop, tip up."""
+    pts = []
+    for i in range(300):
+        t = i / 300 * 2 * math.pi
+        pts.append((rx * math.sin(t) * abs(math.sin(t / 2)) ** m, cy + ry * math.cos(t)))
+    return pts
+
+
+def feather():
+    m = canvas(); d = ImageDraw.Draw(m)
+    pts = []
+    for i in range(101):
+        t = i / 100
+        pts.append((0.08 * math.sin(math.pi * t) - 0.36 * math.sin(math.pi * t) ** 0.7, -0.9 + 1.8 * t))
+    for i in range(101):
+        t = 1 - i / 100
+        pts.append((0.08 * math.sin(math.pi * t) + 0.26 * math.sin(math.pi * t) ** 0.7, -0.9 + 1.8 * t))
+    poly(d, pts)
+    for y, side in ((0.35, -1), (-0.05, -1), (0.15, 1), (-0.3, 1)):  # notches in the vane
+        x = side * 0.4
+        poly(d, [(x, y), (side * 0.12, y - 0.12), (x, y - 0.04)], fill=0)
+    poly(d, [(0.0, -0.95), (0.05, -0.95), (0.1, 0.85), (0.06, 0.85)], fill=120)  # the quill
+    return m.rotate(-28, resample=Image.BICUBIC)
+
+
+def ember():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, drop_pts(0.42, 0.8, 1.6, -0.05))
+    ellipse(d, 0, -0.35, 0.22, 0.25, 255)
+    return m
+
+
+def gear():
+    m = canvas(); d = ImageDraw.Draw(m)
+    ellipse(d, 0, 0, 0.62, 0.62)
+    for k in range(8):
+        poly(d, rot([(-0.13, 0.5), (0.13, 0.5), (0.1, 0.88), (-0.1, 0.88)], k * math.pi / 4))
+    ellipse(d, 0, 0, 0.24, 0.24, 0)
+    return m
+
+
+def wisp():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(-0.85, -0.8), (0.12, 0.52), (0.52, 0.12)], fill=140)
+    ellipse(d, 0.32, 0.32, 0.36, 0.36)
+    return m
+
+
+def coin():
+    m = canvas(); d = ImageDraw.Draw(m)
+    ellipse(d, 0, 0, 0.86, 0.86, 255)
+    ellipse(d, 0, 0, 0.68, 0.68, 150)
+    ellipse(d, 0, 0, 0.6, 0.6, 225)
+    poly(d, rot([(-0.08, -0.4), (0.08, -0.4), (0.08, 0.4), (-0.08, 0.4)], 0.6), fill=255)
+    return m
+
+
+def grain():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(-0.03, -0.95), (0.03, -0.95), (0.03, 0.55), (-0.03, 0.55)], fill=200)
+    for k in range(5):
+        y = -0.35 + k * 0.27
+        for side in (-1, 1):
+            poly(d, oval(side * 0.13, y, 0.2, 0.1, side * 0.75))
+    poly(d, oval(0, 0.82, 0.09, 0.17))
+    return m.rotate(-30, resample=Image.BICUBIC)
+
+
+def seed():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, drop_pts(0.42, 0.85, 1.0))
+    poly(d, [(-0.03, -0.7), (0.03, -0.7), (0.03, 0.6), (-0.03, 0.6)], fill=140)
+    return m.rotate(20, resample=Image.BICUBIC)
+
+
+def clover():
+    m = canvas(); d = ImageDraw.Draw(m)
+    heart_pts = []
+    for i in range(200):
+        t = i / 200 * 2 * math.pi
+        x = 16 * math.sin(t) ** 3
+        y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+        heart_pts.append((x / 18 * 0.48, ((y + 2) / 18 + 0.83) * 0.48))
+    for k in range(3):
+        poly(d, rot(heart_pts, k * 2 * math.pi / 3, 0, 0.1))
+    poly(d, [(-0.03, 0.1), (0.04, 0.1), (0.32, -0.9), (0.24, -0.9)])
+    return m
+
+
+def zee():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(-0.6, 0.7), (0.62, 0.7), (0.62, 0.48), (-0.22, -0.48), (0.62, -0.48), (0.62, -0.7), (-0.62, -0.7),
+             (-0.62, -0.48), (0.22, 0.48), (-0.6, 0.48)])
+    return m
+
+
+def speech():
+    m = canvas(); d = ImageDraw.Draw(m)
+    (x0, y1), (x1, y0) = P(-0.85, -0.3), P(0.85, 0.7)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=BIG * 0.16, fill=255)
+    poly(d, [(-0.5, -0.25), (-0.15, -0.25), (-0.62, -0.75)])
+    for x in (-0.42, 0, 0.42):
+        ellipse(d, x, 0.2, 0.12, 0.12, 0)
+    return m
+
+
+def crumb():
+    m = canvas(); d = ImageDraw.Draw(m)
+    r = (0.55, 0.42, 0.6, 0.38, 0.5, 0.62, 0.4)
+    poly(d, [(r[k] * math.cos(k * 2 * math.pi / 7), r[k] * math.sin(k * 2 * math.pi / 7)) for k in range(7)])
+    ellipse(d, 0.68, 0.55, 0.1, 0.1)
+    ellipse(d, -0.6, -0.62, 0.08, 0.08)
+    return m
+
+
+def cloud():
+    m = canvas(); d = ImageDraw.Draw(m)
+    for cx, cy, r in ((-0.45, -0.08, 0.33), (0.0, 0.14, 0.42), (0.45, -0.04, 0.32)):
+        ellipse(d, cx, cy, r, r)
+    (x0, y1), (x1, y0) = P(-0.76, -0.4), P(0.76, -0.08)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=BIG * 0.08, fill=255)
+    return m
+
+
+def pebble():
+    m = canvas(); d = ImageDraw.Draw(m)
+    r = (0.8, 0.7, 0.55, 0.62, 0.75, 0.68, 0.5, 0.58)
+    pts = []
+    for k in range(64):  # a smooth, lumpy outline
+        a = k / 64 * 2 * math.pi
+        f = k / 64 * 8
+        i = int(f) % 8
+        w = f - int(f)
+        rr = r[i] * (1 - w) + r[(i + 1) % 8] * w
+        pts.append((rr * math.cos(a), 0.72 * rr * math.sin(a) - 0.05))
+    poly(d, pts, fill=215)
+    ellipse(d, -0.2, 0.15, 0.25, 0.12, 255)
+    return m
+
+
+def chevron():
+    m = canvas(); d = ImageDraw.Draw(m)
+    for y in (-0.45, 0.25):
+        poly(d, [(-0.75, y - 0.1), (0, y + 0.6), (0.75, y - 0.1), (0.75, y - 0.38), (0, y + 0.3), (-0.75, y - 0.38)])
+    return m
+
+
+def bolt():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(0.15, 0.95), (-0.45, 0.0), (-0.02, 0.0), (-0.25, -0.95), (0.5, 0.15), (0.06, 0.15), (0.4, 0.95)])
+    return m
+
+
+def halo():
+    """A flat ring, seen from the side: worn over a head."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, oval(0, 0, 0.92, 0.4))
+    poly(d, oval(0, 0.02, 0.74, 0.24), fill=0)
+    return m.filter(ImageFilter.GaussianBlur(SS * 1.5))
+
+
+def sword():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(-0.1, -0.3), (0.1, -0.3), (0.1, 0.7), (0, 0.92), (-0.1, 0.7)])
+    poly(d, [(-0.04, -0.25), (0.0, -0.25), (0.0, 0.7), (-0.04, 0.7)], fill=170)  # the edge catches the light
+    (x0, y1), (x1, y0) = P(-0.42, -0.42), P(0.42, -0.3)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=BIG * 0.03, fill=255)
+    poly(d, [(-0.06, -0.42), (0.06, -0.42), (0.06, -0.72), (-0.06, -0.72)])
+    ellipse(d, 0, -0.8, 0.11, 0.11)
+    return m.rotate(-40, resample=Image.BICUBIC)
+
+
+def drop():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, drop_pts(0.55, 0.85, 1.0, -0.05), fill=200)
+    ellipse(d, -0.2, -0.25, 0.11, 0.2, 255)  # where the light catches it
+    return m
+
+
+def butterfly():
+    m = canvas(); d = ImageDraw.Draw(m)
+    for side in (-1, 1):
+        poly(d, oval(side * 0.42, 0.22, 0.44, 0.34, side * 0.5))
+        poly(d, oval(side * 0.3, -0.38, 0.28, 0.24, -side * 0.4))
+        ellipse(d, side * 0.48, 0.3, 0.12, 0.1, 140)  # a spot on each wing
+    poly(d, oval(0, -0.05, 0.07, 0.55), fill=255)
+    poly(d, [(-0.02, 0.45), (0.0, 0.45), (-0.18, 0.85), (-0.21, 0.83)])
+    poly(d, [(0.0, 0.45), (0.02, 0.45), (0.21, 0.83), (0.18, 0.85)])
+    return m
+
+
+def mist():
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, oval(0, 0, 0.8, 0.26), fill=200)
+    poly(d, oval(-0.25, 0.08, 0.4, 0.18), fill=255)
+    return m
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
-          "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays}
+          "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays,
+          "feather": feather, "ember": ember, "gear": gear, "wisp": wisp, "coin": coin, "grain": grain,
+          "seed": seed, "clover": clover, "zee": zee, "speech": speech, "crumb": crumb, "cloud": cloud,
+          "pebble": pebble, "chevron": chevron, "bolt": bolt, "halo": halo, "sword": sword, "drop": drop,
+          "butterfly": butterfly, "mist": mist}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
+SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 
 
 def write_tga(path, mask):
@@ -196,7 +410,7 @@ def main():
     os.makedirs(OUT, exist_ok=True)
     sheet = Image.new("RGBA", (SIZE * len(SHAPES), SIZE), (40, 32, 26, 255))
     for i, (name, fn) in enumerate(SHAPES.items()):
-        big = fn().filter(ImageFilter.GaussianBlur(SS * 0.6))
+        big = fn().filter(ImageFilter.GaussianBlur(SS * SOFTER.get(name, 0.6)))
         size = BIGGER.get(name, SIZE)
         write_tga(os.path.join(OUT, name + ".tga"), big.resize((size, size), Image.LANCZOS))
         mask = big.resize((SIZE, SIZE), Image.LANCZOS)

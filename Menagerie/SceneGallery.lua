@@ -31,7 +31,31 @@ Gallery.MODES = {
         picks = function() return ns.DB.global.decorPicks end,
         changed = function() end,
     },
+    -- A border and corners per family ("border.cat"): the card wears the
+    -- chosen slot's family while the gallery is open.
+    frames = {
+        title = "Dyreparken: borders and corners per family",
+        slots = {},
+        filter = true,
+        button = 128,
+        kindOf = function(slot) return slot:match("^(%a+)%.") end,
+        picks = function() return ns.DB.global.decorPicks end,
+        changed = function() end,
+        select = function(slot)
+            ns.Decor.frameFamily = slot:match("%.(%a+)$")
+            if ns.JournalUI.Refresh then ns.JournalUI:Refresh() end
+        end,
+        closed = function()
+            ns.Decor.frameFamily = nil
+            if ns.JournalUI.Refresh then ns.JournalUI:Refresh() end
+        end,
+    },
 }
+for _, family in ipairs(Gallery.MODES.bg.slots) do
+    local slots = Gallery.MODES.frames.slots
+    slots[#slots + 1] = "border." .. family
+    slots[#slots + 1] = "corner." .. family
+end
 
 local views = {} -- mode -> { frame, grid, thumbs, selected, all, shown }
 local Layout -- below
@@ -89,19 +113,21 @@ local function Build(mode)
 
     frame.families = {}
     local x, y = 12, -30
+    local bw = cfg.button or 84
     for i, f in ipairs(cfg.slots) do
         local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-        b:SetSize(84, 20)
+        b:SetSize(bw, 20)
         b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
         b.family = f
         b:SetScript("OnClick", function()
             view.selected = f
+            if cfg.select then cfg.select(f) end
             if cfg.filter then Layout(view) end
             Redraw(view)
         end)
         frame.families[i] = b
-        x = x + 88
-        if x + 84 > width - 10 then x, y = 12, y - 24 end
+        x = x + bw + 4
+        if x + bw > width - 10 then x, y = 12, y - 24 end
     end
     frame.hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.hint:SetPoint("TOPLEFT", frame, "TOPLEFT", 14, y - 26)
@@ -112,6 +138,7 @@ local function Build(mode)
     view.grid = CreateFrame("Frame", nil, scroll)
     view.grid:SetSize(COLS * (THUMB_W + GAP), 1)
     scroll:SetScrollChild(view.grid)
+    if cfg.closed then frame:SetScript("OnHide", function() cfg.closed() end) end
     view.frame = frame
     views[mode] = view
     return view
@@ -164,7 +191,7 @@ function Layout(view)
     for _, t in ipairs(view.thumbs) do t:Hide() end
     local shown = 0
     for _, c in ipairs(view.all) do
-        if not view.cfg.filter or c.slot == view.selected then
+        if not view.cfg.filter or c.slot == (view.cfg.kindOf and view.cfg.kindOf(view.selected) or view.selected) then
             shown = shown + 1
             local t = view.thumbs[shown] or NewThumb(view)
             t.path = c.path
@@ -196,5 +223,6 @@ function Gallery:Show(list, mode)
     Layout(view)
     Redraw(view)
     view.frame:Show()
+    if view.cfg.select then view.cfg.select(view.selected) end
     Gallery._frame, Gallery._thumbs = view.frame, view.thumbs
 end

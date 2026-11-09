@@ -115,7 +115,7 @@ Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, S
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
-                   English aliases; probe [more|tabs|kills|life|card|bg|decor|level|celebrate|ach], debug)
+                   English aliases; probe [more|tabs|kills|life|card|bg|decor|frames|level|celebrate|ach], debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
@@ -138,7 +138,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    PLAY on PARTY/RAID), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
-                   particles from traits and the date, each kind with its own motion (sway, spin, tilt, throb); animation
+                   particles from traits (every trait has some; those with a moment show only then) and the date, and
+                   each family's ambience, always (Decor.FAMILY: feathers, embers, gears, fireflies...); each kind with its
+                   own motion (sway, spin, tilt, throb, flap) and path (rise, fall, burst, twinkle, steps, drift, wind);
+                   a border and corners per family (Decor.FAMILY_ART, picked with /dp probe frames); animation
                    groups only, timelines in steps (never Alpha delays inside a step), one playing group per region
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
                    come home instead), stopped when hidden. Also
@@ -159,7 +162,9 @@ Achievements/      Defs (ids, kinds;
                    Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first). Planned next: bond, temperament and the activity engine,
                    docs/PET_LIFE.md.
-Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble, confetti, note, paw, leaf, moon, snowflake, ring, rays):
+Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble, confetti, note, paw, leaf, moon, snowflake, ring, rays,
+                   and since 2026-11-09 feather, ember, gear, wisp, coin, grain, seed, clover, zee, speech, crumb, cloud,
+                   pebble, chevron, bolt, halo, sword, drop, butterfly, mist):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history

@@ -211,6 +211,57 @@ return function(test, H)
         no(D.Exists("atlas:bags-glow-orange"))
     end)
 
+    test("/dp probe frames: a border and corners per family, worn by the card while it's chosen", function()
+        local w, ola = Setup()
+        local D, G = ola.ns.Decor, ola.ns.SceneGallery
+        ola.atlases = { ["UI-Frame-Metal-CornerTopLeft"] = true, ["DarkWoodFrameCorner"] = true,
+            ["AdventuresFrame-Corner-Small-TopLeft"] = true, ["loottoast-itemborder-gold"] = true }
+        ola:Slash("probe level 3")
+        local card = ola:SelectPet(40) -- a cat
+        local d = card.decor
+        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "no pick: the shared corner")
+        ola:Slash("probe frames")
+        ok(ola:Printed("borders and corners exist", true))
+        match(G._frame.hint.text, "^Slot: border%.default")
+        eq(D.frameFamily, "default", "the card wears the chosen family")
+        local function Shown()
+            local shown = {}
+            for _, t in ipairs(G._thumbs) do if t:IsShown() then shown[#shown + 1] = t end end
+            return shown
+        end
+        local function Pick(slot)
+            for _, b in ipairs(G._frame.families) do if b.family == slot then b:Click() end end
+        end
+        for _, t in ipairs(Shown()) do ok(not t.path:find("Corner", 1, true) or t.path:find("Wood"), t.path) end
+        Pick("corner.cat")
+        eq(D.frameFamily, "cat")
+        local metal
+        for _, t in ipairs(Shown()) do
+            if t.path == "atlas:UI-Frame-Metal-CornerTopLeft" then metal = t end
+            ok(t.path ~= "atlas:DarkWoodFrameCorner", "a border isn't a corner")
+        end
+        ok(metal, "the corners there are")
+        metal.scripts.OnClick(metal, "LeftButton")
+        eq(ola.env.DyreparkenDB.decorPicks["corner.cat"], "atlas:UI-Frame-Metal-CornerTopLeft")
+        eq(d.corners.TOPLEFT.atlas, "UI-Frame-Metal-CornerTopLeft", "on the card at once")
+        Pick("corner.dragon")
+        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the dragon's: none yet")
+        -- Closed: every pet wears its own family's.
+        G._frame:Hide()
+        eq(D.frameFamily, nil)
+        eq(d.corners.TOPLEFT.atlas, "UI-Frame-Metal-CornerTopLeft", "the cat's pick")
+        card = ola:SelectPet(5159)
+        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the panda: no family, no pick")
+        -- A file path works too, mirrored by its coordinates; and so do the picks written into the code.
+        D.FAMILY_ART.default = { corner = "Interface\\Some\\Corner", border = "Interface\\Some\\Border" }
+        card = ola:SelectPet(5159)
+        eq(d.corners.BOTTOMRIGHT.tex, "Interface\\Some\\Corner")
+        eq(table.concat(d.corners.BOTTOMRIGHT.texCoord, ","), "1,0,1,0")
+        eq(table.concat(d.corners.TOPLEFT.texCoord, ","), "0,1,0,1")
+        eq(d.border.tex, "Interface\\Some\\Border")
+        eq(table.concat(d.border.slice, ","), "18,18,18,18")
+    end)
+
     test("/dp probe bg opens a gallery of what exists; picks become the family's background", function()
         local w, ola = Setup()
         ola.ns.Scenes.BY_FAMILY = Lists()

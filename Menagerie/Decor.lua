@@ -100,6 +100,20 @@ function Decor:Probe()
     ns.SceneGallery:Show(have, "decor")
 end
 
+-- /dp probe frames: a border and corners per family. Picks show on the card
+-- at once; the card wears the family whose slot is chosen.
+function Decor:ProbeFrames()
+    local have = {}
+    for i, c in ipairs(self:Candidates()) do
+        if (c.slot == "border" or c.slot == "corner") and Decor.Exists(c.path) then
+            have[#have + 1] = { n = i, path = c.path, slot = c.slot }
+        end
+    end
+    ns.Print(("%d borders and corners exist. Pick per family; /dp probe level 3 (silver) or 5 (gold) shows them.")
+        :format(#have))
+    ns.SceneGallery:Show(have, "frames")
+end
+
 ------------------------------------------------------------------------------
 -- On the card (2026-11-08). Two sources of decoration, both behind the pet
 -- (textures on the card itself, which the model's frame draws over):
@@ -107,6 +121,9 @@ end
 --     see from across the room, so a pet that has been loved long looks it;
 --   the pet's TRAITS (and the date): particles, each kind with its own
 --     motion: leaves sway down, hearts throb, sparks fly, confetti spins...
+--   the pet's FAMILY (2026-11-09): a soft ambience every card has, bond or
+--     not (feathers, embers, gears, fireflies...), and a border and corners
+--     of its own once picked (FAMILY_ART).
 -- Moving parts are animation groups: the client plays them, no OnUpdate.
 -- They run only while the card shows something; Apply(card, nil) and the
 -- card's OnHide stop them all. A pool of particles is made once.
@@ -125,7 +142,7 @@ end
 -- REPEAT loops of steps that end where they began: out, back past the
 -- middle, home (Swing below).
 ------------------------------------------------------------------------------
-local POOL = 24
+local POOL = 32 -- a family, two traits, the date and the bond at once
 local GOLD, SILVER = ns.Scenes.GOLD, ns.Scenes.SILVER
 Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
     border = "loottoast-itemborder-gold", -- an item frame, nine-sliced around the card
@@ -140,7 +157,12 @@ for n = 2, 7 do Decor.LEVELS[n] = ns.L["decor.level." .. n] end
 
 -- Kinds of particles: the texture, the path, the extra motions, and sizes.
 --   path: rise, fall, burst (flies out from the pet), twinkle (in place),
---   steps (paw prints along the ground)
+--   steps (paw prints along the ground), drift (wanders a little, slowly),
+--   wind (blows across the card, left to right)
+--   motions (one of spin, tilt, throb, flap: they share the texture); sway
+--   x = "pet": starts around the pet, not spread across the card; y: where
+--   it starts (from the panel's top); dist: how far it rises or falls;
+--   grow: its scale at the end; add: drawn as light (embers, fireflies)
 Decor.KINDS = {
     heart = { tex = "heart", path = "rise", throb = true, size = { 16, 24 }, dur = { 5, 7 } },
     bubble = { tex = "bubble", path = "rise", sway = 8, size = { 10, 20 }, dur = { 5, 8 } },
@@ -151,17 +173,50 @@ Decor.KINDS = {
     spark = { tex = "sparkle", path = "burst", spin = 1.5, size = { 12, 22 }, dur = { 1.4, 2.2 } },
     star = { tex = "star", path = "twinkle", spin = 8, size = { 10, 18 }, dur = { 2, 3.5 } },
     paw = { tex = "paw", path = "steps", size = { 16, 18 }, dur = { 4, 4 } },
+    -- The families' ambience (2026-11-09).
+    feather = { tex = "feather", path = "fall", sway = 30, tilt = 40, size = { 14, 20 }, dur = { 8, 11 } },
+    ember = { tex = "ember", path = "rise", sway = 10, throb = 1.2, period = 0.6, add = true, size = { 8, 14 }, dur = { 4, 6 } },
+    gear = { tex = "gear", path = "drift", spin = 9, size = { 14, 22 }, dur = { 6, 9 } },
+    mote = { tex = "dot", path = "drift", add = true, size = { 6, 12 }, dur = { 6, 9 } },
+    firefly = { tex = "dot", path = "drift", throb = 1.5, period = 1.6, add = true, size = { 8, 12 }, dur = { 5, 8 } },
+    wisp = { tex = "wisp", path = "drift", sway = 14, add = true, size = { 18, 26 }, dur = { 6, 9 } },
+    coin = { tex = "coin", path = "twinkle", y = { 20, 90 }, flap = 0.2, grow = 1, size = { 12, 16 }, dur = { 3, 5 } },
+    grain = { tex = "grain", path = "fall", sway = 20, tilt = 30, size = { 16, 22 }, dur = { 8, 11 } },
+    seed = { tex = "seed", path = "fall", spin = 3, size = { 8, 12 }, dur = { 6, 8 } },
+    clover = { tex = "clover", path = "fall", sway = 22, tilt = 30, size = { 12, 18 }, dur = { 8, 10 } },
+    sand = { tex = "dot", path = "wind", size = { 3, 6 }, dur = { 5, 7 } },
+    mist = { tex = "mist", path = "wind", y = { 10, 80 }, size = { 60, 90 }, dur = { 12, 16 } },
+    lights = { tex = "dot", path = "twinkle", add = true, size = { 8, 12 }, dur = { 2, 4 } },
+    -- The rest of the traits (2026-11-09).
+    crumb = { tex = "crumb", path = "fall", x = "pet", y = { 80, 130 }, dist = { 60, 90 }, spin = 2.5, size = { 6, 10 },
+        dur = { 2.5, 3.5 } },
+    sword = { tex = "sword", path = "burst", size = { 14, 20 }, dur = { 1.6, 2.2 } },
+    cloud = { tex = "cloud", path = "wind", y = { 220, 320 }, size = { 40, 60 }, dur = { 14, 18 } },
+    bolt = { tex = "bolt", path = "burst", tilt = 20, size = { 12, 18 }, dur = { 1.2, 1.8 } },
+    pebble = { tex = "pebble", path = "fall", y = { 40, 80 }, dist = { 30, 60 }, tilt = 25, size = { 10, 16 },
+        dur = { 3, 4 } },
+    halo = { tex = "halo", path = "twinkle", x = "pet", spread = 0, y = { 215, 215 }, grow = 1.08, add = true,
+        size = { 60, 60 }, dur = { 4, 4 } },
+    hearth = { tex = "sparkle", path = "rise", sway = 10, add = true, size = { 8, 12 }, dur = { 6, 8 } },
+    chevron = { tex = "chevron", path = "rise", x = "pet", y = { 60, 100 }, dist = { 120, 160 }, size = { 14, 18 },
+        dur = { 3, 4 } },
+    zee = { tex = "zee", path = "rise", x = "pet", y = { 150, 180 }, dist = { 80, 110 }, grow = 1.8, tilt = 15,
+        size = { 12, 18 }, dur = { 4, 5 } },
+    speech = { tex = "speech", path = "twinkle", x = "pet", y = { 150, 230 }, grow = 1, throb = 1.15,
+        size = { 18, 24 }, dur = { 2.5, 3.5 } },
+    flock = { tex = "dot", path = "drift", x = "pet", y = { 60, 200 }, add = true, size = { 8, 12 }, dur = { 5, 7 } },
+    drop = { tex = "drop", path = "fall", dist = { 220, 280 }, size = { 8, 12 }, dur = { 2.5, 3.5 } },
+    butterfly = { tex = "butterfly", path = "drift", flap = 0.35, sway = 20, size = { 14, 20 }, dur = { 7, 10 } },
 }
--- (Each kind uses at most one of spin, tilt and throb: they share the texture.)
 
--- Particles per trait: { kind, how many, color }. "when" limits it to a
--- moment (Personality's own rules: night, holidays, weekends).
--- (Personality's own rules: the stars show exactly when Nattugle's moment is.)
-local function Night(t) return ns.Personality.IsNight(t) end
+-- Particles per trait: { kind, how many, color, alpha }. "when" limits it to
+-- a day (Personality's own rules: holidays, weekends). A trait with a
+-- moment of its own (Nattugle, Flokkdyr, Huleboer...) shows exactly then:
+-- its own rule (Personality's when, on Bond.Context).
 local function Holiday(t) return ns.Personality.Holiday(t) ~= nil end
 local function Weekend(t) return ns.Personality.IsWeekend(t) end
 Decor.TRAITS = {
-    nattugle = { kind = "star", n = 5, color = { 0.85, 0.9, 1 }, when = Night },
+    nattugle = { kind = "star", n = 5, color = { 0.85, 0.9, 1 } },
     festglad = { kind = "confetti", n = 10, color = "rainbow", when = Holiday },
     helgedyr = { kind = "note", n = 3, color = { 1, 0.9, 0.6 }, when = Weekend },
     dansefot = { kind = "note", n = 3, color = { 1, 0.8, 0.95 } },
@@ -172,7 +227,47 @@ Decor.TRAITS = {
     gronnfinger = { kind = "leaf", n = 3, color = { 0.55, 0.85, 0.4 } },
     oppdager = { kind = "paw", n = 4, color = { 0.9, 0.8, 0.65 } },
     hoppetass = { kind = "paw", n = 4, color = { 0.9, 0.8, 0.65 } },
+    glupsk = { kind = "crumb", n = 3, color = { 0.85, 0.65, 0.4 } },
+    eventyrlysten = { kind = "sword", n = 3, color = { 1, 0.45, 0.35 } },
+    reiseglad = { kind = "cloud", n = 2, color = { 1, 1, 1 }, alpha = 0.6 },
+    rampete = { kind = "bolt", n = 3, color = { 1, 0.9, 0.3 } },
+    steinhard = { kind = "pebble", n = 3, color = { 0.7, 0.68, 0.65 } },
+    trofast = { kind = "halo", n = 1, color = { 1, 0.9, 0.55 }, alpha = 0.8 },
+    hjemlengsel = { kind = "hearth", n = 4, color = { 0.45, 0.75, 1 } },
+    ambisios = { kind = "chevron", n = 3, color = { 0.5, 1, 0.5 }, alpha = 0.8 },
+    latsabb = { kind = "zee", n = 3, color = { 0.8, 0.85, 1 } },
+    pratsom = { kind = "speech", n = 2, color = { 1, 1, 1 }, alpha = 0.85 },
+    flokkdyr = { kind = "flock", n = 5, color = { 1, 0.85, 0.4 } },
+    einstoing = { kind = "wisp", n = 1, color = { 0.8, 0.75, 1 } },
+    huleboer = { kind = "drop", n = 3, color = { 0.6, 0.75, 0.9 } },
+    friluftsdyr = { kind = "butterfly", n = 2, color = { 1, 0.75, 0.4 } },
 }
+
+-- Every pet's family (Scenes:Families, the first one; else default) has an
+-- ambience of its own, always, softer than the traits' (decided 2026-11-09).
+Decor.FAMILY = {
+    bird = { kind = "feather", n = 3, color = { 0.95, 0.95, 1 } },
+    owl = { kind = "feather", n = 3, color = { 0.75, 0.65, 0.55 } },
+    cat = { kind = "mote", n = 6, color = { 1, 0.85, 0.55 } },
+    farm = { kind = "grain", n = 3, color = { 0.95, 0.8, 0.4 } },
+    rabbit = { kind = "clover", n = 3, color = { 0.5, 0.85, 0.45 } },
+    frog = { kind = "firefly", n = 5, color = { 0.75, 1, 0.4 } },
+    snake = { kind = "sand", n = 8, color = { 0.95, 0.8, 0.5 } },
+    mechanical = { kind = "gear", n = 3, color = { 0.75, 0.8, 0.85 } },
+    dragon = { kind = "ember", n = 6, color = { 1, 0.55, 0.15 } },
+    pirate = { kind = "coin", n = 3, color = { 1, 0.82, 0.3 } },
+    bug = { kind = "firefly", n = 5, color = { 1, 0.9, 0.35 } },
+    rodent = { kind = "seed", n = 3, color = { 0.8, 0.65, 0.45 } },
+    wolf = { kind = "mist", n = 3, color = { 0.8, 0.85, 0.95 }, alpha = 0.35 },
+    plant = { kind = "mote", n = 6, color = { 0.85, 1, 0.45 } },
+    festive = { kind = "lights", n = 6, color = "rainbow" },
+    demon = { kind = "ember", n = 6, color = { 0.5, 1, 0.2 } },
+    ooze = { kind = "bubble", n = 4, color = { 0.55, 1, 0.35 } },
+    spirit = { kind = "wisp", n = 4, color = { 0.7, 0.75, 1 } },
+    default = { kind = "mote", n = 5, color = { 1, 0.9, 0.7 } },
+}
+Decor.FAMILY_ALPHA = 0.7 -- the ambience stays behind the traits
+for _, spec in pairs(Decor.FAMILY) do spec.alpha = spec.alpha or Decor.FAMILY_ALPHA end
 local function December(t) return date("%m", t) == "12" end
 local RAINBOW = { { 1, 0.35, 0.35 }, { 1, 0.8, 0.25 }, { 0.4, 0.85, 0.4 }, { 0.35, 0.65, 1 }, { 0.85, 0.45, 1 } }
 
@@ -189,6 +284,25 @@ local function SetAtlasFlipped(tex, atlas, flipX, flipY)
     if flipY then t, b = b, t end
     tex:SetTexture(info.file)
     tex:SetTexCoord(l, r, t, b)
+end
+
+-- A picture for a slot: an atlas ("atlas:<name>", or a bare name) or a
+-- file path, mirrored if asked.
+local function SetArt(tex, art, flipX, flipY)
+    local atlas = art:match("^atlas:(.+)$") or (not art:find("\\", 1, true) and art)
+    if atlas then return SetAtlasFlipped(tex, atlas, flipX, flipY) end
+    tex:SetTexture(art)
+    tex:SetTexCoord(flipX and 1 or 0, flipX and 0 or 1, flipY and 1 or 0, flipY and 0 or 1)
+end
+
+-- Per family, a border and corners of its own (2026-11-09: wood for the
+-- farm, metal for the mechanical...): picked in game with /dp probe frames,
+-- then written here. Until then a pick saved in DyreparkenDB.decorPicks
+-- ("border.cat") shows at once; a family without one has Decor.ART's.
+Decor.FAMILY_ART = {}
+function Decor:Art(slot, family)
+    local own = self.FAMILY_ART[family]
+    return ns.DB.global.decorPicks[slot .. "." .. family] or own and own[slot] or self.ART[slot]
 end
 
 -- A stable little random per pet, so its particles keep their places.
@@ -243,11 +357,12 @@ local function Swing(region, kind)
 end
 
 -- Set a swing's size (pixels, degrees, or a scale factor) and one loop's length.
-local function SetSwing(g, amount, period)
+local function SetSwing(g, amount, period, across)
     local a1, a2, a3 = g.steps[1], g.steps[2], g.steps[3]
     if g.kind == "Scale" then -- a beat: up quickly, down, then a rest (a still step)
-        a1:SetScale(amount, amount); a1:SetDuration(period * 0.3); a1:SetSmoothing("OUT")
-        a2:SetScale(1 / amount, 1 / amount); a2:SetDuration(period * 0.4); a2:SetSmoothing("IN_OUT")
+        local y = across and 1 or amount -- across: the width only
+        a1:SetScale(amount, y); a1:SetDuration(period * 0.3); a1:SetSmoothing("OUT")
+        a2:SetScale(1 / amount, 1 / y); a2:SetDuration(period * 0.4); a2:SetSmoothing("IN_OUT")
         a3:SetOffset(0, 0); a3:SetDuration(period * 0.3)
         return
     end
@@ -293,8 +408,6 @@ function Decor:Build(card, c, panel)
     d.border:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -1, 1)
     d.sliced = d.border.SetTextureSliceMargins ~= nil and Enum and Enum.UITextureSliceMode ~= nil
     if d.sliced then
-        d.border:SetAtlas(self.ART.border)
-        d.border:SetTextureSliceMargins(18, 18, 18, 18)
         d.border:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
     end
     d.border:Hide()
@@ -326,7 +439,6 @@ function Decor:Build(card, c, panel)
     d.corners = {}
     for _, point in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
         local t = c:CreateTexture(nil, "BORDER", nil, 3)
-        SetAtlasFlipped(t, self.ART.corner, point:find("RIGHT") ~= nil, point:find("BOTTOM") ~= nil)
         t:SetSize(48, 48)
         t:SetPoint(point, c, point, point:find("LEFT") and 2 or -2, point:find("TOP") and -2 or 2)
         t:Hide()
@@ -387,32 +499,40 @@ local function Launch(p, spec, rng, i, n, panel)
     local width = panel:GetWidth() or 400
     local icon = p.icon
     icon:SetTexture(Decor.MEDIA .. k.tex)
+    icon:SetBlendMode(k.add and "ADD" or "BLEND")
     local c = spec.color
     if c == "rainbow" then c = RAINBOW[(i - 1) % #RAINBOW + 1] end
-    icon:SetVertexColor(c[1], c[2], c[3], 1)
+    icon:SetVertexColor(c[1], c[2], c[3], spec.alpha or 1)
     icon:SetRotation(0)
     local size = rng(k.size[1], k.size[2])
     p:SetSize(size, size)
     local dur = rng(k.dur[1], k.dur[2])
     local x, y, dx, dy = width * (i - 0.5) / n + rng(-20, 20), 0, 0, 0
-    local grow
+    if k.x == "pet" then x = width / 2 + rng(-1, 1) * (k.spread or 50) end
+    local function Y(a, b) return k.y and rng(k.y[1], k.y[2]) or rng(a, b) end
+    local function Dist(a, b) return k.dist and rng(k.dist[1], k.dist[2]) or rng(a, b) end
+    local grow = k.grow
     if k.path == "rise" then
-        y, dx, dy = rng(10, 70), rng(-20, 20), rng(150, 230)
+        y, dx, dy = Y(10, 70), rng(-20, 20), Dist(150, 230)
     elseif k.path == "fall" then
-        y, dx, dy = rng(270, 330), rng(-30, 30), -rng(200, 260)
+        y, dx, dy = Y(270, 330), rng(-30, 30), -Dist(200, 260)
     elseif k.path == "burst" then -- out from around the pet, in every direction
         local a = rng(0, 2 * math.pi)
         x, y = width / 2 + rng(-30, 30), rng(70, 130)
-        dx, dy, grow = math.cos(a) * rng(90, 150), math.sin(a) * rng(60, 120), 0.3
+        dx, dy, grow = math.cos(a) * rng(90, 150), math.sin(a) * rng(60, 120), grow or 0.3
     elseif k.path == "twinkle" then
-        y, grow = rng(190, 320), 1.6
+        y, grow = Y(190, 320), grow or 1.6
+    elseif k.path == "drift" then -- a slow wander, anywhere above the panel
+        y, dx, dy = Y(40, 280), rng(-40, 40), rng(-25, 25)
+    elseif k.path == "wind" then -- in from the left, across
+        x, y, dx, dy = rng(0, width * 0.3), Y(30, 300), width * rng(0.5, 0.7), rng(-15, 15)
     else -- steps: paw prints, one after another, along the ground
         x, y = width * 0.22 + (i - 1) * 36, 20 + (i % 2) * 12
         icon:SetRotation(-0.3)
     end
     p:ClearAllPoints()
     p:SetPoint("CENTER", panel, "TOPLEFT", x, y)
-    local g = grow and p.growing or p.plain
+    local g = grow and grow ~= 1 and p.growing or p.plain
     p.anim = g
     local wait = (i - 1) * dur / n + 0.01 -- staggered, so they don't all go at once
     g.hold:SetDuration(wait)
@@ -422,7 +542,7 @@ local function Launch(p, spec, rng, i, n, panel)
     g.fadeIn:SetDuration(dur * (k.path == "burst" and 0.1 or 0.25))
     g.moveB:SetOffset(dx * (1 - first), dy * (1 - first)); g.moveB:SetDuration(dur * (1 - first))
     g.fadeOut:SetDuration(dur * (1 - first))
-    if grow then g.grow:SetScaleFrom(1, 1); g.grow:SetScaleTo(grow, grow); g.grow:SetDuration(dur * (1 - first)) end
+    if g.grow then g.grow:SetScaleFrom(1, 1); g.grow:SetScaleTo(grow, grow); g.grow:SetDuration(dur * (1 - first)) end
     p:Show()
     g:Play()
     -- Its own motions, alongside, each on its own layer.
@@ -438,8 +558,9 @@ local function Launch(p, spec, rng, i, n, panel)
     elseif k.tilt then
         SetSwing(p.tilt, k.tilt * (i % 2 == 0 and 1 or -1), rng(1.8, 2.8))
         p.tilt:Play()
-    elseif k.throb then
-        SetSwing(p.throb, 1.25, 0.9)
+    elseif k.throb or k.flap then -- a beat; a flap beats across only (wings, a turning coin)
+        SetSwing(p.throb, k.flap or (k.throb == true and 1.25 or k.throb), k.period or (k.flap and 0.5 or 0.9),
+            k.flap ~= nil)
         p.throb:Play()
     end
 end
@@ -447,15 +568,23 @@ end
 -- The particle specs for a pet right now: its traits', December's snow,
 -- and the bond's sparks (5+) and hearts (7).
 function Decor:Specs(key, level, t)
-    local list = {}
+    local list, ctx = {}, nil
     -- (no trait particles for a pet whose personality is still a surprise)
     for _, trait in ipairs(ns.Personality:Known(key) and ns.Personality:Traits(key) or {}) do
         local spec = self.TRAITS[trait.id]
-        if spec and (not spec.when or spec.when(t)) then list[#list + 1] = spec end
+        local now = spec and (not spec.when or spec.when(t))
+        if now and trait.when then
+            if not ctx then ctx = ns.Bond.Context(); ctx.t = t end
+            now = trait.when(ctx)
+        end
+        if now then list[#list + 1] = spec end
     end
     if December(t) then list[#list + 1] = { kind = "snow", n = 5, color = { 1, 1, 1 } } end
     if level >= 5 then list[#list + 1] = { kind = "spark", n = 6, color = GOLD } end
     if level >= 7 then list[#list + 1] = { kind = "heart", n = 4, color = { 1, 0.4, 0.5 } } end
+    -- Last: the pool may run out, and the ambience is what can go.
+    local family = ns.Scenes:Families(key)[1]
+    list[#list + 1] = self.FAMILY[family] or self.FAMILY.default
     return list
 end
 
@@ -470,9 +599,11 @@ function Decor:Apply(card, key, level, color)
     -- (Every card refresh used to restart them all: guildmates' bond updates
     -- made the hearts and leaves blink out and fade back in.)
     local shown = self.preview or level or 0
-    local sig
+    local sig, border, corner
     if key then
-        local parts = { key, shown, color and table.concat(color, ",") or "" }
+        local family = self.frameFamily or ns.Scenes:Families(key)[1] or "default"
+        border, corner = self:Art("border", family), self:Art("corner", family)
+        local parts = { key, shown, color and table.concat(color, ",") or "", border, corner }
         for _, spec in ipairs(self:Specs(key, shown, ns.Now())) do parts[#parts + 1] = spec.kind .. spec.n end
         sig = table.concat(parts, ";")
         if sig == d.sig and d.playing then return end
@@ -486,6 +617,14 @@ function Decor:Apply(card, key, level, color)
     d.rays:Hide(); d.ribbon:Hide(); d.ribbonText:Hide()
     d.used = 0
     if not key then return end
+    if d.art ~= border .. corner then -- the family's frame
+        d.art = border .. corner
+        if d.sliced then
+            SetArt(d.border, border)
+            d.border:SetTextureSliceMargins(18, 18, 18, 18)
+        end
+        for point, t in pairs(d.corners) do SetArt(t, corner, point:find("RIGHT") ~= nil, point:find("BOTTOM") ~= nil) end
+    end
     level = self.preview or level or 0
     color = color or GOLD
     if level >= 2 then
