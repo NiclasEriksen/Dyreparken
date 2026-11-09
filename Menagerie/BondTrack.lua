@@ -30,17 +30,7 @@ function Track.Tier(level, family)
     return family or GOLD
 end
 
-local function Pulse(region, lo, hi, period)
-    local g = region:CreateAnimationGroup()
-    g:SetLooping("REPEAT")
-    for i, ab in ipairs({ { lo, hi }, { hi, lo } }) do
-        local a = g:CreateAnimation("Alpha")
-        a:SetFromAlpha(ab[1]); a:SetToAlpha(ab[2]); a:SetDuration(period / 2); a:SetSmoothing("IN_OUT"); a:SetOrder(i)
-    end
-    return g
-end
-
-local function Hide(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end
+local Pulse, Hide = ns.Anim.Pulse, ns.HideTip
 
 -- The bond's tooltip (the bar and the medallion).
 local function BondTip(self, card)
@@ -291,12 +281,7 @@ end
 ------------------------------------------------------------------------------
 local BURST = 16
 
-local function OneShot(region)
-    local g = region:CreateAnimationGroup()
-    g:SetLooping("NONE")
-    g:SetScript("OnFinished", function() region:Hide() end)
-    return g
-end
+local OneShot = ns.Anim.OneShot
 
 function Track:BuildCelebration(card, c, panel)
     local cel = { parts = {} }
@@ -403,7 +388,7 @@ end
 function Track:Preview()
     local card = ns.JournalUI._card
     if not (card and card.key and card.celebration) then
-        return ns.Print("Åpne kjæledyrkortet først.")
+        return ns.Print("Open the pet card first.")
     end
     local _, level = ns.Bond:Of(card.key)
     self:Celebrate(card, card.key, ns.Decor.preview or level or 1)

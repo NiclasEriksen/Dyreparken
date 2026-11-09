@@ -56,7 +56,7 @@ local function Stats()
     return ("session=[%s] lifetime=[%s]"):format(Call(GetPVPSessionStats), Call(GetPVPLifetimeStats))
 end
 
-local afterCombat = {}
+local KILLS = {} -- our owner key for ns.Events
 
 local function OnEvent(_, event, ...)
     ns.Log("Kills", "%s (%s) combat=%s pet=%s", event, Args(...), tostring(InCombatLockdown()), Kills:PetState())
@@ -71,7 +71,7 @@ end
 -- Listen while the debug log is on; idle otherwise.
 function Kills:Sync(on)
     for _, e in ipairs(EVENTS) do
-        if on then ns.Events:On(e, afterCombat, OnEvent) else ns.Events:Off(e, afterCombat) end
+        if on then ns.Events:On(e, KILLS, OnEvent) else ns.Events:Off(e, KILLS) end
     end
 end
 

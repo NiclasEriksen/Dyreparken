@@ -28,10 +28,7 @@ local SHOW_AFTER = 30 -- seconds after login: the login SYNC has arrived by then
 local REPEAT_AFTER = 3600 -- seconds before the same announcement can be posted again
 local MAX_OTHERS = 5  -- guild milestone lines; the rest are counted
 
-local function Plain(v)
-    if v == nil or (issecretvalue and issecretvalue(v)) then return nil end
-    return v
-end
+local Plain = ns.Plain
 
 -- Days counted at local noon, so DST shifts never move a day.
 local function DayNumber(t)
@@ -73,7 +70,7 @@ function Bonds:Celebrate()
     local g = ns.DB:Guild()
     if not g then return end
     local now, me = ns.Now(), ns.PlayerKey()
-    local today = date("%Y%m%d", now)
+    local today = ns.Today(now)
     local char = ns.DB.char
 
     local key, r = ns.Registry:MyPet()
@@ -106,7 +103,7 @@ function Bonds:PetOfTheDay(now)
     end
     if #keys == 0 then return nil end
     table.sort(keys)
-    local day = date("%Y%m%d", now or ns.Now())
+    local day = ns.Today(now)
     local pick = keys[LibStub("LibDeflate"):Adler32("dagens dyr " .. day) % #keys + 1]
     return pick, (ns.Registry:Holder(pick))
 end
@@ -132,7 +129,7 @@ function Bonds:PatText()
     if not guid then return nil end
     local key = ns.Pets:KeyOf(guid)
     local mine = ns.Registry:MyPet()
-    return ("klapper %s."):format(mine == key and self:NameOf(key) or ns.Pets:NameOfKey(key))
+    return ns.T("pat.own", { pet = mine == key and self:NameOf(key) or ns.Pets:NameOfKey(key) })
 end
 
 local announced = {} -- kind .. key -> GetTime(), this session

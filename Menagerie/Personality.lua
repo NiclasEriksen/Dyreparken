@@ -55,6 +55,12 @@ end
 
 local function Hour(t) return tonumber(date("%H", t)) end
 
+-- The moments some traits care about, by the player's clock. Decor shows
+-- the matching particles by the same rules.
+function Personality.IsNight(t) local h = Hour(t); return h >= 22 or h < 4 end
+function Personality.Holiday(t) return Personality.HOLIDAYS[date("%m%d", t)] end -- its name, or nil
+function Personality.IsWeekend(t) local w = tonumber(date("%w", t)); return w == 0 or w == 6 end
+
 -- ids are permanent (they key the pinned list). What players read about a
 -- trait is in Locale/nb.lua (trait.<id>.name, .desc, and for some .when,
 -- .day, .flavor, .dayflavor), filled in below.
@@ -77,12 +83,12 @@ Personality.TRAITS = {
     { id = "latsabb", like = "nap" },
     { id = "pratsom", like = "chat" },
     { id = "kosete", day = function() return 2 end, dayX = 2 },
-    { id = "nattugle", when = function(ctx) local h = Hour(ctx.t); return h >= 22 or h < 4 end },
-    { id = "festglad", day = function(t) return Personality.HOLIDAYS[date("%m%d", t)] and 3 or 1 end, dayX = 3,
+    { id = "nattugle", when = function(ctx) return Personality.IsNight(ctx.t) end },
+    { id = "festglad", day = function(t) return Personality.Holiday(t) and 3 or 1 end, dayX = 3,
         dayFlavor = function(name, t)
-            return ns.T("trait.festglad.dayflavor", { pet = name, holiday = Personality.HOLIDAYS[date("%m%d", t)] })
+            return ns.T("trait.festglad.dayflavor", { pet = name, holiday = Personality.Holiday(t) })
         end },
-    { id = "helgedyr", day = function(t) local w = tonumber(date("%w", t)); return (w == 0 or w == 6) and 2 or 1 end,
+    { id = "helgedyr", day = function(t) return Personality.IsWeekend(t) and 2 or 1 end,
         dayX = 2, dayFlavor = function(name) return ns.T("trait.helgedyr.dayflavor", { pet = name }) end },
     { id = "flokkdyr", against = "einstoing", when = function(ctx) return ctx.guildmates > 0 end },
     { id = "einstoing", against = "flokkdyr", when = function(ctx) return not ctx.group end },

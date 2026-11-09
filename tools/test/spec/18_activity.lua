@@ -200,6 +200,7 @@ return function(test, H)
         c.ns.AchTexts[d.id] = { name = "Bosskamerat", desc = "To bosser med kjæledyret ute." }
         Ach:WatchActivities()
         Ach:WatchActivities()
+        Ach:Check("login", "char") -- its first look, as at login (a first look is quiet)
         ok(Listening(c, "ENCOUNTER_END"), "watched for the achievement")
         local done, have, need = Ach:Evaluate(d, {})
         eq(done, false); eq(have, 0); eq(need, 2)

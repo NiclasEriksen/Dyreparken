@@ -166,7 +166,7 @@ return function(test, H)
         ola:Slash("probe decor")
         local files = 0
         for _, c in ipairs(list) do if not c.path:find("^atlas:") then files = files + 1 end end
-        ok(ola:Printed(("%d av %d pynt-bilder finnes; galleriet viser dem."):format(files + 2, #list), true))
+        ok(ola:Printed(("%d of %d decoration pictures exist; the gallery shows them."):format(files + 2, #list), true))
         eq(#ola:Log("decor %d+ no glow: atlas:"), slots.glow - 1 - 6 - 1, "every glow but the one, the files, our own")
         -- Our own particles: always there, first in their slots, and shipped.
         local own = 0
@@ -188,7 +188,7 @@ return function(test, H)
         end
         -- The first slot: corners (files only).
         for _, t in ipairs(Shown()) do ok(not t.path:find("^atlas:"), t.path) end
-        match(G._frame.hint.text, "^Valgt: corner %(2 bilder%)")
+        match(G._frame.hint.text, "^Slot: corner %(2 pictures%)")
         -- The glow slot: its files and the one atlas.
         local glowButton
         for _, b in ipairs(G._frame.families) do if b.family == "glow" then glowButton = b end end
@@ -221,7 +221,7 @@ return function(test, H)
         local list = ola.ns.Scenes:Candidates()
         ola.missingFiles = { [list[2].path] = true }
         ola:Slash("probe bg")
-        ok(ola:Printed(("%d av %d bakgrunner finnes; galleriet viser dem."):format(#list - 1, #list), true))
+        ok(ola:Printed(("%d of %d backgrounds exist; the gallery shows them."):format(#list - 1, #list), true))
         eq(#ola:Log("bg 2 no "), 1, "all of them are logged")
         eq(#ola:Log("bg 1 YES default: "), 1)
         local G = ola.ns.SceneGallery
@@ -261,7 +261,7 @@ return function(test, H)
         ola:Slash("probe bg 3")
         eq(ola:SelectPet(40).scene.tex, list[3].path)
         ola:Slash("probe bg 999")
-        ok(ola:Printed("Ingen bakgrunn nr. 999", true))
+        ok(ola:Printed("No background 999", true))
         ola:Slash("probe bg off")
         local seen = {}
         for _, c in ipairs(list) do no(seen[c.path], "listed once"); seen[c.path] = true end

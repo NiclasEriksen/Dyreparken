@@ -106,6 +106,7 @@ Core/Activity.lua  the activity engine: game events -> activities ("boss", "ques
                    "hearth", "jump", "explore"), counted per
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
                    (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
+Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot): no BOUNCE loops, one group per region
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
@@ -124,7 +125,8 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour), SceneGallery (/dp probe bg and decor: thumbnails of every
                    background that exists; pick one per family, saved in DyreparkenDB.scenePicks), BondTrack (the bond on the card: a medallion with the level, a track of seven stars,
                    a tinted bar with a spark; a celebration once per new level of your own pet, char.bondSeen), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
-                   Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Decor (pet card decorations: one more per bond level of the holder
+                   Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
+                   a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits and the date, each kind with its own motion (sway, spin, tilt, throb); animation
                    groups only, timelines in steps (never Alpha delays inside a step), one playing group per region

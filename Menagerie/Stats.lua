@@ -4,8 +4,10 @@ local _, ns = ...
 -- chips at the top, an icon and a count each. "Days out together" first,
 -- then the biggest of the rest, at most MAX. The counts are this
 -- character's own (the activity engine's per-pet counters,
--- char.activity[id].pets), so they show on any pet you've had out, and
--- only to you. Hover a chip for what it counts.
+-- char.activity[id].pets), so only you see them. The engine counts an
+-- activity only while something watches it: the bond watches the common
+-- ones and your adopted pet's likes, so a pet you only had out now and then
+-- may show fewer kinds than you did with it. Hover a chip for what it counts.
 local Stats = {}
 ns.Stats = Stats
 
@@ -83,7 +85,7 @@ function Stats:Build(card, c)
         chip.card = card
         chip:EnableMouse(true)
         chip:SetScript("OnEnter", Tip)
-        chip:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
+        chip:SetScript("OnLeave", ns.HideTip)
         chip:Hide()
         row.chips[i] = chip
     end

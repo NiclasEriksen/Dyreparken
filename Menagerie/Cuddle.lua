@@ -14,12 +14,7 @@ local CLICK_PX, CLICK_S = 5, 0.4 -- a click: moved less than this, shorter than 
 -- The sound: the first of these the client knows.
 Cuddle.SOUNDS = { "IG_CHARACTER_INFO_TAB", "IG_MAINMENU_OPTION_CHECKBOX_ON" }
 
-local function OneShot(region)
-    local g = region:CreateAnimationGroup()
-    g:SetLooping("NONE")
-    g:SetScript("OnFinished", function() region:Hide() end)
-    return g
-end
+local OneShot = ns.Anim.OneShot
 
 local function Fade(g, from, to, dur, order)
     local a = g:CreateAnimation("Alpha")
@@ -139,7 +134,7 @@ function Cuddle:Pet(card, x, y)
         if id then PlaySound(id); break end
     end
     -- Once a day, a cuddle for the bond: your adopted pet, out with you.
-    local today = date("%Y%m%d", ns.Now())
+    local today = ns.Today()
     local guid = ns.Activity.Plain(ns.Pets:Summoned())
     if ns.Registry:MyPet() == key and guid and ns.Pets:KeyOf(guid) == key and ns.DB.char.cardCuddle ~= today then
         ns.DB.char.cardCuddle = today

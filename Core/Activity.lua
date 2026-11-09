@@ -41,12 +41,7 @@ local ENGINE = {}       -- our owner key for ns.Events
 local unitFrame = CreateFrame("Frame")
 local unitEvents = {}   -- event -> true while registered on unitFrame
 
-local function Today(now) return date("%Y%m%d", now or ns.Now()) end
-
-local function Plain(v)
-    if v == nil or (issecretvalue and issecretvalue(v)) then return nil end
-    return v
-end
+local Today, Plain = ns.Today, ns.Plain
 Activity.Plain = Plain
 
 ------------------------------------------------------------------------------
@@ -106,7 +101,8 @@ function Activity:Source(src)
 end
 
 local function Run(src, event, ...)
-    if broken[src.id] or not next(wanted[src.id] or {}) then return end
+    local w = wanted[src.id]
+    if broken[src.id] or not (w and next(w)) then return end
     local ok, n, extra = pcall(src.filter, event, ...)
     if not ok then
         broken[src.id] = true

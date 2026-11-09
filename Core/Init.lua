@@ -40,6 +40,20 @@ ns.L = setmetatable({}, {
     end,
 })
 
+-- A value the client may hand us as a secret (docs/FOREVER_API.md): nil
+-- then, so nothing compares, indexes or prints it.
+function ns.Plain(v)
+    if v == nil or (issecretvalue and issecretvalue(v)) then return nil end
+    return v
+end
+
+-- A calendar day as "YYYYMMDD" (the local clock, from server time): the
+-- day the daily limit, the wish, the cuddle and the counters belong to.
+function ns.Today(t) return date("%Y%m%d", t or ns.Now()) end
+
+-- OnLeave for anything that shows a tooltip.
+function ns.HideTip(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end
+
 -- A text with its {named} placeholders filled from vars.
 function ns.Fill(s, vars)
     if vars and type(s) == "string" then
@@ -57,16 +71,16 @@ function ns.T(key, vars) return ns.Fill(ns.L[key], vars) end
 ns.Config = {
     INACTIVE_RELEASE_DAYS = 30,   -- reservation released after this long unseen
     NICKNAME_LEVEL = 3,           -- the bond level (Venn) at which a pet's carer may name it (Bond.lua)
-    NICKNAME_MAX_LEN = 20,
+    NICKNAME_MAX_LEN = 20,        -- characters (UTF-8 aware, see ns.Utf8Len)
     BOND_DAY_POINTS = 10,         -- bond points for a day with your adopted companion out
     BOND_LIKED_POINTS = 5,        -- an activity your companion likes (Personality.lua), with it out
     BOND_LIKED_CAP = 25,          -- ... at most this many points a day per activity
     BOND_OTHER_POINTS = 1,        -- any other activity with it out
     BOND_OTHER_CAP = 5,           -- ... at most this many a day per activity
     BOND_WISH_POINTS = 10,        -- today's wish done (Wish.lua), within the daily limit
-    BOND_DAILY_MAX = 75,
+    BOND_DAILY_MAX = 75,          -- the most bond points a calendar day can bring (the day + activities); bounds the wire
     BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries
-    SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole         -- the most bond points a day can bring (the day + activities, per calendar day); bounds the wire        -- characters (UTF-8 aware, see ns.Utf8Len)
+    SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole
     DEBUG_RING_SIZE = 2000,       -- lines kept in DyreparkenDebugDB
     COMM_PREFIX = "Dyreparken",   -- max 16 characters
 }
@@ -112,19 +126,16 @@ end
 --
 -- We ignore realms entirely: on Forever they're an implementation detail
 -- (players move between them under the hood; only the ruleset matters),
--- and this is a single-guild addon. A player's key is "First Surname".
+-- and this is a single-guild addon. A player's key is "First Surname"
+-- ("Hjelp Plask", or just "Hjelp" without a surname): ns.PlayerKey below.
 
--- "Hjelp Plask" (or just "Hjelp" without a surname).
--- How long a companion has lived with someone, to follow "Bor hos X":
--- "siden i dag", "siden i går", "i 5 dager", "i 3 måneder", "i 2 år".
--- Today/yesterday go by calendar date; the rest by whole days.
--- How long ago t was, by the calendar: "today", "yesterday", or "days",
--- "months", "years" with a count.
+-- How long ago t was: "today" and "yesterday" by the calendar date, else
+-- "days", "months" or "years" by whole days, with the count.
 local function Ago(t, now)
     if date("%Y%m%d", t) == date("%Y%m%d", now) or t > now then return "today" end
-    -- Yesterday by the calendar: noon of the day before. now - 86400 lands
-    -- is wrong around DST: just after midnight following a 23-hour day it
-    -- lands two calendar days back.
+    -- Yesterday by the calendar: noon of the day before. (now - 86400 is
+    -- wrong around DST: just after midnight following a 23-hour day it
+    -- lands two calendar days back.)
     local d = date("*t", now)
     local yesterday = time({ year = d.year, month = d.month, day = d.day - 1, hour = 12 })
     if date("%Y%m%d", t) == date("%Y%m%d", yesterday) then return "yesterday" end
@@ -135,6 +146,8 @@ local function Ago(t, now)
     return "years", math.floor(days / 365.25)
 end
 
+-- How long, as a phrase to follow "Bor hos X": "siden i dag", "i 5 dager",
+-- "i 3 måneder" (Locale/nb.lua, time.*).
 function ns.CaredFor(t, now)
     local kind, n = Ago(t, now or ns.Now())
     return ns.T("time." .. kind, { n = n })

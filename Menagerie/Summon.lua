@@ -45,6 +45,7 @@ end
 function Summon:SetEnabled(on)
     ns.DB.char.autoSummon = on
     ns.Log("Summon", "auto-summon %s", on and "on" or "off")
+    self:Watch()
     if on then self:Check("enabled") end
 end
 
@@ -201,19 +202,35 @@ function Summon:Init()
     -- A post-hook: the sound comes later, with the server's answer. Also
     -- catches the journal's Summon button and other addons.
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Summon:QuietSummon() end)
-    local function check(_, event) Summon:Check(event) end
+    self:Watch()
+    -- Just reserved one: bring it out.
+    ns.Bus:On("MY_RECORD", function(_, r)
+        Summon:Watch()
+        if r.k then Summon:Check("claimed") end
+    end)
+end
+
+-- The triggers, registered only while auto-summon can do anything: it's on,
+-- and there's an adopted pet (every mount change started a timer before).
+local watching = false
+function Summon:Watch()
+    local want = self:Enabled() and ns.Registry:MyPet() ~= nil
+    if want == watching then return end
+    watching = want
+    if not want then
+        for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED", "PLAYER_MOUNT_DISPLAY_CHANGED" }) do
+            ns.Events:Off(e, Summon)
+        end
+        return
+    end
     -- After a loading screen the summon can fail: give the world a moment.
     ns.Events:On("PLAYER_ENTERING_WORLD", Summon, function()
         C_Timer.After(3, function() Summon:Check("PLAYER_ENTERING_WORLD") end)
     end)
-    ns.Events:On("PLAYER_REGEN_ENABLED", Summon, check)
+    ns.Events:On("PLAYER_REGEN_ENABLED", Summon, function(_, event) Summon:Check(event) end)
     -- Landing / dismounting is when the pet usually goes missing.
     ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Summon, function()
         C_Timer.After(1.5, function() Summon:Check("dismount") end)
-    end)
-    -- Just reserved one: bring it out.
-    ns.Bus:On("MY_RECORD", function(_, r)
-        if r.k then Summon:Check("claimed") end
     end)
 end
 

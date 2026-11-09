@@ -96,7 +96,7 @@ function Decor:Probe()
         if ok then have[#have + 1] = { n = i, path = c.path, slot = c.slot } end
         ns.Log("Probe", "decor %d %s %s: %s", i, ok and "YES" or "no", c.slot, c.path)
     end
-    ns.Print(("%d av %d pynt-bilder finnes; galleriet viser dem."):format(#have, #list))
+    ns.Print(("%d of %d decoration pictures exist; the gallery shows them."):format(#have, #list))
     ns.SceneGallery:Show(have, "decor")
 end
 
@@ -163,9 +163,10 @@ Decor.KINDS = {
 
 -- Particles per trait: { kind, how many, color }. "when" limits it to a
 -- moment (Personality's own rules: night, holidays, weekends).
-local function Night(t) local h = tonumber(date("%H", t)); return h >= 20 or h < 5 end
-local function Holiday(t) return ns.Personality.HOLIDAYS[date("%m%d", t)] ~= nil end
-local function Weekend(t) local w = tonumber(date("%w", t)); return w == 0 or w == 6 end
+-- (Personality's own rules: the stars show exactly when Nattugle's moment is.)
+local function Night(t) return ns.Personality.IsNight(t) end
+local function Holiday(t) return ns.Personality.Holiday(t) ~= nil end
+local function Weekend(t) return ns.Personality.IsWeekend(t) end
 Decor.TRAITS = {
     nattugle = { kind = "star", n = 5, color = { 0.85, 0.9, 1 }, when = Night },
     festglad = { kind = "confetti", n = 10, color = "rainbow", when = Holiday },
@@ -265,18 +266,7 @@ local function SetSwing(g, amount, period)
 end
 Decor.SetSwing = SetSwing
 
--- A breathing alpha, lo -> hi -> lo, as a REPEAT loop (not BOUNCE).
-local function Pulse(region, lo, hi, period)
-    local g = region:CreateAnimationGroup()
-    g:SetLooping("REPEAT")
-    local up = g:CreateAnimation("Alpha")
-    up:SetFromAlpha(lo); up:SetToAlpha(hi); up:SetDuration(period / 2); up:SetSmoothing("IN_OUT"); up:SetOrder(1)
-    local down = g:CreateAnimation("Alpha")
-    down:SetFromAlpha(hi); down:SetToAlpha(lo); down:SetDuration(period / 2); down:SetSmoothing("IN_OUT")
-    down:SetOrder(2)
-    g.a = up
-    return g
-end
+local Pulse = ns.Anim.Pulse
 
 local function NewParticle(c)
     local holder = CreateFrame("Frame", nil, c)
@@ -572,11 +562,11 @@ function Decor:Preview(arg)
     local n = tonumber(arg)
     if n and n >= 1 and n <= #ns.Bond.LEVELS then
         self.preview = math.floor(n)
-        ns.Print(("Kortet vises som nivå %d (%s). /dp probe level off for å avslutte."):format(self.preview,
+        ns.Print(("The card shows level %d (%s). /dp probe level off to stop."):format(self.preview,
             ns.Bond.LEVELS[self.preview][2]))
     else
         self.preview = nil
-        ns.Print("Kortet viser det virkelige nivået igjen.")
+        ns.Print("The card shows the real level again.")
     end
     ns.JournalUI:Refresh()
 end

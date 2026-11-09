@@ -220,12 +220,12 @@ function Scenes:Probe(arg)
     local n = tonumber(arg)
     if arg == "off" then
         self.preview = nil
-        ns.Print("Bakgrunn: tilbake til familiene.")
+        ns.Print("Backgrounds: back to the families.")
     elseif n then
         local c = list[n]
-        if not c then return ns.Print(("Ingen bakgrunn nr. %d (1-%d)."):format(n, #list)) end
+        if not c then return ns.Print(("No background %d (1-%d)."):format(n, #list)) end
         self.preview = c.path
-        ns.Print(("Bakgrunn %d på kortet: %s (finnes: %s). /dp probe bg off for å avslutte."):format(n, c.path,
+        ns.Print(("Background %d on the card: %s (exists: %s). /dp probe bg off to stop."):format(n, c.path,
             tostring(Exists(c.path))))
     else
         local have = {}
@@ -234,7 +234,7 @@ function Scenes:Probe(arg)
             if ok then have[#have + 1] = { n = i, path = c.path } end
             ns.Log("Probe", "bg %d %s %s: %s", i, ok and "YES" or "no", c.family, c.path)
         end
-        ns.Print(("%d av %d bakgrunner finnes; galleriet viser dem."):format(#have, #list))
+        ns.Print(("%d of %d backgrounds exist; the gallery shows them."):format(#have, #list))
         ns.SceneGallery:Show(have)
     end
     ns.JournalUI:Refresh() -- redraw the card

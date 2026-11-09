@@ -303,6 +303,7 @@ L["tip.world"] = "Dyreparken: {home} · {level}"           -- {home} starts with
 ------------------------------------------------------------------------------
 L["card.free"] = "Trenger et hjem"
 L["card.likes"] = "Liker {list}"
+L["card.likes.tip"] = "Liker: {list}"
 L["card.adopt"] = "Adopter"
 L["card.letgo"] = "Gi slipp"
 L["card.nick"] = "Kallenavn"

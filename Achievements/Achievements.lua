@@ -437,7 +437,9 @@ local learned = 0 -- NEW_PET_ADDED events since the last account check
 
 -- which: "account", "char", "guild", or nil for all.
 function Ach:Check(reason, which)
-    local ctx = Context()
+    -- Character achievements (bond, nickname, activities) read their own
+    -- data: the full context (the collection, every holder) isn't needed.
+    local ctx = which == "char" and { now = ns.Now() } or Context()
     local new, quiet = {}, 0
     if which == nil or which == "account" then
         -- No pets at all: the journal isn't ready (or truly empty). Either
@@ -638,18 +640,34 @@ end
 
 -- Ask the activity engine to watch what our activity achievements count;
 -- they're checked again when one happens.
+local counted = {} -- activities some achievement counts
 function Ach:WatchActivities()
     local any = false
     for _, d in ipairs(ns.AchDefs) do
         if d.kind == "activity" then
             any = true
+            counted[d.act] = true
             ns.Activity:Want(d.act, Ach)
         end
     end
     if any and not self.watching then
         self.watching = true
-        ns.Bus:On("ACTIVITY", function() Ach:Check("activity", "char") end)
+        ns.Bus:On("ACTIVITY", function(id)
+            if counted[id] then Ach:CheckCharSoon("activity") end
+        end)
     end
+end
+
+-- One character check for a burst: an activity and the bond points it gave
+-- arrive together (ACTIVITY, then BOND), and one check covers both.
+local charPending = false
+function Ach:CheckCharSoon(reason)
+    if charPending then return end
+    charPending = true
+    C_Timer.After(0, function()
+        charPending = false
+        Ach:Check(reason, "char")
+    end)
 end
 
 function Ach:Init()
@@ -667,7 +685,7 @@ function Ach:Init()
         end)
     end)
     ns.Bus:On("MY_RECORD", function() Ach:Check("MY_RECORD", "char") end)
-    ns.Bus:On("BOND", function() Ach:Check("BOND", "char") end)
+    ns.Bus:On("BOND", function() Ach:CheckCharSoon("BOND") end)
     ns.Bus:On("MY_NAME", function() Ach:Check("MY_NAME", "char") end)
 
     ns.Comm:Register("ACH", function(msg, sender, channel)

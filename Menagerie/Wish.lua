@@ -31,7 +31,7 @@ end
 function Wish:Today()
     local key = ns.Registry:MyPet()
     if not key then return nil end
-    local day = date("%Y%m%d", ns.Now())
+    local day = ns.Today()
     local w = ns.DB.char.wish
     if not w or w.day ~= day or w.pet ~= key then
         w = { day = day, pet = key, id = self:For(key, day), done = false }
@@ -78,7 +78,7 @@ function Wish:Build(card, c)
             n = ns.Config.BOND_WISH_POINTS }), 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    f:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
+    f:SetScript("OnLeave", ns.HideTip)
     f:Hide()
     card.wish = f
 end

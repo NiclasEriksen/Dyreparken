@@ -349,7 +349,7 @@ local function InfoBox(label, width)
         GameTooltip:SetText(self.tip or label, 1, 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    box:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
+    box:SetScript("OnLeave", ns.HideTip)
     return box
 end
 
@@ -445,7 +445,7 @@ local function BuildCard()
         GameTooltip:AddLine(card.home, 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    card.nameHit:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
+    card.nameHit:SetScript("OnLeave", ns.HideTip)
     -- Its personality: the traits, then what it likes.
     card.personality = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     card.personality:SetPoint("TOPLEFT", card.status, "BOTTOMLEFT", 0, -5)
@@ -470,12 +470,12 @@ local function BuildCard()
         ns.Personality:Describe(GameTooltip, card.key)
         local words = ns.Personality:LikedWords(card.key)
         if #words > 0 then
-            GameTooltip:AddLine(("Liker: %s"):format(table.concat(words, ", ")), 0.5, 0.8, 0.5, true)
+            GameTooltip:AddLine(ns.T("card.likes.tip", { list = ns.Personality.Join(words) }), 0.5, 0.8, 0.5, true)
         end
         GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
     end)
-    card.personalityHit:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
+    card.personalityHit:SetScript("OnLeave", ns.HideTip)
 
     -- The bond, right column: a medallion, the track of levels, a bar (BondTrack.lua).
     ns.BondTrack:Build(card, c, panel)

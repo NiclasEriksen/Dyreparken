@@ -17,14 +17,14 @@ local THUMB_W, THUMB_H, GAP, COLS = 168, 96, 8, 4
 -- mode -> { title, slots, picks = fn() -> table, changed = fn() }
 Gallery.MODES = {
     bg = {
-        title = "Dyreparken: bakgrunner",
+        title = "Dyreparken: backgrounds",
         slots = { "default", "cat", "bird", "owl", "farm", "rabbit", "frog", "snake", "mechanical", "dragon",
             "pirate", "bug", "rodent", "wolf", "plant", "festive", "demon", "ooze", "spirit" },
         picks = function() return ns.DB.global.scenePicks end,
         changed = function() ns.Scenes:Reset() end,
     },
     decor = {
-        title = "Dyreparken: pynt",
+        title = "Dyreparken: decorations",
         slots = { "corner", "border", "frame", "glow", "sparkle", "star", "heart", "bubble", "confetti", "ribbon",
             "moon", "leaf", "paw", "note", "snow" },
         filter = true, -- show the selected slot's candidates only
@@ -52,8 +52,8 @@ local function Redraw(view)
         b:SetText(b.family .. (view.cfg.picks()[b.family] and " *" or ""))
         if b.family == view.selected then b:LockHighlight() else b:UnlockHighlight() end
     end
-    view.frame.hint:SetText(("Valgt: %s%s. Klikk et bilde for å velge det, høyreklikk for å fjerne."):format(
-        view.selected, view.cfg.filter and (" (%d bilder)"):format(view.shown or 0) or ""))
+    view.frame.hint:SetText(("Slot: %s%s. Click a picture to pick it, right-click to clear."):format(
+        view.selected, view.cfg.filter and (" (%d pictures)"):format(view.shown or 0) or ""))
 end
 
 local function OnClick(view, t, button)
@@ -146,7 +146,7 @@ local function NewThumb(view)
         GameTooltip:SetText(self.path, 1, 1, 1)
         GameTooltip:Show()
     end)
-    t:SetScript("OnLeave", function(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end)
+    t:SetScript("OnLeave", ns.HideTip)
     view.thumbs[#view.thumbs + 1] = t
     return t
 end

@@ -45,11 +45,7 @@ local function OwnerPattern()
     return ownerPattern
 end
 
-local function Plain(v)
-    if v == nil then return nil end
-    if issecretvalue and issecretvalue(v) then return nil end
-    return v
-end
+local Plain = ns.Plain
 
 -- Owner key ("First Surname") of a companion unit, from its tooltip text.
 function Tooltip:OwnerOf(unit, lines)

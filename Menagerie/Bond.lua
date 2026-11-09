@@ -184,8 +184,8 @@ end
 
 -- Today's points so far: per cap key (an activity, or "trait:<id>") and in
 -- all (total), for a calendar day.
-local function Today()
-    local today = date("%Y%m%d", ns.Now())
+local function Ledger()
+    local today = ns.Today()
     local d = ns.DB.char.bondToday
     if not d or d.day ~= today then
         d = { day = today, got = {}, total = 0 }
@@ -198,7 +198,7 @@ end
 -- Points earned today, and the most a day can bring (Config.BOND_DAILY_MAX:
 -- the day itself and every activity together, decided 2026-11-08).
 function Bond:Today()
-    return Today().total, ns.Config.BOND_DAILY_MAX
+    return Ledger().total, ns.Config.BOND_DAILY_MAX
 end
 
 -- Give points within what's left of today's limit; one line when it's full.
@@ -222,7 +222,7 @@ end
 
 -- Extra points (today's wish), within the day's limit.
 function Bond:Bonus(points, key)
-    return Grant(Today(), points, key)
+    return Grant(Ledger(), points, key)
 end
 
 -- Points for an activity done with our adopted pet out.
@@ -233,11 +233,11 @@ function Bond:OnActivity(id, n, key)
     if id == "day" then
         local now = ns.Now()
         local x, why = P:DayFactor(key, now)
-        local d = Today()
+        local d = Ledger()
         if why and why.dayFlavor then Flavor(d, why.dayFlavor(name, now)) end
         return Grant(d, C.BOND_DAY_POINTS * n * x, key)
     end
-    local d = Today()
+    local d = Ledger()
     local likes = P:Of(key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then

@@ -21,6 +21,7 @@ Core\Init.lua
 Locale\nb.lua
 Core\Debug.lua
 Core\Events.lua
+Core\Anim.lua
 Core\DB.lua
 Core\Comm.lua
 Core\Version.lua
