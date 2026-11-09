@@ -79,7 +79,7 @@ end
 ------------------------------------------------------------------------------
 local function On(md) return function(ctx) return date("%m%d", ctx.t) == md and {} end end
 
-local MILESTONES = { 30, 100, 200, 365, 500, 730, 1000 }
+local MILESTONES = { [200] = true, [500] = true, [1000] = true }
 
 Quirks.EGGS = {
     { id = "mai17", on = "day", always = true, test = On("0517") },
@@ -89,19 +89,14 @@ Quirks.EGGS = {
     { id = "halloween", on = "day", always = true, test = On("1031") },
     { id = "fredag13", on = "day", always = true,
         test = function(ctx) return date("%d%w", ctx.t) == "135" and {} end },
-    -- Days since you adopted it, at a few round numbers (once each).
+    -- Round days since you adopted it, on the day (calendar days, as the
+    -- milestone lines count them; those have 30, 100 and the years).
     { id = "dager", on = "day", always = true, test = function(ctx)
         if ns.Registry:MyPet() ~= ctx.key then return end
         local _, _, r = ns.Registry:Status(ctx.key)
         if not (r and r.at) then return end
-        local days = math.floor((ctx.t - r.at) / 86400)
-        local egg = ns.DB.char.eggs.dager or {}
-        local best
-        for _, m in ipairs(MILESTONES) do if days >= m then best = m end end
-        if not best or (egg.key == ctx.key and (egg.m or 0) >= best) then return end
-        egg.key, egg.m = ctx.key, best
-        ns.DB.char.eggs.dager = egg
-        return { n = best }
+        local days = ns.Bonds.DayNumber(ctx.t) - ns.Bonds.DayNumber(r.at)
+        return MILESTONES[days] and { n = days }
     end },
     { id = "midnatt", on = "*", chance = 0.5,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
@@ -117,9 +112,11 @@ Quirks.EGGS = {
         local level = tonumber(ctx.extra)
         return level and level % 10 == 0 and { level = level }
     end },
-    { id = "oppdrag", on = "quest", test = function(ctx)
-        local total = ns.Activity:Count("quest")
-        return total > 0 and total % 100 == 0 and { n = total }
+    -- Every hundredth quest with this pet out (the hour doesn't hold it back:
+    -- the next chance is a hundred quests away).
+    { id = "oppdrag", on = "quest", always = true, test = function(ctx)
+        local n = select(4, ns.Activity:Count("quest", ctx.key))
+        return n > 0 and n % 100 == 0 and { n = n }
     end },
 }
 local eggsOn = {} -- activity -> its eggs
@@ -201,6 +198,10 @@ function Quirks:Init()
     ns.Bus:On("MY_RECORD", function() Quirks:Watch() end)
     ns.Bus:On("ACTIVE_PET", function() Quirks:Watch() end)
     Quirks:Watch()
+    -- Again once the login SYNC is in, like Bond: the guild (so our adopted
+    -- pet) may not be known at login yet, and our own record can come back
+    -- from a peer without a MY_RECORD of ours (code review 2026-11-09).
+    C_Timer.After(20, function() Quirks:Watch() end)
 end
 
 ns.Start("login", function() Quirks:Init() end)

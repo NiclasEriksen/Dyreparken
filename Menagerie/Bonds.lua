@@ -35,6 +35,7 @@ local function DayNumber(t)
     local d = date("*t", t)
     return math.floor(time({ year = d.year, month = d.month, day = d.day, hour = 12 }) / 86400)
 end
+Bonds.DayNumber = DayNumber
 
 -- "1 måned", "100 dager", "2 år", or nil when there's no milestone today.
 function Bonds:Milestone(at, now)

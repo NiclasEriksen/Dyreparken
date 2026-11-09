@@ -134,4 +134,12 @@ return function(test, H)
         c:Nameplate{ species = 40 }
         eq(#c:Log("NAME_PLATE_UNIT_ADDED nameplate3"), 0, "idle with the log off")
     end)
+
+    test("the probes show a secret second value instead of comparing it", function()
+        local w, c = H.Setup{ ola = { 5159 }, settle = "hello" }
+        c:Nameplate{ name = "Guard Thomas", companion = false }
+        c.env.UnitName = function() return "Kari", H.SECRET end
+        c:Slash("probe world")
+        eq(#c:Log("world 1: nameplate1 name=Kari, <secret> companion=false"), 1)
+    end)
 end

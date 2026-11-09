@@ -10,8 +10,17 @@ local _, ns = ...
 local Version = { seen = {} } -- seen[player] = version
 ns.Version = Version
 
+-- A version from the wire, as the packager makes them ("0.2.1", "0.2.1-beta2",
+-- "dev"). Anything else is junk, and may not reach the chat: a "|" there
+-- is an escape code (icons, links), and a table would throw on printing
+-- (code review 2026-11-09).
+local function Sane(v)
+    return type(v) == "string" and #v <= 32 and v:find("^[%w%.%-]+$") ~= nil
+end
+Version.Sane = Sane
+
 local function NoteVersion(sender, version)
-    if type(version) ~= "string" then return end
+    if not Sane(version) then return end
     Version.seen[sender] = version
     if ns.DEV then return end -- a git checkout: nothing to update to
     if ns.CompareVersions(version, ns.VERSION) > 0 then
@@ -27,7 +36,7 @@ function Version:Init()
     ns.Comm:Register("HELLO", function(msg, sender) NoteVersion(sender, msg.v) end)
     ns.Comm:Register("VER", function(msg, sender)
         NoteVersion(sender, msg.v)
-        if Version.collecting then Version.collecting[sender] = msg.v end
+        if Version.collecting then Version.collecting[sender] = Sane(msg.v) and msg.v or "?" end
     end)
     -- Answer on the channel the request came from. (Whispers would be
     -- quieter, but whisper targets with surnames are unverified on Forever.)
@@ -37,7 +46,7 @@ function Version:Init()
         ns.Comm:Send("VER", { v = ns.VERSION }, channel)
     end)
     ns.Bus:On("PROTOCOL_MISMATCH", function(sender, theirs, msg)
-        if type(msg.v) == "string" then NoteVersion(sender, msg.v) end
+        NoteVersion(sender, msg.v)
     end)
 end
 

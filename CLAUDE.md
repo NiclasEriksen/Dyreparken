@@ -214,6 +214,9 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   "s:<id>" or "n:<name>"; bonds can't start before Config.BOND_EPOCH and hold at most Registry.LifeCap (75 a day plus
   a spare day). Anything that feeds validation or the digest (LEVELS, BOND_DAILY_MAX, LifeCap, GUILD_MAX) needs an
   X-Protocol bump and, for stored data, a migration that brings old entries within it (see migration 8).
+  Exception (decided 2026-11-09): the per-member caps on stored names and bonds (Config.NAMES_PER_MEMBER,
+  LIFE_PER_MEMBER, migration 9) came without a bump: they only bite under a flood, so mixed versions still agree in
+  a normal guild. Incoming messages that unpack past Comm.MAX_RAW are dropped and their sender ignored for the session.
 - **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it,
   once their bond reaches Venn (level 3; it was 7 days of care until 2026-11-09). The name stays when they let go,
   and the next carer inherits it until they change it. A name set by
@@ -258,6 +261,8 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - `UnitStandState` existence on Forever is unverified (sitting detection is skipped if it's missing).
 
 ## Future additions
+
+- **docs/IDEAS.md**: the creative review of 2026-11-09 (UI fixes, fun details, barriers to fun) and known limits.
 
 - **Dagens dyr spotlight** (noted 2026-11-08, the user's "8"): when the card shows today's pet of the day, a small,
   discreet crown or spotlight badge on it.

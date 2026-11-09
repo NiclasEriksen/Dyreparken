@@ -171,6 +171,8 @@ ns.Config = {
     BOND_DAILY_MAX = 75,          -- the most bond points a calendar day can bring (the day + activities); bounds the wire
     BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries
     SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole
+    NAMES_PER_MEMBER = 50,        -- nickname entries kept per namer, and ...
+    LIFE_PER_MEMBER = 400,        -- ... bond entries per carer: past that the oldest go (Registry: Trim)
     DEBUG_RING_SIZE = 2000,       -- lines kept in DyreparkenDebugDB
     COMM_PREFIX = "Dyreparken",   -- max 16 characters
 }

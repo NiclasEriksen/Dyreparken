@@ -61,9 +61,10 @@ end
 -- Validation and merge
 ------------------------------------------------------------------------------
 -- A pet key as Pets.lua makes them: "s:<species id>", or "n:<name>" for a
--- pet without a species id.
+-- pet without a species id. No "|": a name key can reach the chat (the
+-- playdate line), where it would be an escape code (code review 2026-11-09).
 local function ValidKey(key)
-    return type(key) == "string" and #key <= 64 and (key:find("^s:%d+$") ~= nil or key:find("^n:.") ~= nil)
+    return type(key) == "string" and #key <= 64 and (key:find("^s:%d+$") ~= nil or key:find("^n:[^|]+$") ~= nil)
 end
 Registry.ValidKey = ValidKey
 
@@ -109,6 +110,42 @@ end
 Registry.ValidLife = ValidLife
 
 -- Returns true when our data changed.
+-- At most `max` entries by one author in t[key][author] (code review
+-- 2026-11-09): one member sending names or bonds under made-up pet keys
+-- grew everyone's saved data, until every honest SYNC was over
+-- SYNC_MAX_ENTRIES and refused, and digests never agreed again. Past the
+-- cap the oldest entry goes (by `field`, ties: the greater pet key): the
+-- same choice on every client whatever order entries arrived in, so the
+-- digests still agree. No real member comes near the caps. Returns false if
+-- the entry just added (key `added`) was the one to go.
+local function Trim(t, author, field, max, added)
+    local n, worstKey, worst = 0, nil, nil
+    for key, byKey in pairs(t) do
+        local e = byKey[author]
+        if e then
+            n = n + 1
+            if not worst or e[field] < worst or (e[field] == worst and key > worstKey) then
+                worst, worstKey = e[field], key
+            end
+        end
+    end
+    if n <= max then return true end
+    t[worstKey][author] = nil
+    if not next(t[worstKey]) then t[worstKey] = nil end
+    return worstKey ~= added
+end
+
+-- The same over a whole table (migration 9): every author within the cap.
+function Registry.TrimAll(t, field, max)
+    local count = {}
+    for _, byKey in pairs(t) do
+        for author in pairs(byKey) do count[author] = (count[author] or 0) + 1 end
+    end
+    for author, n in pairs(count) do
+        for _ = max + 1, n do Trim(t, author, field, max) end
+    end
+end
+
 function Registry:MergeLife(key, carer, e)
     local g = G()
     if not g or not ValidKey(key) or not ns.SaneName(carer) or not ValidLife(e) then
@@ -119,7 +156,7 @@ function Registry:MergeLife(key, carer, e)
     if cur and (cur.p > e.p or (cur.p == e.p and cur.t >= e.t)) then return false end
     if not byKey then byKey = {}; g.life[key] = byKey end
     byKey[carer] = { p = e.p, f = e.f, t = e.t }
-    return true
+    return Trim(g.life, carer, "t", Config.LIFE_PER_MEMBER, key)
 end
 
 -- The bonds the full sync carries: each pet's current holder's (one per
@@ -158,7 +195,7 @@ function Registry:MergeName(key, namer, e)
     if cur and cur.at >= e.at then return false end
     if not byKey then byKey = {}; g.names[key] = byKey end
     byKey[namer] = { n = e.n, at = e.at, x = e.x }
-    return true
+    return Trim(g.names, namer, "at", Config.NAMES_PER_MEMBER, key)
 end
 
 -- Returns true when our data changed.

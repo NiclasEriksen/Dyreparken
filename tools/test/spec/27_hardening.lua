@@ -32,7 +32,7 @@ return function(test, H)
         } } }
         c:Login()
         local g = c.env.DyreparkenDB.guilds.Dyreparken
-        eq(c.env.DyreparkenDB.schema, 8)
+        eq(c.env.DyreparkenDB.schema, 9)
         eq(g.life[PANDA]["Ola Nord"].p, 90, "within today and a spare day (150): kept")
         eq(g.life[PANDA]["Kari Berg"].p, 20)
         eq(g.life[PANDA]["Per Hansen"], nil, "older than the addon: gone")
@@ -43,6 +43,98 @@ return function(test, H)
             life = { [PANDA] = { ["Kari Berg"] = { p = 400, f = now - 3600, t = now } } } } } }
         d:Login()
         eq(d.env.DyreparkenDB.guilds.Dyreparken.life[PANDA]["Kari Berg"].p, 150)
+    end)
+
+    test("one member flooding names and bonds under made-up keys can't break the guild's sync", function()
+        -- The review's case (2026-11-09): with no cap on what's kept, 30 junk NICKs pushed every
+        -- store past SYNC_MAX_ENTRIES; honest SYNCs were refused and went on forever.
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 }, offline = true } })
+        local now = w:ServerTime()
+        local function Small(c)
+            c.ns.Config.SYNC_MAX_ENTRIES, c.ns.Config.NAMES_PER_MEMBER, c.ns.Config.LIFE_PER_MEMBER = 20, 5, 5
+        end
+        Small(ola)
+        ola.ns.Registry:MergeName(PANDA, "Ola Nord", { n = "Pepe", at = now - 10 })
+        for i = 1, 30 do
+            w:InjectMessage("Per Hansen", { k = "NICK", p = ola.ns.PROTOCOL, pet = "n:junk" .. i,
+                e = { n = "x", at = now - 100 + i } })
+            w:InjectMessage("Per Hansen", { k = "BOND", p = ola.ns.PROTOCOL, pet = "n:junk" .. i,
+                e = { p = 1, f = now - 3600, t = now - 100 + i } })
+            w:Run(1.2)
+        end
+        local function Mine(t, who)
+            local n, keys = 0, {}
+            for key, byKey in pairs(t) do if byKey[who] then n = n + 1; keys[#keys + 1] = key end end
+            table.sort(keys)
+            return n, table.concat(keys, " ")
+        end
+        local g = ola.ns.DB:Guild()
+        eq(Mine(g.names, "Per Hansen"), 5, "names: the cap")
+        eq(Mine(g.life, "Per Hansen"), 5, "bonds: the cap")
+        eq(select(2, Mine(g.names, "Per Hansen")), "n:junk26 n:junk27 n:junk28 n:junk29 n:junk30", "the newest kept")
+        -- An older one arriving now is the one to go.
+        ok(not ola.ns.Registry:MergeName("n:junk0", "Per Hansen", { n = "x", at = now - 500 }))
+        eq(Mine(g.names, "Per Hansen"), 5)
+        -- Kari comes online: she gets the real name, and the SYNCs stop.
+        kari:Login()
+        Small(kari)
+        local m = w:Mark()
+        w:Run(600)
+        eq(kari.ns.Registry:Nickname(PANDA) or kari.ns.DB:Guild().names[PANDA]["Ola Nord"].n, "Pepe")
+        ok(w:Sent("SYNC", nil, m) <= 3, ("%d SYNCs in 10 minutes"):format(w:Sent("SYNC", nil, m)))
+        H.assertConverged(w)
+    end)
+
+    test("a name key can't carry chat escape codes", function()
+        local w, ola = Guild({ { "Ola Nord", { 5159 } } })
+        local R = ola.ns.Registry
+        ok(R.ValidKey("n:Panda Cub")); ok(R.ValidKey("s:5159"))
+        no(R.ValidKey("n:|TInterface\\Icons\\x:500|t")); no(R.ValidKey("n:"))
+        w:InjectMessage("Per Hansen", { k = "BOND", p = ola.ns.PROTOCOL, pet = "n:|cffff0000x",
+            e = { p = 1, f = w:ServerTime() - 3600, t = w:ServerTime() } })
+        w:Run(2)
+        eq(ola.ns.DB:Guild().life["n:|cffff0000x"], nil)
+    end)
+
+    test("the cap keeps the same entries on every client, whatever order they come in", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        local now = w:ServerTime()
+        local R1, R2 = ola.ns.Registry, kari.ns.Registry
+        ola.ns.Config.NAMES_PER_MEMBER, kari.ns.Config.NAMES_PER_MEMBER = 3, 3
+        local entries = {}
+        for i = 1, 8 do entries[i] = { "n:p" .. i, { n = "x", at = now - (i % 4) } } end -- (ties on purpose)
+        for i = 1, 8 do R1:MergeName(entries[i][1], "Per Hansen", entries[i][2]) end
+        for i = 8, 1, -1 do R2:MergeName(entries[i][1], "Per Hansen", entries[i][2]) end
+        local function Keys(c)
+            local keys = {}
+            for key, byKey in pairs(c.ns.DB:Guild().names) do if byKey["Per Hansen"] then keys[#keys + 1] = key end end
+            table.sort(keys)
+            return table.concat(keys, " ")
+        end
+        eq(Keys(ola), Keys(kari)); eq(Keys(ola), "n:p1 n:p4 n:p8", "the newest two, then the lower key of a tie")
+    end)
+
+    test("migration 9 brings a flooded store within the caps", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { login = false })
+        local now = w:ServerTime()
+        local names, life = {}, {}
+        for i = 1, 60 do
+            names["n:junk" .. i] = { ["Per Hansen"] = { n = "x", at = now - 1000 + i } }
+            life["n:junk" .. i] = { ["Per Hansen"] = { p = 1, f = now - 3600, t = now - 1000 + i } }
+        end
+        names[PANDA] = { ["Ola Nord"] = { n = "Pepe", at = now - 5000 } }
+        c.saved.DyreparkenDB = { schema = 8, guilds = { Dyreparken = { claims = {}, lapses = {}, names = names,
+            life = life } } }
+        c:Login()
+        local g = c.env.DyreparkenDB.guilds.Dyreparken
+        local n = 0
+        for _, byKey in pairs(g.names) do if byKey["Per Hansen"] then n = n + 1 end end
+        eq(n, 50); ok(g.names["n:junk60"]); no(g.names["n:junk10"])
+        eq(g.names[PANDA]["Ola Nord"].n, "Pepe", "others untouched")
+        n = 0
+        for _ in pairs(g.life) do n = n + 1 end
+        eq(n, 60, "60 bonds are within 400")
     end)
 
     test("an entry one side keeps and the other refuses no longer makes SYNCs forever", function()

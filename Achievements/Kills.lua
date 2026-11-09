@@ -96,7 +96,9 @@ local function Try(fn, ...)
     if type(fn) ~= "function" then return "missing" end
     local ok, a, b = pcall(fn, ...)
     if not ok then return "error" end
-    return b ~= nil and Args(a, b) or Show(a)
+    -- (no comparing b before we know it isn't secret: code review 2026-11-09)
+    if ns.IsSecret(b) or b ~= nil then return Args(a, b) end
+    return Show(a)
 end
 
 -- Guildmates (addon users or not) in our group, by the roster snapshot. A

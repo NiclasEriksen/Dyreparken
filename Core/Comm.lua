@@ -45,6 +45,12 @@ local CHUNK = 254 -- 255 minus the header byte
 local BURST = 8           -- of the server's 10, leaving room for slack
 local REFILL = 1          -- per second, like the server
 local MAX_PARTS = 64      -- chunks per incoming message (16 KB); more is junk
+-- What an incoming message may unpack to. 16 KB of deflated text is at most
+-- ~150 KB of real data; a crafted 16 KB stream unpacks to 8 MB (code review
+-- 2026-11-09: seconds of work, then a table of millions to read). Past this
+-- it isn't read, and its sender is ignored for the session (Comm.ignored).
+Comm.MAX_RAW = 512 * 1024
+Comm.ignored = {}
 
 local handlers = {}
 local partial = {} -- sender .. channel -> { parts }
@@ -121,6 +127,7 @@ local function Decode(data)
     if not c then return nil end
     local s = LibDeflate:DecompressDeflate(c)
     if not s then return nil end
+    if #s > Comm.MAX_RAW then return nil, true end
     local ok, msg = LibSerialize:Deserialize(s)
     if ok and type(msg) == "table" then return msg end
 end
@@ -159,7 +166,13 @@ function Comm:Send(kind, msg, channel, target)
 end
 
 local function Dispatch(data, sender, channel)
-    local msg = Decode(data)
+    if Comm.ignored[sender] then return end
+    local msg, bomb = Decode(data)
+    if bomb then
+        Comm.ignored[sender] = true
+        ns.Log("Comm", "a message from %s unpacked past %d bytes: ignoring them this session", sender, Comm.MAX_RAW)
+        return
+    end
     if not msg or type(msg.k) ~= "string" then
         ns.Log("Comm", "bad message from %s", sender)
         return

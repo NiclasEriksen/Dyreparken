@@ -308,8 +308,11 @@ function Bond:OnActivity(id, n, key)
         return Grant(d, Scaled(C.BOND_DAY_POINTS * n * x), key)
     end
     local likes = P:Of(key)
-    -- Watched only because the pet dislikes it (Quirks.lua): dislikes have no effect.
-    if not likes[id] and not ns.Activity.KIND[id].always and P:Dislikes(key)[id] then return end
+    -- The bond counts what it watches itself (Bond:Watch): the activities
+    -- every pet bonds over, and this pet's likes. Others watch more (the
+    -- debug log, Quirks' dislikes and eggs, another pet's likes); those
+    -- mustn't give points.
+    if not likes[id] and not ns.Activity.KIND[id].always then return end
     local d = Ledger(key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then

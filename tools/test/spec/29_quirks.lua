@@ -81,6 +81,18 @@ return function(test, H)
         ok(ola.ns.DB.char.dislikes[CAT].dive)
     end)
 
+    test("what Quirks watches gives no bond points: level-ups, deaths, dislikes, even with a moment trait", function()
+        local w, ola, Q = Setup({ "glupsk", "friluftsdyr" })
+        Q.random = function(n) return n and 1 or 0.99 end -- (no lines in the way)
+        ok(ola.ns.Activity:IsListening("PLAYER_LEVEL_UP"), "the eggs want level-ups")
+        local before = Points(ola)
+        ola:Fire("PLAYER_LEVEL_UP", 29)
+        Dive(ola)
+        eq(Points(ola), before, "not the bond's to count (friluftsdyr outdoors would make it 5)")
+        ola:Fire("QUEST_TURNED_IN", 1)
+        ok(Points(ola) > before, "what the bond watches still counts")
+    end)
+
     test("dislikes are watched only for the pets we'd have out", function()
         local w, ola = Setup({ "glupsk", "latsabb" })
         local A = ola.ns.Activity
@@ -92,18 +104,39 @@ return function(test, H)
         ok(A:IsListening("PLAYER_LEVEL_UP"), "the eggs' own")
     end)
 
+    test("the guild unknown at login: the adopted pet's dislikes are watched once it's known", function()
+        local w, ola = Setup()
+        ola.ns.DB.char.activePet = nil -- (adopted before 0.2: no active pet saved)
+        ola:Logout()
+        local guild = ola.guild
+        ola.guild = nil -- GetGuildInfo is nil for the first moments of a login
+        ola:Login()
+        w:Run(3)
+        no(ola.ns.Activity:IsListening("MIRROR_TIMER_START"), "nothing known yet")
+        ola.guild = guild
+        w:Run(30)
+        ok(ola.ns.Activity:IsListening("MIRROR_TIMER_START"), "the cat's dislike, watched after all")
+    end)
+
     test("easter eggs: holidays and anniversaries, once a day, not held back by the hour", function()
         local w, ola, Q = Setup()
         local A = ola.ns.Activity
         -- The adoption's round days, each once (the hour doesn't hold them back).
+        -- On the day itself, in calendar days (the milestone lines have 30, 100 and the
+        -- years); not days later, as the first version did.
         local at = select(3, ola.ns.Registry:Status(CAT)).at
-        w:Skip(at + 100 * 86400 + 3600 - w:ServerTime())
+        local Day = ola.ns.Bonds.DayNumber
+        w:Skip(at + 100 * 86400 - w:ServerTime())
+        while Day(w:ServerTime()) - Day(at) < 100 do w:Skip(3600) end
+        A:Emit("day")
+        eq(Count(ola, "bodd sammen"), 0, "100: the milestone line's")
+        while Day(w:ServerTime()) - Day(at) < 200 do w:Skip(3600) end
         ola.ns.DB.char.quirkAt = ola.ns.Now()
         A:Emit("day")
-        ok(ola:Printed("Bombay Cat og du har bodd sammen i 100 dager!", true))
+        ok(ola:Printed("Bombay Cat og du har bodd sammen i 200 dager!", true))
         w:SkipDays(1)
         A:Emit("day")
-        eq(Count(ola, "bodd sammen"), 1, "100 is done")
+        eq(Count(ola, "bodd sammen"), 1, "only on the day")
         -- A holiday, once a day.
         w:Skip(os.time({ year = 2027, month = 5, day = 17, hour = 12 }) - w:ServerTime())
         A:Emit("day")
@@ -146,9 +179,13 @@ return function(test, H)
         A:Emit("revive")
         ok(ola:Printed("Bombay Cat lurer på om det er trygt å bo hos deg.", true), "the third death today")
         w:Skip(3601)
-        ola.ns.DB.char.activity.quest = { total = 99, mine = 0, today = 0, pets = {} }
+        ola.ns.DB.char.activity.quest = { total = 499, mine = 0, today = 0, pets = { [CAT] = 98 } }
+        ola.ns.DB.char.quirkAt = ola.ns.Now()
         A:Emit("quest")
-        ok(ola:Printed("Bombay Cat har hjulpet deg med 100 quests. Det fortjener en godbit!", true))
+        no(ola:Printed("quests. Det", true), "500 quests in all, but 99 with this pet")
+        A:Emit("quest")
+        ok(ola:Printed("Bombay Cat har hjulpet deg med 100 quests. Det fortjener en godbit!", true),
+            "its own hundredth, not held back by the hour")
         -- Midnight: any activity in its first ten minutes.
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 0, min = 5 }) - w:ServerTime())
         A:Emit("herb")

@@ -15,7 +15,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 8
+local SCHEMA = 9
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
@@ -124,6 +124,20 @@ local MIGRATIONS = {
             for key in pairs(g.names or {}) do
                 if not Registry.ValidKey(key) then g.names[key] = nil end
             end
+        end
+    end,
+    -- 9 (2026-11-09, code review): at most Config.NAMES_PER_MEMBER nickname
+    -- entries per namer and LIFE_PER_MEMBER bonds per carer, the oldest
+    -- going first (Registry: Trim), as merges keep them from now on.
+    [9] = function(db)
+        local Registry, C = ns.Registry, ns.Config
+        for _, g in pairs(db.guilds or {}) do
+            -- (and keys with a "|", which ValidKey refuses from now on)
+            for _, t in ipairs({ g.names or {}, g.life or {} }) do
+                for key in pairs(t) do if not Registry.ValidKey(key) then t[key] = nil end end
+            end
+            if type(g.names) == "table" then Registry.TrimAll(g.names, "at", C.NAMES_PER_MEMBER) end
+            if type(g.life) == "table" then Registry.TrimAll(g.life, "t", C.LIFE_PER_MEMBER) end
         end
     end,
 }
