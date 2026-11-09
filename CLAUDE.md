@@ -119,7 +119,7 @@ Data/Traits.lua    every species' two personality traits, PINNED for good (decid
 Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
                    merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
-                   Summon (auto-summon, defers to AutoCompanion), Report (/dp rapport), JournalUI,
+                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (/dp rapport), JournalUI,
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
                    Personality (likes, and two traits per species from Data/Traits.lua;
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour), SceneGallery (/dp probe bg and decor: thumbnails of every
@@ -197,10 +197,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - Adopting and naming are announced in guild chat from the click or command that did it (`Bonds:Announce`), per
   character, default on, `/dp kunngjør`. Letting go and clearing a name aren't announced. The same line isn't
   repeated within an hour.
-- **The active pet** (2026-11-09): auto-summon keeps out one pet of yours, adopted or not, picked with "Hold ute" on
-  its card (char.activePet; adopting a pet makes it the active one; unticking turns auto-summon off).
+- **The active pet** (2026-11-09): auto-summon keeps out one pet of yours, adopted or not, picked with the "Med deg" paw badge on
+  its card (char.activePet; adopting a pet makes it the active one; clicking the badge again turns auto-summon off).
 - Auto-summon only when idle: not in combat, mounted, on a taxi, flying, dead, stealthed, sitting, eating/drinking,
-  casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by "Hold ute" on the card. It never replaces a pet you summoned yourself. It doesn't watch
+  casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by the "Med deg" badge on the card (Menagerie/OutBadge.lua; the list shows a gold paw on the active pet). It never replaces a pet you summoned yourself, except right after you pick a pet on its card: that swaps it in. It doesn't watch
   `COMPANION_UPDATE` (that fires for every nearby companion), so a pet you dismiss comes back only at the next
   trigger: loading screen, leaving combat, dismounting, or claiming.
 - The summon clank (sound files 567569, 568424) is muted for 2.5 s after any `SummonPetByGUID` call, per character,

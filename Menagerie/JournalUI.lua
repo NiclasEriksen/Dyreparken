@@ -130,6 +130,17 @@ local function UpdateBadge(button)
             b.name = name
             b.nick = button:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
         end
+        -- The pet kept out (OutBadge): a small gold paw on its icon.
+        local icon = rawget(button, "icon")
+        b.out = button:CreateTexture(nil, "OVERLAY", nil, 7)
+        b.out:SetTexture(MEDIA .. "paw")
+        b.out:SetVertexColor(1, 0.82, 0.3, 1)
+        b.out:SetSize(16, 16)
+        if type(icon) == "table" and icon.GetObjectType then
+            b.out:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 3, -3)
+        else
+            b.out:SetPoint("LEFT", button, "LEFT", 30, -10)
+        end
         badges[button] = b
     end
     local sid = speciesOf[button]
@@ -139,6 +150,7 @@ local function UpdateBadge(button)
     if mine and p == 0 and key ~= ns.Registry:MyPet() then -- one of yours, no bond yet: its carer's, if any
         level, mine = select(2, ns.Bond:Of(key)), false
     end
+    b.out:SetShown(key ~= nil and key == ns.Summon:ActiveKey())
     b.ring:SetShown(level ~= nil); b.level:SetShown(level ~= nil)
     if level then
         b.level:SetText(level)
@@ -163,7 +175,11 @@ local function OnButtonEnter(button)
         GameTooltip:SetOwner(button, "ANCHOR_RIGHT")
         GameTooltip:SetText(ns.Pets:NameOfKey(ns.Pets:KeyOfSpecies(sid)))
     end
-    JournalUI:AddTooltipLines(GameTooltip, ns.Pets:KeyOfSpecies(sid))
+    local key = ns.Pets:KeyOfSpecies(sid)
+    JournalUI:AddTooltipLines(GameTooltip, key)
+    if key == ns.Summon:ActiveKey() then -- (ours only: not in the world tooltip, where it's anyone's)
+        GameTooltip:AddLine(ns.T("card.out.on.title", { pet = ns.Bonds:NameOf(key) }), 1, 0.82, 0.3)
+    end
     GameTooltip:Show()
 end
 
@@ -243,14 +259,8 @@ local function UpdateExtras()
     -- name is cut short; the tooltip has it whole.
     local right, from = PetJournalPetCard:GetRight(), card.guildBox:GetRight()
     if right and from then card.todayBox:SetWidth(math.max(80, right - from - BOX_GAP)) end
-    -- "Hold ute" for the pet on the card: checked when it's the active one;
-    -- only for a pet of ours.
-    local key = card.key
-    local deferring = ns.Summon:Deferring()
-    local usable = not deferring and key ~= nil and ns.Pets:IsOwned(key)
-    card.auto:SetChecked(usable and ns.Summon:ActiveKey() == key)
-    card.auto:SetEnabled(usable)
-    card.autoLabel:SetTextColor(usable and 1 or 0.5, usable and 0.82 or 0.5, usable and 0 or 0.5)
+    -- "Med deg": is the pet on the card the one kept out (OutBadge.lua)?
+    ns.OutBadge:Update(card, card.key)
 end
 
 local function UpdateCard()
@@ -323,7 +333,7 @@ local function UpdateCard()
     ns.BondTrack:Update(card, key, { math.min(1, tint[1] * 1.7), math.min(1, tint[2] * 1.7), math.min(1, tint[3] * 1.7) })
 
     card.key = key
-    UpdateExtras() -- (after the key: "Hold ute" is about this pet)
+    UpdateExtras() -- (after the key: "Med deg" is about this pet)
     if status == "mine" then
         card.reserve:SetText(ns.L["card.letgo"])
         card.reserve:Enable()
@@ -433,6 +443,7 @@ local function BuildCard()
     ns.Decor:Build(card, c, panel)
     ns.Stats:Build(card, c)
     ns.Wish:Build(card, c)
+    ns.OutBadge:Build(card, c)
 
     card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
@@ -581,38 +592,14 @@ local function BuildCard()
     card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", BOX_GAP, 0)
     card.counter, card.today = card.guildBox.value, card.todayBox.value
 
-    -- Auto-summon toggle (per character, default on), bottom right of the
-    -- journal. Greyed out while AutoCompanion is loaded, which takes over.
-    card.auto = CreateFrame("CheckButton", nil, PetJournal, "UICheckButtonTemplate")
-    card.auto:SetSize(24, 24)
-    -- Far enough left for "Tilkall automatisk" (cut off at -96, seen 2026-11-08).
-    card.auto:SetPoint("BOTTOMRIGHT", PetJournal, "BOTTOMRIGHT", -118, 3)
-    card.autoLabel = card.auto:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    card.autoLabel:SetPoint("LEFT", card.auto, "RIGHT", 2, 0)
-    card.autoLabel:SetText(ns.L["card.auto"])
-    card.auto:SetMotionScriptsWhileDisabled(true)
-    card.auto:SetScript("OnClick", function(self)
-        if card.key then ns.Summon:SetActive(card.key, self:GetChecked() and true or false) end
-        JournalUI:Refresh()
-    end)
-    card.auto:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        if ns.Summon:Deferring() then
-            GameTooltip:SetText(ns.L["card.auto.deferred"])
-        else
-            GameTooltip:SetText(ns.L["card.auto"])
-            GameTooltip:AddLine(ns.T("card.auto.tip", { pet = card.key and ns.Bonds:NameOf(card.key) or "" }), 1, 1, 1, true)
-            local active = ns.Summon:ActiveKey()
-            if active and active ~= card.key then
-                GameTooltip:AddLine(ns.T("card.auto.now", { pet = ns.Bonds:NameOf(active) }), 0.7, 0.7, 0.7, true)
-            end
-        end
-        GameTooltip:Show()
-    end)
-    card.auto:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    -- The fallback tab buttons (SidePage) line up right to left from here,
+    -- bottom right of the journal (where the old "Hold ute" box was).
+    card.tabAnchor = CreateFrame("Frame", nil, PetJournal)
+    card.tabAnchor:SetSize(1, 22)
+    card.tabAnchor:SetPoint("BOTTOMRIGHT", PetJournal, "BOTTOMRIGHT", -6, 3)
 
     -- The achievements tab and page (Achievements/Page.lua).
-    ns.AchPage:Attach(PetJournal, card.auto)
+    ns.AchPage:Attach(PetJournal, card.tabAnchor)
 end
 
 ------------------------------------------------------------------------------

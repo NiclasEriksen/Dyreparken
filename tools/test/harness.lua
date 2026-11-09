@@ -368,6 +368,7 @@ H.StripColors = StripColors
 function Region:SetText(x) self.text = x; self.plain = x and StripColors(x) end
 function Region:GetText() return self.text end
 function Region:SetTextColor(r, g, b) self.color = { r, g, b } end
+function Region:SetShadowOffset(x, y) self.shadow = { x, y } end
 function Region:SetAlpha(a) self.alpha = a end
 function Region:SetGradient(o, a, b) self.gradient = { o, a, b } end
 function Region:SetBlendMode(m) self.blend = m end

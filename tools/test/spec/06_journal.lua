@@ -186,48 +186,73 @@ return function(test, H)
         eq(card.counter.text, "2 av 0 (0%)", "no data: no division by zero")
     end)
 
-    test("Hold ute: the pet on the card is the one kept out; adopting makes it so; one at a time", function()
+    test("Med deg: the badge on the card picks the pet kept out; adopting makes it so; one at a time", function()
         local w, ola = Setup()
         local posts = #w.chat
         local card = ola:SelectPet(5159)
-        ok(card.auto.checked, "the adopted panda is kept out")
+        local b = card.auto
+        ok(b:IsShown()); ok(b.on, "the adopted panda is kept out")
+        eq(b.label.text, "Med deg"); no(b.ring.desaturated)
         eq(ola.ns.Summon:ActiveKey(), "s:5159")
-        eq(card.autoLabel.text, "Hold ute")
         -- The kitten's card: not the active one.
         card = ola:SelectPet(46)
-        no(card.auto.checked); ok(card.auto.enabled, "a pet of ours: it can be")
+        no(b.on); eq(b.label.text, "Ta med ut"); ok(b.ring.desaturated)
         local tip = ola.env.GameTooltip
-        card.auto.scripts.OnEnter(card.auto)
-        eq(tip.lines[1], "Hold ute")
+        b.scripts.OnEnter(b)
+        eq(tip.lines[1], "Ta med White Kitten ut")
         match(tip.lines[2], "^Tilkaller White Kitten når det mangler")
         eq(tip.lines[3], "Nå holdes Panda Cub ute.")
-        card.auto.scripts.OnLeave(card.auto)
-        card.auto:Click()
+        b.scripts.OnLeave(b)
+        b:Click()
         eq(ola.ns.Summon:ActiveKey(), "s:46", "now the kitten, adopted or not")
-        ok(card.auto.checked)
-        no(ola:SelectPet(5159).auto.checked, "one at a time")
+        ok(b.on); ok(b.burst:IsShown(), "a burst as it comes along")
+        w:Run(2)
+        eq(ola.ns.Pets:KeyOf(ola.summoned), "s:46", "chosen on the card: it replaces the pet out")
+        no(ola:SelectPet(5159).auto.on, "one at a time")
         eq(ola.env.DyreparkenCharDB.activePet, "s:46")
-        -- Unticked: auto-summon off.
-        card = ola:SelectPet(46)
+        -- Back to the panda: it comes out again (seen 2026-11-09: it didn't).
+        ola:SelectPet(5159).auto:Click()
+        w:Run(2)
+        eq(ola.ns.Pets:KeyOf(ola.summoned), "s:5159")
+        -- A later trigger never replaces a pet you summoned yourself.
+        ola:Summon(46)
+        ola.ns.Summon:Check("PLAYER_ENTERING_WORLD")
+        w:Run(2)
+        eq(ola.ns.Pets:KeyOf(ola.summoned), "s:46")
+        -- The badge again: auto-summon off.
+        card = ola:SelectPet(5159)
         card.auto:Click()
         eq(ola.ns.Summon:ActiveKey(), nil)
-        no(ola.ns.Summon:Enabled())
+        no(ola.ns.Summon:Enabled()); no(card.auto.on)
         eq(#w.chat, posts, "choosing which pet to keep out posts nothing")
-        -- A pet we don't own: the box is greyed out.
+        -- A pet we don't own: no badge.
         card = ola:SelectPet(40)
-        no(card.auto.enabled); no(card.auto.checked)
-        -- Adopting makes a pet the active one (auto-summon itself stays as you left it).
+        no(card.auto:IsShown())
+        -- Adopting makes a pet the active one.
         ola:Slash("adopter white kitten")
         w:Run(2)
         eq(ola.env.DyreparkenCharDB.activePet, "s:46")
     end)
 
-    test("with AutoCompanion the checkbox is off and greyed out", function()
+    test("the list marks the pet kept out with a paw on its icon", function()
+        local w, ola = Setup()
+        ola:SelectPet(5159)
+        local function Paw(sid)
+            for button, b in pairs(ola.ns.JournalUI._badges) do
+                if button.speciesID == sid then return b.out:IsShown() end
+            end
+        end
+        ok(Paw(5159)); no(Paw(46))
+        ola:SelectPet(46).auto:Click()
+        ok(Paw(46)); no(Paw(5159), "only the active one")
+    end)
+
+    test("with AutoCompanion the badge is greyed out", function()
         local w, ola = Setup(nil, { addons = { "AutoCompanion" } })
         local card = ola:SelectPet(5159)
-        no(card.auto.checked)
+        no(card.auto.on)
         no(card.auto.enabled)
-        eq(card.autoLabel.color[1], 0.5)
+        eq(card.auto.label.text, "Ta med ut")
         card.auto.scripts.OnEnter(card.auto)
         eq(ola.env.GameTooltip.lines[1], "AutoCompanion er lastet og tar seg av tilkallingen.")
     end)

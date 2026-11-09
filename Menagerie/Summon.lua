@@ -38,7 +38,7 @@ function Summon:Deferring()
 end
 
 -- The pet auto-summon keeps out (2026-11-09: independent of adoption): the
--- one picked on its card ("Hold ute"), else your adopted pet; nil while
+-- one picked on its card ("Med deg", OutBadge.lua), else your adopted pet; nil while
 -- auto-summon is off (unticked on the card).
 function Summon:ActiveKey()
     local char = ns.DB.char
@@ -47,6 +47,8 @@ function Summon:ActiveKey()
 end
 
 -- Make a pet the active one (on), or turn auto-summon off (its box unticked).
+local swapTo -- a pet just chosen on its card: it replaces the one out
+
 function Summon:SetActive(key, on)
     local char = ns.DB.char
     if on then
@@ -57,6 +59,10 @@ function Summon:SetActive(key, on)
     ns.Log("Summon", "active: %s", tostring(self:ActiveKey()))
     self:Watch()
     ns.Bus:Fire("ACTIVE_PET", self:ActiveKey())
+    -- Choosing a pet on its card is asking for it now: it replaces whatever
+    -- is out (seen 2026-11-09: switching back left the other pet out). Only
+    -- this choice swaps; the usual checks never replace a pet that's out.
+    swapTo = on and key or nil
     if on then self:Check("active") end
 end
 
@@ -134,6 +140,8 @@ local retryUntil, retrying
 local attempts = 0
 
 function Summon:Check(reason)
+    -- (a swap lasts only for its own attempts, never into a later trigger)
+    if reason ~= "active" and reason ~= "retry" and reason ~= "verify" then swapTo = nil end
     if not self:Enabled() then return end
     local key = self:ActiveKey()
     if not key then return end
@@ -142,7 +150,8 @@ function Summon:Check(reason)
     -- Every check is logged (not only summons): checks while a pet is out
     -- are how a stray trigger shows up in the log.
     ns.Log("Summon", "check (%s): out=%s", tostring(reason), tostring(out))
-    if out then return end
+    if out and ns.Pets:KeyOf(out) == key then swapTo = nil end
+    if out and swapTo ~= key then return end
     local guid = ns.Pets:Owned()[key]
     if not guid then return end
 
@@ -156,7 +165,7 @@ function Summon:Check(reason)
     if reason ~= "retry" and reason ~= "verify" then attempts = 0 end
     if attempts >= MAX_ATTEMPTS then
         ns.Log("Summon", "giving up on %s after %d attempts", key, attempts)
-        retryUntil = nil
+        retryUntil, swapTo = nil, nil
         return
     end
     attempts = attempts + 1
