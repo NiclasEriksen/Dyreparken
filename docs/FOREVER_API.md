@@ -136,6 +136,15 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - **Unit and journal species IDs match**: your own Panda Cub as a unit reports `UnitBattlePetSpeciesID` = 5159, the
   same as the journal. Its GUID is `Creature-0-6845-1-1-272330-…`, and npcID 272330 equals the journal's creatureID.
 
+- **Companions get no nameplate** (2026-11-09, `/dp probe world`, outdoors): with a guildmate's Brown Prairie Dog
+  right there, `C_NamePlate.GetNamePlates()` returned 0 plates and `GetNamePlateForUnit("mouseover")` nil, while
+  hostile mobs nearby got plates (`NAME_PLATE_UNIT_ADDED`, not forbidden). `nameplateShowAll` and
+  `nameplateShowFriendlyNPCs` were 1; `nameplateShowFriends`, `nameplateShowFriendlyPets`, `...Minions`,
+  `...Guardians` and `nameplateShowOnlyNames` don't exist (nil). `UnitNameFriendlyPetName` = 1, so the "nameplate"
+  showing a companion's name above it is the floating unit name, which addons can't reach. So there's no frame over a
+  companion to draw on. **The mouse is**: `UPDATE_MOUSEOVER_UNIT` fires over a companion with plain values
+  (`UnitIsBattlePetCompanion` true, species 70, the owner from the tooltip, `GetCursorPosition()`).
+
 ## All species (full export, 2026-11-06, build 70790, enUS)
 
 - Every journal filter API exists: `SetFilterChecked`/`IsFilterChecked` (`LE_PET_JOURNAL_FILTER_COLLECTED` /
