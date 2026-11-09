@@ -133,11 +133,11 @@ return function(test, H)
         local bad = {
             "no", { p = 10, t = now }, { p = 10, f = now, t = now - 5 }, { p = -1, f = now, t = now },
             { p = 0 / 0, f = now, t = now }, { p = "9", f = now, t = now },
-            { p = 226, f = now - 2 * day, t = now }, -- more than 3 days can bring (75 a day)
+            { p = 301, f = now - 2 * day, t = now }, -- more than 3 days and a spare one can bring (75 a day)
             { p = 1, f = now, t = now + 3 * day },   -- from the future
         }
         for i, e in ipairs(bad) do no(R:MergeLife(KITTEN, "Ola Nord", e), "bad " .. i) end
-        ok(R:MergeLife(KITTEN, "Ola Nord", { p = 225, f = now - 2 * day, t = now }), "exactly the cap")
+        ok(R:MergeLife(KITTEN, "Ola Nord", { p = 300, f = now - 2 * day, t = now }), "exactly the cap")
         no(R:MergeLife(5, "Ola Nord", { p = 1, f = now, t = now }))
         no(R:MergeLife(KITTEN, "", { p = 1, f = now, t = now }))
         -- BOND writes only the sender's entry.

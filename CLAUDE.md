@@ -97,7 +97,8 @@ Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" 
 Core/Debug.lua     ns.Log(module, fmt, ...) → SavedVariables ring buffer; no-op when off
 Core/Events.lua    single event frame, On/Off, OutOfCombat queue
 Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() registry
-Core/Comm.lua      serialize→compress→encode→chunk, CTL send, Register(kind, fn)
+Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (not ChatThrottleLib), Register(kind, fn),
+                   MayReply (requests anyone can send: once per channel every 5 s)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
 Core/Activity.lua  the activity engine: game events -> activities ("boss", "quest", "pvp", "taxi", "herb", "mine",
@@ -166,6 +167,11 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   today's share and "Fullt for i dag");
   everyone sees everyone's. The loyalty achievements (ids `loyal:*`) are bond levels now. The sync digest holds bond
   levels, not points: points go out lazily (a level-up at once, else within 30 minutes).
+- **Sync hardening** (code review 2026-11-09): SYNC goes in three parts (records, names, bonds), peers hold back
+  theirs when one starts arriving; a part with more than Config.SYNC_MAX_ENTRIES is refused whole; pet keys must be
+  "s:<id>" or "n:<name>"; bonds can't start before Config.BOND_EPOCH and hold at most Registry.LifeCap (75 a day plus
+  a spare day). Anything that feeds validation or the digest (LEVELS, BOND_DAILY_MAX, LifeCap, GUILD_MAX) needs an
+  X-Protocol bump and, for stored data, a migration that brings old entries within it (see migration 8).
 - **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it,
   once their bond reaches Venn (level 3; it was 7 days of care until 2026-11-09). The name stays when they let go,
   and the next carer inherits it until they change it. A name set by

@@ -70,20 +70,34 @@ end
 -- Our own bond
 ------------------------------------------------------------------------------
 local pending -- the scheduled publish, if any
+local pendingKeys = {} -- pets with gains waiting for it (a pet swap within the wait keeps both)
 
 local function Publish(key)
-    pending = nil
+    pendingKeys[key] = nil
     local e = ns.Registry:Life(key, ns.PlayerKey())
     if e then ns.Bus:Fire("MY_BOND", key, e) end
 end
 
 local function Schedule(key)
+    pendingKeys[key] = true
     if pending then return end
     local token = {}
     pending = token
     C_Timer.After(PUBLISH_AFTER, function()
-        if pending == token then Publish(key) end
+        if pending ~= token then return end
+        pending = nil
+        for k in pairs(pendingKeys) do Publish(k) end
     end)
+end
+
+-- How many more points our bond with the pet we hold can take now, under
+-- the wire's cap (Registry.LifeCap); 0 without a pet.
+function Bond:Room()
+    local key, r = ns.Registry:MyPet()
+    if not key then return 0 end
+    local e = ns.Registry:Life(key, ns.PlayerKey())
+    local f = e and math.min(e.f, r.at) or r.at
+    return math.max(0, ns.Registry.LifeCap(f, ns.Now()) - (e and e.p or 0))
 end
 
 -- Add points to our bond with the pet we hold. Returns the new points.
@@ -95,9 +109,9 @@ function Bond:Add(points)
     local e = ns.Registry:Life(key, me)
     local before = e and e.p or 0
     local f = e and math.min(e.f, r.at) or r.at
-    -- Within what the wire accepts (Registry ValidLife), so every copy merges.
-    local cap = (math.floor((now - f) / 86400) + 1) * ns.Config.BOND_DAILY_MAX
-    local p = math.min(before + points, cap)
+    -- Within what the wire accepts (Registry.LifeCap), so every copy merges;
+    -- never below what we had (a copy that was valid stays ours).
+    local p = math.max(before, math.min(before + points, ns.Registry.LifeCap(f, now)))
     g.life[key] = g.life[key] or {}
     g.life[key][me] = { p = p, f = f, t = math.max(now, e and e.t or 0) }
     local oldLevel = self:Level(before)
@@ -189,9 +203,9 @@ end
 
 -- Give points within what's left of today's limit; one line when it's full.
 local function Grant(d, points, key)
-    local room = ns.Config.BOND_DAILY_MAX - d.total
-    points = math.min(points, room)
+    points = math.min(points, ns.Config.BOND_DAILY_MAX - d.total, Bond:Room())
     if points <= 0 then return nil end
+    -- Counted before Add: Add refreshes the card, which shows today's points.
     d.total = d.total + points
     if d.total >= ns.Config.BOND_DAILY_MAX then -- (once: a full day stops before this)
         ns.Print(ns.T("bond.full", { pet = ns.Bonds:NameOf(key) }))
@@ -258,8 +272,13 @@ function Bond:Init()
         Bond:Watch()
     end)
     -- After the login SYNC: our own entry may have come back from a peer.
+    -- Then publish it once: gains that waited for the lazy publish when we
+    -- logged out would otherwise wait for the next level (the digest holds
+    -- levels, not points).
     C_Timer.After(20, function()
         Bond:Seed()
         Bond:Watch()
+        local key = ns.Registry:MyPet()
+        if key and ns.Registry:Life(key, ns.PlayerKey()) then Publish(key) end
     end)
 end

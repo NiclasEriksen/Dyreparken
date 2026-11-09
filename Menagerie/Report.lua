@@ -41,6 +41,7 @@ end
 function Report:Init()
     ns.Comm:Register("PET_REQ", function(_, _, channel)
         if channel ~= "RAID" and channel ~= "PARTY" then return end
+        if not ns.Comm:MayReply("PET", channel) then return end
         ns.Comm:Send("PET", { out = HasCompanion() }, channel, nil, "BULK")
     end)
     ns.Comm:Register("PET", function(msg, sender)

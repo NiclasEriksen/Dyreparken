@@ -60,9 +60,16 @@ end
 ------------------------------------------------------------------------------
 -- Validation and merge
 ------------------------------------------------------------------------------
+-- A pet key as Pets.lua makes them: "s:<species id>", or "n:<name>" for a
+-- pet without a species id.
+local function ValidKey(key)
+    return type(key) == "string" and #key <= 64 and (key:find("^s:%d+$") ~= nil or key:find("^n:.") ~= nil)
+end
+Registry.ValidKey = ValidKey
+
 local function ValidRecord(r)
     if type(r) ~= "table" or not ns.SaneTime(r.ts) or not ns.SaneTime(r.at) then return false end
-    if r.k ~= nil and (type(r.k) ~= "string" or #r.k > 64) then return false end
+    if r.k ~= nil and not ValidKey(r.k) then return false end
     return true
 end
 
@@ -82,18 +89,29 @@ local function ValidEntry(e)
         and (e.n == nil or ValidName(e.n)) and (e.x == nil or e.x == true)
 end
 
+-- The most points a bond can hold at time t, begun at f: BOND_DAILY_MAX a
+-- day, with a day to spare (the daily limit follows the calendar, this
+-- follows 24-hour steps from f: without the spare day, points earned early
+-- on a calendar day could be clamped away). Bond:Add and the migration use it
+-- too, so every copy agrees. Changing BOND_DAILY_MAX or this changes what
+-- peers accept: bump X-Protocol.
+function Registry.LifeCap(f, t)
+    return (math.floor((t - f) / DAY) + 2) * Config.BOND_DAILY_MAX
+end
+
 local function ValidLife(e)
     if type(e) ~= "table" or not ns.SaneTime(e.f) or not ns.SaneTime(e.t) or e.t < e.f then return false end
+    if e.f < Config.BOND_EPOCH then return false end -- older than the addon: forged
     local p = e.p
     if type(p) ~= "number" or p ~= p or p < 0 then return false end
-    return p <= (math.floor((e.t - e.f) / DAY) + 1) * Config.BOND_DAILY_MAX
+    return p <= Registry.LifeCap(e.f, e.t)
 end
 Registry.ValidLife = ValidLife
 
 -- Returns true when our data changed.
 function Registry:MergeLife(key, carer, e)
     local g = G()
-    if not g or type(key) ~= "string" or #key > 64 or not ns.SaneName(carer) or not ValidLife(e) then
+    if not g or not ValidKey(key) or not ns.SaneName(carer) or not ValidLife(e) then
         return false
     end
     local byKey = g.life[key]
@@ -114,7 +132,7 @@ end
 -- Returns true when our data changed.
 function Registry:MergeName(key, namer, e)
     local g = G()
-    if not g or type(key) ~= "string" or #key > 64 or not ns.SaneName(namer) or not ValidEntry(e) then
+    if not g or not ValidKey(key) or not ns.SaneName(namer) or not ValidEntry(e) then
         return false
     end
     local byKey = g.names[key]

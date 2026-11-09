@@ -4,11 +4,15 @@ local _, ns = ...
 --
 -- Messages (all on GUILD):
 --   HELLO  { v, d }        login announcement (Version.lua) with our digest
---   SYNC   { r, l, n, b, a, d } full state: r[owner] = record, l[owner] = lapse,
---                          n[petKey][namer] = naming entry (Registry.lua),
---                          b[petKey][carer] = bond entry (Registry.lua),
---                          a[id] = guild achievement (Achievements.lua),
---                          d = the sender's digest after sending
+--   SYNC   { r, l, n, b, a, d, i, of } full state, in parts (i of of), each
+--                          well under what receivers accept (Comm MAX_PARTS):
+--                          1: r[owner] = record, l[owner] = lapse,
+--                             a[id] = guild achievement (Achievements.lua)
+--                          2: n[petKey][namer] = naming entry (Registry.lua)
+--                          3: b[petKey][carer] = bond entry (Registry.lua)
+--                          d (the last part) = the sender's digest. A part
+--                          with more than SYNC_MAX_ENTRIES entries is junk
+--                          and refused whole.
 --   ACH    { a }           guild achievements someone just found or shared
 --                          (handled in Achievements.lua; part of the digest)
 --   UPD    { r }           the sender's own record changed
@@ -17,8 +21,9 @@ local _, ns = ...
 --   LAPSE  { l }           lapses someone just noticed
 --
 -- Flow: a client logs in and sends HELLO with its digest. Peers whose
--- digest differs schedule a SYNC after a random 2-8 s delay, and cancel it
--- if they see someone else's SYNC that already brings them in line, so
+-- digest differs schedule a SYNC after a random 2-8 s delay. When someone
+-- else's SYNC starts arriving (its first chunk, Comm COMM_INCOMING), they
+-- hold theirs back, and cancel it if that SYNC brings them in line, so
 -- usually only one peer answers. Whoever receives a SYNC merges it. If they
 -- still differ afterwards (they knew something the sender didn't), they
 -- schedule a SYNC of their own the same way. Everything merges
@@ -64,19 +69,37 @@ local function SendFull()
     if not IsInGuild() then return end
     lastSent = GetTime()
     local claims, lapses, names, life = ns.Registry:All()
-    ns.Comm:Send("SYNC", { r = claims, l = lapses, n = names, b = life, a = ns.Achievements:GuildRecords(), d = Sync:Digest() },
-        "GUILD", nil, "BULK")
+    local parts = {
+        { r = claims, l = lapses, a = ns.Achievements:GuildRecords() },
+        { n = names },
+        { b = life },
+    }
+    for i, msg in ipairs(parts) do
+        msg.i, msg.of = i, #parts
+        if i == #parts then msg.d = Sync:Digest() end
+        ns.Comm:Send("SYNC", msg, "GUILD", nil, "BULK")
+    end
 end
 
-local function Schedule()
-    if pending then return end
+local function Later(delay)
     local token = {}
     pending = token
-    local delay = 2 + math.random() * 6
     if lastSent then delay = math.max(delay, lastSent + SYNC_GAP - GetTime()) end
     C_Timer.After(delay, function()
         if pending == token then SendFull() end
     end)
+end
+
+local function Schedule()
+    if pending then return end
+    Later(2 + math.random() * 6)
+end
+
+-- Someone's SYNC is on its way: wait for it before sending ours (it may
+-- say it all). Comes back to it if that SYNC never finishes arriving.
+local HOLD = 30
+local function Hold()
+    if pending then Later(HOLD) end
 end
 
 -- Someone told us something we know better (an older date, say): answer
@@ -85,6 +108,27 @@ function Sync:Nudge() Schedule() end
 
 local function Cancel()
     pending = nil
+end
+
+-- Entries in a part: a table of tables (n, b) counts the inner ones.
+local function Count(t, nested)
+    if type(t) ~= "table" then return 0 end
+    local n = 0
+    for _, v in pairs(t) do
+        if nested then
+            if type(v) == "table" then for _ in pairs(v) do n = n + 1 end end
+        else
+            n = n + 1
+        end
+    end
+    return n
+end
+
+-- More entries than any guild has: junk, or someone flooding everyone's
+-- saved data (and every SYNC after it). Refused whole.
+local function TooBig(msg)
+    local max = ns.Config.SYNC_MAX_ENTRIES
+    return Count(msg.r) > max or Count(msg.l) > max or Count(msg.n, true) > max or Count(msg.b, true) > max
 end
 
 -- Merge a batch; returns true if anything changed.
@@ -134,15 +178,26 @@ function Sync:Init()
         if not Accept(msg, channel) then return end
         if msg.d ~= Sync:Digest() then Schedule() end
     end)
-    ns.Comm:Register("SYNC", function(msg, _, channel)
+    ns.Comm:Register("SYNC", function(msg, sender, channel)
         if not Accept(msg, channel) then return end
+        if TooBig(msg) then
+            ns.Log("Sync", "refused a SYNC from %s: too many entries", tostring(sender))
+            return
+        end
         MergeAll(msg.r, msg.l, msg.n, msg.b)
         ns.Achievements:MergeGuild(msg.a)
-        if Sync:Digest() == msg.d then
+        local i, of = tonumber(msg.i), tonumber(msg.of)
+        if i and of and i < of then
+            Hold() -- more parts to come: judge when the last is in
+        elseif Sync:Digest() == msg.d then
             Cancel() -- someone said it for us
         else
-            Schedule() -- we know things the sender doesn't
+            -- We know things the sender doesn't: answer soon (a hold ends here).
+            Later(2 + math.random() * 6)
         end
+    end)
+    ns.Bus:On("COMM_INCOMING", function(_, channel)
+        if channel == "GUILD" then Hold() end
     end)
     ns.Comm:Register("UPD", function(msg, sender, channel)
         if not Accept(msg, channel) then return end

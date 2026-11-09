@@ -15,7 +15,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 7
+local SCHEMA = 8
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
@@ -90,6 +90,26 @@ local MIGRATIONS = {
     -- each carer seeds their own from the days already together (Bond.lua).
     [7] = function(db)
         for _, g in pairs(db.guilds or {}) do g.life = g.life or {} end
+    end,
+    -- 8 (2026-11-09): bond entries within the new bound (75 a day, a spare
+    -- day, not before the epoch). Clamped the same way on every client, so
+    -- all copies agree again; one peers would refuse kept a SYNC going forever.
+    [8] = function(db)
+        local Registry = ns.Registry
+        for _, g in pairs(db.guilds or {}) do
+            for key, byKey in pairs(g.life or {}) do
+                for carer, e in pairs(byKey) do
+                    if type(e) == "table" and type(e.p) == "number" and type(e.f) == "number" and type(e.t) == "number" then
+                        e.p = math.min(e.p, Registry.LifeCap(e.f, e.t))
+                    end
+                    if not Registry.ValidLife(e) then byKey[carer] = nil end
+                end
+                if not next(byKey) or not Registry.ValidKey(key) then g.life[key] = nil end
+            end
+            for key in pairs(g.names or {}) do
+                if not Registry.ValidKey(key) then g.names[key] = nil end
+            end
+        end
     end,
 }
 local CHAR_MIGRATIONS = {}

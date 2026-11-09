@@ -609,7 +609,9 @@ function World:Sent(kind, from, since)
     local n = 0
     for i = (since or 0) + 1, #self.wire do
         local m = self.wire[i]
-        if m.kind == kind and (not from or m.from == from) then n = n + 1 end
+        -- A SYNC goes in parts (Sync.lua): counted once, by its first.
+        local part = kind == "SYNC" and m.msg and m.msg.i
+        if m.kind == kind and (not from or m.from == from) and (not part or part == 1) then n = n + 1 end
     end
     return n
 end
@@ -728,6 +730,9 @@ function Client:Login()
     })
     self.env, self.ns = env, {}
     for _, path in ipairs(TOC.files) do Load(env, path, ADDON, self.ns) end
+    -- The bond epoch (no bond is older than the addon) as in the real world:
+    -- before any test data. The test clock starts in September 2026.
+    self.ns.Config.BOND_EPOCH = self.world.epoch or (1790000000 - 1000 * 86400)
     self:Fire("ADDON_LOADED", ADDON)
     self:Fire("PLAYER_LOGIN")
     self:Fire("PLAYER_ENTERING_WORLD", true, false)

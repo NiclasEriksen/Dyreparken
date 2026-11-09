@@ -64,7 +64,9 @@ ns.Config = {
     BOND_OTHER_POINTS = 1,        -- any other activity with it out
     BOND_OTHER_CAP = 5,           -- ... at most this many a day per activity
     BOND_WISH_POINTS = 10,        -- today's wish done (Wish.lua), within the daily limit
-    BOND_DAILY_MAX = 75,         -- the most bond points a day can bring (the day + activities, per calendar day); bounds the wire        -- characters (UTF-8 aware, see ns.Utf8Len)
+    BOND_DAILY_MAX = 75,
+    BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries
+    SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole         -- the most bond points a day can bring (the day + activities, per calendar day); bounds the wire        -- characters (UTF-8 aware, see ns.Utf8Len)
     DEBUG_RING_SIZE = 2000,       -- lines kept in DyreparkenDebugDB
     COMM_PREFIX = "Dyreparken",   -- max 16 characters
 }

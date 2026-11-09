@@ -347,7 +347,7 @@ return function(test, H)
         w:Run(2)
         liv:Login()
         w:Run(30)
-        eq(#ola:Log("%-> SYNC") + #kari:Log("%-> SYNC"), 1)
+        eq(w:Sent("SYNC", "Ola Nord") + w:Sent("SYNC", "Kari Berg"), 1, "one answer (a SYNC goes in parts)")
     end)
 
     test("updates only ever touch the sender's own record", function()
@@ -450,7 +450,11 @@ return function(test, H)
         -- Heal: no more losses; everyone comes online; one login round.
         w.drop = nil
         w:Run(30)
-        for _, c in ipairs(clients) do if not c.online then c:Login() end end
+        local logins = 0
+        for _, c in ipairs(clients) do if not c.online then c:Login(); logins = logins + 1 end end
+        -- A login round needs a login: a lost update while everyone stays online heals at the
+        -- next one (by design, "a lost update heals at the next login").
+        if logins == 0 then clients[1]:Reload() end
         w:Run(60)
         local okc, why = H.converged(w)
         if not okc then

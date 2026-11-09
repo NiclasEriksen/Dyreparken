@@ -3,20 +3,25 @@ local _, ns = ...
 -- Addon messaging. One prefix; every message is a table
 --   { k = kind, p = PROTOCOL, ... }
 -- serialized with LibSerialize, compressed with LibDeflate, encoded for the
--- addon channel, then split into <=255 byte chunks. Sending goes through
--- ChatThrottleLib so we never trip the server throttle (10 msgs per prefix,
--- +1/s; too much traffic can disconnect).
+-- addon channel, then split into <=255 byte chunks, sent straight to the
+-- server by our own outbox, paced to its throttle (10 msgs per prefix, +1/s;
+-- too much traffic can disconnect). Not through ChatThrottleLib (until
+-- 2026-11-09): it queues behind other addons' traffic and then sends in a
+-- burst, past the throttle.
 --
 -- Chunk header (1 byte): "S" whole message, "F" first, "M" middle, "L" last.
 -- Chunks from one sender arrive in order on one channel, and the receiver
 -- joins them per sender and channel. So every chunk goes out through one
--- FIFO here and one CTL queue: two messages in separate queues would
--- interleave and spoil each other.
+-- FIFO here: two messages sent side by side would interleave and spoil each
+-- other.
 --
--- Pacing: ChatThrottleLib only limits bytes per second. The server also
--- drops anything past 10 messages per prefix (+1/s), so a big SYNC would
--- lose chunks. The outbox spends from its own bucket of BURST and waits
--- for refills with one C_Timer, so it's idle when there's nothing to send.
+-- Pacing: the outbox spends from its own bucket of BURST and waits for
+-- refills with one C_Timer, so it's idle when there's nothing to send. If
+-- the server still says "throttled" (another addon on our prefix? never
+-- seen), the chunk stays first in line and waits a second.
+--
+-- Size: a message over MAX_PARTS chunks is dropped by every receiver, so
+-- it isn't sent at all (logged); SYNC goes in parts (Sync.lua).
 --
 -- Handlers: ns.Comm:Register(kind, fn(msg, sender, channel)); several
 -- modules may listen to the same kind (HELLO: Version and Sync).
@@ -31,7 +36,6 @@ ns.Comm = Comm
 
 local LibSerialize = LibStub("LibSerialize")
 local LibDeflate = LibStub("LibDeflate")
-local CTL = ChatThrottleLib
 local PREFIX = ns.Config.COMM_PREFIX
 local CHUNK = 254 -- 255 minus the header byte
 
@@ -54,9 +58,17 @@ local function Drain()
     -- The epsilon: float rounding must not leave us a hair short forever.
     while first <= last and tokens >= 1 - 1e-6 do
         local c = outbox[first]
-        outbox[first], first = nil, first + 1
         tokens = tokens - 1
-        CTL:SendAddonMessage(c.prio, PREFIX, c.text, c.channel, c.target, PREFIX, c.cb, c.kind)
+        local result = C_ChatInfo.SendAddonMessage(PREFIX, c.text, c.channel, c.target)
+        local codes = Enum.SendAddonMessageResult
+        if codes and result == codes.AddonMessageThrottle then
+            -- Keep it first in line; try again once a token has come back.
+            tokens = 0
+            ns.Log("Comm", "throttled by the server; waiting")
+            break
+        end
+        outbox[first], first = nil, first + 1
+        if c.cb then c.cb(c.kind, result == nil or result == true or (codes and result == codes.Success)) end
     end
     if first <= last then
         waiting = true
@@ -70,6 +82,19 @@ local function Queue(prio, text, channel, target, cb, kind)
     last = last + 1
     outbox[last] = { prio = prio, text = text, channel = channel, target = target, cb = cb, kind = kind }
     if not waiting then Drain() end
+end
+
+-- Requests anyone can send (VER_REQ, PET_REQ) are answered at most once per
+-- channel every REPLY_GAP seconds: a member sending them in a loop must not
+-- fill everyone's outbox. A second asker within the gap usually heard our
+-- first answer anyway (answers go to the whole channel).
+local REPLY_GAP = 5
+local replied = {} -- kind .. channel -> GetTime()
+function Comm:MayReply(kind, channel)
+    local key, now = kind .. "\31" .. tostring(channel), GetTime()
+    if replied[key] and now - replied[key] < REPLY_GAP then return false end
+    replied[key] = now
+    return true
 end
 
 function Comm:Register(kind, fn)
@@ -94,7 +119,6 @@ local function Decode(data)
 end
 
 local function OnSent(kind, sent)
-    -- CTL passes (arg, didSend, ...); result codes are logged for research.
     if not sent then ns.Log("Comm", "send of %s not delivered", tostring(kind)) end
 end
 
@@ -107,6 +131,11 @@ function Comm:Send(kind, msg, channel, target, prio)
     local data = Encode(msg)
     prio = prio or "NORMAL"
     local n = #data
+    if n > CHUNK * MAX_PARTS then
+        -- Every receiver would drop it: don't spend the channel on it.
+        ns.Log("Comm", "not sent: %s is too big (%d bytes, over %d chunks)", kind, n, MAX_PARTS)
+        return false
+    end
     if n <= CHUNK then
         Queue(prio, "S" .. data, channel, target, OnSent, kind)
     else
@@ -154,6 +183,9 @@ local function OnAddonMessage(_, _, prefix, text, channel, sender)
         Dispatch(body, sender, channel)
     elseif head == "F" then
         partial[key] = { body }
+        -- A long message is on its way (only SYNC parts are this long):
+        -- Sync holds back its own until it has seen it.
+        ns.Bus:Fire("COMM_INCOMING", sender, channel)
     elseif head == "M" or head == "L" then
         local parts = partial[key]
         if not parts then return end

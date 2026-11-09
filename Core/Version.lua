@@ -33,7 +33,7 @@ function Version:Init()
     -- quieter, but whisper targets with surnames are unverified on Forever.)
     -- Everyone hearing everyone's version is useful anyway: NoteVersion.
     ns.Comm:Register("VER_REQ", function(_, _, channel)
-        if channel == "WHISPER" then return end
+        if channel == "WHISPER" or not ns.Comm:MayReply("VER", channel) then return end
         ns.Comm:Send("VER", { v = ns.VERSION }, channel, nil, "BULK")
     end)
     ns.Bus:On("PROTOCOL_MISMATCH", function(sender, theirs, msg)
