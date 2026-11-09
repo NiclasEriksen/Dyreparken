@@ -109,19 +109,6 @@ function Ach:Icon(d)
     return icon
 end
 
--- /dp ach icons: every achievement with its candidates drawn in chat, so
--- icons can be picked by eye. (development)
-function Ach:ShowIcons()
-    for _, d in ipairs(ns.AchDefs) do
-        local parts = {}
-        for _, c in ipairs(Candidates(d)) do
-            local name = type(c) == "string" and c:gsub("^Interface\\Icons\\", "") or tostring(c)
-            parts[#parts + 1] = ("|T%s:24|t %s%s"):format(tostring(c), name, Exists(c) and "" or " (missing)")
-        end
-        ns.Print(("%s: %s"):format(self:Name(d.id), table.concat(parts, "   ")))
-    end
-end
-
 local function Scope(d) return d.scope or "account" end
 
 -- Where a scope keeps what it has seen and earned ({ seen, got }), or nil

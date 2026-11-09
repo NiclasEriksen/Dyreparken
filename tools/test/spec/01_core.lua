@@ -240,7 +240,7 @@ return function(test, H)
 
     test("reservations and settings survive a reload", function()
         local w, c = H.Setup{ ola = {}, settle = "hello" }
-        c:Slash("claim")
+        c:Slash("adopter")
         c.ns.Summon:SetEnabled(false)
         c:Reload()
         eq(c.ns.Registry:MyPet(), "s:5159")
@@ -252,11 +252,11 @@ return function(test, H)
         local w = H.World()
         local c = w:AddClient("Ola Nord")
         w:Run(15)
-        c:Slash("claim")
+        c:Slash("adopter")
         c:OpenJournal({ extra = { 46 } })
         c:SelectPet(5159)
         c:Hover({ species = 5159, owner = "Ola Nord" })
-        c:Slash("list")
+        c:Slash("liste")
         w:Run(5)
         local allowed = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true,
             SLASH_DYREPARKEN1 = true, SLASH_DYREPARKEN2 = true, LibStub = true, ChatThrottleLib = true }
@@ -293,5 +293,35 @@ return function(test, H)
             if not hello and l:find("%-> HELLO") then hello = i end
         end
         ok(check and hello and check < hello, "the login check, then HELLO")
+    end)
+
+    test("a release has only the players' commands, in Norwegian; a git checkout has the developer ones", function()
+        local w = H.World()
+        local rel = w:AddClient("Ola Nord", { version = "v0.3.0", pets = { 5159 }, login = false })
+        rel.saved.DyreparkenDebugDB = { enabled = true, lines = { head = 0 } } -- (left on from before)
+        rel:Login()
+        local dev = w:AddClient("Kari Berg", { pets = { 46 } })
+        w:Run(15)
+        no(rel.ns.Debug.enabled, "a log left on is turned off: nothing could turn it off now")
+        rel:Slash("")
+        local listed = 0
+        for _, l in ipairs(rel.printed) do if l:find("  /dp ", 1, true) then listed = listed + 1 end end
+        eq(listed, 8)
+        for _, word in ipairs({ "probe", "debug on", "claim", "adopt", "nick Pepe", "list", "sound off", "ach",
+            "version", "versjon", "report", "rapport", "pat" }) do
+            rel:ClearPrinted()
+            rel:Slash(word)
+            ok(rel:Printed("kommandoer:", true), word .. ": the help instead")
+        end
+        no(rel.ns.Debug.enabled)
+        eq(rel.ns.Registry:MyPet(), nil, "claim did nothing")
+        rel:ClearPrinted()
+        rel:Slash("prestasjoner ikoner")
+        no(rel:Printed("|T", true), "no icon gallery")
+        -- The git checkout: probe and debug are there.
+        dev:Slash("")
+        ok(dev:Printed("  /dp probe [", true)); ok(dev:Printed("  /dp debug [", true))
+        dev:Slash("debug off")
+        no(dev.ns.Debug.enabled)
     end)
 end

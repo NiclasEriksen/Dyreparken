@@ -23,7 +23,7 @@ return function(test, H)
 
     -- Keys made from parts in the code ("trait." .. id .. ".name"): the
     -- prefixes, each checked against the runtime tables below.
-    local DYNAMIC = { "time.", "home.", "version.where.", "bond.level.", "decor.level.", "effect.times.", "activity.",
+    local DYNAMIC = { "time.", "home.", "bond.level.", "decor.level.", "effect.times.", "activity.",
         "holiday.", "trait.", "effect.activity.", "dislike.", "egg." }
 
     test("ns.T fills named placeholders; a missing key or value shows, never breaks", function()
@@ -89,7 +89,6 @@ return function(test, H)
         for i = 1, #ns.Bond.LEVELS do ok(ns.Strings["bond.level." .. i]) end
         for n = 2, 7 do ok(ns.Strings["decor.level." .. n]) end
         for _, k in ipairs({ "today", "yesterday", "days", "months", "years" }) do ok(ns.Strings["time." .. k], k) end
-        for _, ch in ipairs({ "GUILD", "PARTY", "RAID" }) do ok(ns.Strings["version.where." .. ch]) end
         -- And nothing in the file goes unused (made from parts, or named in the code).
         local all = table.concat(code, "\n")
         for key in pairs(ns.Strings) do

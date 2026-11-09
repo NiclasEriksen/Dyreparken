@@ -105,7 +105,7 @@ Core/Events.lua    single event frame, On/Off, OutOfCombat queue
 Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() registry
 Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (not ChatThrottleLib), Register(kind, fn, from)
                    ("GUILD"/"GROUP": other channels never reach fn), MayReply (requests anyone can send: once per channel every 5 s)
-Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
+Core/Version.lua   HELLO on login, one-time outdated notice; still answers VER_REQ from 0.2.x clients
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
 Core/Activity.lua  the activity engine: game events -> activities, every one declared once in Activity.KINDS (always
                    watched or not, wishable, chip icons; its words in Locale by id), counted per
@@ -114,8 +114,9 @@ Core/Activity.lua  the activity engine: game events -> activities, every one dec
 Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, Scale): no BOUNCE loops, one group per region
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
-Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
-                   English aliases; probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|ach], debug)
+Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp; Norwegian
+                   only). Only in a git checkout (ns.DEV): probe [more|tabs|kills|life|world|card|bg|decor|frames|level|
+                   celebrate|ach] and debug; a release never logs (Debug:Init turns a saved log off)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
@@ -124,7 +125,7 @@ Data/Traits.lua    every species' two personality traits, PINNED for good (decid
 Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, probes), Registry (reservation data model,
                    merge + holder rules: read its header first; Status: mine/taken/free; NameOf/NameFor: what a pet is called), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
-                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (/dp rapport),
+                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (only answers 0.2.x clients' PET_REQ; /dp rapport is gone),
                    JournalList (the journal's list: markers, bond rings, nicknames, tooltips), CardActions (the card's
                    Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring; the card's
                    widgets are one ordered list, WIDGETS: Build + a line there),
@@ -223,9 +224,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   anyone else during a holder's care doesn't count (`Registry:Nickname`). It replaces the title line of the world
   tooltip, with the species moved below it, and shows big on the journal's pet card.
 - Auto-summon turns itself off if AutoCompanion is loaded.
-- `/dp rapport` checks addon users only and lists non-users locally as unknown. The result (who forgot their
-  companion, by nickname; or praise when everyone has one out) shows in a dialog, and its button posts it to group
-  chat (2026-11-08): posting needs a click, and the player sees the call-out first.
+- **Fewer commands** (2026-11-09, the addon spread beyond the guild): `/dp rapport` (calling out group members
+  without a pet), `/dp versjon`, `/dp prestasjoner ikoner` and the English aliases are gone. The developer commands
+  (probe, debug) exist only in a git checkout, so the probes and the debug log are for the developer. We still answer
+  0.2.x clients' PET_REQ and VER_REQ.
 - Adopting and naming are announced in guild chat from the click or command that did it (`Bonds:Announce`), per
   character, default on, `/dp kunngjør`. Letting go and clearing a name aren't announced. The same line isn't
   repeated within an hour.
@@ -242,9 +244,8 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - **Everything players read is Norwegian** (2026-11-08); developer output (`/dp probe`, `/dp debug`, the log) stays
   English. Companions are *adoptert* and *bor hos* someone, never "reservert". "Bor hos Kari Berg i 3 dager" /
   "siden i dag" / "siden i går" (`ns.CaredFor`), "Trenger et hjem", buttons Adopter / Gi slipp / Kallenavn, nicknames in
-  «», dates as 08.11.2026. Commands: `/dp adopter, gislipp, navn, liste, lyd, prestasjoner, versjon, rapport`; the
-  English ones (adopt, letgo, nick, list, sound, ach, version, report, and the oldest claim/release) still work,
-  unlisted. Code and the wire keep English names (claim, Registry, `claims`).
+  «», dates as 08.11.2026. Commands: `/dp adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp` (the
+  English aliases went 2026-11-09). Code and the wire keep English names (claim, Registry, `claims`).
 - Counter: "Guilden: x av y har et hjem (z%)", y = every companion in Forever's journal (`Pets:Total`,
   `Data/Companions.lua`). The old "known" list is gone (migration 4).
 - No officer force-release for now: release only happens by the owner, by leaving the guild, or after inactivity.

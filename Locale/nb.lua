@@ -39,22 +39,14 @@ L["cmd.help.gislipp"] = "gislipp - gi slipp på dyret ditt"
 L["cmd.help.navn"] = "navn [kallenavn] - gi dyret ditt et kallenavn (tomt fjerner det)"
 L["cmd.help.liste"] = "liste - hvilke dyr som har et hjem i guilden"
 L["cmd.help.lyd"] = "lyd [på|av] - klirringen når et dyr summones (dempet som standard)"
-L["cmd.help.prestasjoner"] = "prestasjoner [del|varsel på|av|ikoner] - prestasjonene dine; del nye i guild-chatten"
-L["cmd.help.versjon"] = "versjon [guild|gruppe] - hvem som har hvilken versjon"
+L["cmd.help.prestasjoner"] = "prestasjoner [del|varsel på|av] - prestasjonene dine; del nye i guild-chatten"
 L["cmd.help.kunngjor"] = "kunngjør [på|av] - del adopsjoner og kallenavn i guild-chatten (på som standard)"
 L["cmd.help.klapp"] = "klapp - klapp dyret du har valgt som mål, eller ditt eget"
-L["cmd.help.rapport"] = "rapport - rop ut dem i gruppa som ikke har dyret ute"
 
 ------------------------------------------------------------------------------
 -- Versions
 ------------------------------------------------------------------------------
 L["version.newer"] = "En nyere versjon ({theirs}) er ute; du har {mine}."
-L["version.no_guild"] = "Du er ikke i en guild."
-L["version.no_group"] = "Du er ikke i en gruppe."
-L["version.head"] = "Versjonssjekk ({where}): {n} med addonen"
-L["version.where.GUILD"] = "guild"
-L["version.where.PARTY"] = "gruppe"
-L["version.where.RAID"] = "raid"
 
 ------------------------------------------------------------------------------
 -- Adopting, letting go, nicknames (Registry)
@@ -89,19 +81,6 @@ L["lapse.unknown_owner"] = "?"
 ------------------------------------------------------------------------------
 -- /dp rapport (who forgot their companion; posted to group chat)
 ------------------------------------------------------------------------------
-L["report.one_pet"] = "Dyreparken: {player} har glemt {pet} hjemme!"
-L["report.one"] = "Dyreparken: {player} har ikke dyret sitt ute!"
-L["report.many"] = "Dyreparken: Disse har glemt dyret hjemme: "
-L["report.many_item_pet"] = "{player} ({pet})"
-L["report.many_more"] = " og {n} til!"
-L["report.all"] = "Dyreparken: Alle {n} har dyra ute. For en gjeng!"
-L["report.all_users"] = "Dyreparken: Alle {n} i Dyreparken har dyra ute!"
-L["report.button"] = "Del i gruppechatten"
-L["report.no_group"] = "Du er ikke i en gruppe."
-L["report.running"] = "En rapport kjører allerede."
-L["report.checking"] = "Sjekker dyr ..."
-L["report.all_local"] = "Alle med addonen har dyret sitt ute ({n})."
-L["report.unknown"] = "Ukjent (uten addon): {list}"
 
 ------------------------------------------------------------------------------
 -- Milestones, dagens dyr, /dp klapp, guild announcements (Bonds)

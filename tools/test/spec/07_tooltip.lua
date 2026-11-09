@@ -4,10 +4,10 @@ return function(test, H)
 
     local function Setup(kariOpts)
         local w, ola, kari = H.Setup{ ola = { 46 }, kari = kariOpts or { 5159 }, settle = "bond" }
-        ola:Slash("claim")
+        ola:Slash("adopter")
         w:SkipDays(7)
         w:Befriend()
-        ola:Slash("nick Pus")
+        ola:Slash("navn Pus")
         w:Run(1)
         return w, ola, kari
     end
@@ -63,7 +63,7 @@ return function(test, H)
 
     test("no nickname: just the reservation line", function()
         local w, ola, kari = Setup()
-        ola:Slash("nick")
+        ola:Slash("navn")
         w:Run(1)
         local lines = kari:Hover({ species = 46, owner = "Ola Nord" })
         eq(#lines, 1)

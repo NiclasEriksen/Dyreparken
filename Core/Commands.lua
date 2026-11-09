@@ -4,19 +4,19 @@ local _, ns = ...
 local commands = {}
 local help = {}
 
--- A command, its help line (nil: unlisted), and other words for it (the
--- English ones from before the Norwegian interface, 2026-11-08).
-local function Add(name, usage, fn, ...)
+-- A command and its help line. Only the Norwegian words (2026-11-09: the
+-- addon spread beyond the guild, so the old English aliases, /dp versjon and
+-- /dp rapport went; the developer commands exist only in a git checkout).
+local function Add(name, usage, fn)
     commands[name] = fn
-    for _, alias in ipairs({ ... }) do commands[alias] = fn end
-    if usage then help[#help + 1] = usage end
+    help[#help + 1] = usage
 end
 
 -- An action's ok, message: the message is shown either way.
 local function Say(_, msg) if msg then ns.Print(msg) end end
 
-local ON = { ["på"] = true, on = true }
-local OFF = { av = true, off = true }
+local ON = { ["på"] = true }
+local OFF = { av = true }
 
 -- "på"/"av" (or on/off) say which; nothing else flips the current setting.
 local function Toggle(arg, current)
@@ -78,37 +78,42 @@ end
 local function Achievements(arg)
     local A = ns.Achievements
     local word, rest = (arg or ""):match("^(%S*)%s*(.-)$")
-    if word == "del" or word == "share" then
+    if word == "del" then
         A:Share()
-    elseif word == "ikoner" or word == "icons" then
-        A:ShowIcons()
-    elseif (word == "varsel" or word == "notify") and (ON[rest] or OFF[rest]) then
+    elseif word == "varsel" and (ON[rest] or OFF[rest]) then
         A:SetNotify(ON[rest] == true)
     else
         A:List()
     end
 end
 
-local function Version(arg)
-    local group = arg == "gruppe" or arg == "group"
-    ns.Version:Check(group and (ns.GroupChannel() or "PARTY") or "GUILD")
+-- The command words are code; what the help says about them is text
+-- (Locale/nb.lua, cmd.help.*).
+local L = ns.L
+Add("adopter", L["cmd.help.adopter"], Adopt)
+Add("gislipp", L["cmd.help.gislipp"], LetGo)
+Add("navn", L["cmd.help.navn"], Nick)
+Add("liste", L["cmd.help.liste"], List)
+Add("lyd", L["cmd.help.lyd"], Sound)
+Add("prestasjoner", L["cmd.help.prestasjoner"], Achievements)
+Add("kunngjør", L["cmd.help.kunngjor"], Announce)
+Add("klapp", L["cmd.help.klapp"], function() ns.Bonds:Pat() end)
+
+SLASH_DYREPARKEN1 = "/dp"
+SLASH_DYREPARKEN2 = "/dyreparken"
+SlashCmdList.DYREPARKEN = function(input)
+    local cmd, arg = strtrim(input or ""):match("^(%S*)%s*(.-)$")
+    cmd = cmd:lower()
+    local fn = commands[cmd]
+    -- fn(lowercased arg, arg as typed): names and nicknames keep their case.
+    if fn then return fn(arg ~= "" and arg:lower() or nil, arg) end
+    ns.Print(ns.T("cmd.help.head", { version = ns.VERSION }))
+    for _, line in ipairs(help) do ns.Print("  /dp " .. line) end
 end
 
-local function Report() ns.Report:Run() end
-
--- The command words are code (both the Norwegian and the old English ones
--- work, unlisted); what the help says about them is text (Locale/nb.lua, cmd.help.*).
-local L = ns.L
-Add("adopter", L["cmd.help.adopter"], Adopt, "adopt", "claim")
-Add("gislipp", L["cmd.help.gislipp"], LetGo, "letgo", "release")
-Add("navn", L["cmd.help.navn"], Nick, "nick")
-Add("liste", L["cmd.help.liste"], List, "list")
-Add("lyd", L["cmd.help.lyd"], Sound, "sound")
-Add("prestasjoner", L["cmd.help.prestasjoner"], Achievements, "ach")
-Add("versjon", L["cmd.help.versjon"], Version, "version")
-Add("kunngjør", L["cmd.help.kunngjor"], Announce, "announce")
-Add("klapp", L["cmd.help.klapp"], function() ns.Bonds:Pat() end, "pat")
-Add("rapport", L["cmd.help.rapport"], Report, "report")
+-- Developer commands, English: only in a git checkout (ns.DEV), never in a
+-- packaged release.
+if not ns.DEV then return end
 
 -- /dp probe <word> [arg]: development dumps to the debug log. One line each;
 -- the usage is built from this list. (no word: the journal probe)
@@ -151,15 +156,3 @@ Add("debug", "debug [on|off|echo|clear] - debug log (saved on /reload)", functio
     end
     ns.Print(("Debug %s%s."):format(D.enabled and "on" or "off", D.echo and " (echo to chat)" or ""))
 end)
-
-SLASH_DYREPARKEN1 = "/dp"
-SLASH_DYREPARKEN2 = "/dyreparken"
-SlashCmdList.DYREPARKEN = function(input)
-    local cmd, arg = strtrim(input or ""):match("^(%S*)%s*(.-)$")
-    cmd = cmd:lower()
-    local fn = commands[cmd]
-    -- fn(lowercased arg, arg as typed): names and nicknames keep their case.
-    if fn then return fn(arg ~= "" and arg:lower() or nil, arg) end
-    ns.Print(ns.T("cmd.help.head", { version = ns.VERSION }))
-    for _, line in ipairs(help) do ns.Print("  /dp " .. line) end
-end

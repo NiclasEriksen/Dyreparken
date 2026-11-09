@@ -218,7 +218,7 @@ return function(test, H)
         local cs = {}
         for _, m in ipairs(names) do cs[m[1]] = Fix(w:AddClient(m[1], { pets = { m[2], 46 }, rank = m[3] })) end
         w:Settle("hello")
-        for _, m in ipairs(names) do if m[4] then cs[m[1]]:Slash("adopt " .. m[4]) end end
+        for _, m in ipairs(names) do if m[4] then cs[m[1]]:Slash("adopter " .. m[4]) end end
         w:Run(20)
         local ola, kari = cs["Ola Nord"], cs["Kari Berg"]
         local P = Open(ola)
@@ -229,7 +229,7 @@ return function(test, H)
         match(tip, "White Kitten: trenger et hjem")
         match(Tooltip(ola, P._rows["guild:all"]), "Trenger et hjem:\n")
         -- Liv adopts the last cat: the guild has every cat.
-        cs["Liv Lund"]:Slash("adopt White Kitten")
+        cs["Liv Lund"]:Slash("adopter White Kitten")
         w:Run(20)
         DropAdoptions(w)
         ok(row.info:IsShown(), "earned while the page was open")
@@ -274,7 +274,7 @@ return function(test, H)
         eq(liv.ns.AchPage._tab.points[1][5], -2)
     end)
 
-    test("icons: the first candidate the client has; /dp ach icons previews them", function()
+    test("icons: the first candidate the client has", function()
         local w = H.World()
         local missing = {
             ["Interface\\Icons\\INV_Box_Birdcage_01"] = true,
@@ -290,10 +290,6 @@ return function(test, H)
         eq(A:Icon({ id = "t:num", icon = { 12345, "X" } }), 12345, "file ids are taken as they are")
         eq(A:Icon({ id = "t:path", icon = "Interface\\Foo\\Bar" }), "Interface\\Foo\\Bar", "full paths stay")
         eq(A:Icon({ id = "t:bad", icon = { true } }), A.NO_ICON)
-        ola:Slash("ach icons")
-        local line = ola:Printed("Ti små indianere: ", true)
-        match(line, "|TInterface\\Icons\\INV_Box_Birdcage_01:24|t INV_Box_Birdcage_01 %(missing%)", "drawn and marked")
-        match(line, "|TInterface\\Icons\\INV_Misc_PetBiscuit_01:24|t INV_Misc_PetBiscuit_01   ")
         local P = Open(ola)
         eq(P._rows["count:10"].icon.tex, "Interface\\Icons\\INV_Misc_PetBiscuit_01")
         -- A client without GetFileIDFromPath takes the first.

@@ -191,7 +191,7 @@ Coverage floor as for Menagerie (95%).
    - Laid out like the pet page: the window's own background (`Bg`), a "Fått x/y" box centered at the top like
      "Total Pets", and the list in an inset starting below the portrait.
    - Icons: each achievement lists candidates, best first (names, paths or file ids). The client shows the first
-     it has (`GetFileIDFromPath`); `/dp ach icons` previews them all in chat for picking by eye.
+     it has (`GetFileIDFromPath`); (`/dp ach icons` previewed them in chat until it was removed, 2026-11-09.)
    - Tests in `14_achievements_page.lua`.
 
 ## Research: boss and PvP kills with your companion out (2026-11-08)

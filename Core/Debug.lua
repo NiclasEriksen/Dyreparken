@@ -30,7 +30,10 @@ function Debug:Init()
     local db = DyreparkenDebugDB
     db.lines = db.lines or { head = 0 }
     buf = db.lines
-    self:SetEnabled(db.enabled, db.echo)
+    -- Only a git checkout logs (2026-11-09: /dp debug is a developer command
+    -- now). A release turns off a log left on from before, which nothing
+    -- could turn off any more.
+    self:SetEnabled(ns.DEV and db.enabled, db.echo)
 end
 
 -- ns.Log("Comm", "sent %s to %s", kind, channel)

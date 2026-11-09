@@ -5,8 +5,8 @@ local _, ns = ...
 --    Peers on a newer version reply nothing; we learn from theirs.
 --  * Seeing a newer version (or a different protocol) prints ONE line,
 --    once per version, remembered in DyreparkenCharDB.warnedVersion.
---  * /dp version: anyone may ask the guild/group for versions (VER_REQ);
---    everyone answers VER on the same channel (BULK priority).
+--  * VER_REQ: clients on 0.2.x can ask the guild/group for versions (the
+--    command was removed 2026-11-09); we still answer VER on that channel.
 local Version = { seen = {} } -- seen[player] = version
 ns.Version = Version
 
@@ -36,7 +36,6 @@ function Version:Init()
     ns.Comm:Register("HELLO", function(msg, sender) NoteVersion(sender, msg.v) end)
     ns.Comm:Register("VER", function(msg, sender)
         NoteVersion(sender, msg.v)
-        if Version.collecting then Version.collecting[sender] = Sane(msg.v) and msg.v or "?" end
     end)
     -- Answer on the channel the request came from. (Whispers would be
     -- quieter, but whisper targets with surnames are unverified on Forever.)
@@ -53,30 +52,6 @@ end
 function Version:Hello()
     -- d: registry digest, so peers can tell whether we need a sync (Sync.lua).
     if IsInGuild() then ns.Comm:Send("HELLO", { v = ns.VERSION, d = ns.Sync:Digest() }, "GUILD") end
-end
-
--- channel: "GUILD" or "RAID"/"PARTY". Prints results after a few seconds.
-function Version:Check(channel)
-    self.collecting = { [ns.PlayerKey()] = ns.VERSION }
-    if not ns.Comm:Send("VER_REQ", {}, channel) then
-        ns.Print(ns.L[channel == "GUILD" and "version.no_guild" or "version.no_group"])
-        self.collecting = nil
-        return
-    end
-    C_Timer.After(5, function()
-        local results = self.collecting
-        self.collecting = nil
-        local list = {}
-        for name, v in pairs(results) do list[#list + 1] = { name = name, v = v } end
-        table.sort(list, function(a, b)
-            local c = ns.CompareVersions(a.v, b.v)
-            if c ~= 0 then return c > 0 end
-            return a.name < b.name
-        end)
-        ns.Print(ns.T("version.head", { where = ns.L["version.where." .. channel], n = #list }))
-        for _, r in ipairs(list) do ns.Print("  " .. r.name .. ": " .. r.v) end
-        -- TODO: list group/guild members that didn't answer (no addon).
-    end)
 end
 
 ns.Start("loaded", function() Version:Init() end)

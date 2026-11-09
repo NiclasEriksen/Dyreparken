@@ -9,8 +9,8 @@ return function(test, H)
         olaOpts = olaOpts or {}
         olaOpts.pets = olaOpts.pets or { 5159, 46 }
         local w, ola, kari = H.Setup{ ola = olaOpts, kari = { 40 }, settle = "bond" }
-        ola:Slash("claim panda")
-        kari:Slash("claim")
+        ola:Slash("adopter panda")
+        kari:Slash("adopter")
         w:Run(2)
         journalOpts = journalOpts or {}
         journalOpts.extra = journalOpts.extra or { 40, 68 }
@@ -41,7 +41,7 @@ return function(test, H)
 
     test("the open journal follows registry changes; a closed one waits", function()
         local w, ola, kari = Setup()
-        kari:Slash("release")
+        kari:Slash("gislipp")
         w:Run(1)
         eq(ola:Marker(40), nil, "refreshed while open")
         ola:CloseJournal()
@@ -56,7 +56,7 @@ return function(test, H)
         local w, ola, kari = Setup()
         w:SkipDays(7)
         w:Befriend()
-        kari:Slash("nick Mjau")
+        kari:Slash("navn Mjau")
         w:Run(1)
         local tip = ola.env.GameTooltip
         local b = ola:Button(40)
@@ -154,7 +154,7 @@ return function(test, H)
         local w, ola, kari = Setup()
         w:SkipDays(7)
         w:Befriend()
-        kari:Slash("nick Mjau")
+        kari:Slash("navn Mjau")
         w:Run(1)
         local card = ola:SelectPet(40)
         eq(card.status.plain, 'Bombay Cat · Bor hos Kari Berg i 7 dager')
