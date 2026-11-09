@@ -17,7 +17,7 @@ return function(test, H)
         end
         ola:Slash("adopter panda")
         w:Run(2)
-        for _, c in ipairs({ ola, kari }) do -- (no wish or first bonuses, or Kosete days, mixed in)
+        for _, c in ipairs({ ola, kari }) do -- (no wish or first bonuses, or Klengete days, mixed in)
             c:NoBonuses()
             c.ns.Personality.Traits = function()
                 return { c.ns.Personality.ById("glupsk"), c.ns.Personality.ById("reiseglad") }
@@ -63,7 +63,7 @@ return function(test, H)
         eq(b.next.text, "150 poeng til Venn")
         b.scripts.OnEnter(b)
         local tip = table.concat(ola.env.GameTooltip.lines, " / ")
-        match(tip, "halvt så fort")
+        match(tip, "halvparten så fort")
         -- Kari sees Ola's bond with the panda (adopted, in the sync) and asks for the kitten's.
         kari:OpenJournal()
         local kc = kari:SelectPet(46)

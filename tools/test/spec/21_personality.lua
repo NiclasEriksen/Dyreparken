@@ -40,8 +40,8 @@ return function(test, H)
         local likes, list, traits = P:Of(PANDA)
         eq(list[1], "herb", "the panda's own: bamboo")
         eq(#list, 1, "neither trait adds a like")
-        eq(traits[1].name, "Kosete"); eq(traits[2].name, "Nattugle")
-        eq(P:Line(PANDA), "Kosete og Nattugle · liker herbs")
+        eq(traits[1].name, "Klengete"); eq(traits[2].name, "Nattugle")
+        eq(P:Line(PANDA), "Klengete og Nattugle · liker herbs")
         local cat = { P:Of("s:40") }
         ok(cat[1].fish, "cats like fishing")
         local dragon = { P:Of("s:84") }
@@ -53,10 +53,10 @@ return function(test, H)
         P.BY_FAMILY, P.DEFAULT = {}, {}
         Give(ola, "kosete", "helgedyr")
         P.Known = function() return true end
-        eq(P:Line("s:999"), "Kosete og Helgedyr", "nothing liked but the days")
+        eq(P:Line("s:999"), "Klengete og Helgetroll", "nothing liked but the days")
         -- What each kind of trait does, in numbers.
         local E = function(id) return P:Effect(P.ById(id)) end
-        eq(E("glupsk"), "Quests med kjæledyret ute gir 5 bånd-poeng (opptil 25 om dagen), mot 1 ellers.")
+        eq(E("glupsk"), "Quests med dyret ute gir 5 bånd-poeng (opptil 25 om dagen), mot 1 ellers.")
         eq(E("kosete"), "Hver dag sammen gir dobbelt så mange bånd-poeng (20 i stedet for 10).")
         eq(E("helgedyr"), "En lørdag eller søndag sammen gir dobbelt så mange bånd-poeng (20 i stedet for 10).")
         match(E("festglad"), "^En høytidsdag sammen %(17%. mai, .*%) gir tre ganger så mange bånd%-poeng %(30 i stedet for 10%)%.$")
@@ -79,7 +79,7 @@ return function(test, H)
         end
         for _, q in ipairs(P.TRAITS) do ok(seen[q.id], q.id) end
         -- Pinned species keep theirs (Data/Traits.lua).
-        eq(P:Names(PANDA), "Kosete og Grønnfinger")
+        eq(P:Names(PANDA), "Klengete og Grønnfinger")
     end)
 
     test("every journal species is pinned to two real traits that go together", function()
@@ -108,11 +108,11 @@ return function(test, H)
         end
     end)
 
-    test("day traits: Kosete, the weekend and the holidays multiply the day", function()
+    test("day traits: Klengete, the weekend and the holidays multiply the day", function()
         local w, ola, P = Setup()
         local function At(y, m, d) return os.time({ year = y, month = m, day = d, hour = 12 }) end
         Give(ola, "kosete", "helgedyr")
-        eq(P:DayFactor(PANDA, At(2026, 11, 9)), 2, "a Monday: Kosete only")
+        eq(P:DayFactor(PANDA, At(2026, 11, 9)), 2, "a Monday: Klengete only")
         eq(P:DayFactor(PANDA, At(2026, 11, 7)), 4, "a Saturday: both")
         local x, why = P:DayFactor(PANDA, At(2026, 11, 8))
         eq(x, 4); eq(why.id, "kosete", "the first one that counted")
@@ -233,7 +233,7 @@ return function(test, H)
         ola.ns.Wish.OnActivity = function() end -- (no wish today: just the likes, 26_story.lua tests wishes)
         local function Points() return ola.ns.Registry:Life(PANDA, "Ola Nord").p end
         ola.ns.Activity:CheckDay()
-        eq(Points(), 20, "Kosete: a day counts double")
+        eq(Points(), 20, "Klengete: a day counts double")
         Herb(ola)
         eq(Points(), 25, "a liked activity: 5")
         ok(ola:Printed("Panda Cub koste seg med herbs!", true))
@@ -261,16 +261,16 @@ return function(test, H)
         Give(ola, "kosete", "reiseglad")
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
-        eq(card.personality.text, "Kosete og Reiseglad")
+        eq(card.personality.text, "Klengete og Reiseglad")
         eq(card.likes.text, "Liker herbs og flyturer")
         local tip = ola.env.GameTooltip
         tip:ClearLines()
         ola.ns.JournalList:AddTooltipLines(tip, PANDA)
-        match(table.concat(tip.lines, " / "), "trenger et hjem / Kosete og Reiseglad · liker herbs og flyturer$")
+        match(table.concat(tip.lines, " / "), "trenger et hjem / Klengete og Reiseglad · liker herbs og flyturer$")
         ola:Slash("adopter panda")
         tip:ClearLines()
         ola.ns.JournalList:AddTooltipLines(tip, PANDA)
-        match(table.concat(tip.lines, " / "), "Flyttet inn hos deg i dag / Bånd: .* / Kosete og Reiseglad · liker herbs og flyturer$")
+        match(table.concat(tip.lines, " / "), "Flyttet inn hos deg i dag / Bånd: .* / Klengete og Reiseglad · liker herbs og flyturer$")
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil
         ola.env.PetJournal_UpdatePetCard(c)

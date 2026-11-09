@@ -25,25 +25,25 @@ L["home.you"] = "deg"                            -- {who} when it's your own pet
 ------------------------------------------------------------------------------
 -- Slash commands (/dp)
 ------------------------------------------------------------------------------
-L["cmd.adopt.nomatch"] = "Du har ikke noe kjæledyr som passer «{text}»."
-L["cmd.adopt.nothing"] = "Tilkall kjæledyret du vil adoptere, eller skriv navnet."
-L["cmd.list.head"] = "Guilden har hjem til {n} av {total} kjæledyr ({pct}%):"
+L["cmd.adopt.nomatch"] = "Du har ikke noe dyr som passer «{text}»."
+L["cmd.adopt.nothing"] = "Summon dyret du vil adoptere, eller skriv navnet."
+L["cmd.list.head"] = "Guilden har hjem til {n} av {total} dyr ({pct}%):"
 L["cmd.list.row"] = "  {pet} - {owner}"
 L["cmd.list.row_nick"] = "  {pet} - {owner} («{nick}»)"
 L["cmd.sound.deferred"] = "AutoCompanion er lastet: bruk innstillingen «Mute summoning sounds» der."
-L["cmd.sound.on"] = "Tilkallingslyden er på."
-L["cmd.sound.off"] = "Tilkallingslyden er dempet."
+L["cmd.sound.on"] = "Summonlyden er på."
+L["cmd.sound.off"] = "Summonlyden er dempet."
 L["cmd.help.head"] = "{version} - kommandoer:"
-L["cmd.help.adopter"] = "adopter [navn] - adopter kjæledyret du har ute, eller et ved navn"
-L["cmd.help.gislipp"] = "gislipp - gi slipp på kjæledyret ditt"
-L["cmd.help.navn"] = "navn [kallenavn] - gi kjæledyret ditt et kallenavn (tomt fjerner det)"
-L["cmd.help.liste"] = "liste - hvilke kjæledyr som har et hjem i guilden"
-L["cmd.help.lyd"] = "lyd [på|av] - klirringen når et kjæledyr tilkalles (dempet som standard)"
+L["cmd.help.adopter"] = "adopter [navn] - adopter dyret du har ute, eller et ved navn"
+L["cmd.help.gislipp"] = "gislipp - gi slipp på dyret ditt"
+L["cmd.help.navn"] = "navn [kallenavn] - gi dyret ditt et kallenavn (tomt fjerner det)"
+L["cmd.help.liste"] = "liste - hvilke dyr som har et hjem i guilden"
+L["cmd.help.lyd"] = "lyd [på|av] - klirringen når et dyr summones (dempet som standard)"
 L["cmd.help.prestasjoner"] = "prestasjoner [del|varsel på|av|ikoner] - prestasjonene dine; del nye i guild-chatten"
 L["cmd.help.versjon"] = "versjon [guild|gruppe] - hvem som har hvilken versjon"
 L["cmd.help.kunngjor"] = "kunngjør [på|av] - del adopsjoner og kallenavn i guild-chatten (på som standard)"
-L["cmd.help.klapp"] = "klapp - klapp kjæledyret du har valgt som mål, eller ditt eget"
-L["cmd.help.rapport"] = "rapport - rop ut dem i gruppa som ikke har kjæledyret ute"
+L["cmd.help.klapp"] = "klapp - klapp dyret du har valgt som mål, eller ditt eget"
+L["cmd.help.rapport"] = "rapport - rop ut dem i gruppa som ikke har dyret ute"
 
 ------------------------------------------------------------------------------
 -- Versions
@@ -62,15 +62,15 @@ L["version.where.RAID"] = "raid"
 L["nick.empty"] = "Du har ikke skrevet noe kallenavn."
 L["nick.too_long"] = "Kallenavn kan ha maks {n} tegn."
 L["nick.bad_chars"] = "Kallenavn kan ikke inneholde | eller linjeskift."
-L["nick.no_pet"] = "Du har ikke adoptert noe kjæledyr."
+L["nick.no_pet"] = "Du har ikke adoptert noe dyr."
 L["nick.locked"] = "Du kan gi det et kallenavn når båndet deres er {level} (nivå {n})."
 L["nick.same"] = "Det heter allerede «{nick}»."
 L["nick.none"] = "Det har ikke noe kallenavn."
 L["nick.set"] = "Kallenavnet er nå «{nick}»."
 L["nick.cleared"] = "Kallenavnet er fjernet."
 L["adopt.no_guild"] = "Du er ikke i en guild."
-L["adopt.unknown"] = "Ukjent kjæledyr."
-L["adopt.not_owned"] = "Du har ikke det kjæledyret."
+L["adopt.unknown"] = "Ukjent dyr."
+L["adopt.not_owned"] = "Du har ikke det dyret."
 L["adopt.yours"] = "Det bor allerede hos deg."
 L["adopt.taken"] = "Det bor allerede hos {owner}."
 L["adopt.done"] = "Du adopterte {pet}."
@@ -80,9 +80,9 @@ L["adopt.confirm"] = "Adoptere {pet}?"
 L["adopt.confirm.swap"] = "Du gir da slipp på {pet}."
 L["adopt.confirm.announce"] = "Adopsjonen blir kunngjort i guild-chatten, så hele guilden får se den. (Slå av med /dp kunngjør.)"
 L["adopt.inherits_name"] = " Det heter «{nick}», et navn det fikk av {namer}. Ta godt vare på det!"
-L["release.none"] = "Du har ikke adoptert noe kjæledyr."
+L["release.none"] = "Du har ikke adoptert noe dyr."
 L["release.done"] = "Du ga slipp på {pet}."
-L["lapse.away"] = "{pet} gikk tilbake til parken mens du var lenge borte. Adopter det igjen hvis det fortsatt er ledig."
+L["lapse.away"] = "{pet} dro tilbake til parken mens du var lenge borte. Adopter det igjen hvis det fortsatt er ledig."
 L["lapse.beaten"] = "{owner} rakk å adoptere {pet} rett før deg, så det bor der nå."
 L["lapse.unknown_owner"] = "?"
 
@@ -90,17 +90,17 @@ L["lapse.unknown_owner"] = "?"
 -- /dp rapport (who forgot their companion; posted to group chat)
 ------------------------------------------------------------------------------
 L["report.one_pet"] = "Dyreparken: {player} har glemt {pet} hjemme!"
-L["report.one"] = "Dyreparken: {player} har ikke kjæledyret sitt ute!"
-L["report.many"] = "Dyreparken: Disse har glemt kjæledyret hjemme: "
+L["report.one"] = "Dyreparken: {player} har ikke dyret sitt ute!"
+L["report.many"] = "Dyreparken: Disse har glemt dyret hjemme: "
 L["report.many_item_pet"] = "{player} ({pet})"
 L["report.many_more"] = " og {n} til!"
-L["report.all"] = "Dyreparken: Alle {n} har kjæledyret ute. For en gjeng!"
-L["report.all_users"] = "Dyreparken: Alle {n} med Dyreparken har kjæledyret ute!"
+L["report.all"] = "Dyreparken: Alle {n} har dyra ute. For en gjeng!"
+L["report.all_users"] = "Dyreparken: Alle {n} i Dyreparken har dyra ute!"
 L["report.button"] = "Del i gruppechatten"
 L["report.no_group"] = "Du er ikke i en gruppe."
 L["report.running"] = "En rapport kjører allerede."
-L["report.checking"] = "Sjekker kjæledyr ..."
-L["report.all_local"] = "Alle med addonen har kjæledyret sitt ute ({n})."
+L["report.checking"] = "Sjekker dyr ..."
+L["report.all_local"] = "Alle med addonen har dyret sitt ute ({n})."
 L["report.unknown"] = "Ukjent (uten addon): {list}"
 
 ------------------------------------------------------------------------------
@@ -118,7 +118,7 @@ L["pat.own"] = "klapper {pet}."                       -- an emote: "Ola klapper 
 L["pat.other_nick"] = "klapper {nick} ({owner} sin {species})."
 L["pat.other"] = "klapper {owner} sin {species}."
 L["pat.combat"] = "Ikke nå, du er i kamp."
-L["pat.nothing"] = "Tilkall kjæledyret ditt, eller velg et kjæledyr som mål."
+L["pat.nothing"] = "Summon dyret ditt, eller velg et dyr som mål."
 L["announce.adopt_nick"] = "Dyreparken: {player} adopterte {species} («{nick}»)!"
 L["announce.adopt"] = "Dyreparken: {player} adopterte {species}!"
 L["announce.name"] = "Dyreparken: {player} ga {species} kallenavnet «{nick}»!"
@@ -141,12 +141,12 @@ L["first.boss"] = "{pet} var med da {boss} falt!"          -- the first time thi
 L["first.place"] = "{pet} så {place} for første gang!"     -- the first time this pet is in that place
 L["play.line"] = "{pet} lekte med {friend} ({owner})!"   -- a playdate: our pet met a guildmate's in the group
 L["bond.liked"] = "{pet} koste seg med {activity}!"   -- the first liked thing of the day
-L["bond.full"] = "|cffffd100Båndet med {pet} er fullt for i dag. Kom tilbake i morgen!|r"
+L["bond.full"] = "|cffffd100Båndet med {pet} er fullt for i dag. Fortsett i morgen!|r"
 
 ------------------------------------------------------------------------------
 -- Auto-summon
 ------------------------------------------------------------------------------
-L["summon.deferred"] = "AutoCompanion er lastet, så Dyreparken tilkaller ikke automatisk. Guilden ser fortsatt hvilket kjæledyr som bor hos deg."
+L["summon.deferred"] = "AutoCompanion er lastet, så Dyreparken tilkaller ikke automatisk. Guilden ser fortsatt hvilket dyr som bor hos deg."
 
 ------------------------------------------------------------------------------
 -- Lists ("herbs, quests og flyturer")
@@ -212,17 +212,17 @@ L["trait.eventyrlysten.name"] = "Eventyrlysten"
 L["trait.eventyrlysten.desc"] = "Vil alltid være med på boss-kills."
 L["trait.reiseglad.name"] = "Reiseglad"
 L["trait.reiseglad.desc"] = "Elsker å fly."
-L["trait.rampete.name"] = "Rampete"
+L["trait.rampete.name"] = "Fleibede"
 L["trait.rampete.desc"] = "Liker litt bråk."
 L["trait.gronnfinger.name"] = "Grønnfinger"
 L["trait.gronnfinger.desc"] = "Snuser på hver eneste herb."
 L["trait.vannhund.name"] = "Vannhund"
 L["trait.vannhund.desc"] = "Elsker vann og fisk."
-L["trait.steinhard.name"] = "Steinhard"
+L["trait.steinhard.name"] = "Steintøff"
 L["trait.steinhard.desc"] = "Graver gjerne etter malm."
 L["trait.dansefot.name"] = "Dansefot"
 L["trait.dansefot.desc"] = "Kan ikke sitte stille når du danser."
-L["trait.kjaelen.name"] = "Kjælen"
+L["trait.kjaelen.name"] = "Kosete"
 L["trait.kjaelen.desc"] = "Elsker /pet, /hug og /cuddle."
 L["trait.oppdager.name"] = "Oppdager"
 L["trait.oppdager.desc"] = "Vil se hele verden, ett sted om gangen."
@@ -240,18 +240,18 @@ L["trait.latsabb.name"] = "Latsabb"
 L["trait.latsabb.desc"] = "En lur i byen er det beste som finnes."
 L["trait.pratsom.name"] = "Pratsom"
 L["trait.pratsom.desc"] = "Elsker når du prater med guilden."
-L["trait.kosete.name"] = "Kosete"
+L["trait.kosete.name"] = "Klengete"
 L["trait.kosete.desc"] = "Det er nok å være sammen."
 L["trait.kosete.day"] = "Hver dag sammen"
 L["trait.nattugle.name"] = "Nattugle"
 L["trait.nattugle.desc"] = "Våkner til liv når det blir mørkt."
 L["trait.nattugle.when"] = "mellom kl. 22 og 04"
 L["trait.nattugle.flavor"] = "{pet} elsker nattlige eventyr!"
-L["trait.festglad.name"] = "Festglad"
+L["trait.festglad.name"] = "Festløve"
 L["trait.festglad.desc"] = "Elsker 17. mai, St. Hans, jul og nyttår."
 L["trait.festglad.day"] = "En høytidsdag sammen (17. mai, St. Hans, julaften, 1. juledag, nyttårsaften, 1. nyttårsdag)"
 L["trait.festglad.dayflavor"] = "{pet} feirer {holiday} med deg!"
-L["trait.helgedyr.name"] = "Helgedyr"
+L["trait.helgedyr.name"] = "Helgetroll"
 L["trait.helgedyr.desc"] = "Lever for helgene."
 L["trait.helgedyr.day"] = "En lørdag eller søndag sammen"
 L["trait.helgedyr.dayflavor"] = "{pet} elsker helg!"
@@ -279,18 +279,18 @@ L["effect.day"] = "{when} gir {times} så mange bånd-poeng ({n} i stedet for {b
 L["effect.times.2"] = "dobbelt"
 L["effect.times.3"] = "tre ganger"
 L["effect.when"] = "Alt dere gjør sammen {when}"
-L["effect.activity"] = "{activity} med kjæledyret ute"   -- {activity}: activity.*, capitalized
+L["effect.activity"] = "{activity} med dyret ute"   -- {activity}: activity.*, capitalized
 L["effect.liked"] = "{what} gir {n} bånd-poeng (opptil {cap} om dagen), mot {other} ellers."
-L["effect.activity.dance"] = "/dance med kjæledyret ute"
-L["effect.activity.cuddle"] = "/pet, /hug eller /cuddle på kjæledyret"
+L["effect.activity.dance"] = "/dance med dyret ute"
+L["effect.activity.cuddle"] = "/pet, /hug eller /cuddle på dyret"
 L["effect.activity.chat"] = "Hver linje du skriver i guildchatten"
-L["effect.activity.dive"] = "Hver gang du dykker under vann med kjæledyret ute"
-L["effect.activity.level"] = "Hvert level du går opp med kjæledyret ute"
+L["effect.activity.dive"] = "Hver gang du dykker under vann med dyret ute"
+L["effect.activity.level"] = "Hver gang du dinger med dyret ute"
 L["effect.activity.revive"] = "Hver gang du står opp igjen etter å ha dødd"
-L["effect.activity.nap"] = "/afk i en by eller et vertshus med kjæledyret ute"
-L["effect.activity.hearth"] = "Hearthstone, Astral Recall eller Teleport: Moonglade med kjæledyret ute"
-L["effect.activity.jump"] = "Hvert tiende hopp med kjæledyret ute"
-L["effect.activity.explore"] = "Hvert nytt sted kjæledyret ser sammen med deg"
+L["effect.activity.nap"] = "/afk i en by eller et vertshus med dyret ute"
+L["effect.activity.hearth"] = "Hearthstone, Astral Recall eller Teleport: Moonglade med dyret ute"
+L["effect.activity.jump"] = "Hvert tiende hopp med dyret ute"
+L["effect.activity.explore"] = "Hvert nytt sted dyret ser sammen med deg"
 L["personality.line"] = "{traits} · liker {likes}"
 
 ------------------------------------------------------------------------------
@@ -318,20 +318,20 @@ L["personality.unknown.tip"] = "Personligheten er en overraskelse. Den blir kjen
 L["card.personality.hint"] = "Gjør det den liker mens den er ute med deg, så vokser båndet raskere."
 L["card.guild"] = "Guilden"
 L["card.guild.value"] = "{n} av {total} ({pct}%)"
-L["card.guild.tip"] = "Guilden: {n} av {total} kjæledyr har et hjem ({pct}%)."
+L["card.guild.tip"] = "Guilden: {n} av {total} dyr har et hjem ({pct}%)."
 L["card.today"] = "Dagens dyr"
 L["card.today.tip"] = "Dagens dyr: {pet}, som bor hos {owner}."
-L["card.today.none"] = "Dagens dyr: ingen har adoptert et kjæledyr ennå."
+L["card.today.none"] = "Dagens dyr: ingen har adoptert et dyr ennå."
 L["card.out.on"] = "Med deg"                                 -- the badge on the card: this pet is the one kept out
 L["card.out.off"] = "Ta med ut"                             -- ... and when it isn't
 L["card.out.on.title"] = "{pet} er med deg"
 L["card.out.off.title"] = "Ta med {pet} ut"
-L["card.out.on.click"] = "Klikk for å slutte å tilkalle automatisk."
+L["card.out.on.click"] = "Klikk for å slutte å summone automatisk."
 L["card.out.off.click"] = "Klikk for å ta {pet} med ut."
-L["card.auto.tip"] = "Tilkaller {pet} når det mangler og du ikke er opptatt. Ett kjæledyr kan holdes ute om gangen; det du adopterer blir det."
+L["card.auto.tip"] = "Summoner {pet} når det er fraværende og du ikke er opptatt. Kun ett dyr kan holdes ute om gangen; det du adopterer blir automatisk valgt."
 L["card.auto.now"] = "Nå holdes {pet} ute."
-L["card.auto.deferred"] = "AutoCompanion er lastet og tar seg av tilkallingen."
-L["card.nick.popup"] = "Kallenavn på kjæledyret ditt (maks {n} tegn, tomt fjerner det):"
+L["card.auto.deferred"] = "AutoCompanion er lastet og tar seg av summoning."
+L["card.nick.popup"] = "Kallenavn på dyret ditt (maks {n} tegn, tomt fjerner det):"
 
 ------------------------------------------------------------------------------
 -- The bond on the card: tooltips, the stars, the celebration (BondTrack)
@@ -340,17 +340,17 @@ L["bond.tip.title"] = "Bånd: {level} (nivå {n})"
 L["bond.tip.to_next"] = "{n} poeng til {level}."
 L["bond.tip.next_decor"] = "På nivå {n} får kortet {decor}."
 L["bond.tip.top"] = "Det høyeste nivået."
-L["bond.tip.whose"] = "{owner} sitt bånd med kjæledyret."
+L["bond.tip.whose"] = "{owner} sitt bånd med dyret."
 L["bond.tip.others"] = "Også glad i det: {list}"
-L["bond.tip.how_other"] = "Ditt bånd med et kjæledyr du ikke har adoptert vokser halvt så fort. Adopter det for å gi det full oppmerksomhet."
+L["bond.tip.how_other"] = "Ditt bånd med et dyr du ikke har adoptert vokser halvparten så fort. Adopter det for å gi det full oppmerksomhet."
 L["bond.theirs"] = "{owner} sitt bånd"
-L["bond.tip.how"] = "Vokser for hver dag kjæledyret er ute med deg, og raskere når dere gjør noe det liker. Båndet svekkes aldri."
+L["bond.tip.how"] = "Vokser for hver dag dyret er ute med deg, og raskere når dere gjør noe det liker. Båndet svekkes aldri."
 L["bond.star.title"] = "Nivå {n}: {level}"
 L["bond.star.first"] = "Der alle starter."
 L["bond.star.from"] = "Fra {n} poeng."
 L["bond.star.decor"] = "Kortet får {decor}."
 L["bond.star.reached"] = "Nådd!"
-L["bond.star.nick"] = "Du kan gi kjæledyret ditt et kallenavn."
+L["bond.star.nick"] = "Du kan gi dyret ditt et kallenavn."
 L["bond.next"] = "{n} poeng til {level}"
 L["bond.bar"] = "{have} / {need}"
 L["bond.bar.today"] = "{have} / {need}  (+{today})"   -- your own pet: today's points too
@@ -364,9 +364,9 @@ L["bond.celebrate.title"] = "{level}!"
 L["bond.celebrate.text"] = "{pet} og du er nå på nivå {n}."
 L["bond.celebrate.decor"] = "Ny pynt: {decor}."
 -- What the card gets at each level (also in the tooltips above).
-L["decor.level.2"] = "en kant og et skjær i familiens farge"
+L["decor.level.2"] = "en kant og et hint av familiens farge"
 L["decor.level.3"] = "sølvkant og sølvhjørner"
-L["decor.level.4"] = "en glød under kjæledyret"
+L["decor.level.4"] = "en glød under dyret"
 L["decor.level.5"] = "gull overalt, og gnister som flyr"
 L["decor.level.6"] = "et bånd med navnet på nivået, og lysstråler"
 L["decor.level.7"] = "hjerter, og alt gull skinner"
@@ -392,13 +392,13 @@ L["wish.granted"] = "{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} bånd-po
 ------------------------------------------------------------------------------
 L["park.title"] = "Parken"
 L["park.counter"] = "Har et hjem"
-L["park.empty"] = "Ingen har adoptert et kjæledyr ennå. Bli den første!"
+L["park.empty"] = "Ingen har adoptert et dyr ennå. Bli den første!"
 L["park.oldest"] = "|cffffd100Lengste vennskap:|r {pet} og {owner} ({time})"
 L["park.family"] = "|cffffd100Mest populære familie:|r {family} ({n} har et hjem)"
 L["park.newest"] = "|cffffd100Nyeste beboer:|r {pet} hos {owner} ({time})"
 L["park.free"] = "Trenger et hjem"
-L["park.also_yours"] = "Du har også dette kjæledyret."
-L["park.can_adopt"] = "Du har dette kjæledyret, og kan adoptere det."
+L["park.also_yours"] = "Du har også dette dyret."
+L["park.can_adopt"] = "Du har dette dyret, og kan adoptere det."
 L["park.legend"] = "I farger: har et hjem.  Grå: trenger et hjem.  {icon} Du kan adoptere det."
 
 ------------------------------------------------------------------------------
@@ -440,13 +440,13 @@ ns.AchTexts = {
 
         -- Families in the plural, for "Mest populære familie" (Menagerie/ParkPage.lua).
         families = { cat = "katter", farm = "gårdsdyr", owl = "ugler", rabbit = "kaniner", snake = "slanger",
-            frog = "frosker og padder", mechanical = "mekaniske kjæledyr", dragon = "drager", bird = "fugler",
-            pirate = "piratkjæledyr", bug = "insekter", rodent = "gnagere", wolf = "ulver", plant = "planter",
-            festive = "høytidskjæledyr", demon = "demoner", ooze = "slimdyr", spirit = "ånder" },
+            frog = "frosker og padder", mechanical = "mekaniske dyr", dragon = "drager", bird = "fugler",
+            pirate = "piratdyr", bug = "insekter", rodent = "gnagere", wolf = "ulver", plant = "planter",
+            festive = "høytidsdyr", demon = "demoner", ooze = "slimdyr", spirit = "ånder" },
 
         -- The page in the Collections window (Page.lua)
         page_title = "Prestasjoner",
-        page_count = "Fått",
+        page_count = "Fullført",
         cat_collection = "Samlingen",
         cat_family = "Familier",
         cat_loyalty = "Lojalitet",
@@ -462,20 +462,20 @@ ns.AchTexts = {
     },
 
     -- Collection: pets you own that can be got in game (Data/Companions.lua).
-    ["count:10"] = { name = "Ti små venner", desc = "Ha 10 kjæledyr.",
-        flavor = "{player} har samlet ti kjæledyr! {name}" },
-    ["count:25"] = { name = "Dyrevenn", desc = "Ha 25 kjæledyr.",
-        flavor = "{player} har samlet 25 kjæledyr! {name}" },
-    ["count:50"] = { name = "Dyrepasser", desc = "Ha 50 kjæledyr.",
-        flavor = "{player} har samlet 50 kjæledyr og trenger et større hus! {name}" },
-    ["count:all"] = { name = "Noahs ark", desc = "Ha alle kjæledyrene som finnes.",
-        flavor = "{player} har samlet ALLE kjæledyrene! To av hver? Nei, én av hver holder. {name}" },
+    ["count:10"] = { name = "Ti små indianere", desc = "Ha 10 dyr.",
+        flavor = "{player} har samlet ti dyr! {name}" },
+    ["count:25"] = { name = "Dyrevenn", desc = "Ha 25 dyr.",
+        flavor = "{player} har samlet 25 dyr! {name}" },
+    ["count:50"] = { name = "Dyrepasser", desc = "Ha 50 dyr.",
+        flavor = "{player} har samlet 50 dyr og trenger et større hus! {name}" },
+    ["count:all"] = { name = "Noahs ark", desc = "Ha alle dyrene som finnes.",
+        flavor = "{player} har samlet ALLE dyrene! To av hver? Nei, én av hver holder. {name}" },
 
     -- Families (our tags; see tools/companions/tags.csv).
-    ["family:cat"] = { name = "Alle kattene", desc = "Ha alle kattene.",
+    ["family:cat"] = { name = "Kattevræl", desc = "Ha alle kattene.",
         flavor = "{player} har gitt alle kattene et hjem! {name}" },
-    ["family:farm"] = { name = "Bondegården", desc = "Ha alle gårdsdyrene.",
-        flavor = "{player} har fylt opp hele bondegården! {name}" },
+    ["family:farm"] = { name = "Kutoppen", desc = "Ha alle gårdsdyrene.",
+        flavor = "{player} har fylt opp hele kutoppen! {name}" },
     ["family:owl"] = { name = "Ugleredet", desc = "Ha alle uglene.",
         flavor = "Hu-hu! {player} har samlet alle uglene. {name}" },
     ["family:rabbit"] = { name = "Kaninhagen", desc = "Ha alle kaninene.",
@@ -484,38 +484,38 @@ ns.AchTexts = {
         flavor = "Ssss! {player} har samlet alle slangene. {name}" },
     ["family:frog"] = { name = "Froskedammen", desc = "Ha alle froskene og paddene.",
         flavor = "{player} har samlet alle froskene. Ingen prinser ennå. {name}" },
-    ["family:mechanical"] = { name = "Tannhjul og skruer", desc = "Ha alle de mekaniske kjæledyrene.",
-        flavor = "{player} har samlet alle de mekaniske kjæledyrene! {name}" },
+    ["family:mechanical"] = { name = "Tannhjul og skruer", desc = "Ha alle de mekaniske dyrene.",
+        flavor = "{player} har samlet alle de mekaniske dyrene! {name}" },
     ["family:dragon"] = { name = "Dragehulen", desc = "Ha alle dragene.",
         flavor = "{player} har samlet alle dragene. Pass på gardinene! {name}" },
     ["family:bird"] = { name = "Fuglekassa", desc = "Ha alle fuglene.",
-        flavor = "{player} har samlet alle fuglene! {name}" },
-    ["family:pirate"] = { name = "Kaptein Sabeltann", desc = "Ha alle piratkjæledyrene.",
-        flavor = "Ingen er så tøff som {player}, med alle piratkjæledyrene om bord! {name}" },
+        flavor = "{player} har samlet alle fuglene! Ti på taket er bedre. {name}" },
+    ["family:pirate"] = { name = "Kaptein Sabeltann", desc = "Ha alle piratdyrene.",
+        flavor = "Det var en meget gledelig overraskelse, {player}, med alle piratdyrene om bord! {name}" },
 
     -- Loyalty: the companion you care for (per character).
-    ["loyal:30"] = { name = "Bestevenner", desc = "Nå bånd-nivå Venn med kjæledyret ditt.",
+    ["loyal:30"] = { name = "Bestevenner", desc = "Nå Venn med dyret ditt.",
         flavor = "{player} og {pet} er blitt ordentlige venner! {name}",
-        plain = "{player} og kjæledyret sitt er blitt ordentlige venner! {name}" },
-    ["loyal:100"] = { name = "Uatskillelige", desc = "Nå bånd-nivå God venn med kjæledyret ditt.",
+        plain = "{player} og dyret sitt er blitt ordentlige venner! {name}" },
+    ["loyal:100"] = { name = "Uatskillelige", desc = "Nå God venn med dyret ditt.",
         flavor = "{player} og {pet} er nå gode venner! {name}",
-        plain = "{player} og kjæledyret sitt er nå gode venner! {name}" },
-    ["loyal:365"] = { name = "Venner for livet", desc = "Nå bånd-nivå Uatskillelig med kjæledyret ditt.",
+        plain = "{player} og dyret sitt er nå gode venner! {name}" },
+    ["loyal:365"] = { name = "Venner for livet", desc = "Nå Uatskillelig med dyret ditt.",
         flavor = "{player} og {pet} er uatskillelige! {name}",
-        plain = "{player} og kjæledyret sitt er uatskillelige! {name}" },
-    ["nick"] = { name = "Døpt", desc = "Gi kjæledyret ditt et kallenavn.",
+        plain = "{player} og dyret sitt er uatskillelige! {name}" },
+    ["nick"] = { name = "Døpt", desc = "Gi dyret ditt et kallenavn.",
         flavor = "{player} har døpt {species} til «{nick}»! {name}",
-        plain = "{player} har gitt kjæledyret sitt et navn! {name}" },
+        plain = "{player} har gitt dyret sitt et navn! {name}" },
 
     -- Guild: the companions the guild cares for, all at once (one per member).
-    ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guilden tar vare på 10 kjæledyr samtidig.",
-        flavor = "Portene er åpne: {guild} tar vare på ti kjæledyr! {name}" },
-    ["guild:count:25"] = { name = "Full drift", desc = "Guilden tar vare på 25 kjæledyr samtidig.",
-        flavor = "{guild} tar vare på 25 kjæledyr! Dyreparken er i full drift. {name}" },
-    ["guild:count:50"] = { name = "Nordens største dyrepark", desc = "Guilden tar vare på 50 kjæledyr samtidig.",
-        flavor = "{guild} tar vare på 50 kjæledyr! {name}" },
-    ["guild:all"] = { name = "Hele parken", desc = "Guilden tar vare på alle kjæledyrene som finnes, samtidig.",
-        flavor = "Hvert eneste kjæledyr har et hjem i {guild}! {name}" },
+    ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guilden tar vare på 10 dyr samtidig.",
+        flavor = "Portene er åpne: {guild} tar vare på ti dyr! {name}" },
+    ["guild:count:25"] = { name = "Full drift", desc = "Guilden tar vare på 25 dyr samtidig.",
+        flavor = "{guild} tar vare på 25 dyr! Dyreparken er i full drift. {name}" },
+    ["guild:count:50"] = { name = "Nordens største dyrepark", desc = "Guilden tar vare på 50 dyr samtidig.",
+        flavor = "{guild} tar vare på 50 dyr! {name}" },
+    ["guild:all"] = { name = "Hele parken", desc = "Guilden tar vare på alle dyrene som finnes, samtidig.",
+        flavor = "Hvert eneste dyr har et hjem i {guild}! {name}" },
     ["guild:family:cat"] = { name = "Kattehuset", desc = "Hver katt har sin egen eier i guilden.",
         flavor = "Hver eneste katt har fått sitt eget hjem i {guild}! {name}" },
 }

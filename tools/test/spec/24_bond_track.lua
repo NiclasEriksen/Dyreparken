@@ -76,7 +76,7 @@ return function(test, H)
         local tip = ola.env.GameTooltip
         local p = card.bond.pips[4]
         p.scripts.OnEnter(p)
-        eq(table.concat(tip.lines, " / "), "Nivå 4: God venn / Fra 530 poeng. / Kortet får en glød under kjæledyret.")
+        eq(table.concat(tip.lines, " / "), "Nivå 4: God venn / Fra 530 poeng. / Kortet får en glød under dyret.")
         p.scripts.OnLeave(p)
         p = card.bond.pips[1]
         p.scripts.OnEnter(p)
@@ -105,7 +105,7 @@ return function(test, H)
         for _, p in ipairs(cel.parts) do if p:IsShown() and p.anim:IsPlaying() then shown = shown + 1 end end
         eq(shown, #cel.parts, "a burst")
         eq(cel.text.title.text, "Kamerat!")
-        eq(cel.text.sub.text, "Panda Cub og du er nå på nivå 2.\nNy pynt: en kant og et skjær i familiens farge.")
+        eq(cel.text.sub.text, "Panda Cub og du er nå på nivå 2.\nNy pynt: en kant og et hint av familiens farge.")
         eq(ola.sounds[1], ola.env.SOUNDKIT.UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT)
         eq(ola.ns.DB.char.bondSeen[PANDA], 2)
         -- Seen: not again.
@@ -181,7 +181,7 @@ return function(test, H)
         ok(not ola:Printed("fullt for i dag", true))
         for _ = 1, 6 do ola:Fire("QUEST_TURNED_IN", 1) end -- quests (liked now): 15 of 25 fit
         eq(Earned(), 375, "75 in a day, no more")
-        ok(ola:Printed("Båndet med Panda Cub er fullt for i dag. Kom tilbake i morgen!", true))
+        ok(ola:Printed("Båndet med Panda Cub er fullt for i dag. Fortsett i morgen!", true))
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2575)
         eq(Earned(), 375)
         local fulls = 0
@@ -219,7 +219,7 @@ return function(test, H)
         local card = ola:SelectPet(5159)
         local star = card.bond.pips[3]
         star.scripts.OnEnter(star)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "/ Du kan gi kjæledyret ditt et kallenavn%.")
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "/ Du kan gi dyret ditt et kallenavn%.")
         no(ola.ns.Registry:CanNickname(select(2, ola.ns.Registry:MyPet())))
         ola.ns.Bond:Add(269)
         ok(not ola:Printed("et kallenavn: /dp navn", true), "one short")

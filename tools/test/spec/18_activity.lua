@@ -201,7 +201,7 @@ return function(test, H)
             cat = "loyalty" }
         table.insert(c.ns.AchDefs, d)
         Ach.defsById[d.id] = d
-        c.ns.AchTexts[d.id] = { name = "Bosskamerat", desc = "To bosser med kjæledyret ute." }
+        c.ns.AchTexts[d.id] = { name = "Bosskamerat", desc = "To bosser med dyret ute." }
         Ach:WatchActivities()
         Ach:WatchActivities()
         Ach:Check("login", "char") -- its first look, as at login (a first look is quiet)
