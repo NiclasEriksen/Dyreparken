@@ -100,16 +100,16 @@ function Decor:Probe()
     ns.SceneGallery:Show(have, "decor")
 end
 
--- /dp probe frames: a border and corners per family. Picks show on the card
--- at once; the card wears the family whose slot is chosen (Decor.show).
+-- /dp probe frames: a border per family. While the gallery is open the
+-- card wears the family whose slot is chosen, and its pick (Decor.show).
 function Decor:ProbeFrames()
     local have = {}
     for i, c in ipairs(self:Candidates()) do
-        if (c.slot == "border" or c.slot == "corner") and Decor.Exists(c.path) then
+        if c.slot == "border" and Decor.Exists(c.path) then
             have[#have + 1] = { n = i, path = c.path, slot = c.slot }
         end
     end
-    ns.Print(("%d borders and corners exist. Pick per family; /dp probe level 3 (silver) or 5 (gold) shows them.")
+    ns.Print(("%d borders exist. Pick one per family; the card shows it while the gallery is open.")
         :format(#have))
     ns.SceneGallery:Show(have, "frames")
 end
@@ -122,8 +122,8 @@ end
 --   the pet's TRAITS (and the date): particles, each kind with its own
 --     motion: leaves sway down, hearts throb, sparks fly, confetti spins...
 --   the pet's FAMILY (2026-11-09): a soft ambience every card has, bond or
---     not (feathers, embers, gears, fireflies...), and a border and corners
---     of its own once picked (FAMILY_ART).
+--     not (feathers, embers, gears, fireflies...), and a border of its own
+--     (FAMILY_ART).
 -- Moving parts are animation groups: the client plays them, no OnUpdate.
 -- They run only while the card shows something; Apply(card, nil) and the
 -- card's OnHide stop them all. A pool of particles is made once.
@@ -146,7 +146,10 @@ local POOL = 32 -- a family, two traits, the date and the bond at once
 local GOLD, SILVER = ns.Scenes.GOLD, ns.Scenes.SILVER
 Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
     border = "loottoast-itemborder-gold", -- an item frame, nine-sliced around the card
-    corner = "AdventuresFrame-Corner-Small-TopLeft",
+    -- Corners for every pet (decided 2026-11-09): wood from level 3, the
+    -- parchment filigree once the card turns gold (5).
+    corner = "Interface\\AchievementFrame\\UI-Achievement-WoodBorder-Corner",
+    cornerGold = "parchmentpopup-filigree",
     ribbon = "UI-Frame-Neutral-Ribbon",
     glow = Decor.MEDIA .. "dot",
 }
@@ -296,22 +299,20 @@ local function SetArt(tex, art, flipX, flipY)
     tex:SetTexCoord(flipX and 1 or 0, flipX and 0 or 1, flipY and 1 or 0, flipY and 0 or 1)
 end
 
--- Per family, a border and corners of its own (2026-11-09: wood for the
--- farm, metal for the mechanical...): picked in game with /dp probe frames,
--- then written here. A newer pick saved in DyreparkenDB.decorPicks
--- ("border.cat") shows at once; a family without one has Decor.ART's.
--- "default" is for pets without a family. Atlases by name, files by path.
-local WOOD = "Interface\\AchievementFrame\\UI-Achievement-WoodBorder-Corner"
+-- Per family, a border of its own (2026-11-09): picked in game with
+-- /dp probe frames, then written here; a family without one has
+-- Decor.ART's. "default" is for pets without a family. Atlases by name,
+-- files by path. (Corners are the same for every pet: Decor.ART.)
 Decor.FAMILY_ART = { -- picked in game 2026-11-09
-    default = { border = "UI-Frame-GenericMetal-ExitButtonBorder", corner = WOOD },
-    cat = { border = "loottoast-itemborder-gold", corner = "parchmentpopup-filigree" },
-    bird = { border = "loottoast-itemborder-gold", corner = "parchmentpopup-filigree" },
-    owl = { border = "loottoast-itemborder-gold", corner = WOOD },
-    farm = { border = "loottoast-itemborder-gold", corner = WOOD },
-    pirate = { border = "loottoast-itemborder-gold", corner = "parchmentpopup-filigree" },
-    mechanical = { border = "services-icon-goldborder", corner = "Relicforge-Topleft-corner" },
-    dragon = { border = "UI-Frame-GenericMetal-ExitButtonBorder", corner = "StoneFrameCorner-TopLeft" },
-    bug = { border = "services-icon-goldborder", corner = "AdventuresFrame-Corner-Small-TopLeft" },
+    default = { border = "UI-Frame-GenericMetal-ExitButtonBorder" },
+    cat = { border = "loottoast-itemborder-gold" },
+    bird = { border = "loottoast-itemborder-gold" },
+    owl = { border = "loottoast-itemborder-gold" },
+    farm = { border = "loottoast-itemborder-gold" },
+    pirate = { border = "loottoast-itemborder-gold" },
+    mechanical = { border = "services-icon-goldborder" },
+    dragon = { border = "UI-Frame-GenericMetal-ExitButtonBorder" },
+    bug = { border = "services-icon-goldborder" },
 }
 
 -- The galleries' preview (2026-11-09): while /dp probe decor or frames is
@@ -319,19 +320,21 @@ Decor.FAMILY_ART = { -- picked in game 2026-11-09
 -- (the art under the mouse, else the pick), dressed at a level where that
 -- slot shows; a particle slot shows a few of its particles.
 Decor.show = nil
-Decor.NEED = { border = 2, corner = 3, glow = 4, ribbon = 6 } -- the level a slot first shows at
+Decor.NEED = { border = 2, corner = 3, glow = 4, cornerGold = 5, ribbon = 6 } -- the level a slot first shows at
 Decor.SLOT_KIND = { sparkle = "spark", star = "star", heart = "heart", bubble = "bubble", confetti = "confetti",
     leaf = "leaf", paw = "paw", note = "note", snow = "snow" }
 local KIND_SLOT = {}
 for slot, kind in pairs(Decor.SLOT_KIND) do KIND_SLOT[kind] = slot end
 
--- The picture for a slot: the preview's, the family's pick or its own, the
--- slot's pick, else the default (nil: a particle's own texture).
+-- The picture for a slot: the preview's, the family's, the slot's, else
+-- nil (a particle's own texture). The galleries' picks (DyreparkenDB.
+-- decorPicks) count only while a gallery is open: once written into the
+-- code, an old pick left in SavedVariables mustn't hide what the code says.
 function Decor:Art(slot, family)
     local s, picks = self.show, ns.DB.global.decorPicks
     if s and s.art and s.slot == slot and (not s.family or s.family == family) then return s.art end
     local own = family and self.FAMILY_ART[family]
-    return family and picks[slot .. "." .. family] or own and own[slot] or picks[slot] or self.ART[slot]
+    return s and family and picks[slot .. "." .. family] or own and own[slot] or s and picks[slot] or self.ART[slot]
 end
 
 -- A particle kind's picture.
@@ -639,7 +642,7 @@ function Decor:Apply(card, key, level, color)
     local sig, art
     if key then
         local family = self.show and self.show.family or ns.Scenes:Families(key)[1] or "default"
-        art = { self:Art("border", family), self:Art("corner", family), self:Art("glow"), self:Art("ribbon") }
+        art = { self:Art("border", family), self:Art(level >= 5 and "cornerGold" or "corner", family), self:Art("glow"), self:Art("ribbon") }
         local parts = { key, level, color and table.concat(color, ",") or "", table.concat(art, ";") }
         for _, spec in ipairs(self:Specs(key, level, ns.Now())) do
             parts[#parts + 1] = spec.kind .. spec.n .. self:PartArt(spec.kind)

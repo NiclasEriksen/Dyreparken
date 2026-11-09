@@ -230,19 +230,20 @@ return function(test, H)
         end
     end)
 
-    test("/dp probe frames: a border and corners per family, worn by the card while it's chosen", function()
+    test("/dp probe frames: a border per family, worn by the card while it's chosen; picks only while open", function()
         local w, ola = Setup()
         local D, G = ola.ns.Decor, ola.ns.SceneGallery
         ola.atlases = { ["UI-Frame-Metal-CornerTopLeft"] = true, ["DarkWoodFrameCorner"] = true,
-            ["AdventuresFrame-Corner-Small-TopLeft"] = true, ["loottoast-itemborder-gold"] = true }
+            ["services-icon-goldborder"] = true, ["loottoast-itemborder-gold"] = true }
         ola:Slash("probe level 3")
         local card = ola:SelectPet(40) -- a cat
         local d = card.decor
-        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "no pick: the shared corner")
+        eq(d.border.atlas, "loottoast-itemborder-gold", "no family border: the shared one")
         ola:Slash("probe frames")
-        ok(ola:Printed("borders and corners exist", true))
+        ok(ola:Printed("borders exist", true))
         match(G._frame.hint.text, "^Slot: border%.default")
-        eq((D.show and D.show.family), "default", "the card wears the chosen family")
+        eq(D.show.family, "default", "the card wears the chosen family")
+        for _, b in ipairs(G._frame.families) do match(b.family, "^border%.", "borders only") end
         local function Shown()
             local shown = {}
             for _, t in ipairs(G._thumbs) do if t:IsShown() then shown[#shown + 1] = t end end
@@ -251,34 +252,45 @@ return function(test, H)
         local function Pick(slot)
             for _, b in ipairs(G._frame.families) do if b.family == slot then b:Click() end end
         end
-        for _, t in ipairs(Shown()) do ok(not t.path:find("Corner", 1, true) or t.path:find("Wood"), t.path) end
-        Pick("corner.cat")
-        eq((D.show and D.show.family), "cat")
-        local metal
+        Pick("border.cat")
+        eq(D.show.family, "cat")
+        local gold
         for _, t in ipairs(Shown()) do
-            if t.path == "atlas:UI-Frame-Metal-CornerTopLeft" then metal = t end
-            ok(t.path ~= "atlas:DarkWoodFrameCorner", "a border isn't a corner")
+            if t.path == "atlas:services-icon-goldborder" then gold = t end
+            ok(t.path ~= "atlas:UI-Frame-Metal-CornerTopLeft", "a corner isn't a border")
         end
-        ok(metal, "the corners there are")
-        metal.scripts.OnClick(metal, "LeftButton")
-        eq(ola.env.DyreparkenDB.decorPicks["corner.cat"], "atlas:UI-Frame-Metal-CornerTopLeft")
-        eq(d.corners.TOPLEFT.atlas, "UI-Frame-Metal-CornerTopLeft", "on the card at once")
-        Pick("corner.dragon")
-        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the dragon's: none yet")
-        -- Closed: every pet wears its own family's.
+        ok(gold, "the borders there are")
+        gold.scripts.OnClick(gold, "LeftButton")
+        eq(ola.env.DyreparkenDB.decorPicks["border.cat"], "atlas:services-icon-goldborder")
+        eq(d.border.atlas, "services-icon-goldborder", "on the card at once")
+        Pick("border.dragon")
+        eq(d.border.atlas, "loottoast-itemborder-gold", "the dragon's: none")
+        -- Closed: the code decides again; a pick left in SavedVariables doesn't.
         G._frame:Hide()
-        eq((D.show and D.show.family), nil)
-        eq(d.corners.TOPLEFT.atlas, "UI-Frame-Metal-CornerTopLeft", "the cat's pick")
-        card = ola:SelectPet(5159)
-        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the panda: no family, no pick")
-        -- A file path works too, mirrored by its coordinates; and so do the picks written into the code.
-        D.FAMILY_ART.default = { corner = "Interface\\Some\\Corner", border = "Interface\\Some\\Border" }
-        card = ola:SelectPet(5159)
-        eq(d.corners.BOTTOMRIGHT.tex, "Interface\\Some\\Corner")
-        eq(table.concat(d.corners.BOTTOMRIGHT.texCoord, ","), "1,0,1,0")
-        eq(table.concat(d.corners.TOPLEFT.texCoord, ","), "0,1,0,1")
-        eq(d.border.tex, "Interface\\Some\\Border")
+        eq(D.show, nil)
+        card = ola:SelectPet(40)
+        eq(d.border.atlas, "loottoast-itemborder-gold", "the pick counts only in the gallery")
+        D.FAMILY_ART.cat = { border = "Interface\\Some\\Border" }
+        card = ola:SelectPet(40)
+        eq(d.border.tex, "Interface\\Some\\Border", "the picks written into the code; a file path works too")
         eq(table.concat(d.border.slice, ","), "18,18,18,18")
+        eq(table.concat(d.corners.TOPLEFT.texCoord, ","), "0,1,0,1")
+    end)
+
+    test("corners: wood from level 3 for every pet, the filigree once the card is gold", function()
+        local w, ola = Setup()
+        local D = ola.ns.Decor
+        ola.atlases = { ["parchmentpopup-filigree"] = true }
+        local wood = "Interface\\AchievementFrame\\UI-Achievement-WoodBorder-Corner"
+        for _, key in ipairs({ "s:40", "s:5159" }) do
+            local card = ola:SelectPet(tonumber(key:sub(3)))
+            local d = card.decor
+            D:Apply(card, key, 3)
+            eq(d.corners.TOPLEFT.tex, wood, key .. ": wood")
+            eq(table.concat(d.corners.BOTTOMRIGHT.texCoord, ","), "1,0,1,0", "a file, mirrored by its coordinates")
+            D:Apply(card, key, 5)
+            eq(d.corners.TOPLEFT.atlas, "parchmentpopup-filigree", key .. ": filigree at gold")
+        end
     end)
 
     test("the decorations' galleries preview on the card: the slot at its level, the picture under the mouse", function()
@@ -305,7 +317,14 @@ return function(test, H)
         eq(d.corners.TOPLEFT.atlas, "UI-Frame-Metal-CornerTopLeft", "the one under the mouse")
         eq(ola.env.GameTooltip.lines[1], "atlas:UI-Frame-Metal-CornerTopLeft", "and its tooltip still")
         metal.scripts.OnLeave(metal)
-        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "back to the pick")
+        eq(d.corners.TOPLEFT.tex, D.ART.corner, "back to the pick (none: the code's)")
+        Pick("cornerGold")
+        eq(D.show.slot, "cornerGold")
+        local gold = Thumb("atlas:UI-Frame-Metal-CornerTopLeft")
+        ok(gold, "the corners again, for the gold level")
+        gold.scripts.OnEnter(gold)
+        eq(d.corners.TOPLEFT.atlas, "UI-Frame-Metal-CornerTopLeft", "dressed gold, wearing it")
+        gold.scripts.OnLeave(gold)
         -- A particle slot: a few of its particles, in the picture under the mouse.
         Pick("star")
         local stars = 0

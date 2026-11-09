@@ -44,17 +44,18 @@ Gallery.MODES = {
     },
     decor = {
         title = "Dyreparken: decorations",
-        slots = { "corner", "border", "frame", "glow", "sparkle", "star", "heart", "bubble", "confetti", "ribbon",
+        slots = { "corner", "cornerGold", "border", "frame", "glow", "sparkle", "star", "heart", "bubble", "confetti", "ribbon",
             "moon", "leaf", "paw", "note", "snow" },
         filter = true, -- show the selected slot's candidates only
+        kindOf = function(slot) return slot == "cornerGold" and "corner" or slot end, -- (the gold level's corners)
         picks = function() return ns.DB.global.decorPicks end,
         changed = function() end,
         select = Select, hover = Hover, closed = Closed,
     },
-    -- A border and corners per family ("border.cat"): the card wears the
-    -- chosen slot's family while the gallery is open.
+    -- A border per family ("border.cat"): the card wears the chosen
+    -- slot's family while the gallery is open.
     frames = {
-        title = "Dyreparken: borders and corners per family",
+        title = "Dyreparken: borders per family",
         slots = {},
         filter = true,
         button = 128,
@@ -67,7 +68,6 @@ Gallery.MODES = {
 for _, family in ipairs(Gallery.MODES.bg.slots) do
     local slots = Gallery.MODES.frames.slots
     slots[#slots + 1] = "border." .. family
-    slots[#slots + 1] = "corner." .. family
 end
 
 local views = {} -- mode -> { frame, grid, thumbs, selected, all, shown }

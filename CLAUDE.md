@@ -141,7 +141,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    particles from traits (every trait has some; those with a moment show only then) and the date, and
                    each family's ambience, always (Decor.FAMILY: feathers, embers, gears, fireflies...); each kind with its
                    own motion (sway, spin, tilt, throb, flap) and path (rise, fall, burst, twinkle, steps, drift, wind);
-                   a border and corners per family (Decor.FAMILY_ART, picked with /dp probe frames); animation
+                   a border per family (Decor.FAMILY_ART, picked with /dp probe frames), corners the same for all (wood, filigree
+                   from 5); gallery picks show on the card only while a gallery is open, so write them into the code; animation
                    groups only, timelines in steps (never Alpha delays inside a step), one playing group per region
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
                    come home instead), stopped when hidden. Also

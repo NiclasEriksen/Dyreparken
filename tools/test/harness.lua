@@ -297,7 +297,7 @@ for _, m in ipairs({ "SetWidth", "SetHeight", "SetAllPoints", "SetJustifyH", "Se
 end
 function Region:SetPoint(...) self.points = self.points or {}; self.points[#self.points + 1] = { ... } end
 function Region:ClearAllPoints() self.points = {} end
-function Region:SetTexture(x) self.tex = x end
+function Region:SetTexture(x) self.tex = x; self.atlas = nil end -- (an atlas set before is gone)
 function Region:GetTexture() return self.tex end
 function Region:SetAtlas(x) self.tex = x; self.atlas = x end
 function Region:SetTexCoord(...) self.texCoord = { ... } end

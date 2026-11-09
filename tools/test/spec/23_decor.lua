@@ -70,7 +70,7 @@ return function(test, H)
         local n = 0
         for point, t in pairs(d.corners) do ok(t:IsShown(), point); n = n + 1 end
         eq(n, 4)
-        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the picked corner")
+        eq(d.corners.TOPLEFT.tex, D.ART.corner, "the code's corner")
         ok(d.corners.TOPLEFT.desaturated, "silver corners")
         eq(Color(d.border)[3], 1, "a silver border")
         no(d.glows[1]:IsShown())
@@ -297,6 +297,7 @@ return function(test, H)
         ola.atlases = { ["AdventuresFrame-Corner-Small-TopLeft"] = true }
         ola.env.Enum.UITextureSliceMode = nil -- a client that can't nine-slice
         ola.ns.Decor.FAMILY_ART = {}
+        ola.ns.Decor.ART.corner = "AdventuresFrame-Corner-Small-TopLeft" -- (an atlas, for this test)
         w:Run(20)
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
