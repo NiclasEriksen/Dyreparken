@@ -12,10 +12,7 @@ return function(test, H)
     end
 
     local function Setup()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
-        ola.ns.Companions = Fixture()
-        w:Run(40)
+        local w, ola = H.Setup{ ola = { 5159, 40 }, each = function(c) c.ns.Companions = Fixture() end }
         -- The half day the panda earned out at login, before any adoption: forgotten,
         -- these tests count from the adoption (any pet of yours bonds, 2026-11-09).
         ola:ForgetBonds()
@@ -66,7 +63,7 @@ return function(test, H)
     test("two traits per species: the same everywhere, never a contradiction, all of them in use", function()
         local w, ola, P = Setup()
         local kari = w:AddClient("Kari Berg")
-        w:Run(12)
+        w:Settle("hello")
         local seen = {}
         for sid = 1, 600 do
             local key = "s:" .. sid
@@ -85,7 +82,7 @@ return function(test, H)
     test("every journal species is pinned to two real traits that go together", function()
         local w = H.World()
         local kari = w:AddClient("Kari Berg") -- the real Data/Companions.lua
-        w:Run(12)
+        w:Settle("hello")
         local P, pins = kari.ns.Personality, kari.ns.TraitPins
         ok(pins, "Data/Traits.lua is loaded")
         eq(P.PINNED, pins)
@@ -277,10 +274,7 @@ return function(test, H)
         eq(card.personality.text, ""); eq(card.likes.text, "")
     end)
     test("a personality is a surprise until you collect the pet or a guildmate adopts it", function()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
-        local kari = w:AddClient("Kari Berg", { pets = { 84 } })
-        w:Run(40)
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 84 } }
         local P = ola.ns.Personality
         no(P:Known("s:84")); ok(P:Known(PANDA))
         eq(P:Line("s:84"), "Ukjent personlighet")

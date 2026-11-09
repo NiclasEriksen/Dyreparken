@@ -26,13 +26,9 @@ return function(test, H)
     local function Fix(c) c.ns.Companions = Fixture(); return c end
 
     local function Setup(pets, opts)
-        local w = H.World()
         opts = opts or {}
         opts.pets = pets
-        local ola = Fix(w:AddClient("Ola Nord", opts))
-        local kari = Fix(w:AddClient("Kari Berg", { pets = { 41 } }))
-        w:Run(12)
-        return w, ola, kari
+        return H.Setup{ ola = opts, kari = { 41 }, each = Fix, settle = "hello" }
     end
 
     -- Open the journal (Forever's: 4 side tabs) and our page.
@@ -221,7 +217,7 @@ return function(test, H)
             { "Liv Lund", 46, 3 } }
         local cs = {}
         for _, m in ipairs(names) do cs[m[1]] = Fix(w:AddClient(m[1], { pets = { m[2], 46 }, rank = m[3] })) end
-        w:Run(12)
+        w:Settle("hello")
         for _, m in ipairs(names) do if m[4] then cs[m[1]]:Slash("adopt " .. m[4]) end end
         w:Run(20)
         local ola, kari = cs["Ola Nord"], cs["Kari Berg"]
@@ -302,7 +298,7 @@ return function(test, H)
         eq(P._rows["count:10"].icon.tex, "Interface\\Icons\\INV_Misc_PetBiscuit_01")
         -- A client without GetFileIDFromPath takes the first.
         local kari = Fix(w:AddClient("Kari Berg", { pets = { 40 }, patch = function(env) env.GetFileIDFromPath = nil end }))
-        w:Run(12)
+        w:Settle("hello")
         eq(kari.ns.Achievements:Icon(D["count:10"]), "Interface\\Icons\\INV_Box_Birdcage_01")
     end)
 
@@ -310,7 +306,7 @@ return function(test, H)
         local function BgWith(setup)
             local w = H.World()
             local c = Fix(w:AddClient("Ola Nord", { pets = { 40 } }))
-            w:Run(12)
+            w:Settle("hello")
             c:OpenJournal({ sideTabs = 2 })
             setup(c.env.CollectionsJournal, c.env)
             c.ns.AchPage._tab:Click()
@@ -325,7 +321,7 @@ return function(test, H)
         -- No portrait texture, nothing to lift: still opens.
         local w = H.World()
         local c = Fix(w:AddClient("Ola Nord", { pets = { 40 } }))
-        w:Run(12)
+        w:Settle("hello")
         c:OpenJournal({ sideTabs = 2 })
         local cj = c.env.CollectionsJournal
         cj.PortraitContainer.portrait = nil

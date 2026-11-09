@@ -28,13 +28,9 @@ return function(test, H)
 
     -- Ola (with the given pets) and Kari, both past their login check.
     local function Setup(pets, opts)
-        local w = H.World()
         opts = opts or {}
         opts.pets = pets
-        local ola = Fix(w:AddClient("Ola Nord", opts))
-        local kari = Fix(w:AddClient("Kari Berg"))
-        w:Run(12)
-        return w, ola, kari
+        return H.Setup{ ola = opts, kari = {}, each = Fix, settle = "hello" }
     end
 
     local function Learn(c, sid)
@@ -96,7 +92,7 @@ return function(test, H)
         ola:Logout()
         ola:GivePet(42); ola:GivePet(46)
         ola:Login(); Fix(ola)
-        w:Run(12)
+        w:Settle("hello")
         local g = Got(ola, "family:cat")
         ok(g)
         eq(g.told, "quiet")
@@ -208,7 +204,7 @@ return function(test, H)
         w:SkipDays(30)
         local m = w:Mark()
         ola:Reload(); Fix(ola)
-        w:Run(12)
+        w:Settle("hello")
         no(Got(ola, "loyal:30"), "the bond is seeded a little after login")
         w:Run(10)
         ok(Got(ola, "loyal:30"), "300 points: Venn (from 270)")

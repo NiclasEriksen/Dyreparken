@@ -12,11 +12,7 @@ return function(test, H)
     end
 
     local function Setup()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159, 46 } })
-        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
-        Plain(ola); Plain(kari)
-        w:Run(40)
+        local w, ola, kari = H.Setup{ ola = { 5159, 46 }, kari = { 40 }, each = Plain }
         -- These tests are about the adopted pet's bond: forget the half days the
         -- pets out at login earned (any pet of yours bonds, 2026-11-09).
         for _, c in ipairs({ ola, kari }) do
@@ -94,7 +90,7 @@ return function(test, H)
         w:SkipDays(10)
         eq(Points(ola, PANDA), 20)
         ola:Reload(); Plain(ola)
-        w:Run(40)
+        w:Settle("day")
         eq(Points(ola, PANDA), 30, "back: today's visit")
         -- Another companion out: its own bond (half), not the panda's.
         w:SkipDays(1)

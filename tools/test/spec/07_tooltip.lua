@@ -3,10 +3,7 @@ return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
 
     local function Setup(kariOpts)
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 46 } })
-        local kari = w:AddClient("Kari Berg", kariOpts or { pets = { 5159 } })
-        w:Run(20)
+        local w, ola, kari = H.Setup{ ola = { 46 }, kari = kariOpts or { 5159 }, settle = "bond" }
         ola:Slash("claim")
         w:SkipDays(7)
         w:Befriend()

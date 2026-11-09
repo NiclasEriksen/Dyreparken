@@ -5,10 +5,7 @@ return function(test, H)
     local PANDA = "s:5159"
 
     local function Setup()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
-        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
-        w:Run(20)
+        local w, ola, kari = H.Setup{ ola = { 5159, 40 }, kari = { 40 }, settle = "bond" }
         ola:Slash("adopter panda")
         w:Run(5)
         ola:OpenJournal()

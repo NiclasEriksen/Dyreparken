@@ -9,9 +9,7 @@ return function(test, H)
     end
 
     test("PvP kills: logged with the counters while the debug log is on, idle otherwise", function()
-        local w = H.World()
-        local c = w:AddClient("Ola Nord", { pets = { 5159 } })
-        w:Run(12)
+        local w, c = H.Setup{ ola = { 5159 }, settle = "hello" }
         ok(c.ns.Debug.enabled, "the harness logs by default")
         c.state.hk, c.state.honor, c.state.lifetimeHK = 3, 45, 120
         c:Fire("PLAYER_PVP_KILLS_CHANGED")
@@ -30,9 +28,7 @@ return function(test, H)
     end)
 
     test("the companion as the client reports it", function()
-        local w = H.World()
-        local c = w:AddClient("Ola Nord", { pets = { 5159 } })
-        w:Run(12)
+        local w, c = H.Setup{ ola = { 5159 }, settle = "hello" }
         match(c.ns.Kills:PetState(), "^s:5159 %(Panda Cub%)")
         c.summoned = nil
         eq(c.ns.Kills:PetState(), "none")
@@ -43,9 +39,7 @@ return function(test, H)
     end)
 
     test("/dp probe kills: which events exist, the stats, the companion", function()
-        local w = H.World()
-        local c = w:AddClient("Ola Nord")
-        w:Run(12)
+        local w, c = H.Setup{ ola = {}, settle = "hello" }
         c:Slash("probe kills")
         ok(c:Printed("ENCOUNTER_END=true", true))
         no(c:Printed("PARTY_KILL", true), "dropped: its GUIDs are secret")
@@ -64,7 +58,7 @@ return function(test, H)
         local w = H.World()
         local c = w:AddClient("Ola Nord", { pets = { 5159 } })
         w:AddClient("Kari Berg")
-        w:Run(12)
+        w:Settle("hello")
         c:Slash("probe life")
         ok(c:Printed("PLAYER_DEAD=true", true)); ok(c:Printed("CHAT_MSG_SKILL=true", true))
         ok(c:Printed("JumpOrAscendStart=true", true))

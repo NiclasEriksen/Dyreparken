@@ -7,7 +7,7 @@ return function(test, H)
     local function One(opts)
         local w = H.World()
         local c = w:AddClient("Ola Nord", opts or { pets = { 5159, 46 } })
-        w:Run(12)
+        w:Settle("hello")
         return w, c, c.ns.Registry
     end
 

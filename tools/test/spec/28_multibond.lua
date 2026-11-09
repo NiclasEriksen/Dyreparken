@@ -7,10 +7,7 @@ return function(test, H)
     local PANDA, KITTEN = "s:5159", "s:46"
 
     local function Setup()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159, 46 } })
-        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
-        w:Run(40)
+        local w, ola, kari = H.Setup{ ola = { 5159, 46 }, kari = { 40 } }
         -- A clean slate: no bonds from the logins' day visits.
         for _, c in ipairs({ ola, kari }) do
             c:ForgetBonds()

@@ -5,12 +5,7 @@ return function(test, H)
     local PANDA = "s:5159"
 
     local function Setup()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
-        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
-        w:Run(20)
-        ola:OpenJournal()
-        return w, ola, kari
+        return H.Setup{ ola = { 5159, 40 }, kari = { 40 }, settle = "bond", journal = true }
     end
 
     -- Give Ola's panda this many points (its bond, as if earned long ago).
@@ -196,7 +191,7 @@ return function(test, H)
         -- Someone else's pet: no "today" (it's their day, not ours).
         ola.ns.Bond:Watch() -- (publish: a level-up would; here, the login sync)
         kari:Reload()
-        w:Run(40)
+        w:Settle("day")
         kari.ns.DB.char.bondToday = { day = os.date("%Y%m%d", kari.ns.Now()), pets = { ["s:40"] = { got = {}, total = 50 } } } -- her own day
         kari:OpenJournal()
         local kb = kari:SelectPet(5159).bond

@@ -239,9 +239,7 @@ return function(test, H)
     end)
 
     test("reservations and settings survive a reload", function()
-        local w = H.World()
-        local c = w:AddClient("Ola Nord")
-        w:Run(12)
+        local w, c = H.Setup{ ola = {}, settle = "hello" }
         c:Slash("claim")
         c.ns.Summon:SetEnabled(false)
         c:Reload()

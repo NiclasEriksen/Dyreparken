@@ -6,12 +6,9 @@ return function(test, H)
 
     -- Ola owns Panda Cub (reserved) and White Kitten (free); Kari holds Bombay Cat.
     local function Setup(journalOpts, olaOpts)
-        local w = H.World()
         olaOpts = olaOpts or {}
         olaOpts.pets = olaOpts.pets or { 5159, 46 }
-        local ola = w:AddClient("Ola Nord", olaOpts)
-        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
-        w:Run(20)
+        local w, ola, kari = H.Setup{ ola = olaOpts, kari = { 40 }, settle = "bond" }
         ola:Slash("claim panda")
         kari:Slash("claim")
         w:Run(2)

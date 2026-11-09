@@ -29,7 +29,7 @@ return function(test, H)
                 cs[m[1]] = Fix(w:AddClient(m[1], { pets = { m[2] }, rank = m[3] }))
             end
         end
-        w:Run(12)
+        w:Settle("hello")
         return w, cs
     end
 
@@ -197,7 +197,7 @@ return function(test, H)
         no(ola:Printed("[Full drift]", true), "25 > 15 counting pets")
         ok(ola:Printed("[Hele parken] 0/15", true))
         local lone = Fix(w:AddClient("Ensom Ulv", { guild = false, pets = { 40 } }))
-        w:Run(12)
+        w:Settle("hello")
         eq(lone.ns.Achievements:Got("guild:family:cat"), nil)
         eq(next(lone.ns.Achievements:GuildRecords()), nil)
         lone.ns.Achievements:Check("test", "guild")

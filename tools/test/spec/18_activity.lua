@@ -8,9 +8,7 @@ return function(test, H)
 
     -- Ola with an adopted panda out; the debug log off, so nothing listens by itself.
     local function Setup(opts)
-        local w = H.World()
-        local c = w:AddClient("Ola Nord", opts or { pets = { 5159, 46 } })
-        w:Run(12)
+        local w, c = H.Setup{ ola = opts or { 5159, 46 }, settle = "hello" }
         c:Slash("adopter panda")
         c:Slash("debug off")
         -- The bond wants its activities while you have a pet (19_bond.lua): not here.
@@ -125,7 +123,7 @@ return function(test, H)
         eq(A:Count("taxi"), 2, "hooked once")
         local w2 = H.World()
         local c2 = w2:AddClient("Kari Berg", { patch = function(env) env.TakeTaxiNode = nil end })
-        w2:Run(12)
+        w2:Settle("hello")
         no(c2.ns.Activity:Available("taxi"))
         c2.ns.Activity:Want("taxi", ME)
     end)

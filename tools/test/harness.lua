@@ -5,6 +5,8 @@
 --   local ola = w:AddClient("Ola Nord", { pets = { 5159, 46 } })
 --   local kari = w:AddClient("Kari Berg")
 --   w:Run(15)                                 -- advance time: OnUpdate, timers, delivery
+--   w:Settle("hello")                         -- ... to a named stage of the login (World.SETTLE)
+--   local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } } -- the usual world, settled
 --   ola:Slash("claim panda")
 --   assert(kari.ns.Registry:Holder("s:5159") == "Ola Nord")
 --
@@ -417,6 +419,23 @@ function H.World(opts)
     return w
 end
 
+-- The usual world: Ola Nord (and Kari Berg, if given), logged in and
+-- settled. o.ola / o.kari: a pets list or the client's opts; o.each(c):
+-- before the login settles (fixtures, stubs); o.settle: a stage (World:Settle,
+-- default "day"); o.journal: Ola opens the pet journal (true, or its opts).
+-- Returns w, ola, kari.
+function H.Setup(o)
+    o = o or {}
+    local w = H.World(o.world)
+    local function Opts(v) return type(v[1]) == "number" and { pets = v } or v end
+    local ola = w:AddClient("Ola Nord", Opts(o.ola or { 5159 }))
+    local kari = o.kari and w:AddClient("Kari Berg", Opts(o.kari))
+    if o.each then o.each(ola); if kari then o.each(kari) end end
+    w:Settle(o.settle)
+    if o.journal then ola:OpenJournal(o.journal ~= true and o.journal or nil) end
+    return w, ola, kari
+end
+
 function World:ServerTime() return self.server + math.floor(self.t) end
 
 -- Jump ahead without simulating (days of being away). GetTime keeps going
@@ -451,6 +470,16 @@ function World:Run(seconds, step)
         self:Deliver()
         self:RunTimers()
     end
+end
+
+-- The login, in named stages (the addon's own timers: Main.lua, Bond.lua,
+-- Activity.lua, Bonds.lua). Each waits from now:
+--   hello  12 s: past the settled and hello phases (10 s) and the HELLO round
+--   bond   20 s: Bond's seed and first publish (20 s)
+--   day    40 s: the first day's visit and the login lines (30 s), and what they send
+World.SETTLE = { hello = 12, bond = 20, day = 40 }
+function World:Settle(stage)
+    self:Run((assert(World.SETTLE[stage or "day"], "unknown stage")))
 end
 
 function World:RunTimers()

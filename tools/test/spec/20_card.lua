@@ -19,12 +19,8 @@ return function(test, H)
     end
 
     local function Setup()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
-        ola.ns.Companions = Fixture()
-        w:Run(20)
-        ola:OpenJournal()
-        return w, ola
+        return H.Setup{ ola = { 5159, 40 }, each = function(c) c.ns.Companions = Fixture() end, settle = "bond",
+            journal = true }
     end
 
     test("the panel: big name, small home, the bond on the right, the guild below", function()
@@ -286,7 +282,7 @@ return function(test, H)
         eq(#ola:Log("rotate buttons moved above the panel"), 1)
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })
-        w2:Run(20)
+        w2:Settle("bond")
         kari:OpenJournal({ noRotate = true })
         card = kari:SelectPet(40)
         last = card.status.points[#card.status.points]
@@ -295,9 +291,7 @@ return function(test, H)
     end)
 
     test("without a Total Pets box, the guild boxes sit above the card", function()
-        local w = H.World()
-        local c = w:AddClient("Ola Nord", { pets = { 40 } })
-        w:Run(20)
+        local w, c = H.Setup{ ola = { 40 }, settle = "bond" }
         c:OpenJournal({ noPetCount = true })
         local card = c:SelectPet(40)
         eq(card.guildBox.points[1][2], c.env.PetJournalPetCard)

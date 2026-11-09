@@ -48,6 +48,9 @@ and refuses the push if it fails.
   input (`w:InjectMessage`), and records every decoded message in `w.wire` (`w:Sent(kind)`). Clients log in
   and out with their SavedVariables kept (`c:Reload()`). There are helpers for the journal, tooltips, popups
   and player state. Read its header first.
+- The usual world is one line: `local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }` (Ola Nord, Kari Berg
+  if given, logged in and settled; `each`, `settle`, `journal`). Wait for the login by name, not by a number:
+  `w:Settle("hello" | "bond" | "day")` (12, 20, 40 s: past the HELLO round, Bond's seed, the first day's visit).
 - Specs: `tools/test/spec/NN_area.lua`, each `return function(test, H) ... end`. The runner fails a test if any
   client hit a Lua error, a failed comm handler, or a tooltip error. Tests that cause errors on purpose take
   them with `c:TakeErrors()`.

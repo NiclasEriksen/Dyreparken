@@ -7,17 +7,15 @@ return function(test, H)
 
     -- Ola, the journal open, the panda's traits given (by id).
     local function Setup(...)
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
         local ids = { ... }
         if #ids == 0 then ids = { "glupsk", "reiseglad" } end -- no particles of their own
-        ola.ns.Personality.Traits = function()
-            local list = {}
-            for _, id in ipairs(ids) do list[#list + 1] = ola.ns.Personality.ById(id) end
-            return list
-        end
-        w:Run(20)
-        ola:OpenJournal()
+        local w, ola = H.Setup{ ola = { 5159, 40 }, settle = "bond", journal = true, each = function(c)
+            c.ns.Personality.Traits = function()
+                local list = {}
+                for _, id in ipairs(ids) do list[#list + 1] = c.ns.Personality.ById(id) end
+                return list
+            end
+        end }
         local card = ola:SelectPet(5159)
         return w, ola, card, card.decor
     end

@@ -6,9 +6,7 @@ return function(test, H)
     local PANDA = "s:5159"
 
     local function Setup()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
-        w:Run(40)
+        local w, ola = H.Setup{ ola = { 5159, 40 } }
         return w, ola, ola.ns.Activity
     end
 
@@ -144,7 +142,7 @@ return function(test, H)
         eq(A:Count("explore"), 4)
         -- Kept across a reload.
         ola:Reload()
-        w:Run(40)
+        w:Settle("day")
         ok(ola.ns.DB.char.places[PANDA].m1454)
     end)
 
@@ -213,9 +211,7 @@ return function(test, H)
         ok(found, "a dive chip"); eq(found.icon.tex, "Interface\\Icons\\Spell_Shadow_DemonBreath")
     end)
     test("skill-ups and reputation, read from the client's own chat lines", function()
-        local w = H.World()
-        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
-        w:Run(40)
+        local w, ola = H.Setup{ ola = { 5159 } }
         local A = ola.ns.Activity
         local seen = {}
         ola.ns.Bus:On("ACTIVITY", function(id, n, key, mine, extra) seen[#seen + 1] = id .. ":" .. tostring(extra) end)
