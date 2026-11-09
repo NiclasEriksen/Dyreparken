@@ -603,8 +603,27 @@ end
 
 -- The particle specs for a pet right now: its traits', December's snow,
 -- and the bond's sparks (5+) and hearts (7).
+-- How many of the everyday particles (traits, the family's ambience, the
+-- snow) show at a bond level (2026-11-09: a bit much at level 1): 70% at 1
+-- and below, rising evenly to all of them at 7. The level's own rewards
+-- (sparks, hearts) keep their counts.
+Decor.DENSITY_LOW = 0.7
+function Decor.Density(level)
+    local f = Decor.DENSITY_LOW + (1 - Decor.DENSITY_LOW) * ((level or 1) - 1) / 6
+    return math.max(Decor.DENSITY_LOW, math.min(1, f))
+end
+
+local function Thinned(spec, f)
+    if not spec or f >= 1 then return spec end
+    local copy = {}
+    for k, v in pairs(spec) do copy[k] = v end
+    copy.n = math.max(1, math.floor(spec.n * f + 0.5))
+    return copy
+end
+
 function Decor:Specs(key, level, t)
     local list, ctx = {}, nil
+    local f = self.Density(level)
     local demo = self.show and self.SLOT_KIND[self.show.slot] -- the gallery's particle slot
     if demo then list[1] = { kind = demo, n = 6, color = { 1, 1, 1 } } end
     -- (no trait particles for a pet whose personality is still a surprise)
@@ -615,14 +634,14 @@ function Decor:Specs(key, level, t)
             if not ctx then ctx = ns.Bond.Context(); ctx.t = t end
             now = trait.when(ctx)
         end
-        if now then list[#list + 1] = spec end
+        if now then list[#list + 1] = Thinned(spec, f) end
     end
-    if December(t) then list[#list + 1] = { kind = "snow", n = 5, color = { 1, 1, 1 } } end
+    if December(t) then list[#list + 1] = Thinned({ kind = "snow", n = 5, color = { 1, 1, 1 } }, f) end
     if level >= 5 then list[#list + 1] = { kind = "spark", n = 6, color = GOLD } end
     if level >= 7 then list[#list + 1] = { kind = "heart", n = 4, color = { 1, 0.4, 0.5 } } end
     -- Last: the pool may run out, and the ambience is what can go.
     local family = ns.Scenes:Families(key)[1]
-    list[#list + 1] = self.FAMILY[family] or self.FAMILY.default
+    list[#list + 1] = Thinned(self.FAMILY[family] or self.FAMILY.default, f)
     return list
 end
 

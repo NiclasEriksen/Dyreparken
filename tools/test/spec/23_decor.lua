@@ -3,6 +3,8 @@
 -- client's animation groups and stopped when the card has nothing to show.
 return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
+    -- An everyday kind's count at a bond level (Decor.Density: 70% at 1, all at 7).
+    local function N(D, n, level) return math.max(1, math.floor(n * D.Density(level) + 0.5)) end
     local PANDA = "s:5159"
 
     -- Ola, the journal open, the panda's traits given (by id; none: no
@@ -109,7 +111,7 @@ return function(test, H)
         At(w, ola, 9, 21, 12)
         D:Apply(card, PANDA, 1)
         local parts = Parts(d)
-        eq(#parts, 4, "a Dykker's bubbles; no stars by day")
+        eq(#parts, N(D, 4, 1), "a Dykker's bubbles (thinned at level 1); no stars by day")
         eq(parts[1].icon.tex, D.MEDIA .. "bubble")
         local g = parts[1].anim
         ok(g:IsPlaying()); eq(g.looping, "REPEAT")
@@ -171,7 +173,7 @@ return function(test, H)
         eq(#Parts(d), 0, "the day after")
         At(w, ola, 12, 3, 12)
         D:Apply(card, PANDA, 1)
-        eq(#Parts(d), 5); eq(Parts(d)[1].icon.tex, D.MEDIA .. "snowflake")
+        eq(#Parts(d), N(D, 5, 1)); eq(Parts(d)[1].icon.tex, D.MEDIA .. "snowflake")
         ok(Parts(d)[1].spin:IsPlaying())
     end)
 
@@ -254,7 +256,7 @@ return function(test, H)
         g.life[PANDA] = { ["Ola Nord"] = { p = 600, f = now - 200 * 86400, t = now } } -- God venn: level 4
         card = ola:SelectPet(5159)
         ok(d.glows[1]:IsShown()); ok(d.corners.TOPLEFT:IsShown())
-        eq(#Parts(d), 4, "the Dykker's bubbles")
+        eq(#Parts(d), N(ola.ns.Decor, 4, 4), "the Dykker's bubbles")
         card.bond.scripts.OnEnter(card.bond)
         match(table.concat(ola.env.GameTooltip.lines, " / "), "På nivå 5 får kortet gull overalt, og gnister som flyr%.")
         -- Nobody's pet: the card's decorations go, the traits' stay.
@@ -323,13 +325,13 @@ return function(test, H)
         local card = ola:SelectPet(40) -- a Bombay: a cat, nobody's
         local d = card.decor
         local parts = Parts(d)
-        eq(#parts, D.FAMILY.cat.n, "a cat's motes, with no bond at all")
+        eq(#parts, N(D, D.FAMILY.cat.n), "a cat's motes, with no bond at all (thinned)")
         eq(parts[1].icon.tex, D.MEDIA .. "dot")
         eq(parts[1].icon.blend, "ADD", "motes are light")
         eq(parts[1].icon.vertexColor[4], D.FAMILY_ALPHA, "softer than the traits")
         ok(parts[1].anim:IsPlaying())
         card = ola:SelectPet(5159) -- the panda has no family: the default
-        eq(#Parts(d), D.FAMILY.default.n)
+        eq(#Parts(d), N(D, D.FAMILY.default.n))
         -- Every family has one, and each is a kind there is.
         for _, family in ipairs(ola.ns.Scenes.ORDER) do
             local spec = D.FAMILY[family]
@@ -337,7 +339,7 @@ return function(test, H)
             ok(D.KINDS[spec.kind], family .. ": " .. spec.kind)
         end
         -- When the pool runs out, it's the ambience that goes.
-        D.TRAITS.kosete = { kind = "heart", n = 40, color = { 1, 0, 0 } }
+        D.TRAITS.kosete = { kind = "heart", n = 60, color = { 1, 0, 0 } } -- (42 at level 1: still past the pool)
         ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("kosete") } end
         D:Apply(card, PANDA, 1)
         eq(#Parts(d), #d.parts)
@@ -372,16 +374,16 @@ return function(test, H)
         eq(#With("flokkdyr"), 0, "alone: no flock")
         eq(#With("einstoing"), 1, "a lone wisp")
         w:SetGroup({ "Ola Nord", "Kari Berg" })
-        eq(#With("flokkdyr"), D.TRAITS.flokkdyr.n, "with a guildmate")
+        eq(#With("flokkdyr"), N(D, D.TRAITS.flokkdyr.n, 1), "with a guildmate")
         eq(#With("einstoing"), 0)
-        eq(#With("friluftsdyr"), 2, "butterflies outdoors")
+        eq(#With("friluftsdyr"), N(D, 2, 1), "butterflies outdoors")
         eq(#With("huleboer"), 0)
         ola.state.instance = "party"
-        eq(#With("huleboer"), 3, "drips in a dungeon")
+        eq(#With("huleboer"), N(D, 3, 1), "drips in a dungeon")
         eq(#With("friluftsdyr"), 0)
         eq(#With("nattugle"), 0, "stars only at night")
         At(w, ola, 9, 21, 23)
-        eq(#With("nattugle"), 5)
+        eq(#With("nattugle"), N(D, 5, 1))
     end)
 
     test("the new motions: wings flap, z's grow from the pet, wind blows across, embers glow", function()
@@ -420,5 +422,27 @@ return function(test, H)
         local ember = Parts(d)[1]
         eq(ember.icon.blend, "ADD"); ok(ember.throb:IsPlaying(), "it flickers")
         ok(ember.throb.steps[1].duration < 0.3, "quickly")
+    end)
+
+    test("fewer everyday particles at the first levels, all of them at 7; the level's own rewards stay", function()
+        local w, ola, card, d = Setup("dykker")
+        local D = ola.ns.Decor
+        At(w, ola, 9, 21, 12)
+        eq(D.Density(1), 0.7); eq(D.Density(nil), 0.7); eq(D.Density(7), 1)
+        for l = 2, 7 do ok(D.Density(l) > D.Density(l - 1), "rises with every level") end
+        local function Count(level, kind)
+            D:Apply(card, PANDA, level)
+            local n = 0
+            for _, p in ipairs(Parts(d)) do if p.icon.tex == D.MEDIA .. kind then n = n + 1 end end
+            return n
+        end
+        eq(Count(1, "bubble"), 3, "4 bubbles: 3 at level 1")
+        eq(Count(7, "bubble"), 4, "... all 4 at 7")
+        eq(Count(7, "heart"), 4, "level 7's hearts: all of them")
+        eq(Count(5, "sparkle"), 6, "level 5's sparks: all of them")
+        for _, s in ipairs(D:Specs(PANDA, 1, ola.ns.Now())) do
+            ok(s ~= D.TRAITS.dykker or s.n == 4, "the shared table is never changed")
+        end
+        eq(D.TRAITS.dykker.n, 4)
     end)
 end
