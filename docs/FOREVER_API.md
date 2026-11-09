@@ -136,6 +136,11 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - **Unit and journal species IDs match**: your own Panda Cub as a unit reports `UnitBattlePetSpeciesID` = 5159, the
   same as the journal. Its GUID is `Creature-0-6845-1-1-272330-…`, and npcID 272330 equals the journal's creatureID.
 
+- **Showing a species' card** (2026-11-09, build 70862): `PetJournal_SelectSpecies(PetJournal, speciesID)` works for a
+  pet you own (scrolls the list, shows the card). For one you don't own, which isn't in Forever's list, it left the
+  card on the last pet viewed, unlike retail (where it ends in `PetJournal_ShowPetCardBySpeciesID`). JournalUI then
+  calls `PetJournal_ShowPetCardBySpeciesID` itself and logs the card's species after each call; whether that works
+  on Forever is unverified.
 - **Companions get no nameplate** (2026-11-09, `/dp probe world`, outdoors): with a guildmate's Brown Prairie Dog
   right there, `C_NamePlate.GetNamePlates()` returned 0 plates and `GetNamePlateForUnit("mouseover")` nil, while
   hostile mobs nearby got plates (`NAME_PLATE_UNIT_ADDED`, not forbidden). `nameplateShowAll` and

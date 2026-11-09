@@ -573,10 +573,12 @@ return function(test, H)
         card.todayBox.scripts.OnMouseUp(card.todayBox)
         eq(card.species, "White Kitten")
         ola.state.combat = false
+        eq(ola.shownSpecies, nil, "an owned pet: the list's selection was enough")
         rawset(ola.env, "PetJournal_SelectSpecies", nil)
+        rawset(ola.env, "PetJournal_ShowPetCardBySpeciesID", nil)
         card.todayBox.scripts.OnMouseUp(card.todayBox)
         eq(card.species, "White Kitten")
-        eq(#ola:Log("no way to show species 5159"), 1)
+        eq(#ola:Log("PetJournal_SelectSpecies: missing"), 1); eq(#ola:Log("PetJournal_ShowPetCardBySpeciesID: missing"), 1)
         -- The likes: light text now, not the disabled grey.
         eq(card.likes.font, "GameFontHighlightSmall")
         eq(card.likes.color[1], 0.8)

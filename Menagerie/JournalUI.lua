@@ -165,22 +165,32 @@ local function UpdateCard()
     ns.CardActions:Update(card, key)
 end
 
--- A species' card in the journal, by Blizzard's own PetJournal_SelectSpecies
--- (it scrolls the list to the pet if it's there, and leaves the filters
--- alone; it shows the card of a pet you don't own too: the list only holds
--- yours), or just its card. Works on Forever (Dagens dyr, 2026-11-09).
--- Without either it does nothing, and says so in the log. Returns true if shown.
-function JournalUI:ShowSpecies(sid)
-    if not sid or ns.InCombat() then return false end
-    local fn, args = rawget(_G, "PetJournal_SelectSpecies"), { PetJournal, sid }
-    if not fn then fn, args = rawget(_G, "PetJournal_ShowPetCardBySpeciesID"), { sid } end
+-- A species' card in the journal. First Blizzard's own PetJournal_SelectSpecies:
+-- it scrolls the list to the pet and leaves the filters alone (works on
+-- Forever for a pet you own, Dagens dyr 2026-11-09). For one you don't own
+-- (the list only holds yours) it left the card on the last pet you looked at
+-- (2026-11-09), so then PetJournal_ShowPetCardBySpeciesID, which in retail
+-- shows any species' card. Each step is logged with the card's species after
+-- it. Returns true if the card shows the species.
+local function Try(name, ...)
+    local fn = rawget(_G, name)
     if not fn then
-        ns.Log("UI", "no way to show species %d in the journal", sid)
+        ns.Log("UI", "%s: missing", name)
         return false
     end
-    local ok, err = pcall(fn, unpack(args))
-    ns.Log("UI", "species %d shown: %s", sid, ok and "ok" or tostring(err))
+    local ok, err = pcall(fn, ...)
+    local now = CardSpecies()
+    ns.Log("UI", "%s(%s): %s, card species %s", name, tostring(select(select("#", ...), ...)),
+        ok and "ok" or tostring(err), tostring(now))
     return ok
+end
+
+function JournalUI:ShowSpecies(sid)
+    if not sid or ns.InCombat() then return false end
+    Try("PetJournal_SelectSpecies", PetJournal, sid)
+    if CardSpecies() == sid then return true end
+    Try("PetJournal_ShowPetCardBySpeciesID", sid)
+    return CardSpecies() == sid
 end
 
 -- A click on "Dagens dyr".

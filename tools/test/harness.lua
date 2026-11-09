@@ -1022,13 +1022,20 @@ function Client:OpenJournal(o)
         end
         rawset(env, "PetJournal_UpdatePetCard", function() end)
         -- Selects a species and shows its card (Blizzard_Collections; o.noSelect: missing).
+        -- Forever's selects only a pet in the list, one you own (2026-11-09); any other
+        -- species' card comes from ShowPetCardBySpeciesID.
         if not o.noSelect then
             rawset(env, "PetJournal_SelectSpecies", function(pj, sid)
                 assert(pj == env.PetJournal, "PetJournal_SelectSpecies(PetJournal, speciesID)")
+                if not self:GuidOf(sid) then return end
                 self.selectedSpecies = sid
                 self:SelectPet(sid)
             end)
         end
+        rawset(env, "PetJournal_ShowPetCardBySpeciesID", function(sid)
+            self.shownSpecies = sid
+            self:SelectPet(sid)
+        end)
         self.loaded.Blizzard_Collections = true
         self:Fire("ADDON_LOADED", "Blizzard_Collections")
     end
