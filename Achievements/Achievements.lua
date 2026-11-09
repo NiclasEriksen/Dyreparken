@@ -124,9 +124,14 @@ end
 
 local function Scope(d) return d.scope or "account" end
 
+-- Where a scope keeps what it has seen and earned ({ seen, got }), or nil
+-- (the guild's, outside a guild). Account and character: { seen, got, owned }
+-- as stored; the guild's: its records g.ach and g.achSeen (synced).
 local function Store(scope)
     if scope == "char" then return ns.DB.char.ach end
-    return ns.DB.global.ach
+    if scope == "account" then return ns.DB.global.ach end
+    local g = ns.DB:Guild()
+    return g and { seen = g.achSeen, got = g.ach }
 end
 
 local function IsOfficer() return ns.Guild:IsOfficer() end
@@ -281,25 +286,6 @@ end
 ------------------------------------------------------------------------------
 -- Checking
 ------------------------------------------------------------------------------
-local function Run(scope, ctx, quietAll, new)
-    local store, quiet = Store(scope), 0
-    for _, d in ipairs(ns.AchDefs) do
-        if Scope(d) == scope then
-            local done = Ach:Evaluate(d, ctx)
-            if done ~= nil then
-                local firstLook = not store.seen[d.id]
-                store.seen[d.id] = true
-                if done and not store.got[d.id] then
-                    local q = firstLook or quietAll
-                    store.got[d.id] = { at = ctx.now, told = q and "quiet" or nil, ann = q and "quiet" or nil }
-                    if q then quiet = quiet + 1 else new[#new + 1] = d.id end
-                end
-            end
-        end
-    end
-    return quiet
-end
-
 ------------------------------------------------------------------------------
 -- Guild scope
 ------------------------------------------------------------------------------
@@ -341,20 +327,34 @@ local function QueueBroadcast(id)
     end)
 end
 
-local function RunGuild(ctx, new)
-    local g = ns.DB:Guild()
-    if not g then return 0 end
-    local quiet = 0
+-- A new achievement's record, per scope: quiet ones (first looks, a jump in
+-- the collection) are marked so they're never announced. The guild's go out
+-- to everyone (ACH).
+local EARNED = {
+    account = function(id, at, quiet) return { at = at, told = quiet and "quiet" or nil, ann = quiet and "quiet" or nil } end,
+    guild = function(id, at, quiet)
+        QueueBroadcast(id)
+        return { at = at, q = quiet or nil }
+    end,
+}
+EARNED.char = EARNED.account
+
+-- Judge a scope's achievements. New ones go in `new`, unless quiet: a
+-- definition seen for the first time (it may have been true for ages), or
+-- quietAll. Returns how many were quiet.
+local function Run(scope, ctx, quietAll, new)
+    local store, quiet = Store(scope), 0
+    if not store then return 0 end
     for _, d in ipairs(ns.AchDefs) do
-        if Scope(d) == "guild" then
+        if Scope(d) == scope then
             local done = Ach:Evaluate(d, ctx)
             if done ~= nil then
-                local firstLook = not g.achSeen[d.id]
-                g.achSeen[d.id] = true
-                if done and not g.ach[d.id] then
-                    g.ach[d.id] = { at = ctx.now, q = firstLook or nil }
-                    QueueBroadcast(d.id)
-                    if firstLook then quiet = quiet + 1 else new[#new + 1] = d.id end
+                local firstLook = not store.seen[d.id]
+                store.seen[d.id] = true
+                if done and not store.got[d.id] then
+                    local q = firstLook or quietAll
+                    store.got[d.id] = EARNED[scope](d.id, ctx.now, q)
+                    if q then quiet = quiet + 1 else new[#new + 1] = d.id end
                 end
             end
         end
@@ -437,7 +437,7 @@ function Ach:Check(reason, which)
     end
     local newGuild = {}
     if which == nil or which == "guild" then
-        RunGuild(ctx, newGuild)
+        Run("guild", ctx, false, newGuild)
         Appeared(newGuild)
     end
     ns.Log("Ach", "check (%s): %d new, %d quiet, %d guild", tostring(reason), #new, quiet, #newGuild)
@@ -461,11 +461,8 @@ end
 function Ach:Got(id)
     local d = defsById[id]
     if not d then return nil end
-    if Scope(d) == "guild" then
-        local g = ns.DB:Guild()
-        return g and g.ach[id]
-    end
-    return Store(Scope(d)).got[id]
+    local store = Store(Scope(d))
+    return store and store.got[id]
 end
 
 ------------------------------------------------------------------------------
