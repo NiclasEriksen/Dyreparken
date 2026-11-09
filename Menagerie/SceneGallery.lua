@@ -14,7 +14,26 @@ ns.SceneGallery = Gallery
 
 local THUMB_W, THUMB_H, GAP, COLS = 168, 96, 8, 4
 
--- mode -> { title, slots, picks = fn() -> table, changed = fn() }
+-- The card previews the decorations' galleries (Decor.show): the chosen
+-- slot, worn at a level where it shows, with the picture under the mouse.
+local function Card() if ns.JournalUI.Refresh then ns.JournalUI:Refresh() end end
+local function Select(slot)
+    local kind, family = slot:match("^(%a+)%.(%a+)$")
+    ns.Decor.show = { slot = kind or slot, family = family }
+    Card()
+end
+local function Hover(path)
+    if not ns.Decor.show then return end
+    ns.Decor.show.art = path
+    Card()
+end
+local function Closed()
+    ns.Decor.show = nil
+    Card()
+end
+
+-- mode -> { title, slots, picks = fn() -> table, changed = fn(),
+--   select = fn(slot), hover = fn(path or nil), closed = fn() }
 Gallery.MODES = {
     bg = {
         title = "Dyreparken: backgrounds",
@@ -30,6 +49,7 @@ Gallery.MODES = {
         filter = true, -- show the selected slot's candidates only
         picks = function() return ns.DB.global.decorPicks end,
         changed = function() end,
+        select = Select, hover = Hover, closed = Closed,
     },
     -- A border and corners per family ("border.cat"): the card wears the
     -- chosen slot's family while the gallery is open.
@@ -41,14 +61,7 @@ Gallery.MODES = {
         kindOf = function(slot) return slot:match("^(%a+)%.") end,
         picks = function() return ns.DB.global.decorPicks end,
         changed = function() end,
-        select = function(slot)
-            ns.Decor.frameFamily = slot:match("%.(%a+)$")
-            if ns.JournalUI.Refresh then ns.JournalUI:Refresh() end
-        end,
-        closed = function()
-            ns.Decor.frameFamily = nil
-            if ns.JournalUI.Refresh then ns.JournalUI:Refresh() end
-        end,
+        select = Select, hover = Hover, closed = Closed,
     },
 }
 for _, family in ipairs(Gallery.MODES.bg.slots) do
@@ -76,8 +89,14 @@ local function Redraw(view)
         b:SetText(b.family .. (view.cfg.picks()[b.family] and " *" or ""))
         if b.family == view.selected then b:LockHighlight() else b:UnlockHighlight() end
     end
-    view.frame.hint:SetText(("Slot: %s%s. Click a picture to pick it, right-click to clear."):format(
-        view.selected, view.cfg.filter and (" (%d pictures)"):format(view.shown or 0) or ""))
+    local card = ""
+    if view.cfg.hover then
+        local slot = view.selected:match("^(%a+)%.") or view.selected
+        card = (ns.Decor.NEED[slot] or ns.Decor.SLOT_KIND[slot]) and " Hover to see it on the pet card."
+            or " (Not used on the card.)"
+    end
+    view.frame.hint:SetText(("Slot: %s%s. Click a picture to pick it, right-click to clear.%s"):format(
+        view.selected, view.cfg.filter and (" (%d pictures)"):format(view.shown or 0) or "", card))
 end
 
 local function OnClick(view, t, button)
@@ -169,6 +188,10 @@ local function NewThumb(view)
     t.used:SetPoint("TOPLEFT", t.label, "BOTTOMLEFT", 0, -1)
     t:SetScript("OnClick", function(self, button) OnClick(view, self, button) end)
     ns.SetTip(t, "ANCHOR_RIGHT", function(self) return self.path end)
+    if view.cfg.hover then -- the card shows it while the mouse is on it
+        t:HookScript("OnEnter", function(self) view.cfg.hover(self.path) end)
+        t:HookScript("OnLeave", function() view.cfg.hover(nil) end)
+    end
     view.thumbs[#view.thumbs + 1] = t
     return t
 end

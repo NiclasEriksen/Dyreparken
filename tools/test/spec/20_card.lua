@@ -223,7 +223,7 @@ return function(test, H)
         ola:Slash("probe frames")
         ok(ola:Printed("borders and corners exist", true))
         match(G._frame.hint.text, "^Slot: border%.default")
-        eq(D.frameFamily, "default", "the card wears the chosen family")
+        eq((D.show and D.show.family), "default", "the card wears the chosen family")
         local function Shown()
             local shown = {}
             for _, t in ipairs(G._thumbs) do if t:IsShown() then shown[#shown + 1] = t end end
@@ -234,7 +234,7 @@ return function(test, H)
         end
         for _, t in ipairs(Shown()) do ok(not t.path:find("Corner", 1, true) or t.path:find("Wood"), t.path) end
         Pick("corner.cat")
-        eq(D.frameFamily, "cat")
+        eq((D.show and D.show.family), "cat")
         local metal
         for _, t in ipairs(Shown()) do
             if t.path == "atlas:UI-Frame-Metal-CornerTopLeft" then metal = t end
@@ -248,7 +248,7 @@ return function(test, H)
         eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the dragon's: none yet")
         -- Closed: every pet wears its own family's.
         G._frame:Hide()
-        eq(D.frameFamily, nil)
+        eq((D.show and D.show.family), nil)
         eq(d.corners.TOPLEFT.atlas, "UI-Frame-Metal-CornerTopLeft", "the cat's pick")
         card = ola:SelectPet(5159)
         eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "the panda: no family, no pick")
@@ -260,6 +260,53 @@ return function(test, H)
         eq(table.concat(d.corners.TOPLEFT.texCoord, ","), "0,1,0,1")
         eq(d.border.tex, "Interface\\Some\\Border")
         eq(table.concat(d.border.slice, ","), "18,18,18,18")
+    end)
+
+    test("the decorations' galleries preview on the card: the slot at its level, the picture under the mouse", function()
+        local w, ola = Setup()
+        local D, G = ola.ns.Decor, ola.ns.SceneGallery
+        ola.atlases = { ["UI-Frame-Metal-CornerTopLeft"] = true, ["AdventuresFrame-Corner-Small-TopLeft"] = true,
+            ["loottoast-itemborder-gold"] = true, ["UI-Frame-Neutral-Ribbon"] = true, ["Bonus-Objective-Star"] = true }
+        local card = ola:SelectPet(5159) -- nobody's: no bond decorations
+        local d = card.decor
+        no(d.corners.TOPLEFT:IsShown())
+        ola:Slash("probe decor")
+        eq(D.show.slot, "corner")
+        ok(d.corners.TOPLEFT:IsShown(), "dressed at a level where corners show")
+        match(G._frame.hint.text, "Hover to see it on the pet card")
+        local function Thumb(path)
+            for _, t in ipairs(G._thumbs) do if t:IsShown() and t.path == path then return t end end
+        end
+        local function Pick(slot)
+            for _, b in ipairs(G._frame.families) do if b.family == slot then b:Click() end end
+        end
+        Pick("corner")
+        local metal = Thumb("atlas:UI-Frame-Metal-CornerTopLeft")
+        metal.scripts.OnEnter(metal)
+        eq(d.corners.TOPLEFT.atlas, "UI-Frame-Metal-CornerTopLeft", "the one under the mouse")
+        eq(ola.env.GameTooltip.lines[1], "atlas:UI-Frame-Metal-CornerTopLeft", "and its tooltip still")
+        metal.scripts.OnLeave(metal)
+        eq(d.corners.TOPLEFT.atlas, "AdventuresFrame-Corner-Small-TopLeft", "back to the pick")
+        -- A particle slot: a few of its particles, in the picture under the mouse.
+        Pick("star")
+        local stars = 0
+        for _, p in ipairs(d.parts) do
+            if p:IsShown() and p.icon.tex == D.MEDIA .. "star" then stars = stars + 1 end
+        end
+        eq(stars, 6)
+        local atlas = Thumb("atlas:Bonus-Objective-Star")
+        atlas.scripts.OnEnter(atlas)
+        eq(d.parts[1].icon.atlas, "Bonus-Objective-Star")
+        atlas.scripts.OnClick(atlas, "LeftButton")
+        atlas.scripts.OnLeave(atlas)
+        eq(d.parts[1].icon.atlas, "Bonus-Objective-Star", "picked: it stays")
+        Pick("frame")
+        match(G._frame.hint.text, "Not used on the card")
+        -- Closed: the card is the pet's again (the pick stays).
+        G._frame:Hide()
+        eq(D.show, nil)
+        no(d.corners.TOPLEFT:IsShown())
+        ola.env.DyreparkenDB.decorPicks.star = nil
     end)
 
     test("/dp probe bg opens a gallery of what exists; picks become the family's background", function()

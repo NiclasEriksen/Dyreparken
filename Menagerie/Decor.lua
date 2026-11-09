@@ -101,7 +101,7 @@ function Decor:Probe()
 end
 
 -- /dp probe frames: a border and corners per family. Picks show on the card
--- at once; the card wears the family whose slot is chosen.
+-- at once; the card wears the family whose slot is chosen (Decor.show).
 function Decor:ProbeFrames()
     local have = {}
     for i, c in ipairs(self:Candidates()) do
@@ -148,6 +148,7 @@ Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
     border = "loottoast-itemborder-gold", -- an item frame, nine-sliced around the card
     corner = "AdventuresFrame-Corner-Small-TopLeft",
     ribbon = "UI-Frame-Neutral-Ribbon",
+    glow = Decor.MEDIA .. "dot",
 }
 
 -- What each level adds, for the bond's tooltip ("på nivå 3: ...").
@@ -300,9 +301,31 @@ end
 -- then written here. Until then a pick saved in DyreparkenDB.decorPicks
 -- ("border.cat") shows at once; a family without one has Decor.ART's.
 Decor.FAMILY_ART = {}
+
+-- The galleries' preview (2026-11-09): while /dp probe decor or frames is
+-- open, Decor.show = { slot, family, art }: the card wears the chosen slot
+-- (the art under the mouse, else the pick), dressed at a level where that
+-- slot shows; a particle slot shows a few of its particles.
+Decor.show = nil
+Decor.NEED = { border = 2, corner = 3, glow = 4, ribbon = 6 } -- the level a slot first shows at
+Decor.SLOT_KIND = { sparkle = "spark", star = "star", heart = "heart", bubble = "bubble", confetti = "confetti",
+    leaf = "leaf", paw = "paw", note = "note", snow = "snow" }
+local KIND_SLOT = {}
+for slot, kind in pairs(Decor.SLOT_KIND) do KIND_SLOT[kind] = slot end
+
+-- The picture for a slot: the preview's, the family's pick or its own, the
+-- slot's pick, else the default (nil: a particle's own texture).
 function Decor:Art(slot, family)
-    local own = self.FAMILY_ART[family]
-    return ns.DB.global.decorPicks[slot .. "." .. family] or own and own[slot] or self.ART[slot]
+    local s, picks = self.show, ns.DB.global.decorPicks
+    if s and s.art and s.slot == slot and (not s.family or s.family == family) then return s.art end
+    local own = family and self.FAMILY_ART[family]
+    return family and picks[slot .. "." .. family] or own and own[slot] or picks[slot] or self.ART[slot]
+end
+
+-- A particle kind's picture.
+function Decor:PartArt(kind)
+    local slot = KIND_SLOT[kind]
+    return slot and self:Art(slot) or self.MEDIA .. self.KINDS[kind].tex
 end
 
 -- A stable little random per pet, so its particles keep their places.
@@ -448,7 +471,6 @@ function Decor:Build(card, c, panel)
     d.glows = {}
     for i, size in ipairs({ { 420, 260 }, { 220, 110 } }) do
         local t = c:CreateTexture(nil, "BORDER", nil, i)
-        t:SetTexture(self.MEDIA .. "dot")
         t:SetBlendMode("ADD")
         t:SetSize(size[1], size[2])
         t:SetPoint("CENTER", panel, "TOP", 0, i == 1 and 120 or 90)
@@ -468,7 +490,6 @@ function Decor:Build(card, c, panel)
     d.rays.turn.a:SetDegrees(-360); d.rays.turn.a:SetSmoothing("NONE")
     -- 6+: a ribbon with the level's name, under the title row.
     d.ribbon = c:CreateTexture(nil, "BORDER", nil, 4)
-    d.ribbon:SetAtlas(self.ART.ribbon)
     d.ribbon:SetSize(250, 75)
     d.ribbon:SetPoint("TOP", c, "TOP", 0, -10) -- at the top: Blizzard's title row is hidden (JournalUI)
     d.ribbon:Hide()
@@ -498,7 +519,7 @@ local function Launch(p, spec, rng, i, n, panel)
     local k = Decor.KINDS[spec.kind]
     local width = panel:GetWidth() or 400
     local icon = p.icon
-    icon:SetTexture(Decor.MEDIA .. k.tex)
+    SetArt(icon, Decor:PartArt(spec.kind))
     icon:SetBlendMode(k.add and "ADD" or "BLEND")
     local c = spec.color
     if c == "rainbow" then c = RAINBOW[(i - 1) % #RAINBOW + 1] end
@@ -569,6 +590,8 @@ end
 -- and the bond's sparks (5+) and hearts (7).
 function Decor:Specs(key, level, t)
     local list, ctx = {}, nil
+    local demo = self.show and self.SLOT_KIND[self.show.slot] -- the gallery's particle slot
+    if demo then list[1] = { kind = demo, n = 6, color = { 1, 1, 1 } } end
     -- (no trait particles for a pet whose personality is still a surprise)
     for _, trait in ipairs(ns.Personality:Known(key) and ns.Personality:Traits(key) or {}) do
         local spec = self.TRAITS[trait.id]
@@ -598,13 +621,17 @@ function Decor:Apply(card, key, level, color)
     -- The same pet, level, tint and particles as now: leave them playing.
     -- (Every card refresh used to restart them all: guildmates' bond updates
     -- made the hearts and leaves blink out and fade back in.)
-    local shown = self.preview or level or 0
-    local sig, border, corner
+    level = self.preview or level or 0
+    local need = self.show and self.NEED[self.show.slot]
+    if need and level < need then level = need end
+    local sig, art
     if key then
-        local family = self.frameFamily or ns.Scenes:Families(key)[1] or "default"
-        border, corner = self:Art("border", family), self:Art("corner", family)
-        local parts = { key, shown, color and table.concat(color, ",") or "", border, corner }
-        for _, spec in ipairs(self:Specs(key, shown, ns.Now())) do parts[#parts + 1] = spec.kind .. spec.n end
+        local family = self.show and self.show.family or ns.Scenes:Families(key)[1] or "default"
+        art = { self:Art("border", family), self:Art("corner", family), self:Art("glow"), self:Art("ribbon") }
+        local parts = { key, level, color and table.concat(color, ",") or "", table.concat(art, ";") }
+        for _, spec in ipairs(self:Specs(key, level, ns.Now())) do
+            parts[#parts + 1] = spec.kind .. spec.n .. self:PartArt(spec.kind)
+        end
         sig = table.concat(parts, ";")
         if sig == d.sig and d.playing then return end
     end
@@ -617,15 +644,17 @@ function Decor:Apply(card, key, level, color)
     d.rays:Hide(); d.ribbon:Hide(); d.ribbonText:Hide()
     d.used = 0
     if not key then return end
-    if d.art ~= border .. corner then -- the family's frame
-        d.art = border .. corner
+    local arts = table.concat(art, ";")
+    if d.art ~= arts then -- the family's frame, the glow, the ribbon
+        d.art = arts
         if d.sliced then
-            SetArt(d.border, border)
+            SetArt(d.border, art[1])
             d.border:SetTextureSliceMargins(18, 18, 18, 18)
         end
-        for point, t in pairs(d.corners) do SetArt(t, corner, point:find("RIGHT") ~= nil, point:find("BOTTOM") ~= nil) end
+        for point, t in pairs(d.corners) do SetArt(t, art[2], point:find("RIGHT") ~= nil, point:find("BOTTOM") ~= nil) end
+        for _, t in ipairs(d.glows) do SetArt(t, art[3]) end
+        SetArt(d.ribbon, art[4])
     end
-    level = self.preview or level or 0
     color = color or GOLD
     if level >= 2 then
         local e = ns.Scenes.Tier(level, Bright(color, 1.7)) -- (the border: 2 has the family's own)
