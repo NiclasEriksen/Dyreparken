@@ -155,10 +155,37 @@ function Bond:Add(points, key)
     return p
 end
 
--- Our bond with a pet, as the card shows it: points, level, name, start of
--- the level, next level's points; and whether it's ours. Ours when we have
--- one or own the pet (possibly 0 points); else its holder's, if any.
+-- The bond the card shows: points, level, name, start of the level, next
+-- level's points; and whether it's ours. An adopted pet shows its holder's
+-- (2026-11-09: the card is about the pet and its home; your own bond with
+-- someone else's pet is a small line under it, Bond:Yours). A pet without a
+-- home shows ours (Bond:Own).
 function Bond:Shown(key)
+    if not key then return end
+    local holder = ns.Registry:Holder(key)
+    if holder and holder ~= ns.PlayerKey() then
+        local p, level, name, from, nextAt = self:Of(key)
+        return p, level, name, from, nextAt, false
+    end
+    return self:Own(key)
+end
+
+-- Your bond with someone else's adopted pet, when you have one or own the
+-- pet: points, level, name. Else nil.
+function Bond:Yours(key)
+    local holder = key and ns.Registry:Holder(key)
+    if not holder or holder == ns.PlayerKey() then return nil end
+    local e = ns.Registry:Life(key, ns.PlayerKey())
+    if not (e or ns.Pets:IsOwned(key)) then return nil end
+    local p = e and e.p or 0
+    local level, name = self:Level(p)
+    return p, level, name
+end
+
+-- Our bond with a pet as the journal's list rings show it (the list only has
+-- pets you own, so it's your progress): ours when we have one or own the pet
+-- (possibly 0 points); else its holder's, if any.
+function Bond:Own(key)
     local e = key and ns.Registry:Life(key, ns.PlayerKey())
     if e or (key and ns.Pets:IsOwned(key)) then
         local p = e and e.p or 0

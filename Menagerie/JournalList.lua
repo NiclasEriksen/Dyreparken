@@ -111,7 +111,7 @@ local function UpdateBadge(button, ctx)
     local sid = speciesOf[button]
     local key = sid and ns.Pets:KeyOfSpecies(sid)
     -- Your level with it, in gold; else its carer's, in grey.
-    local p, level, _, _, _, mine = ns.Bond:Shown(key)
+    local p, level, _, _, _, mine = ns.Bond:Own(key)
     if mine and p == 0 and key ~= ctx.myPet then -- one of yours, no bond yet: its carer's, if any
         level, mine = select(2, ns.Bond:Of(key)), false
     end

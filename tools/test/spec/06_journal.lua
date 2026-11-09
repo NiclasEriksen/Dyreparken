@@ -224,9 +224,19 @@ return function(test, H)
         eq(ola.ns.Summon:ActiveKey(), nil)
         no(ola.ns.Summon:Enabled()); no(card.auto.on)
         eq(#w.chat, posts, "choosing which pet to keep out posts nothing")
-        -- A pet we don't own: no badge.
+        -- A pet we don't own: "Ikke samlet" in the badge's place, dim, and a click does nothing.
         card = ola:SelectPet(40)
-        no(card.auto:IsShown())
+        ok(card.auto:IsShown()); ok(card.auto.notOwned)
+        eq(card.auto.label.text, "Ikke samlet")
+        card.auto.scripts.OnEnter(card.auto)
+        eq(ola.env.GameTooltip.lines[1], "Ikke samlet")
+        match(ola.env.GameTooltip.lines[2], "^Du har ikke Bombay Cat i samlingen din")
+        card.auto.scripts.OnLeave(card.auto)
+        card.auto.scripts.OnClick(card.auto)
+        eq(ola.ns.Summon:ActiveKey(), nil, "not taken along")
+        -- Back on one of ours: the badge again.
+        card = ola:SelectPet(5159)
+        no(card.auto.notOwned); eq(card.auto.label.text, "Ta med ut")
         -- Adopting makes a pet the active one, turns auto-summon back on, and swaps it in.
         ola:Summon(5159)
         ola:Slash("adopter white kitten")

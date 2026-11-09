@@ -68,6 +68,10 @@ local function BondTip(self, card)
             GameTooltip:AddLine(ns.T("bond.tip.today", { n = today, max = max }), 0.5, 0.8, 1, true)
         end
     end
+    local yp, yl, yn = ns.Bond:Yours(card.key)
+    if yp then
+        GameTooltip:AddLine(ns.T("bond.tip.yours", { level = yn, n = yl, p = yp }), 1, 0.6, 0.7, true)
+    end
     local others = Others(card.key, not mine and holder or nil)
     if #others > 0 then
         GameTooltip:AddLine(ns.T("bond.tip.others", { list = ns.Join(others) }), 0.8, 0.7, 1, true)
@@ -132,6 +136,11 @@ function Track:Build(card, c, panel)
     b.next = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     b.next:SetPoint("TOPRIGHT", b, "BOTTOMRIGHT", 0, -4)
     b.next:SetJustifyH("RIGHT")
+    -- Your own bond with someone else's adopted pet: small, under theirs (2026-11-09).
+    b.yours = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    b.yours:SetPoint("TOPRIGHT", b.next, "BOTTOMRIGHT", 0, -2)
+    b.yours:SetJustifyH("RIGHT")
+    b.yours:SetTextColor(1, 0.6, 0.7)
 
     -- The medallion, rising out of the panel's top right.
     local m = CreateFrame("Frame", nil, b)
@@ -216,6 +225,9 @@ function Track:Update(card, key, color)
     end
     local tier = ns.Scenes.Tier(level, color)
     b.label:SetText(name) -- the number is on the medallion
+    local _, yourLevel, yourName = ns.Bond:Yours(key)
+    b.yours:SetText(yourLevel and ns.T("bond.yours", { level = yourName, n = yourLevel,
+        icon = "|TInterface\\AddOns\\Dyreparken\\Media\\Particles\\heart:10|t" }) or "")
     b.level:SetText(level)
     -- The bar: from the tier's dark to its bright, a spark at the tip.
     b:SetMinMaxValues(from, nextAt or math.max(points, 1))

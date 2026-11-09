@@ -5,8 +5,10 @@ local _, ns = ...
 -- tickbox at the window's bottom edge, too anonymous for the choice the bond
 -- system turns on. Active: a gold ring and paw, breathing softly, "Med deg".
 -- Not: dim and grey, "Ta med ut". A click toggles it (Summon:SetActive),
--- with a small burst when a pet comes along. Hidden for a pet you don't own;
--- greyed while AutoCompanion does the summoning.
+-- with a small burst when a pet comes along. For a pet you don't own (seen
+-- from Parken, Dagens dyr), a dim "Ikke samlet" in its place (2026-11-09:
+-- nothing said whose pet you were looking at); greyed while AutoCompanion
+-- does the summoning.
 local OutBadge = {}
 ns.OutBadge = OutBadge
 
@@ -17,7 +19,11 @@ OutBadge.SOUNDS = { "IG_MAINMENU_OPTION_CHECKBOX_ON", "IG_CHARACTER_INFO_TAB" }
 local function Tip(self)
     local card = self.card
     GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    if ns.Summon:Deferring() then
+    if self.notOwned then
+        GameTooltip:SetText(ns.L["card.notowned"], 0.8, 0.8, 0.8)
+        GameTooltip:AddLine(ns.T("card.notowned.tip", { pet = card.key and ns.Pets:NameOfKey(card.key) or "" }),
+            1, 1, 1, true)
+    elseif ns.Summon:Deferring() then
         GameTooltip:SetText(ns.L["card.auto.deferred"], 1, 1, 1, 1, true)
     else
         local pet = card.key and ns.Registry:NameOf(card.key) or ""
@@ -76,7 +82,7 @@ function OutBadge:Build(card, c)
 
     b:SetMotionScriptsWhileDisabled(true)
     b:SetScript("OnClick", function(self)
-        if not card.key then return end
+        if not card.key or self.notOwned then return end
         local on = not self.on
         ns.Summon:SetActive(card.key, on)
         if on then
@@ -96,10 +102,17 @@ end
 function OutBadge:Update(card, key)
     local b = card.auto
     if not b then return end
-    if not (key and ns.Pets:IsOwned(key)) then
-        b.on = false
-        b.glow.pulse:Stop(); b:Hide()
-        return
+    b.on = false
+    b.glow.pulse:Stop()
+    if not key then return b:Hide() end
+    b.notOwned = not ns.Pets:IsOwned(key)
+    if b.notOwned then
+        b:SetEnabled(false)
+        b.ring:SetDesaturated(true); b.ring:SetAlpha(0.35)
+        b.paw:SetVertexColor(0.45, 0.45, 0.45, 0.5)
+        b.label:SetText(ns.L["card.notowned"]); b.label:SetTextColor(0.55, 0.55, 0.55)
+        b.glow:Hide()
+        return b:Show()
     end
     local deferring = ns.Summon:Deferring()
     local on = not deferring and ns.Summon:ActiveKey() == key

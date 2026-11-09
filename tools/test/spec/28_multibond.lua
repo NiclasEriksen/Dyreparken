@@ -79,6 +79,43 @@ return function(test, H)
         match(table.concat(ola.env.GameTooltip.lines, " / "), "Også glad i det: Kari Berg %(Bekjent%)")
     end)
 
+    test("someone else's adopted pet: the card shows their bond first, yours small under it", function()
+        local w, ola, kari = Setup()
+        ola:Summon(46)
+        ola.ns.Bond:Add(20, KITTEN) -- Ola: Bekjent with the kitten
+        kari:GivePet(46)
+        kari:Slash("adopter white")
+        w:Run(2)
+        kari:NoBonuses()
+        kari.ns.Bond:Add(300, KITTEN) -- Kari, its holder: Kamerat (the day's cap and a spare day)
+        w:Run(5)
+        ola:OpenJournal()
+        local card = ola:SelectPet(46)
+        local b = card.bond
+        eq(b.label.text, "Kamerat", "the holder's bond"); eq(b.level.text, 2)
+        eq(b.next.text, "Kari Berg sitt bånd")
+        match(b.yours.text, "Ditt: Bekjent %(1%)$")
+        b.scripts.OnEnter(b)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Ditt eget bånd med dyret: Bekjent %(nivå 1%), 20 poeng%.")
+        b.scripts.OnLeave(b)
+        match(card.decor.sig, "^s:46;2;", "the decorations follow the holder's bond")
+        -- The list (only your own pets) keeps your progress.
+        local lists = ola.ns.JournalList._badges
+        local found
+        for button, badge in pairs(lists) do
+            if badge.level:IsShown() and button.speciesID == 46 then found = badge end
+        end
+        if found then eq(found.level.text, 1) end
+        eq(select(2, ola.ns.Bond:Own(KITTEN)), 1)
+        -- Your own adopted pet, and a pet without a home: no small line.
+        eq(ola:SelectPet(5159).bond.yours.text, "")
+        eq(select(6, ola.ns.Bond:Shown(PANDA)), true)
+        kari:Slash("gislipp")
+        w:Run(5)
+        card = ola:SelectPet(46)
+        eq(card.bond.label.text, "Bekjent", "no home: your own bond again"); eq(card.bond.yours.text, "")
+    end)
+
     test("a level reached with a pet you haven't adopted is celebrated too", function()
         local w, ola = Setup()
         ola:Summon(46)
