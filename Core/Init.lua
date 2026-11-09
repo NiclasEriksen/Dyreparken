@@ -66,6 +66,20 @@ end
 -- OnLeave for anything that shows a tooltip.
 function ns.HideTip(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end
 
+-- A one-text tooltip on a frame (anchor: "ANCHOR_TOP"...); text is a string
+-- or fn(frame) -> string (nil: no tooltip). White, wrapped.
+function ns.SetTip(frame, anchor, text)
+    frame:SetScript("OnEnter", function(self)
+        local s = text
+        if type(s) == "function" then s = s(self) end
+        if not s then return end
+        GameTooltip:SetOwner(self, anchor)
+        GameTooltip:SetText(s, 1, 1, 1, 1, true)
+        GameTooltip:Show()
+    end)
+    frame:SetScript("OnLeave", ns.HideTip)
+end
+
 -- A text with its {named} placeholders filled from vars.
 function ns.Fill(s, vars)
     if vars and type(s) == "string" then
@@ -96,6 +110,21 @@ function ns.SpellName(id)
     id = ns.Plain(id)
     if type(id) ~= "number" or not (C_Spell and C_Spell.GetSpellName) then return nil end
     return ns.Plain(C_Spell.GetSpellName(id))
+end
+
+-- fn once, delay seconds after the first call of a burst: the calls that
+-- follow within the delay are folded into it (fn gets the first call's arguments).
+function ns.Debounce(delay, fn)
+    local pending = false
+    return function(...)
+        if pending then return end
+        pending = true
+        local n, args = select("#", ...), { ... }
+        C_Timer.After(delay, function()
+            pending = false
+            fn(unpack(args, 1, n))
+        end)
+    end
 end
 
 -- The channel to reach our group on, or nil when solo.

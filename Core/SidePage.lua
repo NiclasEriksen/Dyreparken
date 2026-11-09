@@ -257,8 +257,6 @@ end
 ------------------------------------------------------------------------------
 local hooked = setmetatable({}, { __mode = "k" })
 
-local HideTooltip = ns.HideTip
-
 -- Our tabs under the last of Blizzard's, the same size and spacing; and
 -- leave our pages when one of theirs is pressed. Runs each time the window
 -- shows: tabs only have a position once it's laid out.
@@ -313,12 +311,7 @@ local function BuildTab(p)
     tab.hover:SetSize(55, 60)
     tab.hover:SetPoint("CENTER")
     tab:SetScript("OnClick", function() p:Open() end)
-    tab:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(p.def.title)
-        GameTooltip:Show()
-    end)
-    tab:SetScript("OnLeave", HideTooltip)
+    ns.SetTip(tab, "ANCHOR_RIGHT", p.def.title)
     tab:Hide()
     ours[tab] = true
     p.tab = tab

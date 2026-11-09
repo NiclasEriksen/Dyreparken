@@ -18,7 +18,7 @@ ns.Playdate = Playdate
 local PLAY_EVERY = 600 -- seconds between our own announcements
 local ANSWER_EVERY = 60 -- ... and between answers
 local SETTLE = 2 -- a group just formed: the server refuses PARTY messages for a moment
-local lastSent, pending
+local lastSent
 
 local Channel = ns.GroupChannel
 local function PetOut() return (ns.Pets:OutKey()) end
@@ -34,10 +34,9 @@ function Playdate:Announce(answer)
 end
 
 -- Soon, once: group changes come in bursts.
+local announceSoon = ns.Debounce(SETTLE, function() Playdate:Announce() end)
 function Playdate:Soon()
-    if pending or not IsInGroup() then return end
-    pending = true
-    C_Timer.After(SETTLE, function() pending = nil; Playdate:Announce() end)
+    if IsInGroup() then announceSoon() end
 end
 
 -- Someone in our group has a pet out.

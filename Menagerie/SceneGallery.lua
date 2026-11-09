@@ -141,12 +141,7 @@ local function NewThumb(view)
     t.used = t:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     t.used:SetPoint("TOPLEFT", t.label, "BOTTOMLEFT", 0, -1)
     t:SetScript("OnClick", function(self, button) OnClick(view, self, button) end)
-    t:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(self.path, 1, 1, 1)
-        GameTooltip:Show()
-    end)
-    t:SetScript("OnLeave", ns.HideTip)
+    ns.SetTip(t, "ANCHOR_RIGHT", function(self) return self.path end)
     view.thumbs[#view.thumbs + 1] = t
     return t
 end

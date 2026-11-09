@@ -154,24 +154,31 @@ end
 -- Each returns done, have, need; or nil when the achievement doesn't exist
 -- (yet): a count above what exists, a family with no counting pets.
 local Eval = {}
-function Eval.count(d, ctx)
-    if ctx.total < d.n then return nil end
-    return ctx.have >= d.n, math.min(ctx.have, d.n), d.n
-end
-function Eval.all(d, ctx)
-    if ctx.total == 0 then return nil end
-    return ctx.have >= ctx.total, ctx.have, ctx.total
-end
-function Eval.family(d, ctx)
-    local need, have = 0, 0
-    for sid, e in pairs(ctx.counting) do
-        if HasTag(e, d.tag) then
-            need = need + 1
-            if ctx.owned[sid] then have = have + 1 end
-        end
+-- The collection kinds, for your own pets (count, all, family) and the
+-- guild's (guildcount...: pets someone in the guild cares for). ctx[set]:
+-- species id -> truthy; ctx[n]: how many of those count.
+local COLLECTIONS = { [""] = { set = "owned", n = "have" }, guild = { set = "cared", n = "caredCount" } }
+for prefix, c in pairs(COLLECTIONS) do
+    Eval[prefix .. "count"] = function(d, ctx)
+        if ctx.total < d.n then return nil end
+        local have = ctx[c.n]
+        return have >= d.n, math.min(have, d.n), d.n
     end
-    if need == 0 then return nil end
-    return have == need, have, need
+    Eval[prefix .. "all"] = function(_, ctx)
+        if ctx.total == 0 then return nil end
+        return ctx[c.n] >= ctx.total, ctx[c.n], ctx.total
+    end
+    Eval[prefix .. "family"] = function(d, ctx)
+        local need, have, set = 0, 0, ctx[c.set]
+        for sid, e in pairs(ctx.counting) do
+            if HasTag(e, d.tag) then
+                need = need + 1
+                if set[sid] then have = have + 1 end
+            end
+        end
+        if need == 0 then return nil end
+        return have == need, have, need
+    end
 end
 -- Bond points with the pet you care for, against the level's threshold.
 function Eval.bond(d)
@@ -194,26 +201,6 @@ function Eval.activity(d)
     local have = d.pet and mine or total
     return have >= d.n, math.min(have, d.n), d.n
 end
-function Eval.guildcount(d, ctx)
-    if ctx.total < d.n then return nil end
-    return ctx.caredCount >= d.n, math.min(ctx.caredCount, d.n), d.n
-end
-function Eval.guildall(d, ctx)
-    if ctx.total == 0 then return nil end
-    return ctx.caredCount >= ctx.total, ctx.caredCount, ctx.total
-end
-function Eval.guildfamily(d, ctx)
-    local need, have = 0, 0
-    for sid, e in pairs(ctx.counting) do
-        if HasTag(e, d.tag) then
-            need = need + 1
-            if ctx.cared[sid] then have = have + 1 end
-        end
-    end
-    if need == 0 then return nil end
-    return have == need, have, need
-end
-
 local function Context()
     local ctx = { now = ns.Now(), owned = {}, have = 0, ownedCount = 0 }
     ctx.counting, ctx.total = Counting()
@@ -323,9 +310,7 @@ local function GuildName() return (GetGuildInfo("player")) end
 local function GuildLine(ids)
     local names = {}
     for _, id in ipairs(ids) do names[#names + 1] = Ach:Link(id) end
-    local last = table.remove(names)
-    local list = #names > 0 and (table.concat(names, ns.L["list.sep"]) .. ns.L["list.and"] .. last) or last
-    return ns.Fill(T().guild_earned, { guild = GuildName() or "?", list = list })
+    return ns.Fill(T().guild_earned, { guild = GuildName() or "?", list = ns.Join(names) })
 end
 
 local function Appeared(ids)
@@ -655,29 +640,16 @@ end
 
 -- One character check for a burst: an activity and the bond points it gave
 -- arrive together (ACTIVITY, then BOND), and one check covers both.
-local charPending = false
-function Ach:CheckCharSoon(reason)
-    if charPending then return end
-    charPending = true
-    C_Timer.After(0, function()
-        charPending = false
-        Ach:Check(reason, "char")
-    end)
-end
+Ach.CheckCharSoon = ns.Debounce(0, function(_, reason) Ach:Check(reason, "char") end)
 
 function Ach:Init()
     ns.Comm:Register("ACH_EARNED", OnEarned, "GUILD")
     self:WatchActivities()
-    local pending
+    -- A batch of pets can arrive at once; one check covers them all.
+    local checkLearned = ns.Debounce(1, function() Ach:Check("NEW_PET_ADDED", "account") end)
     ns.Events:On("NEW_PET_ADDED", Ach, function()
         learned = learned + 1
-        -- A batch of pets can arrive at once; one check covers them all.
-        if pending then return end
-        pending = true
-        C_Timer.After(1, function()
-            pending = false
-            Ach:Check("NEW_PET_ADDED", "account")
-        end)
+        checkLearned()
     end)
     ns.Bus:On("MY_RECORD", function() Ach:Check("MY_RECORD", "char") end)
     ns.Bus:On("BOND", function() Ach:CheckCharSoon("BOND") end)
@@ -690,13 +662,5 @@ function Ach:Init()
     end, "GUILD")
     -- The registry changes in bursts (a SYNC merges many records): check
     -- the guild ones once it settles.
-    local guildPending
-    ns.Bus:On("REGISTRY", function()
-        if guildPending then return end
-        guildPending = true
-        C_Timer.After(GUILD_DEBOUNCE, function()
-            guildPending = false
-            Ach:Check("REGISTRY", "guild")
-        end)
-    end)
+    ns.Bus:On("REGISTRY", ns.Debounce(GUILD_DEBOUNCE, function() Ach:Check("REGISTRY", "guild") end))
 end

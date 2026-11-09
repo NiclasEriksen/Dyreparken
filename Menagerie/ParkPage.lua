@@ -24,7 +24,6 @@ Park._cells = cells
 
 local Day = ns.Date
 
-local HideTooltip = ns.HideTip
 
 -- The park's records as lines, from the current holders.
 function Park:Records(now)
@@ -109,7 +108,7 @@ local function NewCell()
     c.free:SetSize(14, 14)
     c.free:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 2, -2)
     c:SetScript("OnEnter", ShowTooltip)
-    c:SetScript("OnLeave", HideTooltip)
+    c:SetScript("OnLeave", ns.HideTip)
     cells[#cells + 1] = c
     return c
 end

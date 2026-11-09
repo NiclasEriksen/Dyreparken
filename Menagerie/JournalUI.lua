@@ -374,12 +374,7 @@ local function InfoBox(label, width)
     box.value:SetJustifyH("RIGHT")
     box.value:SetWordWrap(false)
     box:EnableMouse(true)
-    box:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-        GameTooltip:SetText(self.tip or label, 1, 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    box:SetScript("OnLeave", ns.HideTip)
+    ns.SetTip(box, "ANCHOR_BOTTOM", function(self) return self.tip or label end)
     return box
 end
 
@@ -451,57 +446,50 @@ local function BuildCard()
     ns.Wish:Build(card, c)
     ns.OutBadge:Build(card, c)
 
-    card.nickname = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    card.nickname:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8)
-    -- The left column stops at the bond column; a long line ends in "...",
-    -- and hovering it tells all.
-    card.nickname:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
-    card.nickname:SetJustifyH("LEFT")
-    card.nickname:SetWordWrap(false)
-    card.status = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    card.status:SetPoint("TOPLEFT", card.nickname, "BOTTOMLEFT", 0, -3)
-    card.status:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
-    card.status:SetJustifyH("LEFT")
-    card.status:SetWordWrap(false)
-    -- Hover the name or the home line: both in full (a long one ends in "...").
-    card.nameHit = CreateFrame("Frame", nil, panel)
-    card.nameHit:SetPoint("TOPLEFT", card.nickname, "TOPLEFT", -2, 2)
-    card.nameHit:SetPoint("BOTTOMRIGHT", card.status, "BOTTOMRIGHT", 2, -2)
-    card.nameHit:EnableMouse(true)
-    card.nameHit:SetScript("OnEnter", function(self)
-        if not card.key then return end
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+    -- The left column: lines that stop at the bond column; a long one ends in
+    -- "...", and hovering it tells all.
+    local function Line(font, below, gap)
+        local fs = panel:CreateFontString(nil, "OVERLAY", font)
+        if below then fs:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, -gap)
+        else fs:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8) end
+        fs:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
+        fs:SetJustifyH("LEFT")
+        fs:SetWordWrap(false)
+        return fs
+    end
+    -- A hover area over two lines, for the pet on the card.
+    local function HitOver(top, bottom, onEnter)
+        local f = CreateFrame("Frame", nil, panel)
+        f:SetPoint("TOPLEFT", top, "TOPLEFT", -2, 2)
+        f:SetPoint("BOTTOMRIGHT", bottom, "BOTTOMRIGHT", 2, -2)
+        f:EnableMouse(true)
+        f:SetScript("OnEnter", function(self)
+            if not card.key then return end
+            GameTooltip:SetOwner(self, "ANCHOR_TOP")
+            GameTooltip:ClearLines()
+            onEnter()
+            GameTooltip:Show()
+        end)
+        f:SetScript("OnLeave", ns.HideTip)
+        return f
+    end
+    card.nickname = Line("GameFontNormalHuge")
+    card.status = Line("GameFontHighlightSmall", card.nickname, 3)
+    -- Hover the name or the home line: both in full.
+    card.nameHit = HitOver(card.nickname, card.status, function()
         GameTooltip:SetText(card.fullName, 1, 0.82, 0)
         if card.fullName ~= card.species then GameTooltip:AddLine(card.species, 1, 1, 1) end
         GameTooltip:AddLine(card.home, 1, 1, 1, true)
-        GameTooltip:Show()
     end)
-    card.nameHit:SetScript("OnLeave", ns.HideTip)
     -- Its personality: the traits, then what it likes.
-    card.personality = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    card.personality:SetPoint("TOPLEFT", card.status, "BOTTOMLEFT", 0, -5)
-    card.personality:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
-    card.personality:SetJustifyH("LEFT")
-    card.personality:SetWordWrap(false)
+    card.personality = Line("GameFontNormalSmall", card.status, 5)
     card.personality:SetTextColor(0.95, 0.75, 0.45)
-    card.likes = panel:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    card.likes:SetPoint("TOPLEFT", card.personality, "BOTTOMLEFT", 0, -3)
-    card.likes:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
-    card.likes:SetJustifyH("LEFT")
-    card.likes:SetWordWrap(false)
-    -- Hover the line: what the traits mean and do, what it likes, and why it matters.
-    card.personalityHit = CreateFrame("Frame", nil, panel)
-    card.personalityHit:SetPoint("TOPLEFT", card.personality, "TOPLEFT", -2, 2)
-    card.personalityHit:SetPoint("BOTTOMRIGHT", card.likes, "BOTTOMRIGHT", 2, -2)
-    card.personalityHit:EnableMouse(true)
-    card.personalityHit:SetScript("OnEnter", function(self)
-        if not card.key then return end
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:ClearLines()
+    card.likes = Line("GameFontDisableSmall", card.personality, 3)
+    -- Hover the lines: what the traits mean and do, what it likes, and why it matters.
+    card.personalityHit = HitOver(card.personality, card.likes, function()
         if not ns.Personality:Known(card.key) then
             GameTooltip:SetText(ns.L["personality.unknown"], 1, 0.82, 0)
             GameTooltip:AddLine(ns.L["personality.unknown.tip"], 1, 1, 1, true)
-            GameTooltip:Show()
             return
         end
         ns.Personality:Describe(GameTooltip, card.key)
@@ -510,9 +498,7 @@ local function BuildCard()
             GameTooltip:AddLine(ns.T("card.likes.tip", { list = ns.Join(words) }), 0.5, 0.8, 0.5, true)
         end
         GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
-        GameTooltip:Show()
     end)
-    card.personalityHit:SetScript("OnLeave", ns.HideTip)
 
     -- The bond, right column: a medallion, the track of levels, a bar (BondTrack.lua).
     ns.BondTrack:Build(card, c, panel)

@@ -52,7 +52,6 @@ local function ShowTooltip(r)
     GameTooltip:Show()
 end
 
-local HideTooltip = ns.HideTip
 
 local function NewRow(id)
     local r = CreateFrame("Button", nil, child)
@@ -69,12 +68,7 @@ local function NewRow(id)
     r.share:SetPoint("RIGHT", r, "RIGHT", -6, 0)
     r.share:SetText(T().share_button)
     r.share:SetScript("OnClick", function() A():Share(id) end)
-    r.share:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOP")
-        GameTooltip:SetText(T().share_button_tip)
-        GameTooltip:Show()
-    end)
-    r.share:SetScript("OnLeave", HideTooltip)
+    ns.SetTip(r.share, "ANCHOR_TOP", T().share_button_tip)
 
     -- Right side: the date earned, or a bar with the progress on it.
     r.info = r:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -100,7 +94,7 @@ local function NewRow(id)
     r.desc:SetWordWrap(false)
 
     r:SetScript("OnEnter", ShowTooltip)
-    r:SetScript("OnLeave", HideTooltip)
+    r:SetScript("OnLeave", ns.HideTip)
     rows[id] = r
     return r
 end
