@@ -50,6 +50,18 @@ Personality.BY_SPECIES = {
     [5159] = { "herb" }, -- Panda Cub: bamboo
 }
 
+-- Dislikes (2026-11-09): no effect on the bond, only a line now and then
+-- (Menagerie/Quirks.lua), and secret until one happens: the card shows those
+-- you've seen (char.dislikes). From the families and a few traits (the
+-- trait's `dislike`); never anything the pet likes, so a Dykker cat doesn't
+-- mind the water.
+Personality.DISLIKE_BY_FAMILY = {
+    cat = { "dive" }, bird = { "pvp" }, owl = { "chat" }, farm = { "taxi" }, rabbit = { "boss" }, frog = { "taxi" },
+    snake = { "jump" }, mechanical = { "dive" }, dragon = { "dive" }, pirate = { "hearth" }, bug = { "jump" },
+    rodent = { "taxi" }, wolf = { "nap" }, plant = { "hearth" }, festive = { "pvp" }, demon = { "cuddle" },
+    ooze = { "jump" }, spirit = { "dive" },
+}
+
 -- The holidays the Festglad pets celebrate ("MMDD" -> name, Locale/nb.lua: holiday.*).
 Personality.HOLIDAYS = {}
 for _, day in ipairs({ "0101", "0517", "0623", "1224", "1225", "1231" }) do
@@ -70,7 +82,7 @@ function Personality.IsWeekend(t) local w = tonumber(date("%w", t)); return w ==
 Personality.TRAITS = {
     { id = "glupsk", like = "quest" },
     { id = "eventyrlysten", like = "boss" },
-    { id = "reiseglad", like = "taxi" },
+    { id = "reiseglad", like = "taxi", dislike = "hearth" },
     { id = "rampete", like = "pvp" },
     { id = "gronnfinger", like = "herb" },
     { id = "vannhund", like = "fish" },
@@ -81,9 +93,9 @@ Personality.TRAITS = {
     { id = "trofast", like = "revive" },
     { id = "hoppetass", like = "jump" },
     { id = "dykker", like = "dive" },
-    { id = "hjemlengsel", like = "hearth" },
+    { id = "hjemlengsel", like = "hearth", dislike = "taxi" },
     { id = "ambisios", like = "level" },
-    { id = "latsabb", like = "nap" },
+    { id = "latsabb", like = "nap", dislike = "jump" },
     { id = "pratsom", like = "chat" },
     { id = "kosete", day = function() return 2 end, dayX = 2 },
     { id = "nattugle", when = function(ctx) return Personality.IsNight(ctx.t) end },
@@ -94,7 +106,7 @@ Personality.TRAITS = {
     { id = "helgedyr", day = function(t) return Personality.IsWeekend(t) and 2 or 1 end,
         dayX = 2, dayFlavor = function(name) return ns.T("trait.helgedyr.dayflavor", { pet = name }) end },
     { id = "flokkdyr", against = "einstoing", when = function(ctx) return ctx.guildmates > 0 end },
-    { id = "einstoing", against = "flokkdyr", when = function(ctx) return not ctx.group end },
+    { id = "einstoing", against = "flokkdyr", dislike = "chat", when = function(ctx) return not ctx.group end },
     { id = "huleboer", against = "friluftsdyr", when = function(ctx) return ctx.instance end },
     { id = "friluftsdyr", against = "huleboer", when = function(ctx) return not ctx.instance end },
 }
@@ -211,6 +223,29 @@ function Personality:LikedWords(key)
     local _, list = self:Of(key)
     local words = {}
     for _, act in ipairs(list) do words[#words + 1] = self.NOUN[act] end
+    return words
+end
+
+-- What it dislikes: { activity = true } and the ordered list. Never a like.
+function Personality:Dislikes(key)
+    local likes, _, traits = self:Of(key)
+    local set, list = {}, {}
+    local function Add(act)
+        if act and not likes[act] and not set[act] then set[act] = true; list[#list + 1] = act end
+    end
+    for _, t in ipairs(traits) do Add(t.dislike) end
+    for _, f in ipairs(ns.Scenes:Families(key)) do
+        for _, act in ipairs(self.DISLIKE_BY_FAMILY[f] or {}) do Add(act) end
+    end
+    return set, list
+end
+
+-- The dislikes you've seen happen, as players read them (the rest stay secret).
+function Personality:DislikedWords(key)
+    local seen = ns.DB.char.dislikes[key] or {}
+    local _, list = self:Dislikes(key)
+    local words = {}
+    for _, act in ipairs(list) do if seen[act] then words[#words + 1] = self.NOUN[act] end end
     return words
 end
 

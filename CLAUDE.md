@@ -135,7 +135,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    background that exists; pick one per family, saved in DyreparkenDB.scenePicks), BondTrack (the bond on the card: a medallion with the level, a track of seven stars,
                    a tinted bar with a spark; a celebration once per new level of your own pet, char.bondSeen), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
                    Playdate (in a group with a guildmate whose pet is out: both pets play, once a day each;
-                   PLAY on PARTY/RAID), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
+                   PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
+                   an hour; read its header), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits (every trait has some; those with a moment show only then) and the date, and
@@ -198,6 +199,12 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   points), playdates (15, once a day per pet, with a guildmate's pet out in the group; Menagerie/Playdate.lua), and
   skill-ups (verified 2026-11-09) and reputation (unverified on Forever; `/dp probe life`) as activities. All at the pet's rate, within
   its day.
+- **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
+  watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
+  and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most
+  one quirk line an hour; easter eggs (holidays, adoption anniversaries, meeting its own kind, midnight...) at most
+  once a day each, counted in char.eggs. Lines: Locale dislike.<activity>.N and egg.<id>.N. No player birthdays
+  (we don't know them).
 - **A personality is a surprise** (2026-11-09): traits, likes and trait particles show only for a pet you've
   collected or that someone in the guild has adopted (`Personality:Known`); otherwise "Ukjent personlighet".
 - **Sync hardening** (code review 2026-11-09): SYNC goes in three parts (records, names, bonds), peers hold back

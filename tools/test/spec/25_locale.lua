@@ -24,7 +24,7 @@ return function(test, H)
     -- Keys made from parts in the code ("trait." .. id .. ".name"): the
     -- prefixes, each checked against the runtime tables below.
     local DYNAMIC = { "time.", "home.", "version.where.", "bond.level.", "decor.level.", "effect.times.", "activity.",
-        "holiday.", "trait.", "effect.activity." }
+        "holiday.", "trait.", "effect.activity.", "dislike.", "egg." }
 
     test("ns.T fills named placeholders; a missing key or value shows, never breaks", function()
         local w = H.World()
@@ -70,6 +70,21 @@ return function(test, H)
             if t.dayFlavor then ok(ns.Strings["trait." .. t.id .. ".dayflavor"], t.id .. ".dayflavor") end
         end
         for act, noun in pairs(ns.Personality.NOUN) do ok(ns.Strings["activity." .. act], act) end
+        -- Quirks: a line for every dislike and egg, and none for one that doesn't exist.
+        local P, dislikes = ns.Personality, {}
+        for _, list in pairs(P.DISLIKE_BY_FAMILY) do for _, a in ipairs(list) do dislikes[a] = true end end
+        for _, t in ipairs(P.TRAITS) do if t.dislike then dislikes[t.dislike] = true end end
+        for a in pairs(dislikes) do ok(ns.Strings["dislike." .. a .. ".1"], "dislike." .. a); ok(P.NOUN[a], a) end
+        local eggs = {}
+        for _, e in ipairs(ns.Quirks.EGGS) do eggs[e.id] = true; ok(ns.Strings["egg." .. e.id .. ".1"], "egg." .. e.id) end
+        for key in pairs(ns.Strings) do
+            local kind, id, n = key:match("^(%a+)%.([%w_]+)%.(%d+)$")
+            if kind == "dislike" then ok(dislikes[id], key .. ": nothing dislikes that") end
+            if kind == "egg" then ok(eggs[id], key .. ": no such egg") end
+            if (kind == "dislike" or kind == "egg") and n ~= "1" then
+                ok(ns.Strings[("%s.%s.%d"):format(kind, id, n - 1)], key .. ": a gap before it")
+            end
+        end
         for day, name in pairs(ns.Personality.HOLIDAYS) do ok(ns.Strings["holiday." .. day], day) end
         for i = 1, #ns.Bond.LEVELS do ok(ns.Strings["bond.level." .. i]) end
         for n = 2, 7 do ok(ns.Strings["decor.level." .. n]) end

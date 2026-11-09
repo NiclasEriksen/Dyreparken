@@ -307,8 +307,10 @@ function Bond:OnActivity(id, n, key)
         if why and why.dayFlavor then Flavor(d, key, why.dayFlavor(name, now)) end
         return Grant(d, Scaled(C.BOND_DAY_POINTS * n * x), key)
     end
-    local d = Ledger(key)
     local likes = P:Of(key)
+    -- Watched only because the pet dislikes it (Quirks.lua): dislikes have no effect.
+    if not likes[id] and not ns.Activity.KIND[id].always and P:Dislikes(key)[id] then return end
+    local d = Ledger(key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then
         per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP

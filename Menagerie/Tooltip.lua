@@ -152,6 +152,10 @@ local function OnUnitTooltip(tooltip, data)
     unit = ok and Plain(unit)
     if not unit then return end
     Tooltip:NameUnknown(tooltip, data, unit)
+    -- (your pet meeting its own kind: Quirks.lua)
+    local sid = Plain(UnitIsBattlePetCompanion and UnitIsBattlePetCompanion(unit))
+        and Plain(UnitBattlePetSpeciesID and UnitBattlePetSpeciesID(unit))
+    if sid then ns.Bus:Fire("COMPANION_SEEN", sid, Tooltip:OwnerOf(unit, data and data.lines)) end
     local owner, r = Tooltip:ReservationOf(unit, data and data.lines)
     if not owner then return end
     local nick = ns.Registry:Nickname(r.k)

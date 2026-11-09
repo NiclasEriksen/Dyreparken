@@ -55,6 +55,7 @@ Menagerie\Bonds.lua
 Menagerie\Bond.lua
 Menagerie\Wish.lua
 Menagerie\Playdate.lua
+Menagerie\Quirks.lua
 
 Achievements\Defs.lua
 Achievements\Achievements.lua

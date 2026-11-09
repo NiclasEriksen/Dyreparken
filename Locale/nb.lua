@@ -294,6 +294,50 @@ L["effect.activity.explore"] = "Hvert nytt sted dyret ser sammen med deg"
 L["personality.line"] = "{traits} · liker {likes}"
 
 ------------------------------------------------------------------------------
+-- Quirks (Menagerie/Quirks.lua): no effect, only flavor, at most one line an
+-- hour. dislike.<activity>.N: something it doesn't like happened (one of the
+-- numbered lines is picked; add more freely, numbered without gaps).
+-- egg.<id>.N: the easter eggs. {pet}: its nickname, else its species.
+------------------------------------------------------------------------------
+L["dislike.found"] = "Nå vet du det: {pet} liker ikke {what}."
+L["dislike.dive.1"] = "{pet} rister vannet av seg og ser fornærmet på deg."
+L["dislike.dive.2"] = "{pet} nekter å se på deg etter den dukkerten."
+L["dislike.dive.3"] = "{pet} er klissvåt og ikke det minste fornøyd."
+L["dislike.pvp.1"] = "{pet} gjemte seg under kappen din til slåsskampen var over."
+L["dislike.pvp.2"] = "{pet} synes slåssing er tull."
+L["dislike.chat.1"] = "{pet} legger potene over ørene. Så mye prat!"
+L["dislike.chat.2"] = "{pet} sukker tungt over guildpraten."
+L["dislike.taxi.1"] = "{pet} holdt øynene igjen hele flyturen."
+L["dislike.taxi.2"] = "{pet} er grønn i fjeset etter flyturen."
+L["dislike.boss.1"] = "{pet} gjemte seg bak beina dine til bossen falt."
+L["dislike.boss.2"] = "{pet} skjelver fortsatt litt etter den bossen."
+L["dislike.jump.1"] = "{pet} blir svimmel av alt hoppingen."
+L["dislike.jump.2"] = "{pet} ser på deg som om du har gått fra vettet."
+L["dislike.hearth.1"] = "{pet} ble kvalm av hearthstonen."
+L["dislike.hearth.2"] = "{pet} var ikke ferdig der dere var!"
+L["dislike.nap.1"] = "{pet} tripper utålmodig. Skal dere ikke gjøre noe?"
+L["dislike.cuddle.1"] = "{pet} tåler kos, men bare så vidt."
+L["dislike.cuddle.2"] = "{pet} later som ingenting skjedde."
+
+L["egg.mai17.1"] = "{pet} har fått sløyfe i rødt, hvitt og blått. Hipp hurra!"
+L["egg.jul.1"] = "{pet} snuser nysgjerrig på gavene. God jul!"
+L["egg.nyttar.1"] = "{pet} gjemmer seg allerede for rakettene."
+L["egg.april.1"] = "{pet} later som den er et helt annet dyr i dag."
+L["egg.halloween.1"] = "{pet} har kledd seg ut som et spøkelse. Bø!"
+L["egg.fredag13.1"] = "{pet} går i en stor bue rundt alle svarte katter i dag."
+L["egg.dager.1"] = "{pet} og du har bodd sammen i {n} dager!"
+L["egg.midnatt.1"] = "{pet} gjesper. Det er midnatt, vet du."
+L["egg.midnatt.2"] = "{pet} lurer på om du aldri skal legge deg."
+L["egg.speil.1"] = "{pet} stirrer på {owner} sitt dyr. Er det et speil?"
+L["egg.speil.2"] = "{pet} har møtt en av sitt eget slag, hos {owner}!"
+L["egg.kattefisk.1"] = "{pet} har allerede spist halve fangsten."
+L["egg.vinger.1"] = "{pet} mener den kunne fløyet dit raskere selv."
+L["egg.trofe.1"] = "{pet} tok med seg en liten bit av {boss} som minne."
+L["egg.dodsfall.1"] = "{pet} lurer på om det er trygt å bo hos deg."
+L["egg.kake.1"] = "{pet} har bakt kake til nivå {level}!"
+L["egg.oppdrag.1"] = "{pet} har hjulpet deg med {n} quests. Det fortjener en godbit!"
+
+------------------------------------------------------------------------------
 -- The pet journal: list tooltips and the world tooltip
 ------------------------------------------------------------------------------
 L["tip.free"] = "Dyreparken: trenger et hjem"
@@ -315,6 +359,8 @@ L["card.nick"] = "Kallenavn"
 L["card.nick.locked"] = "Du kan gi det et kallenavn når båndet deres er {level} (nivå {n})."
 L["personality.unknown"] = "Ukjent personlighet"            -- not collected, and nobody in the guild has adopted it
 L["personality.unknown.tip"] = "Personligheten er en overraskelse. Den blir kjent når du samler dyret, eller når noen i guilden adopterer det."
+L["card.dislikes"] = "liker ikke {list}"                 -- after card.likes, or alone; only those seen happen
+L["card.dislikes.tip"] = "Liker ikke: {list}"
 L["card.personality.hint"] = "Gjør det den liker mens den er ute med deg, så vokser båndet raskere."
 L["card.guild"] = "Guilden"
 L["card.guild.value"] = "{n} av {total} ({pct}%)"

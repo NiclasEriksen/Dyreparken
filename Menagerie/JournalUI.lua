@@ -149,8 +149,12 @@ local function UpdateCard()
     card.fullName, card.species, card.home = nick or species, species, text -- for the hover
     if ns.Personality:Known(key) then
         card.personality:SetText(ns.Personality:Names(key))
-        local likes = ns.Personality:LikedWords(key)
-        card.likes:SetText(#likes > 0 and ns.T("card.likes", { list = ns.Join(likes) }) or "")
+        local likes, dislikes = ns.Personality:LikedWords(key), ns.Personality:DislikedWords(key)
+        local parts = {}
+        if #likes > 0 then parts[1] = ns.T("card.likes", { list = ns.Join(likes) }) end
+        if #dislikes > 0 then parts[#parts + 1] = ns.T("card.dislikes", { list = ns.Join(dislikes) }) end
+        local line = table.concat(parts, " · ")
+        card.likes:SetText(line:sub(1, 1):upper() .. line:sub(2))
     else -- a surprise until it's collected or adopted
         card.personality:SetText(ns.L["personality.unknown"])
         card.likes:SetText("")
@@ -295,6 +299,10 @@ local function BuildCard()
         local words = ns.Personality:LikedWords(card.key)
         if #words > 0 then
             GameTooltip:AddLine(ns.T("card.likes.tip", { list = ns.Join(words) }), 0.5, 0.8, 0.5, true)
+        end
+        local bad = ns.Personality:DislikedWords(card.key)
+        if #bad > 0 then
+            GameTooltip:AddLine(ns.T("card.dislikes.tip", { list = ns.Join(bad) }), 0.85, 0.55, 0.55, true)
         end
         GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
     end)
