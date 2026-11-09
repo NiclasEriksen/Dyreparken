@@ -747,6 +747,9 @@ function Client:Login()
     self.summonCalls = 0
     local env = self:BuildEnv()
     if self.patch then self.patch(env, self) end
+    -- The client's own globals, before the addon runs: what's added after is the addon's.
+    self.stubKeys = {}
+    for k in pairs(env) do self.stubKeys[k] = true end
     for _, k in ipairs(SAVED) do
         if self.saved[k] then env[k] = SaveCopy(self.saved[k], k) end
     end
@@ -1009,6 +1012,18 @@ function Client:OpenJournal(o)
             petCard.modelScene = model
             model.RotateLeftButton = env.CreateFrame("Button", nil, model)
             model.RotateRightButton = env.CreateFrame("Button", nil, model)
+            -- The pet's actor (retail's ModelScene: GetActorByTag). It has the animations in
+            -- self.petAnims (default: stand, dance, victory); o.noActor leaves it out.
+            if not o.noActor then
+                local client = self
+                local actor = { played = {} }
+                function actor:SetAnimation(id) self.anim = id; self.played[#self.played + 1] = id end
+                function actor:HasAnimation(id)
+                    return (client.petAnims or { [0] = true, [69] = true, [764] = true })[id] == true
+                end
+                function model:GetActorByTag(tag) if tag == "unwrapped" then return actor end end
+                self.petActor = actor
+            end
         end
         env.CreateFrame("Button", "PetJournalSummonButton", PJ)
         if o.scrollUtil then

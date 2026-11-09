@@ -119,7 +119,7 @@ Core/SidePage.lua  our pages of the Collections window: a side tab each under Bl
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp; Norwegian
                    only). Only in a git checkout (ns.DEV): probe [more|tabs|kills|life|world|card|bg|decor|frames|level|
-                   celebrate|ach] and debug; a release never logs (Debug:Init turns a saved log off)
+                   celebrate|anim|ach] and debug; a release never logs (Debug:Init turns a saved log off)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
@@ -142,7 +142,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
                    an hour; read its header), Fx (one-shot particle bursts outside the journal: at the cursor over a
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
-                   lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cake (a cake with flickering candles on an adopted pet's card on its milestone day), Cuddle (a click on the pet:
+                   lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Moves (animating the pet on the card; for now the /dp probe anim research probe), Cake (a cake with flickering candles on an adopted pet's card on its milestone day), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits (every trait has some; those with a moment show only then) and the date, and

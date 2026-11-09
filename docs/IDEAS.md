@@ -46,7 +46,8 @@ three times.
 ## Animating the pet on demand (the user's "gamechanger", 2026-11-09)
 
 If the pet on the card (and maybe elsewhere) can play an animation when we ask, a lot opens up. Untested: the
-servers were down when this came up. **First step: a probe** (`/dp probe anim [id]`): find the card's model actor
+servers were down when this came up. **First step: a probe**, built 2026-11-10 (`/dp probe anim [list|all|stop|<id|name>]`,
+Menagerie/Moves.lua, ids from wowdev.wiki/M2/AnimationList, pet battle ones 742-772 too): find the card's model actor
 (`PetJournalPetCard`'s model scene, `GetActorByTag` or its first actor), call `SetAnimation(id)` with a list of
 animation ids from the client's animation table (stand, bow, wave, cheer, dance, laugh, sleep, sit, jump, roar...;
 the ids need looking up, not guessing), and log which the client accepts and whether the pet

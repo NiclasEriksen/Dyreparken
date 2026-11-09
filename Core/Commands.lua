@@ -129,6 +129,7 @@ local PROBES = {
     { "frames", function() ns.Decor:ProbeFrames() end },
     { "level", function(a) ns.Decor:Preview(a) end, "<n|off>" },
     { "celebrate", function() ns.BondTrack:Preview() end },
+    { "anim", function(a) ns.Moves:Probe(a) end, "[list|all|stop|<id|name>]" },
     { "ach", function(a) ns.Pets:ProbeAch(a) end, "[post|now|group|groupnow]" },
 }
 local usage = {}
