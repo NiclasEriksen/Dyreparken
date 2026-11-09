@@ -308,7 +308,7 @@ return function(test, H)
         eq(#ola:Log("Ach\tcheck %(activity%)"), 0)
     end)
 
-    test("auto-summon listens to the game only while it can do something: on, with an adopted pet", function()
+    test("auto-summon listens to the game only while it can do something: on, with a pet to keep out", function()
         local w, ola = Guild({ { "Ola Nord", { 5159 } } })
         local function Listening(e)
             for _, f in ipairs(ola.frames) do if f.events[e] then return true end end
@@ -323,6 +323,8 @@ return function(test, H)
         ok(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"))
         ola:Slash("gislipp")
         w:Run(2)
-        no(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "let go")
+        ok(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "let go, but still the pet kept out")
+        ola.ns.Summon:SetActive("s:5159", false)
+        no(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "Hold ute unticked")
     end)
 end

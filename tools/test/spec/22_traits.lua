@@ -168,9 +168,12 @@ return function(test, H)
         ok(ola:Printed("Panda Cub danset med deg!", true))
         eq(P:Line(PANDA), "Dansefot og Kjælen · liker herbs, dansing og kos")
         eq(P:Effect(P.ById("kjaelen")), "/pet, /hug eller /cuddle på kjæledyret gir 5 bånd-poeng (opptil 25 om dagen), mot 1 ellers.")
-        -- Letting it go drops its traits' activities; the common ones stay (any pet of yours bonds).
+        -- Let go, it's still the pet kept out (Hold ute): still watched. Unticked: dropped; the
+        -- common activities stay (any pet of yours bonds).
         ola:Slash("gislipp")
         w:Run(5)
+        ok(A:IsListening("CHAT_MSG_TEXT_EMOTE"), "still the active pet")
+        ola.ns.Summon:SetActive(PANDA, false)
         no(A:IsListening("CHAT_MSG_TEXT_EMOTE")); ok(A:IsListening("QUEST_TURNED_IN"))
     end)
 

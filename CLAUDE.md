@@ -192,9 +192,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - Adopting and naming are announced in guild chat from the click or command that did it (`Bonds:Announce`), per
   character, default on, `/dp kunngjør`. Letting go and clearing a name aren't announced. The same line isn't
   repeated within an hour.
+- **The active pet** (2026-11-09): auto-summon keeps out one pet of yours, adopted or not, picked with "Hold ute" on
+  its card (char.activePet; adopting a pet makes it the active one; unticking turns auto-summon off).
 - Auto-summon only when idle: not in combat, mounted, on a taxi, flying, dead, stealthed, sitting, eating/drinking,
-  casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by the per-character
-  "Auto-summon" checkbox in the journal (default on). It never replaces a pet you summoned yourself. It doesn't watch
+  casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by "Hold ute" on the card. It never replaces a pet you summoned yourself. It doesn't watch
   `COMPANION_UPDATE` (that fires for every nearby companion), so a pet you dismiss comes back only at the next
   trigger: loading screen, leaving combat, dismounting, or claiming.
 - The summon clank (sound files 567569, 568424) is muted for 2.5 s after any `SummonPetByGUID` call, per character,

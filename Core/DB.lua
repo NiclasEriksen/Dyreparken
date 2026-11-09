@@ -31,6 +31,7 @@ local ACCOUNT_DEFAULTS = {
 
 local CHAR_DEFAULTS = {
     autoSummon = true,   -- may be overridden at runtime if AutoCompanion is loaded
+    activePet = nil,     -- the pet auto-summon keeps out ("Hold ute" on its card); nil: the adopted one
     muteSummonSound = true, -- the clank when a companion is summoned (Summon:QuietSummon)
     achNotify = true,          -- tell other addon users when I earn an achievement
     announce = true,           -- post adoptions and nicknames to guild chat (Bonds:Announce)

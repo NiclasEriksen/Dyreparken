@@ -37,13 +37,27 @@ function Summon:Deferring()
     return C_AddOns.IsAddOnLoaded("AutoCompanion")
 end
 
--- The pet auto-summon keeps out: the one picked on its card ("Hold ute"),
--- else your adopted pet while auto-summon is on; nil for none.
+-- The pet auto-summon keeps out (2026-11-09: independent of adoption): the
+-- one picked on its card ("Hold ute"), else your adopted pet; nil while
+-- auto-summon is off (unticked on the card).
 function Summon:ActiveKey()
     local char = ns.DB.char
-    if not char or self:Deferring() then return nil end
-    if char.activePet then return char.activePet end
-    return char.autoSummon and ns.Registry:MyPet() or nil
+    if not char or not char.autoSummon or self:Deferring() then return nil end
+    return char.activePet or ns.Registry:MyPet()
+end
+
+-- Make a pet the active one (on), or turn auto-summon off (its box unticked).
+function Summon:SetActive(key, on)
+    local char = ns.DB.char
+    if on then
+        char.activePet, char.autoSummon = key, true
+    elseif self:ActiveKey() == key then
+        char.autoSummon = false
+    end
+    ns.Log("Summon", "active: %s", tostring(self:ActiveKey()))
+    self:Watch()
+    ns.Bus:Fire("ACTIVE_PET", self:ActiveKey())
+    if on then self:Check("active") end
 end
 
 function Summon:Enabled()
@@ -121,7 +135,7 @@ local attempts = 0
 
 function Summon:Check(reason)
     if not self:Enabled() then return end
-    local key = ns.Registry:MyPet()
+    local key = self:ActiveKey()
     if not key then return end
     -- Any companion out counts: never replace one you summoned yourself.
     local out = ns.Activity.Plain(ns.Pets:Summoned()) -- (a secret would throw in tostring below)
@@ -212,8 +226,12 @@ function Summon:Init()
     -- catches the journal's Summon button and other addons.
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Summon:QuietSummon() end)
     self:Watch()
-    -- Just reserved one: bring it out.
+    -- Just adopted one: it becomes the active pet, out it comes.
     ns.Bus:On("MY_RECORD", function(_, r)
+        if r.k and ns.DB.char.activePet ~= r.k then
+            ns.DB.char.activePet = r.k
+            ns.Bus:Fire("ACTIVE_PET", Summon:ActiveKey())
+        end
         Summon:Watch()
         if r.k then Summon:Check("claimed") end
     end)
@@ -223,7 +241,7 @@ end
 -- and there's an adopted pet (every mount change started a timer before).
 local watching = false
 function Summon:Watch()
-    local want = self:Enabled() and ns.Registry:MyPet() ~= nil
+    local want = self:Enabled() and self:ActiveKey() ~= nil
     if want == watching then return end
     watching = want
     if not want then

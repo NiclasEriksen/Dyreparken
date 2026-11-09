@@ -320,6 +320,7 @@ function Bond:Init()
         Bond:Seed()
         Bond:Watch()
     end)
+    ns.Bus:On("ACTIVE_PET", function() Bond:Watch() end)
     -- After the login SYNC: our own entry may have come back from a peer.
     -- Then publish it once: gains that waited for the lazy publish when we
     -- logged out would otherwise wait for the next level (the digest holds

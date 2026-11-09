@@ -154,4 +154,16 @@ return function(test, H)
         w:Run(6)
         eq(w:Sent("BOND", "Ola Nord", m2), 1)
     end)
+
+    test("auto-summon keeps the active pet out, adopted or not", function()
+        local w, ola = Setup()
+        ola.ns.Summon:SetActive(KITTEN, true)
+        ola.summoned = nil
+        ola.ns.Summon:Check("test")
+        w:Run(2)
+        eq(ola.ns.Pets:KeyOf(ola.summoned), KITTEN, "the kitten, not the adopted panda")
+        -- Its day out counts for it, at half.
+        ola.ns.Activity:CheckDay()
+        eq(P(ola, KITTEN), 5)
+    end)
 end

@@ -243,10 +243,14 @@ local function UpdateExtras()
     -- name is cut short; the tooltip has it whole.
     local right, from = PetJournalPetCard:GetRight(), card.guildBox:GetRight()
     if right and from then card.todayBox:SetWidth(math.max(80, right - from - BOX_GAP)) end
+    -- "Hold ute" for the pet on the card: checked when it's the active one;
+    -- only for a pet of ours.
+    local key = card.key
     local deferring = ns.Summon:Deferring()
-    card.auto:SetChecked(ns.DB.char.autoSummon and not deferring)
-    card.auto:SetEnabled(not deferring)
-    card.autoLabel:SetTextColor(deferring and 0.5 or 1, deferring and 0.5 or 0.82, deferring and 0.5 or 0)
+    local usable = not deferring and key ~= nil and ns.Pets:IsOwned(key)
+    card.auto:SetChecked(usable and ns.Summon:ActiveKey() == key)
+    card.auto:SetEnabled(usable)
+    card.autoLabel:SetTextColor(usable and 1 or 0.5, usable and 0.82 or 0.5, usable and 0 or 0.5)
 end
 
 local function UpdateCard()
@@ -255,7 +259,6 @@ local function UpdateCard()
     -- no work, no animations, no celebration spent there. It's redrawn when
     -- the page closes (SIDEPAGE).
     if ns.SidePage:AnyOpen() then return end
-    UpdateExtras()
     local sid = CardSpecies()
     if not sid then
         card.status:SetText("")
@@ -263,6 +266,7 @@ local function UpdateCard()
         card.personality:SetText("")
         card.likes:SetText("")
         card.key = nil -- the hover tooltips follow it
+        UpdateExtras()
         card.scene:Hide()
         ns.Scenes:Paint(card, nil)
         ns.Decor:Apply(card, nil)
@@ -319,6 +323,7 @@ local function UpdateCard()
     ns.BondTrack:Update(card, key, { math.min(1, tint[1] * 1.7), math.min(1, tint[2] * 1.7), math.min(1, tint[3] * 1.7) })
 
     card.key = key
+    UpdateExtras() -- (after the key: "Hold ute" is about this pet)
     if status == "mine" then
         card.reserve:SetText(ns.L["card.letgo"])
         card.reserve:Enable()
@@ -587,7 +592,8 @@ local function BuildCard()
     card.autoLabel:SetText(ns.L["card.auto"])
     card.auto:SetMotionScriptsWhileDisabled(true)
     card.auto:SetScript("OnClick", function(self)
-        ns.Summon:SetEnabled(self:GetChecked() and true or false)
+        if card.key then ns.Summon:SetActive(card.key, self:GetChecked() and true or false) end
+        JournalUI:Refresh()
     end)
     card.auto:SetScript("OnEnter", function(self)
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
@@ -595,7 +601,11 @@ local function BuildCard()
             GameTooltip:SetText(ns.L["card.auto.deferred"])
         else
             GameTooltip:SetText(ns.L["card.auto"])
-            GameTooltip:AddLine(ns.L["card.auto.tip"], 1, 1, 1, true)
+            GameTooltip:AddLine(ns.T("card.auto.tip", { pet = card.key and ns.Bonds:NameOf(card.key) or "" }), 1, 1, 1, true)
+            local active = ns.Summon:ActiveKey()
+            if active and active ~= card.key then
+                GameTooltip:AddLine(ns.T("card.auto.now", { pet = ns.Bonds:NameOf(active) }), 0.7, 0.7, 0.7, true)
+            end
         end
         GameTooltip:Show()
     end)
