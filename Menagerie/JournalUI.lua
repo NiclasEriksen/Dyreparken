@@ -134,9 +134,17 @@ local function UpdateBadge(button)
     end
     local sid = speciesOf[button]
     local key = sid and ns.Pets:KeyOfSpecies(sid)
-    local _, level = ns.Bond:Of(key)
+    -- Your level with it, in gold; else its carer's, in grey.
+    local p, level, _, _, _, mine = ns.Bond:Shown(key)
+    if mine and p == 0 and key ~= ns.Registry:MyPet() then -- one of yours, no bond yet: its carer's, if any
+        level, mine = select(2, ns.Bond:Of(key)), false
+    end
     b.ring:SetShown(level ~= nil); b.level:SetShown(level ~= nil)
-    if level then b.level:SetText(level) end
+    if level then
+        b.level:SetText(level)
+        b.ring:SetDesaturated(not mine)
+        b.level:SetTextColor(mine and 1 or 0.7, mine and 0.82 or 0.7, mine and 0 or 0.7)
+    end
     local nick = key and ns.Registry:Nickname(key)
     if b.nick then
         -- On the name's own row, right after it (under it spilled out of the
@@ -303,10 +311,11 @@ local function UpdateCard()
     ns.Scenes:Paint(card, key)
     -- The holder's bond with it: everyone sees everyone's.
     local tint = ns.Scenes.TINT[card.family] or ns.Scenes.TINT.default
-    local _, level = ns.Bond:Of(key)
+    local _, level = ns.Bond:Shown(key) -- your bond with it, or its carer's
     ns.Decor:Apply(card, key, level, tint)
     ns.Stats:Update(card, key) -- (after the decorations: it sits under the ribbon when there is one)
     ns.Wish:Update(card, key) -- (under the chips)
+    ns.Sync:AskBonds(key) -- others' bonds with it (not in the full sync)
     ns.BondTrack:Update(card, key, { math.min(1, tint[1] * 1.7), math.min(1, tint[2] * 1.7), math.min(1, tint[3] * 1.7) })
 
     card.key = key

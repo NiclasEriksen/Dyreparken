@@ -18,6 +18,8 @@ local _, ns = ...
 --   UPD    { r }           the sender's own record changed
 --   NICK   { pet, e }      the sender named a pet (or cleared or voided the name)
 --   BOND   { pet, e }      the sender's bond with a pet (Bond.lua)
+--   BOND_REQ { pet }       who has a bond with this pet? (a card shows it);
+--                          each member with one answers with their own BOND
 --   LAPSE  { l }           lapses someone just noticed
 --
 -- Flow: a client logs in and sends HELLO with its digest. Peers whose
@@ -44,7 +46,8 @@ local SYNC_GAP = 30
 
 -- Adler-32 of a canonical listing of the registry.
 function Sync:Digest()
-    local claims, lapses, names, life = ns.Registry:All()
+    local claims, lapses, names = ns.Registry:All()
+    local life = ns.Registry:AdoptedLife()
     local parts = {}
     -- Bonds by level, not points: points go out lazily (Bond.lua), and peers
     -- shouldn't SYNC over a few points. A level change goes out at once.
@@ -68,7 +71,8 @@ local function SendFull()
     pending = nil
     if not IsInGuild() then return end
     lastSent = GetTime()
-    local claims, lapses, names, life = ns.Registry:All()
+    local claims, lapses, names = ns.Registry:All()
+    local life = ns.Registry:AdoptedLife() -- the holders' bonds only (Registry.lua)
     local parts = {
         { r = claims, l = lapses, a = ns.Achievements:GuildRecords() },
         { n = names },
@@ -100,6 +104,18 @@ end
 local HOLD = 30
 local function Hold()
     if pending then Later(HOLD) end
+end
+
+-- Ask the guild for bonds with a pet (its card is showing): once per pet a
+-- session, and not while flicking through pets (one ask per ASK_GAP).
+local asked, lastAsk = {}, nil
+local ASK_GAP = 1.5
+function Sync:AskBonds(key)
+    if not key or asked[key] or not IsInGuild() then return end
+    local now = GetTime()
+    if lastAsk and now - lastAsk < ASK_GAP then return end
+    asked[key], lastAsk = true, now
+    ns.Comm:Send("BOND_REQ", { pet = key }, "GUILD", nil, "BULK")
 end
 
 -- Someone told us something we know better (an older date, say): answer
@@ -214,6 +230,13 @@ function Sync:Init()
         if not Accept(msg, channel) then return end
         if type(msg.pet) ~= "string" then return end
         MergeAll(nil, nil, nil, { [msg.pet] = { [sender] = msg.e } })
+    end)
+    ns.Comm:Register("BOND_REQ", function(msg, _, channel)
+        if not Accept(msg, channel) or not ns.Registry.ValidKey(msg.pet) then return end
+        local e = ns.Registry:Life(msg.pet, ns.PlayerKey())
+        if e and ns.Comm:MayReply("BOND:" .. msg.pet, channel) then
+            ns.Comm:Send("BOND", { pet = msg.pet, e = e }, "GUILD", nil, "BULK")
+        end
     end)
     ns.Comm:Register("LAPSE", function(msg, _, channel)
         if not Accept(msg, channel) then return end

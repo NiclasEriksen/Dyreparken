@@ -122,6 +122,24 @@ function Registry:MergeLife(key, carer, e)
     return true
 end
 
+-- The bonds the full sync carries: each pet's current holder's (one per
+-- member at most). Bonds with pets you haven't adopted (any pet of yours
+-- bonds, 2026-11-09) aren't in the SYNC or the digest: with 100 members and
+-- several pets each they'd outgrow what a SYNC can carry. They travel as
+-- their owner's BOND messages and on request (BOND_REQ, when a card shows
+-- the pet); it's fine for those to be a little behind.
+function Registry:AdoptedLife()
+    local g = G()
+    local out = {}
+    if not g then return out end
+    for key, byKey in pairs(g.life) do
+        local holder = self:Holder(key)
+        local e = holder and byKey[holder]
+        if e then out[key] = { [holder] = e } end
+    end
+    return out
+end
+
 -- A carer's bond entry with a pet, or nil.
 function Registry:Life(key, carer)
     local g = G()

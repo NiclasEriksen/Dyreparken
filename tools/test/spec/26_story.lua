@@ -110,7 +110,7 @@ return function(test, H)
         -- A new day, a new wish; the day's limit holds for it too.
         w:SkipDays(1)
         no(W:Today().done, "a new wish")
-        ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), got = {}, total = 72 }
+        ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), pets = { [PANDA] = { got = {}, total = 72 } } }
         before = Earned()
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         eq(Earned() - before, 3, "only what's left of the day")
@@ -204,5 +204,11 @@ return function(test, H)
         w:Run(5)
         ola.ns.JournalUI:Refresh()
         ok(bombay.ring:IsShown()); eq(bombay.level.text, 1)
+        ok(bombay.ring.desaturated, "someone else's bond: grey")
+        no(panda.ring.desaturated, "ours: gold")
+        -- Our own bond with a pet we haven't adopted: ours, in gold.
+        ola.ns.Bond:Add(150, "s:40")
+        ola.ns.JournalUI:Refresh()
+        eq(bombay.level.text, 2); no(bombay.ring.desaturated)
     end)
 end

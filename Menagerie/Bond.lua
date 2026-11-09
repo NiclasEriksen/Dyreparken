@@ -92,23 +92,47 @@ end
 
 -- How many more points our bond with the pet we hold can take now, under
 -- the wire's cap (Registry.LifeCap); 0 without a pet.
-function Bond:Room()
-    local key, r = ns.Registry:MyPet()
-    if not key then return 0 end
-    local e = ns.Registry:Life(key, ns.PlayerKey())
-    local f = e and math.min(e.f, r.at) or r.at
-    return math.max(0, ns.Registry.LifeCap(f, ns.Now()) - (e and e.p or 0))
+-- How much of the full rate a pet earns: your adopted pet all of it, any
+-- other pet of yours half (decided 2026-11-09: bond with several, but the
+-- adopted one needs the most attention).
+function Bond:Rate(key)
+    return key == ns.Registry:MyPet() and 1 or ns.Config.BOND_OTHER_RATE
 end
 
--- Add points to our bond with the pet we hold. Returns the new points.
-function Bond:Add(points)
-    local key, r = ns.Registry:MyPet()
+-- The most points a calendar day can bring this pet.
+function Bond:DailyMax(key)
+    return math.floor(ns.Config.BOND_DAILY_MAX * self:Rate(key))
+end
+
+-- When our bond with a pet began: the entry's start, or the adoption's for
+-- the pet we hold, or now for a first point.
+local function Start(key, e)
+    local mine, r = ns.Registry:MyPet()
+    local adopted = mine == key and r and r.at
+    if e then return adopted and math.min(e.f, adopted) or e.f end
+    return adopted or ns.Now()
+end
+
+-- How many more points our bond with a pet can take now, under the wire's
+-- cap (Registry.LifeCap).
+function Bond:Room(key)
+    key = key or ns.Registry:MyPet()
+    if not key then return 0 end
+    local e = ns.Registry:Life(key, ns.PlayerKey())
+    return math.max(0, ns.Registry.LifeCap(Start(key, e), ns.Now()) - (e and e.p or 0))
+end
+
+-- Add points to our bond with a pet (the one we hold, by default). Returns
+-- the new points.
+function Bond:Add(points, key)
+    key = key or ns.Registry:MyPet()
     if not key or points <= 0 then return nil end
     local me, now = ns.PlayerKey(), ns.Now()
     local g = ns.DB:Guild()
+    if not g then return nil end
     local e = ns.Registry:Life(key, me)
     local before = e and e.p or 0
-    local f = e and math.min(e.f, r.at) or r.at
+    local f = Start(key, e)
     -- Within what the wire accepts (Registry.LifeCap), so every copy merges;
     -- never below what we had (a copy that was valid stays ours).
     local p = math.max(before, math.min(before + points, ns.Registry.LifeCap(f, now)))
@@ -119,7 +143,7 @@ function Bond:Add(points)
     ns.Log("Bond", "%s +%d -> %d (level %d)", key, points, p, level)
     if level > oldLevel then
         ns.Print(ns.T("bond.levelup", { pet = ns.Bonds:NameOf(key), n = level, level = name }))
-        ns.Bonds:TellNameUnlock()
+        if key == ns.Registry:MyPet() then ns.Bonds:TellNameUnlock() end
         Publish(key)
     elseif not e then
         Publish(key) -- a new bond: everyone should know of it
@@ -128,6 +152,20 @@ function Bond:Add(points)
     end
     ns.Bus:Fire("BOND", key)
     return p
+end
+
+-- Our bond with a pet, as the card shows it: points, level, name, start of
+-- the level, next level's points; and whether it's ours. Ours when we have
+-- one or own the pet (possibly 0 points); else its holder's, if any.
+function Bond:Shown(key)
+    local e = key and ns.Registry:Life(key, ns.PlayerKey())
+    if e or (key and ns.Pets:IsOwned(key)) then
+        local p = e and e.p or 0
+        local level, name, from, nextAt = self:Level(p)
+        return p, level, name, from, nextAt, true
+    end
+    local p, level, name, from, nextAt = self:Of(key)
+    if p then return p, level, name, from, nextAt, false end
 end
 
 -- A pet adopted before bonds existed, or re-adopted: make sure there's an
@@ -144,18 +182,19 @@ function Bond:Seed()
     ns.Log("Bond", "seeded %s with %d (%d days)", key, days * ns.Config.BOND_DAY_POINTS, days)
 end
 
--- Always watched while we care for a pet; the traits' own activities
--- (dance, chat, dive...) only for a pet that likes them, so nobody else
--- pays for those events.
+-- Always watched (any pet of ours can bond); the traits' own activities
+-- (dance, chat, dive...) only for the pets we'd have out that like them, so
+-- nobody else pays for those events.
 Bond.ACTIVITIES = { "day", "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin" }
 local watching = {}
 
 function Bond:Watch()
-    local key = ns.Registry:MyPet()
     local want = {}
-    if key then
-        for _, id in ipairs(self.ACTIVITIES) do want[id] = true end
-        for id in pairs((ns.Personality:Of(key))) do want[id] = true end
+    for _, id in ipairs(self.ACTIVITIES) do want[id] = true end
+    -- The traits' activities of the pets we'd have out: the adopted one and
+    -- the active one (Summon.lua).
+    for _, key in ipairs({ ns.Registry:MyPet() or false, ns.Summon:ActiveKey() or false }) do
+        if key then for id in pairs((ns.Personality:Of(key))) do want[id] = true end end
     end
     for id in pairs(watching) do
         if not want[id] then ns.Activity:Drop(id, Bond) end
@@ -182,35 +221,39 @@ function Bond.Context()
     return ctx
 end
 
--- Today's points so far: per cap key (an activity, or "trait:<id>") and in
--- all (total), for a calendar day.
-local function Ledger()
+-- Today's points so far for a pet: per cap key (an activity, or
+-- "trait:<id>") and in all (total), for a calendar day. Each pet has its own
+-- day (decided 2026-11-09).
+local function Ledger(key)
     local today = ns.Today()
     local d = ns.DB.char.bondToday
-    if not d or d.day ~= today then
-        d = { day = today, got = {}, total = 0 }
+    if not d or d.day ~= today or not d.pets then
+        d = { day = today, pets = {} }
         ns.DB.char.bondToday = d
     end
-    d.total = d.total or 0 -- (a day saved before the daily limit)
-    return d
+    local p = d.pets[key]
+    if not p then p = { got = {}, total = 0 }; d.pets[key] = p end
+    return p
 end
 
--- Points earned today, and the most a day can bring (Config.BOND_DAILY_MAX:
--- the day itself and every activity together, decided 2026-11-08).
-function Bond:Today()
-    return Ledger().total, ns.Config.BOND_DAILY_MAX
+-- Points a pet earned today, and the most its day can bring.
+function Bond:Today(key)
+    key = key or ns.Registry:MyPet()
+    if not key then return 0, ns.Config.BOND_DAILY_MAX end
+    return Ledger(key).total, self:DailyMax(key)
 end
 
--- Give points within what's left of today's limit; one line when it's full.
+-- Give points within what's left of the pet's day; one line when it's full.
 local function Grant(d, points, key)
-    points = math.min(points, ns.Config.BOND_DAILY_MAX - d.total, Bond:Room())
+    local max = Bond:DailyMax(key)
+    points = math.min(points, max - d.total, Bond:Room(key))
     if points <= 0 then return nil end
     -- Counted before Add: Add refreshes the card, which shows today's points.
     d.total = d.total + points
-    if d.total >= ns.Config.BOND_DAILY_MAX then -- (once: a full day stops before this)
+    if d.total >= max then -- (once: a full day stops before this)
         ns.Print(ns.T("bond.full", { pet = ns.Bonds:NameOf(key) }))
     end
-    return Bond:Add(points)
+    return Bond:Add(points, key)
 end
 
 -- One line of flavor a day, for the first thing the pet loved.
@@ -220,24 +263,28 @@ local function Flavor(d, text)
     ns.Print(("|cffffd100%s|r"):format(text))
 end
 
--- Extra points (today's wish), within the day's limit.
+-- Extra points (today's wish, a first, a playdate), within the day's limit
+-- and at the pet's rate.
 function Bond:Bonus(points, key)
-    return Grant(Ledger(), points, key)
+    return Grant(Ledger(key), math.ceil(points * self:Rate(key)), key)
 end
 
--- Points for an activity done with our adopted pet out.
+-- Points for an activity done with a pet of ours out (half for one we
+-- haven't adopted: Bond:Rate).
 function Bond:OnActivity(id, n, key)
     local C, P = ns.Config, ns.Personality
     local name = ns.Bonds:NameOf(key)
+    local rate = self:Rate(key)
+    local function Scaled(v) return math.ceil(v * rate) end
     n = n or 1
     if id == "day" then
         local now = ns.Now()
         local x, why = P:DayFactor(key, now)
-        local d = Ledger()
+        local d = Ledger(key)
         if why and why.dayFlavor then Flavor(d, why.dayFlavor(name, now)) end
-        return Grant(d, C.BOND_DAY_POINTS * n * x, key)
+        return Grant(d, Scaled(C.BOND_DAY_POINTS * n * x), key)
     end
-    local d = Ledger()
+    local d = Ledger(key)
     local likes = P:Of(key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then
@@ -255,7 +302,8 @@ function Bond:OnActivity(id, n, key)
             end
         end
     end
-    local room = math.min(cap - (d.got[capKey] or 0), C.BOND_DAILY_MAX - d.total)
+    per, cap = Scaled(per), Scaled(cap)
+    local room = math.min(cap - (d.got[capKey] or 0), self:DailyMax(key) - d.total)
     if room <= 0 then return nil end
     local points = math.min(per * n, room)
     d.got[capKey] = (d.got[capKey] or 0) + points
@@ -264,8 +312,9 @@ function Bond:OnActivity(id, n, key)
 end
 
 function Bond:Init()
-    ns.Bus:On("ACTIVITY", function(id, n, key, mine)
-        if mine then Bond:OnActivity(id, n, key) end
+    -- Any pet of ours that's out: its own bond (the summoned pet is always ours).
+    ns.Bus:On("ACTIVITY", function(id, n, key)
+        if key then Bond:OnActivity(id, n, key) end
     end)
     ns.Bus:On("MY_RECORD", function()
         Bond:Seed()

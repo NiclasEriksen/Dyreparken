@@ -369,8 +369,8 @@ return function(test, H)
         card = ola:SelectPet(5159)
         card.bond.scripts.OnEnter(card.bond)
         match(table.concat(tip.lines, " / "), "Det høyeste nivået%.")
-        -- A free pet: nothing to explain on the bond; the personality still tells.
-        card = ola:SelectPet(40)
+        -- A free pet we don't own: nothing to explain on the bond; the personality still tells.
+        card = ola:SelectPet(68)
         tip:ClearLines()
         card.bond.scripts.OnEnter(card.bond)
         eq(#tip.lines, 0)

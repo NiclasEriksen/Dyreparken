@@ -136,7 +136,7 @@ function Cuddle:Pet(card, x, y)
     -- Once a day, a cuddle for the bond: your adopted pet, out with you.
     local today = ns.Today()
     local guid = ns.Activity.Plain(ns.Pets:Summoned())
-    if ns.Registry:MyPet() == key and guid and ns.Pets:KeyOf(guid) == key and ns.DB.char.cardCuddle ~= today then
+    if guid and ns.Pets:KeyOf(guid) == key and ns.DB.char.cardCuddle ~= today then
         ns.DB.char.cardCuddle = today
         ns.Activity:Emit("cuddle", 1, "card")
     end

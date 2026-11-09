@@ -198,14 +198,21 @@ end
 ns.Bus:On("DEBUG", function(on) if ns.DB.char then Activity:SetDebug(on) end end)
 
 ------------------------------------------------------------------------------
--- The daily visit: once a calendar day, the first time your adopted
--- companion is out (checked after login and after any summon).
+-- The daily visit: once a calendar day per companion, the first time it's
+-- out (checked after login and after any summon). Every pet of yours has
+-- its own day (2026-11-09; before, only the adopted one).
 ------------------------------------------------------------------------------
 function Activity:CheckDay()
-    if not next(wanted.day or {}) then return end
-    local key, mine = PetNow()
-    local c = ns.DB.char.activity.day
-    if mine and not (c and c.day == Today()) then self:Emit("day", 1, key) end
+    local w = wanted.day
+    if not (w and next(w)) then return end
+    local key = PetNow()
+    if not key then return end
+    local c = Counter("day")
+    c.on = c.on or {}
+    local today = Today()
+    if c.on[key] == today then return end
+    c.on[key] = today
+    self:Emit("day", 1, key)
 end
 
 Activity:Source({ id = "day", events = {} })

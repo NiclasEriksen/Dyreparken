@@ -77,6 +77,7 @@ ns.Config = {
     BOND_LIKED_CAP = 25,          -- ... at most this many points a day per activity
     BOND_OTHER_POINTS = 1,        -- any other activity with it out
     BOND_OTHER_CAP = 5,           -- ... at most this many a day per activity
+    BOND_OTHER_RATE = 0.5,        -- a pet you own but haven't adopted earns this share (points rounded up, its day 37)
     BOND_WISH_POINTS = 10,        -- today's wish done (Wish.lua), within the daily limit
     BOND_DAILY_MAX = 75,          -- the most bond points a calendar day can bring (the day + activities); bounds the wire
     BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries

@@ -169,6 +169,12 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   today's share and "Fullt for i dag");
   everyone sees everyone's. The loyalty achievements (ids `loyal:*`) are bond levels now. The sync digest holds bond
   levels, not points: points go out lazily (a level-up at once, else within 30 minutes).
+- **Bonds with every pet** (2026-11-09): any pet you own that's out earns bond points, each with its own day; one
+  you haven't adopted at half rate (Config.BOND_OTHER_RATE, its day 37). The card shows *your* bond with the pet (its
+  holder's when you have none); the list's ring is your level in gold, else the holder's in grey. Only adopted bonds
+  (each pet's holder's) ride the full SYNC and the digest (Registry:AdoptedLife): with ~100 members and several pets
+  each, all bonds would outgrow a SYNC. Other bonds go out as their owner's BOND messages, and a card asks the guild
+  once per pet a session (BOND_REQ); they may be a little behind, by design. Wish and nicknames stay adoption-only.
 - **Sync hardening** (code review 2026-11-09): SYNC goes in three parts (records, names, bonds), peers hold back
   theirs when one starts arriving; a part with more than Config.SYNC_MAX_ENTRIES is refused whole; pet keys must be
   "s:<id>" or "n:<name>"; bonds can't start before Config.BOND_EPOCH and hold at most Registry.LifeCap (75 a day plus

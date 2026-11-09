@@ -62,8 +62,8 @@ return function(test, H)
         eq(b.label.text, "God venn"); eq(b.text.text, "530 / 900")
         ola:Slash("probe level off")
         eq(b.label.text, "Bekjent"); eq(b.next.text, "70 poeng til Kamerat")
-        -- A pet nobody holds: no bond at all.
-        card = ola:SelectPet(40)
+        -- A pet nobody holds and we don't own: no bond at all.
+        card = ola:SelectPet(46)
         no(b:IsShown())
     end)
 
@@ -197,15 +197,15 @@ return function(test, H)
         ola.ns.Bond:Watch() -- (publish: a level-up would; here, the login sync)
         kari:Reload()
         w:Run(40)
-        kari.ns.DB.char.bondToday = { day = os.date("%Y%m%d", kari.ns.Now()), got = {}, total = 50 } -- her own day
+        kari.ns.DB.char.bondToday = { day = os.date("%Y%m%d", kari.ns.Now()), pets = { ["s:40"] = { got = {}, total = 50 } } } -- her own day
         kari:OpenJournal()
         local kb = kari:SelectPet(5159).bond
-        eq(kb.text.text, "375 / 530"); no(kb.today:IsShown()); eq(kb.next.text, "155 poeng til God venn")
+        eq(kb.text.text, "375 / 530"); no(kb.today:IsShown()); eq(kb.next.text, "Ola Nord sitt bånd")
         -- A new day: room again. The day's own points fit the limit too.
         w:SkipDays(1)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         eq(Earned(), 380)
-        ola.ns.DB.char.bondToday.total = 70
+        ola.ns.DB.char.bondToday.pets[PANDA].total = 70
         ola.ns.Activity:CheckDay()
         eq(Earned(), 385, "the day visit: only the 5 left")
         card = ola:SelectPet(5159)

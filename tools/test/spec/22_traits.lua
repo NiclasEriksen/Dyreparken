@@ -168,10 +168,10 @@ return function(test, H)
         ok(ola:Printed("Panda Cub danset med deg!", true))
         eq(P:Line(PANDA), "Dansefot og Kjælen · liker herbs, dansing og kos")
         eq(P:Effect(P.ById("kjaelen")), "/pet, /hug eller /cuddle på kjæledyret gir 5 bånd-poeng (opptil 25 om dagen), mot 1 ellers.")
-        -- Letting it go drops them all.
+        -- Letting it go drops its traits' activities; the common ones stay (any pet of yours bonds).
         ola:Slash("gislipp")
         w:Run(5)
-        no(A:IsListening("CHAT_MSG_TEXT_EMOTE")); no(A:IsListening("QUEST_TURNED_IN"))
+        no(A:IsListening("CHAT_MSG_TEXT_EMOTE")); ok(A:IsListening("QUEST_TURNED_IN"))
     end)
 
     test("every trait's activity has a source, a word, and an effect text", function()

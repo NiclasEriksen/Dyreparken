@@ -1500,6 +1500,9 @@ function H.converged(w, names)
 end
 
 function H.assertConverged(w, msg)
+    -- Let what's already on its way land first (a bond published at the
+    -- 30-second day visit after a login, say), then compare.
+    w:Run(3)
     local ok, why = H.converged(w)
     if not ok then error((msg and (msg .. ": ") or "") .. why, 2) end
 end

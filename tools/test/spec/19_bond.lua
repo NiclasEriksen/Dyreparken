@@ -17,6 +17,12 @@ return function(test, H)
         local kari = w:AddClient("Kari Berg", { pets = { 40 } })
         Plain(ola); Plain(kari)
         w:Run(40)
+        -- These tests are about the adopted pet's bond: forget the half days the
+        -- pets out at login earned (any pet of yours bonds, 2026-11-09).
+        for _, c in ipairs({ ola, kari }) do
+            c.ns.DB:Guild().life = {}
+            c.ns.DB.char.bondToday, c.ns.DB.char.activity.day = nil, nil
+        end
         return w, ola, kari
     end
 
@@ -91,11 +97,12 @@ return function(test, H)
         ola:Reload(); Plain(ola)
         w:Run(40)
         eq(Points(ola, PANDA), 30, "back: today's visit")
-        -- Another companion out doesn't count for the panda.
+        -- Another companion out: its own bond (half), not the panda's.
         w:SkipDays(1)
         ola:Summon(46)
         ola.ns.Activity:CheckDay()
         eq(Points(ola, PANDA), 30)
+        eq(Points(ola, KITTEN), 5, "a half day for a pet we haven't adopted")
     end)
 
     test("adopting a pet again brings the old bond back", function()
@@ -113,9 +120,11 @@ return function(test, H)
         w:SkipDays(3)
         ola:Slash("adopter panda")
         w:Run(25)
-        eq(ola.ns.Bond:Of(PANDA), 300, "where they left off")
+        -- Where they left off, plus a half day it had out while it wasn't adopted (a
+        -- pet of yours bonds anyway); then today's visit, in full again.
+        eq(ola.ns.Bond:Of(PANDA), 305, "where they left off")
         ola.ns.Activity:CheckDay()
-        eq(Points(ola, PANDA), 310)
+        eq(Points(ola, PANDA), 315)
         eq(ola.ns.Registry:Life(PANDA, "Ola Nord").f, first, "the first adoption stays the first")
         eq(kari.ns.Bond:Label(PANDA), "Venn (nivå 3)")
         eq(ola.ns.Bond:Add(0), nil, "nothing to add")
@@ -147,12 +156,17 @@ return function(test, H)
         w:Run(1)
         eq(R:Life(PANDA, "Per Hansen").p, 5)
         eq(R:Life(PANDA, "Ola Nord").p, 50, "untouched")
-        -- The digest follows levels, not points.
+        -- The digest holds the holders' bonds only, and by level, not points.
         local d = kari.ns.Sync:Digest()
-        R:MergeLife(PANDA, "Ola Nord", { p = 60, f = now - 2 * day, t = now + 2 })
+        R:MergeLife(PANDA, "Ola Nord", { p = 150, f = now - 2 * day, t = now + 2 })
+        eq(kari.ns.Sync:Digest(), d, "not Ola's pet: not in the digest at all")
+        ola:Slash("adopter panda")
+        w:Run(2)
+        d = kari.ns.Sync:Digest()
+        R:MergeLife(PANDA, "Ola Nord", { p = 160, f = now - 2 * day, t = now + 3 })
         eq(kari.ns.Sync:Digest(), d, "a few points: same digest")
-        R:MergeLife(PANDA, "Ola Nord", { p = 150, f = now - 2 * day, t = now + 3 })
-        no(kari.ns.Sync:Digest() == d, "a new level: a new digest")
+        R:MergeLife(PANDA, "Ola Nord", { p = 300, f = now - 2 * day, t = now + 4 })
+        no(kari.ns.Sync:Digest() == d, "a new level of a holder's bond: a new digest")
     end)
 
     test("the card shows the holder's bond as a bar; tooltips name the level", function()
@@ -165,7 +179,7 @@ return function(test, H)
         local card = kari:SelectPet(5159)
         ok(card.bond:IsShown())
         eq(card.bond.label.text, "Venn"); eq(card.bond.level.text, 3)
-        eq(card.bond.next.text, "230 poeng til God venn")
+        eq(card.bond.next.text, "Ola Nord sitt bånd", "someone else's pet: whose bond it is")
         eq(card.bond.text.text, "300 / 530")
         eq(card.bond.min, 270); eq(card.bond.max, 530); eq(card.bond.value, 300)
         card = kari:SelectPet(46)

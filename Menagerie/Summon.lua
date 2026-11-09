@@ -37,6 +37,15 @@ function Summon:Deferring()
     return C_AddOns.IsAddOnLoaded("AutoCompanion")
 end
 
+-- The pet auto-summon keeps out: the one picked on its card ("Hold ute"),
+-- else your adopted pet while auto-summon is on; nil for none.
+function Summon:ActiveKey()
+    local char = ns.DB.char
+    if not char or self:Deferring() then return nil end
+    if char.activePet then return char.activePet end
+    return char.autoSummon and ns.Registry:MyPet() or nil
+end
+
 function Summon:Enabled()
     return ns.DB.char.autoSummon and not self:Deferring()
 end

@@ -16,6 +16,10 @@ return function(test, H)
         local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
         ola.ns.Companions = Fixture()
         w:Run(40)
+        -- The half day the panda earned out at login, before any adoption: forgotten,
+        -- these tests count from the adoption (any pet of yours bonds, 2026-11-09).
+        ola.ns.DB:Guild().life = {}
+        ola.ns.DB.char.bondToday, ola.ns.DB.char.activity.day = nil, nil
         return w, ola, ola.ns.Personality
     end
 

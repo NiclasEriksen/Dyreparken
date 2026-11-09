@@ -33,11 +33,29 @@ end
 local Pulse, Hide = ns.Anim.Pulse, ns.HideTip
 
 -- The bond's tooltip (the bar and the medallion).
+-- Others' bonds with a pet, strongest first: "Kari Berg (Venn), Per Hansen (Kamerat)".
+local function Others(key, skip)
+    local list = {}
+    local g = ns.DB:Guild()
+    for carer, e in pairs(g and g.life[key] or {}) do
+        if carer ~= skip and carer ~= ns.PlayerKey() and e.p > 0 then list[#list + 1] = { carer, e.p } end
+    end
+    table.sort(list, function(a, b) return a[2] > b[2] or (a[2] == b[2] and a[1] < b[1]) end)
+    local words = {}
+    for i = 1, math.min(#list, 5) do
+        words[i] = ("%s (%s)"):format(list[i][1], (select(2, ns.Bond:Level(list[i][2]))))
+    end
+    return words
+end
+Track.Others = Others
+
 local function BondTip(self, card)
-    local points, level, name, _, nextAt = ns.Bond:Of(card.key)
+    local points, level, name, _, nextAt, mine = ns.Bond:Shown(card.key)
     if not points then return end
     GameTooltip:SetOwner(self, "ANCHOR_TOP")
     GameTooltip:SetText(ns.T("bond.tip.title", { level = name, n = level }), 1, 0.82, 0)
+    local holder = ns.Registry:Holder(card.key)
+    if not mine then GameTooltip:AddLine(ns.T("bond.tip.whose", { owner = holder }), 1, 1, 1) end
     if nextAt then
         local nextName = ns.Bond.LEVELS[level + 1][2]
         GameTooltip:AddLine(ns.T("bond.tip.to_next", { n = nextAt - points, level = nextName }), 1, 1, 1)
@@ -48,15 +66,20 @@ local function BondTip(self, card)
     else
         GameTooltip:AddLine(ns.L["bond.tip.top"], 1, 1, 1)
     end
-    if ns.Registry:MyPet() == card.key then
-        local today, max = ns.Bond:Today()
+    if mine then
+        local today, max = ns.Bond:Today(card.key)
         if today >= max then
             GameTooltip:AddLine(ns.T("bond.tip.today_full", { max = max }), 0.4, 1, 0.4, true)
         else
             GameTooltip:AddLine(ns.T("bond.tip.today", { n = today, max = max }), 0.5, 0.8, 1, true)
         end
     end
-    GameTooltip:AddLine(ns.L["bond.tip.how"], 0.7, 0.7, 0.7, true)
+    local others = Others(card.key, not mine and holder or nil)
+    if #others > 0 then
+        GameTooltip:AddLine(ns.T("bond.tip.others", { list = ns.Personality.Join(others) }), 0.8, 0.7, 1, true)
+    end
+    GameTooltip:AddLine(ns.L[mine and card.key ~= ns.Registry:MyPet() and "bond.tip.how_other" or "bond.tip.how"],
+        0.7, 0.7, 0.7, true)
     GameTooltip:Show()
 end
 
@@ -71,7 +94,7 @@ local function PipTip(self, card)
         GameTooltip:AddLine(ns.T("bond.star.decor", { decor = ns.Decor.LEVELS[n] }), 0.5, 0.8, 0.5, true)
     end
     if n == ns.Config.NICKNAME_LEVEL then GameTooltip:AddLine(ns.L["bond.star.nick"], 0.5, 0.8, 0.5, true) end
-    local _, level = ns.Bond:Of(card.key)
+    local _, level = ns.Bond:Shown(card.key)
     if level and n <= level then GameTooltip:AddLine(ns.L["bond.star.reached"], 0.4, 1, 0.4) end
     GameTooltip:Show()
 end
@@ -185,7 +208,7 @@ end
 -- Show the holder's bond with the pet (none: hidden). family: its tint.
 function Track:Update(card, key, family)
     local b = card.bond
-    local points, level, name, from, nextAt = ns.Bond:Of(key)
+    local points, level, name, from, nextAt, shownMine = ns.Bond:Shown(key)
     if not points then
         b:Hide()
         return
@@ -204,12 +227,16 @@ function Track:Update(card, key, family)
     b:SetMinMaxValues(from, nextAt or math.max(points, 1))
     b:SetValue(nextAt and points or math.max(points, 1)) -- the top level: full
     local fill = b:GetStatusBarTexture()
-    fill:SetGradient("HORIZONTAL", CreateColor(tier[1] * 0.55, tier[2] * 0.55, tier[3] * 0.55, 1),
-        CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
+    if CreateColor then
+        fill:SetGradient("HORIZONTAL", CreateColor(tier[1] * 0.55, tier[2] * 0.55, tier[3] * 0.55, 1),
+            CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
+    else
+        fill:SetVertexColor(tier[1], tier[2], tier[3], 1)
+    end
     -- Your own pet: what today brought, and whether the day is full.
-    local mine = ns.Registry:MyPet() == key and not ns.Decor.preview
+    local mine = shownMine and not ns.Decor.preview
     local today, max = 0, 0
-    if mine then today, max = ns.Bond:Today() end
+    if mine then today, max = ns.Bond:Today(key) end
     local full = mine and today >= max
     b.spark:SetShown(nextAt ~= nil and points > from and not full)
     local top = nextAt or math.max(points, 1)
@@ -235,8 +262,12 @@ function Track:Update(card, key, family)
         b.next:SetTextColor(0.4, 1, 0.4)
         b.edge:SetColorTexture(0.4, 1, 0.4, 0.6)
     else
-        b.next:SetText(nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
-            or ns.L["bond.top"])
+        if not shownMine then
+            b.next:SetText(ns.T("bond.theirs", { owner = ns.Registry:Holder(key) }))
+        else
+            b.next:SetText(nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
+                or ns.L["bond.top"])
+        end
         b.next:SetTextColor(0.6, 0.6, 0.6)
         b.edge:SetColorTexture(1, 0.82, 0, 0.35)
     end
@@ -265,7 +296,7 @@ function Track:Update(card, key, family)
     b:Show()
     -- Your own pet, at a level you haven't seen on its card: celebrate, but
     -- only where it can be seen; otherwise it waits for the next real look.
-    if ns.Registry:MyPet() == key and not ns.Decor.preview and card.panel:IsVisible() then
+    if shownMine and not ns.Decor.preview and card.panel:IsVisible() then
         local seen = ns.DB.char.bondSeen
         if seen[key] == nil then
             seen[key] = level -- the first look: nothing to celebrate yet
@@ -390,6 +421,6 @@ function Track:Preview()
     if not (card and card.key and card.celebration) then
         return ns.Print("Open the pet card first.")
     end
-    local _, level = ns.Bond:Of(card.key)
+    local _, level = ns.Bond:Shown(card.key)
     self:Celebrate(card, card.key, ns.Decor.preview or level or 1)
 end

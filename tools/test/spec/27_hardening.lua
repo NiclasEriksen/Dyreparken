@@ -89,7 +89,7 @@ return function(test, H)
         local w = H.World()
         local list = {}
         for _, s in ipairs(spec) do list[#list + 1] = w:AddClient(s[1], { pets = s[2], login = s.offline ~= true }) end
-        w:Run(20)
+        w:Run(40) -- (the logins' day visits, and their bonds, settled)
         -- Plenty of records (released, of members long gone), so even the first part is several
         -- chunks: only the hold on its first chunk ("F") can stop the others.
         local now = w:ServerTime()
@@ -160,21 +160,25 @@ return function(test, H)
         local w, ola, kari = Guild({ { "Ola Nord", { 5159, 46 } }, { "Kari Berg", { 40 } } })
         ola:Slash("adopter panda")
         w:Run(5)
-        ola.ns.Bond:Add(10) -- a new bond: out at once
+        w:Run(40) -- (the login's day visits done)
+        local function Has(key) local e = ola.ns.Registry:Life(key, "Ola Nord"); return e and e.p or 0 end
+        ola.ns.Bond:Add(10) -- out at once if it's a new bond
         w:Run(2)
+        local panda = Has(PANDA) + 3
         ola.ns.Bond:Add(3)  -- waits (up to 30 minutes)
         ola:Slash("adopter white kitten")
         w:Run(5)
         ola.ns.Bond:Add(10); w:Run(2)
         ola.ns.Bond:Add(2)  -- the kitten's, waiting too
+        local kitten = Has(KITTEN)
         w:Run(1801)
-        eq(kari.ns.Registry:Life(PANDA, "Ola Nord").p, 13, "the panda's gain wasn't lost to the swap")
-        eq(kari.ns.Registry:Life(KITTEN, "Ola Nord").p, 12)
+        eq(kari.ns.Registry:Life(PANDA, "Ola Nord").p, panda, "the panda's gain wasn't lost to the swap")
+        eq(kari.ns.Registry:Life(KITTEN, "Ola Nord").p, kitten)
         -- A gain still waiting at logout goes out at the next login.
         ola.ns.Bond:Add(4)
         ola:Reload()
         w:Run(30)
-        eq(kari.ns.Registry:Life(KITTEN, "Ola Nord").p, 16)
+        eq(kari.ns.Registry:Life(KITTEN, "Ola Nord").p, kitten + 4)
     end)
 
     test("requests anyone can send are answered at most once per channel every few seconds", function()
