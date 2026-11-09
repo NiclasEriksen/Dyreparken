@@ -235,15 +235,11 @@ function Summon:Init()
     -- catches the journal's Summon button and other addons.
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Summon:QuietSummon() end)
     self:Watch()
-    -- Just adopted one: it becomes the active pet, out it comes.
-    ns.Bus:On("MY_RECORD", function(_, r)
-        if r.k and ns.DB.char.activePet ~= r.k then
-            ns.DB.char.activePet = r.k
-            ns.Bus:Fire("ACTIVE_PET", Summon:ActiveKey())
-        end
-        Summon:Watch()
-        if r.k then Summon:Check("claimed") end
-    end)
+    -- Just adopted one: it becomes the active pet, auto-summon on, and out it
+    -- comes in place of the one out (decided 2026-11-09). Only the adoption:
+    -- other edits of our record (a nickname) leave the active pet alone.
+    ns.Bus:On("ADOPTED", function(key) Summon:SetActive(key, true) end)
+    ns.Bus:On("MY_RECORD", function() Summon:Watch() end)
 end
 
 -- The triggers, registered only while auto-summon can do anything: it's on,

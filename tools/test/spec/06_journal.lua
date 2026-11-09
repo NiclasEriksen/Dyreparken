@@ -228,10 +228,19 @@ return function(test, H)
         -- A pet we don't own: no badge.
         card = ola:SelectPet(40)
         no(card.auto:IsShown())
-        -- Adopting makes a pet the active one.
+        -- Adopting makes a pet the active one, turns auto-summon back on, and swaps it in.
+        ola:Summon(5159)
         ola:Slash("adopter white kitten")
         w:Run(2)
         eq(ola.env.DyreparkenCharDB.activePet, "s:46")
+        ok(ola.ns.Summon:Enabled())
+        eq(ola.ns.Pets:KeyOf(ola.summoned), "s:46", "out in place of the panda")
+        -- Other edits of our record leave the active pet alone.
+        ola:SelectPet(5159).auto:Click()
+        ola.ns.Bond:Add(600, "s:46") -- (Venn: naming unlocked)
+        ola:Slash("navn Mjau")
+        w:Run(2)
+        eq(ola.ns.Summon:ActiveKey(), "s:5159", "a nickname doesn't move it")
     end)
 
     test("the list marks the pet kept out with a paw on its icon", function()

@@ -368,6 +368,7 @@ function Registry:Claim(key)
     local mine = self:MyPet()
     Write({ k = key, at = ns.Now() })
     ns.Log("Registry", "claim %s (was %s)", key, tostring(mine))
+    ns.Bus:Fire("ADOPTED", key)
     local msg = ns.T(mine and "adopt.done_swap" or "adopt.done", { pet = ns.Pets:NameOfKey(key),
         old = mine and ns.Pets:NameOfKey(mine) })
     -- A name it got from an earlier carer comes along: introduce it.

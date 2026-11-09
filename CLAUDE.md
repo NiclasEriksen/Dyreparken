@@ -198,7 +198,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   character, default on, `/dp kunngjør`. Letting go and clearing a name aren't announced. The same line isn't
   repeated within an hour.
 - **The active pet** (2026-11-09): auto-summon keeps out one pet of yours, adopted or not, picked with the "Med deg" paw badge on
-  its card (char.activePet; adopting a pet makes it the active one; clicking the badge again turns auto-summon off).
+  its card (char.activePet; adopting a pet makes it the active one, turns auto-summon on and swaps it in; clicking the badge again turns auto-summon off).
 - Auto-summon only when idle: not in combat, mounted, on a taxi, flying, dead, stealthed, sitting, eating/drinking,
   casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by the "Med deg" badge on the card (Menagerie/OutBadge.lua; the list shows a gold paw on the active pet). It never replaces a pet you summoned yourself, except right after you pick a pet on its card: that swaps it in. It doesn't watch
   `COMPANION_UPDATE` (that fires for every nearby companion), so a pet you dismiss comes back only at the next
