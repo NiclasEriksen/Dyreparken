@@ -81,7 +81,7 @@ end
 
 -- Out of combat these are plain values; a secret value counts as busy.
 local function Truthy(v)
-    if issecretvalue and issecretvalue(v) then return true end
+    if ns.IsSecret(v) then return true end
     return v and true or false
 end
 
@@ -93,7 +93,7 @@ local function EatingNames()
     if eatingNames then return eatingNames end
     eatingNames = { ["Food"] = true, ["Drink"] = true, ["Refreshment"] = true, ["Food & Drink"] = true }
     for _, id in ipairs(EATING_SPELLS) do
-        local name = C_Spell and C_Spell.GetSpellName and C_Spell.GetSpellName(id)
+        local name = ns.SpellName(id)
         if type(name) == "string" and name ~= "" then eatingNames[name] = true end
     end
     return eatingNames
@@ -146,7 +146,7 @@ function Summon:Check(reason)
     local key = self:ActiveKey()
     if not key then return end
     -- Any companion out counts: never replace one you summoned yourself.
-    local out = ns.Activity.Plain(ns.Pets:Summoned()) -- (a secret would throw in tostring below)
+    local out = ns.Plain(ns.Pets:Summoned()) -- (a secret would throw in tostring below)
     -- Every check is logged (not only summons): checks while a pet is out
     -- are how a stray trigger shows up in the log.
     ns.Log("Summon", "check (%s): out=%s", tostring(reason), tostring(out))

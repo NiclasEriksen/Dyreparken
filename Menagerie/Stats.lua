@@ -33,12 +33,14 @@ Stats.ICONS = {
 }
 local QUESTION = "Interface\\Icons\\INV_Misc_QuestionMark"
 
-local function Icon(id)
+function Stats.Icon(id)
+    if not Stats.ICONS[id] then return nil end
     for _, path in ipairs(Stats.ICONS[id]) do
         if not GetFileIDFromPath or GetFileIDFromPath(path) then return path end
     end
     return QUESTION
 end
+local Icon = Stats.Icon
 
 -- The chips for a pet: { id, n }, days first, then by count.
 function Stats:For(key)

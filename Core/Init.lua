@@ -51,6 +51,18 @@ end
 -- day the daily limit, the wish, the cuddle and the counters belong to.
 function ns.Today(t) return date("%Y%m%d", t or ns.Now()) end
 
+-- A date as players read it: 08.11.2026.
+function ns.Date(t) return date("%d.%m.%Y", t) end
+
+-- Play the first of these SOUNDKIT names the client knows; returns its name.
+function ns.PlayFirstSound(names)
+    for _, s in ipairs(names) do
+        local id = SOUNDKIT and SOUNDKIT[s]
+        if id then PlaySound(id); return s end
+    end
+    return nil
+end
+
 -- OnLeave for anything that shows a tooltip.
 function ns.HideTip(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end
 
@@ -66,6 +78,31 @@ function ns.Fill(s, vars)
 end
 
 function ns.T(key, vars) return ns.Fill(ns.L[key], vars) end
+
+-- "herbs, quests og flyturer" (Locale: list.sep, list.and)
+function ns.Join(words)
+    if #words <= 1 then return words[1] or "" end
+    return table.concat(words, ns.L["list.sep"], 1, #words - 1) .. ns.L["list.and"] .. words[#words]
+end
+
+-- Gold text, and a gold line in chat (the pet's moments: wishes, firsts, playdates).
+function ns.Gold(text) return "|cffffd100" .. text .. "|r" end
+function ns.PrintGold(text) ns.Print(ns.Gold(text)) end
+
+function ns.IsSecret(v) return issecretvalue ~= nil and issecretvalue(v) == true end
+
+-- A spell's name by id (nil for a secret or missing id, or without C_Spell).
+function ns.SpellName(id)
+    id = ns.Plain(id)
+    if type(id) ~= "number" or not (C_Spell and C_Spell.GetSpellName) then return nil end
+    return ns.Plain(C_Spell.GetSpellName(id))
+end
+
+-- The channel to reach our group on, or nil when solo.
+function ns.GroupChannel()
+    if IsInRaid() then return "RAID" end
+    if IsInGroup() then return "PARTY" end
+end
 
 -- Tunables. Keep them here so they're easy to find and change.
 ns.Config = {
@@ -178,14 +215,10 @@ function ns.SaneName(s)
     return type(s) == "string" and s ~= "" and #s <= 48
 end
 
-function ns.PlayerName()
+function ns.PlayerKey()
     local first, surname = UnitName("player")
     if surname and surname ~= "" then return first .. " " .. surname end
     return first
-end
-
-function ns.PlayerKey()
-    return ns.PlayerName()
 end
 
 -- Is this text after a "-" a realm? Realm names have no spaces; ours look
@@ -219,7 +252,7 @@ end
 function ns.UnitKey(unit)
     local first, surname = UnitName(unit)
     -- Unit names can be secret values (docs/FOREVER_API.md): unreadable is unknown.
-    if issecretvalue and (issecretvalue(first) or issecretvalue(surname)) then return nil end
+    if ns.IsSecret(first) or ns.IsSecret(surname) then return nil end
     if not first then return nil end
     if surname and surname ~= "" then return ns.NormalizeName(first .. " " .. surname) end
     return first

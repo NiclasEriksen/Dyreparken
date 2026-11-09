@@ -20,15 +20,8 @@ local ANSWER_EVERY = 60 -- ... and between answers
 local SETTLE = 2 -- a group just formed: the server refuses PARTY messages for a moment
 local lastSent, pending
 
-local function Channel()
-    if IsInRaid() then return "RAID" end
-    if IsInGroup() then return "PARTY" end
-end
-
-local function PetOut()
-    local guid = ns.Plain(ns.Pets:Summoned())
-    return guid and ns.Pets:KeyOf(guid)
-end
+local Channel = ns.GroupChannel
+local function PetOut() return (ns.Pets:OutKey()) end
 
 -- Tell the group which pet we have out (answer: replying to someone's).
 function Playdate:Announce(answer)
@@ -54,8 +47,7 @@ function Playdate:Heard(sender, theirs)
     if ns.Bond:Playdate(mine) then
         -- (a nickname is the holder's: theirs only if the pet lives with them)
         local friend = ns.Registry:Holder(theirs) == sender and ns.Bonds:NameOf(theirs) or ns.Pets:NameOfKey(theirs)
-        ns.Print(("|cffffd100%s|r"):format(ns.T("play.line",
-            { pet = ns.Bonds:NameOf(mine), friend = friend, owner = sender })))
+        ns.PrintGold(ns.T("play.line", { pet = ns.Bonds:NameOf(mine), friend = friend, owner = sender }))
         ns.Log("Bond", "playdate: %s with %s's %s", mine, sender, theirs)
         ns.Bond:Bonus(ns.Config.BOND_PLAY_POINTS, mine)
     end

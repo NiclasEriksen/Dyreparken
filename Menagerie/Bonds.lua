@@ -52,7 +52,7 @@ function Bonds:NameOf(key)
     return ns.Registry:Nickname(key) or ns.Pets:NameOfKey(key)
 end
 
-local function Gold(text) return "|cffffd100" .. text .. "|r" end
+local Gold = ns.Gold
 
 -- Once per adoption, when naming opens up (the bond reached NICKNAME_LEVEL):
 -- after login, or right when the level is reached (Bond.lua).
@@ -125,9 +125,8 @@ function Bonds:PatText()
         if owner == me or not owner then return ns.T("pat.own", { pet = nick or species }) end
         return ns.T(nick and "pat.other_nick" or "pat.other", { nick = nick, owner = owner, species = species })
     end
-    local guid = ns.Pets:Summoned()
-    if not guid then return nil end
-    local key = ns.Pets:KeyOf(guid)
+    local key = ns.Pets:OutKey()
+    if not key then return nil end
     local mine = ns.Registry:MyPet()
     return ns.T("pat.own", { pet = mine == key and self:NameOf(key) or ns.Pets:NameOfKey(key) })
 end

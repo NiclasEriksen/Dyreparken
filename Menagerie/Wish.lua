@@ -88,8 +88,7 @@ function Wish:Update(card, key)
     if not f then return end
     local w = key and self:Today()
     if not w or w.pet ~= key then f:Hide(); return end
-    local icons = ns.Stats.ICONS[w.id]
-    f.icon:SetTexture(icons and icons[1] or (ns.Decor.MEDIA .. "heart"))
+    f.icon:SetTexture(ns.Stats.Icon(w.id) or (ns.Decor.MEDIA .. "heart")) -- (the first that exists)
     if w.done then
         f.text:SetText(ns.L["wish.done"])
         f.text:SetTextColor(0.4, 1, 0.4)

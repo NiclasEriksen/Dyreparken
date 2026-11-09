@@ -70,11 +70,8 @@ function OutBadge:Build(card, c)
     b.burst:SetSize(SIZE, SIZE)
     b.burst:Hide()
     local g = ns.Anim.OneShot(b.burst)
-    local fade = g:CreateAnimation("Alpha")
-    fade:SetFromAlpha(1); fade:SetToAlpha(0); fade:SetDuration(0.6); fade:SetOrder(1)
-    local grow = g:CreateAnimation("Scale")
-    grow:SetScaleFrom(1, 1); grow:SetScaleTo(2.2, 2.2); grow:SetDuration(0.6); grow:SetSmoothing("OUT")
-    grow:SetOrigin("CENTER", 0, 0); grow:SetOrder(1)
+    ns.Anim.Fade(g, 1, 0, 0.6, 1)
+    ns.Anim.Scale(g, 1, 2.2, 0.6, 1, "OUT")
     b.burst.anim = g
 
     b:SetMotionScriptsWhileDisabled(true)
@@ -84,10 +81,7 @@ function OutBadge:Build(card, c)
         ns.Summon:SetActive(card.key, on)
         if on then
             self.burst:Show(); self.burst.anim:Play()
-            for _, s in ipairs(OutBadge.SOUNDS) do
-                local id = SOUNDKIT and SOUNDKIT[s]
-                if id then PlaySound(id); break end
-            end
+            ns.PlayFirstSound(OutBadge.SOUNDS)
         end
         ns.JournalUI:Refresh()
         if GameTooltip:IsOwned(self) then Tip(self) end

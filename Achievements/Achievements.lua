@@ -229,7 +229,6 @@ local function Context()
             if ctx.counting[sid] then ctx.have = ctx.have + 1 end
         end
     end
-    ctx.record = ns.Registry:MyRecord()
     -- Counting pets someone in the guild cares for (one pet per member):
     -- species id -> who.
     ctx.cared, ctx.caredCount = {}, 0
@@ -617,7 +616,7 @@ end
 
 -- What a row shows on the right: the date earned, or the progress.
 function Ach:RowInfo(row)
-    if row.got then return date("%d.%m.%Y", row.got.at) end
+    if row.got then return ns.Date(row.got.at) end
     return self:Progress(row.def, row.have, row.need)
 end
 

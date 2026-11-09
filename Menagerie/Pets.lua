@@ -49,6 +49,13 @@ function Pets:Summoned()
     return C_PetJournal.GetSummonedPetGUID()
 end
 
+-- The companion out right now: its key and guid (nil for none, or a secret).
+function Pets:OutKey()
+    local guid = ns.Plain(self:Summoned())
+    local key = guid and self:KeyOf(guid)
+    if key then return key, guid end
+end
+
 -- { [petKey] = guid } for everything the player owns. Built on demand only
 -- (when the journal opens, when picking); not cached across sessions.
 function Pets:Owned()
@@ -173,7 +180,7 @@ function Pets:ProbeAch(mode)
     local chan, event
     if group then
         if not IsInGroup() then return Out("Not in a group: nothing posted.") end
-        chan = IsInRaid() and "RAID" or "PARTY"
+        chan = ns.GroupChannel()
         event = IsInRaid() and "CHAT_MSG_RAID" or "CHAT_MSG_PARTY"
     else
         if not IsInGuild() then return Out("Not in a guild: nothing posted.") end

@@ -22,11 +22,9 @@ local sp, page, child, records, legend
 local cells = {}
 Park._cells = cells
 
-local function Day(t) return date("%d.%m.%Y", t) end
+local Day = ns.Date
 
-local function HideTooltip(self)
-    if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
-end
+local HideTooltip = ns.HideTip
 
 -- The park's records as lines, from the current holders.
 function Park:Records(now)

@@ -30,7 +30,7 @@ function Track.Tier(level, family)
     return family or GOLD
 end
 
-local Pulse, Hide = ns.Anim.Pulse, ns.HideTip
+local Pulse, Fade, Scale, Hide = ns.Anim.Pulse, ns.Anim.Fade, ns.Anim.Scale, ns.HideTip
 
 -- The bond's tooltip (the bar and the medallion).
 -- Others' bonds with a pet, strongest first: "Kari Berg (Venn), Per Hansen (Kamerat)".
@@ -76,7 +76,7 @@ local function BondTip(self, card)
     end
     local others = Others(card.key, not mine and holder or nil)
     if #others > 0 then
-        GameTooltip:AddLine(ns.T("bond.tip.others", { list = ns.Personality.Join(others) }), 0.8, 0.7, 1, true)
+        GameTooltip:AddLine(ns.T("bond.tip.others", { list = ns.Join(others) }), 0.8, 0.7, 1, true)
     end
     GameTooltip:AddLine(ns.L[mine and card.key ~= ns.Registry:MyPet() and "bond.tip.how_other" or "bond.tip.how"],
         0.7, 0.7, 0.7, true)
@@ -327,9 +327,9 @@ function Track:BuildCelebration(card, c, panel)
     cel.flash:SetAlpha(0)
     cel.flash:Hide()
     local g = OneShot(cel.flash)
-    local inA = g:CreateAnimation("Alpha"); inA:SetFromAlpha(0); inA:SetToAlpha(1); inA:SetDuration(0.25); inA:SetOrder(1)
+    Fade(g, 0, 1, 0.25, 1)
     local inR = g:CreateAnimation("Rotation"); inR:SetDegrees(-15); inR:SetDuration(0.25); inR:SetOrder(1)
-    local out = g:CreateAnimation("Alpha"); out:SetFromAlpha(1); out:SetToAlpha(0); out:SetDuration(1.8); out:SetOrder(2)
+    Fade(g, 1, 0, 1.8, 2)
     local outR = g:CreateAnimation("Rotation"); outR:SetDegrees(-60); outR:SetDuration(1.8); outR:SetOrder(2)
     cel.flash.anim = g
     -- A burst of sparks and hearts out from the pet.
@@ -344,10 +344,9 @@ function Track:BuildCelebration(card, c, panel)
         p.icon:SetAllPoints()
         local a = OneShot(p)
         a.move = a:CreateAnimation("Translation"); a.move:SetDuration(1.3); a.move:SetSmoothing("OUT"); a.move:SetOrder(1)
-        local f1 = a:CreateAnimation("Alpha"); f1:SetFromAlpha(0); f1:SetToAlpha(1); f1:SetDuration(0.12); f1:SetOrder(1)
-        local f2 = a:CreateAnimation("Alpha"); f2:SetFromAlpha(1); f2:SetToAlpha(0); f2:SetDuration(0.7); f2:SetOrder(2)
-        local s2 = a:CreateAnimation("Scale"); s2:SetScaleFrom(1, 1); s2:SetScaleTo(0.4, 0.4); s2:SetDuration(0.7)
-        s2:SetOrder(2); s2:SetOrigin("CENTER", 0, 0)
+        Fade(a, 0, 1, 0.12, 1)
+        Fade(a, 1, 0, 0.7, 2)
+        Scale(a, 1, 0.4, 0.7, 2)
         p.anim = a
         cel.parts[i] = p
     end
@@ -364,12 +363,11 @@ function Track:BuildCelebration(card, c, panel)
     t.sub:SetPoint("TOP", t.title, "BOTTOM", 0, -6)
     t.sub:SetWidth(300)
     local a = OneShot(t)
-    local in1 = a:CreateAnimation("Alpha"); in1:SetFromAlpha(0); in1:SetToAlpha(1); in1:SetDuration(0.35); in1:SetOrder(1)
-    local grow = a:CreateAnimation("Scale"); grow:SetScaleFrom(0.5, 0.5); grow:SetScaleTo(1, 1); grow:SetDuration(0.35)
-    grow:SetSmoothing("OUT"); grow:SetOrder(1); grow:SetOrigin("CENTER", 0, 0)
+    Fade(a, 0, 1, 0.35, 1)
+    Scale(a, 0.5, 1, 0.35, 1, "OUT")
     local rise = a:CreateAnimation("Translation"); rise:SetOffset(0, 18); rise:SetDuration(2.6); rise:SetOrder(2)
-    local hold = a:CreateAnimation("Alpha"); hold:SetFromAlpha(1); hold:SetToAlpha(1); hold:SetDuration(2.6); hold:SetOrder(2)
-    local fade = a:CreateAnimation("Alpha"); fade:SetFromAlpha(1); fade:SetToAlpha(0); fade:SetDuration(0.8); fade:SetOrder(3)
+    Fade(a, 1, 1, 2.6, 2) -- (holds)
+    Fade(a, 1, 0, 0.8, 3)
     t.anim = a
     cel.text = t
     c:HookScript("OnHide", function() Track:StopCelebration(card) end)
@@ -404,14 +402,7 @@ function Track:Celebrate(card, key, level)
     cel.text.sub:SetText(ns.T("bond.celebrate.text", { pet = ns.Bonds:NameOf(key), n = level })
         .. (decor and ("\n" .. ns.T("bond.celebrate.decor", { decor = decor })) or ""))
     cel.text:Show(); cel.text.anim:Play()
-    for _, s in ipairs(self.SOUNDS) do
-        local id = SOUNDKIT and SOUNDKIT[s]
-        if id then
-            PlaySound(id)
-            ns.Log("Bond", "celebration sound %s", s)
-            break
-        end
-    end
+    ns.Log("Bond", "celebration sound %s", tostring(ns.PlayFirstSound(self.SOUNDS)))
     ns.Log("Bond", "celebrated %s level %d", key, level)
 end
 

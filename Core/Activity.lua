@@ -42,7 +42,6 @@ local unitFrame = CreateFrame("Frame")
 local unitEvents = {}   -- event -> true while registered on unitFrame
 
 local Today, Plain = ns.Today, ns.Plain
-Activity.Plain = Plain
 
 ------------------------------------------------------------------------------
 -- Counting
@@ -67,8 +66,7 @@ end
 
 -- The companion out right now: key, and whether it's the adopted one.
 local function PetNow()
-    local guid = Plain(ns.Pets:Summoned())
-    local key = guid and ns.Pets:KeyOf(guid)
+    local key = ns.Pets:OutKey()
     if not key then return nil, false end
     return key, ns.Registry:MyPet() == key
 end
@@ -276,13 +274,13 @@ function Activity.GatherKind(spellID)
     local id = Plain(spellID)
     if type(id) ~= "number" then return nil end
     if GATHER_IDS[id] then return GATHER_IDS[id] end
-    local name = C_Spell and C_Spell.GetSpellName and Plain(C_Spell.GetSpellName(id))
+    local name = ns.SpellName(id)
     return type(name) == "string" and GATHER_NAMES[name:lower()] or nil
 end
 for _, kind in ipairs({ "herb", "mine", "fish", "skin" }) do
     Activity:Source({ id = kind, events = { "UNIT_SPELLCAST_SUCCEEDED" }, unit = "player",
         filter = function(_, unit, _, spellID)
-            if unit ~= "player" or InCombatLockdown() then return nil end
+            if unit ~= "player" or ns.InCombat() then return nil end
             if Activity.GatherKind(spellID) == kind then return 1 end
         end })
 end
@@ -321,7 +319,7 @@ function Activity.EmoteKind(text)
     local lower = text:lower()
     if Matches(lower, DANCE) then return "dance" end
     if Matches(lower, CUDDLE) then
-        local guid = Plain(ns.Pets:Summoned())
+        local _, guid = ns.Pets:OutKey()
         local name = guid and ns.Pets:WorldName(guid)
         if name and text:find(name, 1, true) then return "cuddle" end
     end
@@ -381,7 +379,7 @@ Activity:Source({ id = "hearth", events = { "UNIT_SPELLCAST_SUCCEEDED" }, unit =
         if unit ~= "player" then return nil end
         local id = Plain(spellID)
         if HOME_IDS[id] then return 1, tostring(id) end
-        local name = type(id) == "number" and C_Spell and C_Spell.GetSpellName and Plain(C_Spell.GetSpellName(id))
+        local name = ns.SpellName(id)
         if HOME_NAMES[name] then return 1, name end
     end })
 

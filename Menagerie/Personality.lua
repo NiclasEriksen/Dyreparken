@@ -200,13 +200,7 @@ function Personality:Effect(trait)
         other = C.BOND_OTHER_POINTS })
 end
 
--- "herbs, quests og flyturer"
-local function Join(words)
-    if #words <= 1 then return words[1] or "" end
-    return table.concat(words, L["list.sep"], 1, #words - 1) .. L["list.and"] .. words[#words]
-end
-
-Personality.Join = Join
+local Join = ns.Join
 
 -- "Kosete og Nattugle"
 function Personality:Names(key)

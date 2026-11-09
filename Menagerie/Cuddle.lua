@@ -14,13 +14,7 @@ local CLICK_PX, CLICK_S = 5, 0.4 -- a click: moved less than this, shorter than 
 -- The sound: the first of these the client knows.
 Cuddle.SOUNDS = { "IG_CHARACTER_INFO_TAB", "IG_MAINMENU_OPTION_CHECKBOX_ON" }
 
-local OneShot = ns.Anim.OneShot
-
-local function Fade(g, from, to, dur, order)
-    local a = g:CreateAnimation("Alpha")
-    a:SetFromAlpha(from); a:SetToAlpha(to); a:SetDuration(dur); a:SetOrder(order)
-    return a
-end
+local OneShot, Fade, Scale = ns.Anim.OneShot, ns.Anim.Fade, ns.Anim.Scale
 
 -- A frame over the pet, unseen at rest, holding one texture.
 local function Piece(c, level, size, texture)
@@ -44,9 +38,7 @@ function Cuddle:Build(card, c, panel)
     d.ripple.icon:SetBlendMode("ADD")
     local r = OneShot(d.ripple)
     Fade(r, 0, 0.9, 0.08, 1)
-    local grow = r:CreateAnimation("Scale")
-    grow:SetScaleFrom(1, 1); grow:SetScaleTo(3, 3); grow:SetDuration(0.6); grow:SetSmoothing("OUT")
-    grow:SetOrigin("CENTER", 0, 0); grow:SetOrder(2)
+    Scale(r, 1, 3, 0.6, 2, "OUT")
     Fade(r, 0.9, 0, 0.6, 2)
     d.ripple.anim = r
     -- A few small hearts rising from the same spot.
@@ -129,14 +121,10 @@ function Cuddle:Pet(card, x, y)
         p:Show(); p.anim:Play()
     end
     d.glow:Show(); d.glow.anim:Play()
-    for _, s in ipairs(self.SOUNDS) do
-        local id = SOUNDKIT and SOUNDKIT[s]
-        if id then PlaySound(id); break end
-    end
+    ns.PlayFirstSound(self.SOUNDS)
     -- Once a day, a cuddle for the bond: your adopted pet, out with you.
     local today = ns.Today()
-    local guid = ns.Activity.Plain(ns.Pets:Summoned())
-    if guid and ns.Pets:KeyOf(guid) == key and ns.DB.char.cardCuddle ~= today then
+    if ns.Pets:OutKey() == key and ns.DB.char.cardCuddle ~= today then
         ns.DB.char.cardCuddle = today
         ns.Activity:Emit("cuddle", 1, "card")
     end

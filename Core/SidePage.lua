@@ -257,9 +257,7 @@ end
 ------------------------------------------------------------------------------
 local hooked = setmetatable({}, { __mode = "k" })
 
-local function HideTooltip(self)
-    if GameTooltip:IsOwned(self) then GameTooltip:Hide() end
-end
+local HideTooltip = ns.HideTip
 
 -- Our tabs under the last of Blizzard's, the same size and spacing; and
 -- leave our pages when one of theirs is pressed. Runs each time the window

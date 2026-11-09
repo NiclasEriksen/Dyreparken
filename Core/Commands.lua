@@ -4,15 +4,26 @@ local _, ns = ...
 local commands = {}
 local help = {}
 
-local function Add(name, usage, fn)
+-- A command, its help line (nil: unlisted), and other words for it (the
+-- English ones from before the Norwegian interface, 2026-11-08).
+local function Add(name, usage, fn, ...)
     commands[name] = fn
-    help[#help + 1] = usage
+    for _, alias in ipairs({ ... }) do commands[alias] = fn end
+    if usage then help[#help + 1] = usage end
 end
 
-local function Say(ok, msg) if msg then ns.Print(msg) end end
+-- An action's ok, message: the message is shown either way.
+local function Say(_, msg) if msg then ns.Print(msg) end end
 
 local ON = { ["på"] = true, on = true }
 local OFF = { av = true, off = true }
+
+-- "på"/"av" (or on/off) say which; nothing else flips the current setting.
+local function Toggle(arg, current)
+    if ON[arg or ""] then return true end
+    if OFF[arg or ""] then return false end
+    return not current
+end
 
 local function Adopt(_, raw)
     local key
@@ -20,9 +31,8 @@ local function Adopt(_, raw)
         key = ns.Pets:FindOwned(raw)
         if not key then return ns.Print(ns.T("cmd.adopt.nomatch", { text = raw })) end
     else
-        local guid = ns.Pets:Summoned()
-        if not guid then return ns.Print(ns.L["cmd.adopt.nothing"]) end
-        key = ns.Pets:KeyOf(guid)
+        key = ns.Pets:OutKey()
+        if not key then return ns.Print(ns.L["cmd.adopt.nothing"]) end
     end
     local ok, msg = ns.Registry:Claim(key)
     Say(ok, msg)
@@ -37,8 +47,7 @@ local function Nick(_, raw)
 end
 
 local function Announce(arg)
-    if ON[arg or ""] or OFF[arg or ""] then ns.Bonds:SetAnnounce(ON[arg] == true)
-    else ns.Bonds:SetAnnounce(not ns.DB.char.announce) end
+    ns.Bonds:SetAnnounce(Toggle(arg, ns.DB.char.announce))
 end
 
 local function List()
@@ -61,8 +70,7 @@ local function Sound(arg)
     if ns.Summon:Deferring() then
         return ns.Print(ns.L["cmd.sound.deferred"])
     end
-    local on
-    if ON[arg or ""] or OFF[arg or ""] then on = ON[arg] == true else on = ns.DB.char.muteSummonSound and true or false end
+    local on = Toggle(arg, not ns.DB.char.muteSummonSound)
     ns.Summon:SetMuteSound(not on)
     ns.Print(ns.L[on and "cmd.sound.on" or "cmd.sound.off"])
 end
@@ -83,55 +91,47 @@ end
 
 local function Version(arg)
     local group = arg == "gruppe" or arg == "group"
-    ns.Version:Check(group and (IsInRaid() and "RAID" or "PARTY") or "GUILD")
+    ns.Version:Check(group and (ns.GroupChannel() or "PARTY") or "GUILD")
 end
 
 local function Report() ns.Report:Run() end
 
 -- The command words are code (both the Norwegian and the old English ones
--- work); what the help says about them is text (Locale/nb.lua, cmd.help.*).
+-- work, unlisted); what the help says about them is text (Locale/nb.lua, cmd.help.*).
 local L = ns.L
-Add("adopter", L["cmd.help.adopter"], Adopt)
-Add("gislipp", L["cmd.help.gislipp"], LetGo)
-Add("navn", L["cmd.help.navn"], Nick)
-Add("liste", L["cmd.help.liste"], List)
-Add("lyd", L["cmd.help.lyd"], Sound)
-Add("prestasjoner", L["cmd.help.prestasjoner"], Achievements)
-Add("versjon", L["cmd.help.versjon"], Version)
-Add("kunngjør", L["cmd.help.kunngjor"], Announce)
-Add("klapp", L["cmd.help.klapp"], function() ns.Bonds:Pat() end)
-Add("rapport", L["cmd.help.rapport"], Report)
--- The English names from before the Norwegian interface (2026-11-08), and
--- the oldest ones (claim, release), still work but aren't in the help.
-commands.adopt, commands.letgo, commands.claim, commands.release = Adopt, LetGo, Adopt, LetGo
-commands.nick, commands.list, commands.sound, commands.ach = Nick, List, Sound, Achievements
-commands.version, commands.report, commands.pat = Version, Report, commands.klapp
-commands.announce = Announce
+Add("adopter", L["cmd.help.adopter"], Adopt, "adopt", "claim")
+Add("gislipp", L["cmd.help.gislipp"], LetGo, "letgo", "release")
+Add("navn", L["cmd.help.navn"], Nick, "nick")
+Add("liste", L["cmd.help.liste"], List, "list")
+Add("lyd", L["cmd.help.lyd"], Sound, "sound")
+Add("prestasjoner", L["cmd.help.prestasjoner"], Achievements, "ach")
+Add("versjon", L["cmd.help.versjon"], Version, "version")
+Add("kunngjør", L["cmd.help.kunngjor"], Announce, "announce")
+Add("klapp", L["cmd.help.klapp"], function() ns.Bonds:Pat() end, "pat")
+Add("rapport", L["cmd.help.rapport"], Report, "report")
 
-Add("probe", "probe [more|tabs|kills|life|card|bg|decor|level <n|off>|celebrate [n|off]|ach [post|now|group|groupnow]] - dump API info to the debug log (development)", function(arg)
-    if arg and arg:find("^bg") then
-        ns.Scenes:Probe(arg:match("^bg%s+(%S+)$"))
-    elseif arg == "kills" then
-        ns.Kills:Probe()
-    elseif arg == "card" then
-        ns.JournalUI:ProbeCard()
-    elseif arg == "decor" then
-        ns.Decor:Probe()
-    elseif arg == "celebrate" then
-        ns.BondTrack:Preview()
-    elseif arg and arg:find("^level") then
-        ns.Decor:Preview(arg:match("^level%s+(%S+)$"))
-    elseif arg == "life" then
-        ns.Kills:ProbeLife()
-    elseif arg == "tabs" then
-        ns.AchPage:Probe()
-    elseif arg == "more" then
-        ns.Pets:ProbeMore()
-    elseif arg and arg:find("^ach") then
-        ns.Pets:ProbeAch(arg:match("^ach%s+(%a+)$"))
-    else
-        ns.Pets:Probe()
+-- /dp probe <word> [arg]: development dumps to the debug log. One line each;
+-- the usage is built from this list. (no word: the journal probe)
+local PROBES = {
+    { "more", function() ns.Pets:ProbeMore() end },
+    { "tabs", function() ns.AchPage:Probe() end },
+    { "kills", function() ns.Kills:Probe() end },
+    { "life", function() ns.Kills:ProbeLife() end },
+    { "card", function() ns.JournalUI:ProbeCard() end },
+    { "bg", function(a) ns.Scenes:Probe(a) end, "<family>" },
+    { "decor", function() ns.Decor:Probe() end },
+    { "level", function(a) ns.Decor:Preview(a) end, "<n|off>" },
+    { "celebrate", function() ns.BondTrack:Preview() end },
+    { "ach", function(a) ns.Pets:ProbeAch(a) end, "[post|now|group|groupnow]" },
+}
+local usage = {}
+for _, p in ipairs(PROBES) do usage[#usage + 1] = p[3] and (p[1] .. " " .. p[3]) or p[1] end
+Add("probe", "probe [" .. table.concat(usage, "|") .. "] - dump API info to the debug log (development)", function(arg)
+    local word, rest = (arg or ""):match("^(%S*)%s*(.-)$")
+    for _, p in ipairs(PROBES) do
+        if p[1] == word then return p[2](rest ~= "" and rest or nil) end
     end
+    ns.Pets:Probe()
 end)
 
 Add("debug", "debug [on|off|echo|clear] - debug log (saved on /reload)", function(arg)

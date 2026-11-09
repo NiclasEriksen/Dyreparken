@@ -56,9 +56,7 @@ local function Status(key)
     return "taken", owner, r
 end
 
-local function Day(t)
-    return date("%d.%m.%Y", t)
-end
+local Day = ns.Date
 
 -- Tooltip lines for a pet key. Used by list buttons and the world tooltip.
 function JournalUI:AddTooltipLines(tooltip, key)
@@ -295,7 +293,7 @@ local function UpdateCard()
     if status == "free" then
         text = "|cff80cc80" .. ns.L["card.free"] .. "|r"
     elseif status == "mine" then
-        text = "|cffffd100" .. ns.Home(ns.L["home.you"], r.at) .. "|r"
+        text = ns.Gold(ns.Home(ns.L["home.you"], r.at))
     else
         text = "|cffff8080" .. ns.Home(owner, r.at) .. "|r"
     end
@@ -314,7 +312,7 @@ local function UpdateCard()
     if ns.Personality:Known(key) then
         card.personality:SetText(ns.Personality:Names(key))
         local likes = ns.Personality:LikedWords(key)
-        card.likes:SetText(#likes > 0 and ns.T("card.likes", { list = ns.Personality.Join(likes) }) or "")
+        card.likes:SetText(#likes > 0 and ns.T("card.likes", { list = ns.Join(likes) }) or "")
     else -- a surprise until it's collected or adopted
         card.personality:SetText(ns.L["personality.unknown"])
         card.likes:SetText("")
@@ -506,7 +504,7 @@ local function BuildCard()
         ns.Personality:Describe(GameTooltip, card.key)
         local words = ns.Personality:LikedWords(card.key)
         if #words > 0 then
-            GameTooltip:AddLine(ns.T("card.likes.tip", { list = ns.Personality.Join(words) }), 0.5, 0.8, 0.5, true)
+            GameTooltip:AddLine(ns.T("card.likes.tip", { list = ns.Join(words) }), 0.5, 0.8, 0.5, true)
         end
         GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
         GameTooltip:Show()
@@ -541,7 +539,6 @@ local function BuildCard()
         card.status:SetPoint("RIGHT", panel, "CENTER", -52, 0)
     end
     ns.Log("Journal", "rotate buttons %s", left and "moved above the panel" or "not found")
-    card.rotate = left and { left, right } or nil
     -- Blizzard's title row (the pet's icon and name at the top) says what the
     -- list and our panel already say: hidden, and kept hidden, for room at
     -- the top (2026-11-08). Dragging and the pet's tooltip stay on the list.

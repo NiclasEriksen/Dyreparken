@@ -22,10 +22,7 @@ ns.Report = Report
 local WAIT = 3
 local MAX_CHAT = 255
 
-local function GroupChannel()
-    if IsInRaid() then return "RAID" end
-    if IsInGroup() then return "PARTY" end
-end
+local GroupChannel = ns.GroupChannel
 
 
 local function GroupMembers()
@@ -35,7 +32,7 @@ local function GroupMembers()
 end
 
 local function HasCompanion()
-    return ns.Pets:Summoned() ~= nil
+    return ns.Pets:OutKey() ~= nil
 end
 
 function Report:Init()

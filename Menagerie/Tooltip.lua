@@ -147,7 +147,7 @@ function Tooltip:NameUnknown(tooltip, data, unit)
 end
 
 local function OnUnitTooltip(tooltip, data)
-    if tooltip ~= GameTooltip or InCombatLockdown() then return end
+    if tooltip ~= GameTooltip or ns.InCombat() then return end
     local ok, _, unit = pcall(tooltip.GetUnit, tooltip)
     unit = ok and Plain(unit)
     if not unit then return end

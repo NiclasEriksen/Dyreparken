@@ -90,8 +90,6 @@ local function Schedule(key)
     end)
 end
 
--- How many more points our bond with the pet we hold can take now, under
--- the wire's cap (Registry.LifeCap); 0 without a pet.
 -- How much of the full rate a pet earns: your adopted pet all of it, any
 -- other pet of yours half (decided 2026-11-09: bond with several, but the
 -- adopted one needs the most attention).
@@ -260,7 +258,7 @@ end
 local function Flavor(d, text)
     if d.flavor or not text then return end
     d.flavor = true
-    ns.Print(("|cffffd100%s|r"):format(text))
+    ns.PrintGold(text)
 end
 
 -- A playdate for a pet today: true the first time (Playdate), nil after.
@@ -338,7 +336,7 @@ function Bond:First(id, key, extra)
     end
     local d = Ledger(key)
     d.firsts = (d.firsts or 0) + 1
-    if d.firsts <= ns.Config.FIRST_LINES then ns.Print(("|cffffd100%s|r"):format(text)) end
+    if d.firsts <= ns.Config.FIRST_LINES then ns.PrintGold(text) end
     self:Bonus(ns.Config.BOND_FIRST_POINTS, key)
 end
 

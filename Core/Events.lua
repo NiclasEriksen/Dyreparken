@@ -56,7 +56,7 @@ end
 -- Run fn once, now if out of combat, else right after combat ends.
 local afterCombat = {}
 function Events:OutOfCombat(fn)
-    if not InCombatLockdown() then return fn() end
+    if not ns.InCombat() then return fn() end
     afterCombat[#afterCombat + 1] = fn
     Events:On("PLAYER_REGEN_ENABLED", afterCombat, function()
         Events:Off("PLAYER_REGEN_ENABLED", afterCombat)
