@@ -138,6 +138,7 @@ return function(test, H)
         w:Run(40)
         local function Points() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
         local function Quest() ola:Fire("QUEST_TURNED_IN", 1) end
+        ola.ns.Bond.First = function() end -- (no first-kill bonus mixed in: 28_multibond.lua tests firsts)
         local start = Points()
         Quest()
         eq(Points(), start + 1, "solo, outdoors: just a quest")

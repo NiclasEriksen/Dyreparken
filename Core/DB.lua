@@ -37,6 +37,7 @@ local CHAR_DEFAULTS = {
     announce = true,           -- post adoptions and nicknames to guild chat (Bonds:Announce)
     activity = {},             -- activity counters (Core/Activity.lua)
     places = {},               -- [petKey] = { [zone] = true }: where each companion has been ("explore")
+    firsts = {},               -- [petKey] = { [boss name] = true }: bosses it has seen fall with you (Bond:First)
     cardCuddle = nil,          -- the day a click on the card last counted as a cuddle (Cuddle.lua)
     bondSeen = {},             -- [petKey] = the bond level last shown on its card (BondTrack: celebrate once)
     ach = { got = {}, seen = {} }, -- character-scope achievements (Achievements.lua)

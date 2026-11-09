@@ -9,7 +9,7 @@ local _, ns = ...
 -- engine does the shared work: it reads the summoned companion, waits until
 -- combat is over before doing so (the companion can be unreadable in
 -- combat, and nothing here is urgent), counts, and fires
---   Bus "ACTIVITY" (id, n, petKey, mine)
+--   Bus "ACTIVITY" (id, n, petKey, mine, extra)   extra: the boss's name, the place...
 -- petKey: the summoned companion (or nil), mine: it's the one you adopted.
 --
 -- ON DEMAND: a game event is registered only while some consumer wants an
@@ -87,7 +87,7 @@ function Activity:Emit(id, n, extra)
     if mine then c.mine = c.mine + n end
     if key then c.pets[key] = (c.pets[key] or 0) + n end
     ns.Log("Activity", "%s +%d pet=%s mine=%s %s", id, n, tostring(key), tostring(mine), tostring(extra or ""))
-    ns.Bus:Fire("ACTIVITY", id, n, key, mine)
+    ns.Bus:Fire("ACTIVITY", id, n, key, mine, extra)
 end
 
 ------------------------------------------------------------------------------
@@ -416,7 +416,9 @@ function Activity:CheckPlace()
     all[key] = all[key] or {}
     if all[key][place] then return end
     all[key][place] = true
-    self:Emit("explore", 1, place)
+    -- The place's name for the line it may get (Bond: a first together).
+    local name = Plain(GetZoneText())
+    self:Emit("explore", 1, type(name) == "string" and name ~= "" and name or place)
 end
 Activity:Source({ id = "explore", events = { "ZONE_CHANGED_NEW_AREA" }, filter = function()
     C_Timer.After(5, function() Activity:CheckPlace() end)

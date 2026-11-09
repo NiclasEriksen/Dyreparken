@@ -18,8 +18,9 @@ return function(test, H)
         end
         ola:Slash("adopter panda")
         w:Run(2)
-        for _, c in ipairs({ ola, kari }) do -- (no wish bonuses or Kosete days mixed in)
+        for _, c in ipairs({ ola, kari }) do -- (no wish or first bonuses, or Kosete days, mixed in)
             c.ns.Wish.OnActivity = function() end
+            c.realFirst, c.ns.Bond.First = c.ns.Bond.First, function() end
             c.ns.Personality.Traits = function()
                 return { c.ns.Personality.ById("glupsk"), c.ns.Personality.ById("reiseglad") }
             end
@@ -165,5 +166,34 @@ return function(test, H)
         -- Its day out counts for it, at half.
         ola.ns.Activity:CheckDay()
         eq(P(ola, KITTEN), 5)
+    end)
+
+    test("firsts together: a boss this pet hasn't seen fall, a place it hasn't seen; a few lines a day", function()
+        local w, ola = Setup()
+        ola.ns.Bond.First = ola.realFirst -- (the real one, for this test)
+        local function Pts() return P(ola, PANDA) end
+        local start = Pts()
+        ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
+        eq(Pts() - start, 1 + 10, "a boss (1, not liked) and the first time it saw Hogger fall (10)")
+        ok(ola:Printed("Panda Cub var med da Hogger falt!", true))
+        start = Pts()
+        ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
+        eq(Pts() - start, 1, "the second time: just a boss")
+        -- A wipe isn't a kill, and a boss without a name isn't a first.
+        ola:Fire("ENCOUNTER_END", 2, "Van Cleef", 1, 5, 0)
+        ok(not ola:Printed("Van Cleef", true))
+        -- A new place: its name in the line.
+        ola.state.map, ola.state.zone = 1454, "Orgrimmar"
+        ola:Fire("ZONE_CHANGED_NEW_AREA")
+        w:Run(6)
+        ok(ola:Printed("Panda Cub så Orgrimmar for første gang!", true))
+        -- At most three lines a day per pet; the points go on.
+        for i = 1, 4 do ola:Fire("ENCOUNTER_END", 10 + i, "Boss " .. i, 1, 5, 1) end
+        ok(ola:Printed("Boss 1", true)); no(ola:Printed("Boss 2", true), "two firsts already today")
+        -- Another pet sees Hogger fall for the first time too: its own firsts, at half.
+        ola:Summon(46)
+        start = P(ola, KITTEN)
+        ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
+        eq(P(ola, KITTEN) - start, 1 + 5)
     end)
 end

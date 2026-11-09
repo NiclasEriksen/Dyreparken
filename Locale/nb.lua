@@ -137,6 +137,8 @@ L["bond.level.6"] = "Uatskillelig"
 L["bond.level.7"] = "Sjelevenn"
 L["bond.label"] = "{level} (nivå {n})"                -- "Venn (nivå 3)"
 L["bond.levelup"] = "|cffffd100Båndet ditt med {pet} er nå på nivå {n}: {level}!|r"
+L["first.boss"] = "{pet} var med da {boss} falt!"          -- the first time this pet sees that boss fall
+L["first.place"] = "{pet} så {place} for første gang!"     -- the first time this pet is in that place
 L["bond.liked"] = "{pet} koste seg med {activity}!"   -- the first liked thing of the day
 L["bond.full"] = "|cffffd100Båndet med {pet} er fullt for i dag. Kom tilbake i morgen!|r"
 

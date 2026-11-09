@@ -185,7 +185,7 @@ end
 -- Always watched (any pet of ours can bond); the traits' own activities
 -- (dance, chat, dive...) only for the pets we'd have out that like them, so
 -- nobody else pays for those events.
-Bond.ACTIVITIES = { "day", "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin" }
+Bond.ACTIVITIES = { "day", "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin", "explore" }
 local watching = {}
 
 function Bond:Watch()
@@ -311,10 +311,35 @@ function Bond:OnActivity(id, n, key)
     return Grant(d, points, key)
 end
 
+-- Firsts together (2026-11-09): the first time a pet is along when a given
+-- boss falls, or sees a given place (Activity: "explore" fires only for a
+-- place new to that pet), it gets BOND_FIRST_POINTS and a line, at most
+-- FIRST_LINES lines a day per pet (the points go on).
+function Bond:First(id, key, extra)
+    local text
+    if id == "boss" and type(extra) == "string" and extra ~= "" and extra ~= "?" then
+        local firsts = ns.DB.char.firsts
+        firsts[key] = firsts[key] or {}
+        if firsts[key][extra] then return end
+        firsts[key][extra] = true
+        text = ns.T("first.boss", { pet = ns.Bonds:NameOf(key), boss = extra })
+    elseif id == "explore" and type(extra) == "string" then
+        text = ns.T("first.place", { pet = ns.Bonds:NameOf(key), place = extra })
+    else
+        return
+    end
+    local d = Ledger(key)
+    d.firsts = (d.firsts or 0) + 1
+    if d.firsts <= ns.Config.FIRST_LINES then ns.Print(("|cffffd100%s|r"):format(text)) end
+    self:Bonus(ns.Config.BOND_FIRST_POINTS, key)
+end
+
 function Bond:Init()
     -- Any pet of ours that's out: its own bond (the summoned pet is always ours).
-    ns.Bus:On("ACTIVITY", function(id, n, key)
-        if key then Bond:OnActivity(id, n, key) end
+    ns.Bus:On("ACTIVITY", function(id, n, key, _, extra)
+        if not key then return end
+        Bond:OnActivity(id, n, key)
+        Bond:First(id, key, extra)
     end)
     ns.Bus:On("MY_RECORD", function()
         Bond:Seed()
