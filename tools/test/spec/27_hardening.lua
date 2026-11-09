@@ -419,4 +419,47 @@ return function(test, H)
         ola.ns.Summon:SetActive("s:5159", false)
         no(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "Hold ute unticked")
     end)
+
+    -- 2026-11-10: the addon has players outside the developer's reach now.
+    test("a release offers no way into the guild's data but the players' own commands", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { version = "v0.3.0", pets = { 5159, 46 } })
+        local kari = w:AddClient("Kari Berg", { pets = { 40 } })
+        w:Settle("hello")
+        kari:Slash("adopter bombay")
+        w:Run(10)
+        -- Nothing of the addon is reachable by /run: only its saved data, its slash words, and the libraries.
+        local added = {}
+        for k in pairs(ola.env) do if not ola.stubKeys[k] then added[#added + 1] = tostring(k) end end
+        table.sort(added)
+        eq(table.concat(added, " "), "ChatThrottleLib DyreparkenCharDB DyreparkenDB DyreparkenDebugDB LibStub "
+            .. "SLASH_DYREPARKEN1 SLASH_DYREPARKEN2")
+        -- Every command, with what an accident might type: the guild's data stays as it was.
+        -- (Bonds grow with time on their own, so compare who holds and names what, and the lapses.)
+        local function Registry()
+            local parts = {}
+            local claims, lapses, names = ola.ns.Registry:All()
+            for o, r in pairs(claims) do parts[#parts + 1] = ("c %s %s %s"):format(o, tostring(r.k), r.ts) end
+            for o, t in pairs(lapses) do parts[#parts + 1] = ("l %s %s"):format(o, t) end
+            for k, b in pairs(names) do
+                for n, e in pairs(b) do parts[#parts + 1] = ("n %s %s %s"):format(k, n, tostring(e.n)) end
+            end
+            table.sort(parts)
+            return table.concat(parts, " | ")
+        end
+        local before = Registry()
+        for _, line in ipairs({ "adopter bombay", "adopter kitten nope", "adopter |cffff0000x", "gislipp",
+            "navn Pepe", "navn " .. string.rep("x", 200), "navn |Tbad|t", "liste", "lyd av", "lyd på",
+            "prestasjoner", "prestasjoner del", "prestasjoner varsel av", "kunngjør av", "klapp", "",
+            "probe", "probe level 7", "debug on", "claim", "nick X", "versjon", "rapport", "ADOPTER bombay" }) do
+            ola:Slash(line)
+            w:Run(1)
+        end
+        eq(Registry(), before, "no adoption, name or lapse changed")
+        eq(ola.ns.Registry:Life("s:40", "Ola Nord"), nil, "no bond with her cat from the outside")
+        eq(ola.ns.Registry:MyPet(), nil)
+        eq(kari.ns.Registry:Holder("s:40"), "Kari Berg", "her cat is still hers")
+        eq(ola.ns.Registry:Nickname("s:40"), nil)
+        H.assertConverged(w)
+    end)
 end
