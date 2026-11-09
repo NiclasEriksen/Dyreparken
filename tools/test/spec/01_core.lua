@@ -42,7 +42,7 @@ return function(test, H)
         -- As a whole phrase: moved in today or yesterday, else living there for a while.
         eq(ns.Home("deg", today - 3600, today), "Flyttet inn hos deg i dag")
         eq(ns.Home("Kari Berg", today - 86400, today), "Flyttet inn hos Kari Berg i går")
-        eq(ns.Home("deg", today - 3 * 86400, today), "Bor hos deg i 3 dager")
+        eq(ns.Home("deg", today - 3 * 86400, today), "Har bodd hos deg i 3 dager")
         eq(ns.CaredFor(today - 60 * 86400, today), "i 2 måneder")
         eq(ns.CaredFor(today - 729 * 86400, today), "i 24 måneder")
         eq(ns.CaredFor(today - 200 * 86400, today), "i 7 måneder")

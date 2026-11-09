@@ -238,7 +238,7 @@ local function Ago(t, now)
     return "years", math.floor(days / 365.25)
 end
 
--- How long, as a phrase to follow "Bor hos X": "siden i dag", "i 5 dager",
+-- How long, as a phrase to follow "Har bodd hos X": "siden i dag", "i 5 dager",
 -- "i 3 måneder" (Locale/nb.lua, time.*).
 function ns.CaredFor(t, now)
     local kind, n = Ago(t, now or ns.Now())
@@ -246,7 +246,7 @@ function ns.CaredFor(t, now)
 end
 
 -- Where a pet lives, and since when, as a phrase: "Flyttet inn hos deg i
--- dag", "... i går", else "Bor hos Kari Berg i 3 dager" (2026-11-08: "bor
+-- dag", "... i går", else "Har bodd hos Kari Berg i 3 dager" (2026-11-10: past tense; 2026-11-08: "bor
 -- hos deg siden i dag" read badly). who: a name, or ns.L["home.you"].
 function ns.Home(who, t, now)
     local kind = Ago(t, now or ns.Now())

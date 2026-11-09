@@ -245,7 +245,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - **Strings live in Locale/nb.lua** (2026-11-08): one Lua file per language (English later: Locale/en.lua, falling
   back to Norwegian), named placeholders ({pet}, {n}), keys grouped by area. Prepared for a full text pass.
 - **Everything players read is Norwegian** (2026-11-08); developer output (`/dp probe`, `/dp debug`, the log) stays
-  English. Companions are *adoptert* and *bor hos* someone, never "reservert". "Bor hos Kari Berg i 3 dager" /
+  English. Companions are *adoptert* and *bor hos* someone, never "reservert". "Har bodd hos Kari Berg i 3 dager" (2026-11-10) /
   "siden i dag" / "siden i går" (`ns.CaredFor`), "Trenger et hjem", buttons Adopter / Gi slipp / Kallenavn, nicknames in
   «», dates as 08.11.2026. Commands: `/dp adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp` (the
   English aliases went 2026-11-09). Code and the wire keep English names (claim, Registry, `claims`).

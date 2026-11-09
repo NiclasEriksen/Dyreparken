@@ -10,7 +10,7 @@ local L = ns.L
 -- Achievements have their own table at the end (ns.AchTexts).
 
 ------------------------------------------------------------------------------
--- Time and home ("Bor hos Kari Berg i 3 dager")
+-- Time and home ("Har bodd hos Kari Berg i 3 dager")
 ------------------------------------------------------------------------------
 L["time.today"] = "siden i dag"
 L["time.yesterday"] = "siden i går"
@@ -19,7 +19,7 @@ L["time.months"] = "i {n} måneder"
 L["time.years"] = "i {n} år"
 L["home.today"] = "Flyttet inn hos {who} i dag"
 L["home.yesterday"] = "Flyttet inn hos {who} i går"
-L["home.since"] = "Bor hos {who} {how}"          -- {how}: one of the time.* texts
+L["home.since"] = "Har bodd hos {who} {how}"          -- {how}: one of the time.* texts
 L["home.you"] = "deg"                            -- {who} when it's your own pet
 
 ------------------------------------------------------------------------------
