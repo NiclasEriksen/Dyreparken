@@ -387,6 +387,7 @@ end
 function Decor:Stop(card)
     local d = card.decor
     if not d then return end
+    d.playing = false
     for _, p in ipairs(d.parts) do
         for _, g in ipairs(p.groups) do g:Stop() end
         p:Hide()
@@ -481,7 +482,19 @@ local function Bright(c, f) return math.min(1, c[1] * f), math.min(1, c[2] * f),
 function Decor:Apply(card, key, level, color)
     local d = card.decor
     if not d then return end
+    -- The same pet, level, tint and particles as now: leave them playing.
+    -- (Every card refresh used to restart them all: guildmates' bond updates
+    -- made the hearts and leaves blink out and fade back in.)
+    local shown = self.preview or level or 0
+    local sig
+    if key then
+        local parts = { key, shown, color and table.concat(color, ",") or "" }
+        for _, spec in ipairs(self:Specs(key, shown, ns.Now())) do parts[#parts + 1] = spec.kind .. spec.n end
+        sig = table.concat(parts, ";")
+        if sig == d.sig and d.playing then return end
+    end
     self:Stop(card)
+    d.sig, d.playing = sig, key ~= nil
     for i = 1, 4 do d.edges[i]:Hide(); d.wash[i]:Hide() end
     d.border:Hide()
     for _, t in pairs(d.corners) do t:Hide() end

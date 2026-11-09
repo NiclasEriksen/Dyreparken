@@ -188,4 +188,104 @@ return function(test, H)
         w:Run(2)
         eq(w:Sent("VER", "Ola Nord", m), 2, "after the gap, again")
     end)
+
+    test("under our pages the card rests: no updates, no animations, no celebration spent unseen", function()
+        local w, ola = Guild({ { "Ola Nord", { 5159 } } })
+        ola:Slash("adopter panda")
+        w:Run(5)
+        ola:OpenJournal()
+        local card = ola:SelectPet(5159)
+        eq(ola.ns.DB.char.bondSeen[PANDA], 1)
+        local park = ola.ns.ParkPage._sp
+        park:Open()
+        ok(ola.ns.SidePage:AnyOpen())
+        local playing = 0
+        for _, p in ipairs(card.decor.parts) do if p.anim:IsPlaying() then playing = playing + 1 end end
+        eq(playing, 0, "the decorations stop under the page")
+        no(card.bond.pips[1].halo.pulse:IsPlaying())
+        -- A level-up while the page is up: not celebrated there, nor remembered as seen.
+        w:SkipDays(2)
+        ola.ns.Bond:Add(100)
+        ola.env.PetJournal_UpdatePetCard(ola.env.PetJournalPetCard) -- Blizzard's own update, under the page
+        eq(#(ola.sounds or {}), 0)
+        eq(ola.ns.DB.char.bondSeen[PANDA], 1)
+        -- Back on the card: now it's celebrated.
+        park:Close()
+        eq(ola.ns.DB.char.bondSeen[PANDA], 2)
+        ok(card.celebration.flash:IsShown())
+        eq(#ola.sounds, 1)
+        -- The card hidden (the window closed), and Blizzard updates it anyway: not spent either.
+        ola.env.PetJournalPetCard:Hide()
+        ola.ns.Bond:Add(170) -- Venn
+        ola.env.PetJournal_UpdatePetCard(ola.env.PetJournalPetCard)
+        eq(ola.ns.DB.char.bondSeen[PANDA], 2)
+        ola.env.PetJournalPetCard:Show()
+        ola.env.PetJournal_UpdatePetCard(ola.env.PetJournalPetCard)
+        eq(ola.ns.DB.char.bondSeen[PANDA], 3, "seen when it's shown")
+    end)
+
+    test("a refresh that changes nothing leaves the decorations playing", function()
+        local w, ola = Guild({ { "Ola Nord", { 5159 } } })
+        ola:Slash("adopter panda")
+        w:Run(5)
+        ola:OpenJournal()
+        local card = ola:SelectPet(5159)
+        local d = card.decor
+        ola.ns.Decor:Apply(card, PANDA, 5)
+        local first = d.parts[1].anim
+        local plays = first.plays
+        ok(first:IsPlaying())
+        ola.ns.Decor:Apply(card, PANDA, 5)
+        eq(first.plays, plays, "not restarted")
+        ola.ns.Decor:Apply(card, PANDA, 6)
+        ok(d.parts[1].anim.plays > plays or d.parts[1].anim ~= first, "a new level: relaunched")
+        -- Hidden and shown again: they start again.
+        ola.env.PetJournalPetCard:Hide()
+        no(d.parts[1].anim:IsPlaying())
+        ola.env.PetJournalPetCard:Show()
+        ola.ns.Decor:Apply(card, PANDA, 6)
+        ok(d.parts[1].anim:IsPlaying())
+    end)
+
+    test("names that are secret values are unknown, not errors; the event dispatcher survives changes mid-event", function()
+        local w, ola = Guild({ { "Ola Nord", { 5159 } } })
+        ola.env.UnitName = function() return H.SECRET, "Nord" end
+        eq(ola.ns.UnitKey("party1"), nil)
+        ola.env.UnitName = function() return "Kari", H.SECRET end
+        eq(ola.ns.UnitKey("party1"), nil)
+        -- A handler removing itself and adding another, for the same event, while it's dispatched.
+        local E, a, b = ola.ns.Events, {}, {}
+        local ran = {}
+        E:On("BAG_UPDATE_DELAYED", a, function()
+            ran[#ran + 1] = "a"
+            E:Off("BAG_UPDATE_DELAYED", a)
+            E:On("BAG_UPDATE_DELAYED", b, function() ran[#ran + 1] = "b" end)
+        end)
+        ola:Fire("BAG_UPDATE_DELAYED")
+        ola:Fire("BAG_UPDATE_DELAYED")
+        eq(table.concat(ran, ","), "a,b")
+        -- And one removing another before its turn: that one isn't called.
+        local x, y = {}, {}
+        local calls = 0
+        local function Count() calls = calls + 1 end
+        E:Off("BAG_UPDATE_DELAYED", b)
+        E:On("BAG_UPDATE_DELAYED", x, function() calls = calls + 1; E:Off("BAG_UPDATE_DELAYED", y) end)
+        E:On("BAG_UPDATE_DELAYED", y, function() calls = calls + 1; E:Off("BAG_UPDATE_DELAYED", x) end)
+        ola:Fire("BAG_UPDATE_DELAYED")
+        eq(calls, 1, "whichever ran first removed the other")
+    end)
+
+    test("the level preview keeps the bar within the level it shows", function()
+        local w, ola = Guild({ { "Ola Nord", { 5159 } } })
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local now = w:ServerTime()
+        ola.ns.DB:Guild().life[PANDA] = { ["Ola Nord"] = { p = 2000, f = now - 100 * DAY, t = now } }
+        ola:OpenJournal()
+        ola:SelectPet(5159)
+        ola:Slash("probe level 2")
+        local b = ola:Card().bond
+        eq(b.text.text, "269 / 270"); eq(b.next.text, "1 poeng til Venn", "not a negative count")
+        ola:Slash("probe level off")
+    end)
 end

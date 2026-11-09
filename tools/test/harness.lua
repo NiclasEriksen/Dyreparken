@@ -1435,7 +1435,12 @@ function Client:BuildEnv()
         SetFilterChecked = NoFilters, SetAllPetTypesChecked = NoFilters, SetAllPetSourcesChecked = NoFilters,
         SetPetTypeFilter = NoFilters, SetPetSourceChecked = NoFilters, SetSearchFilter = NoFilters,
         ClearSearchFilter = NoFilters, SetDefaultFilters = NoFilters,
-        GetNumCollectedInfo = function() return 1, 1 end,
+        -- (owned, max) for a species: how many of it this client has.
+        GetNumCollectedInfo = function(sid)
+            local n = 0
+            for _, p in ipairs(c.pets) do if p.sid == sid then n = n + 1 end end
+            return n, 3
+        end,
     }
     return env
 end

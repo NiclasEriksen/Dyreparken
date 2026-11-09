@@ -210,6 +210,7 @@ function Proto:Open()
         savedPortrait[3] = portrait:GetTexture() -- as the client reports ours
     end
     self.frame:Show()
+    ns.Bus:Fire("SIDEPAGE", true)
 end
 
 function Proto:Close()
@@ -237,6 +238,14 @@ function Proto:Close()
     local fs = TitleText()
     if fs and fs:GetText() == self.def.title then fs:SetText(savedTitle) end
     savedTitle = nil
+    ns.Bus:Fire("SIDEPAGE", false)
+end
+
+-- Is one of our pages covering the window? (The journal under it stays
+-- "visible" to the client: JournalUI asks this before updating its card.)
+function SidePage:AnyOpen()
+    for _, p in ipairs(pages) do if p:IsOpen() then return true end end
+    return false
 end
 
 function SidePage:CloseAll()

@@ -243,6 +243,10 @@ end
 
 local function UpdateCard()
     if not card.status then return end
+    -- Under one of our pages (Parken, Prestasjoner) the card can't be seen:
+    -- no work, no animations, no celebration spent there. It's redrawn when
+    -- the page closes (SIDEPAGE).
+    if ns.SidePage:AnyOpen() then return end
     UpdateExtras()
     local sid = CardSpecies()
     if not sid then
@@ -263,7 +267,7 @@ local function UpdateCard()
     end
     local key = ns.Pets:KeyOfSpecies(sid)
     local status, owner, r = Status(key)
-    local ownedIt = ns.Pets:Owned()[key] ~= nil
+    local ownedIt = ns.Pets:IsOwned(key)
     local nick = ns.Registry:Nickname(key)
     local text
     if status == "free" then
@@ -665,6 +669,7 @@ end
 ------------------------------------------------------------------------------
 function JournalUI:Refresh()
     if not (PetJournal and PetJournal:IsVisible()) then return end
+    if ns.SidePage:AnyOpen() then return end -- under our page: refreshed when it closes
     RefreshList()
     UpdateCard()
 end
@@ -688,6 +693,14 @@ local function OnJournalLoaded()
         JournalUI:Refresh()
     end)
     ns.Bus:On("REGISTRY", function() JournalUI:Refresh() end)
+    ns.Bus:On("SIDEPAGE", function(open)
+        if open then
+            ns.Decor:Stop(card)
+            ns.BondTrack:Pause(card)
+        else
+            JournalUI:Refresh()
+        end
+    end)
     ns.Bus:On("BOND", function() JournalUI:Refresh() end)
 end
 

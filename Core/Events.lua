@@ -15,9 +15,15 @@ local handlers = {} -- event -> { [owner] = fn }
 frame:SetScript("OnEvent", function(_, event, ...)
     local list = handlers[event]
     if not list then return end
-    for owner, fn in pairs(list) do
-        local ok, err = pcall(fn, owner, event, ...)
-        if not ok then geterrorhandler()(err) end
+    -- A copy: a handler may add or remove listeners of this very event, and
+    -- changing a table pairs() is walking can throw ("invalid key to 'next'").
+    local copy = {}
+    for owner, fn in pairs(list) do copy[owner] = fn end
+    for owner, fn in pairs(copy) do
+        if list[owner] == fn then -- (still listening: an earlier handler may have removed it)
+            local ok, err = pcall(fn, owner, event, ...)
+            if not ok then geterrorhandler()(err) end
+        end
     end
 end)
 

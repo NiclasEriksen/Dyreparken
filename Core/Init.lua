@@ -201,6 +201,8 @@ end
 -- "First Surname" for a group unit (UnitName's second value is the surname).
 function ns.UnitKey(unit)
     local first, surname = UnitName(unit)
+    -- Unit names can be secret values (docs/FOREVER_API.md): unreadable is unknown.
+    if issecretvalue and (issecretvalue(first) or issecretvalue(surname)) then return nil end
     if not first then return nil end
     if surname and surname ~= "" then return ns.NormalizeName(first .. " " .. surname) end
     return first

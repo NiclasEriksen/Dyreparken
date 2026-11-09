@@ -36,6 +36,15 @@ function Pets:WorldName(guid)
     return nil
 end
 
+-- Do we own one of this pet? One call for its species, not a walk of the
+-- whole collection (Owned): the card asks on every update.
+function Pets:IsOwned(key)
+    local sid = self:SpeciesOfKey(key)
+    if not (sid and C_PetJournal.GetNumCollectedInfo) then return self:Owned()[key] ~= nil end
+    local n = C_PetJournal.GetNumCollectedInfo(sid)
+    return type(n) == "number" and n > 0
+end
+
 function Pets:Summoned()
     return C_PetJournal.GetSummonedPetGUID()
 end

@@ -180,7 +180,16 @@ function Track:Build(card, c, panel)
     b:SetScript("OnEnter", function(self) self.text:Show(); BondTip(self, card) end)
     b:SetScript("OnLeave", function(self) self.text:Hide(); Hide(self) end)
     self:BuildCelebration(card, c, panel)
+    c:HookScript("OnHide", function() Track:Pause(card) end)
     b:Hide()
+end
+
+-- The track's own pulses stopped (the card hidden or covered); Update starts them again.
+function Track:Pause(card)
+    local b = card.bond
+    if not b then return end
+    b.medal.glow.pulse:Stop()
+    for _, p in ipairs(b.pips) do p.halo.pulse:Stop() end
 end
 
 -- Show the holder's bond with the pet (none: hidden). family: its tint.
@@ -196,6 +205,7 @@ function Track:Update(card, key, family)
         name, from = ns.Bond.LEVELS[level][2], ns.Bond.LEVELS[level][1]
         nextAt = ns.Bond.LEVELS[level + 1] and ns.Bond.LEVELS[level + 1][1]
         points = math.max(points, from)
+        if nextAt then points = math.min(points, nextAt - 1) end -- within the level shown
     end
     local tier = self.Tier(level, family)
     b.label:SetText(name) -- the number is on the medallion
@@ -263,8 +273,9 @@ function Track:Update(card, key, family)
         end
     end
     b:Show()
-    -- Your own pet, at a level you haven't seen on its card: celebrate.
-    if ns.Registry:MyPet() == key and not ns.Decor.preview then
+    -- Your own pet, at a level you haven't seen on its card: celebrate, but
+    -- only where it can be seen; otherwise it waits for the next real look.
+    if ns.Registry:MyPet() == key and not ns.Decor.preview and card.panel:IsVisible() then
         local seen = ns.DB.char.bondSeen
         if seen[key] == nil then
             seen[key] = level -- the first look: nothing to celebrate yet

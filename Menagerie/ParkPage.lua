@@ -90,7 +90,7 @@ local function ShowTooltip(cell)
     for _, t in ipairs(ns.Personality:Traits(key)) do
         GameTooltip:AddLine(("%s: %s"):format(t.name, ns.Personality:Effect(t)), 0.9, 0.75, 0.3, true)
     end
-    if owner ~= ns.PlayerKey() and ns.Pets:Owned()[key] then
+    if owner ~= ns.PlayerKey() and ns.Pets:IsOwned(key) then
         GameTooltip:AddLine(ns.L[owner and "park.also_yours" or "park.can_adopt"],
             1, 1, 1)
     end

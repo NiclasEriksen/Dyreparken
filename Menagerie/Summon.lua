@@ -114,7 +114,7 @@ function Summon:Check(reason)
     local key = ns.Registry:MyPet()
     if not key then return end
     -- Any companion out counts: never replace one you summoned yourself.
-    local out = ns.Pets:Summoned()
+    local out = ns.Activity.Plain(ns.Pets:Summoned()) -- (a secret would throw in tostring below)
     -- Every check is logged (not only summons): checks while a pet is out
     -- are how a stray trigger shows up in the log.
     ns.Log("Summon", "check (%s): out=%s", tostring(reason), tostring(out))
