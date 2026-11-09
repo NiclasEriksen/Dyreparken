@@ -12,8 +12,11 @@ local _, ns = ...
 local Wish = {}
 ns.Wish = Wish
 
--- Likes that can't be a wish: you can't do them on demand.
-Wish.NEVER = { revive = true, level = true, day = true }
+-- Likes that can't be a wish: you can't do them on demand (Activity.KINDS: wish = false).
+Wish.NEVER = {}
+for _, k in ipairs(ns.Activity.KINDS) do
+    if k.wish == false then Wish.NEVER[k.id] = true end
+end
 
 -- What the pet wishes for on a day ("YYYYMMDD").
 function Wish:For(key, day)
@@ -45,7 +48,7 @@ function Wish:OnActivity(id, key)
     if not w or w.done or w.pet ~= key or w.id ~= id then return end
     w.done = true
     local points = ns.Config.BOND_WISH_POINTS
-    local name = ns.Bonds:NameOf(key)
+    local name = ns.Registry:NameOf(key)
     ns.Print(ns.T("wish.granted", { pet = name, activity = ns.Personality.NOUN[id], n = points }))
     ns.Log("Bond", "wish %s granted for %s", id, key)
     ns.Bond:Bonus(points, key)
@@ -74,7 +77,7 @@ function Wish:Build(card, c)
         if not w then return end
         GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
         GameTooltip:SetText(ns.L["wish.title"], 1, 0.82, 0)
-        GameTooltip:AddLine(ns.T(w.done and "wish.tip.done" or "wish.tip", { pet = ns.Bonds:NameOf(w.pet),
+        GameTooltip:AddLine(ns.T(w.done and "wish.tip.done" or "wish.tip", { pet = ns.Registry:NameOf(w.pet),
             n = ns.Config.BOND_WISH_POINTS }), 1, 1, 1, true)
         GameTooltip:Show()
     end)
@@ -94,7 +97,7 @@ function Wish:Update(card, key)
         f.text:SetTextColor(0.4, 1, 0.4)
         f.icon:SetDesaturated(false)
     else
-        f.text:SetText(ns.T("wish.line", { pet = ns.Bonds:NameOf(key), activity = ns.Personality.NOUN[w.id] }))
+        f.text:SetText(ns.T("wish.line", { pet = ns.Registry:NameOf(key), activity = ns.Personality.NOUN[w.id] }))
         f.text:SetTextColor(1, 0.82, 0)
     end
     f:SetWidth(20 + f.text:GetStringWidth())

@@ -47,17 +47,7 @@ function Bonds:Milestone(at, now)
     if a.month == n.month and a.day == n.day then return ns.T("milestone.years", { n = n.year - a.year }) end
 end
 
--- What a pet is called: its nickname, or the species name.
-function Bonds:NameOf(key)
-    return ns.Registry:Nickname(key) or ns.Pets:NameOfKey(key)
-end
 
--- A pet as someone's: its nickname only if it lives with them (the name is
--- its holder's), else the species.
-function Bonds:NameFor(key, carer)
-    if carer and ns.Registry:Holder(key) == carer then return self:NameOf(key) end
-    return ns.Pets:NameOfKey(key)
-end
 
 local Gold = ns.Gold
 
@@ -84,7 +74,7 @@ function Bonds:Celebrate()
     if key and char.bondDay ~= today then
         char.bondDay = today
         local m = self:Milestone(r.at, now)
-        if m then ns.Print(Gold(ns.T("milestone.mine", { pet = self:NameOf(key), time = m }))) end
+        if m then ns.Print(Gold(ns.T("milestone.mine", { pet = ns.Registry:NameOf(key), time = m }))) end
     end
     self:TellNameUnlock()
 
@@ -94,7 +84,7 @@ function Bonds:Celebrate()
     for petKey, owner in pairs(ns.Registry:Holders()) do
         local _, rec = ns.Registry:Holder(petKey)
         local m = owner ~= me and self:Milestone(rec.at, now)
-        if m then lines[#lines + 1] = ns.T("milestone.other", { owner = owner, pet = self:NameOf(petKey), time = m }) end
+        if m then lines[#lines + 1] = ns.T("milestone.other", { owner = owner, pet = ns.Registry:NameOf(petKey), time = m }) end
     end
     table.sort(lines)
     for i = 1, math.min(#lines, MAX_OTHERS) do ns.Print(lines[i]) end
@@ -134,7 +124,7 @@ function Bonds:PatText()
     end
     local key = ns.Pets:OutKey()
     if not key then return nil end
-    return ns.T("pat.own", { pet = self:NameFor(key, me) })
+    return ns.T("pat.own", { pet = ns.Registry:NameFor(key, me) })
 end
 
 local announced = {} -- kind .. key -> GetTime(), this session

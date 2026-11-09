@@ -164,6 +164,8 @@ return function(test, H)
 
     test("a missing event makes its activity unavailable; a broken filter switches off once", function()
         local w, c, A = Setup()
+        A.KIND.ghost, A.KIND.bad = { id = "ghost" }, { id = "bad" } -- (test kinds)
+        no(pcall(A.Source, A, { id = "undeclared", events = {}, filter = function() end }), "a kind must be declared")
         A:Source({ id = "ghost", events = { "NO_SUCH_EVENT" }, filter = function() return 1 end })
         A:Want("ghost", ME)
         no(A:Available("ghost"))

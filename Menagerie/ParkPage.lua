@@ -47,7 +47,7 @@ function Park:Records(now)
     end
     if not oldest then return { ns.L["park.empty"] } end
     local lines = {}
-    lines[1] = ns.T("park.oldest", { pet = ns.Bonds:NameOf(oldest.key), owner = oldest.owner,
+    lines[1] = ns.T("park.oldest", { pet = ns.Registry:NameOf(oldest.key), owner = oldest.owner,
         time = ns.CaredFor(oldest.at, now) })
     local best, bestN
     for tag, n in pairs(families) do
@@ -58,7 +58,7 @@ function Park:Records(now)
     end
     -- With one pet in the park, it's both the oldest and the newest: once is enough.
     if newest.key ~= oldest.key then
-        lines[#lines + 1] = ns.T("park.newest", { pet = ns.Bonds:NameOf(newest.key), owner = newest.owner,
+        lines[#lines + 1] = ns.T("park.newest", { pet = ns.Registry:NameOf(newest.key), owner = newest.owner,
             time = ns.CaredFor(newest.at, now) })
     end
     return lines

@@ -88,7 +88,9 @@ and refuses the push if it fails.
 ```
 Dyreparken.toc     load order (each file only uses files above it)
 Libs/              LibStub, ChatThrottleLib (global), LibSerialize, LibDeflate. Don't edit.
-Core/Init.lua      ns, Config tunables, Bus (internal events), helpers (Now = GetServerTime)
+Core/Init.lua      ns, Config tunables, Bus (internal events), helpers (Now = GetServerTime, Plain/IsSecret, Today/Date,
+                   Join, Gold/PrintGold, SpellName, GroupChannel, Debounce, SetTip/HideTip, PlayFirstSound): use these,
+                   don't write them again
                    ns.L / ns.T / ns.Fill: the strings (below)
 Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" = "Flyttet inn hos {who} i dag"),
                    grouped by area; named {placeholders}; the achievement texts (ns.AchTexts) at its end. Loads right
@@ -97,16 +99,15 @@ Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" 
 Core/Debug.lua     ns.Log(module, fmt, ...) → SavedVariables ring buffer; no-op when off
 Core/Events.lua    single event frame, On/Off, OutOfCombat queue
 Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() registry
-Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (not ChatThrottleLib), Register(kind, fn),
-                   MayReply (requests anyone can send: once per channel every 5 s)
+Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (not ChatThrottleLib), Register(kind, fn, from)
+                   ("GUILD"/"GROUP": other channels never reach fn), MayReply (requests anyone can send: once per channel every 5 s)
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
-Core/Activity.lua  the activity engine: game events -> activities ("boss", "quest", "pvp", "taxi", "herb", "mine",
-                   "fish", "skin", "day", "skill", "rep"; for traits "dance", "cuddle", "chat", "dive", "level", "revive", "nap",
-                   "hearth", "jump", "explore"), counted per
+Core/Activity.lua  the activity engine: game events -> activities, every one declared once in Activity.KINDS (always
+                   watched or not, wishable, chip icons; its words in Locale by id), counted per
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
                    (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
-Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot): no BOUNCE loops, one group per region
+Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, Scale): no BOUNCE loops, one group per region
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
@@ -116,13 +117,15 @@ Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay o
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
                    After regenerating Data/Companions.lua, run `luajit tools/pin_traits.lua`: it adds new species
                    (least-used traits) and never changes an existing line. Change a species by hand only.
-Menagerie/         Pets (journal access, pet keys, probes), Registry (reservation data model,
-                   merge + holder rules: read its header first), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
+Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, probes), Registry (reservation data model,
+                   merge + holder rules: read its header first; NameOf/NameFor: what a pet is called), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
-                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (/dp rapport), JournalUI,
+                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (/dp rapport), JournalUI
+                   (the list and the card; the card's widgets are one ordered list, WIDGETS: Build + a line there),
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
                    Personality (likes, and two traits per species from Data/Traits.lua;
-                   liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour), SceneGallery (/dp probe bg and decor: thumbnails of every
+                   liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour; the
+                   card's tier colors: Tier, Bright), SceneGallery (/dp probe bg and decor: thumbnails of every
                    background that exists; pick one per family, saved in DyreparkenDB.scenePicks), BondTrack (the bond on the card: a medallion with the level, a track of seven stars,
                    a tinted bar with a spark; a celebration once per new level of your own pet, char.bondSeen), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
                    Playdate (in a group with a guildmate whose pet is out: both pets play, once a day each;
@@ -142,8 +145,8 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    guild announcements)
 Achievements/      Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
-                   /dp ach share; guild ones synced with the registry, ACH), Kills (research probe for boss/PvP kills, only while
-                   debug is on), Page (the achievements SidePage;
+                   /dp ach share; guild ones synced with the registry, ACH), Kills (research probes: honorable kills while debug
+                   is on; /dp probe kills and life), Page (the achievements SidePage;
                    Del per shareable one).
                    Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first). Planned next: bond, temperament and the activity engine,

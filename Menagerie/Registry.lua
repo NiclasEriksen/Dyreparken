@@ -293,6 +293,18 @@ end
 ------------------------------------------------------------------------------
 -- Nicknames
 ------------------------------------------------------------------------------
+-- What a pet is called: its nickname, or the species name.
+function Registry:NameOf(key)
+    return self:Nickname(key) or ns.Pets:NameOfKey(key)
+end
+
+-- A pet as someone's: its nickname only if it lives with them (the name is
+-- its holder's), else the species.
+function Registry:NameFor(key, carer)
+    if carer and self:Holder(key) == carer then return self:NameOf(key) end
+    return ns.Pets:NameOfKey(key)
+end
+
 -- The pet's nickname (nil if it has none), and who named it, when.
 function Registry:Nickname(key)
     local g = G()

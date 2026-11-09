@@ -140,7 +140,7 @@ function Bond:Add(points, key)
     local level, name = self:Level(p)
     ns.Log("Bond", "%s +%d -> %d (level %d)", key, points, p, level)
     if level > oldLevel then
-        ns.Print(ns.T("bond.levelup", { pet = ns.Bonds:NameOf(key), n = level, level = name }))
+        ns.Print(ns.T("bond.levelup", { pet = ns.Registry:NameOf(key), n = level, level = name }))
         if key == ns.Registry:MyPet() then ns.Bonds:TellNameUnlock() end
         Publish(key)
     elseif not e then
@@ -183,7 +183,10 @@ end
 -- Always watched (any pet of ours can bond); the traits' own activities
 -- (dance, chat, dive...) only for the pets we'd have out that like them, so
 -- nobody else pays for those events.
-Bond.ACTIVITIES = { "day", "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin", "explore", "skill", "rep" }
+Bond.ACTIVITIES = {}
+for _, k in ipairs(ns.Activity.KINDS) do
+    if k.always then Bond.ACTIVITIES[#Bond.ACTIVITIES + 1] = k.id end
+end
 local watching = {}
 
 function Bond:Watch()
@@ -249,7 +252,7 @@ local function Grant(d, points, key)
     -- Counted before Add: Add refreshes the card, which shows today's points.
     d.total = d.total + points
     if d.total >= max then -- (once: a full day stops before this)
-        ns.Print(ns.T("bond.full", { pet = ns.Bonds:NameOf(key) }))
+        ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) }))
     end
     return Bond:Add(points, key)
 end
@@ -279,7 +282,7 @@ end
 -- haven't adopted: Bond:Rate).
 function Bond:OnActivity(id, n, key)
     local C, P = ns.Config, ns.Personality
-    local name = ns.Bonds:NameOf(key)
+    local name = ns.Registry:NameOf(key)
     local rate = self:Rate(key)
     local function Scaled(v) return math.ceil(v * rate) end
     n = n or 1
@@ -328,9 +331,9 @@ function Bond:First(id, key, extra)
         firsts[key] = firsts[key] or {}
         if firsts[key][extra] then return end
         firsts[key][extra] = true
-        text = ns.T("first.boss", { pet = ns.Bonds:NameOf(key), boss = extra })
+        text = ns.T("first.boss", { pet = ns.Registry:NameOf(key), boss = extra })
     elseif id == "explore" and type(extra) == "string" then
-        text = ns.T("first.place", { pet = ns.Bonds:NameOf(key), place = extra })
+        text = ns.T("first.place", { pet = ns.Registry:NameOf(key), place = extra })
     else
         return
     end

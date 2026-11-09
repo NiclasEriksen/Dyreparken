@@ -44,8 +44,8 @@ function Playdate:Heard(sender, theirs)
     local mine = PetOut()
     if not mine or ns.Guild:IsMember(sender) ~= true then return end
     if ns.Bond:Playdate(mine) then
-        local friend = ns.Bonds:NameFor(theirs, sender)
-        ns.PrintGold(ns.T("play.line", { pet = ns.Bonds:NameOf(mine), friend = friend, owner = sender }))
+        local friend = ns.Registry:NameFor(theirs, sender)
+        ns.PrintGold(ns.T("play.line", { pet = ns.Registry:NameOf(mine), friend = friend, owner = sender }))
         ns.Log("Bond", "playdate: %s with %s's %s", mine, sender, theirs)
         ns.Bond:Bonus(ns.Config.BOND_PLAY_POINTS, mine)
     end

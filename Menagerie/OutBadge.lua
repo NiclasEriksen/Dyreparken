@@ -20,13 +20,13 @@ local function Tip(self)
     if ns.Summon:Deferring() then
         GameTooltip:SetText(ns.L["card.auto.deferred"], 1, 1, 1, 1, true)
     else
-        local pet = card.key and ns.Bonds:NameOf(card.key) or ""
+        local pet = card.key and ns.Registry:NameOf(card.key) or ""
         GameTooltip:SetText(self.on and ns.T("card.out.on.title", { pet = pet })
             or ns.T("card.out.off.title", { pet = pet }), 1, 0.82, 0)
         GameTooltip:AddLine(ns.T("card.auto.tip", { pet = pet }), 1, 1, 1, true)
         local active = ns.Summon:ActiveKey()
         if active and active ~= card.key then
-            GameTooltip:AddLine(ns.T("card.auto.now", { pet = ns.Bonds:NameOf(active) }), 0.7, 0.7, 0.7, true)
+            GameTooltip:AddLine(ns.T("card.auto.now", { pet = ns.Registry:NameOf(active) }), 0.7, 0.7, 0.7, true)
         end
         GameTooltip:AddLine(self.on and ns.L["card.out.on.click"] or ns.T("card.out.off.click", { pet = pet }), 0.5, 0.8, 0.5, true)
     end

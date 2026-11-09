@@ -15,22 +15,8 @@ local MAX = 5
 local CHIP_H, ICON, GAP = 20, 16, 6
 
 -- Activities with a chip, and their icons (the first the client has).
-Stats.ICONS = {
-    day = { "Interface\\Icons\\INV_Misc_PocketWatch_01" },
-    boss = { "Interface\\TargetingFrame\\UI-TargetingFrame-Skull" },
-    quest = { "Interface\\GossipFrame\\ActiveQuestIcon", "Interface\\Icons\\INV_Misc_Note_01" }, -- (the first is missing on Forever)
-    herb = { "Interface\\Icons\\Trade_Herbalism" },
-    mine = { "Interface\\Icons\\Trade_Mining" },
-    fish = { "Interface\\Icons\\Trade_Fishing" },
-    skin = { "Interface\\Icons\\INV_Misc_Pelt_Wolf_01" },
-    taxi = { "Interface\\TaxiFrame\\UI-Taxi-Icon-Green", "Interface\\Icons\\Ability_Mount_Gryphon_01" },
-    pvp = { "Interface\\Icons\\Ability_DualWield" },
-    explore = { "Interface\\Icons\\INV_Misc_Map_01" },
-    hearth = { "Interface\\Icons\\INV_Misc_Rune_01" },
-    skill = { "Interface\\Icons\\Trade_Engineering" },
-    rep = { "Interface\\Icons\\INV_Misc_Token_ArgentDawn", "Interface\\Icons\\INV_Scroll_03" },
-    dive = { "Interface\\Icons\\Spell_Shadow_DemonBreath", "Interface\\Icons\\Spell_Frost_SummonWaterElemental" },
-}
+Stats.ICONS = {}
+for _, k in ipairs(ns.Activity.KINDS) do Stats.ICONS[k.id] = k.icons end
 local QUESTION = "Interface\\Icons\\INV_Misc_QuestionMark"
 
 function Stats.Icon(id)
@@ -61,7 +47,7 @@ end
 local function Tip(self)
     local card = self.card
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-    local pet = ns.Bonds:NameOf(card.key)
+    local pet = ns.Registry:NameOf(card.key)
     if self.id == "day" then
         GameTooltip:SetText(ns.T("stats.days", { n = self.n, pet = pet }), 1, 1, 1)
     else

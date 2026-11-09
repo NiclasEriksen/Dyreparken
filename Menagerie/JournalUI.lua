@@ -176,7 +176,7 @@ local function OnButtonEnter(button)
     local key = ns.Pets:KeyOfSpecies(sid)
     JournalUI:AddTooltipLines(GameTooltip, key)
     if key == ns.Summon:ActiveKey() then -- (ours only: not in the world tooltip, where it's anyone's)
-        GameTooltip:AddLine(ns.T("card.out.on.title", { pet = ns.Bonds:NameOf(key) }), 1, 0.82, 0.3)
+        GameTooltip:AddLine(ns.T("card.out.on.title", { pet = ns.Registry:NameOf(key) }), 1, 0.82, 0.3)
     end
     GameTooltip:Show()
 end
@@ -266,9 +266,28 @@ local function UpdateGuildBoxes()
     card.counter:SetText(ns.T("card.guild.value", { n = n, total = total, pct = pct }))
     card.guildBox.tip = ns.T("card.guild.tip", { n = n, total = total, pct = pct })
     local today, owner = ns.Bonds:PetOfTheDay()
-    card.today:SetText(today and ns.Bonds:NameOf(today) or "-")
-    card.todayBox.tip = today and ns.T("card.today.tip", { pet = ns.Bonds:NameOf(today), owner = owner })
+    card.today:SetText(today and ns.Registry:NameOf(today) or "-")
+    card.todayBox.tip = today and ns.T("card.today.tip", { pet = ns.Registry:NameOf(today), owner = owner })
         or ns.L["card.today.none"]
+    SizeTodayBox()
+end
+
+-- The card's widgets, in drawing order: each draws itself for the pet (or
+-- clears itself, key nil). ctx: the family's tint and the bond level shown.
+-- A new widget is a Build in BuildCard and a line here.
+local WIDGETS = {
+    function(key, ctx) ns.Decor:Apply(card, key, ctx.level, ctx.tint) end,
+    function(key) ns.Stats:Update(card, key) end, -- (after the decorations: under the ribbon when there is one)
+    function(key) ns.Wish:Update(card, key) end,  -- (under the chips)
+    function(key, ctx) ns.BondTrack:Update(card, key, ns.Scenes.Bright(ctx.tint, 1.7)) end,
+    function(key) ns.OutBadge:Update(card, key) end, -- "Med deg": is this the pet kept out?
+}
+
+local function DrawWidgets(key)
+    card.key = key -- (the hover tooltips and clicks follow it)
+    local ctx = { tint = ns.Scenes:Paint(card, key) or ns.Scenes.TINT.default } -- (the picture, the light)
+    if key then ctx.level = select(2, ns.Bond:Shown(key)) end -- your bond with it, or its carer's
+    for _, draw in ipairs(WIDGETS) do draw(key, ctx) end
     SizeTodayBox()
 end
 
@@ -284,14 +303,7 @@ local function UpdateCard()
         card.nickname:SetText("")
         card.personality:SetText("")
         card.likes:SetText("")
-        card.key = nil -- the hover tooltips follow it
-        SizeTodayBox()
-        ns.OutBadge:Update(card, nil)
-        ns.Scenes:Paint(card, nil)
-        ns.Decor:Apply(card, nil)
-        ns.Stats:Update(card, nil)
-        ns.Wish:Update(card, nil)
-        card.bond:Hide()
+        DrawWidgets(nil)
         card.reserve:Hide()
         card.nick:Hide()
         return
@@ -328,17 +340,8 @@ local function UpdateCard()
         card.personality:SetText(ns.L["personality.unknown"])
         card.likes:SetText("")
     end
-    local tint = ns.Scenes:Paint(card, key) -- (the picture, the light; the family's tint)
-    local _, level = ns.Bond:Shown(key) -- your bond with it, or its carer's
-    ns.Decor:Apply(card, key, level, tint)
-    ns.Stats:Update(card, key) -- (after the decorations: it sits under the ribbon when there is one)
-    ns.Wish:Update(card, key) -- (under the chips)
+    DrawWidgets(key)
     ns.Sync:AskBonds(key) -- others' bonds with it (not in the full sync)
-    ns.BondTrack:Update(card, key, ns.Scenes.Bright(tint, 1.7))
-
-    card.key = key
-    SizeTodayBox()
-    ns.OutBadge:Update(card, key) -- "Med deg": is this the pet kept out?
     if status == "mine" then
         card.reserve:SetText(ns.L["card.letgo"])
         card.reserve:Enable()
@@ -623,7 +626,7 @@ function JournalUI:AskAdopt(key)
     if not key then return end
     local text = ns.T("adopt.confirm", { pet = ns.Pets:NameOfKey(key) })
     local mine = ns.Registry:MyPet()
-    if mine and mine ~= key then text = text .. "\n" .. ns.T("adopt.confirm.swap", { pet = ns.Bonds:NameOf(mine) }) end
+    if mine and mine ~= key then text = text .. "\n" .. ns.T("adopt.confirm.swap", { pet = ns.Registry:NameOf(mine) }) end
     if ns.DB.char.announce then text = text .. "\n\n" .. ns.L["adopt.confirm.announce"] end
     StaticPopup_Show("DYREPARKEN_ADOPT", text, nil, key)
 end

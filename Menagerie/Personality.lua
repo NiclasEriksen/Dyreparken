@@ -25,13 +25,16 @@ ns.Personality = Personality
 
 local L = ns.L
 
--- Activities (Core/Activity.lua) as players read them, and the line for the
--- first liked one of the day (Locale/nb.lua: activity.*).
-Personality.NOUN, Personality.FLAVOR = {}, {}
-for _, id in ipairs({ "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin", "day", "dance", "cuddle", "chat",
-    "dive", "level", "revive", "nap", "hearth", "jump", "explore", "skill", "rep" }) do
+-- Activities (Activity.KINDS) as players read them: the noun, the line for
+-- the first liked one of the day, and how it reads in a trait's effect,
+-- where "X med kjæledyret ute" doesn't say enough (Locale/nb.lua: activity.*,
+-- effect.activity.*; each only where it's written).
+Personality.NOUN, Personality.FLAVOR, Personality.EFFECT = {}, {}, {}
+for _, k in ipairs(ns.Activity.KINDS) do
+    local id, S = k.id, ns.Strings
     Personality.NOUN[id] = L["activity." .. id]
-    if ns.Strings["activity." .. id .. ".flavor"] then Personality.FLAVOR[id] = L["activity." .. id .. ".flavor"] end
+    if S["activity." .. id .. ".flavor"] then Personality.FLAVOR[id] = L["activity." .. id .. ".flavor"] end
+    if S["effect.activity." .. id] then Personality.EFFECT[id] = L["effect.activity." .. id] end
 end
 
 Personality.BY_FAMILY = {
@@ -172,12 +175,6 @@ function Personality:WantsContext(key)
     return false
 end
 
--- How an activity reads in a trait's effect, where "X med kjæledyret ute"
--- doesn't say enough (Locale/nb.lua: effect.activity.*).
-Personality.EFFECT = {}
-for _, id in ipairs({ "dance", "cuddle", "chat", "dive", "level", "revive", "nap", "hearth", "jump", "explore" }) do
-    Personality.EFFECT[id] = L["effect.activity." .. id]
-end
 
 -- What a trait does, in numbers (from ns.Config, so it can't go stale).
 function Personality:Effect(trait)

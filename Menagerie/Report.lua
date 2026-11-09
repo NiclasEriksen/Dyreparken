@@ -53,7 +53,7 @@ end
 -- What a member's companion is called, if they have adopted one.
 local function PetOf(name)
     local key = ns.Registry:PetOf(name)
-    return key and ns.Bonds:NameOf(key)
+    return key and ns.Registry:NameOf(key)
 end
 
 -- The line for group chat, or nil when there's nothing to say.

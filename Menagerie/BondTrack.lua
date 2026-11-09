@@ -393,7 +393,7 @@ function Track:Celebrate(card, key, level)
     local name = ns.Bond.LEVELS[level][2]
     cel.text.title:SetText(ns.T("bond.celebrate.title", { level = name }))
     local decor = ns.Decor.LEVELS[level]
-    cel.text.sub:SetText(ns.T("bond.celebrate.text", { pet = ns.Bonds:NameOf(key), n = level })
+    cel.text.sub:SetText(ns.T("bond.celebrate.text", { pet = ns.Registry:NameOf(key), n = level })
         .. (decor and ("\n" .. ns.T("bond.celebrate.decor", { decor = decor })) or ""))
     cel.text:Show(); cel.text.anim:Play()
     ns.Log("Bond", "celebration sound %s", tostring(ns.PlayFirstSound(self.SOUNDS)))

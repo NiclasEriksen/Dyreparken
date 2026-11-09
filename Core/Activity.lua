@@ -29,6 +29,40 @@ local _, ns = ...
 local Activity = {}
 ns.Activity = Activity
 
+-- EVERY ACTIVITY, declared once (2026-11-09): its id, whether the bond
+-- always watches it (always; the rest only for a pet that likes it), whether
+-- it can be a pet's wish of the day (wish = false: not on demand), and the
+-- icons of its chip on the card (the first the client has; none: no chip).
+-- Its words come from Locale/nb.lua by id: activity.<id> (the noun),
+-- activity.<id>.flavor (the line the first liked one of a day brings) and
+-- effect.activity.<id> (how a trait's effect reads), each when present.
+-- Personality, Stats, Bond and Wish read their views from here; a source
+-- (below) must use an id from this list.
+local ICON = "Interface\\Icons\\"
+Activity.KINDS = {
+    { "day", always = true, wish = false, icons = { ICON .. "INV_Misc_PocketWatch_01" } },
+    { "boss", always = true, icons = { "Interface\\TargetingFrame\\UI-TargetingFrame-Skull" } },
+    { "quest", always = true, -- (the gossip icon is missing on Forever)
+        icons = { "Interface\\GossipFrame\\ActiveQuestIcon", ICON .. "INV_Misc_Note_01" } },
+    { "taxi", always = true,
+        icons = { "Interface\\TaxiFrame\\UI-Taxi-Icon-Green", ICON .. "Ability_Mount_Gryphon_01" } },
+    { "pvp", always = true, icons = { ICON .. "Ability_DualWield" } },
+    { "herb", always = true, icons = { ICON .. "Trade_Herbalism" } },
+    { "mine", always = true, icons = { ICON .. "Trade_Mining" } },
+    { "fish", always = true, icons = { ICON .. "Trade_Fishing" } },
+    { "skin", always = true, icons = { ICON .. "INV_Misc_Pelt_Wolf_01" } },
+    { "explore", always = true, icons = { ICON .. "INV_Misc_Map_01" } },
+    { "skill", always = true, icons = { ICON .. "Trade_Engineering" } },
+    { "rep", always = true, icons = { ICON .. "INV_Misc_Token_ArgentDawn", ICON .. "INV_Scroll_03" } },
+    { "dance" }, { "cuddle" }, { "chat" },
+    { "dive", icons = { ICON .. "Spell_Shadow_DemonBreath", ICON .. "Spell_Frost_SummonWaterElemental" } },
+    { "level", wish = false }, { "revive", wish = false }, { "nap" },
+    { "hearth", icons = { ICON .. "INV_Misc_Rune_01" } },
+    { "jump" },
+}
+Activity.KIND = {}
+for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end
+
 local sources = {}      -- id -> source
 local wanted = {}       -- id -> { [owner] = true }
 local listening = {}    -- event -> { source, ... } currently registered
@@ -95,6 +129,7 @@ end
 -- skip), extra; hook = fn(fire) for sources driven by a function hook;
 -- start = fn() when it starts being watched; available = fn() -> bool }
 function Activity:Source(src)
+    assert(self.KIND[src.id], "Activity:Source: declare " .. tostring(src.id) .. " in Activity.KINDS")
     sources[src.id] = src
 end
 
