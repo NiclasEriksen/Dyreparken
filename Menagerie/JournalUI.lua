@@ -453,3 +453,5 @@ function JournalUI:ProbeCard()
     Walk(c, 0)
     ns.Print("Pet card probed; /reload and send the debug log.")
 end
+
+ns.Start("loaded", function() JournalUI:Init() end)

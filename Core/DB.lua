@@ -180,3 +180,5 @@ function DB:Guild()
     end
     return g, name
 end
+
+ns.Start("loaded", function() DB:Init() end)

@@ -258,3 +258,5 @@ function Sync:Init()
         end
     end)
 end
+
+ns.Start("loaded", function() Sync:Init() end)

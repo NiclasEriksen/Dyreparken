@@ -271,3 +271,6 @@ function Summon:AnnounceDeferral()
         ns.Print(ns.L["summon.deferred"])
     end
 end
+
+ns.Start("login", function() Summon:Init() end)
+ns.Start("settled", function() Summon:AnnounceDeferral() end)

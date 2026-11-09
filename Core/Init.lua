@@ -112,6 +112,26 @@ function ns.SpellName(id)
     return ns.Plain(C_Spell.GetSpellName(id))
 end
 
+-- Start-up: each module says in its own file when it starts
+-- (ns.Start(phase, fn)); Main.lua runs the phases. Within a phase, modules
+-- start in load order (the TOC), so a module starts after the ones it uses.
+--   loaded   SavedVariables are there (ADDON_LOADED): data, handlers, hooks
+--   login    the character is in the world (PLAYER_LOGIN)
+--   settled  10 s on, the login burst is over: the roster, our own record
+--   hello    last: tell the guild where we stand (the digest is current now)
+ns.PHASES = { "loaded", "login", "settled", "hello" }
+local starts = {}
+for _, phase in ipairs(ns.PHASES) do starts[phase] = {} end
+
+function ns.Start(phase, fn)
+    local list = assert(starts[phase], "unknown start-up phase")
+    list[#list + 1] = fn
+end
+
+function ns.RunPhase(phase)
+    for _, fn in ipairs(starts[phase]) do fn() end
+end
+
 -- fn once, delay seconds after the first call of a burst: the calls that
 -- follow within the delay are folded into it (fn gets the first call's arguments).
 function ns.Debounce(delay, fn)

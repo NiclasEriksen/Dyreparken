@@ -661,3 +661,6 @@ function Ach:Init()
     -- the guild ones once it settles.
     ns.Bus:On("REGISTRY", ns.Debounce(GUILD_DEBOUNCE, function() Ach:Check("REGISTRY", "guild") end))
 end
+
+ns.Start("loaded", function() Ach:Init() end)
+ns.Start("settled", function() Ach:Check("login") end)

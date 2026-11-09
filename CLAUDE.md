@@ -89,7 +89,8 @@ and refuses the push if it fails.
 Dyreparken.toc     load order (each file only uses files above it)
 Libs/              LibStub, ChatThrottleLib (global), LibSerialize, LibDeflate. Don't edit.
 Core/Init.lua      ns, Config tunables, Bus (internal events), helpers (Now = GetServerTime, Plain/IsSecret, Today/Date,
-                   Join, Gold/PrintGold, SpellName, GroupChannel, Debounce, SetTip/HideTip, PlayFirstSound): use these,
+                   Join, Gold/PrintGold, SpellName, GroupChannel, Debounce, SetTip/HideTip, PlayFirstSound), the start-up
+                   phases (ns.Start, ns.RunPhase): use these,
                    don't write them again
                    ns.L / ns.T / ns.Fill: the strings (below)
 Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" = "Flyttet inn hos {who} i dag"),
@@ -159,7 +160,8 @@ Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble,
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
-Main.lua           bootstrap (ADDON_LOADED → init, PLAYER_LOGIN → summon + hello)
+Main.lua           bootstrap: runs the start-up phases (loaded, login, settled, hello). Each module declares its own
+                   start at the end of its file, ns.Start(phase, fn) (Core/Init.lua); within a phase, TOC order
 tools/check.sh     all offline checks (see Verify)
 tools/test/        harness.lua (simulated clients + network), run.lua (runner, coverage), spec/*.lua
 ```

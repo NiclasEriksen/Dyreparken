@@ -130,3 +130,5 @@ function Report:Run()
         ns.Log("Report", "ok=%d missing=%d unknown=%d", ok, #missing, #unknown)
     end)
 end
+
+ns.Start("loaded", function() Report:Init() end)

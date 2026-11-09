@@ -269,4 +269,31 @@ return function(test, H)
             RegisterAddonMessagePrefix = true, io = true --[[ LibDeflate's command line mode ]] }
         for k in pairs(c.missingGlobals) do ok(optional[k], "read of a global the stubs lack: " .. tostring(k)) end
     end)
+
+    test("start-up: each module declares its phase; phases run in order, modules in load order", function()
+        -- Every module with an Init starts itself (Main.lua lists none).
+        for line in io.lines("Dyreparken.toc") do
+            local path = line:match("^([%w\\]+%.lua)$")
+            if path and not path:find("^Libs") then
+                local src = assert(io.open((path:gsub("\\", "/")), "rb")):read("*a")
+                local obj = src:match("\nfunction (%w+):Init%(%)")
+                if obj then
+                    ok(src:find('ns%.Start%("%w+", function%(%) ' .. obj .. ':Init%(%) end%)'), path .. " starts itself")
+                end
+            end
+        end
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { pets = { 5159 } })
+        eq(#c:Log("^HELLO"), 0)
+        no(pcall(c.ns.Start, "later", function() end), "an unknown phase fails loudly")
+        w:Run(12)
+        -- Settled before hello: the digest goes out after the login checks.
+        local lines = c:Log("")
+        local check, hello
+        for i, l in ipairs(lines) do
+            if not check and l:find("check %(login%)") then check = i end
+            if not hello and l:find("%-> HELLO") then hello = i end
+        end
+        ok(check and hello and check < hello, "the login check, then HELLO")
+    end)
 end

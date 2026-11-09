@@ -69,3 +69,6 @@ function Version:Check(channel)
         -- TODO: list group/guild members that didn't answer (no addon).
     end)
 end
+
+ns.Start("loaded", function() Version:Init() end)
+ns.Start("hello", function() Version:Hello() end)

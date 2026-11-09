@@ -377,3 +377,5 @@ function Bond:Init()
         if key and ns.Registry:Life(key, ns.PlayerKey()) then Publish(key) end
     end)
 end
+
+ns.Start("login", function() Bond:Init() end)

@@ -56,3 +56,5 @@ function Playdate:Init()
     ns.Events:On("GROUP_ROSTER_UPDATE", Playdate, function() Playdate:Soon() end)
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Playdate:Soon() end)
 end
+
+ns.Start("login", function() Playdate:Init() end)

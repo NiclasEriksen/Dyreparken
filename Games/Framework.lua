@@ -90,3 +90,5 @@ function Games:Init()
     UIState:Restore()
     -- TODO: GAME_START / GAME_MSG / GAME_END handlers, version gate, start/end commands.
 end
+
+ns.Start("loaded", function() Games:Init() end)

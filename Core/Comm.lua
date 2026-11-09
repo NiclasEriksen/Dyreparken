@@ -213,3 +213,5 @@ function Comm:Init()
     C_ChatInfo.RegisterAddonMessagePrefix(PREFIX)
     ns.Events:On("CHAT_MSG_ADDON", Comm, OnAddonMessage)
 end
+
+ns.Start("loaded", function() Comm:Init() end)

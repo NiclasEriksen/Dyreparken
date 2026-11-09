@@ -174,3 +174,5 @@ function Tooltip:Init()
         if not ok then ns.Log("Tooltip", "error: %s", tostring(err)) end
     end)
 end
+
+ns.Start("loaded", function() Tooltip:Init() end)

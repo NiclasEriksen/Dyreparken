@@ -79,3 +79,6 @@ end
 function Guild:DaysOffline(name)
     return self.members[name]
 end
+
+-- Roster first: an answer arrives before peers' SYNCs need it.
+ns.Start("settled", function() Guild:Refresh(true) end)

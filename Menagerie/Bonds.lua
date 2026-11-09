@@ -166,3 +166,5 @@ function Bonds:Pat()
     if not text then return ns.Print(ns.L["pat.nothing"]) end
     SendChatMessage(text, "EMOTE")
 end
+
+ns.Start("login", function() Bonds:Init() end)

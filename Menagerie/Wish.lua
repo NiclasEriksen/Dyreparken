@@ -109,3 +109,5 @@ function Wish:Update(card, key)
     end
     f:Show()
 end
+
+ns.Start("login", function() Wish:Init() end)

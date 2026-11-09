@@ -450,3 +450,6 @@ function Registry:CheckMine()
     Write({ at = r.at })
     return true
 end
+
+-- Our own record may have lost a race or lapsed while we were away.
+ns.Start("settled", function() Registry:CheckMine() end)

@@ -46,3 +46,5 @@ function Debug:Clear()
     DyreparkenDebugDB.lines = { head = 0 }
     buf = DyreparkenDebugDB.lines
 end
+
+ns.Start("loaded", function() Debug:Init() end) -- (first: everything after may log)

@@ -485,3 +485,5 @@ local function ChatSource(id, event, global)
 end
 ChatSource("skill", "CHAT_MSG_SKILL", "SKILL_RANK_UP")
 ChatSource("rep", "CHAT_MSG_COMBAT_FACTION_CHANGE", "FACTION_STANDING_INCREASED")
+
+ns.Start("loaded", function() Activity:Init() end)
