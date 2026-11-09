@@ -183,7 +183,7 @@ return function(test, H)
 
     test("the list: an adopted pet's bond level in a ring, and its nickname under the name", function()
         local w, ola, kari = Setup()
-        local B = ola.ns.JournalUI._badges
+        local B = ola.ns.JournalList._badges
         local panda, bombay = B[ola:Button(5159)], B[ola:Button(40)]
         ok(panda.ring:IsShown()); eq(panda.level.text, 1)
         eq(panda.ring.atlas, "communities-ring-gold")

@@ -265,11 +265,11 @@ return function(test, H)
         eq(card.likes.text, "Liker herbs og flyturer")
         local tip = ola.env.GameTooltip
         tip:ClearLines()
-        ola.ns.JournalUI:AddTooltipLines(tip, PANDA)
+        ola.ns.JournalList:AddTooltipLines(tip, PANDA)
         match(table.concat(tip.lines, " / "), "trenger et hjem / Kosete og Reiseglad · liker herbs og flyturer$")
         ola:Slash("adopter panda")
         tip:ClearLines()
-        ola.ns.JournalUI:AddTooltipLines(tip, PANDA)
+        ola.ns.JournalList:AddTooltipLines(tip, PANDA)
         match(table.concat(tip.lines, " / "), "Flyttet inn hos deg i dag / Bånd: .* / Kosete og Reiseglad · liker herbs og flyturer$")
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil

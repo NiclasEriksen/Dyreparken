@@ -250,6 +250,13 @@ function Registry:Holder(key)
     return owner, G().claims[owner]
 end
 
+-- "mine", "taken" or "free", and the owner and record: for markers and text.
+function Registry:Status(key)
+    local owner, r = self:Holder(key)
+    if not owner then return "free" end
+    return owner == ns.PlayerKey() and "mine" or "taken", owner, r
+end
+
 -- The pet a member holds (won), if any: key, record.
 function Registry:PetOf(carer)
     local g = G()

@@ -118,10 +118,12 @@ Data/Traits.lua    every species' two personality traits, PINNED for good (decid
                    After regenerating Data/Companions.lua, run `luajit tools/pin_traits.lua`: it adds new species
                    (least-used traits) and never changes an existing line. Change a species by hand only.
 Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, probes), Registry (reservation data model,
-                   merge + holder rules: read its header first; NameOf/NameFor: what a pet is called), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
+                   merge + holder rules: read its header first; Status: mine/taken/free; NameOf/NameFor: what a pet is called), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
-                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (/dp rapport), JournalUI
-                   (the list and the card; the card's widgets are one ordered list, WIDGETS: Build + a line there),
+                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (/dp rapport),
+                   JournalList (the journal's list: markers, bond rings, nicknames, tooltips), CardActions (the card's
+                   Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring; the card's
+                   widgets are one ordered list, WIDGETS: Build + a line there),
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
                    Personality (likes, and two traits per species from Data/Traits.lua;
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour; the

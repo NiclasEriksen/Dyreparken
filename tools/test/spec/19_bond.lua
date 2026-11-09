@@ -191,7 +191,7 @@ return function(test, H)
         -- Tooltips.
         local tip = kari.env.GameTooltip
         tip:ClearLines()
-        kari.ns.JournalUI:AddTooltipLines(tip, PANDA)
+        kari.ns.JournalList:AddTooltipLines(tip, PANDA)
         match(table.concat(tip.lines, " / "), "Bor hos Ola Nord i 30 dager / Bånd: Sjelevenn %(nivå 7%)")
         local added = kari:Hover({ species = 5159, owner = "Ola Nord" })
         match(added[#added], " · Sjelevenn$")

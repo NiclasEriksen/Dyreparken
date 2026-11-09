@@ -47,6 +47,8 @@ Menagerie\Stats.lua
 Menagerie\Cuddle.lua
 Menagerie\OutBadge.lua
 Menagerie\Personality.lua
+Menagerie\JournalList.lua
+Menagerie\CardActions.lua
 Menagerie\JournalUI.lua
 Menagerie\Tooltip.lua
 Menagerie\Bonds.lua

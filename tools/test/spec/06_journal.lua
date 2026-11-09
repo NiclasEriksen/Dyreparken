@@ -115,7 +115,7 @@ return function(test, H)
         eq(card.nickname.text, "Bambus", "big, on its own line")
         eq(card.status.plain, "Panda Cub · Bor hos deg i 7 dager", "named: the species leads")
         -- The popup shows the current nickname; Enter also accepts.
-        ola.ns.JournalUI:AskNickname()
+        ola.ns.CardActions:AskNickname()
         local shown, frame = ola:PopupAccept("Bamse", true)
         eq(shown, "Bambus")
         ok(frame.hidden)
@@ -249,7 +249,7 @@ return function(test, H)
         local w, ola = Setup()
         ola:SelectPet(5159)
         local function Paw(sid)
-            for button, b in pairs(ola.ns.JournalUI._badges) do
+            for button, b in pairs(ola.ns.JournalList._badges) do
                 if button.speciesID == sid then return b.out:IsShown() end
             end
         end
