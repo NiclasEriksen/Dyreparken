@@ -9,6 +9,7 @@ local _, ns = ...
 -- `/dp probe kills`: which kill events the client knows, the PvP stats.
 -- `/dp probe life`: which events, functions and chat formats the traits
 -- read exist, and the context a trait's moment sees.
+-- `/dp probe world`: companions' nameplates (at the end of the file).
 local Kills = {}
 ns.Kills = Kills
 
@@ -126,4 +127,105 @@ function Kills:ProbeLife()
     for _, f in ipairs(FUNCS) do parts[#parts + 1] = f .. "=" .. tostring(type(_G[f]) == "function") end
     for _, g in ipairs(FORMATS) do parts[#parts + 1] = g .. "=" .. Show(_G[g]) end
     Report("life", parts, self:Context())
+end
+
+------------------------------------------------------------------------------
+-- The world (2026-11-09): can we draw over a companion out in the world? A
+-- unit's nameplate is the only frame the client keeps over it in 3D, and
+-- Forever gives companions one (an unnamed one showed "Unknown" on it), but
+-- when, and whether an addon may attach to it, is unknown. `/dp probe world`
+-- reads the nameplate settings (read only: we never change them, other
+-- addons own those), lists the nameplates up now, and puts a test heart over
+-- each companion's for a few seconds. While the debug log is on, every
+-- nameplate that comes up and every companion under the mouse is logged.
+------------------------------------------------------------------------------
+local WORLD = { "NAME_PLATE_UNIT_ADDED", "NAME_PLATE_UNIT_REMOVED", "FORBIDDEN_NAME_PLATE_UNIT_ADDED",
+    "UPDATE_MOUSEOVER_UNIT" }
+local CVARS = { "nameplateShowAll", "nameplateShowFriends", "nameplateShowFriendlyNPCs", "nameplateShowFriendlyPets",
+    "nameplateShowFriendlyMinions", "nameplateShowFriendlyGuardians", "nameplateShowOnlyNames",
+    "UnitNameFriendlyPetName", "UnitNameNonCombatCreatureName", "UnitNameNPC" }
+local MARK_TIME = 8
+local marks = {} -- plate -> our test heart (reused)
+
+local function Unit(unit)
+    local ok, owner = pcall(ns.Tooltip.OwnerOf, ns.Tooltip, unit)
+    return ("%s name=%s companion=%s species=%s owner=%s"):format(unit, Try(UnitName, unit),
+        Try(UnitIsBattlePetCompanion, unit), Try(UnitBattlePetSpeciesID, unit), ok and tostring(owner) or "error")
+end
+
+local function PlateOf(unit)
+    if not (C_NamePlate and C_NamePlate.GetNamePlateForUnit) then return nil, "plate=missing" end
+    local ok, plate = pcall(C_NamePlate.GetNamePlateForUnit, unit)
+    if not ok then return nil, "plate=error" end
+    if not plate then return nil, "plate=nil" end
+    local forbidden = plate.IsForbidden and plate:IsForbidden()
+    if forbidden then return nil, "plate=forbidden" end
+    return plate, ("plate=yes shown=%s"):format(tostring(plate:IsShown()))
+end
+
+-- A heart over the nameplate, gone after MARK_TIME: whether we may attach,
+-- and where it ends up, is what we want to see.
+local function Mark(plate)
+    local ok, err = pcall(function()
+        local f = marks[plate]
+        if not f then
+            f = CreateFrame("Frame", nil, plate)
+            f:SetSize(32, 32)
+            f:SetPoint("BOTTOM", plate, "TOP", 0, 4)
+            local t = f:CreateTexture(nil, "OVERLAY")
+            t:SetTexture("Interface\\AddOns\\Dyreparken\\Media\\Particles\\heart")
+            t:SetVertexColor(1, 0.4, 0.6, 1)
+            t:SetAllPoints()
+            marks[plate] = f
+        end
+        f:Show()
+        C_Timer.After(MARK_TIME, function() f:Hide() end)
+    end)
+    return ok and " marked" or (" mark=error: " .. tostring(err))
+end
+
+local function Describe(unit, mark)
+    local plate, state = PlateOf(unit)
+    local line = Unit(unit) .. " " .. state
+    if plate and mark and Try(UnitIsBattlePetCompanion, unit) == "true" then line = line .. Mark(plate) end
+    return line
+end
+
+local WORLD_OWNER = {}
+local function OnWorld(_, event, unit)
+    if event == "UPDATE_MOUSEOVER_UNIT" then
+        if Try(UnitIsBattlePetCompanion, "mouseover") ~= "true" then return end
+        local x, y = GetCursorPosition()
+        ns.Log("World", "%s %s cursor=%d,%d", event, Describe("mouseover"), x, y)
+    elseif event == "NAME_PLATE_UNIT_REMOVED" then
+        ns.Log("World", "%s %s", event, Show(unit))
+    else
+        ns.Log("World", "%s %s instance=[%s]", event, Describe(Show(unit), true), Try(IsInInstance))
+    end
+end
+
+function Kills:SyncWorld(on)
+    for _, e in ipairs(WORLD) do
+        if on then ns.Events:On(e, WORLD_OWNER, OnWorld) else ns.Events:Off(e, WORLD_OWNER) end
+    end
+end
+ns.Bus:On("DEBUG", function(on) Kills:SyncWorld(on) end)
+
+-- /dp probe world
+function Kills:ProbeWorld()
+    local parts = Valid(WORLD, {})
+    local get = C_CVar and C_CVar.GetCVar
+    for _, k in ipairs(CVARS) do parts[#parts + 1] = k .. "=" .. (get and Try(get, k) or "?") end
+    local plates = C_NamePlate and C_NamePlate.GetNamePlates
+    local ok, list = pcall(plates or error)
+    list = ok and type(list) == "table" and list or {}
+    parts[#parts + 1] = "plates=" .. (plates and (ok and #list or "error") or "missing")
+    Report("world", parts, "instance=[" .. Try(IsInInstance) .. "]")
+    for i, plate in ipairs(list) do
+        local unit = plate.namePlateUnitToken or (plate.UnitFrame and plate.UnitFrame.unit)
+        local line = unit and Describe(unit, true) or "no unit token"
+        ns.Log("Probe", "world %d: %s", i, line)
+        -- (a city has dozens; the chat gets only the companions)
+        if unit and Try(UnitIsBattlePetCompanion, unit) == "true" then ns.Print(("world %d: %s"):format(i, line)) end
+    end
 end

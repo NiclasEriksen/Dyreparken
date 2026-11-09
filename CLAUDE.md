@@ -115,7 +115,7 @@ Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, S
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [ikoner], versjon, klapp, kunngjør, rapport;
-                   English aliases; probe [more|tabs|kills|life|card|bg|decor|frames|level|celebrate|ach], debug)
+                   English aliases; probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|ach], debug)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
@@ -158,7 +158,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
 Achievements/      Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
                    /dp ach share; guild ones synced with the registry, ACH), Kills (research probes: honorable kills while debug
-                   is on; /dp probe kills and life), Page (the achievements SidePage;
+                   is on; /dp probe kills, life and world: companions' nameplates), Page (the achievements SidePage;
                    Del per shareable one).
                    Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first). Planned next: bond, temperament and the activity engine,

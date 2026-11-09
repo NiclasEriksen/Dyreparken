@@ -78,4 +78,60 @@ return function(test, H)
         ok(c:Printed("OFF: /dp debug on", true))
         match(c.ns.Kills:Context(), "map=missing .* resting=missing afk=error")
     end)
+
+    local function MarkOf(c, plate)
+        for _, f in ipairs(c.frames) do if f.parent == plate then return f end end
+    end
+
+    test("/dp probe world: nameplate settings read, companions' plates listed and marked", function()
+        local w, c = H.Setup{ ola = { 5159 }, settle = "hello" }
+        c.cvars = { nameplateShowFriendlyNPCs = "0" }
+        local pet, plate = c:Nameplate{ species = 40, owner = "Kari Berg" }
+        local npc, npcPlate = c:Nameplate{ name = "Guard Thomas", companion = false }
+        local hidden = c:Nameplate{ species = 70, forbidden = true }
+        c:Slash("probe world")
+        ok(c:Printed("NAME_PLATE_UNIT_ADDED=true", true))
+        ok(c:Printed("nameplateShowFriendlyNPCs=0", true))
+        ok(c:Printed("plates=3", true))
+        eq(c.cvars.nameplateShowFriendlyNPCs, "0", "read, never changed")
+        match(c:Printed("world 1:", true), "nameplate1 name=Bombay Cat companion=true species=40 owner=Kari Berg "
+            .. "plate=yes shown=true marked")
+        no(c:Printed("Guard Thomas", true), "only the companions in the chat")
+        eq(#c:Log("world 2: nameplate2 name=Guard Thomas companion=false"), 1, "... all in the log")
+        local mark = MarkOf(c, plate)
+        ok(mark and mark:IsShown(), "a heart over the companion")
+        no(MarkOf(c, npcPlate), "none over a guard")
+        w:Run(9)
+        no(mark:IsShown(), "gone again")
+        c:Slash("probe world")
+        local n = 0
+        for _, f in ipairs(c.frames) do if f.parent == plate then n = n + 1 end end
+        eq(n, 1, "the heart is reused")
+        ok(mark:IsShown())
+        -- No nameplate API at all: said, not fatal.
+        c.env.C_NamePlate = nil
+        c:Slash("probe world")
+        ok(c:Printed("plates=missing", true))
+    end)
+
+    test("the world while the debug log is on: plates coming up, companions under the mouse", function()
+        local w, c = H.Setup{ ola = { 5159 }, settle = "hello" }
+        local unit = c:Nameplate{ species = 40, owner = "Kari Berg" }
+        eq(#c:Log("NAME_PLATE_UNIT_ADDED " .. unit .. " name=Bombay Cat companion=true species=40 owner=Kari Berg "
+            .. "plate=yes shown=true marked instance=%[false, none%]"), 1)
+        c:Nameplate{ species = 70, forbidden = true }
+        eq(#c:Log("FORBIDDEN_NAME_PLATE_UNIT_ADDED nameplate2 .* plate=forbidden instance"), 1)
+        c:Fire("NAME_PLATE_UNIT_REMOVED", unit)
+        eq(#c:Log("NAME_PLATE_UNIT_REMOVED " .. unit), 1)
+        c.cursor = { 640, 360 }
+        c:Hover{ species = 40, owner = "Kari Berg" }
+        c:Fire("UPDATE_MOUSEOVER_UNIT")
+        eq(#c:Log("UPDATE_MOUSEOVER_UNIT mouseover name=Bombay Cat .* plate=nil cursor=640,360"), 1)
+        c:Hover{ species = 40, companion = false }
+        c:Fire("UPDATE_MOUSEOVER_UNIT")
+        eq(#c:Log("UPDATE_MOUSEOVER_UNIT"), 1, "only companions")
+        c:Slash("debug off")
+        c:Nameplate{ species = 40 }
+        eq(#c:Log("NAME_PLATE_UNIT_ADDED nameplate3"), 0, "idle with the log off")
+    end)
 end

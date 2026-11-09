@@ -117,6 +117,7 @@ local PROBES = {
     { "tabs", function() ns.AchPage:Probe() end },
     { "kills", function() ns.Kills:Probe() end },
     { "life", function() ns.Kills:ProbeLife() end },
+    { "world", function() ns.Kills:ProbeWorld() end },
     { "card", function() ns.JournalUI:ProbeCard() end },
     { "bg", function(a) ns.Scenes:Probe(a) end, "<family>" },
     { "decor", function() ns.Decor:Probe() end },

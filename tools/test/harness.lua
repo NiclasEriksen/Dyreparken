@@ -46,7 +46,8 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     CHAT_MSG_PARTY CHAT_MSG_RAID NEW_PET_ADDED PET_JOURNAL_LIST_UPDATE
     ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED QUEST_TURNED_IN UNIT_SPELLCAST_SUCCEEDED
     PLAYER_DEAD PLAYER_ALIVE PLAYER_UNGHOST MIRROR_TIMER_START PLAYER_LEVEL_UP PLAYER_FLAGS_CHANGED
-    CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE]]):gmatch("%S+") do
+    CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
+    NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -211,6 +212,7 @@ function Frame:Hide()
     if was then Cascade(self, "OnHide") end
 end
 function Frame:IsShown() return self.shown end
+function Frame:IsForbidden() return self.forbidden == true end
 function Frame:IsVisible()
     if not self.shown then return false end
     return self.parent == nil or self.parent:IsVisible()
@@ -864,6 +866,26 @@ function Client:NoBonuses()
     self.ns.Wish.OnActivity = function() end
     self.realFirst, self.ns.Bond.First = self.ns.Bond.First, function() end
 end
+-- A nameplate comes up over a unit: o = { species, owner, companion (false: not a pet), name, forbidden }.
+-- Returns the unit token and the plate.
+function Client:Nameplate(o)
+    local n = 0
+    for _ in pairs(self.plates) do n = n + 1 end
+    local unit = "nameplate" .. (n + 1)
+    local lines = { { leftText = o.name or SpeciesName(o.species or 0), lineIndex = 1 } }
+    if o.owner then
+        lines[2] = { leftText = (self.env.UNITNAME_TITLE_COMPANION or "%s's Companion"):format(o.owner), lineIndex = 2 }
+    end
+    self.units[unit] = { companion = o.companion ~= false, species = o.species, lines = lines,
+        name = o.name or SpeciesName(o.species or 0) }
+    local plate = self.env.CreateFrame("Frame")
+    plate.namePlateUnitToken, plate.forbidden = unit, o.forbidden
+    plate:Show()
+    self.plates[unit] = plate
+    self:Fire(o.forbidden and "FORBIDDEN_NAME_PLATE_UNIT_ADDED" or "NAME_PLATE_UNIT_ADDED", unit)
+    return unit, plate
+end
+
 function Client:Zone()
     self:Fire("PLAYER_LEAVING_WORLD")
     self:Fire("PLAYER_ENTERING_WORLD", false, false)
@@ -1436,6 +1458,17 @@ function Client:BuildEnv()
     end }
     env.UnitIsBattlePetCompanion = function(u) local x = c.units[u]; return x and x.companion or false end
     env.UnitBattlePetSpeciesID = function(u) local x = c.units[u]; return x and x.species end
+    -- Nameplates (c:Nameplate): the frame over a unit; nil for a unit without one.
+    c.plates = {}
+    env.C_NamePlate = {
+        GetNamePlateForUnit = function(u) return c.plates[u] end,
+        GetNamePlates = function()
+            local list = {}
+            for _, p in pairs(c.plates) do list[#list + 1] = p end
+            table.sort(list, function(a, b) return a.namePlateUnitToken < b.namePlateUnitToken end)
+            return list
+        end,
+    }
     env.UnitCreator = function() return nil end -- no owner API on Forever
     env.C_TooltipInfo = { GetUnit = function(u) local x = c.units[u]; return x and { lines = x.lines } end }
 
