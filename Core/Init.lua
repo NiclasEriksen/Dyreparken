@@ -81,6 +81,7 @@ ns.Config = {
     BOND_WISH_POINTS = 10,        -- today's wish done (Wish.lua), within the daily limit
     BOND_FIRST_POINTS = 10,       -- a first together: a boss this pet hasn't seen fall, a place it hasn't seen
     FIRST_LINES = 3,              -- ... lines about firsts in chat, per pet a day (the points don't stop)
+    BOND_PLAY_POINTS = 15,        -- a playdate: in a group with a guildmate whose pet is out, once a day per pet
     BOND_DAILY_MAX = 75,          -- the most bond points a calendar day can bring (the day + activities); bounds the wire
     BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries
     SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole

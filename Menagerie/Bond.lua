@@ -263,6 +263,14 @@ local function Flavor(d, text)
     ns.Print(("|cffffd100%s|r"):format(text))
 end
 
+-- A playdate for a pet today: true the first time (Playdate), nil after.
+function Bond:Playdate(key)
+    local d = Ledger(key)
+    if d.played then return nil end
+    d.played = true
+    return true
+end
+
 -- Extra points (today's wish, a first, a playdate), within the day's limit
 -- and at the pet's rate.
 function Bond:Bonus(points, key)
