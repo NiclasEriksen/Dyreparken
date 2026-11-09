@@ -39,10 +39,28 @@ three times.
   (only for a known personality). It rewards hovering, which the new cursor puff (Fx.lua) already invites.
 - **Name suggestions** in the nickname popup, from the species and traits (a Latsabb gets "Slappe"?). One small
   list in Locale.
-- **The model reacts.** At a level-up or a cuddle, the pet on the card plays an animation (sit, jump, dance)
-  instead of only particles. Needs a probe first: whether Forever's pet model actor takes animation ids.
-- **The anniversary as a "birthday".** On the adoption's milestone days (Bonds:Milestone), a small cake or candles
-  on the card, matching the anniversary egg.
+- **The model reacts**: its own section below.
+- ~~**The anniversary as a "birthday".**~~ Done 2026-11-09: a cake with flickering candles on an adopted pet's card on
+  its milestone days (Menagerie/Cake.lua).
+
+## Animating the pet on demand (the user's "gamechanger", 2026-11-09)
+
+If the pet on the card (and maybe elsewhere) can play an animation when we ask, a lot opens up. Untested: the
+servers were down when this came up. **First step: a probe** (`/dp probe anim [id]`): find the card's model actor
+(`PetJournalPetCard`'s model scene, `GetActorByTag` or its first actor), call `SetAnimation(id)` with a list of
+animation ids from the client's animation table (stand, bow, wave, cheer, dance, laugh, sleep, sit, jump, roar...;
+the ids need looking up, not guessing), and log which the client accepts and whether the pet
+moves. Then ask the user what they saw. Read docs/FOREVER_API.md (secret values, the model scene notes) first.
+
+What it could open, once we know which animations a companion has:
+- **Reactions on the card**: a cuddle click (Cuddle.lua) makes it bow or jump; a bond level-up (BondTrack's
+  celebration) makes it cheer or dance; opening the card in the evening finds it asleep.
+- **Mood and traits shown, not told**: a Latsabb pet sits down after a while, a Dansefot one dances when you dance
+  (CHAT_MSG_TEXT_EMOTE), a Nattugle one perks up at night.
+- **Dislikes and eggs with a gesture**: a disliked activity's line comes with a shake or a turned back the next time
+  you open the card; an easter egg day (17 May, Christmas) with its own little act.
+- **The Parken page**: a hovered icon could show a small live model playing an idle animation instead of a flat icon.
+- Keep the performance rule: animations only while the card is shown, no OnUpdate, one-shot where possible.
 
 ## Barriers to fun
 
