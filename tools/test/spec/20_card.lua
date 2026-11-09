@@ -19,8 +19,10 @@ return function(test, H)
     end
 
     local function Setup()
-        return H.Setup{ ola = { 5159, 40 }, each = function(c) c.ns.Companions = Fixture() end, settle = "bond",
-            journal = true }
+        return H.Setup{ ola = { 5159, 40 }, each = function(c)
+            c.ns.Companions = Fixture()
+            c.ns.Decor.FAMILY_ART = {} -- the rules, not today's picks
+        end, settle = "bond", journal = true }
     end
 
     test("the panel: big name, small home, the bond on the right, the guild below", function()
@@ -209,6 +211,23 @@ return function(test, H)
         -- Without C_Texture, no atlas exists.
         ola.env.C_Texture = nil
         no(D.Exists("atlas:bags-glow-orange"))
+    end)
+
+    test("the families' frames in the code are families and slots there are, and pictures the client has", function()
+        local w, ola = H.Setup{ ola = { 5159 }, settle = "hello" }
+        local D, S = ola.ns.Decor, ola.ns.Scenes
+        local known = { default = true }
+        for _, f in ipairs(S.ORDER) do known[f] = true end
+        local atlases = {}
+        for _, c in ipairs(D:Candidates()) do atlases[c.path] = c.slot end
+        for family, art in pairs(D.FAMILY_ART) do
+            ok(known[family], family .. " is a family")
+            for slot, path in pairs(art) do
+                ok(slot == "border" or slot == "corner", family .. ": " .. slot)
+                local key = path:find("\\", 1, true) and path or "atlas:" .. path
+                eq(atlases[key], slot, family .. "." .. slot .. " is a " .. slot .. " candidate: " .. path)
+            end
+        end
     end)
 
     test("/dp probe frames: a border and corners per family, worn by the card while it's chosen", function()

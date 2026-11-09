@@ -11,7 +11,7 @@ return function(test, H)
     local function Setup(...)
         local ids = { ... }
         local w, ola = H.Setup{ ola = { 5159, 40 }, settle = "bond", journal = true, each = function(c)
-            c.ns.Decor.FAMILY = {}
+            c.ns.Decor.FAMILY, c.ns.Decor.FAMILY_ART = {}, {}
             c.ns.Personality.Traits = function()
                 local list = {}
                 for _, id in ipairs(ids) do list[#list + 1] = c.ns.Personality.ById(id) end
@@ -296,6 +296,7 @@ return function(test, H)
         local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
         ola.atlases = { ["AdventuresFrame-Corner-Small-TopLeft"] = true }
         ola.env.Enum.UITextureSliceMode = nil -- a client that can't nine-slice
+        ola.ns.Decor.FAMILY_ART = {}
         w:Run(20)
         ola:OpenJournal()
         local card = ola:SelectPet(5159)

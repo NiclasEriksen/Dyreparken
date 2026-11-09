@@ -298,9 +298,21 @@ end
 
 -- Per family, a border and corners of its own (2026-11-09: wood for the
 -- farm, metal for the mechanical...): picked in game with /dp probe frames,
--- then written here. Until then a pick saved in DyreparkenDB.decorPicks
+-- then written here. A newer pick saved in DyreparkenDB.decorPicks
 -- ("border.cat") shows at once; a family without one has Decor.ART's.
-Decor.FAMILY_ART = {}
+-- "default" is for pets without a family. Atlases by name, files by path.
+local WOOD = "Interface\\AchievementFrame\\UI-Achievement-WoodBorder-Corner"
+Decor.FAMILY_ART = { -- picked in game 2026-11-09
+    default = { border = "UI-Frame-GenericMetal-ExitButtonBorder", corner = WOOD },
+    cat = { border = "loottoast-itemborder-gold", corner = "parchmentpopup-filigree" },
+    bird = { border = "loottoast-itemborder-gold", corner = "parchmentpopup-filigree" },
+    owl = { border = "loottoast-itemborder-gold", corner = WOOD },
+    farm = { border = "loottoast-itemborder-gold", corner = WOOD },
+    pirate = { border = "loottoast-itemborder-gold", corner = "parchmentpopup-filigree" },
+    mechanical = { border = "services-icon-goldborder", corner = "Relicforge-Topleft-corner" },
+    dragon = { border = "UI-Frame-GenericMetal-ExitButtonBorder", corner = "StoneFrameCorner-TopLeft" },
+    bug = { border = "services-icon-goldborder", corner = "AdventuresFrame-Corner-Small-TopLeft" },
+}
 
 -- The galleries' preview (2026-11-09): while /dp probe decor or frames is
 -- open, Decor.show = { slot, family, art }: the card wears the chosen slot
