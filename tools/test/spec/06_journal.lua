@@ -1,9 +1,8 @@
 -- The pet journal: list markers, tooltips, the card, buttons, popup, checkbox.
 return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
-    local MINE = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1"
-    local TAKEN = "Interface\\LFGFrame\\UI-LFG-ICON-LOCK"
-    local FREE = "Interface\\RaidFrame\\ReadyCheck-Ready"
+    local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
+    local MINE, TAKEN, FREE = MEDIA .. "heart", MEDIA .. "paw", MEDIA .. "ring"
 
     -- Ola owns Panda Cub (reserved) and White Kitten (free); Kari holds Bombay Cat.
     local function Setup(journalOpts, olaOpts)
@@ -189,6 +188,7 @@ return function(test, H)
 
     test("Hold ute: the pet on the card is the one kept out; adopting makes it so; one at a time", function()
         local w, ola = Setup()
+        local posts = #w.chat
         local card = ola:SelectPet(5159)
         ok(card.auto.checked, "the adopted panda is kept out")
         eq(ola.ns.Summon:ActiveKey(), "s:5159")
@@ -212,6 +212,7 @@ return function(test, H)
         card.auto:Click()
         eq(ola.ns.Summon:ActiveKey(), nil)
         no(ola.ns.Summon:Enabled())
+        eq(#w.chat, posts, "choosing which pet to keep out posts nothing")
         -- A pet we don't own: the box is greyed out.
         card = ola:SelectPet(40)
         no(card.auto.enabled); no(card.auto.checked)

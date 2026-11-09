@@ -13,8 +13,8 @@ local _, ns = ...
 -- back to elementData.index -> GetPetInfoByIndex.
 --
 -- What it adds:
---  * a marker on each list button: star = yours, lock = someone else's,
---    check = yours to adopt (owned and free)
+--  * a marker on each list button: heart = yours, paw = someone else's,
+--    ring = yours to adopt (owned and free)
 --  * who cares for it, nickname and how long, in the list button tooltip
 --  * a status line on the pet card, plus Adopt/Let go and Nickname buttons
 --    (right of the Summon button, which on Forever sits bottom left)
@@ -26,9 +26,15 @@ local _, ns = ...
 local JournalUI = {}
 ns.JournalUI = JournalUI
 
-local ICON_MINE = "Interface\\TargetingFrame\\UI-RaidTargetingIcon_1"
-local ICON_TAKEN = "Interface\\LFGFrame\\UI-LFG-ICON-LOCK"
-local ICON_FREE = "Interface\\RaidFrame\\ReadyCheck-Ready"
+-- The list's markers, from our own drawn set (Media/Particles; 2026-11-09:
+-- the raid star, padlock and tick didn't fit the card's style): a heart for
+-- yours, a paw for someone else's, a ring for one you could give a home.
+local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
+local MARKERS = {
+    mine = { MEDIA .. "heart", 1, 0.45, 0.55 },
+    taken = { MEDIA .. "paw", 0.65, 0.65, 0.65 },
+    free = { MEDIA .. "ring", 0.45, 0.9, 0.45 },
+}
 
 local markers = setmetatable({}, { __mode = "k" }) -- button -> texture
 local badges = setmetatable({}, { __mode = "k" })  -- button -> { ring, level, nick }
@@ -100,16 +106,10 @@ local function UpdateMarker(button)
     end
     if not sid then tex:Hide(); return end
     local status = Status(ns.Pets:KeyOfSpecies(sid))
-    if status == "mine" then
-        tex:SetTexture(ICON_MINE)
-    elseif status == "taken" then
-        tex:SetTexture(ICON_TAKEN)
-    elseif ownedOf[button] then
-        tex:SetTexture(ICON_FREE)
-    else
-        tex:Hide()
-        return
-    end
+    local m = MARKERS[status ~= "free" and status or (ownedOf[button] and "free" or "")]
+    if not m then tex:Hide(); return end
+    tex:SetTexture(m[1])
+    tex:SetVertexColor(m[2], m[3], m[4], 1)
     tex:Show()
 end
 
