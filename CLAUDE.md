@@ -136,7 +136,9 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    a tinted bar with a spark; a celebration once per new level of your own pet, char.bondSeen), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
                    Playdate (in a group with a guildmate whose pet is out: both pets play, once a day each;
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
-                   an hour; read its header), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
+                   an hour; read its header), Fx (one-shot particle bursts outside the journal: at the cursor over a
+                   companion in the world, since companions have no nameplate to draw on; at the chat window for bond
+                   lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits (every trait has some; those with a moment show only then) and the date, and
