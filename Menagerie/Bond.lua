@@ -17,6 +17,10 @@ local _, ns = ...
 -- Data: g.life[petKey][carer] (Registry.lua), written only by the carer.
 -- Publishing: a level-up goes out at once (BOND); smaller gains wait up to
 -- PUBLISH_AFTER, one timer at most. The login SYNC carries everything anyway.
+--
+-- Bond is data: it prints nothing. What players read about it is Bonds.lua's,
+-- from the Bus: BOND_LEVEL (key, level, name), BOND_FULL (key), BOND_LINE
+-- (key, text: a liked thing's flavor, a wish, a first, a playdate).
 local Bond = {}
 ns.Bond = Bond
 
@@ -140,8 +144,7 @@ function Bond:Add(points, key)
     local level, name = self:Level(p)
     ns.Log("Bond", "%s +%d -> %d (level %d)", key, points, p, level)
     if level > oldLevel then
-        ns.Print(ns.T("bond.levelup", { pet = ns.Registry:NameOf(key), n = level, level = name }))
-        if key == ns.Registry:MyPet() then ns.Bonds:TellNameUnlock() end
+        ns.Bus:Fire("BOND_LEVEL", key, level, name)
         Publish(key)
     elseif not e then
         Publish(key) -- a new bond: everyone should know of it
@@ -252,30 +255,41 @@ local function Grant(d, points, key)
     -- Counted before Add: Add refreshes the card, which shows today's points.
     d.total = d.total + points
     if d.total >= max then -- (once: a full day stops before this)
-        ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) }))
+        ns.Bus:Fire("BOND_FULL", key)
     end
     return Bond:Add(points, key)
 end
 
 -- One line of flavor a day, for the first thing the pet loved.
-local function Flavor(d, text)
+local function Flavor(d, key, text)
     if d.flavor or not text then return end
     d.flavor = true
-    ns.PrintGold(text)
+    ns.Bus:Fire("BOND_LINE", key, text)
 end
 
--- A playdate for a pet today: true the first time (Playdate), nil after.
-function Bond:Playdate(key)
+-- The rewards beyond activities, each a line and points (Config names: read
+-- when given, so a tunable change applies at once). once: at most one a day
+-- per pet. lines: at most that many lines a day per pet (the points go on).
+-- A new one is a row here and a Bond:Reward call where it happens.
+Bond.REWARDS = {
+    wish = { points = "BOND_WISH_POINTS" },  -- today's wish done (Wish.lua: once a day already)
+    first = { points = "BOND_FIRST_POINTS", lines = "FIRST_LINES" }, -- a first together
+    play = { points = "BOND_PLAY_POINTS", once = true }, -- a playdate (Playdate.lua)
+}
+
+-- A reward for a pet: its line, then its points within the day's limit and
+-- at the pet's rate. False if a once-a-day one was had today.
+function Bond:Reward(kind, key, text)
+    local def = assert(self.REWARDS[kind], "undeclared reward")
     local d = Ledger(key)
-    if d.played then return nil end
-    d.played = true
+    d.had = d.had or {}
+    local n = (d.had[kind] or 0) + 1
+    if def.once and n > 1 then return false end
+    d.had[kind] = n
+    if not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text) end
+    ns.Log("Bond", "reward %s for %s", kind, key)
+    Grant(d, math.ceil(ns.Config[def.points] * self:Rate(key)), key)
     return true
-end
-
--- Extra points (today's wish, a first, a playdate), within the day's limit
--- and at the pet's rate.
-function Bond:Bonus(points, key)
-    return Grant(Ledger(key), math.ceil(points * self:Rate(key)), key)
 end
 
 -- Points for an activity done with a pet of ours out (half for one we
@@ -290,7 +304,7 @@ function Bond:OnActivity(id, n, key)
         local now = ns.Now()
         local x, why = P:DayFactor(key, now)
         local d = Ledger(key)
-        if why and why.dayFlavor then Flavor(d, why.dayFlavor(name, now)) end
+        if why and why.dayFlavor then Flavor(d, key, why.dayFlavor(name, now)) end
         return Grant(d, Scaled(C.BOND_DAY_POINTS * n * x), key)
     end
     local d = Ledger(key)
@@ -316,14 +330,14 @@ function Bond:OnActivity(id, n, key)
     if room <= 0 then return nil end
     local points = math.min(per * n, room)
     d.got[capKey] = (d.got[capKey] or 0) + points
-    Flavor(d, flavor)
+    Flavor(d, key, flavor)
     return Grant(d, points, key)
 end
 
 -- Firsts together (2026-11-09): the first time a pet is along when a given
 -- boss falls, or sees a given place (Activity: "explore" fires only for a
 -- place new to that pet), it gets BOND_FIRST_POINTS and a line, at most
--- FIRST_LINES lines a day per pet (the points go on).
+-- FIRST_LINES lines a day per pet (the points go on: REWARDS.first).
 function Bond:First(id, key, extra)
     local text
     if id == "boss" and type(extra) == "string" and extra ~= "" and extra ~= "?" then
@@ -337,10 +351,7 @@ function Bond:First(id, key, extra)
     else
         return
     end
-    local d = Ledger(key)
-    d.firsts = (d.firsts or 0) + 1
-    if d.firsts <= ns.Config.FIRST_LINES then ns.PrintGold(text) end
-    self:Bonus(ns.Config.BOND_FIRST_POINTS, key)
+    self:Reward("first", key, text)
 end
 
 function Bond:Init()

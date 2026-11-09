@@ -52,7 +52,7 @@ end
 local Gold = ns.Gold
 
 -- Once per adoption, when naming opens up (the bond reached NICKNAME_LEVEL):
--- after login, or right when the level is reached (Bond.lua).
+-- after login, or right when the level is reached (BOND_LEVEL).
 function Bonds:TellNameUnlock()
     local key, r = ns.Registry:MyPet()
     local char = ns.DB.char
@@ -62,6 +62,14 @@ function Bonds:TellNameUnlock()
         ns.Print(ns.T(named and "nick.unlocked_rename" or "nick.unlocked", { pet = named or ns.Pets:NameOfKey(key) }))
     end
 end
+
+-- What Bond.lua has to say (it prints nothing itself).
+ns.Bus:On("BOND_LEVEL", function(key, level, name)
+    ns.Print(ns.T("bond.levelup", { pet = ns.Registry:NameOf(key), n = level, level = name }))
+    if key == ns.Registry:MyPet() then Bonds:TellNameUnlock() end
+end)
+ns.Bus:On("BOND_FULL", function(key) ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end)
+ns.Bus:On("BOND_LINE", function(_, text) ns.PrintGold(text) end)
 
 function Bonds:Celebrate()
     local g = ns.DB:Guild()

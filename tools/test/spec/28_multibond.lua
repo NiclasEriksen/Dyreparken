@@ -243,4 +243,25 @@ return function(test, H)
         w:Run(700)
         eq(w:Sent("PLAY", "Ola Nord", m), 0)
     end)
+
+    test("rewards: declared once (Bond.REWARDS); Bond prints nothing, its lines come over the Bus", function()
+        local w, ola = Setup()
+        local B = ola.ns.Bond
+        no(pcall(B.Reward, B, "cake", PANDA, "x"), "an undeclared reward fails loudly")
+        -- Bond's own module never prints: what players read is Bonds.lua's.
+        local heard = {}
+        ola.ns.Bus:On("BOND_LINE", function(key, text) heard[#heard + 1] = key .. " " .. text end)
+        local print = ola.ns.Print
+        local printed = 0
+        ola.ns.Print = function(...) printed = printed + 1; return print(...) end
+        ok(B:Reward("play", PANDA, "Pepe lekte!"))
+        eq(heard[1], PANDA .. " Pepe lekte!"); eq(printed, 1, "Bonds printed the line once")
+        eq(P(ola, PANDA), 15)
+        eq(B:Reward("play", PANDA, "again"), false, "once a day")
+        eq(#heard, 1); eq(P(ola, PANDA), 15)
+        -- A new kind of reward is a row.
+        B.REWARDS.cake = { points = "BOND_WISH_POINTS" }
+        ok(B:Reward("cake", PANDA, "Kake!")); ok(B:Reward("cake", PANDA, "Mer kake!"))
+        eq(P(ola, PANDA), 35)
+    end)
 end

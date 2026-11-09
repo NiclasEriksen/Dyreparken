@@ -47,11 +47,8 @@ function Wish:OnActivity(id, key)
     local w = self:Today()
     if not w or w.done or w.pet ~= key or w.id ~= id then return end
     w.done = true
-    local points = ns.Config.BOND_WISH_POINTS
-    local name = ns.Registry:NameOf(key)
-    ns.Print(ns.T("wish.granted", { pet = name, activity = ns.Personality.NOUN[id], n = points }))
-    ns.Log("Bond", "wish %s granted for %s", id, key)
-    ns.Bond:Bonus(points, key)
+    ns.Bond:Reward("wish", key, ns.T("wish.granted", { pet = ns.Registry:NameOf(key),
+        activity = ns.Personality.NOUN[id], n = ns.Config.BOND_WISH_POINTS }))
 end
 
 function Wish:Init()

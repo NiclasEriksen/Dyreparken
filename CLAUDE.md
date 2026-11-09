@@ -142,8 +142,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
                    loads after Achievements/Page.lua so its tab comes second),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in
-                   g.life, see Registry.lua; docs/PET_LIFE.md),
-                   Bonds (milestone lines after login, the nickname unlock note, dagens dyr, /dp klapp,
+                   g.life, see Registry.lua; docs/PET_LIFE.md. Data only, it prints nothing: BOND_LEVEL, BOND_FULL,
+                   BOND_LINE on the Bus. Rewards beyond activities (wish, first, playdate) are rows in Bond.REWARDS,
+                   given with Bond:Reward),
+                   Bonds (what players read about bonds: levels, full days, reward lines; milestone lines after login, the nickname unlock note, dagens dyr, /dp klapp,
                    guild announcements)
 Achievements/      Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,

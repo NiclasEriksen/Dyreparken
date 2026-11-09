@@ -385,7 +385,7 @@ L["wish.done"] = "Ønsket er oppfylt!"
 L["wish.title"] = "Dagens ønske"
 L["wish.tip"] = "Gjør det med {pet} ute i dag, så får dere {n} ekstra bånd-poeng."
 L["wish.tip.done"] = "Oppfylt! {pet} er fornøyd. Et nytt ønske kommer i morgen."
-L["wish.granted"] = "|cffffd100{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} bånd-poeng)|r"
+L["wish.granted"] = "{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} bånd-poeng)"
 
 ------------------------------------------------------------------------------
 -- The park (the map page)
