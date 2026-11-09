@@ -212,4 +212,23 @@ return function(test, H)
         for _, chip in ipairs(card.stats.chips) do if chip:IsShown() and chip.id == "dive" then found = chip end end
         ok(found, "a dive chip"); eq(found.icon.tex, "Interface\\Icons\\Spell_Shadow_DemonBreath")
     end)
+    test("skill-ups and reputation, read from the client's own chat lines", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
+        w:Run(40)
+        local A = ola.ns.Activity
+        local seen = {}
+        ola.ns.Bus:On("ACTIVITY", function(id, n, key, mine, extra) seen[#seen + 1] = id .. ":" .. tostring(extra) end)
+        A:Want("skill", "test"); A:Want("rep", "test")
+        ola:Fire("CHAT_MSG_SKILL", "Your skill in Swords has increased to 45.")
+        ola:Fire("CHAT_MSG_SKILL", "Your skill in Swords is now Journeyman.") -- not a skill-up
+        ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Your Stormwind reputation has increased by 25.")
+        ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Your Stormwind reputation has decreased by 25.")
+        eq(table.concat(seen, ","), "skill:Swords,rep:Stormwind")
+        eq(A:Count("skill"), 1); eq(A:Count("rep"), 1)
+        eq(A.FormatPattern("Din %1$s økte til %2$d."), "^Din (.+) økte til (%d+)%.$", "positional formats too")
+        -- Without the format string the client can't say: unavailable, quietly.
+        ola.env.SKILL_RANK_UP = nil
+        no(A:Available("skill")); ok(A:Available("rep"))
+    end)
 end

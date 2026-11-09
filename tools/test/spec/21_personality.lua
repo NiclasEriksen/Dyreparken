@@ -46,10 +46,10 @@ return function(test, H)
         local cat = { P:Of("s:40") }
         ok(cat[1].fish, "cats like fishing")
         local dragon = { P:Of("s:84") }
-        ok(dragon[1].boss and dragon[1].taxi, "the dragon's likes")
+        ok(dragon[1].boss and dragon[1].taxi and dragon[1].rep, "the dragon's likes")
         ok(P:Of("s:72").quest, "no family: quests")
         Give(ola, "glupsk", "reiseglad")
-        eq(P:Line("s:84"), "Glupsk og Reiseglad · liker boss-kills, flyturer og quests", "a like is listed once")
+        eq(P:Line("s:84"), "Glupsk og Reiseglad · liker boss-kills, flyturer, omdømme og quests", "a like is listed once")
         P.BY_FAMILY, P.DEFAULT = {}, {}
         Give(ola, "kosete", "helgedyr")
         eq(P:Line("s:999"), "Kosete og Helgedyr", "nothing liked but the days")

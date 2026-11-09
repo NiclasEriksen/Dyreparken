@@ -44,7 +44,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     CHAT_MSG_PARTY CHAT_MSG_RAID NEW_PET_ADDED PET_JOURNAL_LIST_UPDATE
     ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED QUEST_TURNED_IN UNIT_SPELLCAST_SUCCEEDED
     PLAYER_DEAD PLAYER_ALIVE PLAYER_UNGHOST MIRROR_TIMER_START PLAYER_LEVEL_UP PLAYER_FLAGS_CHANGED
-    CHAT_MSG_TEXT_EMOTE]]):gmatch("%S+") do
+    CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1189,6 +1189,9 @@ function Client:BuildEnv()
     env.UnitIsAFK = function(u) return u == "player" and S.afk or false end
     env.UnitLevel = function() return S.level or 10 end
     env.GetZoneText = function() return S.zone or "Elwynn Forest" end
+    -- The chat formats skill-ups and reputation are read with (enUS GlobalStrings).
+    env.SKILL_RANK_UP = "Your skill in %s has increased to %d."
+    env.FACTION_STANDING_INCREASED = "Your %s reputation has increased by %d."
     -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
     env.C_Map = {
         GetBestMapForUnit = function(u) assert(u == "player"); return S.map or 1429 end,

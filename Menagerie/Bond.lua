@@ -185,7 +185,7 @@ end
 -- Always watched (any pet of ours can bond); the traits' own activities
 -- (dance, chat, dive...) only for the pets we'd have out that like them, so
 -- nobody else pays for those events.
-Bond.ACTIVITIES = { "day", "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin", "explore" }
+Bond.ACTIVITIES = { "day", "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin", "explore", "skill", "rep" }
 local watching = {}
 
 function Bond:Watch()

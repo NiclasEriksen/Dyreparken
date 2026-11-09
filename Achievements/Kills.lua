@@ -102,11 +102,13 @@ ns.Bus:On("DEBUG", function(on) Kills:Sync(on) end)
 --   Hoppetass    JumpOrAscendStart (hook; one line per 5 s with the count)
 --   Hjemlengsel  your own casts (UNIT_SPELLCAST_SUCCEEDED, player): id and name
 --   Flokkdyr     GROUP_ROSTER_UPDATE: group size and guildmates in it
+--   skill, rep   CHAT_MSG_SKILL, CHAT_MSG_COMBAT_FACTION_CHANGE, and the formats they're read with
 -- Each line ends with the context: zone, map, instance, resting, AFK, group,
 -- level and the companion.
 ------------------------------------------------------------------------------
 local LIFE = { "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST", "ZONE_CHANGED_NEW_AREA", "MIRROR_TIMER_START",
-    "PLAYER_LEVEL_UP", "CHAT_MSG_GUILD", "CHAT_MSG_TEXT_EMOTE", "GROUP_ROSTER_UPDATE" }
+    "PLAYER_LEVEL_UP", "CHAT_MSG_GUILD", "CHAT_MSG_TEXT_EMOTE", "GROUP_ROSTER_UPDATE", "CHAT_MSG_SKILL",
+    "CHAT_MSG_COMBAT_FACTION_CHANGE" }
 local UNIT_LIFE = { "PLAYER_FLAGS_CHANGED", "UNIT_SPELLCAST_SUCCEEDED" }
 local FUNCS = { "GetZoneText", "IsResting", "UnitIsAFK", "UnitLevel", "DoEmote", "JumpOrAscendStart" }
 local lifeOwner, lifeOn, hooked = {}, false, false
@@ -205,6 +207,7 @@ function Kills:ProbeLife()
         for _, e in ipairs(list) do parts[#parts + 1] = e .. "=" .. (valid and tostring(valid(e)) or "?") end
     end
     for _, f in ipairs(FUNCS) do parts[#parts + 1] = f .. "=" .. tostring(type(_G[f]) == "function") end
+    for _, g in ipairs({ "SKILL_RANK_UP", "FACTION_STANDING_INCREASED" }) do parts[#parts + 1] = g .. "=" .. Show(_G[g]) end
     local msg = ("life probe: %s | %s | debug log %s"):format(table.concat(parts, " "), self:Context(),
         ns.Debug.enabled and "on (listening)" or "OFF: /dp debug on to listen")
     ns.Print(msg)

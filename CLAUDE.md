@@ -102,7 +102,7 @@ Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (
 Core/Version.lua   HELLO on login, one-time outdated notice, /dp version
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
 Core/Activity.lua  the activity engine: game events -> activities ("boss", "quest", "pvp", "taxi", "herb", "mine",
-                   "fish", "skin", "day"; for traits "dance", "cuddle", "chat", "dive", "level", "revive", "nap",
+                   "fish", "skin", "day", "skill", "rep"; for traits "dance", "cuddle", "chat", "dive", "level", "revive", "nap",
                    "hearth", "jump", "explore"), counted per
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
                    (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
@@ -125,7 +125,8 @@ Menagerie/         Pets (journal access, pet keys, probes), Registry (reservatio
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour), SceneGallery (/dp probe bg and decor: thumbnails of every
                    background that exists; pick one per family, saved in DyreparkenDB.scenePicks), BondTrack (the bond on the card: a medallion with the level, a track of seven stars,
                    a tinted bar with a spark; a celebration once per new level of your own pet, char.bondSeen), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
-                   Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
+                   Playdate (in a group with a guildmate whose pet is out: both pets play, once a day each;
+                   PLAY on PARTY/RAID), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits and the date, each kind with its own motion (sway, spin, tilt, throb); animation
@@ -175,6 +176,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   (each pet's holder's) ride the full SYNC and the digest (Registry:AdoptedLife): with ~100 members and several pets
   each, all bonds would outgrow a SYNC. Other bonds go out as their owner's BOND messages, and a card asks the guild
   once per pet a session (BOND_REQ); they may be a little behind, by design. Wish and nicknames stay adoption-only.
+- **More ways to bond** (2026-11-09): firsts together (a boss this pet hasn't seen fall, a place it hasn't been: 10
+  points), playdates (15, once a day per pet, with a guildmate's pet out in the group; Menagerie/Playdate.lua), and
+  skill-ups and reputation as activities (unverified on Forever; `/dp probe life`). All at the pet's rate, within
+  its day.
 - **Sync hardening** (code review 2026-11-09): SYNC goes in three parts (records, names, bonds), peers hold back
   theirs when one starts arriving; a part with more than Config.SYNC_MAX_ENTRIES is refused whole; pet keys must be
   "s:<id>" or "n:<name>"; bonds can't start before Config.BOND_EPOCH and hold at most Registry.LifeCap (75 a day plus

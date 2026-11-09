@@ -75,6 +75,8 @@ Rules that keep it fair and cheap:
 | New zones | `ZONE_CHANGED_NEW_AREA`: a zone this pet hasn't visited | bird, owl |
 | Night owl | any activity between 22 and 04 server time | owl |
 | Petted | a guildmate's `/dp klapp` on your pet (a small addon message) | everyone |
+| Skill-ups | `CHAT_MSG_SKILL` matched with `SKILL_RANK_UP` (2026-11-09, unverified) | mechanical, farm |
+| Reputation | `CHAT_MSG_COMBAT_FACTION_CHANGE` matched with `FACTION_STANDING_INCREASED` (unverified) | festive, spirit, dragon |
 
 Liked activities give full points; anything else gives a little.
 
@@ -188,6 +190,12 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
    resting), Pratsom (chat: our own guild lines). The bond watches these only for a pet that likes them.
    **Pinned** the same day: every species' two traits are in `Data/Traits.lua` for good (Panda Cub: Kosete and
    Grønnfinger, by hand; the rest balanced, 6-7 species per trait). New species: `luajit tools/pin_traits.lua`.
+   *Bonds with every pet, 2026-11-09:* any pet of yours that's out bonds (one you haven't adopted at half rate,
+   its own day of 37), and "Hold ute" picks the one auto-summon keeps out. New ways to earn, all at the pet's rate:
+   **firsts together** (10: a boss this pet hasn't seen fall, `char.firsts`; a place it hasn't been; at most 3 lines
+   a pet a day), **playdates** (15, once a day per pet: in a group with a guildmate whose pet is out; a PLAY
+   message on PARTY/RAID, sent on group changes and summons at most every 10 minutes, answered at most once a
+   minute; Menagerie/Playdate.lua), and **skill-ups and reputation** (activities `skill` and `rep`).
 4. **Lifetime and temperament:** `g.life` sync, temperament stages, park map borders, world tooltip word.
 5. **Story:** the timeline, milestone lines, big moments in guild chat.
 6. **(Optional) Collection sync:** "kom til parken", "vill" for pets nobody has, the wish list on the park map.

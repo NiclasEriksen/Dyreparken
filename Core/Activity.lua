@@ -423,3 +423,32 @@ end
 Activity:Source({ id = "explore", events = { "ZONE_CHANGED_NEW_AREA" }, filter = function()
     C_Timer.After(5, function() Activity:CheckPlace() end)
 end })
+
+-- Skill-ups and reputation (2026-11-09): the client's own chat lines, read
+-- with its format strings (so any locale works): SKILL_RANK_UP ("Your skill
+-- in %s has increased to %d."), FACTION_STANDING_INCREASED ("Your %s
+-- reputation has increased by %d."). extra: the skill or the faction. Both
+-- unverified on Forever (docs/FOREVER_API.md); without the format string the
+-- activity is unavailable. Weapon skills count too: the day's caps keep them
+-- small.
+function Activity.FormatPattern(fmt)
+    if type(fmt) ~= "string" or fmt == "" then return nil end
+    -- Escape everything, then turn the (now escaped) %s / %d / %1$s back into captures.
+    local pat = fmt:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
+    pat = pat:gsub("%%%%%d?%%?%$?s", "(.+)"):gsub("%%%%%d?%%?%$?d", "(%%d+)")
+    return "^" .. pat .. "$"
+end
+local function ChatSource(id, event, global)
+    local pattern
+    Activity:Source({ id = id, events = { event },
+        available = function() return Activity.FormatPattern(_G[global]) ~= nil end,
+        filter = function(_, text)
+            text = Plain(text)
+            pattern = pattern or Activity.FormatPattern(_G[global])
+            if type(text) ~= "string" or not pattern then return nil end
+            local name = text:match(pattern)
+            if name then return 1, name end
+        end })
+end
+ChatSource("skill", "CHAT_MSG_SKILL", "SKILL_RANK_UP")
+ChatSource("rep", "CHAT_MSG_COMBAT_FACTION_CHANGE", "FACTION_STANDING_INCREASED")

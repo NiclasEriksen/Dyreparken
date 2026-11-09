@@ -29,16 +29,16 @@ local L = ns.L
 -- first liked one of the day (Locale/nb.lua: activity.*).
 Personality.NOUN, Personality.FLAVOR = {}, {}
 for _, id in ipairs({ "boss", "quest", "taxi", "pvp", "herb", "mine", "fish", "skin", "day", "dance", "cuddle", "chat",
-    "dive", "level", "revive", "nap", "hearth", "jump", "explore" }) do
+    "dive", "level", "revive", "nap", "hearth", "jump", "explore", "skill", "rep" }) do
     Personality.NOUN[id] = L["activity." .. id]
     if ns.Strings["activity." .. id .. ".flavor"] then Personality.FLAVOR[id] = L["activity." .. id .. ".flavor"] end
 end
 
 Personality.BY_FAMILY = {
-    cat = { "fish" }, bird = { "taxi" }, owl = { "taxi" }, farm = { "herb", "quest" }, rabbit = { "herb" },
-    frog = { "fish", "dive" }, snake = { "herb" }, mechanical = { "mine" }, dragon = { "boss", "taxi" },
+    cat = { "fish" }, bird = { "taxi" }, owl = { "taxi" }, farm = { "herb", "quest", "skill" }, rabbit = { "herb" },
+    frog = { "fish", "dive" }, snake = { "herb" }, mechanical = { "mine", "skill" }, dragon = { "boss", "taxi", "rep" },
     pirate = { "fish", "pvp", "dive" }, bug = { "herb" }, rodent = { "mine" }, wolf = { "boss" }, plant = { "herb" },
-    festive = { "quest" }, demon = { "boss" }, ooze = { "boss" }, spirit = { "taxi" },
+    festive = { "quest", "rep" }, demon = { "boss" }, ooze = { "boss" }, spirit = { "taxi", "rep" },
 }
 Personality.DEFAULT = { "quest" } -- a pet with no family we know
 
