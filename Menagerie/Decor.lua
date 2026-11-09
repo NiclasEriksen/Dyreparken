@@ -455,7 +455,8 @@ end
 -- and the bond's sparks (5+) and hearts (7).
 function Decor:Specs(key, level, t)
     local list = {}
-    for _, trait in ipairs(ns.Personality:Traits(key)) do
+    -- (no trait particles for a pet whose personality is still a surprise)
+    for _, trait in ipairs(ns.Personality:Known(key) and ns.Personality:Traits(key) or {}) do
         local spec = self.TRAITS[trait.id]
         if spec and (not spec.when or spec.when(t)) then list[#list + 1] = spec end
     end

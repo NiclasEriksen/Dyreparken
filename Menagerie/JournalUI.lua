@@ -311,9 +311,14 @@ local function UpdateCard()
     end
     card.status:SetText(nick and (species .. " · " .. text) or text)
     card.fullName, card.species, card.home = nick or species, species, text -- for the hover
-    card.personality:SetText(ns.Personality:Names(key))
-    local likes = ns.Personality:LikedWords(key)
-    card.likes:SetText(#likes > 0 and ns.T("card.likes", { list = ns.Personality.Join(likes) }) or "")
+    if ns.Personality:Known(key) then
+        card.personality:SetText(ns.Personality:Names(key))
+        local likes = ns.Personality:LikedWords(key)
+        card.likes:SetText(#likes > 0 and ns.T("card.likes", { list = ns.Personality.Join(likes) }) or "")
+    else -- a surprise until it's collected or adopted
+        card.personality:SetText(ns.L["personality.unknown"])
+        card.likes:SetText("")
+    end
     local scene = ns.Scenes:For(key)
     if scene then
         card.scene:SetTexture(scene)
@@ -492,6 +497,12 @@ local function BuildCard()
         if not card.key then return end
         GameTooltip:SetOwner(self, "ANCHOR_TOP")
         GameTooltip:ClearLines()
+        if not ns.Personality:Known(card.key) then
+            GameTooltip:SetText(ns.L["personality.unknown"], 1, 0.82, 0)
+            GameTooltip:AddLine(ns.L["personality.unknown.tip"], 1, 1, 1, true)
+            GameTooltip:Show()
+            return
+        end
         ns.Personality:Describe(GameTooltip, card.key)
         local words = ns.Personality:LikedWords(card.key)
         if #words > 0 then

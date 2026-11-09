@@ -87,7 +87,7 @@ local function ShowTooltip(cell)
         GameTooltip:AddLine(ns.T("tip.named_by", { who = by, date = Day(namedAt) }), 0.7, 0.7, 0.7)
     end
     GameTooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
-    for _, t in ipairs(ns.Personality:Traits(key)) do
+    for _, t in ipairs(ns.Personality:Known(key) and ns.Personality:Traits(key) or {}) do
         GameTooltip:AddLine(("%s: %s"):format(t.name, ns.Personality:Effect(t)), 0.9, 0.75, 0.3, true)
     end
     if owner ~= ns.PlayerKey() and ns.Pets:IsOwned(key) then

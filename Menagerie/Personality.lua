@@ -223,8 +223,16 @@ function Personality:LikedWords(key)
     return words
 end
 
--- "Kosete og Nattugle · liker herbs og quests"
+-- A pet's personality is a surprise (decided 2026-11-09): shown only once
+-- you've collected it, or someone in the guild has adopted it.
+function Personality:Known(key)
+    if not key then return false end
+    return ns.Pets:IsOwned(key) or ns.Registry:Holder(key) ~= nil
+end
+
+-- "Kosete og Nattugle · liker herbs og quests" (or that it's unknown yet)
 function Personality:Line(key)
+    if not self:Known(key) then return ns.L["personality.unknown"] end
     local words = self:LikedWords(key)
     if #words == 0 then return self:Names(key) end
     return ns.T("personality.line", { traits = self:Names(key), likes = Join(words) })

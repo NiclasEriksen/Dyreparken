@@ -180,6 +180,8 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   points), playdates (15, once a day per pet, with a guildmate's pet out in the group; Menagerie/Playdate.lua), and
   skill-ups and reputation as activities (unverified on Forever; `/dp probe life`). All at the pet's rate, within
   its day.
+- **A personality is a surprise** (2026-11-09): traits, likes and trait particles show only for a pet you've
+  collected or that someone in the guild has adopted (`Personality:Known`); otherwise "Ukjent personlighet".
 - **Sync hardening** (code review 2026-11-09): SYNC goes in three parts (records, names, bonds), peers hold back
   theirs when one starts arriving; a part with more than Config.SYNC_MAX_ENTRIES is refused whole; pet keys must be
   "s:<id>" or "n:<name>"; bonds can't start before Config.BOND_EPOCH and hold at most Registry.LifeCap (75 a day plus

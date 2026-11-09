@@ -49,9 +49,11 @@ return function(test, H)
         ok(dragon[1].boss and dragon[1].taxi and dragon[1].rep, "the dragon's likes")
         ok(P:Of("s:72").quest, "no family: quests")
         Give(ola, "glupsk", "reiseglad")
+        ola:GivePet(84) -- (known: a personality is a surprise until collected)
         eq(P:Line("s:84"), "Glupsk og Reiseglad · liker boss-kills, flyturer, omdømme og quests", "a like is listed once")
         P.BY_FAMILY, P.DEFAULT = {}, {}
         Give(ola, "kosete", "helgedyr")
+        P.Known = function() return true end
         eq(P:Line("s:999"), "Kosete og Helgedyr", "nothing liked but the days")
         -- What each kind of trait does, in numbers.
         local E = function(id) return P:Effect(P.ById(id)) end
@@ -274,5 +276,29 @@ return function(test, H)
         c.speciesID, c.petID = nil, nil
         ola.env.PetJournal_UpdatePetCard(c)
         eq(card.personality.text, ""); eq(card.likes.text, "")
+    end)
+    test("a personality is a surprise until you collect the pet or a guildmate adopts it", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
+        local kari = w:AddClient("Kari Berg", { pets = { 84 } })
+        w:Run(40)
+        local P = ola.ns.Personality
+        no(P:Known("s:84")); ok(P:Known(PANDA))
+        eq(P:Line("s:84"), "Ukjent personlighet")
+        -- The card: no traits, no likes, no trait particles; the hover says why.
+        ola:OpenJournal()
+        local card = ola:SelectPet(84)
+        eq(card.personality.text, "Ukjent personlighet"); eq(card.likes.text, "")
+        P.Traits = function() return { P.ById("gronnfinger"), P.ById("nattugle") } end
+        local specs = ola.ns.Decor:Specs("s:84", 0, w.t)
+        for _, sp in ipairs(specs) do no(sp.kind == "leaf", "no trait particles") end
+        card.personalityHit.scripts.OnEnter(card.personalityHit)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "overraskelse")
+        -- Kari adopts it: now the whole guild knows it.
+        kari:Slash("adopter chicken")
+        w:Run(3)
+        ok(P:Known("s:84"))
+        card = ola:SelectPet(84)
+        eq(card.personality.text, "Grønnfinger og Nattugle")
     end)
 end
