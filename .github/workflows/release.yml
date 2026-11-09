@@ -32,6 +32,26 @@ jobs:
         with:
           fetch-depth: 0 # full history: the changelog is built from commits since the last tag
 
+      # The changelog players read on CurseForge and GitHub: one line per commit
+      # subject since the previous tag (the subjects are written for players),
+      # without the developer-only ones, and the Claude credit once at the top
+      # instead of a Co-Authored-By line under every entry. .pkgmeta points
+      # the packager at this file (manual-changelog).
+      - name: Changelog
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          prev=$(git describe --tags --abbrev=0 "${tag}^" 2>/dev/null || true)
+          lines=$(git log --no-merges --format='- %s' ${prev:+"$prev.."}"$tag" \
+            | grep -vE '^- (Tests|Tidy-up|Notes|Docs|Developer probe)\b' || true)
+          {
+            echo "# Dyreparken ${tag}"
+            echo
+            echo "_Developed with the help of Claude (Anthropic)._"
+            echo
+            echo "${lines:-- Small fixes and polish.}"
+          } > CHANGELOG.md
+          cat CHANGELOG.md
+
       - uses: BigWigsMods/packager@v2
         with:
           args: -p ${{ secrets.CF_PROJECT_ID }}

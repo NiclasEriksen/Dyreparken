@@ -14,3 +14,9 @@ ignore:
   - .luarc.json
   - .github
   - .githooks
+
+# The changelog is written by the release workflow (.github/workflows/release.yml):
+# commit subjects only, with the Claude credit once at the top.
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown

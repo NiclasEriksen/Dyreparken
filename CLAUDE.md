@@ -82,7 +82,10 @@ and refuses the push if it fails.
 - The TOC has `## Version: @project-version@`, which the packager replaces with the tag. A git checkout reports `dev`
   (`ns.DEV`) and never shows "outdated" warnings.
 - The CurseForge project ID is the `CF_PROJECT_ID` repository secret, passed as `-p`, so it isn't in the TOC.
-- The changelog is generated from commit messages, so write them for players.
+- The changelog is written by the release workflow from commit **subjects** since the previous tag (bodies and
+  Co-Authored-By lines left out; the Claude credit is one line at the top), skipping subjects that start with
+  `Tests:`, `Tidy-up:`, `Notes:`, `Docs:` or `Developer probe`. So write subjects for players, and start developer-only
+  ones with one of those words. `.pkgmeta` has `manual-changelog: CHANGELOG.md`.
 - `.pkgmeta` lists the dev files left out of the zip: tools, docs, CLAUDE.md, README.md, .claude, .luarc.json, .github.
 - Any wire format change bumps `X-Protocol`. Any saved data change adds a migration (see Working rules).
 
