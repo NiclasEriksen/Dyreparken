@@ -151,7 +151,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
                    come home instead), stopped when hidden. Also
                    the art probe /dp probe decor; DecorCandidates.lua is GENERATED from the retail atlas list, dev only),
-                   ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon;
+                   ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon, a click opens its card on the Pets page (also pets you don't own);
                    loads after Achievements/Page.lua so its tab comes second),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in
                    g.life, see Registry.lua; docs/PET_LIFE.md. Data only, it prints nothing: BOND_LEVEL, BOND_FULL,

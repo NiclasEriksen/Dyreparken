@@ -7,7 +7,11 @@ local _, ns = ...
 -- family, the newest arrival. Below, every companion in Forever's journal
 -- (Data/Companions.lua) as an icon: in color when it has a home, grey when
 -- it's looking for one, a gold glow on yours, and a green tick on free ones
--- you own (you could adopt them). Hovering one tells its story.
+-- you own (you could adopt them). Hovering one tells its story; a click opens
+-- its card on the Pets page (2026-11-09: the journal's list holds only the
+-- pets you own, so this is how you see the rest). Only when the Pets page is
+-- the one under ours: switching tabs is Blizzard's SetTab, which we never
+-- call (Core/SidePage.lua: taint).
 --
 -- Everything comes from the registry; nothing is sent. We can't know which
 -- pets other members own (that isn't synced), so there's no "nobody has it".
@@ -91,7 +95,23 @@ local function ShowTooltip(cell)
         GameTooltip:AddLine(ns.L[owner and "park.also_yours" or "park.can_adopt"],
             1, 1, 1)
     end
+    if ns.Pets:SpeciesOfKey(key) then
+        GameTooltip:AddLine(ns.L[Park:CanShow() and "park.click" or "park.click.pets"], 0.6, 0.6, 0.6, true)
+    end
     GameTooltip:Show()
+end
+
+-- The Pets page is under ours (shown, only covered), so its card can show.
+function Park:CanShow()
+    return PetJournal ~= nil and PetJournal:IsShown() == true
+end
+
+-- A click on an icon: leave the park, show that pet's card.
+function Park:Show(key)
+    local sid = ns.Pets:SpeciesOfKey(key)
+    if not sid or not self:CanShow() or ns.InCombat() then return end
+    ns.SidePage:CloseAll()
+    ns.JournalUI:ShowSpecies(sid)
 end
 
 local function NewCell()
@@ -109,6 +129,7 @@ local function NewCell()
     c.free:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 2, -2)
     c:SetScript("OnEnter", ShowTooltip)
     c:SetScript("OnLeave", ns.HideTip)
+    c:SetScript("OnClick", function(self) Park:Show(self.key) end)
     cells[#cells + 1] = c
     return c
 end

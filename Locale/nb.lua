@@ -425,6 +425,8 @@ L["park.newest"] = "|cffffd100Nyeste beboer:|r {pet} hos {owner} ({time})"
 L["park.free"] = "Trenger et hjem"
 L["park.also_yours"] = "Du har også dette dyret."
 L["park.can_adopt"] = "Du har dette dyret, og kan adoptere det."
+L["park.click"] = "Klikk for å se kortet."
+L["park.click.pets"] = "Åpne Pets-fanen, så kan du klikke her for å se kortet."
 L["park.legend"] = "I farger: har et hjem.  Grå: trenger et hjem.  {icon} Du kan adoptere det."
 
 ------------------------------------------------------------------------------

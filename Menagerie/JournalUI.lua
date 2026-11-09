@@ -165,19 +165,28 @@ local function UpdateCard()
     ns.CardActions:Update(card, key)
 end
 
--- A click on "Dagens dyr": that pet in the journal, by Blizzard's own
--- PetJournal_SelectSpecies (it scrolls the list, and leaves the filters
--- alone), or just its card. Unverified on Forever (2026-11-09): without
--- either it does nothing, and says so in the log.
-function JournalUI:ShowPetOfTheDay()
-    local today = ns.Bonds:PetOfTheDay()
-    local sid = today and ns.Pets:SpeciesOfKey(today)
-    if not sid or ns.InCombat() then return end
+-- A species' card in the journal, by Blizzard's own PetJournal_SelectSpecies
+-- (it scrolls the list to the pet if it's there, and leaves the filters
+-- alone; it shows the card of a pet you don't own too: the list only holds
+-- yours), or just its card. Works on Forever (Dagens dyr, 2026-11-09).
+-- Without either it does nothing, and says so in the log. Returns true if shown.
+function JournalUI:ShowSpecies(sid)
+    if not sid or ns.InCombat() then return false end
     local fn, args = rawget(_G, "PetJournal_SelectSpecies"), { PetJournal, sid }
     if not fn then fn, args = rawget(_G, "PetJournal_ShowPetCardBySpeciesID"), { sid } end
-    if not fn then return ns.Log("UI", "no way to show species %d in the journal", sid) end
+    if not fn then
+        ns.Log("UI", "no way to show species %d in the journal", sid)
+        return false
+    end
     local ok, err = pcall(fn, unpack(args))
-    ns.Log("UI", "pet of the day %d shown: %s", sid, ok and "ok" or tostring(err))
+    ns.Log("UI", "species %d shown: %s", sid, ok and "ok" or tostring(err))
+    return ok
+end
+
+-- A click on "Dagens dyr".
+function JournalUI:ShowPetOfTheDay()
+    local today = ns.Bonds:PetOfTheDay()
+    self:ShowSpecies(today and ns.Pets:SpeciesOfKey(today))
 end
 
 -- A box like Blizzard's "Total Pets": a label left, a value right, a tooltip
