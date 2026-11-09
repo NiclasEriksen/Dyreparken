@@ -90,6 +90,7 @@ L["milestone.days100"] = "100 dager"
 L["milestone.years"] = "{n} år"
 L["milestone.mine"] = "I dag har {pet} bodd hos deg i {time}!"
 L["milestone.other"] = "{owner} og {pet} feirer {time} sammen i dag!"
+L["card.cake.title"] = "Merkedag!"                 -- the cake on a pet's card on its milestone day
 L["milestone.more"] = "... og {n} til."
 L["nick.unlocked_rename"] = "Nå kan du gi {pet} et nytt kallenavn hvis du vil: /dp navn"
 L["nick.unlocked"] = "Nå kan du gi {pet} et kallenavn: /dp navn"

@@ -1,0 +1,51 @@
+-- The anniversary cake (Menagerie/Cake.lua): on an adopted pet's milestone
+-- day, a cake with flickering candles on its card.
+return function(test, H)
+    local eq, ok, no, match = H.eq, H.ok, H.no, H.match
+
+    test("a cake on the milestone day only, for your pet and the guild's, with what's celebrated", function()
+        local w, ola, kari = H.Setup{ ola = { 5159, 46 }, kari = { 46 }, journal = true }
+        ola:Slash("adopter panda"); kari:Slash("adopter white")
+        w:Run(10)
+        local card = ola:SelectPet(5159)
+        local cake = card.cake
+        no(cake:IsShown(), "no milestone on day one")
+        -- Thirty calendar days on (as the milestone lines count them).
+        local at = select(2, ola.ns.Registry:Holder("s:5159")).at
+        local Day = ola.ns.Bonds.DayNumber
+        while Day(w:ServerTime()) - Day(at) < 30 do w:Skip(3600) end
+        ola:SelectPet(5159)
+        ok(cake:IsShown())
+        match(cake.cake.tex, "Particles\\cake$")
+        for _, t in ipairs(cake.flames) do ok(t.flicker:IsPlaying(), "the candles flicker") end
+        cake.scripts.OnEnter(cake)
+        eq(ola.env.GameTooltip.lines[1], "Merkedag!")
+        eq(ola.env.GameTooltip.lines[2], "I dag har Panda Cub bodd hos deg i 1 måned!")
+        cake.scripts.OnLeave(cake)
+        -- Kari's kitten, adopted the same day: the guild's celebration shows too.
+        ola:SelectPet(46)
+        ok(cake:IsShown())
+        cake.scripts.OnEnter(cake)
+        eq(ola.env.GameTooltip.lines[2], "Kari Berg og White Kitten feirer 1 måned sammen i dag!")
+        cake.scripts.OnLeave(cake)
+        -- Our page over the card: gone (and redrawn when it closes); the journal closing stops the candles.
+        ola.ns.Bus:Fire("SIDEPAGE", true)
+        no(cake:IsShown())
+        ola:SelectPet(46)
+        ok(cake:IsShown())
+        cake:Hide()
+        for _, t in ipairs(cake.flames) do no(t.flicker:IsPlaying()) end
+        -- The next day: no cake.
+        w:SkipDays(1)
+        ola:SelectPet(5159)
+        no(cake:IsShown())
+        for _, t in ipairs(cake.flames) do no(t.flicker:IsPlaying()) end
+    end)
+
+    test("no cake for a pet without a home", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        local card = ola:SelectPet(5159)
+        no(card.cake:IsShown())
+        eq(ola.ns.Cake:Today("s:5159"), nil)
+    end)
+end

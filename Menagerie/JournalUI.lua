@@ -99,6 +99,7 @@ local WIDGETS = {
     function(key) ns.Wish:Update(card, key) end,  -- (under the chips)
     function(key, ctx) ns.BondTrack:Update(card, key, ns.Scenes.Bright(ctx.tint, 1.7)) end,
     function(key) ns.OutBadge:Update(card, key) end, -- "Med deg": is this the pet kept out?
+    function(key) ns.Cake:Update(card, key) end, -- a cake on its milestone day
 }
 
 local function DrawWidgets(key)
@@ -295,6 +296,7 @@ local function BuildCard()
     ns.Stats:Build(card, c)
     ns.Wish:Build(card, c)
     ns.OutBadge:Build(card, c)
+    ns.Cake:Build(card, c)
 
     -- The left column: lines that stop at the bond column; a long one ends in
     -- "...", and hovering it tells all.
@@ -456,6 +458,7 @@ local function OnJournalLoaded()
         if open then
             ns.Decor:Stop(card)
             ns.BondTrack:Pause(card)
+            ns.Cake:Update(card, nil)
         else
             JournalUI:Refresh()
         end

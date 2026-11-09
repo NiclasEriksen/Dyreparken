@@ -395,12 +395,30 @@ def house():
     return m
 
 
+def cake():
+    """A two-tier cake: frosting (full white) dripping over darker tiers, three candles. The
+    flames are separate, to flicker."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(-0.85, -0.85), (0.85, -0.85), (0.85, -0.3), (-0.85, -0.3)], fill=150)  # bottom tier
+    poly(d, [(-0.85, -0.3), (0.85, -0.3), (0.85, -0.42), (-0.85, -0.42)])            # its frosting
+    for x in (-0.68, -0.34, 0, 0.34, 0.68):
+        ellipse(d, x, -0.44, 0.12, 0.12)                                               # ... dripping
+    poly(d, [(-0.55, -0.3), (0.55, -0.3), (0.55, 0.15), (-0.55, 0.15)], fill=190)   # top tier
+    poly(d, [(-0.55, 0.15), (0.55, 0.15), (0.55, 0.04), (-0.55, 0.04)])
+    for x in (-0.4, -0.13, 0.13, 0.4):
+        ellipse(d, x, 0.02, 0.1, 0.1)
+    for x in (-0.3, 0, 0.3):                                                           # candles
+        poly(d, [(x - 0.055, 0.15), (x + 0.055, 0.15), (x + 0.055, 0.55), (x - 0.055, 0.55)])
+    poly(d, [(-0.95, -0.92), (0.95, -0.92), (0.95, -0.85), (-0.95, -0.85)], fill=110)  # the plate
+    return m
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
           "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays,
           "feather": feather, "ember": ember, "gear": gear, "wisp": wisp, "coin": coin, "grain": grain,
           "seed": seed, "clover": clover, "zee": zee, "speech": speech, "crumb": crumb, "cloud": cloud,
           "pebble": pebble, "chevron": chevron, "bolt": bolt, "halo": halo, "sword": sword, "drop": drop,
-          "butterfly": butterfly, "mist": mist, "house": house}
+          "butterfly": butterfly, "mist": mist, "house": house, "cake": cake}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 

@@ -142,7 +142,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
                    an hour; read its header), Fx (one-shot particle bursts outside the journal: at the cursor over a
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
-                   lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cuddle (a click on the pet:
+                   lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Cake (a cake with flickering candles on an adopted pet's card on its milestone day), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits (every trait has some; those with a moment show only then) and the date, and
@@ -172,7 +172,7 @@ Achievements/      Defs (ids, kinds;
                    docs/PET_LIFE.md.
 Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble, confetti, note, paw, leaf, moon, snowflake, ring, rays,
                    and since 2026-11-09 feather, ember, gear, wisp, coin, grain, seed, clover, zee, speech, crumb, cloud,
-                   pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home):
+                   pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home; cake, Cake.lua):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
