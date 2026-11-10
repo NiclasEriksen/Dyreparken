@@ -582,47 +582,28 @@ return function(test, H)
         eq(actor.anim, 756, "the hop at once")
     end)
 
-    test("the lift lands on each pet's own height, never on top of itself, whatever the client keeps", function()
+    test("the lift lands on the model scene's height, whatever pet was shown before in that scene", function()
         local w, ola, actor = Setup(14)
-        local heights = { [70] = 0.5, [5160] = 2.5 }
-        ola.modelHeights = heights
-        -- The model done loading: the client puts it at its own height (and our hook sees it).
-        function actor:SetModelByCreatureDisplayID() self.pos = { 0, 0, heights[ola.cardSpecies] or 0 } end
+        -- Panda Cub and Prairie Dog share a scene at 0.5; the Zergling has one at 2.5.
+        ola.modelHeights = { [70] = 0.5, [5159] = 0.5, [5160] = 2.5 }
         ola.ns.PetMoves.species[70] = { lift = -0.2 }
+        ola.ns.PetMoves.species[5159] = { lift = 0.3 }
         ola.ns.PetMoves.species[5160] = { lift = 0.4 }
-        ola:SelectPet(70)
-        ok(math.abs(actor.pos[3] - 0.3) < 1e-6)
-        -- Switching fast: at first the client keeps the last pet's height; the model loads after.
-        ola.keepHeight = true
-        ola:SelectPet(5160)
-        actor:SetModelByCreatureDisplayID(1)
-        w:Run(1)
-        ok(math.abs(actor.pos[3] - 2.9) < 1e-6, "the Zergling on its own height once loaded")
-        ola:SelectPet(70)
-        ok(math.abs(actor.pos[3] - 0.3) < 1e-6, "back at once: its own height, not the Zergling's")
-        actor:SetModelByCreatureDisplayID(1)
-        w:Run(1)
-        ok(math.abs(actor.pos[3] - 0.3) < 1e-6, "and still, once loaded")
-        -- Shown again with the client keeping our height: not lowered a second time.
-        ola:SelectPet(5159); ola:SelectPet(70)
-        w:Run(2)
-        ok(math.abs(actor.pos[3] - 0.3) < 1e-6)
-    end)
-
-    test("a pet whose own height is just where the last one was put still moves, and its lift can be changed", function()
-        local w, ola, actor = Setup(14)
-        local heights = { [5160] = 2.0, [70] = 2.5 }
-        ola.modelHeights = heights
-        ola.ns.PetMoves.species[5160] = { lift = 0.5 }
-        ola.ns.PetMoves.species[70] = { lift = -0.5 }
-        ola:SelectPet(5160)
-        ok(math.abs(actor.pos[3] - 2.5) < 1e-6)
-        ola:SelectPet(70) -- (the client puts it at 2.5: where the Zergling was put)
-        w:Run(1)
-        ok(math.abs(actor.pos[3] - 2.0) < 1e-6, "moved once settled")
+        local function At(z, what) ok(math.abs(actor.pos[3] - z) < 1e-6, ("%s: %.2f, not %.2f"):format(what, z, actor.pos[3])) end
+        ola:SelectPet(70);   At(0.3, "Prairie Dog")
+        ola:SelectPet(5159); At(0.8, "Panda Cub, from where the Prairie Dog was put")
+        ola:SelectPet(70);   At(0.3, "and back")
+        for _ = 1, 3 do ola:SelectPet(5159); ola:SelectPet(70) end
+        At(0.3, "paging back and forth: the same every time")
+        ola:SelectPet(5160); At(2.9, "another scene")
+        ola:SelectPet(5159); At(0.8, "back in the first")
+        w:Run(2);            At(0.8, "and still, once loaded")
+        -- A scene whose height happens to be where the last pet was put.
+        ola.modelHeights[5160] = 0.8
+        ola:SelectPet(5160); At(1.2, "the Zergling's scene at 0.8")
+        -- The lift editor moves it.
         ola:Slash("probe lift")
-        ola.ns.LiftEditor.frame.up:Click()
-        ok(math.abs(actor.pos[3] - 2.05) < 1e-6, "the slider moves it")
-        ola.ns.LiftEditor:Close()
+        ola.ns.LiftEditor.frame.up:Click(); At(1.25, "the slider")
+        ola.ns.LiftEditor:Close();          At(1.2, "closed")
     end)
 end

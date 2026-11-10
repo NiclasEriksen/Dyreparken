@@ -1059,6 +1059,7 @@ function Client:OpenJournal(o)
                 function actor:HasAnimation(id)
                     return (client.petAnims or { [0] = true, [756] = true, [770] = true })[id] == true
                 end
+                function model:GetModelSceneID() return self.sceneID end
                 function model:GetActorByTag(tag) if tag == "unwrapped" then return actor end end
                 self.petActor = actor
             end
@@ -1152,14 +1153,21 @@ function Client:Button(sid)
 end
 
 -- Select a pet on the card, as the journal does.
--- Another species on the card: the client loads its model at that model's own height
--- (c.modelHeights[sid], default 0), unless c.keepHeight: then it stays where it was, as the
--- client sometimes does when switching fast (2026-11-10).
+-- The card's model scene: each species has one (c.modelScenes[sid], default: one per
+-- height in c.modelHeights[sid], default 0), and the actor's height is the scene's. Like
+-- Blizzard's TransitionToModelSceneID, the height is set only when the scene changes:
+-- between two pets of one scene the actor stays where it was (2026-11-10).
 function Client:SelectPet(sid, byPetID)
     local card = self.env.PetJournalPetCard
     local actor = self.petActor
-    if actor and actor.pos and sid ~= self.cardSpecies and not self.keepHeight then
-        actor.pos = { 0, 0, (self.modelHeights or {})[sid] or 0 }
+    if actor and actor.pos then
+        local height = (self.modelHeights or {})[sid] or 0
+        local scene = (self.modelScenes or {})[sid] or 1000 + math.floor(height * 100 + 0.5)
+        local model = card.modelScene
+        if scene ~= model.sceneID then
+            model.sceneID = scene
+            actor.pos = { 0, 0, height }
+        end
     end
     self.cardSpecies = sid
     if byPetID then card.speciesID, card.petID = nil, self:GuidOf(sid) else card.speciesID, card.petID = sid, nil end

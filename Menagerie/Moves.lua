@@ -399,7 +399,7 @@ local function Outside(what, arg)
     ns.Log("Moves", "%s(%s) from outside, holding %s", what, tostring(arg), tostring(shown.pose and shown.playing))
     if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
         local key, token = shown.key, shown.token
-        C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Moves.Lift(key, true) end end)
+        C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Moves.Lift(key) end end)
     end
     if not shown.pose or shown.reposed >= Moves.REPOSE then return end
     shown.reposed = shown.reposed + 1
@@ -632,33 +632,37 @@ end
 -- found by eye) moves it at once, and again once the model has loaded (or the
 -- client loads it anew) if it was put back. (Working it out from the model's box and the camera didn't
 -- match what's on screen: /dp probe pos box, 2026-11-10.)
--- Each pet's own height, as the client puts it (the first height seen that isn't
--- one we set), so a lift lands on that and never on top of itself: switching
--- fast, the client sometimes kept a pet where we had put it, and a lift read
--- from there sank it twice as far (2026-11-10).
--- Own heights come in a few round values (0.5, 1, 1.5, 2.5), so a pet's own height is
--- often exactly where we put the last one: then it's trusted once the model has
--- settled (`settled`), else that pet never moved at all (2026-11-10).
-local bases, lastSet, lastKey = {}, nil, nil
-local function Lift(key, settled)
+-- The height isn't the pet's but its model scene's (GetModelSceneID: a few scenes,
+-- heights 0.5, 1, 1.5, 2.5...): Blizzard sets it only when the card changes scene,
+-- and between two pets of one scene leaves the actor where we put it. So each
+-- scene's height is read once, as it arrives, and a lift always lands on that,
+-- never on what's left from the last pet (reading heights by pet was wrong
+-- whenever two pets shared a scene: 2026-11-10).
+local bases, lastScene = {}, nil
+local function Scene(key)
+    local scene = PetJournalPetCard and rawget(PetJournalPetCard, "modelScene")
+    local ok, id = Call(scene or {}, "GetModelSceneID")
+    if ok and id then return "scene " .. tostring(id) end
+    return key -- (no scene ids: by pet)
+end
+local function Lift(key)
     local actor = Moves:Actor()
     local ok, x, y, z = Call(actor or {}, "GetPosition")
     if not (ok and type(z) == "number") then return end
-    local ours = lastSet and math.abs(z - lastSet) < 1e-3
-    if not ours or (settled and lastKey ~= key) then bases[key] = z end -- (the client's own)
-    local base = bases[key]
-    if not base then return end -- (still where the last pet was put: once it has loaded)
+    local scene = Scene(key)
+    if scene ~= lastScene or not bases[scene] then bases[scene] = z end -- (just set by Blizzard)
+    lastScene = scene
+    local base = bases[scene]
     local lift = Moves:For(key, "lift")
     local target = base + (lift or 0)
     if math.abs(z - target) < 1e-3 then return end
     Call(actor, "SetPosition", x, y, target)
-    lastSet, lastKey = target, key
-    ns.Log("Moves", "%s at %.2f (its own %.2f%s)", key, target, base, lift and ("%+.2f"):format(lift) or "")
+    ns.Log("Moves", "%s at %.2f (%s at %.2f%s)", key, target, scene, base, lift and ("%+.2f"):format(lift) or "")
 end
 local function LiftSoon(key)
     local token = shown.token
     C_Timer.After(Moves.SETTLE, function()
-        if token == shown.token and shown.key == key then Lift(key, true) end
+        if token == shown.token and shown.key == key then Lift(key) end
     end)
 end
 Moves.Lift = Lift

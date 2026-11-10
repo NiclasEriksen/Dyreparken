@@ -95,6 +95,10 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
   (0, 0, 300, -50). Blizzard puts each model at its own height and camera (Brown Prairie Dog z 0.5, zoom 24;
   Zergling z 2.5, zoom 20). The projected box did NOT match where the pet shows (y off by 60-200 px, differently
   per pet), so neither its feet nor its head can be found from it: per-species `lift` by eye instead.
+- The pet's height on the card belongs to its **model scene** (`modelScene:GetModelSceneID()`, works; 1271 for the
+  Brown Prairie Dog), not to the pet (2026-11-10, the user paging between pets): Blizzard sets the actor's position
+  only when the card changes scene, so between two pets of one scene the actor stays where an addon put it. Heights
+  per scene come in round values (0.5, 1, 1.5, 2.5). Moves reads each scene's height as it arrives.
 - Verified 2026-11-10 (the user, in game): the card's pet walks and runs with you, and stops after a flight path
   (`PLAYER_STARTED_MOVING`, `PLAYER_STOPPED_MOVING`, `PLAYER_CONTROL_GAINED`, `GetUnitSpeed`).
 - The card scales a model to its size as it loads (2026-11-10): an animation playing at that moment changes the
