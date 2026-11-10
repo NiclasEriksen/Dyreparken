@@ -168,9 +168,9 @@ return function(test, H)
         eq(star.anim.grow.scaleTo[1], 1.6)
         -- Not on a holiday any more: no confetti. December: snow for everyone.
         ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("festglad") } end
-        At(w, ola, 5, 18, 12)
+        At(w, ola, 3, 18, 12) -- (March: no season's particles)
         D:Apply(card, PANDA, 1)
-        eq(#Parts(d), 0, "the day after")
+        eq(#Parts(d), 0, "not a holiday")
         At(w, ola, 12, 3, 12)
         D:Apply(card, PANDA, 1)
         eq(#Parts(d), N(D, 5, 1)); eq(Parts(d)[1].icon.tex, D.MEDIA .. "snowflake")

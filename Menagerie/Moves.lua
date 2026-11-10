@@ -314,8 +314,20 @@ function Moves:Rest(key, t)
             return "sleep"
         end
         if HasTrait(key, "latsabb") and self:For(key, "sit") then return "sit" end
+        -- Content for today: your pet sits once its day's bond is full (2026-11-10).
+        if self:For(key, "sit") and ns.Pets:IsOwned(key) then
+            local today, max = ns.Bond:Today(key)
+            if today >= max then return "sit" end
+        end
     end
     return "stand"
+end
+
+-- Your adopted pet's wish came true and you haven't seen it on the card since:
+-- a happy hop, once (2026-11-10).
+local function WishJoy(key)
+    local w = ns.DB.char.wish
+    return w and w.done and w.pet == key and w.day == ns.Today() and not w.shown and Moves:For(key, "happy")
 end
 
 -- A pose's steps for this pet; the last one is held.
@@ -352,7 +364,14 @@ function Moves:Update(card, key)
     end
     shown.key, shown.mode = key, mode
     if mode == "dead" then ns.DB.char.eggs.dodsfall.played = true end
-    self:Sequence(Steps(key, mode))
+    local steps = Steps(key, mode)
+    local joy = mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
+    if joy then
+        ns.DB.char.wish.shown = true
+        table.insert(steps, 1, { joy, self.T.happy })
+        table.insert(steps, 1, { STAND, self.SETTLE })
+    end
+    self:Sequence(steps)
 end
 
 -- After a reaction: back to its pose (awake now, if it slept or sat).
@@ -373,6 +392,8 @@ function Moves:Cuddle(key)
     if happy then steps[#steps + 1] = { happy, self.T.happy } end
     steps[#steps + 1] = { back }
     self:Sequence(steps)
+    -- Woken up: its Zzz go (Decor reads the pose; the card's refresh leaves the hop playing).
+    if mode == "sleep" and ns.JournalUI then ns.JournalUI:Refresh() end
 end
 
 -- A bond level reached (BondTrack's celebration): its cheer, if it has one.

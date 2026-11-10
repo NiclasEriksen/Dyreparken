@@ -272,8 +272,37 @@ Decor.FAMILY = {
 }
 Decor.FAMILY_ALPHA = 0.7 -- the ambience stays behind the traits
 for _, spec in pairs(Decor.FAMILY) do spec.alpha = spec.alpha or Decor.FAMILY_ALPHA end
-local function December(t) return date("%m", t) == "12" end
 local RAINBOW = { { 1, 0.35, 0.35 }, { 1, 0.8, 0.25 }, { 0.4, 0.85, 0.4 }, { 0.35, 0.65, 1 }, { 0.85, 0.45, 1 } }
+local FLAG = { { 0.85, 0.15, 0.2 }, { 1, 1, 1 }, { 0.15, 0.3, 0.75 } } -- 17. mai
+
+-- The date's particles, every card (2026-11-10): the seasons, softly, and a
+-- few days of the year. { when = fn(t), spec }; a palette color (a list of
+-- colors) goes round.
+local function Month(...)
+    local set = {}
+    for _, m in ipairs({ ... }) do set[m] = true end
+    return function(t) return set[tonumber(date("%m", t))] == true end
+end
+local function Day(md) return function(t) return date("%m%d", t) == md end end
+Decor.DATES = {
+    { when = Month(12), spec = { kind = "snow", n = 5, color = { 1, 1, 1 } } },
+    { when = Month(10, 11), spec = { kind = "leaf", n = 2, color = { 0.95, 0.55, 0.2 } } },
+    { when = Month(4, 5), spec = { kind = "clover", n = 2, color = { 0.5, 0.85, 0.45 } } },
+    { when = Month(6, 7, 8), spec = { kind = "butterfly", n = 1, color = { 1, 0.8, 0.5 } } },
+    { when = Day("0517"), spec = { kind = "confetti", n = 9, color = FLAG } },
+    { when = Day("0623"), spec = { kind = "ember", n = 6, color = { 1, 0.6, 0.2 } } }, -- sankthans
+    { when = function(t) -- the turn of the year: ten minutes either side of midnight
+        local md, hm = date("%m%d", t), tonumber(date("%H%M", t))
+        return (md == "1231" and hm >= 2350) or (md == "0101" and hm < 10)
+    end, spec = { kind = "spark", n = 8, color = "rainbow" } },
+}
+
+-- A trait's particles show twice as many on a day its liked activity
+-- happened (2026-11-10): chevrons pour up on the day you dinged.
+Decor.LIVELY = 2
+local function Lively(trait)
+    return trait.like ~= nil and select(3, ns.Activity:Count(trait.like)) > 0
+end
 
 -- An atlas, mirrored if asked: SetTexCoord would replace the atlas's own
 -- coordinates, so the file and its coordinates are set by hand.
@@ -537,7 +566,8 @@ local function Launch(p, spec, rng, i, n, panel)
     SetArt(icon, Decor:PartArt(spec.kind))
     icon:SetBlendMode(k.add and "ADD" or "BLEND")
     local c = spec.color
-    if c == "rainbow" then c = RAINBOW[(i - 1) % #RAINBOW + 1] end
+    if c == "rainbow" then c = RAINBOW end
+    if type(c[1]) == "table" then c = c[(i - 1) % #c + 1] end -- a palette
     icon:SetVertexColor(c[1], c[2], c[3], spec.alpha or 1)
     icon:SetRotation(0)
     local size = rng(k.size[1], k.size[2])
@@ -634,9 +664,22 @@ function Decor:Specs(key, level, t)
             if not ctx then ctx = ns.Bond.Context(); ctx.t = t end
             now = trait.when(ctx)
         end
-        if now then list[#list + 1] = Thinned(spec, f) end
+        if now then
+            local shown = Thinned(spec, f)
+            if Lively(trait) then
+                local more = {}
+                for k, v in pairs(shown) do more[k] = v end -- (a copy: shown may be the trait's own)
+                more.n = shown.n * self.LIVELY
+                shown = more
+            end
+            list[#list + 1] = shown
+        end
     end
-    if December(t) then list[#list + 1] = Thinned({ kind = "snow", n = 5, color = { 1, 1, 1 } }, f) end
+    -- Asleep on the card (Moves): a few Zzz, whatever its traits.
+    if ns.Moves:Rest(key, t) == "sleep" then list[#list + 1] = { kind = "zee", n = 3, color = { 0.8, 0.85, 1 } } end
+    for _, d in ipairs(self.DATES) do
+        if d.when(t) then list[#list + 1] = Thinned(d.spec, f) end
+    end
     if level >= 5 then list[#list + 1] = { kind = "spark", n = 6, color = GOLD } end
     if level >= 7 then list[#list + 1] = { kind = "heart", n = 4, color = { 1, 0.4, 0.5 } } end
     -- Last: the pool may run out, and the ambience is what can go.

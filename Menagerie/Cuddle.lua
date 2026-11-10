@@ -2,7 +2,8 @@ local _, ns = ...
 
 -- Pet it on the card (2026-11-08): a click on the pet (not a drag, which
 -- turns the model) answers quietly where you clicked: a ripple, a few small
--- hearts rising, and a warm glow flaring under the pet; a soft sound. No
+-- hearts rising (every other one the pet's own particle), and a warm glow
+-- flaring under the pet; a soft sound. No
 -- text (a speech bubble read badly, the user decided). Once a day it's a
 -- cuddle for the bond too (the activity "cuddle", as /pet would be), when
 -- the card shows your adopted pet and it's out.
@@ -94,6 +95,23 @@ function Cuddle:Stop(card)
     d.glow.anim:Stop(); d.glow:Hide()
 end
 
+-- The pet's own particle (2026-11-10): its first trait's, if it has one and
+-- its personality is known, else its family's. { tex, color }.
+local function Own(key)
+    local D = ns.Decor
+    local spec
+    if ns.Personality:Known(key) then
+        for _, t in ipairs(ns.Personality:Traits(key)) do
+            spec = D.TRAITS[t.id]
+            if spec then break end
+        end
+    end
+    spec = spec or D.FAMILY[ns.Scenes:Families(key)[1] or "default"] or D.FAMILY.default
+    local c = spec.color
+    if type(c) ~= "table" or type(c[1]) == "table" then c = { 1, 0.85, 0.5 } end -- (rainbow, a palette: one warm color)
+    return D.KINDS[spec.kind].tex, c
+end
+
 -- Where the cursor is (screen pixels) on the card, from its bottom left; nil
 -- before the card is laid out.
 local function OnCard(c, x, y)
@@ -115,7 +133,16 @@ function Cuddle:Pet(card, x, y)
     end
     Place(d.ripple)
     d.ripple:Show(); d.ripple.anim:Play()
+    -- Every other heart is the pet's own particle: bubbles from a Dykker, crumbs from a Glupsk.
+    local tex, color = Own(key)
     for i, p in ipairs(d.hearts) do
+        if i % 2 == 0 then
+            p.icon:SetTexture(ns.Decor.MEDIA .. tex)
+            p.icon:SetVertexColor(color[1], color[2], color[3], 0.9)
+        else
+            p.icon:SetTexture(ns.Decor.MEDIA .. "heart")
+            p.icon:SetVertexColor(1, 0.5, 0.6, 0.85)
+        end
         Place(p)
         p.anim.move:SetOffset((i - (HEARTS + 1) / 2) * 12, 30 + (i % 2) * 10) -- up, a little apart
         p:Show(); p.anim:Play()
