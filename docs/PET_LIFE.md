@@ -160,6 +160,9 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
 - **Sanity bounds** on the wire: points can't exceed what's possible since `f` (a daily maximum times days), and
   the usual time bounds apply. A forged huge score is refused.
 - **Migration:** existing adoptions are seeded with 10 points per day already together, so nobody starts over.
+  Only adoptions from before bonds shipped (Config.BONDS_SHIPPED, 0.1.0-alpha4), and only their days until then
+  (2026-11-10: seeding any adoption with no entry yet gave points nobody earned, on a new PC before the SYNC's
+  bonds arrived, or for a pet never out).
   Protocol bump.
 - **Collection sync** (if chosen): `g.owned[member] = { ts, list }`, a compact species list sent in SYNC and
   updated on `NEW_PET_ADDED`.

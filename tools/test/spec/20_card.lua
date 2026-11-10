@@ -27,6 +27,7 @@ return function(test, H)
 
     test("the panel: big name, small home, the bond on the right, the guild below", function()
         local w, ola = Setup()
+        w.bondsShipped = 2e9 -- (adopted before bonds shipped: seeded at login)
         local card = ola:SelectPet(68)
         eq(card.nickname.text, "Great Horned Owl", "not named: the species, big")
         eq(card.status.plain, "Trenger et hjem")

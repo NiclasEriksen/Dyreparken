@@ -196,15 +196,17 @@ function Bond:Own(key)
     if p then return p, level, name, from, nextAt, false end
 end
 
--- A pet adopted before bonds existed, or re-adopted: make sure there's an
--- entry, seeded from the days together (never lowering what's there).
+-- A pet adopted before bonds existed: an entry seeded from its days together
+-- until then (never lowering what's there). Only those: a later adoption with
+-- no entry yet (never out, or a new PC whose SYNC hasn't brought it) seeded
+-- from every day since gave points nobody earned (code review 2026-11-10).
 function Bond:Seed()
     local key, r = ns.Registry:MyPet()
-    if not key then return end
+    if not key or r.at >= ns.Config.BONDS_SHIPPED then return end
     local me = ns.PlayerKey()
     local e = ns.Registry:Life(key, me)
     if e then return end
-    local days = math.max(0, math.floor((ns.Now() - r.at) / 86400))
+    local days = math.max(0, math.floor((math.min(ns.Now(), ns.Config.BONDS_SHIPPED) - r.at) / 86400))
     if days == 0 then return end -- a new adoption starts empty; the first day's visit creates it
     self:Add(days * ns.Config.BOND_DAY_POINTS)
     ns.Log("Bond", "seeded %s with %d (%d days)", key, days * ns.Config.BOND_DAY_POINTS, days)

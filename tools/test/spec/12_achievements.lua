@@ -198,6 +198,7 @@ return function(test, H)
 
     test("loyalty: a bond seeded from 30 days together, and a first nickname", function()
         local w, ola, kari = Setup({ 5159 })
+        w.bondsShipped = 2e9 -- (adopted before bonds shipped: seeded at login)
         ola:Slash("adopter")
         w:Run(1)
         no(Got(ola, "loyal:30"))

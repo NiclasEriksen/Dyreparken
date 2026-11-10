@@ -83,6 +83,11 @@ Evaluating is a few hundred table lookups, so it's cheap.
 already evaluated (`seen`).
 - A definition met the first time it's evaluated (fresh install, reinstall, or a new achievement added by an
   addon update) is recorded with `ann = "quiet"`.
+- Bond levels and nicknames (`bond`, `nick`) are news only when reached on this client this session (our own
+  Bond:Add raised the level, or we named the pet): after a reinstall or a crash the guild's SYNC brings them
+  back a while after the first look, and that's old news (code review 2026-11-10).
+- Receivers remember whose achievements they've printed (`DyreparkenDB.achHeard`, at most 500): an earner who
+  crashed and earns one again isn't told twice.
 - After the first run, one line at most: "Dyreparken: you already have 14 achievements (see the companion
   window)". It's printed locally, not posted.
 

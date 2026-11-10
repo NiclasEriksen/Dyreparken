@@ -329,6 +329,12 @@ EARNED.char = EARNED.account
 -- Judge a scope's achievements. New ones go in `new`, unless quiet: a
 -- definition seen for the first time (it may have been true for ages), or
 -- quietAll. Returns how many were quiet.
+-- Bond levels and nicknames come back from the guild after a reinstall or a
+-- crash (the SYNC brings our bond and name a while after login): only one
+-- reached here, this session, is news (code review 2026-11-10).
+local HERE = { bond = true, nick = true }
+local grew = {}
+
 local function Run(scope, ctx, quietAll, new)
     local store, quiet = Store(scope), 0
     if not store then return 0 end
@@ -339,7 +345,7 @@ local function Run(scope, ctx, quietAll, new)
                 local firstLook = not store.seen[d.id]
                 store.seen[d.id] = true
                 if done and not store.got[d.id] then
-                    local q = firstLook or quietAll
+                    local q = firstLook or quietAll or (HERE[d.kind] and not grew[d.kind])
                     store.got[d.id] = EARNED[scope](d.id, ctx.now, q)
                     if q then quiet = quiet + 1 else new[#new + 1] = d.id end
                 end
@@ -416,7 +422,10 @@ function Ach:Check(reason, which)
             local acc = Store("account")
             local jump = acc.owned ~= nil and ctx.ownedCount > acc.owned + learned
             quiet = quiet + Run("account", ctx, jump, new)
-            acc.owned, learned = ctx.ownedCount, 0
+            -- Only the pets the collection shows count off: one learned before the journal
+            -- lists it still explains the growth at the next check (code review 2026-11-10).
+            local growth = math.max(0, ctx.ownedCount - (acc.owned or ctx.ownedCount))
+            acc.owned, learned = ctx.ownedCount, math.max(0, learned - growth)
         end
     end
     if which == nil or which == "char" then
@@ -487,13 +496,31 @@ function Ach:Notify(ids)
     end
 end
 
+-- Others' achievements we've told about, so one isn't told twice: a crash
+-- loses the earner's record of it, and they earn it again (code review
+-- 2026-11-10). Each is earned once, so the oldest go past HEARD_MAX.
+local HEARD_MAX = 500
+local function Heard(sender, id)
+    local heard = ns.DB.global.achHeard
+    local k = sender .. "\31" .. id
+    if heard[k] then return true end
+    heard[k] = ns.Now()
+    local n, oldest, at = 0, nil, nil
+    for key, t in pairs(heard) do
+        n = n + 1
+        if not at or t < at then oldest, at = key, t end
+    end
+    if n > HEARD_MAX then heard[oldest] = nil end
+    return false
+end
+
 local function OnEarned(msg, sender, channel)
     if type(msg.a) ~= "table" then return end
     local ids = {}
     for i = 1, math.min(#msg.a, NOTICE_MAX) do
         local id = msg.a[i]
         -- Unknown ids come from newer versions: skip them, show the rest.
-        if type(id) == "string" and defsById[id] then ids[#ids + 1] = id end
+        if type(id) == "string" and defsById[id] and not Heard(sender, id) then ids[#ids + 1] = id end
     end
     if #ids == 0 then return end
     ns.Print(EarnedLine(sender, ids))
@@ -636,8 +663,12 @@ function Ach:Init()
         checkLearned()
     end)
     ns.Bus:On("MY_RECORD", function() Ach:Check("MY_RECORD", "char") end)
+    ns.Bus:On("BOND_LEVEL", function(key) if key == ns.Registry:MyPet() then grew.bond = true end end)
     ns.Bus:On("BOND", function() Ach:CheckCharSoon("BOND") end)
-    ns.Bus:On("MY_NAME", function() Ach:Check("MY_NAME", "char") end)
+    ns.Bus:On("MY_NAME", function()
+        grew.nick = true
+        Ach:Check("MY_NAME", "char")
+    end)
 
     ns.Comm:Register("ACH", function(msg)
         local _, behind = Ach:MergeGuild(msg.a)

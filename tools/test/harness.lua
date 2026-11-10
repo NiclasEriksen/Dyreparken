@@ -768,6 +768,8 @@ function Client:Login()
     -- The bond epoch (no bond is older than the addon) as in the real world:
     -- before any test data. The test clock starts in September 2026.
     self.ns.Config.BOND_EPOCH = self.world.epoch or (1790000000 - 1000 * 86400)
+    -- Bonds shipped as the world starts: its adoptions are new (a test moves it to have them seeded).
+    self.ns.Config.BONDS_SHIPPED = self.world.bondsShipped or 1790000000
     self:Fire("ADDON_LOADED", ADDON)
     self:Fire("PLAYER_LOGIN")
     self:Fire("PLAYER_ENTERING_WORLD", true, false)
