@@ -464,7 +464,9 @@ function Activity:CheckPlace()
     all[key][place] = true
     -- The place's name for the line it may get (Bond: a first together).
     local name = Plain(GetZoneText())
-    self:Emit("explore", 1, type(name) == "string" and name ~= "" and name or place)
+    name = type(name) == "string" and name ~= "" and name or place
+    ns.DB.char.lastPlace[key] = name -- (the explore chip's tooltip names it)
+    self:Emit("explore", 1, name)
 end
 Activity:Source({ id = "explore", events = { "ZONE_CHANGED_NEW_AREA" }, filter = function()
     C_Timer.After(5, function() Activity:CheckPlace() end)

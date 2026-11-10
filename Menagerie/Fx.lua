@@ -95,6 +95,18 @@ end
 ------------------------------------------------------------------------------
 local last = {} -- species .. owner -> when it last burst (GetTime)
 
+-- How loved it is, without a word (2026-11-10): the hearts in its holder's
+-- bond tier, pink, silver from Venn (3), gold from 5.
+Fx.PINK = { 1, 0.45, 0.6 }
+function Fx:HeartColor(species, owner)
+    local key = type(species) == "number" and ns.Pets:KeyOfSpecies(species)
+    if not (key and owner and ns.Registry:Holder(key) == owner) then return self.PINK end
+    local _, level = ns.Bond:Of(key)
+    if (level or 0) >= 5 then return ns.Scenes.GOLD end
+    if (level or 0) >= 3 then return ns.Scenes.SILVER end
+    return self.PINK
+end
+
 function Fx:Hovered(species, owner)
     local id = tostring(species) .. "|" .. tostring(owner)
     local now = GetTime()
@@ -103,7 +115,7 @@ function Fx:Hovered(species, owner)
     local scale = UIParent:GetEffectiveScale()
     local x, y = GetCursorPosition()
     local at = { UIParent, "BOTTOMLEFT", x / scale, y / scale }
-    self:Burst(at, "heart", { n = 3, color = { 1, 0.45, 0.6 }, size = 0.7, rise = 60 })
+    self:Burst(at, "heart", { n = 3, color = self:HeartColor(species, owner), size = 0.7, rise = 60 })
     ns.Log("Fx", "hover %s (%s)", tostring(species), tostring(owner))
 end
 

@@ -52,6 +52,8 @@ local function Tip(self)
         GameTooltip:SetText(ns.T("stats.days", { n = self.n, pet = pet }), 1, 1, 1)
     else
         GameTooltip:SetText(ns.T("stats.tip", { n = self.n, what = ns.Personality.NOUN[self.id], pet = pet }), 1, 1, 1)
+        local last = self.id == "explore" and ns.DB.char.lastPlace[card.key]
+        if last then GameTooltip:AddLine(ns.T("stats.last_place", { place = last }), 0.8, 0.8, 0.8) end
     end
     GameTooltip:Show()
 end

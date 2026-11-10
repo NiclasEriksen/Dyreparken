@@ -14,6 +14,7 @@ return function(test, H)
         local ids = { ... }
         local w, ola = H.Setup{ ola = { 5159, 40 }, settle = "bond", journal = true, each = function(c)
             c.ns.Decor.FAMILY, c.ns.Decor.FAMILY_ART = {}, {}
+            c.ns.Bonds.PetOfTheDay = function() return nil end -- (its halo has a test of its own: 34_touches.lua)
             c.ns.Personality.Traits = function()
                 local list = {}
                 for _, id in ipairs(ids) do list[#list + 1] = c.ns.Personality.ById(id) end

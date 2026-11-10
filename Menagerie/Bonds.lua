@@ -89,6 +89,8 @@ function Bonds:Celebrate()
         char.bondDay = today
         local m = self:Milestone(r.at, now)
         if m then ns.Print(Gold(ns.T("milestone.mine", { pet = ns.Registry:NameOf(key), time = m }))) end
+        -- Your own pet is the guild's pet of the day (2026-11-10).
+        if self:PetOfTheDay(now) == key then ns.Print(Gold(ns.T("today.mine", { pet = ns.Registry:NameOf(key) }))) end
     end
     self:TellNameUnlock()
 
@@ -124,21 +126,36 @@ function Bonds:Init()
 end
 
 -- The emote text for petting the target companion, or our own. nil if
--- there's nothing to pet.
+-- there's nothing to pet. Also: what the pet is called and its key (nil when
+-- the target's species is unknown), for its answer.
 function Bonds:PatText()
     local me = ns.PlayerKey()
     if Plain(UnitIsBattlePetCompanion and UnitIsBattlePetCompanion("target")) then
         local species = Plain(UnitName("target"))
         if type(species) ~= "string" then return nil end
+        local sid = Plain(UnitBattlePetSpeciesID and UnitBattlePetSpeciesID("target"))
+        local key = type(sid) == "number" and ns.Pets:KeyOfSpecies(sid) or nil
         local owner, r = ns.Tooltip:ReservationOf("target")
         local nick = owner and ns.Registry:Nickname(r.k)
         owner = owner or ns.Tooltip:OwnerOf("target")
-        if owner == me or not owner then return ns.T("pat.own", { pet = nick or species }) end
-        return ns.T(nick and "pat.other_nick" or "pat.other", { nick = nick, owner = owner, species = species })
+        if owner == me or not owner then return ns.T("pat.own", { pet = nick or species }), nick or species, key end
+        return ns.T(nick and "pat.other_nick" or "pat.other", { nick = nick, owner = owner, species = species }),
+            nick or species, key
     end
     local key = ns.Pets:OutKey()
     if not key then return nil end
-    return ns.T("pat.own", { pet = ns.Registry:NameFor(key, me) })
+    local name = ns.Registry:NameFor(key, me)
+    return ns.T("pat.own", { pet = name }), name, key
+end
+
+-- The pet answers a pat in its family's voice, for you only (2026-11-10):
+-- Locale voice.<family>; a family without one says nothing.
+function Bonds:Voice(key, name)
+    for _, family in ipairs(key and ns.Scenes:Families(key) or {}) do
+        if ns.Strings["voice." .. family] then
+            return ns.T("voice." .. family, { pet = name })
+        end
+    end
 end
 
 local announced = {} -- kind .. key -> GetTime(), this session
@@ -168,9 +185,11 @@ end
 
 function Bonds:Pat()
     if ns.InCombat() then return ns.Print(ns.L["pat.combat"]) end
-    local text = self:PatText()
+    local text, name, key = self:PatText()
     if not text then return ns.Print(ns.L["pat.nothing"]) end
     SendChatMessage(text, "EMOTE")
+    local voice = self:Voice(key, name)
+    if voice then ns.Print("|cffd9b3ff" .. voice .. "|r") end
 end
 
 ns.Start("login", function() Bonds:Init() end)

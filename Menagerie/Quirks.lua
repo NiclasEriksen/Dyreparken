@@ -121,7 +121,20 @@ Quirks.EGGS = {
     end },
     { id = "midnatt", on = "*", chance = 0.5,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
-    { id = "speil", on = "seen", test = function(ctx) return { owner = ctx.extra } end },
+    { id = "speil", on = "seen", test = function(ctx)
+        return ns.Pets:SpeciesOfKey(ctx.key) == ctx.seen and { owner = ctx.extra }
+    end },
+    -- (2026-11-10) Someone who once cared for your pet walks by with theirs.
+    { id = "kjenner", on = "seen", test = function(ctx)
+        local e = ns.Registry:Life(ctx.key, ctx.extra)
+        return e and e.p > 0 and { owner = ctx.extra }
+    end },
+    -- Another species of the same family: cousins.
+    { id = "fetter", on = "seen", chance = 0.25, test = function(ctx)
+        if ns.Pets:SpeciesOfKey(ctx.key) == ctx.seen then return nil end
+        local theirs = ns.Scenes:Families(ns.Pets:KeyOfSpecies(ctx.seen))[1]
+        return theirs and ctx.family[theirs] and { owner = ctx.extra }
+    end },
     { id = "kattefisk", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
     { id = "vinger", on = "taxi", chance = 0.3,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
@@ -152,13 +165,13 @@ local function Families(key)
     return set
 end
 
-function Quirks:Egg(on, key, extra)
+function Quirks:Egg(on, key, extra, seen)
     local list = {}
     for _, e in ipairs(eggsOn[on] or {}) do list[#list + 1] = e end
     if on ~= "seen" then for _, e in ipairs(eggsOn["*"]) do list[#list + 1] = e end end
     if #list == 0 then return false end
     local ctx = { key = key, name = ns.Registry:NameOf(key), id = on, extra = extra, t = ns.Now(),
-        family = Families(key), today = select(3, ns.Activity:Count(on)) or 0 }
+        family = Families(key), today = select(3, ns.Activity:Count(on)) or 0, seen = seen }
     local today = ns.Today(ctx.t)
     -- Every `always` egg that's due says its line (one a day each: a round
     -- day on Christmas Eve isn't lost to the Christmas egg); the others only
@@ -191,11 +204,12 @@ function Quirks:OnActivity(id, key, extra)
     self:Egg(id, key, extra)
 end
 
--- A companion under the mouse (Tooltip.lua): your pet meets its own kind.
+-- A companion under the mouse (Tooltip.lua): your pet meets its own kind,
+-- a cousin, or someone who once cared for it.
 function Quirks:Seen(species, owner)
     local key = ns.Pets:OutKey()
-    if not (key and owner and owner ~= ns.PlayerKey()) or ns.Pets:SpeciesOfKey(key) ~= species then return end
-    self:Egg("seen", key, owner)
+    if not (key and owner and owner ~= ns.PlayerKey()) or type(species) ~= "number" then return end
+    self:Egg("seen", key, owner, species)
 end
 
 ------------------------------------------------------------------------------
