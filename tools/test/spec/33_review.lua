@@ -291,7 +291,7 @@ return function(test, H)
         w:AddMember("Liv Lund", 31)
         w:Run(12)
         local R, now = c.ns.Registry, w:ServerTime()
-        R:MergeRecord("Per Hansen", { k = "s:40", at = 100, ts = 100 })
+        R:MergeRecord("Per Hansen", { k = "s:40", at = now - 40 * DAY, ts = now - 40 * DAY })
         R:MergeRecord("Liv Lund", { k = "s:41", at = now - 60, ts = now - 60 }) -- back, and adopted just now
         c.rosterIgnored = true -- (the server ignores the request: the client's cached roster)
         c.ns.Guild:Refresh(true)
@@ -319,5 +319,59 @@ return function(test, H)
             w:Run(25)
         end
         ok(w:Sent("SYNC", "Kari Berg", m) > 0, "Kari's SYNC went out after one hold")
+    end)
+
+    test("backdated claims, lapses and names are refused, and migration 10 drops stored ones", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 }, login = false })
+        local now = w:ServerTime()
+        local epoch = 1790000000 - 1000 * DAY -- (the harness's, tools/test/harness.lua)
+        ola.saved.DyreparkenDB = { schema = 9, guilds = { Dyreparken = {
+            claims = {
+                ["Kari Berg"] = { k = "s:46", at = now - DAY, ts = now - DAY },   -- fine
+                ["Zed Nobody"] = { k = PANDA, at = 1, ts = now },                 -- the dawn of time
+                ["Per Hansen"] = { k = "s:40", at = now - 10, ts = now - 20 },     -- claimed after its write
+            },
+            lapses = { ["Kari Berg"] = epoch - DAY, ["Bo Berg"] = now - DAY },
+            names = { [PANDA] = { ["Zed Nobody"] = { n = "Stinky", at = 1 }, ["Kari Berg"] = { n = "Bambus", at = now - DAY } } },
+            life = {}, ach = {}, achSeen = {},
+        } } }
+        ola:Login()
+        local g = ola.env.DyreparkenDB.guilds.Dyreparken
+        ok(g.claims["Kari Berg"]); eq(g.claims["Zed Nobody"], nil); eq(g.claims["Per Hansen"], nil)
+        eq(g.lapses["Kari Berg"], nil); ok(g.lapses["Bo Berg"])
+        eq(g.names[PANDA]["Zed Nobody"], nil); ok(g.names[PANDA]["Kari Berg"])
+        -- From the wire: the same rules. A forged claim can't take Ola's pet; a lapse from the
+        -- future can't block her.
+        w:Settle("hello")
+        ola:Slash("adopter panda")
+        w:Run(5)
+        w:InjectMessage("Zed Nobody", { k = "SYNC", p = ola.ns.PROTOCOL, i = 1, of = 1,
+            r = { ["Zed Nobody"] = { k = PANDA, at = 1, ts = w:ServerTime() } },
+            l = { ["Ola Nord"] = w:ServerTime() + 86000 } })
+        w:Run(5)
+        eq(ola.ns.Registry:Holder(PANDA), "Ola Nord")
+        no(ola:Printed("rett før deg", true))
+    end)
+
+    test("a holder below Venn can clear the name the pet came with, not give it a new one", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local R = ola.ns.Registry
+        R:MergeName(PANDA, "Kari Berg", { n = "Stinky", at = select(3, R:Status(PANDA)).at - 60 })
+        R:Changed()
+        eq(R:Nickname(PANDA), "Stinky", "inherited")
+        -- On the card: the button opens to clear it, and says so.
+        local card = ola:SelectPet(5159)
+        ok(card.nick:IsEnabled())
+        card.nick.scripts.OnEnter(card.nick)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "fjerne")
+        local okName, msg = R:SetNickname("Bambus")
+        no(okName); match(msg, "Venn")
+        ok(R:SetNickname(""), "cleared")
+        eq(R:Nickname(PANDA), nil)
+        card = ola:SelectPet(5159)
+        no(card.nick:IsEnabled(), "nothing to clear: locked again")
     end)
 end

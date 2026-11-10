@@ -36,11 +36,12 @@ function CardActions:Build(card, c)
     card.nick:SetMotionScriptsWhileDisabled(true)
     card.nick:SetScript("OnClick", function() CardActions:AskNickname() end)
     card.nick:SetScript("OnEnter", function(self)
-        local _, r = ns.Registry:MyPet()
+        local key, r = ns.Registry:MyPet()
         if r and not ns.Registry:CanNickname(r) then
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
             GameTooltip:SetText(ns.T("card.nick.locked", { level = ns.Bond.LEVELS[ns.Config.NICKNAME_LEVEL][2],
                 n = ns.Config.NICKNAME_LEVEL }), 1, 1, 1, 1, true)
+            if ns.Registry:Nickname(key) then GameTooltip:AddLine(ns.L["card.nick.clearable"], 1, 0.82, 0, true) end
             GameTooltip:Show()
         end
     end)
@@ -56,7 +57,8 @@ function CardActions:Update(card, key)
         card.reserve:Enable()
         card.reserve:Show()
         card.nick:Show()
-        if ns.Registry:CanNickname(r) then card.nick:Enable() else card.nick:Disable() end
+        -- (locked, it still opens to clear a name the pet came with)
+        if ns.Registry:CanNickname(r) or ns.Registry:Nickname(key) then card.nick:Enable() else card.nick:Disable() end
     elseif key and status == "free" and ns.Pets:IsOwned(key) then
         card.reserve:SetText(ns.L["card.adopt"])
         card.reserve:Enable()

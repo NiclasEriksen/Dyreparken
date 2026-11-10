@@ -3,6 +3,7 @@
 return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
     local PANDA, KITTEN, BOMBAY, RABBIT = "s:5159", "s:46", "s:40", "s:72"
+    local T0 = 1790000000 -- (times after the bond epoch: the test clock's start)
 
     -- A guild of clients, logged in and past the login chatter.
     local function Guild(spec)
@@ -229,10 +230,10 @@ return function(test, H)
         local R = ola.ns.Registry
         for i = 1, 150 do
             local owner = ("Medlem%03d Etternavn"):format(i)
-            R:MergeRecord(owner, { k = "s:" .. (1000 + i), at = 100 + i, ts = 200 + i })
-            if i % 3 == 0 then R:MergeName("s:" .. (1000 + i), owner, { n = "Kallenavn " .. i, at = 300 + i }) end
+            R:MergeRecord(owner, { k = "s:" .. (1000 + i), at = T0 + 100 + i, ts = T0 + 200 + i })
+            if i % 3 == 0 then R:MergeName("s:" .. (1000 + i), owner, { n = "Kallenavn " .. i, at = T0 + 300 + i }) end
         end
-        R:MergeLapse("Gammel Kar", 50)
+        R:MergeLapse("Gammel Kar", T0 + 50)
         R:Changed()
         liv:Login()
         w:Settle("day")
@@ -252,8 +253,8 @@ return function(test, H)
         local R = ola.ns.Registry
         for i = 1, 200 do
             local owner = ("Medlem%03d Etternavn"):format(i)
-            R:MergeRecord(owner, { k = "s:" .. (1000 + i), at = 100 + i, ts = 200 + i })
-            R:MergeName("s:" .. (1000 + i), owner, { n = "Navn " .. i, at = 300 + i })
+            R:MergeRecord(owner, { k = "s:" .. (1000 + i), at = T0 + 100 + i, ts = T0 + 200 + i })
+            R:MergeName("s:" .. (1000 + i), owner, { n = "Navn " .. i, at = T0 + 300 + i })
         end
         R:Changed()
         w.throttled = 0
@@ -272,16 +273,16 @@ return function(test, H)
         -- Names that don't compress, so each message takes many chunks.
         local function Name(i) return ("%08x Medlem"):format((i * 2654435761) % 4294967296) end
         local big = {}
-        for i = 1, 150 do big[Name(i)] = 1000 + i * 7919 end
+        for i = 1, 150 do big[Name(i)] = T0 + i * 7 end
         local recs = {}
-        for i = 1, 60 do recs[Name(5000 + i)] = { k = "s:" .. (2000 + i), at = 10 + i * 31, ts = 20 + i * 37 } end
+        for i = 1, 60 do recs[Name(5000 + i)] = { k = "s:" .. (2000 + i), at = T0 + i, ts = T0 + 100 + i } end
         local before = w.chunks or 0
         ola.ns.Comm:Send("LAPSE", { l = big }, "GUILD")
         ola.ns.Comm:Send("SYNC", { r = recs, l = {}, n = {}, a = {}, d = 0 }, "GUILD")
         w:Run(60)
         ok(w.chunks - before > 12, "took " .. (w.chunks - before) .. " chunks")
         local _, lapses = kari.ns.Registry:All()
-        eq(lapses[Name(150)], 1000 + 150 * 7919, "the LAPSE arrived")
+        eq(lapses[Name(150)], T0 + 150 * 7, "the LAPSE arrived")
         eq(kari.ns.Registry:Holder("s:2060"), Name(5060), "the SYNC arrived")
     end)
 

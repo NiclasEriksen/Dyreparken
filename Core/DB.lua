@@ -15,7 +15,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 9
+local SCHEMA = 10
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
@@ -139,6 +139,29 @@ local MIGRATIONS = {
             end
             if type(g.names) == "table" then Registry.TrimAll(g.names, "at", C.NAMES_PER_MEMBER) end
             if type(g.life) == "table" then Registry.TrimAll(g.life, "t", C.LIFE_PER_MEMBER) end
+        end
+    end,
+    -- 10 (2026-11-10, code review): records, lapses and names from before the
+    -- addon (BOND_EPOCH), claims dated after their record's write, and times
+    -- more than CLOCK_SLACK ahead are refused now: drop the stored ones, so
+    -- peers agree on what they keep. Only forgeries fail these.
+    [10] = function(db)
+        local R = ns.Registry
+        for _, g in pairs(db.guilds or {}) do
+            for owner, r in pairs(g.claims or {}) do
+                if not R.ValidRecord(r) then g.claims[owner] = nil end
+            end
+            for owner, t in pairs(g.lapses or {}) do
+                if not R.ValidLapse(t) then g.lapses[owner] = nil end
+            end
+            for key, byKey in pairs(g.names or {}) do
+                if type(byKey) == "table" then
+                    for namer, e in pairs(byKey) do
+                        if not R.ValidEntry(e) then byKey[namer] = nil end
+                    end
+                end
+                if type(byKey) ~= "table" or not next(byKey) then g.names[key] = nil end
+            end
         end
     end,
 }

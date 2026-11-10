@@ -4,6 +4,9 @@ return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
     local PANDA, KITTEN, BOMBAY = "s:5159", "s:46", "s:40"
 
+    -- Times after the bond epoch (nothing in the registry is older than the addon): the test clock's start.
+    local T0 = 1790000000
+
     local function One(opts)
         local w = H.World()
         local c = w:AddClient("Ola Nord", opts or { pets = { 5159, 46 } })
@@ -25,8 +28,8 @@ return function(test, H)
         eq(R:Holder(PANDA), nil)
         no(R:CheckMine())
         eq(R:CheckRoster(), nil)
-        no(R:MergeRecord("Kari Berg", { k = PANDA, at = 1, ts = 1 }))
-        no(R:MergeLapse("Kari Berg", 1))
+        no(R:MergeRecord("Kari Berg", { k = PANDA, at = T0 + 1, ts = T0 + 1 }))
+        no(R:MergeLapse("Kari Berg", T0 + 1))
 
         local _, c, R2 = One()
         eq(select(2, R2:Claim(nil)), "Ukjent dyr.")
@@ -34,7 +37,7 @@ return function(test, H)
         local okc, msg = R2:Claim(PANDA)
         ok(okc); eq(msg, "Du adopterte Panda Cub.")
         eq(select(2, R2:Claim(PANDA)), "Det bor allerede hos deg.")
-        R2:MergeRecord("Kari Berg", { k = KITTEN, at = 1, ts = 1 })
+        R2:MergeRecord("Kari Berg", { k = KITTEN, at = T0 + 1, ts = T0 + 1 })
         eq(select(2, R2:Claim(KITTEN)), "Det bor allerede hos Kari Berg.")
     end)
 
@@ -78,49 +81,54 @@ return function(test, H)
 
     test("the earliest claim holds; ties go to the lower name", function()
         local w, c, R = One()
-        R:MergeRecord("Per Hansen", { k = BOMBAY, at = 300, ts = 300 })
-        R:MergeRecord("Kari Berg", { k = BOMBAY, at = 200, ts = 200 })
-        R:MergeRecord("Liv Lund", { k = BOMBAY, at = 250, ts = 250 })
+        R:MergeRecord("Per Hansen", { k = BOMBAY, at = T0 + 300, ts = T0 + 300 })
+        R:MergeRecord("Kari Berg", { k = BOMBAY, at = T0 + 200, ts = T0 + 200 })
+        R:MergeRecord("Liv Lund", { k = BOMBAY, at = T0 + 250, ts = T0 + 250 })
         eq(R:Holder(BOMBAY), "Kari Berg")
-        R:MergeRecord("Bjorn Aas", { k = BOMBAY, at = 200, ts = 201 })
-        R:MergeRecord("Anne Aas", { k = BOMBAY, at = 200, ts = 202 })
+        R:MergeRecord("Bjorn Aas", { k = BOMBAY, at = T0 + 200, ts = T0 + 201 })
+        R:MergeRecord("Anne Aas", { k = BOMBAY, at = T0 + 200, ts = T0 + 202 })
         local owner, r = R:Holder(BOMBAY)
         eq(owner, "Anne Aas")
-        eq(r.ts, 202)
+        eq(r.ts, T0 + 202)
         eq(R:Count(), 1)
         eq(R:Holders()[BOMBAY], "Anne Aas")
     end)
 
     test("merge: newest ts wins, bad shapes are refused", function()
         local w, c, R = One()
-        ok(R:MergeRecord("Kari Berg", { k = KITTEN, at = 100, ts = 100 }))
-        no(R:MergeRecord("Kari Berg", { k = BOMBAY, at = 50, ts = 99 }), "older")
-        no(R:MergeRecord("Kari Berg", { k = BOMBAY, at = 50, ts = 100 }), "same ts")
-        ok(R:MergeRecord("Kari Berg", { at = 100, ts = 101 }), "newer release")
+        ok(R:MergeRecord("Kari Berg", { k = KITTEN, at = T0 + 100, ts = T0 + 100 }))
+        no(R:MergeRecord("Kari Berg", { k = BOMBAY, at = T0 + 50, ts = T0 + 99 }), "older")
+        no(R:MergeRecord("Kari Berg", { k = BOMBAY, at = T0 + 50, ts = T0 + 100 }), "same ts")
+        ok(R:MergeRecord("Kari Berg", { at = T0 + 100, ts = T0 + 101 }), "newer release")
         eq(R:Holder(KITTEN), nil)
         local bad = {
             "not a table",
-            { k = KITTEN, at = 1 },                          -- no ts
-            { k = KITTEN, at = "1", ts = 200 },              -- at not a number
-            { k = 5, at = 1, ts = 200 },                     -- key not a string
-            { k = string.rep("x", 65), at = 1, ts = 200 },   -- key too long
+            { k = KITTEN, at = T0 + 1 },                          -- no ts
+            { k = KITTEN, at = "1", ts = T0 + 200 },              -- at not a number
+            { k = 5, at = T0 + 1, ts = T0 + 200 },                     -- key not a string
+            { k = string.rep("x", 65), at = T0 + 1, ts = T0 + 200 },   -- key too long
         }
         local now = c.world:ServerTime()
-        bad[#bad + 1] = { k = KITTEN, at = 1, ts = 1 / 0 }          -- infinite: would win every merge
-        bad[#bad + 1] = { k = KITTEN, at = 0 / 0, ts = 300 }        -- NaN: never compares
-        bad[#bad + 1] = { k = KITTEN, at = 1, ts = now + 2 * 86400 } -- far future
-        bad[#bad + 1] = { k = KITTEN, at = -5, ts = 300 }
+        bad[#bad + 1] = { k = KITTEN, at = T0 + 1, ts = T0 + 1 / 0 }          -- infinite: would win every merge
+        bad[#bad + 1] = { k = KITTEN, at = T0 + 0 / 0, ts = T0 + 300 }        -- NaN: never compares
+        bad[#bad + 1] = { k = KITTEN, at = T0 + 1, ts = now + 2 * 86400 } -- far future
+        bad[#bad + 1] = { k = KITTEN, at = -5, ts = T0 + 300 }
         for i, r in ipairs(bad) do no(R:MergeRecord("Per Hansen", r), "bad record " .. i) end
-        ok(R:MergeRecord("Siv Dahl", { at = 1, ts = now + 3600 }), "a little ahead is fine (clocks differ)")
-        no(R:MergeRecord(string.rep("x", 49), { k = KITTEN, at = 1, ts = 1 }), "owner too long")
+        ok(R:MergeRecord("Siv Dahl", { at = T0 + 1, ts = now + 200 }), "a little ahead is fine")
+        no(R:MergeRecord("Siv Dahl", { at = T0 + 1, ts = now + 3600 }), "an hour ahead isn't (one server clock)")
+        no(R:MergeRecord("Bo Berg", { k = KITTEN, at = 1, ts = T0 }), "a claim from before the addon")
+        no(R:MergeRecord("Bo Berg", { k = KITTEN, at = T0 + 5, ts = T0 + 4 }), "a claim after its record's write")
+        no(R:MergeLapse("Bo Berg", 1), "a lapse from before the addon")
+        no(R:MergeName(KITTEN, "Bo Berg", { n = "Gammel", at = 1 }), "a name from before the addon")
+        no(R:MergeRecord(string.rep("x", 49), { k = KITTEN, at = T0 + 1, ts = T0 + 1 }), "owner too long")
         no(R:MergeLapse("Per Hansen", now + 10 * 365 * 86400), "far-future lapse")
         no(R:MergeLapse("Per Hansen", 0 / 0), "NaN lapse")
-        no(R:MergeRecord("", { k = KITTEN, at = 1, ts = 1 }), "empty owner")
-        no(R:MergeRecord(7, { k = KITTEN, at = 1, ts = 1 }), "owner not a string")
-        ok(R:MergeRecord("Per Hansen", { k = KITTEN, at = 1, ts = 200, n = "old field", na = 5 }))
+        no(R:MergeRecord("", { k = KITTEN, at = T0 + 1, ts = T0 + 1 }), "empty owner")
+        no(R:MergeRecord(7, { k = KITTEN, at = T0 + 1, ts = T0 + 1 }), "owner not a string")
+        ok(R:MergeRecord("Per Hansen", { k = KITTEN, at = T0 + 1, ts = T0 + 200, n = "old field", na = 5 }))
         eq(select(2, R:Holder(KITTEN)).n, nil, "records don't carry names any more")
         -- The stored copy is ours, not the caller's table.
-        local r = { k = BOMBAY, at = 5, ts = 300, extra = "dropped" }
+        local r = { k = BOMBAY, at = T0 + 5, ts = T0 + 300, extra = "dropped" }
         R:MergeRecord("Liv Lund", r)
         r.k = PANDA
         eq(R:Holder(BOMBAY), "Liv Lund")
@@ -129,15 +137,15 @@ return function(test, H)
 
     test("lapses void older claims for good; newer claims count", function()
         local w, c, R = One()
-        R:MergeRecord("Kari Berg", { k = KITTEN, at = 100, ts = 100 })
-        ok(R:MergeLapse("Kari Berg", 150))
-        no(R:MergeLapse("Kari Berg", 120), "lapses only grow")
+        R:MergeRecord("Kari Berg", { k = KITTEN, at = T0 + 100, ts = T0 + 100 })
+        ok(R:MergeLapse("Kari Berg", T0 + 150))
+        no(R:MergeLapse("Kari Berg", T0 + 120), "lapses only grow")
         no(R:MergeLapse("Kari Berg", "later"))
         no(R:MergeLapse(nil, 200))
         eq(R:Holder(KITTEN), nil)
-        R:MergeRecord("Kari Berg", { k = KITTEN, at = 150, ts = 151 })
+        R:MergeRecord("Kari Berg", { k = KITTEN, at = T0 + 150, ts = T0 + 151 })
         eq(R:Holder(KITTEN), nil, "claimed at the lapse moment: still void")
-        R:MergeRecord("Kari Berg", { k = KITTEN, at = 160, ts = 161 })
+        R:MergeRecord("Kari Berg", { k = KITTEN, at = T0 + 160, ts = T0 + 161 })
         eq(R:Holder(KITTEN), "Kari Berg")
     end)
 
@@ -184,10 +192,10 @@ return function(test, H)
         w:AddMember("Siv Dahl", 400)
         w:Run(12)
         local R = c.ns.Registry
-        R:MergeRecord("Kari Berg", { k = "s:46", at = 100, ts = 100 }) -- not in the guild
-        R:MergeRecord("Per Hansen", { k = "s:40", at = 100, ts = 100 })
-        R:MergeRecord("Liv Lund", { k = "s:41", at = 100, ts = 100 })
-        R:MergeRecord("Siv Dahl", { at = 100, ts = 100 }) -- nothing reserved: nothing to lapse
+        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 }) -- not in the guild
+        R:MergeRecord("Per Hansen", { k = "s:40", at = T0 - 40 * 86400, ts = T0 - 40 * 86400 }) -- (and not seen since)
+        R:MergeRecord("Liv Lund", { k = "s:41", at = T0 + 100, ts = T0 + 100 })
+        R:MergeRecord("Siv Dahl", { at = T0 + 100, ts = T0 + 100 }) -- nothing reserved: nothing to lapse
         c.ns.Guild:Refresh(true)
         w:Run(1)
         local _, lapses = R:All()
@@ -212,8 +220,8 @@ return function(test, H)
         w:Run(12)
         c.rosterPartial = 2 -- the server sent only part of the rows
         local R = c.ns.Registry
-        R:MergeRecord("Kari Berg", { k = "s:46", at = 100, ts = 100 })
-        R:MergeRecord("Liv Lund", { k = "s:40", at = 100, ts = 100 })
+        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 })
+        R:MergeRecord("Liv Lund", { k = "s:40", at = T0 + 100, ts = T0 + 100 })
         c.ns.Guild:Refresh(true)
         w:Run(1)
         no(c.ns.Guild.complete)
@@ -243,28 +251,28 @@ return function(test, H)
 
     test("names: entries merge by newest time, bad shapes are refused", function()
         local w, c, R = One()
-        ok(R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = 100 }))
-        no(R:MergeName(KITTEN, "Kari Berg", { n = "Eldre", at = 99 }), "older")
-        no(R:MergeName(KITTEN, "Kari Berg", { n = "Samme", at = 100 }), "same time")
+        ok(R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = T0 + 100 }))
+        no(R:MergeName(KITTEN, "Kari Berg", { n = "Eldre", at = T0 + 99 }), "older")
+        no(R:MergeName(KITTEN, "Kari Berg", { n = "Samme", at = T0 + 100 }), "same time")
         eq(R:Nickname(KITTEN), "Pus")
         local bad = {
             "not a table",
             { n = "Pus" },                             -- no time
             { n = "Pus", at = "100" },
-            { n = 5, at = 200 },
-            { n = "", at = 200 },
-            { n = string.rep("æ", 21), at = 200 },
-            { n = "a|cffff0000red", at = 200 },
-            { n = "two\nlines", at = 200 },
-            { n = "Pus", at = 200, x = "yes" },
-            { n = "a" .. string.rep("\128", 100), at = 200 },  -- one "character" by lead bytes
-            { n = "Pus", at = 1 / 0 },
+            { n = 5, at = T0 + 200 },
+            { n = "", at = T0 + 200 },
+            { n = string.rep("æ", 21), at = T0 + 200 },
+            { n = "a|cffff0000red", at = T0 + 200 },
+            { n = "two\nlines", at = T0 + 200 },
+            { n = "Pus", at = T0 + 200, x = "yes" },
+            { n = "a" .. string.rep("\128", 100), at = T0 + 200 },  -- one "character" by lead bytes
+            { n = "Pus", at = T0 + 1 / 0 },
         }
         for i, e in ipairs(bad) do no(R:MergeName(KITTEN, "Per Hansen", e), "bad entry " .. i) end
-        no(R:MergeName(5, "Per Hansen", { n = "Pus", at = 1 }), "key not a string")
-        no(R:MergeName(string.rep("x", 65), "Per Hansen", { n = "Pus", at = 1 }), "key too long")
-        no(R:MergeName(KITTEN, "", { n = "Pus", at = 1 }), "empty namer")
-        ok(R:MergeName(KITTEN, "Per Hansen", { n = string.rep("æ", 20), at = 300, extra = 1 }), "20 characters")
+        no(R:MergeName(5, "Per Hansen", { n = "Pus", at = T0 + 1 }), "key not a string")
+        no(R:MergeName(string.rep("x", 65), "Per Hansen", { n = "Pus", at = T0 + 1 }), "key too long")
+        no(R:MergeName(KITTEN, "", { n = "Pus", at = T0 + 1 }), "empty namer")
+        ok(R:MergeName(KITTEN, "Per Hansen", { n = string.rep("æ", 20), at = T0 + 300, extra = 1 }), "20 characters")
         eq(c.env.DyreparkenDB.guilds.Dyreparken.names[KITTEN]["Per Hansen"].extra, nil, "stored copy is ours")
         eq(R:Nickname(nil), nil)
         eq(R:Nickname(PANDA), nil, "never named")
@@ -273,9 +281,9 @@ return function(test, H)
     test("names: the pet keeps its name; only the holder renames it while caring", function()
         local w, c, R = One()
         -- Kari named the kitten while she cared for it, then let it go.
-        R:MergeRecord("Kari Berg", { k = KITTEN, at = 100, ts = 100 })
-        R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = 200 })
-        R:MergeRecord("Kari Berg", { at = 100, ts = 300 })
+        R:MergeRecord("Kari Berg", { k = KITTEN, at = T0 + 100, ts = T0 + 100 })
+        R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = T0 + 200 })
+        R:MergeRecord("Kari Berg", { at = T0 + 100, ts = T0 + 300 })
         eq(R:Holder(KITTEN), nil)
         eq(R:Nickname(KITTEN), "Pus", "free pets keep their name")
         local now = c.world:ServerTime()
@@ -315,15 +323,15 @@ return function(test, H)
         eq(R:Holder(KITTEN), "Kari Berg")
         eq(R:Nickname(KITTEN), "Karis")
         -- After Kari lets go, Ola's void entry still doesn't hide Kari's name.
-        R:MergeRecord("Kari Berg", { at = t0 - 5, ts = t0 + 999999 })
+        R:MergeRecord("Kari Berg", { at = t0 - 5, ts = t0 + 100 })
         eq(R:Nickname(KITTEN), "Karis")
     end)
 
     test("names: a lapse keeps the name the holder gave", function()
         local w, c, R = One()
-        R:MergeRecord("Kari Berg", { k = KITTEN, at = 100, ts = 100 })
-        R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = 200 })
-        R:MergeLapse("Kari Berg", 500)
+        R:MergeRecord("Kari Berg", { k = KITTEN, at = T0 + 100, ts = T0 + 100 })
+        R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = T0 + 200 })
+        R:MergeLapse("Kari Berg", T0 + 500)
         R:Changed()
         eq(R:Holder(KITTEN), nil)
         eq(R:Nickname(KITTEN), "Pus")

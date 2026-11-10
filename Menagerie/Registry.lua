@@ -68,11 +68,21 @@ local function ValidKey(key)
 end
 Registry.ValidKey = ValidKey
 
+-- Nothing in the registry is older than the addon (BOND_EPOCH), and a claim
+-- comes before its record's write: a claim backdated to the dawn of time won
+-- every pet it named (code review 2026-11-10). Honest data passes the old and
+-- the new rules alike, so this came without a protocol bump (decided
+-- 2026-11-10, like the per-member caps); migration 10 drops stored entries
+-- outside them.
+local function After(t) return ns.SaneTime(t) and t >= Config.BOND_EPOCH end
+
 local function ValidRecord(r)
-    if type(r) ~= "table" or not ns.SaneTime(r.ts) or not ns.SaneTime(r.at) then return false end
+    if type(r) ~= "table" or not After(r.ts) or not After(r.at) or r.at > r.ts then return false end
     if r.k ~= nil and not ValidKey(r.k) then return false end
     return true
 end
+Registry.ValidRecord = ValidRecord
+Registry.ValidLapse = After
 
 local function Copy(r)
     return { k = r.k, at = r.at, ts = r.ts }
@@ -86,9 +96,10 @@ local function ValidName(n)
 end
 
 local function ValidEntry(e)
-    return type(e) == "table" and ns.SaneTime(e.at)
+    return type(e) == "table" and After(e.at)
         and (e.n == nil or ValidName(e.n)) and (e.x == nil or e.x == true)
 end
+Registry.ValidEntry = ValidEntry
 
 -- The most points a bond can hold at time t, begun at f: BOND_DAILY_MAX a
 -- day, with a day to spare (the daily limit follows the calendar, this
@@ -211,7 +222,7 @@ end
 
 function Registry:MergeLapse(owner, t)
     local g = G()
-    if not g or not ns.SaneName(owner) or not ns.SaneTime(t) then return false end
+    if not g or not ns.SaneName(owner) or not After(t) then return false end
     if (g.lapses[owner] or 0) >= t then return false end
     g.lapses[owner] = t
     dirty = true
@@ -454,10 +465,12 @@ end
 function Registry:SetNickname(nick)
     local key, r = self:MyPet()
     if not key then return false, ns.L["nick.no_pet"] end
-    if not self:CanNickname(r) then
+    local clear = nick == nil or strtrim(nick) == ""
+    -- Naming waits for the bond; clearing doesn't: a name the pet came with
+    -- (or one forged onto it) can go at once (code review 2026-11-10).
+    if not clear and not self:CanNickname(r) then
         return false, ns.T("nick.locked", { level = ns.Bond.LEVELS[Config.NICKNAME_LEVEL][2], n = Config.NICKNAME_LEVEL })
     end
-    local clear = nick == nil or strtrim(nick) == ""
     local ok, clean = true, nil
     if not clear then
         ok, clean = self:ValidNickname(nick)

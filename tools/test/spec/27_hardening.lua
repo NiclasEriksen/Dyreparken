@@ -32,7 +32,7 @@ return function(test, H)
         } } }
         c:Login()
         local g = c.env.DyreparkenDB.guilds.Dyreparken
-        eq(c.env.DyreparkenDB.schema, 9)
+        eq(c.env.DyreparkenDB.schema, 10)
         eq(g.life[PANDA]["Ola Nord"].p, 90, "within today and a spare day (150): kept")
         eq(g.life[PANDA]["Kari Berg"].p, 20)
         eq(g.life[PANDA]["Per Hansen"], nil, "older than the addon: gone")

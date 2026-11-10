@@ -192,18 +192,19 @@ return function(test, H)
     end)
 
     test("schema 6: nicknames move from the record to the pet", function()
+        local T0 = 1790000000 -- (after the bond epoch: migration 10 keeps them)
         local w = H.World()
         local c = w:AddClient("Ola Nord", { login = false })
         c.saved.DyreparkenDB = { schema = 5, guilds = { Dyreparken = { claims = {
-            ["Ola Nord"] = { k = "s:46", at = 10, ts = 20, n = "Pus", na = 15 },
-            ["Kari Berg"] = { k = "s:40", at = 10, ts = 30, n = "Mjau" },
-            ["Per Hansen"] = { at = 10, ts = 40 },
+            ["Ola Nord"] = { k = "s:46", at = T0 + 10, ts = T0 + 20, n = "Pus", na = T0 + 15 },
+            ["Kari Berg"] = { k = "s:40", at = T0 + 10, ts = T0 + 30, n = "Mjau" },
+            ["Per Hansen"] = { at = T0 + 10, ts = T0 + 40 },
         }, lapses = {}, ach = {}, achSeen = {} }, Tom = {} } }
         c:Login()
         local g = c.env.DyreparkenDB.guilds.Dyreparken
         eq(g.names["s:46"]["Ola Nord"].n, "Pus")
-        eq(g.names["s:46"]["Ola Nord"].at, 15)
-        eq(g.names["s:40"]["Kari Berg"].at, 30, "no name time: the record's")
+        eq(g.names["s:46"]["Ola Nord"].at, T0 + 15)
+        eq(g.names["s:40"]["Kari Berg"].at, T0 + 30, "no name time: the record's")
         eq(g.claims["Ola Nord"].n, nil)
         eq(g.claims["Ola Nord"].na, nil)
         ok(c.env.DyreparkenDB.guilds.Tom.names)
@@ -220,7 +221,7 @@ return function(test, H)
         } }
         c:Login()
         local db = c.env.DyreparkenDB
-        eq(db.schema, 9)
+        eq(db.schema, 10)
         ok(db.guilds.Dyreparken and db.guilds.Dyreparken.claims and db.guilds.Dyreparken.lapses)
         no(db.guilds.Dyreparken.pets, "old shape dropped")
         ok(db.guilds["Annet Laug"].claims)
@@ -233,7 +234,7 @@ return function(test, H)
         local d = w:AddClient("Kari Berg", { login = false })
         d.saved.DyreparkenDB = { schema = 0, junk = true }
         d:Login()
-        eq(d.env.DyreparkenDB.schema, 9)
+        eq(d.env.DyreparkenDB.schema, 10)
         no(d.env.DyreparkenDB.junk, "unmigratable data is wiped")
         eq(#d:Log("no migration 0%->1, resetting"), 1)
     end)

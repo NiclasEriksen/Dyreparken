@@ -337,6 +337,7 @@ L["card.adopt"] = "Adopter"
 L["card.letgo"] = "Gi slipp"
 L["card.nick"] = "Kallenavn"
 L["card.nick.locked"] = "Du kan gi det et kallenavn når båndet deres er {level} (nivå {n})."
+L["card.nick.clearable"] = "Navnet det har nå kan du fjerne allerede: la feltet stå tomt."
 L["personality.unknown"] = "Ukjent personlighet"            -- not collected, and nobody in the guild has adopted it
 L["personality.unknown.tip"] = "Personligheten er en overraskelse. Den blir kjent når du samler dyret, eller når noen i guilden adopterer det."
 L["card.dislikes"] = "liker ikke {list}"                 -- after card.likes, or alone; only those seen happen

@@ -170,6 +170,7 @@ ns.Config = {
     BOND_PLAY_POINTS = 15,        -- a playdate: in a group with a guildmate whose pet is out, once a day per pet
     BOND_DAILY_MAX = 75,          -- the most bond points a calendar day can bring (the day + activities); bounds the wire
     BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries
+    CLOCK_SLACK = 300,            -- seconds a time from the wire may be ahead of ours (ns.SaneTime)
     BONDS_SHIPPED = 1794178800,   -- 2026-11-08 23:00 UTC (0.1.0-alpha4): adoptions before it are seeded (Bond:Seed)
     SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole
     NAMES_PER_MEMBER = 50,        -- nickname entries kept per namer, and ...
@@ -256,10 +257,12 @@ function ns.Home(who, t, now)
 end
 
 -- A time from the wire we can trust the shape of: a real number, not NaN or
--- infinite, and not more than a day ahead of us (clocks differ a little;
--- a far-future time would win every merge and lock the record for good).
+-- infinite, and not more than a few minutes ahead of us (a far-future time
+-- would win every merge and lock the record for good). Every client reads
+-- the same server clock (GetServerTime); a day of slack let a forged lapse
+-- block someone's claims for a day (code review 2026-11-10).
 function ns.SaneTime(t)
-    return type(t) == "number" and t == t and t > 0 and t <= ns.Now() + 86400
+    return type(t) == "number" and t == t and t > 0 and t <= ns.Now() + ns.Config.CLOCK_SLACK
 end
 
 -- Player keys from the wire: "First Surname", within reason.

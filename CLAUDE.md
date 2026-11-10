@@ -224,10 +224,14 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   Exception (decided 2026-11-09): the per-member caps on stored names and bonds (Config.NAMES_PER_MEMBER,
   LIFE_PER_MEMBER, migration 9) came without a bump: they only bite under a flood, so mixed versions still agree in
   a normal guild. Incoming messages that unpack past Comm.MAX_RAW are dropped and their sender ignored for the session.
+  Likewise without a bump (code review 2026-11-10, migration 10): claims, lapses and names must be on or after
+  Config.BOND_EPOCH, a claim no later than its record's write, and no wire time more than Config.CLOCK_SLACK (5 min)
+  ahead; only forgeries fail these.
 - **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it,
   once their bond reaches Venn (level 3; it was 7 days of care until 2026-11-09). The name stays when they let go,
   and the next carer inherits it until they change it. A name set by
-  anyone else during a holder's care doesn't count (`Registry:Nickname`). It replaces the title line of the world
+  anyone else during a holder's care doesn't count (`Registry:Nickname`). Clearing needs no bond level (2026-11-10):
+  a holder can drop the name the pet came with (or a forged one) at once. It replaces the title line of the world
   tooltip, with the species moved below it, and shows big on the journal's pet card.
 - Auto-summon turns itself off if AutoCompanion is loaded.
 - **Fewer commands** (2026-11-09, the addon spread beyond the guild): `/dp rapport` (calling out group members

@@ -75,7 +75,13 @@ What it could open, once we know which animations a companion has:
 - **A slow start.** The first level takes about a week of casual play. A bonus the first day you adopt a pet
   ("første dag sammen") would make the start feel good. A balance call.
 
-## Known limits (from the code review)
+## Known limits (from the code reviews)
+
+- (2026-11-10) Bond points lost in a crash come back only if a whole level was lost: the digest compares levels,
+  and only a carer sends their own bond. Getting the guild's higher copy back needs a new message and a protocol
+  bump; the user chose not to bump for it.
+- (2026-11-10) A forged bond can claim any level once enough days have passed since BOND_EPOCH: LifeCap counts from
+  a start date the sender picks. No cheap rule is forgery-proof; a bond only gives cosmetics and nickname rights.
 
 - Records and lapses still have no cap on what's stored: SYNC relays them for any owner name, so a member could
   flood made-up owners until honest SYNC parts are over SYNC_MAX_ENTRIES. Names and bonds got per-member caps
