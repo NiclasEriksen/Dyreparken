@@ -452,4 +452,19 @@ return function(test, H)
         ok(A:Got("eggs:10"), "the tenth")
         no(A:Got("eggs:25"))
     end)
+
+    test("every family is in the background gallery and has a scene, a tint and an ambience", function()
+        local w, ola = H.Setup{ ola = {} }
+        local slots = {}
+        for _, s in ipairs(ola.ns.SceneGallery.MODES.bg.slots) do slots[s] = true end
+        local frames = {}
+        for _, s in ipairs(ola.ns.SceneGallery.MODES.frames.slots) do frames[s] = true end
+        for _, family in ipairs(ola.ns.Scenes.ORDER) do
+            ok(slots[family], family .. " in /dp probe bg")
+            ok(frames["border." .. family], family .. " in /dp probe frames")
+            ok(ola.ns.Scenes.BY_FAMILY[family], family .. ": a scene")
+            ok(ola.ns.Scenes.TINT[family], family .. ": a tint")
+            ok(ola.ns.Decor.FAMILY[family], family .. ": an ambience")
+        end
+    end)
 end

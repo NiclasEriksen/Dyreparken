@@ -37,8 +37,7 @@ end
 Gallery.MODES = {
     bg = {
         title = "Dyreparken: backgrounds",
-        slots = { "default", "cat", "bird", "owl", "farm", "rabbit", "frog", "snake", "mechanical", "dragon",
-            "pirate", "bug", "rodent", "wolf", "plant", "festive", "demon", "ooze", "spirit" },
+        slots = { "default", unpack(ns.Scenes.ORDER) }, -- (every family there is: a new one shows up here too)
         picks = function() return ns.DB.global.scenePicks end,
         changed = function() ns.Scenes:Reset() end,
     },
