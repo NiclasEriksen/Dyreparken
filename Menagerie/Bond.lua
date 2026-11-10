@@ -299,10 +299,11 @@ end
 -- The rewards beyond activities, each a line and points (Config names: read
 -- when given, so a tunable change applies at once). once: at most one a day
 -- per pet. lines: at most that many lines a day per pet (the points go on).
+-- cap: at most that many points a day per pet from it (the lines go on).
 -- A new one is a row here and a Bond:Reward call where it happens.
 Bond.REWARDS = {
     wish = { points = "BOND_WISH_POINTS" },  -- today's wish done (Wish.lua: once a day already)
-    first = { points = "BOND_FIRST_POINTS", lines = "FIRST_LINES" }, -- a first together
+    first = { points = "BOND_FIRST_POINTS", lines = "FIRST_LINES", cap = "BOND_FIRST_CAP" }, -- a first together
     play = { points = "BOND_PLAY_POINTS", once = true }, -- a playdate (Playdate.lua)
 }
 
@@ -317,7 +318,14 @@ function Bond:Reward(kind, key, text)
     d.had[kind] = n
     if not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text) end
     ns.Log("Bond", "reward %s for %s", kind, key)
-    Grant(d, math.ceil(ns.Config[def.points] * self:Rate(key)), key)
+    local points = math.ceil(ns.Config[def.points] * self:Rate(key))
+    if def.cap then
+        local capKey = "reward:" .. kind
+        points = math.min(points, math.ceil(ns.Config[def.cap] * self:Rate(key)) - (d.got[capKey] or 0))
+        if points <= 0 then return true end
+        d.got[capKey] = (d.got[capKey] or 0) + points
+    end
+    Grant(d, points, key)
     return true
 end
 
@@ -355,8 +363,8 @@ function Bond:OnActivity(id, n, key)
         -- A unit name we can't read mustn't cost the points: no bonus then.
         local ok, ctx = pcall(Bond.Context)
         for _, t in ipairs(ok and P:Fitting(key, ctx) or {}) do
-            if (d.got["trait:" .. t.id] or 0) < C.BOND_LIKED_CAP then
-                capKey, per, cap = "trait:" .. t.id, C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
+            if (d.got["trait:" .. t.id] or 0) < C.BOND_TRAIT_CAP then
+                capKey, per, cap = "trait:" .. t.id, C.BOND_LIKED_POINTS, C.BOND_TRAIT_CAP
                 flavor = ns.Fill(t.flavor, { pet = name })
                 break
             end
@@ -364,9 +372,13 @@ function Bond:OnActivity(id, n, key)
     end
     per, cap = Scaled(per), Scaled(cap)
     local room = math.min(cap - (d.got[capKey] or 0), self:DailyMax(key) - d.total)
+    -- Everyday activities (not liked, not a trait's moment) share a small pot too.
+    local other = capKey == id and not likes[id]
+    if other then room = math.min(room, Scaled(C.BOND_OTHER_TOTAL) - (d.got.other or 0)) end
     if room <= 0 then return nil end
     local points = math.min(per * n, room)
     d.got[capKey] = (d.got[capKey] or 0) + points
+    if other then d.got.other = (d.got.other or 0) + points end
     Flavor(d, key, flavor)
     return Grant(d, points, key)
 end

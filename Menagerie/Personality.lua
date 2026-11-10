@@ -205,8 +205,8 @@ function Personality:Effect(trait)
             what = ns.T("effect.activity", { activity = noun:sub(1, 1):upper() .. noun:sub(2) })
         end
     end
-    return ns.T("effect.liked", { what = what, n = C.BOND_LIKED_POINTS, cap = C.BOND_LIKED_CAP,
-        other = C.BOND_OTHER_POINTS })
+    return ns.T("effect.liked", { what = what, n = C.BOND_LIKED_POINTS,
+        cap = trait.when and C.BOND_TRAIT_CAP or C.BOND_LIKED_CAP, other = C.BOND_OTHER_POINTS })
 end
 
 local Join = ns.Join

@@ -206,7 +206,7 @@ return function(test, H)
         local function Pts() return P(ola, PANDA) end
         local start = Pts()
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
-        eq(Pts() - start, 1 + 10, "a boss (1, not liked) and the first time it saw Hogger fall (10)")
+        eq(Pts() - start, 1 + 5, "a boss (1, not liked) and the first time it saw Hogger fall (5)")
         ok(ola:Printed("Panda Cub var med da Hogger falt!", true))
         start = Pts()
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
@@ -226,7 +226,28 @@ return function(test, H)
         ola:Summon(46)
         start = P(ola, KITTEN)
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
-        eq(P(ola, KITTEN) - start, 1 + 5)
+        eq(P(ola, KITTEN) - start, 1 + 3)
+    end)
+
+    test("balance (2026-11-10): firsts give at most 15 a day, everyday activities 3 each and 10 in all", function()
+        local w, ola = Setup()
+        ola.ns.Bond.First = ola.realFirst
+        local function Pts() return P(ola, PANDA) end
+        local start = Pts()
+        for i = 1, 6 do ola:Fire("ENCOUNTER_END", 20 + i, "Boss " .. i, 1, 5, 1) end
+        -- Six new bosses: 6 everyday boss points (capped at 3) and six firsts (capped at 15).
+        eq(Pts() - start, 3 + 15)
+        start = Pts()
+        -- Everyday activities (not liked), many of each: 3 a kind, 10 in all (3 already from bosses).
+        for _ = 1, 5 do ola.ns.Activity:Emit("skill", 1, "Fishing") end
+        eq(Pts() - start, 3, "skill-ups: 3")
+        for _ = 1, 5 do ola.ns.Activity:Emit("mine") end
+        eq(Pts() - start, 6)
+        for _ = 1, 5 do ola.ns.Activity:Emit("fish") end
+        eq(Pts() - start, 7, "the pot is full at 10")
+        -- A liked one still counts in full: Glupsk, quests.
+        for _ = 1, 2 do ola:Fire("QUEST_TURNED_IN", 1) end
+        eq(Pts() - start, 17)
     end)
     test("playdates: guildmates in a group with pets out, once a day per pet, both sides", function()
         local w, ola, kari = Setup()

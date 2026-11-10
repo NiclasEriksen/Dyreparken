@@ -209,6 +209,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   points), playdates (15, once a day per pet, with a guildmate's pet out in the group; Menagerie/Playdate.lua), and
   skill-ups (verified 2026-11-09) and reputation (unverified on Forever; `/dp probe life`) as activities. All at the pet's rate, within
   its day.
+- **Balance pass** (2026-11-10, the user: "many max out after 15 mins of normal activity"; one dungeon of firsts
+  filled the day): firsts 5 points (was 10), at most 15 a day; everyday (not liked) activities 1 each, at most 3
+  per kind (was 5) and 10 in all; a trait's moment at most 10 a day (was 25). Unchanged: the day 10, likes 5 each
+  (25 a day), wish 10, playdate 15, and the 75 a day (BOND_DAILY_MAX feeds validation). Likes are what fill a day.
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most

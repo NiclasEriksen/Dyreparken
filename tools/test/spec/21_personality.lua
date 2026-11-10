@@ -57,7 +57,7 @@ return function(test, H)
         eq(E("kosete"), "Hver dag sammen gir dobbelt så mange bånd-poeng (20 i stedet for 10).")
         eq(E("helgedyr"), "En lørdag eller søndag sammen gir dobbelt så mange bånd-poeng (20 i stedet for 10).")
         match(E("festglad"), "^En høytidsdag sammen %(17%. mai, .*%) gir tre ganger så mange bånd%-poeng %(30 i stedet for 10%)%.$")
-        eq(E("flokkdyr"), "Alt dere gjør sammen med en fra guilden i gruppen gir 5 bånd-poeng (opptil 25 om dagen), mot 1 ellers.")
+        eq(E("flokkdyr"), "Alt dere gjør sammen med en fra guilden i gruppen gir 5 bånd-poeng (opptil 10 om dagen), mot 1 ellers.")
     end)
 
     test("two traits per species: the same everywhere, never a contradiction, all of them in use", function()
@@ -150,11 +150,11 @@ return function(test, H)
         ok(ola:Printed("Panda Cub koste seg i flokken!", true))
         for _ = 1, 3 do Quest() end
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
-        eq(Points(), start + 27, "one cap for the trait, whatever the activity")
+        eq(Points(), start + 14, "one cap for the trait (10), whatever the activity; then the everyday 1s")
         -- Then in a dungeon: Huleboer has its own cap.
         ola.state.instance = "party"
         Quest()
-        eq(Points(), start + 32)
+        eq(Points(), start + 19)
         local lines = 0
         for _, l in ipairs(ola.printed) do if l:find("Panda Cub", 1, true) and l:find("!", 1, true) then lines = lines + 1 end end
         eq(lines, 1, "still one line a day")
@@ -162,13 +162,14 @@ return function(test, H)
         ola.state.instance = "pvp"
         w:SetGroup({ "Ola Nord", "Per Ukjent" })
         Quest()
-        eq(Points(), start + 33, "no guildmate, no dungeon: back to 1")
+        eq(Points(), start + 19, "no guildmate, no dungeon: an everyday quest, and those are spent for today")
         -- A group we can't read gives no bonus, and no error.
         ola.env.UnitName = function(u) if u ~= "player" then error("secret") end return "Ola", "Nord" end
         w:SetGroup({ "Ola Nord", "Kari Berg" })
         ola.state.instance = "none"
-        Quest()
-        eq(Points(), start + 34)
+        ola.ns.DB.char.bondToday.pets[PANDA].got["trait:flokkdyr"] = 0 -- (room for its bonus again)
+        ola.ns.Activity:Emit("mine")
+        eq(Points(), start + 20, "an everyday 1, not Flokkdyr's 5")
     end)
 
     test("Nattugle, Einstøing and Friluftsdyr read the clock, the group and the world", function()
@@ -239,18 +240,18 @@ return function(test, H)
         ola:Fire("QUEST_TURNED_IN", 1)
         eq(Points(), 46, "anything else: 1")
         for _ = 1, 10 do ola:Fire("QUEST_TURNED_IN", 1) end
-        eq(Points(), 50, "at most 5 a day")
+        eq(Points(), 48, "at most 3 a day")
         local lines = 0
         for _, l in ipairs(ola.printed) do if l:find("koste seg", 1, true) then lines = lines + 1 end end
         eq(lines, 1, "one line a day")
         -- A new day.
         w:SkipDays(1)
         Herb(ola)
-        eq(Points(), 75, "the new day's visit with the first thing done (20), and the herb (5)")
+        eq(Points(), 73, "the new day's visit with the first thing done (20), and the herb (5)")
         -- Not with another companion out.
         ola:Summon(40)
         Herb(ola)
-        eq(Points(), 75)
+        eq(Points(), 73)
     end)
 
     test("the card and tooltips tell its personality", function()

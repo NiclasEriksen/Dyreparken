@@ -181,11 +181,11 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
 3. **Activities and likes:** more sources as probes confirm them, likes per tag, quirks, flavor lines.
    *Built 2026-11-08* (Menagerie/Personality.lua): likes from families plus species of their own (Panda Cub:
    herbs), eight quirks picked by species id (one adds a like; "Kosete" doubles the days). Liked activities 5 points
-   (25 a day each), others 1 (5 a day). Gathering (herb, mine, fish, skin) from your own casts, registered for the
+   (25 a day each), others 1 (5 a day; since 2026-11-10: 3 a day each and 10 in all). Gathering (herb, mine, fish, skin) from your own casts, registered for the
    player only; unverified in game. Shown on the card's third line and in tooltips.
    *Two traits per pet, 2026-11-08:* traits of three kinds: a liked activity (the first eight), a moment when
    anything done counts as liked (Nattugle 22-04, Flokkdyr with a guildmate in the group, Einstøing alone,
-   Huleboer in dungeons and raids, Friluftsdyr outside them; one 25-point cap per trait), and a day multiplier
+   Huleboer in dungeons and raids, Friluftsdyr outside them; one 25-point cap per trait, 10 since 2026-11-10), and a day multiplier
    (Kosete x2, Helgedyr x2 on weekends, Festglad x3 on Norwegian holidays). Contradicting pairs never meet.
    *The probed traits, same day:* Dansefot (dance), Kjælen (cuddle: /pet, /hug... naming the companion), Oppdager
    (explore: a place this companion hasn't been, `char.places`), Trofast (revive: up again after PLAYER_DEAD),
