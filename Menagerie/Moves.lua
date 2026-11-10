@@ -128,6 +128,56 @@ local function PosSay(fmt, ...)
 end
 local posStart -- the actor's position and scale before we moved it
 
+-- Where the pet is on the card: its box's eight corners projected onto the
+-- model scene, as left, bottom, right, top in the scene's pixels (from its
+-- bottom left). nil when the client can't say (2026-11-10: Forever has
+-- GetActiveBoundingBox and Project3DPointTo2D; whether the numbers match
+-- what's on screen is what /dp probe pos box shows).
+function Moves:PetRect()
+    local actor = self:Actor()
+    local scene = actor and PetJournalPetCard.modelScene
+    if not scene then return nil end
+    local okp, x, y, z = Call(actor, "GetPosition")
+    local okb, x1, y1, z1, x2, y2, z2 = Call(actor, "GetActiveBoundingBox")
+    local oks, s = Call(actor, "GetScale")
+    if not (okp and okb and type(x) == "number" and type(z2) == "number") then return nil end
+    s = (oks and type(s) == "number") and s or 1
+    local l, b, r, t
+    for _, cx in ipairs({ x1, x2 }) do
+        for _, cy in ipairs({ y1, y2 }) do
+            for _, cz in ipairs({ z1, z2 }) do
+                local ok, px, py = Call(scene, "Project3DPointTo2D", x + cx * s, y + cy * s, z + cz * s)
+                if not (ok and type(px) == "number" and type(py) == "number") then return nil end
+                l, r = math.min(l or px, px), math.max(r or px, px)
+                b, t = math.min(b or py, py), math.max(t or py, py)
+            end
+        end
+    end
+    return l, b, r, t
+end
+
+-- /dp probe pos box: the rectangle drawn on the card (red, see-through),
+-- again to hide it. Each click on the pet logs where it landed (Cuddle).
+local boxFrame
+function Moves:ShowBox()
+    local scene = PetJournalPetCard and PetJournalPetCard.modelScene
+    if boxFrame and boxFrame:IsShown() then boxFrame:Hide(); return PosSay("box hidden") end
+    local l, b, r, t = self:PetRect()
+    if not (scene and l) then return PosSay("no box: the client can't project it") end
+    if not boxFrame then
+        boxFrame = CreateFrame("Frame", nil, scene)
+        boxFrame:SetFrameLevel(scene:GetFrameLevel() + 50)
+        local tex = boxFrame:CreateTexture(nil, "OVERLAY")
+        tex:SetAllPoints()
+        tex:SetColorTexture(1, 0, 0, 0.25)
+    end
+    boxFrame:ClearAllPoints()
+    boxFrame:SetPoint("BOTTOMLEFT", scene, "BOTTOMLEFT", l, b)
+    boxFrame:SetSize(math.max(1, r - l), math.max(1, t - b))
+    boxFrame:Show()
+    PosSay("box: left %.0f, bottom %.0f, right %.0f, top %.0f (scene %s)", l, b, r, t, Vals(Call(scene, "GetSize")))
+end
+
 function Moves:ProbePos(arg)
     local actor, how = self:Actor()
     if not actor then return PosSay("%s", how) end
@@ -135,6 +185,7 @@ function Moves:ProbePos(arg)
     local word, n = (arg or ""):match("^(%S*)%s*(%S*)$")
     n = tonumber(n)
     if posStart and posStart.species ~= Species() then posStart = nil end -- (another pet: its own start)
+    if word == "box" then return self:ShowBox() end
     if word == "reset" then
         if posStart then
             Call(actor, "SetPosition", posStart[1], posStart[2], posStart[3])

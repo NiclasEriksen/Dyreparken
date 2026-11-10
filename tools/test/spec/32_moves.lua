@@ -405,10 +405,17 @@ return function(test, H)
         eq(actor.scale, 1.5)
         ola:Slash("probe pos reset")
         eq(actor.pos[3], 0); eq(actor.scale, 1)
+        -- The box drawn on the card, and again: hidden.
+        ola:Slash("probe pos box")
+        eq(#ola:Log("Probe\tpos box: left 170, bottom 150, right 230, top 230"), 1)
+        ola:Slash("probe pos box")
+        eq(#ola:Log("Probe\tpos box hidden"), 1)
         -- Without the geometry: says so, no error.
         actor.GetPosition = nil
         ola:Slash("probe pos z 0.2")
         eq(#ola:Log("Probe\tpos no GetPosition"), 1)
         ola:Slash("probe pos")
+        ola:Slash("probe pos box")
+        eq(#ola:Log("Probe\tpos no box"), 1)
     end)
 end

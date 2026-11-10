@@ -80,7 +80,19 @@ function Cuddle:Build(card, c, panel)
             local still = math.abs(x - downX) < CLICK_PX and math.abs(y - downY) < CLICK_PX
             local quick = GetTime() - downAt < CLICK_S
             downAt = nil
-            if still and quick then Cuddle:Pet(card, x, y) end
+            if still and quick then
+                -- Where the click landed against the pet's box (2026-11-10: to limit
+                -- petting to the pet, once /dp probe pos box shows the box is right).
+                if ns.Debug.enabled then
+                    local scale, l, b, r, t = model:GetEffectiveScale(), ns.Moves:PetRect()
+                    local left, bottom = model:GetLeft(), model:GetBottom()
+                    if left and bottom and scale and scale > 0 then
+                        ns.Log("Cuddle", "click at %.0f, %.0f on the scene; pet box %s", x / scale - left,
+                            y / scale - bottom, l and ("%.0f, %.0f, %.0f, %.0f"):format(l, b, r, t) or "unknown")
+                    end
+                end
+                Cuddle:Pet(card, x, y)
+            end
         end)
         d.model = model
     end
