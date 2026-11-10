@@ -94,6 +94,12 @@ Small touches that build on what's there. Nothing here is decided. Sizes: **tiny
 lines), **small** (under ~60 lines and a test), **medium** (several modules). ★ = the review's favourites. Every
 idea keeps the rules: no bond points from flavor, no polling, events only while needed, Norwegian text.
 
+Built 2026-11-10: everything below except the December calendar, April Fools and Fastelavn (the user said no to
+those). Changed while building: the seasons are one faint particle, the last to go (the user: "veeery sparingly");
+the early bird is 05:00-07:00; the midnight dance only for a pet whose like already watches dancing (every emote
+nearby would wake it); the park's birthday counts claims only. To check in game: walking (the moving events), the
+turned back (SetYaw), the inn's name (GetBindLocation), the zone names, and a guildmate's /dp klapp arriving.
+
 ## The card
 
 - ★ **Zzz over a sleeping pet.** When Moves puts the pet to sleep at night, a few `zee` particles rise from it
