@@ -105,12 +105,17 @@ function Stats:Build(card, c)
         chip.icon:SetPoint("LEFT", chip, "LEFT", 3, 0)
         chip.count = chip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         chip.count:SetPoint("LEFT", chip.icon, "RIGHT", 3, 0)
-        chip.ring = chip:CreateTexture(nil, "OVERLAY")
-        chip.ring:SetTexture(ns.Decor.MEDIA .. "ring")
-        chip.ring:SetBlendMode("ADD")
-        chip.ring:SetVertexColor(1, 0.82, 0.3, 1)
-        chip.ring:SetSize(ICON + 10, ICON + 10)
-        chip.ring:SetPoint("CENTER", chip.icon)
+        -- A round number today: a thin gold frame around the chip (2026-11-10: a ring
+        -- around the square icon looked wrong).
+        chip.ring = CreateFrame("Frame", nil, chip)
+        chip.ring:SetAllPoints()
+        for _, side in ipairs({ { "TOPLEFT", "TOPRIGHT", nil, 1 }, { "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1 },
+            { "TOPLEFT", "BOTTOMLEFT", 1, nil }, { "TOPRIGHT", "BOTTOMRIGHT", 1, nil } }) do
+            local t = chip.ring:CreateTexture(nil, "OVERLAY")
+            t:SetColorTexture(1, 0.82, 0.3, 0.9)
+            t:SetPoint(side[1]); t:SetPoint(side[2])
+            if side[3] then t:SetWidth(side[3]) else t:SetHeight(side[4]) end
+        end
         chip.ring:Hide()
         chip.card = card
         chip:EnableMouse(true)
