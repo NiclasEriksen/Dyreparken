@@ -24,6 +24,7 @@ local _, ns = ...
 --   /dp probe anim <id|name> [speed]  play one (speed 0: frozen on its first frame)
 --   /dp probe anim all|custom  play each (or the four custom ones), 3 s apart
 --   /dp probe anim stop     back to standing
+--   /dp probe anim night    pretend it's night (or day again), to test sleep by day
 local Moves = {}
 ns.Moves = Moves
 
@@ -102,6 +103,7 @@ function Moves:Probe(arg)
     local word, speedArg = (arg or "list"):lower():match("^(%S+)%s*(%S*)$")
     word = word or "list"
     local speed = tonumber(speedArg)
+    if word == "night" then return self:ForceNight() end
     if word == "stop" then
         cycle = cycle + 1
         local ok = Call(actor, "SetAnimation", 0)
@@ -236,7 +238,7 @@ end
 function Moves:Rest(key, t)
     if DeadToday(key) and self:For(key, "dead") then return "dead" end
     if not shown.awake[key] then
-        if ns.Personality.IsNight(t or ns.Now()) and not HasTrait(key, "nattugle") and self:For(key, "sleep") then
+        if (Moves.night or ns.Personality.IsNight(t or ns.Now())) and not HasTrait(key, "nattugle") and self:For(key, "sleep") then
             return "sleep"
         end
         if HasTrait(key, "latsabb") and self:For(key, "sit") then return "sit" end
@@ -298,6 +300,17 @@ function Moves:Cheer(key)
     if not cheer then return end
     local back = Back(key)
     self:Sequence({ { cheer, self.T.cheer }, { back } })
+end
+
+-- /dp probe anim night: night until toggled off or /reload, every pet asleep
+-- again, and the card's pet posed anew.
+function Moves:ForceNight()
+    self.night = not self.night or nil
+    wipe(shown.awake)
+    local key = shown.key
+    shown.key = nil
+    if key then self:Update(nil, key) end
+    Say("night %s%s", self.night and "on" or "off", key and "" or " (open a pet's card)")
 end
 
 -- The journal closing or our pages covering the card: stop, and start over next time.
