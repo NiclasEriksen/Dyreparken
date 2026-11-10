@@ -115,10 +115,13 @@ return function(test, H)
         w:Run(0.61)
         eq(actor.anim, 6, "asleep: lying as Dead (6)")
         eq(actor.speed, 0, "frozen: played on, it ended and stood the pet up")
+        eq(actor.offset, 1.2, "at the end of its fall (frozen at the start, it stood still)")
+        eq(actor.blendOp, 0, "cut to, not blended: the blend from standing would freeze too")
         w:Run(5)
         eq(actor.anim, 6, "and stays down")
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 756, "woken: glad to see you")
+        eq(actor.blendOp, 1, "blended again"); eq(actor.speed, nil)
         w:Run(2.1)
         eq(actor.anim, 0, "awake")
         ola:SelectPet(46); ola:SelectPet(5159)
@@ -214,7 +217,7 @@ return function(test, H)
         -- A refresh of the card (the same pet) stood it up: lying down again, still frozen.
         actor.anim, actor.speed = 0, nil
         ola.ns.JournalUI:Refresh()
-        eq(actor.anim, 6); eq(actor.speed, 0)
+        eq(actor.anim, 6); eq(actor.speed, 0); eq(actor.offset, 1.2)
         -- Only once per check: a model that won't keep it isn't fought over.
         local n = #actor.played
         actor.anim = 0
@@ -237,10 +240,10 @@ return function(test, H)
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 0, "up, no attack")
         -- An edit to the file takes: another sleep for the panda, and no cheer.
-        ola.ns.PetMoves.species[5159] = { sleep = 100, cheer = false }
+        ola.ns.PetMoves.species[5159] = { sleep = 100, sleepAt = 0.4, cheer = false }
         ola:SelectPet(5159)
         w:Run(0.61)
-        eq(actor.anim, 100)
+        eq(actor.anim, 100); eq(actor.offset, 0.4, "and its own point in it")
         local n = #actor.played
         M:Cheer(PANDA)
         eq(#actor.played, n, "no cheer for it")

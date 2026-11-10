@@ -14,16 +14,18 @@ local _, ns = ...
 -- [number] on the pet's line in Data/Companions.lua.
 --
 -- Reactions:
---   sleep  held at night while you look at the card (not for a Nattugle), frozen on its
---          first frame so it stays down (try one with /dp probe anim <id> 0); a
---          click wakes it
+--   sleep  held at night while you look at the card (not for a Nattugle); a click
+--          wakes it. Frozen sleepAt seconds into the animation, cut to without a
+--          blend, so it stays down: try one with /dp probe anim blend none, then
+--          /dp probe anim <id> 0 <seconds> (blend anim afterwards). To see the
+--          card at night by day: /dp probe anim night
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
 --          with 96 first)
 --   happy  a click on the pet (on the Panda Cub, PetBattleCustom0 is a hop)
 --   cheer  a bond level-up, during the celebration
 --   dead   the day of the "is it safe to live with you?" egg, once
 ns.PetMoves = {
-    default = { sleep = 6, sit = 97, happy = 756, cheer = 754, dead = 1 },
+    default = { sleep = 6, sleepAt = 1.2, sit = 97, happy = 756, cheer = 754, dead = 1 },
     species = {
         [5160] = { happy = false },  -- Zergling: PetBattleCustom0 is an attack
         [5161] = { sleep = false },  -- Mini Diablo: Dead (6) makes him vanish (Death bursts into flames)

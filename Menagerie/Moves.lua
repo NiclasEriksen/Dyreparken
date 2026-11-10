@@ -13,9 +13,9 @@ local _, ns = ...
 -- SetAnimation takes any id, GetAnimation echoes it), and they differ: the
 -- most basic pets have only stand, death, walk, run and the pet battle set.
 -- Which animation each reaction uses, per species, is in Data/PetMoves.lua,
--- edited by hand (found by eye with the probe below). Asleep is Dead (6):
--- the sleep ones (99-101) didn't hold, and PetBattleDead (770) sank some
--- pets into the floor (2026-11-10).
+-- edited by hand (found by eye with the probe below). Asleep is Dead (6),
+-- held frozen at its end (Play): the sleep ones (99-101) didn't hold, and
+-- PetBattleDead (770) sank some pets into the floor (2026-11-10).
 -- Timers only while the card shows a pet; a new pet, the journal closing or
 -- our pages covering the card cancel them.
 --
@@ -203,14 +203,19 @@ local shown = { token = 0, awake = {} } -- the card's pet, its pose, and pets wo
 -- (2026-11-10: a pet lay down, then flickered back to standing). If it was
 -- reset, once more. Both logged, to learn what the client does.
 Moves.RECHECK = 0.3
--- speed: nil plays it normally; 0 freezes it on its first frame (a held pose:
--- 2026-11-10, Dead (6) lay the pet flat, then ended and stood it up again).
-local function Play(id, again, speed)
+-- pose: a held pose instead, frozen (speed 0) that many seconds in, cut to
+-- without a blend. 2026-11-10: Dead (6) played on lay the pet flat, then
+-- ended and stood it up again; frozen at its start it stood still, the blend
+-- from standing frozen too; with no blend, frozen 1.2 s in (the fall over) it
+-- lay still.
+local NO_BLEND, BLEND = 0, 1 -- Enum.ModelBlendOperation (None, Anim)
+local function Play(id, again, pose)
     local actor = Moves:Actor()
     if not actor then return end
-    shown.playing, shown.speed = id, speed
+    shown.playing, shown.pose = id, pose
+    Call(actor, "SetAnimationBlendOperation", pose and NO_BLEND or BLEND)
     local ok
-    if speed then ok = Call(actor, "SetAnimation", id, 0, speed) else ok = Call(actor, "SetAnimation", id) end
+    if pose then ok = Call(actor, "SetAnimation", id, 0, 0, pose) else ok = Call(actor, "SetAnimation", id) end
     local token = shown.token
     C_Timer.After(Moves.RECHECK, function()
         if token ~= shown.token or shown.playing ~= id then return end
@@ -219,11 +224,11 @@ local function Play(id, again, speed)
         local reset = now ~= actor or (got and at ~= id)
         ns.Log("Moves", "%s %d: %s; after %.1f s %s%s", tostring(shown.key), id, ok and "set" or "refused",
             Moves.RECHECK, got and tostring(at) or "?", now ~= actor and " (a new actor)" or "")
-        if reset and not again then Play(id, true, speed) end
+        if reset and not again then Play(id, true, pose) end
     end)
 end
 
--- Steps { id, seconds, speed }: each in turn; the last one stays. Replaces any running.
+-- Steps { id, seconds, pose }: each in turn; the last one stays. Replaces any running.
 function Moves:Sequence(steps)
     shown.token = shown.token + 1
     local mine = shown.token
@@ -263,7 +268,7 @@ end
 
 -- A pose's steps for this pet; the last one is held.
 local function Steps(key, mode)
-    if mode == "sleep" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "sleep"), nil, 0 } } end
+    if mode == "sleep" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "sleep"), nil, Moves:For(key, "sleepAt") or 0 } } end
     if mode == "sit" then
         return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }
     end
@@ -281,7 +286,7 @@ function Moves:Update(card, key)
     local mode = self:Rest(key)
     if key == shown.key and mode == shown.mode then
         -- The same pet refreshed: Blizzard may have stood the model up again; put back what plays.
-        if shown.playing then Play(shown.playing, true, shown.speed) end
+        if shown.playing then Play(shown.playing, true, shown.pose) end
         return
     end
     shown.key, shown.mode = key, mode

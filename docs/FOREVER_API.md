@@ -156,6 +156,12 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   floor shadow, and the prairie dog gets up after a second or two. **Dead (6)** lies most pets down and holds; Mini
   Diablo vanishes with it. **Death (1)** plays each model's own fall (Mini Diablo bursts into flames). The
   Zergling's PetBattleCustom0 is an attack. Per-species choices live in Data/PetMoves.lua.
+  **Holding a pose** (2026-11-10, 1.60.1, prairie dog, Zergling, Panda Cub): Dead (6) doesn't hold after all: played
+  normally the pet goes flat, then the animation ends and it stands up (~0.6 s). The actor takes
+  `SetAnimation(id, variation, speed, offsetSeconds)` and `SetAnimationBlendOperation(op)` (retail's
+  Enum.ModelBlendOperation: 0 None, 1 Anim); both return without an error. Speed 0 alone froze the pet standing,
+  only a slight jitter: the blend from standing froze too. With blend 0 (None), `SetAnimation(6, 0, 0, 1.2)` holds
+  it lying still: before 1.2 s it's caught mid-fall. Blend 0 is set only for such a held pose, 1 otherwise.
 - **Companions get no nameplate** (2026-11-09, `/dp probe world`, outdoors): with a guildmate's Brown Prairie Dog
   right there, `C_NamePlate.GetNamePlates()` returned 0 plates and `GetNamePlateForUnit("mouseover")` nil, while
   hostile mobs nearby got plates (`NAME_PLATE_UNIT_ADDED`, not forbidden). `nameplateShowAll` and
