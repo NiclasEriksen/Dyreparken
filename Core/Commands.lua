@@ -15,8 +15,13 @@ end
 -- An action's ok, message: the message is shown either way.
 local function Say(_, msg) if msg then ns.Print(msg) end end
 
-local ON = { ["på"] = true }
-local OFF = { av = true }
+local ON = { ["på"] = true, on = true }
+local OFF = { av = true, off = true }
+
+-- lower() leaves Æ, Ø and Å alone (bytes, not letters): "/dp KUNNGJØR PÅ".
+local function Lower(s)
+    return (s:lower():gsub("Æ", "æ"):gsub("Ø", "ø"):gsub("Å", "å"))
+end
 
 -- "på"/"av" (or on/off) say which; nothing else flips the current setting.
 local function Toggle(arg, current)
@@ -103,10 +108,10 @@ SLASH_DYREPARKEN1 = "/dp"
 SLASH_DYREPARKEN2 = "/dyreparken"
 SlashCmdList.DYREPARKEN = function(input)
     local cmd, arg = strtrim(input or ""):match("^(%S*)%s*(.-)$")
-    cmd = cmd:lower()
+    cmd = Lower(cmd)
     local fn = commands[cmd]
     -- fn(lowercased arg, arg as typed): names and nicknames keep their case.
-    if fn then return fn(arg ~= "" and arg:lower() or nil, arg) end
+    if fn then return fn(arg ~= "" and Lower(arg) or nil, arg) end
     ns.Print(ns.T("cmd.help.head", { version = ns.VERSION }))
     for _, line in ipairs(help) do ns.Print("  /dp " .. line) end
 end

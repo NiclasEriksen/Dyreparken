@@ -45,7 +45,12 @@ function Bonds:Milestone(at, now)
     if days == 30 then return ns.L["milestone.month"] end
     if days == 100 then return ns.L["milestone.days100"] end
     local a, n = date("*t", at), date("*t", now)
-    if a.month == n.month and a.day == n.day then return ns.T("milestone.years", { n = n.year - a.year }) end
+    local day = a.day
+    -- Adopted on 29 February: the 28th in the years without one.
+    if a.month == 2 and day == 29 and date("*t", time({ year = n.year, month = 3, day = 0, hour = 12 })).day == 28 then
+        day = 28
+    end
+    if a.month == n.month and day == n.day then return ns.T("milestone.years", { n = n.year - a.year }) end
 end
 
 

@@ -47,21 +47,29 @@ local function Pick(prefix, vars)
     return T(list[Quirks.random(#list)], vars)
 end
 
+-- A line decided and not yet said: nothing else is decided meanwhile.
+local pending = { eggs = {} }
+
 function Quirks:Ready()
+    if pending.line then return false end
     local at = ns.DB.char.quirkAt
     return not at or ns.Now() - at >= self.EVERY
 end
 
--- Decided now (the hour starts now, so nothing else slips in meanwhile), said
--- after the delay; then(): what follows the line.
-function Quirks:Say(text, why, kind, after)
-    ns.DB.char.quirkAt = ns.Now()
+-- Decided now, said after the delay. What it uses up (the hour, an egg's
+-- day, a dislike found) is saved only when it's said: a /reload in the
+-- delay used to spend it unsaid (code review 2026-11-10). said(): saves
+-- that, and what follows the line.
+function Quirks:Say(text, why, kind, said)
+    pending.line = true
     local span = self.DELAY[kind]
     local wait = span[1] + self.random() * (span[2] - span[1])
     ns.Log("Quirks", "%s, in %d s", why, wait)
     C_Timer.After(wait, function()
+        pending.line = nil
+        ns.DB.char.quirkAt = ns.Now()
         ns.Print("|cffd9b3ff" .. text .. "|r")
-        if after then after() end
+        if said then said() end
     end)
 end
 
@@ -74,10 +82,10 @@ function Quirks:Dislike(key, id)
     local text = Pick("dislike." .. id, { pet = name })
     if not text then return end
     local seen = ns.DB.char.dislikes
-    seen[key] = seen[key] or {}
-    local first = not seen[key][id]
-    seen[key][id] = true
+    local first = not (seen[key] and seen[key][id])
     self:Say(text, ("dislike %s %s"):format(key, id), "dislike", function()
+        seen[key] = seen[key] or {}
+        seen[key][id] = true
         if not first then return end
         ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")
         if ns.JournalUI then ns.JournalUI:Refresh() end
@@ -152,22 +160,29 @@ function Quirks:Egg(on, key, extra)
     local ctx = { key = key, name = ns.Registry:NameOf(key), id = on, extra = extra, t = ns.Now(),
         family = Families(key), today = select(3, ns.Activity:Count(on)) or 0 }
     local today = ns.Today(ctx.t)
+    -- Every `always` egg that's due says its line (one a day each: a round
+    -- day on Christmas Eve isn't lost to the Christmas egg); the others only
+    -- with the hour free, so at most one of those.
+    local any = false
     for _, e in ipairs(list) do
         local had = ns.DB.char.eggs[e.id]
-        if (e.always or self:Ready()) and not (had and had.day == today)
+        local done = (had and had.day == today) or pending.eggs[e.id] == today
+        if (e.always or self:Ready()) and not done
             and (not e.chance or self.random() < e.chance) then
             local vars = e.test(ctx)
             local text = vars and Pick("egg." .. e.id, setmetatable({ pet = ctx.name }, { __index = vars }))
             if text then
-                had = ns.DB.char.eggs[e.id] or {}
-                had.n, had.day, had.key, had.played = (had.n or 0) + 1, today, key, nil -- (Moves: playing dead)
-                ns.DB.char.eggs[e.id] = had
-                self:Say(text, ("egg %s %s"):format(e.id, key), "egg")
-                return true
+                pending.eggs[e.id] = today
+                self:Say(text, ("egg %s %s"):format(e.id, key), "egg", function()
+                    local got = ns.DB.char.eggs[e.id] or {}
+                    got.n, got.day, got.key, got.played = (got.n or 0) + 1, today, key, nil -- (Moves: playing dead)
+                    ns.DB.char.eggs[e.id] = got
+                end)
+                any = true
             end
         end
     end
-    return false
+    return any
 end
 
 function Quirks:OnActivity(id, key, extra)

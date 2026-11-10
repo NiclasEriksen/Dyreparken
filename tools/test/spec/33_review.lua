@@ -127,4 +127,89 @@ return function(test, H)
         w:Run(3)
         ok(ola.summoned, "back out")
     end)
+
+    -- Quirks with a Bombay Cat (dislikes the water) adopted and out; the dice say yes.
+    local function Quirky()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 40 } })
+        ola.ns.Companions = { build = 1, species = { [40] = { a = true, t = { "cat" } } } }
+        ola.ns.Personality.PINNED = { [40] = { "glupsk", "rampete" } }
+        w:Settle("hello")
+        ola:Slash("debug off")
+        ola:Slash("adopter bombay")
+        w:Run(40)
+        ola.ns.Quirks.random = function(n) return n and 1 or 0 end
+        return w, ola
+    end
+
+    test("a /reload before an easter egg's line is said spends nothing: it comes again", function()
+        local w, ola = Quirky()
+        w:Skip(os.time({ year = 2027, month = 12, day = 24, hour = 12 }) - w:ServerTime())
+        ola.ns.Activity:Emit("day")
+        eq(ola.ns.DB.char.eggs.jul, nil, "decided, not said yet")
+        ola:Reload()
+        ola.ns.Quirks.random = function(n) return n and 1 or 0 end
+        ola.ns.Activity:Emit("day")
+        w:Run(25)
+        ok(ola:Printed("jul", true) or ola:Printed("Jul", true), "said this time")
+        eq(ola.ns.DB.char.eggs.jul.n, 1)
+        -- A dislike likewise: found only once its line is said.
+        ola.ns.DB.char.quirkAt = nil
+        ola:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath")
+        eq(ola.ns.DB.char.dislikes["s:40"], nil)
+        w:Run(61)
+        ok(ola.ns.DB.char.dislikes["s:40"].dive)
+    end)
+
+    test("a round day on a holiday: both eggs say their line", function()
+        local w, ola = Quirky()
+        local r = select(3, ola.ns.Registry:Status("s:40"))
+        -- Adopted 200 days before Christmas Eve.
+        local eve = os.time({ year = 2027, month = 12, day = 24, hour = 12 })
+        local Day = ola.ns.Bonds.DayNumber
+        r.at = eve - 200 * DAY
+        while Day(eve) - Day(r.at) > 200 do r.at = r.at + 3600 end
+        while Day(eve) - Day(r.at) < 200 do r.at = r.at - 3600 end
+        w:Skip(eve - w:ServerTime())
+        ola.ns.Activity:Emit("day")
+        w:Run(25)
+        ok(ola.ns.DB.char.eggs.jul, "Christmas")
+        ok(ola:Printed("200 dager", true), "and the round day")
+    end)
+
+    test("adopted on 29 February: its yearly day is the 28th in the years without one", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local B = ola.ns.Bonds
+        local at = os.time({ year = 2028, month = 2, day = 29, hour = 12 })
+        ok(B:Milestone(at, os.time({ year = 2029, month = 2, day = 28, hour = 12 })), "2029: the 28th")
+        no(B:Milestone(at, os.time({ year = 2029, month = 3, day = 1, hour = 12 })))
+        ok(B:Milestone(at, os.time({ year = 2032, month = 2, day = 29, hour = 12 })), "a leap year: the 29th")
+        no(B:Milestone(at, os.time({ year = 2032, month = 2, day = 28, hour = 12 })))
+    end)
+
+    test("commands in capitals, Æ Ø Å too, and on/off as well as på/av", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("KUNNGJØR AV")
+        eq(ola.ns.DB.char.announce, false)
+        ola:Slash("kunngjør PÅ")
+        eq(ola.ns.DB.char.announce, true)
+        ola:Slash("kunngjør PÅ")
+        eq(ola.ns.DB.char.announce, true, "on stays on")
+        ola:Slash("lyd off")
+        eq(ola.ns.DB.char.muteSummonSound, true, "the sound off: muted")
+        ola:Slash("LYD ON")
+        eq(ola.ns.DB.char.muteSummonSound, false)
+    end)
+
+    test("a wish is never for something this client can't see happen", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local W, A = ola.ns.Wish, ola.ns.Activity
+        ola.ns.Personality.Of = function() return {}, { "herb", "fish" } end
+        local seen = {}
+        for d = 1, 30 do seen[W:For(PANDA, ("202611%02d"):format(d))] = true end
+        ok(seen.herb and seen.fish)
+        local Available = A.Available
+        A.Available = function(self, id) return id ~= "fish" and Available(self, id) end
+        for d = 1, 30 do eq(W:For(PANDA, ("202611%02d"):format(d)), "herb") end
+    end)
 end

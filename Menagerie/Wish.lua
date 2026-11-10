@@ -23,7 +23,8 @@ function Wish:For(key, day)
     local _, list = ns.Personality:Of(key)
     local choices = {}
     for _, act in ipairs(list) do
-        if not self.NEVER[act] then choices[#choices + 1] = act end
+        -- (and only what this client can see happen: a wish nobody can fulfil wastes the day)
+        if not self.NEVER[act] and ns.Activity:Available(act) then choices[#choices + 1] = act end
     end
     if #choices == 0 then choices = { "quest" } end
     local h = LibStub("LibDeflate"):Adler32("wish " .. day .. " " .. key)
