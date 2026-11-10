@@ -424,4 +424,25 @@ return function(test, H)
         w:Run(1)
         no(Listening("CHAT_MSG_EMOTE"), "let go: not listening")
     end)
+
+    test("the card hints at dislikes not found out yet; easter eggs found add up to achievements", function()
+        local w, ola, At, Said = Eggs({ "glupsk", "rampete" }) -- a cat: dislikes the water
+        ola:OpenJournal()
+        local card = ola:SelectPet(40)
+        card.personalityHit.scripts.OnEnter(card.personalityHit)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Det er noe Bombay Cat ikke liker%. Hva kan det være%?")
+        ola:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath")
+        w:RunTimers()
+        card.personalityHit.scripts.OnEnter(card.personalityHit)
+        no(table.concat(ola.env.GameTooltip.lines, " / "):find("Hva kan det være"), "all found: no hint")
+        -- Ten different eggs: Påskeegghøne.
+        local A = ola.ns.Achievements
+        for i = 1, 9 do ola.ns.DB.char.eggs["x" .. i] = { n = 1 } end
+        no(A:Got("eggs:10"))
+        At(2027, 3, 9, 13, 37)
+        ola.ns.Activity:Emit("herb")
+        w:RunTimers()
+        ok(A:Got("eggs:10"), "the tenth")
+        no(A:Got("eggs:25"))
+    end)
 end

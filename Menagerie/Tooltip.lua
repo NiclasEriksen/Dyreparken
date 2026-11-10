@@ -164,6 +164,8 @@ local function OnUnitTooltip(tooltip, data)
     local home = ns.Home(who, r.at)
     tooltip:AddLine(ns.T("tip.world", { home = home:sub(1, 1):lower() .. home:sub(2), level = select(3, ns.Bond:Of(r.k)) }),
         0.5, 0.8, 0.5)
+    -- Its traits, once its personality is known (creative review 2026-11-09): a reason to hover.
+    if ns.Personality:Known(r.k) then tooltip:AddLine(ns.Personality:Names(r.k), 0.95, 0.75, 0.45) end
     -- Resizes the tooltip to the changed lines, not only the added ones.
     if nick then tooltip:Show() end
 end

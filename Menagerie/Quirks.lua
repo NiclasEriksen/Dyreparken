@@ -288,6 +288,7 @@ function Quirks:Egg(on, key, extra, seen)
                     local got = ns.DB.char.eggs[e.id] or {}
                     got.n, got.day, got.key, got.played = (got.n or 0) + 1, today, key, nil -- (Moves: playing dead)
                     ns.DB.char.eggs[e.id] = got
+                    if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
                 end)
                 any = true
             end

@@ -362,6 +362,13 @@ local function BuildCard()
         if #bad > 0 then
             GameTooltip:AddLine(ns.T("card.dislikes.tip", { list = ns.Join(bad) }), 0.85, 0.55, 0.55, true)
         end
+        -- Dislikes not found out yet: a hint that there's something (creative review 2026-11-09).
+        local _, all = ns.Personality:Dislikes(card.key)
+        local secret = #all - #bad
+        if secret > 0 then
+            GameTooltip:AddLine(ns.T(secret == 1 and "card.dislikes.secret_one" or "card.dislikes.secret",
+                { pet = ns.Registry:NameOf(card.key), n = secret }), 0.75, 0.6, 0.6, true)
+        end
         GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
     end)
 

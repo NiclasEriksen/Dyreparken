@@ -16,7 +16,8 @@ return function(test, H)
         local w, ola, kari = Setup()
         local _, _, all = kari:Hover({ species = 46, owner = "Ola Nord" })
         eq(table.concat(all, " / "), "Pus / White Kitten / Ola Nord's Companion / Pet Level 1 Critter"
-            .. " / Dyreparken: har bodd hos Ola Nord i 7 dager · Venn", "the nickname takes the title")
+            .. " / Dyreparken: har bodd hos Ola Nord i 7 dager · Venn / Fleibede og Hoppetass",
+            "the nickname takes the title; its traits under the home (an adopted pet's personality is known)")
         local tip = kari.env.GameTooltip
         eq(tip.colors[2][1], 0.7, "the species line is grey")
         -- The data gets the same shift, for addons that draw from it (PrettyTooltip).
@@ -66,8 +67,9 @@ return function(test, H)
         ola:Slash("navn")
         w:Run(1)
         local lines = kari:Hover({ species = 46, owner = "Ola Nord" })
-        eq(#lines, 1)
+        eq(#lines, 2)
         match(lines[1], "^Dyreparken: har bodd hos Ola Nord")
+        eq(lines[2], "Fleibede og Hoppetass", "and its traits")
     end)
 
     test("nothing for other copies, free pets, non-companions or no owner", function()
@@ -91,7 +93,7 @@ return function(test, H)
 
     test("without tooltip data, the owner comes from C_TooltipInfo", function()
         local w, ola, kari = Setup()
-        eq(#kari:Hover({ species = 46, owner = "Ola Nord", noData = true }), 2)
+        eq(#kari:Hover({ species = 46, owner = "Ola Nord", noData = true }), 3)
         eq(kari.ns.Tooltip:OwnerOf("nobody"), nil)
     end)
 

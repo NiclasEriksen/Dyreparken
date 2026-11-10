@@ -398,6 +398,8 @@ L["personality.unknown"] = "Ukjent personlighet"            -- not collected, an
 L["personality.unknown.tip"] = "Personligheten er en overraskelse. Den blir kjent når du samler dyret, eller når noen i guilden adopterer det."
 L["card.dislikes"] = "liker ikke {list}"                 -- after card.likes, or alone; only those seen happen
 L["card.dislikes.tip"] = "Liker ikke: {list}"
+L["card.dislikes.secret_one"] = "Det er noe {pet} ikke liker. Hva kan det være?"
+L["card.dislikes.secret"] = "Det er {n} ting {pet} ikke liker. Hva kan det være?"
 L["card.personality.hint"] = "Gjør det den liker mens den er ute med deg, så vokser båndet raskere."
 L["card.guild"] = "Guilden"
 L["card.guild.value"] = "{n} av {total} ({pct}%)"
@@ -599,6 +601,10 @@ ns.AchTexts = {
     ["nick"] = { name = "Døpt", desc = "Gi dyret ditt et kallenavn.",
         flavor = "{player} har døpt {species} til «{nick}»! {name}",
         plain = "{player} har gitt dyret sitt et navn! {name}" },
+    ["eggs:10"] = { name = "Påskeegghøne", desc = "Finn 10 forskjellige påskeegg med dyrene dine.",
+        flavor = "{player} har funnet 10 forskjellige påskeegg med dyrene sine! {name}" },
+    ["eggs:25"] = { name = "Eggspert", desc = "Finn 25 forskjellige påskeegg med dyrene dine.",
+        flavor = "{player} har funnet 25 forskjellige påskeegg! Ingen hemmelighet er trygg. {name}" },
     ["dislikes"] = { name = "Kjenner deg ut og inn", desc = "Finn ut alt dyret ditt ikke liker.",
         flavor = "{player} vet nå alt {pet} ikke liker! {name}",
         plain = "{player} kjenner dyret sitt ut og inn! {name}" },

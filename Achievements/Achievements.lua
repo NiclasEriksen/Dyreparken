@@ -198,6 +198,12 @@ function Eval.dislikes()
     for _, id in ipairs(list) do if found[id] then have = have + 1 end end
     return have == #list, have, #list
 end
+-- Different easter eggs found (2026-11-10, creative review 2026-11-09).
+function Eval.eggs(d)
+    local have = 0
+    for _, e in pairs(ns.DB.char.eggs) do if type(e) == "table" and (e.n or 0) > 0 then have = have + 1 end end
+    return have >= d.n, math.min(have, d.n), d.n
+end
 function Eval.activity(d)
     if not ns.Activity:Available(d.act) then return nil end
     local total, mine = ns.Activity:Count(d.act)
@@ -677,6 +683,7 @@ function Ach:Init()
     ns.Bus:On("BOND_LEVEL", function(key) if key == ns.Registry:MyPet() then grew.bond = true end end)
     ns.Bus:On("BOND", function() Ach:CheckCharSoon("BOND") end)
     ns.Bus:On("DISLIKE_FOUND", function() Ach:Check("DISLIKE_FOUND", "char") end)
+    ns.Bus:On("EGG_FOUND", function() Ach:Check("EGG_FOUND", "char") end)
     ns.Bus:On("MY_NAME", function()
         grew.nick = true
         Ach:Check("MY_NAME", "char")

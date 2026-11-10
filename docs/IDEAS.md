@@ -29,13 +29,13 @@ three times.
 
 - **Today's mood.** A small word on the card ("Søvnig", "Leken", "Sulten"...), the same on every client (from the
   species and the date, like Dagens dyr; no messages). Now and then it hints at the wish of the day.
-- **Tease the dislikes.** While one is still secret, the card tooltip says "Det er noe {pet} ikke liker…".
+- ~~**Tease the dislikes.**~~ Done 2026-11-10 (the personality tooltip). While one is still secret, the card tooltip says "Det er noe {pet} ikke liker…".
   Finding it becomes a small goal (Personality:Dislikes vs char.dislikes).
-- **An egg collection.** Eggs are counted per character already (char.eggs). An achievement ("Påskeegghøne: fant 10
+- ~~**An egg collection.**~~ Done 2026-11-10: Påskeegghøne (10) and Eggspert (25). Eggs are counted per character already (char.eggs). An achievement ("Påskeegghøne: fant 10
   forskjellige") and maybe a list of the ones found.
 - **Share a funny line.** Quirk lines are only for you. A clickable `[Del]` after one could post it to guild
   chat (a click is a hardware event, which Forever needs for guild chat).
-- **Traits in the world tooltip.** Hovering a guildmate's pet shows "Dyreparken: bor hos…"; add its two traits
+- ~~**Traits in the world tooltip.**~~ Done 2026-11-10. Hovering a guildmate's pet shows "Dyreparken: bor hos…"; add its two traits
   (only for a known personality). It rewards hovering, which the new cursor puff (Fx.lua) already invites.
 - **Name suggestions** in the nickname popup, from the species and traits (a Latsabb gets "Slappe"?). One small
   list in Locale.
