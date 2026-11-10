@@ -655,4 +655,99 @@ return function(test, H)
         ola:Slash("probe anim sleep 6 0.5")
         ok(ola:Printed("held at 0.50 s, by pausing (SetPaused)", true))
     end)
+
+    test("/dp probe moves: every part a row; >> plays it at once and leaves it so; Hele plays it whole; picks saved", function()
+        local w, ola, actor = Setup(23) -- (night: the card's pet would sleep)
+        ola.ns.PetMoves.default.sleepAt = 0.7
+        function actor:SetPaused(p) self.paused = p end
+        local E, M = ola.ns.MovesEditor, ola.ns.Moves
+        ola:SelectPet(5159)
+        ola:Slash("probe moves")
+        local f = E.frame
+        ok(f:IsShown())
+        eq(E:Species(), 5159, "starts at the pet on the card")
+        w:Run(4)
+        eq(actor.anim, 0, "while it's open, the pet just stands, even at night")
+        local function Row(what) for _, r in ipairs(f.rows) do if r.what == what then return r end end end
+        eq(Row("sleep").label.text, "Sleep: lie down")
+        eq(Row("sleep").anim.text, "Dead (6)")
+        eq(Row("sleepUp").anim.text, "none")
+        -- >> on the lie-down: at once (standing first, in the same moment), paused at its point, and left so.
+        local n = #actor.played
+        Row("sleep").play:Click()
+        eq(actor.played[n + 1], 0); eq(actor.anim, 6, "at once")
+        w:Run(0.71)
+        eq(actor.paused, true)
+        w:Run(10)
+        eq(actor.paused, true, "and stays so"); eq(actor.anim, 6)
+        -- The pause point: saved when it differs from the file, and shown at once.
+        f.slider:SetValue(0.6)
+        eq(ola.ns.DB.global.movePicks[5159].sleepAt, 0.6)
+        eq(actor.paused, false, "lying down again"); eq(actor.anim, 6)
+        w:Run(0.61); eq(actor.paused, true)
+        f.up:Click(); f.up:Click()
+        eq(ola.ns.DB.global.movePicks[5159], nil, "0.7: the file's, nothing saved")
+        f.down:Click()
+        eq(ola.ns.DB.global.movePicks[5159].sleepAt, 0.65)
+        match(f.time.text, "paused 0.65 s into lying down %(changed%)")
+        -- A get-up: picked, played on its own, and left on it.
+        Row("sleepUp").next:Click()
+        eq(Row("sleepUp").anim.text, "Stand (0)")
+        while not Row("sleepUp").anim.text:find("SleepUp") do Row("sleepUp").next:Click() end
+        eq(ola.ns.DB.global.movePicks[5159].sleepUp, 101)
+        Row("sleepUp").play:Click()
+        eq(actor.paused, false); eq(actor.anim, 101)
+        w:Run(10); eq(actor.anim, 101, "not stood up after a while")
+        -- Hele: the whole sleep in order, then standing.
+        f.whole:Click()
+        eq(actor.anim, 6)
+        w:Run(0.66); eq(actor.paused, true)
+        w:Run(M.TRY_HOLD); eq(actor.anim, 101, "gets up")
+        w:Run(M.T.up); eq(actor.anim, 0)
+        Row("sleepUp").prev:Click()
+        eq(ola.ns.DB.global.movePicks[5159].sleepUp, 100)
+        -- Held as a loop instead of paused: no pause point then.
+        while not Row("sleepHold").anim.text:find("^Sleep ") do Row("sleepHold").next:Click() end
+        eq(f.time.text, "held as a loop: no pause")
+        Row("sleep").play:Click()
+        w:Run(0.66); eq(actor.anim, 100); eq(actor.paused, false)
+        -- Sitting, whole; a one-off; Stå.
+        Row("sit").play:Click(); eq(actor.anim, 97)
+        f.whole:Click()
+        eq(actor.anim, 96); w:Run(M.T.down); eq(actor.anim, 97)
+        w:Run(M.TRY_HOLD); eq(actor.anim, 98); w:Run(M.T.up); eq(actor.anim, 0)
+        Row("cheer").play:Click(); eq(actor.anim, 754)
+        f.whole:Click(); eq(actor.anim, 754); w:Run(M.T.cheer); eq(actor.anim, 0)
+        Row("happy").play:Click(); f.stand:Click(); eq(actor.anim, 0)
+        -- Next pet: its own; the count; File's for this pet.
+        f.next:Click()
+        ok(E:Species() ~= 5159)
+        match(f.saved.text, "^1 pets changed")
+        f.prev:Click()
+        eq(Row("sleepUp").anim.text, "Sleep (100)")
+        f.reset:Click()
+        eq(ola.ns.DB.global.movePicks[5159], nil); eq(Row("sleepUp").anim.text, "none")
+        Row("sleepUp").next:Click()
+        -- Closed: the file's again, and the card poses as usual (asleep at night).
+        f.close:Click()
+        no(f:IsShown())
+        eq(M:For("s:5159", "sleepUp"), nil, "the file's")
+        w:Run(M.SLEEP_AFTER + 0.71)
+        eq(actor.anim, 6, "asleep again")
+        ola.env.PetJournal:Hide()
+        ola:Slash("probe moves")
+        ok(ola:Printed("Open the pet journal first."))
+    end)
+
+    test("the parts on the card: a sleep held as a loop, a get-up when woken, a pet without a sit-down", function()
+        local w, ola, actor = Setup(23)
+        ola.ns.PetMoves.species[5159] = { sleepHold = 100, sleepUp = 101, sitDown = false }
+        ola:SelectPet(5159)
+        w:Run(ola.ns.Moves.SLEEP_AFTER + 1.21)
+        eq(actor.anim, 100, "held as its sleep loop")
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 101, "gets up first")
+        w:Run(ola.ns.Moves.T.up + 0.01)
+        eq(actor.anim, 756, "then glad to see you")
+    end)
 end

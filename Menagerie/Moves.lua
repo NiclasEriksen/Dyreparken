@@ -347,7 +347,6 @@ end
 ------------------------------------------------------------------------------
 -- The pet on the card
 ------------------------------------------------------------------------------
-local SIT_DOWN, SIT_UP = 96, 98
 Moves.STAND = 0
 Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
 -- A new pet loads standing; its pose comes after this. Posed while loading,
@@ -370,6 +369,11 @@ function Moves:For(key, what)
     if what == "lift" and self.liftEditing then
         local pick = ns.DB.global.liftPicks[sid]
         if pick ~= nil then return pick ~= 0 and pick or nil end
+    end
+    -- While /dp probe moves is open: its picks (DyreparkenDB.movePicks) go first.
+    if self.movesEditing then
+        local picks = ns.DB.global.movePicks[sid]
+        if picks and picks[what] ~= nil then return picks[what] or nil end
     end
     local own = data.species[sid]
     local id = own and own[what]
@@ -501,7 +505,7 @@ function Moves:Sequence(steps)
         shown.last = i == #steps -- (a refresh puts back only the step that stays)
         if s.on then s.on() end -- (a once-a-day moment counts as seen only when it plays)
         local id = s[1]
-        if shown.last and not s[3] then
+        if shown.last and not s[3] and not s.keep then -- (keep: the moves editor's, played as picked)
             -- Back to rest after a one-off: as things are now (code review 2026-11-10: a stop
             -- during the hop left it walking; after playing dead it never walked).
             if shown.mode == "dead" and Moves:Rest(shown.key) == "stand" then shown.mode = "stand" end
@@ -532,6 +536,7 @@ end
 
 -- The pose the card's pet takes on its own.
 function Moves:Rest(key, t)
+    if self.movesEditing then return "stand" end -- (the moves editor plays what you try)
     if DeadToday(key) and self:For(key, "dead") then return "dead" end
     if not shown.awake[key] then
         if (Moves.night or ns.Personality.IsNight(t or ns.Now())) and not HasTrait(key, "nattugle") and self:For(key, "sleep") then
@@ -594,9 +599,10 @@ local function Repose()
     if not key then return end
     local mode = Moves:Rest(key)
     if shown.mode == "sit" and mode == "stand" then -- (sitting, or about to: up and away)
-        local seated = shown.playing == SIT_DOWN or shown.playing == Moves:For(key, "sit")
+        local seated = shown.playing == Moves:For(key, "sitDown") or shown.playing == Moves:For(key, "sit")
         shown.mode = "stand"
-        local steps = seated and { { SIT_UP, Moves.T.up } } or {}
+        local up = Moves:For(key, "sitUp")
+        local steps = (seated and up) and { { up, Moves.T.up } } or {}
         steps[#steps + 1] = { STAND }
         return Moves:Sequence(steps)
     end
@@ -649,10 +655,16 @@ Steps = function(key, mode)
     -- and the held pose still comes.
     if mode == "sleep" then
         local id, at = Moves:For(key, "sleep"), Moves:For(key, "sleepAt") or 0
-        return { { STAND, Moves.SLEEP_AFTER }, { id, at }, { id, nil, at } }
+        -- Then paused where it lies, or (sleepHold) a looping animation of its own.
+        local hold = Moves:For(key, "sleepHold")
+        return { { STAND, Moves.SLEEP_AFTER }, { id, at }, hold and { hold } or { id, nil, at } }
     end
     if mode == "sit" then
-        return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }
+        local down = Moves:For(key, "sitDown")
+        local steps = { { STAND, Moves.SIT_AFTER } }
+        if down then steps[#steps + 1] = { down, Moves.T.down } end
+        steps[#steps + 1] = { Moves:For(key, "sit") }
+        return steps
     end
     if mode == "dead" then
         return { { STAND, Moves.SETTLE },
@@ -814,8 +826,10 @@ function Moves:Cuddle(key)
     local steps = {}
     -- Up first only if it's sitting already (2026-11-10: clicked in its first seconds, still
     -- standing, it "got up" for 1.4 s before the hop).
-    local seated = shown.playing == SIT_DOWN or shown.playing == self:For(key, "sit")
-    if mode == "sit" and seated then steps[#steps + 1] = { SIT_UP, self.T.up } end
+    local seated = shown.playing == self:For(key, "sitDown") or shown.playing == self:For(key, "sit")
+    local up = mode == "sit" and seated and self:For(key, "sitUp")
+        or mode == "sleep" and self:For(key, "sleepUp")
+    if up then steps[#steps + 1] = { up, self.T.up } end
     if happy then steps[#steps + 1] = { happy, self.T.happy } end
     steps[#steps + 1] = { back }
     self:Sequence(steps)
@@ -841,6 +855,62 @@ function Moves:ForceNight()
     shown.key = nil
     if key then self:Update(nil, key) end
     Say("night %s%s", self.night and "on" or "off", key and "" or " (open a pet's card)")
+end
+
+-- /dp probe moves (MovesEditor.lua): the card's pet stands while it's open, and
+-- plays a reaction whole when asked, from a clean start.
+function Moves:SetEditing(on)
+    self.movesEditing = on or nil
+    local key = shown.key
+    shown.key = nil
+    if key then self:Update(nil, key) end
+end
+
+Moves.TRY_HOLD = 3 -- seconds a whole tried sleep or sit holds before it gets up
+
+-- Steps for one part (the moves editor's ▶): it plays at once and stays (a
+-- lie-down paused at its point, a loop looping, a one-off on its last frame).
+local function PartSteps(F, what)
+    if what == "sleep" then
+        local id, at, hold = F("sleep"), F("sleepAt") or 0, F("sleepHold")
+        if not id then return nil end
+        return { { id, at }, hold and { hold, keep = true } or { id, nil, at } }
+    end
+    local id = F(what)
+    return id and { { id, keep = true } } or nil
+end
+
+-- The whole reaction in order (the moves editor's "Hele"), ending standing.
+local function WholeSteps(F, reaction)
+    local steps = {}
+    local function Add(id, t, pose) if id then steps[#steps + 1] = { id, t, pose } end end
+    if reaction:find("^sleep") then
+        local id, at, hold = F("sleep"), F("sleepAt") or 0, F("sleepHold")
+        Add(id, at)
+        if hold then Add(hold, Moves.TRY_HOLD) else Add(id, Moves.TRY_HOLD, at) end
+        Add(F("sleepUp"), Moves.T.up)
+    elseif reaction:find("^sit") then
+        Add(F("sitDown"), Moves.T.down)
+        Add(F("sit"), Moves.TRY_HOLD)
+        Add(F("sitUp"), Moves.T.up)
+    else
+        Add(F(reaction), reaction == "dead" and Moves.T.dead or Moves.T.cheer)
+    end
+    steps[#steps + 1] = { STAND, keep = true }
+    return steps
+end
+
+-- whole: the whole reaction the part belongs to; else just the part.
+function Moves:Try(key, what, whole)
+    if key ~= shown.key then return end
+    local F = function(w) return self:For(key, w) end
+    local steps = what == "stand" and { { STAND, keep = true } } or whole and WholeSteps(F, what) or PartSteps(F, what)
+    if not steps or not steps[1] then return end
+    shown.mode = "stand"
+    -- Standing first, in the same moment: the client doesn't start over the one it's on.
+    Play(STAND)
+    ns.Log("Moves", "try %s%s on %s", what, whole and " (whole)" or "", key)
+    self:Sequence(steps)
 end
 
 -- The journal closing or our pages covering the card: stop, and start over next time.

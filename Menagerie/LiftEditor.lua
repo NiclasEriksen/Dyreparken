@@ -32,7 +32,7 @@ function Editor:Current()
     return sid, pick
 end
 
-local function Round(v) return math.floor(v / Editor.STEP + 0.5) * Editor.STEP end
+local function Round(v) return tonumber(("%.2f"):format(math.floor(v / Editor.STEP + 0.5) * Editor.STEP)) end -- (0.6, not 0.6000000000000001)
 
 -- Set the current species' lift (saved when it differs from the file's).
 function Editor:Set(value)

@@ -70,6 +70,7 @@ Achievements\Page.lua
 Menagerie\ParkPage.lua
 Menagerie\Settings.lua
 Menagerie\LiftEditor.lua
+Menagerie\MovesEditor.lua
 
 # Party games
 Games\Framework.lua

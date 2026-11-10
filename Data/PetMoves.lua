@@ -19,8 +19,12 @@ local _, ns = ...
 --          0.7 s caught most pets lying down, 2026-11-10: at 0.8 the cats were getting up again).
 --          Try one with /dp probe anim sleep <id> <seconds>. To see the
 --          card at night by day: /dp probe anim night
+--   sleepHold  (optional) a looping animation to hold instead of pausing the lie-down
+--   sleepUp    (optional) played when it's woken, before the happy move
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
---          with 96 first), and by any pet of yours once its day's bond is full
+--          with sitDown first, and gets up with sitUp), and by any pet of yours once its day's bond is full
+--   All of these, per pet, are easiest to pick with /dp probe moves (a window: step through the
+--   pets and the parts, "Prøv" plays it from a clean start; picks saved in DyreparkenDB.movePicks)
 --   happy  a click on the pet (on the Panda Cub, PetBattleCustom0 is a hop)
 --   cheer  a bond level-up, during the celebration
 --   dead   the day of the "is it safe to live with you?" egg, once
@@ -31,7 +35,7 @@ local _, ns = ...
 --          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here
 --          (every pet set by eye 2026-11-10).
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 0.7, sit = 97, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
+    default = { sleep = 6, sleepAt = 0.7, sitDown = 96, sit = 97, sitUp = 98, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
         [39] = { lift = -0.1 },  -- Mechanical Squirrel
         [40] = { lift = -0.1 },  -- Bombay

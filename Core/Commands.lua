@@ -135,6 +135,7 @@ local PROBES = {
     { "ach", function(a) ns.Pets:ProbeAch(a) end, "[post|now|group|groupnow]" },
     { "pos", function(a) ns.Moves:ProbePos(a) end, "[box|x|y|z <delta>|scale <n>|reset]" },
     { "lift", function() ns.LiftEditor:Toggle() end },
+    { "moves", function() ns.MovesEditor:Toggle() end },
     { "gains", function(a) ns.BondTrack:PreviewGains(a) end, "[n n ...]" },
 }
 local usage = {}
