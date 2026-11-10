@@ -102,6 +102,28 @@ local function On(md) return function(ctx) return date("%m%d", ctx.t) == md and 
 
 local MILESTONES = { [200] = true, [500] = true, [1000] = true }
 
+local function HasTrait(key, id)
+    if not ns.Personality:Known(key) then return false end
+    for _, t in ipairs(ns.Personality:Traits(key)) do if t.id == id then return true end end
+    return false
+end
+local function Weekday(t) return tonumber(date("%w", t)) end -- 0 = Sunday
+local function Hour(t) return tonumber(date("%H", t)) end
+
+-- Easter Sunday of a year (the anonymous Gregorian algorithm): "MMDD".
+function Quirks.Easter(y)
+    local a, b, c = y % 19, math.floor(y / 100), y % 100
+    local d, e = math.floor(b / 4), b % 4
+    local f = math.floor((b + 8) / 25)
+    local g = math.floor((b - f + 1) / 3)
+    local h = (19 * a + b - d - g + 15) % 30
+    local i, k = math.floor(c / 4), c % 4
+    local l = (32 + 2 * e + 2 * i - h - k) % 7
+    local m = math.floor((a + 11 * h + 22 * l) / 451)
+    local n = h + l - 7 * m + 114
+    return ("%02d%02d"):format(math.floor(n / 31), n % 31 + 1)
+end
+
 Quirks.EGGS = {
     { id = "mai17", on = "day", always = true, test = On("0517") },
     { id = "jul", on = "day", always = true, test = On("1224") },
@@ -118,6 +140,39 @@ Quirks.EGGS = {
         if not (r and r.at) then return end
         local days = ns.Bonds.DayNumber(ctx.t) - ns.Bonds.DayNumber(r.at)
         return MILESTONES[days] and { n = days }
+    end },
+    -- (2026-11-10) Little ones. A test may name its own line (_key): a trait's variant.
+    { id = "paske", on = "day", always = true,
+        test = function(ctx) return date("%m%d", ctx.t) == Quirks.Easter(tonumber(date("%Y", ctx.t))) and {} end },
+    { id = "klokka", on = "day", always = true, test = function(ctx) -- the clocks changed last night
+        return date("*t", ctx.t).isdst ~= date("*t", ctx.t - 86400).isdst and {}
+    end },
+    { id = "mandag", on = "day", test = function(ctx) return Weekday(ctx.t) == 1 and HasTrait(ctx.key, "helgedyr") and {} end },
+    { id = "morgen", on = "day", test = function(ctx)
+        local h = Hour(ctx.t)
+        if h < 5 or h >= 7 then return nil end -- (before five it's still night: midnight's own)
+        return HasTrait(ctx.key, "nattugle") and { _key = "egg.morgen.nattugle" } or {}
+    end },
+    { id = "hopp", on = "jump", always = true, test = function(ctx) -- a hundred jumps (one "jump" is ten)
+        if ctx.today ~= 10 then return nil end
+        return HasTrait(ctx.key, "hoppetass") and { _key = "egg.hopp.hoppetass" } or {}
+    end },
+    { id = "lur", on = "nap", test = function(ctx) return ctx.today == 5 and {} end },
+    { id = "midnattsdans", on = "dance", test = function(ctx) return Hour(ctx.t) == 0 and tonumber(date("%M", ctx.t)) < 30 and {} end },
+    { id = "fredagstaco", on = "*", chance = 0.5, test = function(ctx)
+        return Weekday(ctx.t) == 5 and Hour(ctx.t) >= 17 and (HasTrait(ctx.key, "glupsk") or ctx.family.cat) and {}
+    end },
+    { id = "lordagsgodt", on = "*", chance = 0.5,
+        test = function(ctx) return Weekday(ctx.t) == 6 and HasTrait(ctx.key, "helgedyr") and {} end },
+    { id = "leet", on = "*", test = function(ctx) return date("%H%M", ctx.t) == "1337" and {} end },
+    -- Named: your own first name, or a name another pet in the park has.
+    { id = "navnebror", on = "name", always = true, test = function(ctx)
+        return ctx.extra == ns.PlayerKey():match("^(%S+)") and {}
+    end },
+    { id = "tvilling", on = "name", always = true, test = function(ctx)
+        for key in pairs(ns.Registry:Holders()) do
+            if key ~= ctx.key and ns.Registry:Nickname(key) == ctx.extra then return { nick = ctx.extra } end
+        end
     end },
     { id = "midnatt", on = "*", chance = 0.5,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
@@ -168,7 +223,7 @@ end
 function Quirks:Egg(on, key, extra, seen)
     local list = {}
     for _, e in ipairs(eggsOn[on] or {}) do list[#list + 1] = e end
-    if on ~= "seen" then for _, e in ipairs(eggsOn["*"]) do list[#list + 1] = e end end
+    if on ~= "seen" and on ~= "name" then for _, e in ipairs(eggsOn["*"]) do list[#list + 1] = e end end
     if #list == 0 then return false end
     local ctx = { key = key, name = ns.Registry:NameOf(key), id = on, extra = extra, t = ns.Now(),
         family = Families(key), today = select(3, ns.Activity:Count(on)) or 0, seen = seen }
@@ -183,7 +238,7 @@ function Quirks:Egg(on, key, extra, seen)
         if (e.always or self:Ready()) and not done
             and (not e.chance or self.random() < e.chance) then
             local vars = e.test(ctx)
-            local text = vars and Pick("egg." .. e.id, setmetatable({ pet = ctx.name }, { __index = vars }))
+            local text = vars and Pick(vars._key or ("egg." .. e.id), setmetatable({ pet = ctx.name }, { __index = vars }))
             if text then
                 pending.eggs[e.id] = today
                 self:Say(text, ("egg %s %s"):format(e.id, key), "egg", function()
@@ -216,7 +271,9 @@ end
 -- Watching: the dislikes of the pets we'd have out (the adopted one and the
 -- active one), and what the eggs read that the bond may not.
 ------------------------------------------------------------------------------
-Quirks.WATCH = { "level", "revive" }
+-- (Not dance: every emote nearby would wake it. The midnight dance comes only
+-- when a Dansefot's like already watches it.)
+Quirks.WATCH = { "level", "revive", "jump", "nap" }
 local watching = {}
 
 function Quirks:Watch()
@@ -237,6 +294,8 @@ end
 function Quirks:Init()
     ns.Bus:On("ACTIVITY", function(id, _, key, _, extra) Quirks:OnActivity(id, key, extra) end)
     ns.Bus:On("COMPANION_SEEN", function(species, owner) Quirks:Seen(species, owner) end)
+    -- Named it (Registry's MY_NAME): a name's own eggs.
+    ns.Bus:On("MY_NAME", function(key, e) if type(e) == "table" and e.n then Quirks:Egg("name", key, e.n) end end)
     ns.Bus:On("MY_RECORD", function() Quirks:Watch() end)
     ns.Bus:On("ACTIVE_PET", function() Quirks:Watch() end)
     Quirks:Watch()

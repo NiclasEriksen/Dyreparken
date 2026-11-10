@@ -275,9 +275,11 @@ for _, spec in pairs(Decor.FAMILY) do spec.alpha = spec.alpha or Decor.FAMILY_AL
 local RAINBOW = { { 1, 0.35, 0.35 }, { 1, 0.8, 0.25 }, { 0.4, 0.85, 0.4 }, { 0.35, 0.65, 1 }, { 0.85, 0.45, 1 } }
 local FLAG = { { 0.85, 0.15, 0.2 }, { 1, 1, 1 }, { 0.15, 0.3, 0.75 } } -- 17. mai
 
--- The date's particles, every card (2026-11-10): the seasons, softly, and a
--- few days of the year. { when = fn(t), spec }; a palette color (a list of
--- colors) goes round.
+-- The date's particles, every card (2026-11-10): a few days of the year, and
+-- the seasons as the faintest touch (`season`: one particle, half seen,
+-- drawn last so a full card drops it first; the user: "veeery sparingly",
+-- the regular particles should easily overtake them). { when = fn(t), spec };
+-- a palette color (a list of colors) goes round.
 local function Month(...)
     local set = {}
     for _, m in ipairs({ ... }) do set[m] = true end
@@ -286,9 +288,9 @@ end
 local function Day(md) return function(t) return date("%m%d", t) == md end end
 Decor.DATES = {
     { when = Month(12), spec = { kind = "snow", n = 5, color = { 1, 1, 1 } } },
-    { when = Month(10, 11), spec = { kind = "leaf", n = 2, color = { 0.95, 0.55, 0.2 } } },
-    { when = Month(4, 5), spec = { kind = "clover", n = 2, color = { 0.5, 0.85, 0.45 } } },
-    { when = Month(6, 7, 8), spec = { kind = "butterfly", n = 1, color = { 1, 0.8, 0.5 } } },
+    { when = Month(10, 11), season = true, spec = { kind = "leaf", n = 1, color = { 0.95, 0.55, 0.2 }, alpha = 0.4 } },
+    { when = Month(4, 5), season = true, spec = { kind = "clover", n = 1, color = { 0.5, 0.85, 0.45 }, alpha = 0.4 } },
+    { when = Month(6, 7, 8), season = true, spec = { kind = "butterfly", n = 1, color = { 1, 0.8, 0.5 }, alpha = 0.4 } },
     { when = Day("0517"), spec = { kind = "confetti", n = 9, color = FLAG } },
     { when = Day("0623"), spec = { kind = "ember", n = 6, color = { 1, 0.6, 0.2 } } }, -- sankthans
     { when = function(t) -- the turn of the year: ten minutes either side of midnight
@@ -680,13 +682,16 @@ function Decor:Specs(key, level, t)
     -- Asleep on the card (Moves): a few Zzz, whatever its traits.
     if ns.Moves:Rest(key, t) == "sleep" then list[#list + 1] = { kind = "zee", n = 3, color = { 0.8, 0.85, 1 } } end
     for _, d in ipairs(self.DATES) do
-        if d.when(t) then list[#list + 1] = Thinned(d.spec, f) end
+        if not d.season and d.when(t) then list[#list + 1] = Thinned(d.spec, f) end
     end
     if level >= 5 then list[#list + 1] = { kind = "spark", n = 6, color = GOLD } end
     if level >= 7 then list[#list + 1] = { kind = "heart", n = 4, color = { 1, 0.4, 0.5 } } end
     -- Last: the pool may run out, and the ambience is what can go.
     local family = ns.Scenes:Families(key)[1]
     list[#list + 1] = Thinned(self.FAMILY[family] or self.FAMILY.default, f)
+    for _, d in ipairs(self.DATES) do -- (the season: the very last, the first to go)
+        if d.season and d.when(t) then list[#list + 1] = d.spec end
+    end
     return list
 end
 
