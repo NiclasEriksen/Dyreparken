@@ -7,7 +7,8 @@ local _, ns = ...
 -- The four older settings are per character (char: autoSummon,
 -- muteSummonSound, announce, achNotify) and keep their slash commands. The
 -- new ones are for the account (DyreparkenDB.settings, Core/DB.lua):
---   chatLines      easter eggs, dislikes, likes and firsts in the chat
+--   chatLines      the lines for easter eggs, dislikes, likes and firsts in the chat
+--                  (off: they still happen and count, without a line; the user, 2026-11-10)
 --   worldHearts    hearts over a hovered companion, sparkles at the chat window
 --   cardParticles  "all", "few" or "none" on the pet card
 --   cardMoves      the pet on the card moves (asleep, hops, walks...)
@@ -68,6 +69,13 @@ local function Build(p)
     local inset = CreateFrame("Frame", nil, f, ns.SidePage.Template("InsetFrameTemplate"))
     inset:SetPoint("TOPLEFT", f, "TOPLEFT", 60, -50)
     inset:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -60, 30)
+    -- Back to the pets (the user, 2026-11-10: else only closing the window left the page).
+    local back = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    back:SetSize(120, 22)
+    back:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 4)
+    back:SetText(L["settings.back"])
+    back:SetScript("OnClick", function() p:Close() end)
+    p.back = back
     p.widgets = {}
     local y = -16
     for _, row in ipairs(ROWS) do

@@ -396,6 +396,7 @@ L["card.letgo"] = "Gi slipp"
 -- The settings page (Menagerie/Settings.lua: a cog in the journal's title bar)
 L["settings.title"] = "Innstillinger"
 L["settings.char"] = "Gjelder bare denne karakteren."
+L["settings.back"] = "Tilbake"
 L["settings.head.pet"] = "Dyret ditt"
 L["settings.head.guild"] = "Guilden"
 L["settings.head.chat"] = "Chatten og verden"
@@ -409,7 +410,7 @@ L["settings.announce.tip"] = "En linje i guild-chatten når du adopterer et dyr 
 L["settings.achnotify"] = "Fortell andre med Dyreparken om prestasjonene dine"
 L["settings.achnotify.tip"] = "Guildmedlemmer med Dyreparken får en linje når du får en prestasjon. Ingenting i guild-chatten."
 L["settings.chatlines"] = "Småting i chatten"
-L["settings.chatlines.tip"] = "Påskeegg, ting dyret ikke liker, ting det elsker og første ganger sammen. Nye nivåer vises alltid."
+L["settings.chatlines.tip"] = "Linjene om påskeegg, ting dyret ikke liker, ting det elsker og første ganger sammen. Av: de skjer og teller like fullt, bare uten linje. Nye nivåer vises alltid."
 L["settings.hearts"] = "Hjerter og gnister"
 L["settings.hearts.tip"] = "Hjerter når du holder musen over et kjæledyr i verden, og gnister ved chatten."
 L["settings.particles"] = "Partikler på kortet:"
@@ -634,25 +635,25 @@ ns.AchTexts = {
     ["nick"] = { name = "Døpt", desc = "Gi dyret ditt et kallenavn.",
         flavor = "{player} har døpt {species} til «{nick}»! {name}",
         plain = "{player} har gitt dyret sitt et navn! {name}" },
-    -- Together: what you've done with your adopted pet out (2026-11-10; high, as a dungeon has many bosses).
-    ["boss:100"] = { name = "Bosskamerat", desc = "Fell 100 bosser med dyret ditt ute.",
-        flavor = "{player} og {pet} har felt 100 bosser sammen! {name}", plain = "{player} og dyret sitt har felt 100 bosser sammen! {name}" },
-    ["boss:500"] = { name = "Skrekk for sjefene", desc = "Fell 500 bosser med dyret ditt ute.",
-        flavor = "{player} og {pet} har felt 500 bosser sammen! {name}", plain = "{player} og dyret sitt har felt 500 bosser sammen! {name}" },
-    ["boss:2000"] = { name = "Sjefsjeger", desc = "Fell 2000 bosser med dyret ditt ute.",
-        flavor = "{player} og {pet} har felt 2000 bosser sammen! {name}", plain = "{player} og dyret sitt har felt 2000 bosser sammen! {name}" },
-    ["pvp:250"] = { name = "Kampklar", desc = "Ta 250 ærefulle drap med dyret ditt ute.",
+    -- Together: what you've done with your adopted pet out (2026-11-10, numbers and names from the user).
+    ["boss:50"] = { name = "Bosskamerat", desc = "Fell 50 bosser med dyret ditt ute.",
+        flavor = "{player} og {pet} har felt 50 bosser sammen! {name}", plain = "{player} og dyret sitt har felt 50 bosser sammen! {name}" },
+    ["boss:250"] = { name = "Skrekk for bossene", desc = "Fell 250 bosser med dyret ditt ute.",
+        flavor = "{player} og {pet} har felt 250 bosser sammen! {name}", plain = "{player} og dyret sitt har felt 250 bosser sammen! {name}" },
+    ["boss:1000"] = { name = "Bossjeger", desc = "Fell 1000 bosser med dyret ditt ute.",
+        flavor = "{player} og {pet} har felt 1000 bosser sammen! {name}", plain = "{player} og dyret sitt har felt 1000 bosser sammen! {name}" },
+    ["pvp:50"] = { name = "Kampklar", desc = "Ta 50 ærefulle drap med dyret ditt ute.",
+        flavor = "{player} og {pet} har tatt 50 ærefulle drap sammen! {name}", plain = "{player} og dyret sitt har tatt 50 ærefulle drap sammen! {name}" },
+    ["pvp:250"] = { name = "Slagmarkens skrekk", desc = "Ta 250 ærefulle drap med dyret ditt ute.",
         flavor = "{player} og {pet} har tatt 250 ærefulle drap sammen! {name}", plain = "{player} og dyret sitt har tatt 250 ærefulle drap sammen! {name}" },
-    ["pvp:1000"] = { name = "Slagmarkens skrekk", desc = "Ta 1000 ærefulle drap med dyret ditt ute.",
+    ["pvp:1000"] = { name = "Krigsherre", desc = "Ta 1000 ærefulle drap med dyret ditt ute.",
         flavor = "{player} og {pet} har tatt 1000 ærefulle drap sammen! {name}", plain = "{player} og dyret sitt har tatt 1000 ærefulle drap sammen! {name}" },
-    ["pvp:5000"] = { name = "Krigsherre", desc = "Ta 5000 ærefulle drap med dyret ditt ute.",
-        flavor = "{player} og {pet} har tatt 5000 ærefulle drap sammen! {name}", plain = "{player} og dyret sitt har tatt 5000 ærefulle drap sammen! {name}" },
-    ["quest:500"] = { name = "Hjelpsomme sjeler", desc = "Fullfør 500 quests med dyret ditt ute.",
+    ["quest:100"] = { name = "Hjelpsomme sjeler", desc = "Fullfør 100 quests med dyret ditt ute.",
+        flavor = "{player} og {pet} har fullført 100 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 100 quests sammen! {name}" },
+    ["quest:500"] = { name = "Alltid til tjeneste", desc = "Fullfør 500 quests med dyret ditt ute.",
         flavor = "{player} og {pet} har fullført 500 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 500 quests sammen! {name}" },
-    ["quest:2500"] = { name = "Alltid til tjeneste", desc = "Fullfør 2500 quests med dyret ditt ute.",
-        flavor = "{player} og {pet} har fullført 2500 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 2500 quests sammen! {name}" },
-    ["quest:10000"] = { name = "Hele Azeroths hjelpere", desc = "Fullfør 10 000 quests med dyret ditt ute.",
-        flavor = "{player} og {pet} har fullført 10 000 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 10 000 quests sammen! {name}" },
+    ["quest:1000"] = { name = "Hele Azeroths hjelpere", desc = "Fullfør 1000 quests med dyret ditt ute.",
+        flavor = "{player} og {pet} har fullført 1000 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 1000 quests sammen! {name}" },
     ["eggs:10"] = { name = "Påskeegghøne", desc = "Finn 10 forskjellige påskeegg med dyrene dine.",
         flavor = "{player} har funnet 10 forskjellige påskeegg med dyrene sine! {name}" },
     ["eggs:25"] = { name = "Eggspert", desc = "Finn 25 forskjellige påskeegg med dyrene dine.",

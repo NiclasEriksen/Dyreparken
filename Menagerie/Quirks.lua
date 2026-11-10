@@ -68,7 +68,8 @@ function Quirks:Say(text, why, kind, said)
     C_Timer.After(wait, function()
         pending.line = nil
         ns.DB.char.quirkAt = ns.Now()
-        ns.Print("|cffd9b3ff" .. text .. "|r")
+        -- (Settings: chatLines off hides the line only; what it found still counts)
+        if ns.Settings:On("chatLines") then ns.Print("|cffd9b3ff" .. text .. "|r") end
         if said then said() end
     end)
 end
@@ -89,7 +90,9 @@ function Quirks:Dislike(key, id)
         ns.DB.char.sulk = { key = key, day = ns.Today() } -- (Moves: its back turned on the card, once)
         if not first then return end
         ns.Bus:Fire("DISLIKE_FOUND", key, id)
-        ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")
+        if ns.Settings:On("chatLines") then
+            ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")
+        end
         if ns.JournalUI then ns.JournalUI:Refresh() end
     end)
 end
@@ -307,7 +310,7 @@ function Quirks:Egg(on, key, extra, seen)
 end
 
 function Quirks:OnActivity(id, key, extra)
-    if not key or not ns.Settings:On("chatLines") then return end
+    if not key then return end
     if ns.Personality:Dislikes(key)[id] then return self:Dislike(key, id) end
     self:Egg(id, key, extra)
 end
@@ -317,7 +320,6 @@ end
 function Quirks:Seen(species, owner)
     local key = ns.Pets:OutKey()
     if not (key and owner and owner ~= ns.PlayerKey()) or type(species) ~= "number" then return end
-    if not ns.Settings:On("chatLines") then return end
     self:Egg("seen", key, owner, species)
 end
 
@@ -350,7 +352,7 @@ function Quirks:Init()
     ns.Bus:On("COMPANION_SEEN", function(species, owner) Quirks:Seen(species, owner) end)
     -- Named it (Registry's MY_NAME): a name's own eggs.
     ns.Bus:On("MY_NAME", function(key, e)
-        if type(e) == "table" and e.n and ns.Settings:On("chatLines") then Quirks:Egg("name", key, e.n) end
+        if type(e) == "table" and e.n then Quirks:Egg("name", key, e.n) end
     end)
     ns.Bus:On("MY_RECORD", function() Quirks:Watch() end)
     ns.Bus:On("ACTIVE_PET", function() Quirks:Watch() end)
