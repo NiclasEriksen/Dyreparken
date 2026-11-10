@@ -45,11 +45,17 @@ end
 local UIState = {}
 Games.UIState = UIState
 
+-- A game started while one's changes are still stashed (not restored yet:
+-- a Restore waiting for combat to end) adds to that stash, and the waiting
+-- Restore is called off: the first values recorded are the player's own,
+-- and they're put back when this game ends (code review 2026-11-10).
+local restoring = 0 -- bumped to call off a Restore waiting for combat's end
 function UIState:Apply(spec)
-    local stash = { cvars = {}, hidden = {} }
+    restoring = restoring + 1
+    local stash = ns.DB.global.games.stash or { cvars = {}, hidden = {} }
     ns.DB.global.games.stash = stash
     for cvar, value in pairs(spec.cvars or {}) do
-        stash.cvars[cvar] = C_CVar.GetCVar(cvar)
+        if stash.cvars[cvar] == nil then stash.cvars[cvar] = C_CVar.GetCVar(cvar) end
         C_CVar.SetCVar(cvar, value)
     end
     -- Hiding protected frames is blocked in combat: queue it.
@@ -68,7 +74,10 @@ function UIState:Restore()
     local stash = ns.DB.global.games.stash
     if not stash then return end
     for cvar, value in pairs(stash.cvars) do C_CVar.SetCVar(cvar, value) end
+    restoring = restoring + 1
+    local mine = restoring
     ns.Events:OutOfCombat(function()
+        if mine ~= restoring then return end -- (a game started meanwhile: kept for its end)
         for _, name in ipairs(stash.hidden) do
             local f = _G[name]
             if f then f:Show() end
