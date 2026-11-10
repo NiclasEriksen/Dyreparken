@@ -243,6 +243,9 @@ Quirks.EGGS = {
         local theirs = ns.Scenes:Families(ns.Pets:KeyOfSpecies(ctx.seen))[1]
         return theirs and ctx.family[theirs] and { owner = ctx.extra }
     end },
+    -- The pet makes fun of you (2026-11-10, the user's): a 1 of 100, two fish lost in a row.
+    { id = "ener", on = "roll", always = true, chance = 0.5, test = function() return {} end },
+    { id = "fiskeflaks", on = "fishfail", chance = 0.5, test = function() return {} end },
     { id = "kattefisk", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
     { id = "vinger", on = "taxi", chance = 0.3,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
@@ -302,6 +305,7 @@ function Quirks:Egg(on, key, extra, seen)
                     got.n, got.day, got.key, got.played = (got.n or 0) + 1, today, key, nil -- (Moves: playing dead)
                     ns.DB.char.eggs[e.id] = got
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
+                    ns.Story:Mine(key, "egg", text, e.id) -- (its story keeps the line, once per egg)
                 end)
                 any = true
             end
@@ -330,7 +334,7 @@ end
 ------------------------------------------------------------------------------
 -- (Not dance: every emote nearby would wake it. The midnight dance comes only
 -- when a Dansefot's like already watches it.)
-Quirks.WATCH = { "level", "revive", "jump", "nap" }
+Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail" }
 local watching = {}
 
 function Quirks:Watch()

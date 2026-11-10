@@ -237,4 +237,34 @@ return function(test, H)
         ola:Hover{ species = 40, owner = "Kari Berg" }
         eq(Count(ola, "speil"), 2)
     end)
+
+    test("the pet makes fun of you: a 1 of 100 (yours, /roll or loot), two fish lost in a row", function()
+        local w, ola, Q = Setup()
+        local LINE = "Bombay Cat så terningen lande på 1"
+        local function Roll(text) ola:Fire("CHAT_MSG_SYSTEM", text); w:Run(1) end
+        Roll("Ola Nord rolls 1 (1-10)"); Roll("Ola Nord rolls 1 (2-100)"); Roll("Kari Berg rolls 1 (1-100)")
+        Roll("Ola Nord rolls 11 (1-100)")
+        eq(Count(ola, LINE), 0, "not 1-100, not yours, not a 1")
+        Roll("Ola Nord rolls 1 (1-100)")
+        eq(Count(ola, LINE), 1)
+        w:SkipDays(1)
+        ola:Fire("CHAT_MSG_LOOT", "Greed Roll - 1 for [Linen Cloth] by Kari Berg"); w:Run(1)
+        eq(Count(ola, LINE), 1, "someone else's")
+        ola:Fire("CHAT_MSG_LOOT", "Need Roll - 1 for [Linen Cloth] by Ola Nord"); w:Run(1)
+        eq(Count(ola, LINE), 2, "a loot roll")
+        -- Fishing: once at the second fish in a row that got away; a catch starts over.
+        w:Skip(3600) -- (not an `always` egg: the hour since the roll's line)
+        local FISH = "Bombay Cat ser på deg, så på vannet"
+        local function Lost(text) ola:Fire("UI_ERROR_MESSAGE", 0, text or "Your fish got away!"); w:Run(1) end
+        Lost()
+        ola:Fire("LOOT_OPENED"); w:Run(1)
+        Lost("No fish are hooked.")
+        eq(Count(ola, FISH), 0, "a catch between them")
+        Lost()
+        eq(Count(ola, FISH), 1, "two in a row")
+        Lost()
+        eq(Count(ola, FISH), 1, "once")
+        Lost("You can't do that yet")
+        eq(Count(ola, FISH), 1)
+    end)
 end

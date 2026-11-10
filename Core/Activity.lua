@@ -60,6 +60,8 @@ Activity.KINDS = {
     { "level", wish = false }, { "revive", wish = false }, { "nap" },
     { "hearth", icons = { ICON .. "INV_Misc_Rune_01" } },
     { "jump" },
+    { "roll", wish = false },     -- a 1 on a 1-100 roll (/roll or a loot roll): only the eggs watch it
+    { "fishfail", wish = false }, -- the second fish in a row that got away: only the eggs watch it
 }
 Activity.KIND = {}
 for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end
@@ -507,6 +509,50 @@ local function ChatSource(id, event, global)
             if name then return 1, name end
         end })
 end
+-- A 1 out of 1-100 (2026-11-10, the user: "Hjelp Plask rolls 1 (1-100)"), by
+-- /roll (CHAT_MSG_SYSTEM, RANDOM_ROLL_RESULT) or on an item (CHAT_MSG_LOOT,
+-- "Need Roll - 1 for [item] by Hjelp Plask": always 1-100). Your own only.
+-- Unverified on Forever: the loot roll lines' wording.
+local LOOT_ROLLS = { "LOOT_ROLL_ROLLED_NEED", "LOOT_ROLL_ROLLED_GREED", "LOOT_ROLL_ROLLED_DE" }
+local function Me(name)
+    name = type(name) == "string" and ns.NormalizeName(name)
+    return name and (name == ns.PlayerKey() or name == Plain(UnitName("player")))
+end
+function Activity.RolledOne(event, text)
+    text = Plain(text)
+    if type(text) ~= "string" then return nil end
+    if event == "CHAT_MSG_SYSTEM" then
+        local pattern = Activity.FormatPattern(_G.RANDOM_ROLL_RESULT)
+        if not pattern then return nil end
+        local name, roll, low, high = text:match(pattern)
+        if name and Me(name) and roll == "1" and low == "1" and high == "100" then return 1 end
+        return nil
+    end
+    for _, global in ipairs(LOOT_ROLLS) do
+        local pattern = Activity.FormatPattern(_G[global])
+        if pattern then
+            local roll, _, name = text:match(pattern)
+            if roll == "1" and Me(name) then return 1 end
+        end
+    end
+end
+Activity:Source({ id = "roll", events = { "CHAT_MSG_SYSTEM", "CHAT_MSG_LOOT" },
+    available = function() return Activity.FormatPattern(_G.RANDOM_ROLL_RESULT) ~= nil end,
+    filter = Activity.RolledOne })
+
+-- Two fish in a row that got away (2026-11-10, the user): "Your fish got away!"
+-- or "No fish are hooked." (UI_ERROR_MESSAGE: type, text), with no loot window
+-- between them. Once at the second; again only after a catch.
+local escaped = 0
+Activity:Source({ id = "fishfail", events = { "UI_ERROR_MESSAGE", "LOOT_OPENED" },
+    filter = function(event, _, text)
+        if event == "LOOT_OPENED" then escaped = 0; return nil end
+        text = Plain(text)
+        if type(text) ~= "string" or not (text == _G.ERR_FISH_ESCAPED or text == _G.ERR_FISH_NOT_HOOKED) then return nil end
+        escaped = escaped + 1
+        if escaped == 2 then return 1 end
+    end })
+
 ChatSource("skill", "CHAT_MSG_SKILL", "SKILL_RANK_UP")
 ChatSource("rep", "CHAT_MSG_COMBAT_FACTION_CHANGE", "FACTION_STANDING_INCREASED")
 
