@@ -743,7 +743,10 @@ function Moves:Cuddle(key)
     local mode, happy = shown.mode, self:For(key, "happy")
     local back = Back(key)
     local steps = {}
-    if mode == "sit" then steps[#steps + 1] = { SIT_UP, self.T.up } end
+    -- Up first only if it's sitting already (2026-11-10: clicked in its first seconds, still
+    -- standing, it "got up" for 1.4 s before the hop).
+    local seated = shown.playing == SIT_DOWN or shown.playing == self:For(key, "sit")
+    if mode == "sit" and seated then steps[#steps + 1] = { SIT_UP, self.T.up } end
     if happy then steps[#steps + 1] = { happy, self.T.happy } end
     steps[#steps + 1] = { back }
     self:Sequence(steps)

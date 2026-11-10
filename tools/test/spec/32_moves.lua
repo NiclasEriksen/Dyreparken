@@ -554,4 +554,14 @@ return function(test, H)
         ola:Slash("probe gains")
         ok(ola:Printed("Open a pet's card with a bond bar first."))
     end)
+
+    test("a click before a Latsabb has sat down: the hop at once, no getting up first", function()
+        local w, ola, actor = Setup(14, nil)
+        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("latsabb") } end
+        ola:SelectPet(5159)
+        w:Run(1)
+        eq(actor.anim, 0, "still standing")
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 756, "the hop at once")
+    end)
 end
