@@ -89,6 +89,8 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 - `ReloadUI()` is protected (no Reload buttons); users type /reload.
 - Settings: `Settings.RegisterCanvasLayoutCategory` / `Settings.RegisterAddOnCategory` exist.
 - The Addon Compartment TOC fields exist (`AddonCompartmentFunc` …); whether the button shows is unconfirmed.
+- Unverified, relied on since 2026-11-10 (each degrades to nothing when missing): `PLAYER_STARTED_MOVING`,
+  `PLAYER_STOPPED_MOVING` and `GetUnitSpeed("player")` (the card's pet walking with you, Moves.lua).
 
 ## Companions (C_PetJournal)
 

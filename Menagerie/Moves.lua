@@ -330,6 +330,60 @@ local function WishJoy(key)
     return w and w.done and w.pet == key and w.day == ns.Today() and not w.shown and Moves:For(key, "happy")
 end
 
+------------------------------------------------------------------------------
+-- Moving with you (2026-11-10, the user's idea): the pet you keep out
+-- (auto-summon's active pet) walks on its card while you move on foot, and
+-- runs while you're mounted and moving; on a taxi it stands. It never
+-- overrides another animation: only the plain standing pose becomes the walk
+-- (sleep, the Latsabb's sit, a hop, a cheer, playing dead all win). Events
+-- only while that pet's card shows. PLAYER_STARTED/STOPPED_MOVING and
+-- GetUnitSpeed are unverified on Forever: without them it simply stands.
+------------------------------------------------------------------------------
+local motion = { on = false, moving = false, token = 0 }
+Moves.STOP_AFTER = 0.3 -- a stop this short isn't one (tapped keys would twitch it)
+local MOTION_EVENTS = { "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "PLAYER_MOUNT_DISPLAY_CHANGED" }
+local function Truthy(v) return ns.Plain(v) and true or false end
+
+-- The walk or run it plays now, or nil (standing still, on a taxi, not the pet you keep out).
+function Moves:MotionId(key)
+    if not (motion.on and motion.moving and key and ns.Summon:ActiveKey() == key) then return nil end
+    if Truthy(UnitOnTaxi("player")) then return nil end
+    return self:For(key, Truthy(IsMounted()) and "run" or "walk")
+end
+
+-- Moving changed: a pet resting standing (its last step held) takes it up.
+local function Repose()
+    local key = shown.key
+    if not key or shown.mode ~= "stand" or not shown.last then return end
+    local id = Moves:MotionId(key) or STAND
+    if shown.playing ~= id then Play(id) end
+end
+
+function Moves:Follow(key)
+    local want = key ~= nil and ns.Summon:ActiveKey() == key
+    if want == motion.on then return end
+    motion.on, motion.token = want, motion.token + 1
+    if not want then
+        motion.moving = false
+        for _, e in ipairs(MOTION_EVENTS) do ns.Events:Off(e, Moves) end
+        return
+    end
+    local ok, speed = pcall(function() return GetUnitSpeed and GetUnitSpeed("player") end)
+    motion.moving = ok and type(ns.Plain(speed)) == "number" and speed > 0
+    ns.Events:On("PLAYER_STARTED_MOVING", Moves, function()
+        motion.token = motion.token + 1
+        if not motion.moving then motion.moving = true; Repose() end
+    end)
+    ns.Events:On("PLAYER_STOPPED_MOVING", Moves, function()
+        motion.token = motion.token + 1
+        local mine = motion.token
+        C_Timer.After(Moves.STOP_AFTER, function()
+            if mine == motion.token and motion.moving then motion.moving = false; Repose() end
+        end)
+    end)
+    ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Moves, function() Repose() end)
+end
+
 -- A pose's steps for this pet; the last one is held.
 local function Steps(key, mode)
     -- Lying down: played (blended) up to sleepAt, then held there. 2026-11-10: blended, Dead
@@ -343,11 +397,12 @@ local function Steps(key, mode)
         return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }
     end
     if mode == "dead" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "dead"), Moves.T.dead }, { STAND } } end
-    return { { STAND } }
+    return { { Moves:MotionId(key) or STAND } }
 end
 
 -- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
 function Moves:Update(card, key)
+    self:Follow(key)
     if not key then
         -- (nothing held either: a model loading on a closed card isn't posed again)
         shown.key, shown.mode, shown.playing, shown.pose, shown.last = nil, nil, nil, nil, nil
@@ -419,3 +474,8 @@ end
 function Moves:Stop()
     self:Update(nil, nil)
 end
+
+-- Another pet made the one kept out (or auto-summon off) while the card shows.
+ns.Bus:On("ACTIVE_PET", function()
+    if shown.key then Moves:Follow(shown.key) end
+end)

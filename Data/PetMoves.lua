@@ -24,8 +24,10 @@ local _, ns = ...
 --   happy  a click on the pet (on the Panda Cub, PetBattleCustom0 is a hop)
 --   cheer  a bond level-up, during the celebration
 --   dead   the day of the "is it safe to live with you?" egg, once
+--   walk   the pet you keep out (auto-summon), while you move on foot and it would just stand
+--   run    ... while you're mounted and moving (on a taxi it stands)
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 1.2, sit = 97, happy = 756, cheer = 754, dead = 1 },
+    default = { sleep = 6, sleepAt = 1.2, sit = 97, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
         [5159] = { sleepAt = 1.5 },  -- Panda Cub: its fall ends later
         [5160] = { happy = false, sleep = false },  -- Zergling: PetBattleCustom0 is an attack; asleep too messy for now (6 or 770 held at 2.7 were the best)

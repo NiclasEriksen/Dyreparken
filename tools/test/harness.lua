@@ -47,7 +47,8 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     ENCOUNTER_START ENCOUNTER_END BOSS_KILL PLAYER_PVP_KILLS_CHANGED QUEST_TURNED_IN UNIT_SPELLCAST_SUCCEEDED
     PLAYER_DEAD PLAYER_ALIVE PLAYER_UNGHOST MIRROR_TIMER_START PLAYER_LEVEL_UP PLAYER_FLAGS_CHANGED
     CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
-    NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED]]):gmatch("%S+") do
+    NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED
+    PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -856,6 +857,9 @@ function Client:EnterCombat() self.state.combat = true; self:Fire("PLAYER_REGEN_
 function Client:LeaveCombat() self.state.combat = false; self:Fire("PLAYER_REGEN_ENABLED") end
 function Client:Mount() self.state.mounted = true; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 function Client:Dismount() self.state.mounted = false; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
+-- Moving: the client's start and stop events, and GetUnitSpeed.
+function Client:Move() self.state.moving = true; self:Fire("PLAYER_STARTED_MOVING") end
+function Client:Halt() self.state.moving = false; self:Fire("PLAYER_STOPPED_MOVING") end
 function Client:Summon(sid) self.summoned = sid and self:GuidOf(sid) or nil end
 
 -- A clean bond slate: no bonds, nothing earned today, no day visits yet
@@ -1284,6 +1288,7 @@ function Client:BuildEnv()
     env.InCombatLockdown = function() return S.combat == true end
     env.UnitAffectingCombat = function() return S.combat == true end
     env.IsMounted = function() return S.mounted or false end
+    env.GetUnitSpeed = function(u) assert(u == "player"); return S.moving and (S.mounted and 14 or 7) or 0 end
     env.UnitOnTaxi = function() return S.taxi or false end
     env.UnitIsDeadOrGhost = function() return S.dead or false end
     env.IsFlying = function() return S.flying or false end
