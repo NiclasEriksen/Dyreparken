@@ -92,6 +92,12 @@ local function Counter(id)
 end
 
 -- total, mine, today (for the current day), and the count for petKey.
+-- How many of an activity today with this pet out.
+function Activity:TodayWith(id, petKey)
+    local c = ns.DB.char.activity[id]
+    return c and c.day == Today() and c.petsToday and c.petsToday[petKey] or 0
+end
+
 function Activity:Count(id, petKey)
     local c = ns.DB.char.activity[id]
     if not c then return 0, 0, 0, 0 end
@@ -119,10 +125,13 @@ function Activity:Emit(id, n, extra)
     if key and id ~= "day" then self:NewDay() end
     local c = Counter(id)
     local today = Today()
-    if c.day ~= today then c.day, c.today = today, 0 end
+    if c.day ~= today or not c.petsToday then c.day, c.today, c.petsToday = today, c.day == today and c.today or 0, {} end
     c.total, c.today = c.total + n, c.today + n
     if mine then c.mine = c.mine + n end
-    if key then c.pets[key] = (c.pets[key] or 0) + n end
+    if key then
+        c.pets[key] = (c.pets[key] or 0) + n
+        c.petsToday[key] = (c.petsToday[key] or 0) + n
+    end
     ns.Log("Activity", "%s +%d pet=%s mine=%s %s", id, n, tostring(key), tostring(mine), tostring(extra or ""))
     ns.Bus:Fire("ACTIVITY", id, n, key, mine, extra)
 end

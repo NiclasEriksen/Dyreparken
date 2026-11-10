@@ -300,10 +300,12 @@ Decor.DATES = {
 }
 
 -- A trait's particles show twice as many on a day its liked activity
--- happened (2026-11-10): chevrons pour up on the day you dinged.
+-- happened with this pet of yours out (2026-11-10): chevrons pour up on the
+-- day you dinged together.
 Decor.LIVELY = 2
-local function Lively(trait)
-    return trait.like ~= nil and select(3, ns.Activity:Count(trait.like)) > 0
+local function Lively(trait, key)
+    -- (only your own pet, with it out: the user, 2026-11-10)
+    return trait.like ~= nil and ns.Pets:IsOwned(key) and ns.Activity:TodayWith(trait.like, key) > 0
 end
 
 -- An atlas, mirrored if asked: SetTexCoord would replace the atlas's own
@@ -668,7 +670,7 @@ function Decor:Specs(key, level, t)
         end
         if now then
             local shown = Thinned(spec, f)
-            if Lively(trait) then
+            if Lively(trait, key) then
                 local more = {}
                 for k, v in pairs(shown) do more[k] = v end -- (a copy: shown may be the trait's own)
                 more.n = shown.n * self.LIVELY

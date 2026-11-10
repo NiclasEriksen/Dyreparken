@@ -407,4 +407,17 @@ return function(test, H)
         ola.ns.DB:Guild().born = os.time({ year = 2028, month = 2, day = 29, hour = 12 })
         eq(B:ParkBirthday(os.time({ year = 2029, month = 2, day = 28, hour = 12 })), 1)
     end)
+
+    test("adopting a pet you already have a bond with: a loyalty level reached that way is news", function()
+        local w, ola, kari = H.Setup{ ola = { 5159, 46 }, kari = { 40 } }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local now = ola.ns.Now()
+        ola.ns.DB:Guild().life["s:46"] = { ["Ola Nord"] = { p = 300, f = now - 40 * DAY, t = now } } -- (bonded, not adopted)
+        local m = w:Mark()
+        ola:Slash("adopter kitten")
+        w:Run(15)
+        ok(ola.ns.Achievements:Got("loyal:30"))
+        eq(w:Sent("ACH_EARNED", nil, m), 1, "announced")
+    end)
 end

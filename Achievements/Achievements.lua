@@ -685,7 +685,11 @@ function Ach:Init()
         learned = learned + 1
         checkLearned()
     end)
-    ns.Bus:On("MY_RECORD", function() Ach:Check("MY_RECORD", "char") end)
+    -- (soon: an adoption fires ADOPTED right after its MY_RECORD, and that's a real moment)
+    ns.Bus:On("MY_RECORD", function() Ach:CheckCharSoon("MY_RECORD") end)
+    -- Adopting a pet you already have a bond with, reaching a loyalty level that way: news
+    -- (the user, 2026-11-10).
+    ns.Bus:On("ADOPTED", function() grew.bond = true end)
     ns.Bus:On("BOND_LEVEL", function(key) if key == ns.Registry:MyPet() then grew.bond = true end end)
     ns.Bus:On("BOND", function() Ach:CheckCharSoon("BOND") end)
     ns.Bus:On("DISLIKE_FOUND", function() Ach:Check("DISLIKE_FOUND", "char") end)
