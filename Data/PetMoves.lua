@@ -16,7 +16,7 @@ local _, ns = ...
 -- Reactions:
 --   sleep  held at night while you look at the card (not for a Nattugle); a click
 --          wakes it. Played for sleepAt seconds (it lies down), then paused there (SetPaused;
---          0.8 s caught every pet tried lying down, 2026-11-10: later, most were getting up again).
+--          0.7 s caught most pets lying down, 2026-11-10: at 0.8 the cats were getting up again).
 --          Try one with /dp probe anim sleep <id> <seconds>. To see the
 --          card at night by day: /dp probe anim night
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
@@ -31,7 +31,7 @@ local _, ns = ...
 --          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here
 --          (every pet set by eye 2026-11-10).
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 0.8, sit = 97, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
+    default = { sleep = 6, sleepAt = 0.7, sit = 97, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
         [39] = { lift = -0.1 },  -- Mechanical Squirrel
         [40] = { lift = -0.1 },  -- Bombay
