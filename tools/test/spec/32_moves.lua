@@ -8,6 +8,7 @@ return function(test, H)
     local function Setup(hour, traits)
         local w, ola = H.Setup{ ola = { 5159, 46, 5160, 5161 }, journal = true }
         ola.ns.Personality.Traits = function() return traits or { ola.ns.Personality.ById("glupsk") } end
+        ola.ns.PetMoves.species[5159] = nil -- (the panda plays the default here, whatever the file says)
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = hour }) - w:ServerTime())
         return w, ola, ola.petActor
     end
@@ -297,12 +298,14 @@ return function(test, H)
         local n = #actor.played
         M:Cheer(PANDA)
         eq(#actor.played, n, "no cheer for it")
-        -- Every id in the file is a number or false, for a species in the journal.
-        for what, id in pairs(ola.ns.PetMoves.default) do ok(type(id) == "number", what) end
-        for sid, own in pairs(ola.ns.PetMoves.species) do
-            ok(ola.ns.Companions.species[sid], "species " .. sid .. " is in the journal")
+        -- Every value in the file (as it is, untouched) is a number or false, for a species in the journal.
+        local _, fresh = H.Setup{ ola = {} }
+        local data = fresh.ns.PetMoves
+        for what, id in pairs(data.default) do ok(type(id) == "number", what) end
+        for sid, own in pairs(data.species) do
+            ok(fresh.ns.Companions.species[sid], "species " .. sid .. " is in the journal")
             for what, id in pairs(own) do
-                ok(ola.ns.PetMoves.default[what] ~= nil, sid .. ": " .. what .. " is a reaction")
+                ok(data.default[what] ~= nil, sid .. ": " .. what .. " is a reaction")
                 ok(id == false or type(id) == "number", sid .. ": " .. what)
             end
         end

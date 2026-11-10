@@ -27,7 +27,8 @@ local _, ns = ...
 ns.PetMoves = {
     default = { sleep = 6, sleepAt = 1.2, sit = 97, happy = 756, cheer = 754, dead = 1 },
     species = {
-        [5160] = { happy = false },  -- Zergling: PetBattleCustom0 is an attack
+        [5159] = { sleepAt = 1.5 },  -- Panda Cub: its fall ends later
+        [5160] = { happy = false, sleepAt = 2.7 },  -- Zergling: PetBattleCustom0 is an attack; a long fall (770 at 2.7 is good too)
         [5161] = { sleep = false },  -- Mini Diablo: Dead (6) makes him vanish (Death bursts into flames)
     },
 }
