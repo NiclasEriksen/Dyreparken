@@ -354,6 +354,11 @@ Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
 -- the Zergling and Mini Diablo were framed small and low and stayed so
 -- (2026-11-10): the card's camera seems to fit the model as it loads.
 Moves.SETTLE = 0.6
+-- Standing this long on a new card before it lies down to sleep (2026-11-10): paused 0.8 s
+-- into lying down 0.6 s after the model was set, every pet got up and froze standing, while
+-- the same on a card open a while lay still. The model seems to load (and its animation
+-- start) later than our clock says.
+Moves.SLEEP_AFTER = 2
 Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4 } -- how long each one-off plays
 
 -- The animation a pet uses for a reaction (Data/PetMoves.lua, edited by
@@ -644,7 +649,7 @@ Steps = function(key, mode)
     -- and the held pose still comes.
     if mode == "sleep" then
         local id, at = Moves:For(key, "sleep"), Moves:For(key, "sleepAt") or 0
-        return { { STAND, Moves.SETTLE }, { id, at }, { id, nil, at } }
+        return { { STAND, Moves.SLEEP_AFTER }, { id, at }, { id, nil, at } }
     end
     if mode == "sit" then
         return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }

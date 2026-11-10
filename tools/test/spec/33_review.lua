@@ -87,7 +87,7 @@ return function(test, H)
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 23 }) - w:ServerTime())
         ola:SelectPet(5159)
         local actor = ola.petActor
-        w:Run(1.81)
+        w:Run(ola.ns.Moves.SLEEP_AFTER + 1.21)
         eq(actor.anim, 6, "asleep")
         ola:CloseJournal()
         actor:SetAnimation(0) -- (the client resets the model on the closed card)

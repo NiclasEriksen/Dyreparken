@@ -10,6 +10,7 @@ return function(test, H)
         ola.ns.Personality.Traits = function() return traits or { ola.ns.Personality.ById("glupsk") } end
         ola.ns.PetMoves.species[5159] = nil -- (the panda plays the default here, whatever the file says)
         ola.ns.PetMoves.default.sleepAt = 1.2 -- (the timings here, whatever the file says)
+        ola.ns.Moves.SLEEP_AFTER = 0.6
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = hour }) - w:ServerTime())
         return w, ola, ola.petActor
     end
@@ -606,6 +607,16 @@ return function(test, H)
         ola:Slash("probe lift")
         ola.ns.LiftEditor.frame.up:Click(); At(1.25, "the slider")
         ola.ns.LiftEditor:Close();          At(1.2, "closed")
+    end)
+
+    test("a new card at night: it stands a while first, while its model loads, then lies down", function()
+        local w, ola, actor = Setup(23)
+        ola.ns.Moves.SLEEP_AFTER = 2
+        ola:SelectPet(5159)
+        w:Run(1.9)
+        eq(actor.anim, 0)
+        w:Run(0.11)
+        eq(actor.anim, 6)
     end)
 
     test("asleep by pausing, when the actor can (SetPaused): lies down at its own speed, paused there, unpaused to wake", function()
