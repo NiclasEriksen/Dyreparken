@@ -164,7 +164,7 @@ return function(test, H)
         Chat(ola, "CHAT_MSG_TEXT_EMOTE", "You dance with Panda Cub.", ola.env.UnitGUID("player"))
         eq(Points(), start + 5)
         ok(ola:Printed("Panda Cub danset med deg!", true))
-        eq(P:Line(PANDA), "Dansefot og Kosete · liker herbs, dansing og kos")
+        eq(P:Line(PANDA), "Dansefot og Kosete · liker herbs, fisking, dansing og kos")
         eq(P:Effect(P.ById("kjaelen")), "/pet, /hug eller /cuddle på dyret gir 5 bånd-poeng (opptil 25 om dagen), mot 1 ellers.")
         -- Let go, it's still the pet kept out (Hold ute): still watched. Unticked: dropped; the
         -- common activities stay (any pet of yours bonds).

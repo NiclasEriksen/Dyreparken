@@ -243,7 +243,7 @@ return function(test, H)
         eq(Pts() - start, 3, "skill-ups: 3")
         for _ = 1, 5 do ola.ns.Activity:Emit("mine") end
         eq(Pts() - start, 6)
-        for _ = 1, 5 do ola.ns.Activity:Emit("fish") end
+        for _ = 1, 5 do ola.ns.Activity:Emit("skin") end
         eq(Pts() - start, 7, "the pot is full at 10")
         -- A liked one still counts in full: Glupsk, quests.
         for _ = 1, 2 do ola:Fire("QUEST_TURNED_IN", 1) end

@@ -213,6 +213,12 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   filled the day): firsts 5 points (was 10), at most 15 a day; everyday (not liked) activities 1 each, at most 3
   per kind (was 5) and 10 in all; a trait's moment at most 10 a day (was 25). Unchanged: the day 10, likes 5 each
   (25 a day), wish 10, playdate 15, and the 75 a day (BOND_DAILY_MAX feeds validation). Likes are what fill a day.
+- **Data pass** (2026-11-10, with the user): every journal pet tagged and its source checked (tools/companions:
+  tags.csv, curation.csv; 70 of 83 count toward achievements). Two new families, `bear` (Panda Cub) and
+  `reptile` (Baby Crocolisk, Speedy). The Zergling is a demon. The CE pets (Panda Cub, Mini Diablo, Zergling)
+  don't count; nor do pets nobody knows how to get yet (Musical Gustjumper, Pachimari, Galestrider Chick,
+  Shen'dorei Wisp, Minfernal, Spawn of Grubthor, the four Lashlings). Event pets also get a body family.
+  Forever is the classic world (Quirks.HOME_ZONES uses classic zone names).
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most

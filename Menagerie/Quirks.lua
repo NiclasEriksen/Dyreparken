@@ -115,18 +115,20 @@ local function Hour(t) return tonumber(date("%H", t)) end
 -- Places a family feels at home in (2026-11-10): the zone's name as the
 -- client says it (enUS; GetZoneText, as "explore" carries it). Hand-made, to
 -- check in game: a name that never comes up only means no line.
-Quirks.HOME_ZONES = {
-    pirate = { "The Cape of Stranglethorn", "Stranglethorn Vale", "Tanaris" },
-    frog = { "Wailing Caverns", "Swamp of Sorrows", "Zangarmarsh" },
+Quirks.HOME_ZONES = { -- (classic zone names: Forever is the classic world, the user 2026-11-10)
+    pirate = { "Stranglethorn Vale", "Tanaris" },
+    frog = { "Wailing Caverns", "Swamp of Sorrows" },
     owl = { "Moonglade", "Teldrassil", "Darnassus" },
-    mechanical = { "Gnomeregan", "Netherstorm" },
-    dragon = { "Dragonblight", "Grim Batol", "Blackwing Lair", "Onyxia's Lair", "Wyrmrest Temple" },
-    snake = { "Uldum", "Wailing Caverns" },
-    wolf = { "Grizzly Hills", "Alterac Mountains", "Alterac Valley" },
-    demon = { "Hellfire Peninsula", "Felwood", "Shadowmoon Valley" },
-    bug = { "Silithus", "Ahn'Qiraj", "Azjol-Nerub" },
+    mechanical = { "Gnomeregan", "Ironforge" },
+    dragon = { "Blackwing Lair", "Onyxia's Lair", "Burning Steppes", "Wetlands" },
+    snake = { "Wailing Caverns", "Tanaris" },
+    reptile = { "Swamp of Sorrows", "Dustwallow Marsh", "The Temple of Atal'Hakkar" },
+    wolf = { "Alterac Mountains", "Alterac Valley", "Silverpine Forest" },
+    bear = { "Ashenvale", "Feralas" },
+    demon = { "Felwood", "Blasted Lands", "Desolace" },
+    bug = { "Silithus", "Ruins of Ahn'Qiraj", "Ahn'Qiraj" },
     plant = { "Un'Goro Crater", "Feralas" },
-    spirit = { "Ghostlands", "Eastern Plaguelands" },
+    spirit = { "Eastern Plaguelands", "Moonglade" },
     ooze = { "Naxxramas", "Blackrock Depths" },
     farm = { "Westfall" },
     rabbit = { "Elwynn Forest", "Mulgore" },

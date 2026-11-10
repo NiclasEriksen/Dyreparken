@@ -70,7 +70,7 @@ return function(test, H)
             local w, ola = Card(month, day, hour, {})
             if min then w:Skip(min * 60) end
             local seen = {}
-            for _, s in ipairs(ola.ns.Decor:Specs(PANDA, 1, ola.ns.Now())) do seen[s.kind] = s end
+            for _, s in ipairs(ola.ns.Decor:Specs("s:40", 1, ola.ns.Now())) do seen[s.kind] = s end -- (a cat: no leaves of its own)
             return seen
         end
         ok(Kinds(10, 12, 14).leaf, "autumn leaves"); ok(Kinds(4, 20, 14).clover, "spring"); ok(Kinds(7, 1, 14).butterfly)

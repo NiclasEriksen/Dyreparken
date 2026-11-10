@@ -42,12 +42,30 @@ Personality.BY_FAMILY = {
     frog = { "fish", "dive" }, snake = { "herb" }, mechanical = { "mine", "skill" }, dragon = { "boss", "taxi", "rep" },
     pirate = { "fish", "pvp", "dive" }, bug = { "herb" }, rodent = { "mine" }, wolf = { "boss" }, plant = { "herb" },
     festive = { "quest", "rep" }, demon = { "boss" }, ooze = { "boss" }, spirit = { "taxi", "rep" },
+    bear = { "fish", "herb" }, reptile = { "fish", "dive" }, -- (2026-11-10)
 }
 Personality.DEFAULT = { "quest" } -- a pet with no family we know
 
--- Species with likes of their own (species id -> activities).
+-- Species with likes of their own (species id -> activities), from their
+-- story (the data pass, 2026-11-10). Added to the family's.
 Personality.BY_SPECIES = {
-    [5159] = { "herb" }, -- Panda Cub: bamboo
+    [5159] = { "herb" },  -- Panda Cub: bamboo
+    [90] = { "boss" },    -- Smolderweb Hatchling: from Mother Smolderweb's nest in Blackrock Spire
+    [85] = { "pvp" },     -- Tiny Walking Bomb: boom
+    [116] = { "nap" },    -- Tranquil Mechanical Yeti: tranquil
+    [118] = { "taxi" },   -- Winter Reindeer: it flies with Greatfather Winter
+    [119] = { "skill" },  -- Father Winter's Helper: makes the toys
+    [120] = { "skill" },  -- Winter's Little Helper: likewise
+    [122] = { "cuddle" }, -- Peddlefeet: Love is in the Air
+    [125] = { "nap" },    -- Speedy: a turtle, whatever its name says
+    [126] = { "nap" },    -- Mr. Wiggles: a pig in the sun
+    [128] = { "dance" },  -- Spirit of Summer: the Midsummer bonfires
+    [106] = { "jump" },   -- Jubling: the Darkmoon Faire
+    [5005] = { "dance" }, -- Musical Gustjumper: musical
+    [5075] = { "jump" },  -- Excitable Slime: excitable
+    [5094] = { "fish" },  -- Bitter Baitling: bait
+    [5160] = { "pvp" },   -- Zergling: the rush
+    [5183] = { "mine" },  -- Spawn of Grubthor: a burrowing worm
 }
 
 -- Dislikes (2026-11-09): no effect on the bond, only a line now and then
@@ -59,7 +77,7 @@ Personality.DISLIKE_BY_FAMILY = {
     cat = { "dive" }, bird = { "pvp" }, owl = { "chat" }, farm = { "taxi" }, rabbit = { "boss" }, frog = { "taxi" },
     snake = { "jump" }, mechanical = { "dive" }, dragon = { "dive" }, pirate = { "hearth" }, bug = { "jump" },
     rodent = { "taxi" }, wolf = { "nap" }, plant = { "hearth" }, festive = { "pvp" }, demon = { "cuddle" },
-    ooze = { "jump" }, spirit = { "dive" },
+    ooze = { "jump" }, spirit = { "dive" }, bear = { "boss" }, reptile = { "taxi" },
 }
 
 -- The holidays the Festglad pets celebrate ("MMDD" -> name, Locale/nb.lua: holiday.*).

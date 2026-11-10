@@ -331,7 +331,10 @@ return function(test, H)
         eq(parts[1].icon.blend, "ADD", "motes are light")
         eq(parts[1].icon.vertexColor[4], D.FAMILY_ALPHA, "softer than the traits")
         ok(parts[1].anim:IsPlaying())
-        card = ola:SelectPet(5159) -- the panda has no family: the default
+        card = ola:SelectPet(5159) -- the panda: a bear (2026-11-10)
+        eq(#Parts(d), N(D, D.FAMILY.bear.n))
+        ola.ns.Scenes.Families = function() return {} end
+        card = ola:SelectPet(40) -- no family: the default
         eq(#Parts(d), N(D, D.FAMILY.default.n))
         -- Every family has one, and each is a kind there is.
         for _, family in ipairs(ola.ns.Scenes.ORDER) do
