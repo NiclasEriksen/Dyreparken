@@ -386,7 +386,7 @@ Moves.RECHECK = 0.3
 local NO_BLEND, BLEND = 0, 1 -- Enum.ModelBlendOperation (None, Anim)
 local STAND = 0
 local Play
-local UnSulk -- (below)
+local UnSulk, Steps -- (below)
 
 -- 2026-11-10: about one time in three a held pose stood up again by itself
 -- right away, and GetAnimation (it only echoes what was set) can't tell. So
@@ -465,6 +465,11 @@ function Moves:Sequence(steps)
             -- Back to rest after a one-off: as things are now (code review 2026-11-10: a stop
             -- during the hop left it walking; after playing dead it never walked).
             if shown.mode == "dead" and Moves:Rest(shown.key) == "stand" then shown.mode = "stand" end
+            -- (stopped moving meanwhile, and it's a sitter: it settles again)
+            if shown.mode == "stand" and Moves:Rest(shown.key) == "sit" then
+                shown.mode = "sit"
+                return Moves:Sequence(Steps(shown.key, "sit"))
+            end
             if shown.mode == "stand" then id = Moves:MotionId(shown.key) or Moves.STAND end
         end
         Play(id, nil, s[3])
@@ -492,6 +497,8 @@ function Moves:Rest(key, t)
         if (Moves.night or ns.Personality.IsNight(t or ns.Now())) and not HasTrait(key, "nattugle") and self:For(key, "sleep") then
             return "sleep"
         end
+        -- Moving with you beats sitting (the user, 2026-11-10); sleep at night still wins.
+        if self:MotionId(key) then return "stand" end
         if HasTrait(key, "latsabb") and self:For(key, "sit") then return "sit" end
         -- Content for today: your pet sits once its day's bond is full (2026-11-10).
         if self:For(key, "sit") and ns.Pets:IsOwned(key) then
@@ -512,9 +519,10 @@ end
 ------------------------------------------------------------------------------
 -- Moving with you (2026-11-10, the user's idea): the pet you keep out
 -- (auto-summon's active pet) walks on its card while you move on foot, and
--- runs while you're mounted and moving; on a taxi it stands. It never
--- overrides another animation: only the plain standing pose becomes the walk
--- (sleep, the Latsabb's sit, a hop, a cheer, playing dead all win). Events
+-- runs while you're mounted and moving; on a taxi it stands. Sleep at night, a
+-- hop, a cheer and playing dead win over it; sitting doesn't (the user,
+-- 2026-11-10): a sitter gets up and goes with you, and sits again once you've
+-- stopped. Events
 -- only while that pet's card shows. PLAYER_STARTED/STOPPED_MOVING and
 -- GetUnitSpeed are unverified on Forever: without them it simply stands.
 ------------------------------------------------------------------------------
@@ -539,10 +547,24 @@ function Moves.Moving()
     return speed > 0
 end
 
--- Moving changed: a pet resting standing (its last step held) takes it up.
+-- Moving changed: a sitting pet gets up and goes with you, and sits again when
+-- you stop; a pet resting standing (its last step held) takes the walk up.
 local function Repose()
     local key = shown.key
-    if not key or shown.mode ~= "stand" or not shown.last then return end
+    if not key then return end
+    local mode = Moves:Rest(key)
+    if shown.mode == "sit" and mode == "stand" then -- (sitting, or about to: up and away)
+        local seated = shown.playing == SIT_DOWN or shown.playing == Moves:For(key, "sit")
+        shown.mode = "stand"
+        local steps = seated and { { SIT_UP, Moves.T.up } } or {}
+        steps[#steps + 1] = { STAND }
+        return Moves:Sequence(steps)
+    end
+    if shown.mode == "stand" and mode == "sit" and shown.last then -- (stopped: it settles again)
+        shown.mode = "sit"
+        return Moves:Sequence(Steps(key, "sit"))
+    end
+    if shown.mode ~= "stand" or not shown.last then return end
     local id = Moves:MotionId(key) or STAND
     if shown.playing ~= id then Play(id) end
 end
@@ -581,7 +603,7 @@ function Moves:Follow(key)
 end
 
 -- A pose's steps for this pet; the last one is held.
-local function Steps(key, mode)
+Steps = function(key, mode)
     -- Lying down: played (blended) up to sleepAt, then held there. 2026-11-10: blended, Dead
     -- (6) lies a pet down smoothly but then stands it up; sometimes it doesn't play at all,
     -- and the held pose still comes.
