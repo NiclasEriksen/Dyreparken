@@ -583,6 +583,9 @@ ns.AchTexts = {
     ["nick"] = { name = "Døpt", desc = "Gi dyret ditt et kallenavn.",
         flavor = "{player} har døpt {species} til «{nick}»! {name}",
         plain = "{player} har gitt dyret sitt et navn! {name}" },
+    ["dislikes"] = { name = "Kjenner deg ut og inn", desc = "Finn ut alt dyret ditt ikke liker.",
+        flavor = "{player} vet nå alt {pet} ikke liker! {name}",
+        plain = "{player} kjenner dyret sitt ut og inn! {name}" },
 
     -- Guild: the companions the guild cares for, all at once (one per member).
     ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guilden tar vare på 10 dyr samtidig.",

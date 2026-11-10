@@ -295,4 +295,17 @@ return function(test, H)
         w:SkipDays(1)
         no(Chip().ring:IsShown(), "for the day")
     end)
+
+    test("Kjenner deg ut og inn: every dislike of your adopted pet found out", function()
+        local w, ola, At, Said = Eggs({ "glupsk", "rampete" }) -- a cat: dislikes the water
+        local A = ola.ns.Achievements
+        local _, list = ola.ns.Personality:Dislikes("s:40")
+        eq(#list, 1)
+        no(A:Got("dislikes"))
+        local m = w:Mark()
+        ola:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath")
+        w:RunTimers()
+        ok(A:Got("dislikes"), "found it")
+        eq(w:Sent("ACH_EARNED", nil, m), 1, "news")
+    end)
 end

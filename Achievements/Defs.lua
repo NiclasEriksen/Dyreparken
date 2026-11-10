@@ -15,6 +15,7 @@ local _, ns = ...
 --   bond    level     reach this bond level with your companion (Menagerie/Bond.lua) (char).
 --                     Ids loyal:N are from when it counted days; ids are permanent.
 --   nick              have given your companion a nickname          (char)
+--   dislikes          have found out everything your companion dislikes (Quirks.lua) (char)
 --   activity act n    n of an activity (Core/Activity.lua: "boss", "quest", ...); pet = true counts
 --                     only with your adopted companion out. Hidden while the client can't produce it.
 --                                                                    (char)
@@ -55,6 +56,7 @@ ns.AchDefs = {
     { id = "loyal:100", kind = "bond", level = 4, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCard02", "Spell_Holy_SealOfSacrifice" } },
     { id = "loyal:365", kind = "bond", level = 6, scope = "char", cat = "loyalty", icon = { "Achievement_WorldEvent_Valentine", "Spell_Holy_SealOfSacrifice" } },
     { id = "nick", kind = "nick", scope = "char", cat = "loyalty", icon = { "INV_Inscription_Parchment", "INV_Misc_Note_01" } },
+    { id = "dislikes", kind = "dislikes", scope = "char", cat = "loyalty", icon = { "Spell_Misc_EmotionSad", "INV_Misc_Book_09", "INV_Misc_Note_01" } },
 
     { id = "guild:count:10", kind = "guildcount", n = 10, scope = "guild", cat = "guild",
         icon = { "Achievement_GuildPerk_EverybodysFriend", CARRIER } },

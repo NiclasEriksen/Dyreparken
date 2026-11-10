@@ -187,6 +187,17 @@ function Eval.nick(d, ctx)
     local has = (key and namer == ns.PlayerKey()) and 1 or 0
     return has == 1, has, 1
 end
+-- Every dislike of your adopted pet found out (2026-11-10): seen happen, its
+-- line said (char.dislikes). A pet that dislikes nothing: nothing to judge.
+function Eval.dislikes()
+    local key = ns.Registry:MyPet()
+    if not key then return false, 0, 1 end
+    local _, list = ns.Personality:Dislikes(key)
+    if #list == 0 then return nil end
+    local found, have = ns.DB.char.dislikes[key] or {}, 0
+    for _, id in ipairs(list) do if found[id] then have = have + 1 end end
+    return have == #list, have, #list
+end
 function Eval.activity(d)
     if not ns.Activity:Available(d.act) then return nil end
     local total, mine = ns.Activity:Count(d.act)
@@ -665,6 +676,7 @@ function Ach:Init()
     ns.Bus:On("MY_RECORD", function() Ach:Check("MY_RECORD", "char") end)
     ns.Bus:On("BOND_LEVEL", function(key) if key == ns.Registry:MyPet() then grew.bond = true end end)
     ns.Bus:On("BOND", function() Ach:CheckCharSoon("BOND") end)
+    ns.Bus:On("DISLIKE_FOUND", function() Ach:Check("DISLIKE_FOUND", "char") end)
     ns.Bus:On("MY_NAME", function()
         grew.nick = true
         Ach:Check("MY_NAME", "char")

@@ -87,6 +87,7 @@ function Quirks:Dislike(key, id)
         seen[key] = seen[key] or {}
         seen[key][id] = true
         if not first then return end
+        ns.Bus:Fire("DISLIKE_FOUND", key, id)
         ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")
         if ns.JournalUI then ns.JournalUI:Refresh() end
     end)
