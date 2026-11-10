@@ -608,4 +608,21 @@ return function(test, H)
         w:Run(2)
         ok(math.abs(actor.pos[3] - 0.3) < 1e-6)
     end)
+
+    test("a pet whose own height is just where the last one was put still moves, and its lift can be changed", function()
+        local w, ola, actor = Setup(14)
+        local heights = { [5160] = 2.0, [70] = 2.5 }
+        ola.modelHeights = heights
+        ola.ns.PetMoves.species[5160] = { lift = 0.5 }
+        ola.ns.PetMoves.species[70] = { lift = -0.5 }
+        ola:SelectPet(5160)
+        ok(math.abs(actor.pos[3] - 2.5) < 1e-6)
+        ola:SelectPet(70) -- (the client puts it at 2.5: where the Zergling was put)
+        w:Run(1)
+        ok(math.abs(actor.pos[3] - 2.0) < 1e-6, "moved once settled")
+        ola:Slash("probe lift")
+        ola.ns.LiftEditor.frame.up:Click()
+        ok(math.abs(actor.pos[3] - 2.05) < 1e-6, "the slider moves it")
+        ola.ns.LiftEditor:Close()
+    end)
 end

@@ -399,7 +399,7 @@ local function Outside(what, arg)
     ns.Log("Moves", "%s(%s) from outside, holding %s", what, tostring(arg), tostring(shown.pose and shown.playing))
     if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
         local key, token = shown.key, shown.token
-        C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Moves.Lift(key) end end)
+        C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Moves.Lift(key, true) end end)
     end
     if not shown.pose or shown.reposed >= Moves.REPOSE then return end
     shown.reposed = shown.reposed + 1
@@ -636,25 +636,29 @@ end
 -- one we set), so a lift lands on that and never on top of itself: switching
 -- fast, the client sometimes kept a pet where we had put it, and a lift read
 -- from there sank it twice as far (2026-11-10).
-local bases, lastSet = {}, nil
-local function Lift(key)
+-- Own heights come in a few round values (0.5, 1, 1.5, 2.5), so a pet's own height is
+-- often exactly where we put the last one: then it's trusted once the model has
+-- settled (`settled`), else that pet never moved at all (2026-11-10).
+local bases, lastSet, lastKey = {}, nil, nil
+local function Lift(key, settled)
     local actor = Moves:Actor()
     local ok, x, y, z = Call(actor or {}, "GetPosition")
     if not (ok and type(z) == "number") then return end
-    if not (lastSet and math.abs(z - lastSet) < 1e-3) then bases[key] = z end -- (the client's own)
+    local ours = lastSet and math.abs(z - lastSet) < 1e-3
+    if not ours or (settled and lastKey ~= key) then bases[key] = z end -- (the client's own)
     local base = bases[key]
     if not base then return end -- (still where the last pet was put: once it has loaded)
     local lift = Moves:For(key, "lift")
     local target = base + (lift or 0)
     if math.abs(z - target) < 1e-3 then return end
     Call(actor, "SetPosition", x, y, target)
-    lastSet = target
+    lastSet, lastKey = target, key
     ns.Log("Moves", "%s at %.2f (its own %.2f%s)", key, target, base, lift and ("%+.2f"):format(lift) or "")
 end
 local function LiftSoon(key)
     local token = shown.token
     C_Timer.After(Moves.SETTLE, function()
-        if token == shown.token and shown.key == key then Lift(key) end
+        if token == shown.token and shown.key == key then Lift(key, true) end
     end)
 end
 Moves.Lift = Lift
