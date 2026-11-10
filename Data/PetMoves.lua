@@ -36,16 +36,16 @@ local _, ns = ...
 --          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here
 --          (every pet set by eye 2026-11-10).
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 0.7, canSit = true, sitDown = 96, sit = 97, sitUp = 98, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
+    default = { sleep = 6, sleepAt = 0.7, sleepHold = false, sleepUp = false, canSit = true, sitDown = 96, sit = 97, sitUp = 98, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
         [39] = { lift = -0.1 },  -- Mechanical Squirrel
-        [40] = { lift = -0.1 },  -- Bombay
-        [41] = { lift = -0.1 },  -- Cornish Rex
-        [42] = { lift = -0.1 },  -- Black Tabby
-        [43] = { lift = -0.1 },  -- Orange Tabby
-        [44] = { lift = -0.1 },  -- Siamese
-        [45] = { lift = -0.1 },  -- Silver Tabby
-        [46] = { lift = -0.1 },  -- White Kitten
+        [40] = { lift = -0.1, sleep = 99, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Bombay
+        [41] = { lift = -0.1, sleep = 99, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Cornish Rex
+        [42] = { lift = -0.1, sleep = 99, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Black Tabby
+        [43] = { lift = -0.1, sleep = 99, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Orange Tabby
+        [44] = { lift = -0.1, sleep = 99, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Siamese: the cats lie down, sleep and get up with their own sleep animations (/dp probe moves, the user 2026-11-11; all cats share the model)
+        [45] = { lift = -0.1, sleep = 99, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Silver Tabby
+        [46] = { lift = -0.1, sleep = 99, sleepHold = 100, sleepUp = 101, happy = 758 },  -- White Kitten
         [55] = { lift = -0.05 },  -- Cockroach
         [64] = { lift = -0.1 },  -- Wood Frog
         [65] = { lift = -0.1 },  -- Tree Frog
@@ -72,7 +72,7 @@ ns.PetMoves = {
         [127] = { lift = -0.3 },  -- Whiskers the Rat
         [162] = { lift = 0.6 },  -- Sinister Squashling
         [5005] = { lift = -0.1 },  -- Musical Gustjumper
-        [5006] = { lift = -0.05 },  -- Corrupted Kitten
+        [5006] = { lift = -0.05, sleep = 99, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Corrupted Kitten
         [5018] = { lift = 1.9 },  -- Snowy Wolf Pup
         [5075] = { lift = -0.5 },  -- Excitable Slime
         [5094] = { lift = 0.7 },  -- Bitter Baitling

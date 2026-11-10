@@ -304,7 +304,7 @@ return function(test, H)
         -- Every value in the file (as it is, untouched) is a number or false, for a species in the journal.
         local _, fresh = H.Setup{ ola = {} }
         local data = fresh.ns.PetMoves
-        for what, id in pairs(data.default) do ok(type(id) == "number" or what == "canSit" and id == true, what) end
+        for what, id in pairs(data.default) do ok(type(id) == "number" or id == false or what == "canSit" and id == true, what) end
         for sid, own in pairs(data.species) do
             ok(fresh.ns.Companions.species[sid], "species " .. sid .. " is in the journal")
             for what, id in pairs(own) do
@@ -621,6 +621,7 @@ return function(test, H)
 
     test("asleep by pausing, when the actor can (SetPaused): lies down at its own speed, paused there, unpaused to wake", function()
         local w, ola, actor = Setup(23)
+        ola.ns.PetMoves.species[46] = nil -- (the kitten as the default: paused, not a sleep loop)
         function actor:SetPaused(p) self.paused = p end
         function actor:SetModelByCreatureDisplayID() self.anim = 0 end
         ola:SelectPet(5159)
