@@ -101,6 +101,7 @@ local WIDGETS = {
     function(key) ns.OutBadge:Update(card, key) end, -- "Med deg": is this the pet kept out?
     function(key) ns.Cake:Update(card, key) end, -- a cake on its milestone day
     function(key) ns.Crown:Update(card, key) end, -- the pet of the day's crown (after the cake: beside it)
+    function(key) ns.Story:Update(card, key) end, -- the story's button, and its panel follows the card
     function(key) ns.Moves:Update(card, key) end, -- the pet's pose: asleep at night, a Latsabb sitting...
 }
 
@@ -304,6 +305,7 @@ local function BuildCard()
     ns.OutBadge:Build(card, c)
     ns.Cake:Build(card, c)
     ns.Crown:Build(card, c)
+    ns.Story:Build(card, c)
     c:HookScript("OnHide", function() ns.Moves:Stop() end) -- (the pet's pose starts over next time)
 
     -- The left column: lines that stop at the bond column; a long one ends in

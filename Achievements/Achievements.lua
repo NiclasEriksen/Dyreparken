@@ -513,6 +513,7 @@ function Ach:Notify(ids)
         ns.Comm:Send("ACH_EARNED", { a = ids }, "GUILD")
         told = ns.Now()
     end
+    ns.Story:Achievements(ids) -- (in the story of the pet out now)
     for _, id in ipairs(ids) do
         local g = self:Got(id)
         if g then g.told = told end

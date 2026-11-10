@@ -205,7 +205,9 @@ turned back (SetYaw), the inn's name (GetBindLocation), the zone names, and a gu
 - **Temperament** (docs/PET_LIFE.md stage 4): a pet's total bond across all carers as stages (Vill → Sky →
   Nysgjerrig → Tam → ... → Parklegende; "Kosete" clashes with the trait's name), a word in the world tooltip and a
   colored border on the Parken map. Needs thresholds.
-- **The pet's story** (stage 5): first home, every carer and how long, milestones; Parken tooltip and the card.
+- ~~**The pet's story** (stage 5)~~ Built 2026-11-10, local only (Menagerie/Story.lua): homes, moves, names, levels,
+  milestones, pet of the day, and your firsts, achievements and eggs with it. Still to come: syncing it, the Parken
+  tooltip, and big moments in guild chat.
 - **Collection sync** (stage 6, a protocol bump): what each member owns, so "the guild is missing these",
   "arrived in the park" and "wild" pets nobody has.
 - **Trofast's halo** hangs at a fixed height like the old pet-of-the-day halo (the client can't say where a head

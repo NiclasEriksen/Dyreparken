@@ -146,7 +146,9 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
                    lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
                    cheer, playing dead the day of the three-deaths egg; which animation per species: Data/PetMoves.lua; and the /dp probe anim research probe), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
-                   congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Cuddle (a click on the pet:
+                   congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Story (a pet's story: a local
+                   timeline of its life in the guild, g.story, found by comparing the registry with what it last saw,
+                   plus your moments with it; a book button on the card opens a panel right of the window, newest first), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits (every trait has some; those with a moment show only then) and the date, and

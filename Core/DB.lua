@@ -42,6 +42,7 @@ local GUILD_DEFAULTS = {
     ach = {},     -- guild achievements earned
     achSeen = {}, -- guild achievements looked at
     born = nil,   -- the guild's first adoption we know of: the park's birthday (Bonds:ParkBorn)
+    story = {},   -- [petKey] = its story as this client saw it (Menagerie/Story.lua; local, never sent)
 }
 
 local CHAR_DEFAULTS = {

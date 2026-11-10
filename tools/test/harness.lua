@@ -48,7 +48,8 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     PLAYER_DEAD PLAYER_ALIVE PLAYER_UNGHOST MIRROR_TIMER_START PLAYER_LEVEL_UP PLAYER_FLAGS_CHANGED
     CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
     NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED
-    PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING CHAT_MSG_EMOTE PLAYER_CONTROL_GAINED]]):gmatch("%S+") do
+    PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING CHAT_MSG_EMOTE PLAYER_CONTROL_GAINED
+    CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -282,6 +283,8 @@ function Frame:SetWidth(w) self.size = { w, self.size and self.size[2] } end
 function Frame:SetHeight(h) self.size = { self.size and self.size[1], h } end
 function Frame:SetShown(v) if v then self:Show() else self:Hide() end end
 function Frame:SetScrollChild(f) self.scrollChild = f end
+function Frame:SetVerticalScroll(v) self.vscroll = v end
+function Frame:GetVerticalScroll() return self.vscroll or 0 end
 function Frame:SetChecked(v) self.checked = not not v end
 function Frame:GetChecked() return self.checked end
 -- Like the client: a disabled button ignores clicks; a check button flips
@@ -1344,6 +1347,13 @@ function Client:BuildEnv()
     -- The chat formats skill-ups and reputation are read with (enUS GlobalStrings).
     env.SKILL_RANK_UP = "Your skill in %s has increased to %d."
     env.FACTION_STANDING_INCREASED = "Reputation with %s increased by %d." -- (Forever's, 2026-11-09)
+    -- Rolls and fishing (enUS GlobalStrings).
+    env.RANDOM_ROLL_RESULT = "%s rolls %d (%d-%d)"
+    env.LOOT_ROLL_ROLLED_NEED = "Need Roll - %d for %s by %s"
+    env.LOOT_ROLL_ROLLED_GREED = "Greed Roll - %d for %s by %s"
+    env.LOOT_ROLL_ROLLED_DE = "Disenchant Roll - %d for %s by %s"
+    env.ERR_FISH_ESCAPED = "Your fish got away!"
+    env.ERR_FISH_NOT_HOOKED = "No fish are hooked."
     -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
     env.C_Map = {
         GetBestMapForUnit = function(u) assert(u == "player"); return S.map or 1429 end,

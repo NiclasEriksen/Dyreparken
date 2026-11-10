@@ -49,6 +49,7 @@ Menagerie\Cuddle.lua
 Menagerie\OutBadge.lua
 Menagerie\Cake.lua
 Menagerie\Crown.lua
+Menagerie\Story.lua
 Menagerie\Moves.lua
 Menagerie\Personality.lua
 Menagerie\JournalList.lua

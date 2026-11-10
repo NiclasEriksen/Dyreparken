@@ -393,6 +393,12 @@ function Bond:OnActivity(id, n, key)
     return Grant(d, points, key)
 end
 
+local function Count(t)
+    local n = 0
+    for _ in pairs(t or {}) do n = n + 1 end
+    return n
+end
+
 -- Firsts together (2026-11-09): the first time a pet is along when a given
 -- boss falls, or sees a given place (Activity: "explore" fires only for a
 -- place new to that pet), it gets BOND_FIRST_POINTS and a line, at most
@@ -405,8 +411,11 @@ function Bond:First(id, key, extra)
         if firsts[key][extra] then return end
         firsts[key][extra] = true
         text = ns.T("first.boss", { pet = ns.Registry:NameOf(key), boss = extra })
+        if Count(firsts[key]) == 1 then ns.Story:Mine(key, "first.boss", extra) end -- (its very first)
     elseif id == "explore" and type(extra) == "string" then
         text = ns.T("first.place", { pet = ns.Registry:NameOf(key), place = extra })
+        -- Its very first new place: the second it has seen with you (the first is where it came out).
+        if Count(ns.DB.char.places[key]) == 2 then ns.Story:Mine(key, "first.place", extra) end
     else
         return
     end
