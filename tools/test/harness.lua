@@ -1152,8 +1152,16 @@ function Client:Button(sid)
 end
 
 -- Select a pet on the card, as the journal does.
+-- Another species on the card: the client loads its model at that model's own height
+-- (c.modelHeights[sid], default 0), unless c.keepHeight: then it stays where it was, as the
+-- client sometimes does when switching fast (2026-11-10).
 function Client:SelectPet(sid, byPetID)
     local card = self.env.PetJournalPetCard
+    local actor = self.petActor
+    if actor and actor.pos and sid ~= self.cardSpecies and not self.keepHeight then
+        actor.pos = { 0, 0, (self.modelHeights or {})[sid] or 0 }
+    end
+    self.cardSpecies = sid
     if byPetID then card.speciesID, card.petID = nil, self:GuidOf(sid) else card.speciesID, card.petID = sid, nil end
     self.env.PetJournal_UpdatePetCard(card)
     return self.ns.JournalUI._card

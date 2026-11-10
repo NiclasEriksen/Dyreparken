@@ -632,22 +632,24 @@ end
 -- found by eye) moves it at once, and again once the model has loaded (or the
 -- client loads it anew) if it was put back. (Working it out from the model's box and the camera didn't
 -- match what's on screen: /dp probe pos box, 2026-11-10.)
+-- Each pet's own height, as the client puts it (the first height seen that isn't
+-- one we set), so a lift lands on that and never on top of itself: switching
+-- fast, the client sometimes kept a pet where we had put it, and a lift read
+-- from there sank it twice as far (2026-11-10).
+local bases, lastSet = {}, nil
 local function Lift(key)
     local actor = Moves:Actor()
     local ok, x, y, z = Call(actor or {}, "GetPosition")
     if not (ok and type(z) == "number") then return end
+    if not (lastSet and math.abs(z - lastSet) < 1e-3) then bases[key] = z end -- (the client's own)
+    local base = bases[key]
+    if not base then return end -- (still where the last pet was put: once it has loaded)
     local lift = Moves:For(key, "lift")
-    if shown.liftKey == key and shown.liftTo and math.abs(z - shown.liftTo) < 1e-3 then return end -- (done)
-    if shown.liftTo and math.abs(z - shown.liftTo) < 1e-3 and shown.liftKey ~= key then
-        z = shown.liftBase -- (still where the last pet was moved: its model's own height)
-    end
-    shown.liftKey, shown.liftBase, shown.liftTo = key, z, lift and z + lift or nil
-    if lift then
-        Call(actor, "SetPosition", x, y, z + lift)
-        ns.Log("Moves", "%s lifted %.2f (from %.2f)", key, lift, z)
-    elseif z ~= select(4, Call(actor, "GetPosition")) then
-        Call(actor, "SetPosition", x, y, z)
-    end
+    local target = base + (lift or 0)
+    if math.abs(z - target) < 1e-3 then return end
+    Call(actor, "SetPosition", x, y, target)
+    lastSet = target
+    ns.Log("Moves", "%s at %.2f (its own %.2f%s)", key, target, base, lift and ("%+.2f"):format(lift) or "")
 end
 local function LiftSoon(key)
     local token = shown.token
@@ -659,15 +661,7 @@ Moves.Lift = Lift
 
 -- The card's pet at its own height again, then lifted as For says now (the lift editor).
 function Moves:Relift()
-    local key = shown.key
-    if not key then return end
-    local actor = self:Actor()
-    local ok, x, y, z = Call(actor or {}, "GetPosition")
-    if ok and type(z) == "number" and shown.liftBase and shown.liftKey == key then
-        Call(actor, "SetPosition", x, y, shown.liftBase)
-    end
-    shown.liftKey, shown.liftTo = nil, nil
-    Lift(key)
+    if shown.key then Lift(shown.key) end
 end
 
 -- Its back turned again to face you (the sulk's end, another pet, the card closing).

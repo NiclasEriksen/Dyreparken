@@ -575,4 +575,31 @@ return function(test, H)
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 756, "the hop at once")
     end)
+
+    test("the lift lands on each pet's own height, never on top of itself, whatever the client keeps", function()
+        local w, ola, actor = Setup(14)
+        local heights = { [70] = 0.5, [5160] = 2.5 }
+        ola.modelHeights = heights
+        -- The model done loading: the client puts it at its own height (and our hook sees it).
+        function actor:SetModelByCreatureDisplayID() self.pos = { 0, 0, heights[ola.cardSpecies] or 0 } end
+        ola.ns.PetMoves.species[70] = { lift = -0.2 }
+        ola.ns.PetMoves.species[5160] = { lift = 0.4 }
+        ola:SelectPet(70)
+        ok(math.abs(actor.pos[3] - 0.3) < 1e-6)
+        -- Switching fast: at first the client keeps the last pet's height; the model loads after.
+        ola.keepHeight = true
+        ola:SelectPet(5160)
+        actor:SetModelByCreatureDisplayID(1)
+        w:Run(1)
+        ok(math.abs(actor.pos[3] - 2.9) < 1e-6, "the Zergling on its own height once loaded")
+        ola:SelectPet(70)
+        ok(math.abs(actor.pos[3] - 0.3) < 1e-6, "back at once: its own height, not the Zergling's")
+        actor:SetModelByCreatureDisplayID(1)
+        w:Run(1)
+        ok(math.abs(actor.pos[3] - 0.3) < 1e-6, "and still, once loaded")
+        -- Shown again with the client keeping our height: not lowered a second time.
+        ola:SelectPet(5159); ola:SelectPet(70)
+        w:Run(2)
+        ok(math.abs(actor.pos[3] - 0.3) < 1e-6)
+    end)
 end
