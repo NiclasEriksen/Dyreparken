@@ -130,9 +130,10 @@ local posStart -- the actor's position and scale before we moved it
 
 -- Where the pet is on the card: its box's eight corners projected onto the
 -- model scene, as left, bottom, right, top in the scene's pixels (from its
--- bottom left). nil when the client can't say (2026-11-10: Forever has
--- GetActiveBoundingBox and Project3DPointTo2D; whether the numbers match
--- what's on screen is what /dp probe pos box shows).
+-- bottom left). nil when the client can't say. (2026-11-10: Forever has
+-- GetActiveBoundingBox and Project3DPointTo2D, but /dp probe pos box showed
+-- the box well off the pet: the projection isn't the camera the card draws
+-- with. A probe only.)
 function Moves:PetRect()
     local actor = self:Actor()
     local scene = actor and PetJournalPetCard.modelScene
@@ -560,8 +561,8 @@ end
 
 -- Standing on its shadow (2026-11-10): Blizzard puts each model at a height
 -- of its own, and some float or sink. A species' `lift` (Data/PetMoves.lua,
--- found by eye) moves it, once the model has loaded; again if the client
--- loads it anew. (Working it out from the model's box and the camera didn't
+-- found by eye) moves it at once, and again once the model has loaded (or the
+-- client loads it anew) if it was put back. (Working it out from the model's box and the camera didn't
 -- match what's on screen: /dp probe pos box, 2026-11-10.)
 local function Lift(key)
     local actor = Moves:Actor()
@@ -642,7 +643,8 @@ function Moves:Update(card, key)
         table.insert(steps, 1, { STAND, self.SETTLE })
     end
     self:Sequence(steps)
-    LiftSoon(key)
+    Lift(key)     -- at once (2026-11-10: a moment later read as a jump) ...
+    LiftSoon(key) -- ... and again if the model, done loading, was put back
     Sulk(key)
 end
 

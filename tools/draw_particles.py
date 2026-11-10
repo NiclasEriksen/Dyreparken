@@ -413,12 +413,24 @@ def cake():
     return m
 
 
+def crown():
+    """A small crown: a band, three points with a ball each, jewels left dark. The pet of the day's badge."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(-0.8, -0.62), (0.8, -0.62), (0.8, -0.3), (-0.8, -0.3)])                          # the band
+    poly(d, [(-0.8, -0.3), (-0.85, 0.42), (-0.4, 0.0), (0, 0.6), (0.4, 0.0), (0.85, 0.42), (0.8, -0.3)])  # points
+    for x, y in ((-0.85, 0.5), (0, 0.7), (0.85, 0.5)):
+        ellipse(d, x, y, 0.13, 0.13)                                                           # balls
+    for x in (-0.45, 0, 0.45):
+        ellipse(d, x, -0.46, 0.09, 0.09, fill=110)                                             # jewels
+    return m
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
           "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays,
           "feather": feather, "ember": ember, "gear": gear, "wisp": wisp, "coin": coin, "grain": grain,
           "seed": seed, "clover": clover, "zee": zee, "speech": speech, "crumb": crumb, "cloud": cloud,
           "pebble": pebble, "chevron": chevron, "bolt": bolt, "halo": halo, "sword": sword, "drop": drop,
-          "butterfly": butterfly, "mist": mist, "house": house, "cake": cake}
+          "butterfly": butterfly, "mist": mist, "house": house, "cake": cake, "crown": crown}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 

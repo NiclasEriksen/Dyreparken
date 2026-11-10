@@ -101,7 +101,7 @@ L["pat.other_nick"] = "klapper {nick} ({owner} sin {species})."
 L["pat.other"] = "klapper {owner} sin {species}."
 L["pat.combat"] = "Ikke nå, du er i kamp."
 L["park.birthday"] = "Dyreparken fyller {n} år i dag! Takk for at dere tar vare på dyrene."
-L["today.mine"] = "{pet} er dagens dyr i guilden i dag! Alle kan se det på kortet sitt."
+L["today.mine"] = "{pet} er dagens dyr i guilden i dag! Det har en krone på kortet sitt."
 L["pat.thanks"] = "{pet} logrer fornøyd etter klappen fra {who}."
 L["pat.nothing"] = "Summon dyret ditt, eller velg et dyr som mål."
 -- The pet's answer to a pat, by family (2026-11-10; only you see it).
@@ -406,6 +406,7 @@ L["card.today"] = "Dagens dyr"
 L["card.today.tip"] = "Dagens dyr: {pet}, som bor hos {owner}."
 L["card.today.click"] = "Klikk for å se det."
 L["card.today.none"] = "Dagens dyr: ingen har adoptert et dyr ennå."
+L["card.crown.tip"] = "{pet} er dagens dyr i guilden."
 L["card.notowned"] = "Ikke samlet"                   -- the paw badge's place, for a pet you don't own
 L["card.notowned.tip"] = "Du har ikke {pet} i samlingen din. Det du ser her er dyret og hjemmet det har i guilden."
 L["card.out.on"] = "Med deg"                                 -- the badge on the card: this pet is the one kept out

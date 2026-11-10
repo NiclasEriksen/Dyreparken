@@ -11,6 +11,20 @@ local Cuddle = {}
 ns.Cuddle = Cuddle
 
 local HEARTS = 4
+-- Where a click pets the pet (2026-11-10): the area Blizzard frames every pet
+-- in, as fractions of the model scene (left, right, bottom, top). The client
+-- can't say where the pet itself is (docs/FOREVER_API.md), so one area for all.
+Cuddle.AREA = { 0.22, 0.78, 0.04, 0.75 }
+
+-- Is the cursor (screen pixels) in that area of the model scene?
+function Cuddle:OnPet(model, x, y)
+    local scale, left, bottom = model:GetEffectiveScale(), model:GetLeft(), model:GetBottom()
+    local w, h = model:GetWidth(), model:GetHeight()
+    if not (scale and scale > 0 and left and bottom and w and h and w > 0 and h > 0) then return true end -- (not laid out)
+    local fx, fy = (x / scale - left) / w, (y / scale - bottom) / h
+    local a = self.AREA
+    return fx >= a[1] and fx <= a[2] and fy >= a[3] and fy <= a[4]
+end
 local CLICK_PX, CLICK_S = 5, 0.4 -- a click: moved less than this, shorter than this
 -- The sound: the first of these the client knows.
 Cuddle.SOUNDS = { "IG_CHARACTER_INFO_TAB", "IG_MAINMENU_OPTION_CHECKBOX_ON" }
@@ -80,19 +94,7 @@ function Cuddle:Build(card, c, panel)
             local still = math.abs(x - downX) < CLICK_PX and math.abs(y - downY) < CLICK_PX
             local quick = GetTime() - downAt < CLICK_S
             downAt = nil
-            if still and quick then
-                -- Where the click landed against the pet's box (2026-11-10: to limit
-                -- petting to the pet, once /dp probe pos box shows the box is right).
-                if ns.Debug.enabled then
-                    local scale, l, b, r, t = model:GetEffectiveScale(), ns.Moves:PetRect()
-                    local left, bottom = model:GetLeft(), model:GetBottom()
-                    if left and bottom and scale and scale > 0 then
-                        ns.Log("Cuddle", "click at %.0f, %.0f on the scene; pet box %s", x / scale - left,
-                            y / scale - bottom, l and ("%.0f, %.0f, %.0f, %.0f"):format(l, b, r, t) or "unknown")
-                    end
-                end
-                Cuddle:Pet(card, x, y)
-            end
+            if still and quick and Cuddle:OnPet(model, x, y) then Cuddle:Pet(card, x, y) end
         end)
         d.model = model
     end

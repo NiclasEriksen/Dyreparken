@@ -679,8 +679,6 @@ function Decor:Specs(key, level, t)
     end
     -- The park's birthday: confetti on every card.
     if ns.Bonds:ParkBirthday(t) then list[#list + 1] = { kind = "confetti", n = 8, color = "rainbow" } end
-    -- The guild's pet of the day: a golden halo over it (2026-11-10).
-    if ns.Bonds:PetOfTheDay(t) == key then list[#list + 1] = { kind = "halo", n = 1, color = GOLD, alpha = 0.8 } end
     -- Asleep on the card (Moves): a few Zzz, whatever its traits.
     if ns.Moves:Rest(key, t) == "sleep" then list[#list + 1] = { kind = "zee", n = 3, color = { 0.8, 0.85, 1 } } end
     for _, d in ipairs(self.DATES) do

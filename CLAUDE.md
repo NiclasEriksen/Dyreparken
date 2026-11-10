@@ -145,7 +145,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    an hour; read its header), Fx (one-shot particle bursts outside the journal: hearts at the cursor over a
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
                    lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
-                   cheer, playing dead the day of the three-deaths egg; which animation per species: Data/PetMoves.lua; and the /dp probe anim research probe), Cake (a cake with flickering candles on an adopted pet's card on its milestone day), Cuddle (a click on the pet:
+                   cheer, playing dead the day of the three-deaths egg; which animation per species: Data/PetMoves.lua; and the /dp probe anim research probe), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
+                   congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits (every trait has some; those with a moment show only then) and the date, and
@@ -275,8 +276,6 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 
 - **docs/IDEAS.md**: the creative review of 2026-11-09 (UI fixes, fun details, barriers to fun) and known limits.
 
-- **Dagens dyr spotlight** (noted 2026-11-08, the user's "8"): when the card shows today's pet of the day, a small,
-  discreet crown or spotlight badge on it.
 
 - A "companions the guild is missing" list, from `Data/Companions.lua`.
 - Mute the summon clank after loading screens and landing too. The game brings the pet back on its own there, with

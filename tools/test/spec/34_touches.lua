@@ -156,16 +156,45 @@ return function(test, H)
         ok(ola:Printed("Bombay Cat kjenner igjen Kari Berg!", true))
     end)
 
-    test("your pet is the guild's pet of the day: a line after login, a golden halo on its card", function()
+    test("your pet is the guild's pet of the day: a line after login, a gold crown on its card", function()
         local w, ola = H.Setup{ ola = { 5159 }, journal = true }
         ola:Slash("adopter panda")
         w:Run(5)
         ola:Reload()
         w:Settle("day")
         ok(ola:Printed("Panda Cub er dagens dyr i guilden i dag!", true))
-        local halo
-        for _, s in ipairs(ola.ns.Decor:Specs(PANDA, 1, ola.ns.Now())) do if s.kind == "halo" then halo = s end end
-        ok(halo and halo.color == ola.ns.Scenes.GOLD)
+        ola:OpenJournal()
+        local card = ola:SelectPet(5159)
+        ok(card.crown:IsShown())
+        match(card.crown.icon.tex, "crown$")
+        eq(card.crown.points[1][1], "TOPLEFT", "its own corner without a cake")
+        card.crown.scripts.OnEnter(card.crown)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Panda Cub er dagens dyr i guilden%.")
+        for _, s in ipairs(ola.ns.Decor:Specs(PANDA, 1, ola.ns.Now())) do no(s.kind == "halo", "no halo") end
+        -- With a cake that day: beside it.
+        card.cake:Show()
+        ola.ns.Crown:Update(card, PANDA)
+        eq(card.crown.points[1][2], card.cake)
+        ola.ns.Bonds.PetOfTheDay = function() return nil end
+        ola:SelectPet(5159)
+        no(card.crown:IsShown(), "another day")
+    end)
+
+    test("petting reacts only to clicks where the pet stands, not anywhere on the card", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        local card = ola:SelectPet(5159)
+        local m, d = card.model, card.cuddle
+        m.geo = { l = 300, r = 700, t = 700, b = 300 } -- (400 by 400 on the screen)
+        local function Click(x, y)
+            ola.cursor = { x, y }
+            ola.ns.Cuddle:Stop(card)
+            m.scripts.OnMouseDown(m); m.scripts.OnMouseUp(m)
+            return d.ripple:IsShown()
+        end
+        ok(Click(500, 420), "on the pet")
+        no(Click(320, 680), "the top left corner")
+        no(Click(690, 420), "the right edge")
+        no(Click(500, 690), "high above it")
     end)
 
     test("the explore chip names the last place you discovered together", function()
