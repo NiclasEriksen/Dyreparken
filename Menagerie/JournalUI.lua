@@ -117,6 +117,10 @@ local function UpdateCard()
     -- no work, no animations, no celebration spent there. It's redrawn when
     -- the page closes (SIDEPAGE).
     if ns.SidePage:AnyOpen() then return end
+    -- Blizzard updates the card from its own events with the journal closed
+    -- too: nothing to draw then (it'd start particles, pulses and timers on a
+    -- hidden card, and ask the guild for bonds). The journal's OnShow redraws.
+    if not PetJournalPetCard:IsVisible() then return end
     local sid = CardSpecies()
     if not sid then
         card.status:SetText("")
@@ -461,6 +465,7 @@ local function OnJournalLoaded()
             ns.Decor:Stop(card)
             ns.BondTrack:Pause(card)
             ns.Cake:Update(card, nil)
+            ns.OutBadge:Update(card, nil)
             ns.Moves:Stop()
         else
             JournalUI:Refresh()

@@ -211,8 +211,12 @@ end
 -- Show the holder's bond with the pet (none: hidden). color: the family's tint, brightened.
 function Track:Update(card, key, color)
     local b = card.bond
+    -- Another pet: a celebration still running would name the last one over it.
+    if key ~= b.shownKey then self:StopCelebration(card) end
+    b.shownKey = key
     local points, level, name, from, nextAt, shownMine = ns.Bond:Shown(key)
     if not points then
+        self:Pause(card) -- (hidden, its pulses would play on)
         b:Hide()
         return
     end

@@ -287,6 +287,7 @@ function Moves:Sequence(steps)
         if mine ~= shown.token then return end
         local s = steps[i]
         if not s then return end
+        shown.last = i == #steps -- (a refresh puts back only the step that stays)
         Play(s[1], nil, s[3])
         if s[2] then C_Timer.After(s[2], function() Step(i + 1) end) end
     end
@@ -336,14 +337,17 @@ end
 -- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
 function Moves:Update(card, key)
     if not key then
-        shown.key, shown.mode = nil, nil
+        -- (nothing held either: a model loading on a closed card isn't posed again)
+        shown.key, shown.mode, shown.playing, shown.pose, shown.last = nil, nil, nil, nil, nil
         shown.token = shown.token + 1
         return
     end
     local mode = self:Rest(key)
     if key == shown.key and mode == shown.mode then
-        -- The same pet refreshed: Blizzard may have stood the model up again; put back what plays.
-        if shown.playing then Play(shown.playing, true, shown.pose) end
+        -- The same pet refreshed: Blizzard may have stood the model up again; put back the
+        -- step that stays. Not a one-off (a hop, a cheer, the lie-down): it would start over
+        -- on every guildmate's BOND message (code review 2026-11-10).
+        if shown.playing and shown.last then Play(shown.playing, true, shown.pose) end
         return
     end
     shown.key, shown.mode = key, mode
