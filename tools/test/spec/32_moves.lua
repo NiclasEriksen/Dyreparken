@@ -492,4 +492,64 @@ return function(test, H)
         w:Run(3)
         eq(actor.anim, 0)
     end)
+
+    test("/dp probe lift: step through the pets, a slider sets the lift; changes saved, the file's back when closed", function()
+        local w, ola, actor = Setup(14)
+        ola.ns.PetMoves.species[5160] = { lift = 0.3 }
+        ola:Slash("probe lift")
+        local E = ola.ns.LiftEditor
+        ola:SelectPet(5159)
+        E:Close(); ola:Slash("probe lift")
+        local f = E.frame
+        ok(f:IsShown())
+        eq(E:Current(), 5159, "starts at the pet on the card")
+        match(f.name.text, "Panda Cub %(5159%)")
+        f.slider:SetValue(0.5)
+        eq(ola.ns.DB.global.liftPicks[5159], 0.5, "saved: it differs from the file")
+        ok(math.abs(actor.pos[3] - 0.5) < 1e-6, "and on the card at once")
+        f.up:Click()
+        eq(ola.ns.DB.global.liftPicks[5159], 0.55)
+        f.down:Click(); f.down:Click()
+        eq(ola.ns.DB.global.liftPicks[5159], 0.45)
+        f.reset:Click()
+        eq(ola.ns.DB.global.liftPicks[5159], nil, "the file's again: nothing saved")
+        ok(math.abs(actor.pos[3]) < 1e-6)
+        f.slider:SetValue(-0.2)
+        -- Next: another pet; its own file value shows.
+        while E:Current() ~= 5160 do f.next:Click() end
+        eq(f.slider.value, 0.3, "the Zergling's lift from the file")
+        f.slider:SetValue(0.3) -- (unchanged: nothing saved)
+        eq(ola.ns.DB.global.liftPicks[5160], nil)
+        f.prev:Click()
+        match(f.saved.text, "^1 changed")
+        -- Closed: the card uses the file again; the picks stay saved.
+        while E:Current() ~= 5159 do f.prev:Click() end
+        ok(math.abs(actor.pos[3] + 0.2) < 1e-6)
+        f.close:Click()
+        no(f:IsShown())
+        ok(math.abs(actor.pos[3]) < 1e-6, "the file's (none) again")
+        eq(ola.ns.DB.global.liftPicks[5159], -0.2, "kept for reading back")
+        -- Without the journal: says so.
+        ola.env.PetJournal:Hide()
+        ola:Slash("probe lift")
+        ok(ola:Printed("Open the pet journal first."))
+    end)
+
+    test("/dp probe gains: the gains animation on the card's pet, saving nothing", function()
+        local w, ola = Setup(14)
+        ola:Slash("adopter panda"); w:Run(5)
+        local card = ola:SelectPet(5159)
+        local look = ola.ns.DB.char.bondLook[PANDA]
+        ola:Slash("probe gains 3 7")
+        w:Run(ola.ns.BondTrack.GROW.delay + ola.ns.BondTrack.NUMBER_EVERY + 0.01)
+        local shown = {}
+        for _, f in ipairs(card.bond.numbers) do if f:IsShown() then shown[#shown + 1] = f.text.text end end
+        eq(table.concat(shown, " "), "+3 +7")
+        eq(ola.ns.DB.char.bondLook[PANDA], look, "nothing saved")
+        ola:Slash("probe gains")
+        ok(ola:Printed("Gains preview: 5, 10, 25"))
+        card.bond:Hide() -- (a pet with no bond to show)
+        ola:Slash("probe gains")
+        ok(ola:Printed("Open a pet's card with a bond bar first."))
+    end)
 end

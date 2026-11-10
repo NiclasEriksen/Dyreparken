@@ -359,7 +359,13 @@ Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4 } -- how long
 -- hand): its species' own, else the default; nil when it doesn't do it.
 function Moves:For(key, what)
     local data = ns.PetMoves or { default = {}, species = {} }
-    local own = data.species[ns.Pets:SpeciesOfKey(key) or 0]
+    local sid = ns.Pets:SpeciesOfKey(key) or 0
+    -- While /dp probe lift is open: its picks (DyreparkenDB.liftPicks) go first.
+    if what == "lift" and self.liftEditing then
+        local pick = ns.DB.global.liftPicks[sid]
+        if pick ~= nil then return pick ~= 0 and pick or nil end
+    end
+    local own = data.species[sid]
     local id = own and own[what]
     if id == nil then id = data.default[what] end
     return id or nil
@@ -623,6 +629,19 @@ local function LiftSoon(key)
     end)
 end
 Moves.Lift = Lift
+
+-- The card's pet at its own height again, then lifted as For says now (the lift editor).
+function Moves:Relift()
+    local key = shown.key
+    if not key then return end
+    local actor = self:Actor()
+    local ok, x, y, z = Call(actor or {}, "GetPosition")
+    if ok and type(z) == "number" and shown.liftBase and shown.liftKey == key then
+        Call(actor, "SetPosition", x, y, shown.liftBase)
+    end
+    shown.liftKey, shown.liftTo = nil, nil
+    Lift(key)
+end
 
 -- Its back turned again to face you (the sulk's end, another pet, the card closing).
 UnSulk = function()

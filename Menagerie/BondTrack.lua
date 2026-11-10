@@ -386,6 +386,13 @@ function Track:Gains(card, key, points, from, top)
     local total = 0
     for _, n in ipairs(list or {}) do total = total + n end
     if total ~= points - last then list = { points - last } end -- (a crash, a sync: just the sum)
+    self:Animate(card, points, from, top, last, list)
+end
+
+-- The bar growing from `last` to `points` (within the level: from..top) and
+-- the numbers in `list` rising from its tip. (/dp probe gains plays it too.)
+function Track:Animate(card, points, from, top, last, list)
+    local b = card.bond
     local token = (b.gainToken or 0) + 1
     b.gainToken = token
     -- The bar: from where it was (within this level) to now, in steps.
@@ -518,6 +525,23 @@ function Track:Celebrate(card, key, level)
     cel.text:Show(); cel.text.anim:Play()
     ns.Log("Bond", "celebration sound %s", tostring(ns.PlayFirstSound(self.SOUNDS)))
     ns.Log("Bond", "celebrated %s level %d", key, level)
+end
+
+-- /dp probe gains [n n ...]: the gains animation on the card's pet as if these
+-- were gained since the last look (development; saves nothing).
+function Track:PreviewGains(arg)
+    local card = ns.JournalUI._card
+    if not (card and card.key and card.bond and card.bond:IsShown()) then
+        return ns.Print("Open a pet's card with a bond bar first.")
+    end
+    local list = {}
+    for n in (arg or "5 10 25"):gmatch("%d+") do list[#list + 1] = tonumber(n) end
+    if #list == 0 then list = { 5, 10, 25 } end
+    local points, _, _, from, nextAt = ns.Bond:Shown(card.key)
+    local sum = 0
+    for _, n in ipairs(list) do sum = sum + n end
+    self:Animate(card, points, from, nextAt or math.max(points, 1), points - sum, list)
+    ns.Print(("Gains preview: %s on %s."):format(table.concat(list, ", "), card.key))
 end
 
 -- /dp probe celebrate: the celebration on the card as it is (development).

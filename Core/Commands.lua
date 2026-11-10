@@ -134,6 +134,8 @@ local PROBES = {
     { "anim", function(a) ns.Moves:Probe(a) end, "[list|all|custom|stop|night|sleep <id> [s]|blend none|anim|<id|name> [speed] [offset]]" },
     { "ach", function(a) ns.Pets:ProbeAch(a) end, "[post|now|group|groupnow]" },
     { "pos", function(a) ns.Moves:ProbePos(a) end, "[box|x|y|z <delta>|scale <n>|reset]" },
+    { "lift", function() ns.LiftEditor:Toggle() end },
+    { "gains", function(a) ns.BondTrack:PreviewGains(a) end, "[n n ...]" },
 }
 local usage = {}
 for _, p in ipairs(PROBES) do usage[#usage + 1] = p[3] and (p[1] .. " " .. p[3]) or p[1] end

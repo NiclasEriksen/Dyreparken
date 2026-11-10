@@ -261,7 +261,19 @@ function Frame:GetStatusBarTexture()
     return self.barRegion
 end
 function Frame:SetMinMaxValues(a, b) self.min, self.max = a, b end
-function Frame:SetValue(v) self.value = v end
+function Frame:GetMinMaxValues() return self.min, self.max end
+-- A Slider tells its OnValueChanged (userInput false), like the client.
+function Frame:SetValue(v)
+    local old = self.value
+    self.value = v
+    if self.type == "Slider" and old ~= v and self.scripts and self.scripts.OnValueChanged then
+        self.scripts.OnValueChanged(self, v, false)
+    end
+end
+function Frame:GetValue() return self.value end
+function Frame:SetValueStep(s) self.step = s end
+function Frame:SetObeyStepOnDrag() end
+function Frame:SetOrientation(o) self.orientation = o end
 -- Anchors and size are recorded (not laid out): f.points, f.size.
 function Frame:SetPoint(...) self.points = self.points or {}; self.points[#self.points + 1] = { ... } end
 function Frame:ClearAllPoints() self.points = {} end

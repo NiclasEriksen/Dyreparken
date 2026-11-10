@@ -28,6 +28,7 @@ local ACCOUNT_DEFAULTS = {
         chatLines = true, worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,
     },
     scenePicks = {}, -- family -> background path, picked in /dp probe bg (SceneGallery.lua)
+    liftPicks = {},  -- species id -> lift, set in /dp probe lift (LiftEditor.lua); to write into Data/PetMoves.lua
     decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor (Decor.lua)
 }
 

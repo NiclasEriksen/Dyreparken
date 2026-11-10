@@ -27,8 +27,8 @@ local _, ns = ...
 --   walk   the pet you keep out (auto-summon), while you move on foot and it would just stand
 --   run    ... while you're mounted and moving (on a taxi it stands)
 --   lift   (not an animation) how much higher (or lower, negative) the pet stands on its card than
---          Blizzard puts it: some models float, some sink. Found by eye with /dp probe pos z <delta>
---          (2026-11-10: Brown Prairie Dog -0.2, Zergling 0.3).
+--          Blizzard puts it: some models float, some sink. Found by eye: /dp probe lift steps through
+--          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here.
 ns.PetMoves = {
     default = { sleep = 6, sleepAt = 1.2, sit = 97, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
