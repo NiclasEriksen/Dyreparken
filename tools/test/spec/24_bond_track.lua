@@ -198,11 +198,11 @@ return function(test, H)
         eq(kb.text.text, "375 / 530"); no(kb.today:IsShown()); eq(kb.next.text, "Ola Nord sitt bånd")
         -- A new day: room again. The day's own points fit the limit too.
         w:SkipDays(1)
+        ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), pets = { [PANDA] = { got = {}, total = 70 } } }
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned(), 380)
-        ola.ns.DB.char.bondToday.pets[PANDA].total = 70
+        eq(Earned(), 380, "the new day's visit came first, with the herb: only the 5 left, nothing for the herb")
         ola.ns.Activity:CheckDay()
-        eq(Earned(), 385, "the day visit: only the 5 left")
+        eq(Earned(), 380, "once a day")
         card = ola:SelectPet(5159)
         match(b.next.text, "Fullt for i dag$")
     end)

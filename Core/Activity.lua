@@ -113,6 +113,10 @@ function Activity:Emit(id, n, extra)
     end
     n = n or 1
     local key, mine = PetNow()
+    -- Past midnight while online, the new day's visit comes with the first
+    -- thing done (code review 2026-11-10: it waited for a summon, and a night
+    -- player lost the day and its holiday eggs). First, so it counts first.
+    if key and id ~= "day" then self:NewDay() end
     local c = Counter(id)
     local today = Today()
     if c.day ~= today then c.day, c.today = today, 0 end
@@ -233,7 +237,8 @@ ns.Bus:On("DEBUG", function(on) if ns.DB.char then Activity:SetDebug(on) end end
 
 ------------------------------------------------------------------------------
 -- The daily visit: once a calendar day per companion, the first time it's
--- out (checked after login and after any summon). Every pet of yours has
+-- out (checked after login, after any summon, when auto-summon finds it back
+-- out, and before any other activity). Every pet of yours has
 -- its own day (2026-11-09; before, only the adopted one).
 ------------------------------------------------------------------------------
 function Activity:CheckDay()
@@ -241,12 +246,19 @@ function Activity:CheckDay()
     if not (w and next(w)) then return end
     local key = PetNow()
     if not key then return end
+    self.dayChecked = Today()
     local c = Counter("day")
     c.on = c.on or {}
     local today = Today()
     if c.on[key] == today then return end
     c.on[key] = today
     self:Emit("day", 1, key)
+end
+
+-- The day's visit if the date changed since the last check (none yet: the
+-- login's check, 30 s in, comes first).
+function Activity:NewDay()
+    if self.dayChecked and Today() ~= self.dayChecked then self:CheckDay() end
 end
 
 Activity:Source({ id = "day", events = {} })

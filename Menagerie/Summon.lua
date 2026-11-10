@@ -150,7 +150,9 @@ function Summon:Check(reason)
     -- Every check is logged (not only summons): checks while a pet is out
     -- are how a stray trigger shows up in the log.
     ns.Log("Summon", "check (%s): out=%s", tostring(reason), tostring(out))
-    if out and ns.Pets:KeyOf(out) == key then swapTo = nil end
+    -- (ours came back on its own, after a loading screen or landing: its day's
+    -- visit may be due, with no summon call to say so)
+    if out and ns.Pets:KeyOf(out) == key then swapTo = nil; ns.Activity:NewDay() end
     if out and swapTo ~= key then return end
     local guid = ns.Pets:Owned()[key]
     if not guid then return end
@@ -250,7 +252,8 @@ function Summon:Watch()
     if want == watching then return end
     watching = want
     if not want then
-        for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED", "PLAYER_MOUNT_DISPLAY_CHANGED" }) do
+        for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED", "PLAYER_MOUNT_DISPLAY_CHANGED",
+            "PLAYER_ALIVE", "PLAYER_UNGHOST" }) do
             ns.Events:Off(e, Summon)
         end
         return
@@ -264,6 +267,15 @@ function Summon:Watch()
     ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Summon, function()
         C_Timer.After(1.5, function() Summon:Check("dismount") end)
     end)
+    -- Back on your feet: the retries while dead give up after a minute, and a
+    -- corpse run takes longer (code review 2026-11-10). PLAYER_ALIVE also fires
+    -- on releasing to a ghost and at loading screens: only once really alive.
+    local function Alive(_, event)
+        if Truthy(UnitIsDeadOrGhost("player")) then return end
+        C_Timer.After(1, function() Summon:Check(event) end)
+    end
+    ns.Events:On("PLAYER_ALIVE", Summon, Alive)
+    ns.Events:On("PLAYER_UNGHOST", Summon, Alive)
 end
 
 function Summon:AnnounceDeferral()

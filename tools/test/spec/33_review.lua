@@ -94,4 +94,37 @@ return function(test, H)
         w:Run(1)
         eq(actor.anim, 0)
     end)
+
+    test("online past midnight: the new day's visit comes with the first thing done, or the pet found out", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local function Visits() return select(3, ola.ns.Activity:Count("day")) end -- (today's)
+        eq(Visits(), 1, "the login's visit")
+        local d = os.date("*t", w:ServerTime())
+        w:Skip((23 - d.hour) * 3600 + (59 - d.min) * 60 + (60 - d.sec) + 60) -- 00:01, still online
+        eq(Visits(), 0, "nothing yet")
+        ola:Fire("QUEST_TURNED_IN", 1)
+        eq(Visits(), 1, "the visit came with the quest")
+        ok(ola.ns.Bond:Today(PANDA) > 1, "and its points")
+        -- Another night: auto-summon finding the pet back out (a loading screen) brings it too.
+        w:SkipDays(1)
+        eq(Visits(), 0)
+        ola:Fire("PLAYER_ENTERING_WORLD")
+        w:Run(4)
+        eq(Visits(), 1)
+    end)
+
+    test("a corpse run longer than a minute: the pet comes back once you're alive", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        ola:Set("dead", true); ola:Summon(nil); ola:Fire("PLAYER_DEAD")
+        ola:Fire("PLAYER_ALIVE") -- (released: a ghost, still dead)
+        w:Run(90)
+        eq(ola.summoned, nil, "the retries gave up")
+        ola:Set("dead", false); ola:Fire("PLAYER_UNGHOST")
+        w:Run(3)
+        ok(ola.summoned, "back out")
+    end)
 end

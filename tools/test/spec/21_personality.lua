@@ -246,11 +246,11 @@ return function(test, H)
         -- A new day.
         w:SkipDays(1)
         Herb(ola)
-        eq(Points(), 55)
+        eq(Points(), 75, "the new day's visit with the first thing done (20), and the herb (5)")
         -- Not with another companion out.
         ola:Summon(40)
         Herb(ola)
-        eq(Points(), 55)
+        eq(Points(), 75)
     end)
 
     test("the card and tooltips tell its personality", function()
