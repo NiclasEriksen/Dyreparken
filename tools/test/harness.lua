@@ -1013,7 +1013,7 @@ function Client:OpenJournal(o)
             model.RotateLeftButton = env.CreateFrame("Button", nil, model)
             model.RotateRightButton = env.CreateFrame("Button", nil, model)
             -- The pet's actor (retail's ModelScene: GetActorByTag). It has the animations in
-            -- self.petAnims (default: stand, dance, victory); o.noActor leaves it out.
+            -- self.petAnims (default: stand, the happy hop, playing dead); o.noActor leaves it out.
             if not o.noActor then
                 local client = self
                 local actor = { played = {} }
@@ -1024,7 +1024,7 @@ function Client:OpenJournal(o)
                     return self.anim
                 end
                 function actor:HasAnimation(id)
-                    return (client.petAnims or { [0] = true, [69] = true, [764] = true })[id] == true
+                    return (client.petAnims or { [0] = true, [756] = true, [770] = true })[id] == true
                 end
                 function model:GetActorByTag(tag) if tag == "unwrapped" then return actor end end
                 self.petActor = actor

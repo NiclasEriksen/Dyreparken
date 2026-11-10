@@ -100,6 +100,7 @@ local WIDGETS = {
     function(key, ctx) ns.BondTrack:Update(card, key, ns.Scenes.Bright(ctx.tint, 1.7)) end,
     function(key) ns.OutBadge:Update(card, key) end, -- "Med deg": is this the pet kept out?
     function(key) ns.Cake:Update(card, key) end, -- a cake on its milestone day
+    function(key) ns.Moves:Update(card, key) end, -- the pet's pose: asleep at night, a Latsabb sitting...
 }
 
 local function DrawWidgets(key)
@@ -297,6 +298,7 @@ local function BuildCard()
     ns.Wish:Build(card, c)
     ns.OutBadge:Build(card, c)
     ns.Cake:Build(card, c)
+    c:HookScript("OnHide", function() ns.Moves:Stop() end) -- (the pet's pose starts over next time)
 
     -- The left column: lines that stop at the bond column; a long one ends in
     -- "...", and hovering it tells all.
@@ -459,6 +461,7 @@ local function OnJournalLoaded()
             ns.Decor:Stop(card)
             ns.BondTrack:Pause(card)
             ns.Cake:Update(card, nil)
+            ns.Moves:Stop()
         else
             JournalUI:Refresh()
         end

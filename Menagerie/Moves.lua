@@ -1,34 +1,45 @@
 local _, ns = ...
 
--- Animating the pet on the card (docs/IDEAS.md, "Animating the pet on
--- demand"). For now only the research probe, in a git checkout:
---   /dp probe anim          which of the animations below the card's pet has
---                           (the actor's HasAnimation, if the client has it)
---   /dp probe anim <id|name> play one (EmoteDance, 69, PetBattleVictory...)
---   /dp probe anim all      play each one it has, 3 s apart, naming it in chat
+-- The pet on the card moves (2026-11-10, docs/IDEAS.md "Animating the pet on
+-- demand"; what plays is in docs/FOREVER_API.md):
+--   at night it's asleep when you open the card (not a Nattugle), and a click
+--     wakes it with a stretch;
+--   a Latsabb sits down after a few seconds;
+--   a click on it (Cuddle.lua) makes it happy: PetBattleCustom0, a joyful
+--     hop on the Panda Cub;
+--   a bond level-up (BondTrack's celebration) makes it cast a little spell;
+--   the day the "is it safe to live with you?" egg (three deaths) came up,
+--     it plays dead for a moment, the first time you see its card.
+-- The client can't tell us which animations a model has (no HasAnimation,
+-- SetAnimation takes any id, GetAnimation echoes it), and they differ: the
+-- most basic pets have only stand, death, walk, run and the pet battle set.
+-- A missing one leaves the pet standing, which is fine for the idle poses;
+-- the reactions use the pet battle set every pet has.
+-- Timers only while the card shows a pet; a new pet, the journal closing or
+-- our pages covering the card cancel them.
+--
+-- And the research probe, in a git checkout:
+--   /dp probe anim          the actor, and the animations we try
+--   /dp probe anim <id|name> play one
+--   /dp probe anim all|custom  play each (or the four custom ones), 3 s apart
 --   /dp probe anim stop     back to standing
--- Everything goes to chat and the debug log: what was found, what the client
--- accepted. What the pet actually did is for the eye; ask the user.
 local Moves = {}
 ns.Moves = Moves
 
 -- AnimationData ids as https://wowdev.wiki/M2/AnimationList lists them
--- (read 2026-11-10; not checked against the client's own table yet).
+-- (read 2026-11-10). Only those that played on a companion: the emotes
+-- (60-186) and PetBattleStand, Victory, Loss, Stun and Freeze did nothing.
 Moves.ANIMS = {
     { 0, "Stand" }, { 1, "Death" }, { 4, "Walk" }, { 5, "Run" },
     { 37, "JumpStart" }, { 38, "Jump" }, { 39, "JumpEnd" },
-    { 60, "EmoteTalk" }, { 66, "EmoteBow" }, { 67, "EmoteWave" }, { 68, "EmoteCheer" }, { 69, "EmoteDance" },
-    { 70, "EmoteLaugh" }, { 71, "EmoteSleep" }, { 72, "EmoteSitGround" }, { 74, "EmoteRoar" }, { 75, "EmoteKneel" },
-    { 79, "EmoteBeg" }, { 80, "EmoteApplaud" }, { 82, "EmoteFlex" }, { 83, "EmoteShy" }, { 84, "EmotePoint" },
     { 96, "SitGroundDown" }, { 97, "SitGround" }, { 98, "SitGroundUp" },
     { 99, "SleepDown" }, { 100, "Sleep" }, { 101, "SleepUp" },
-    { 113, "EmoteSalute" }, { 185, "EmoteYes" }, { 186, "EmoteNo" },
-    { 742, "PetBattleStand" }, { 744, "PetBattleDeath" }, { 746, "PetBattleRun" }, { 748, "PetBattleWound" },
-    { 750, "PetBattleAttack" }, { 752, "PetBattleReadySpell" }, { 754, "PetBattleSpellCast" },
+    { 744, "PetBattleDeath" }, { 746, "PetBattleRun" }, { 748, "PetBattleWound" }, { 750, "PetBattleAttack" },
+    { 752, "PetBattleReadySpell" }, { 754, "PetBattleSpellCast" },
     { 756, "PetBattleCustom0" }, { 758, "PetBattleCustom1" }, { 760, "PetBattleCustom2" },
-    { 762, "PetBattleCustom3" }, { 764, "PetBattleVictory" }, { 766, "PetBattleLoss" }, { 768, "PetBattleStun" },
-    { 770, "PetBattleDead" }, { 772, "PetBattleFreeze" },
+    { 762, "PetBattleCustom3" }, { 770, "PetBattleDead" },
 }
+Moves.GROUPS = { custom = { 756, 758, 760, 762 } }
 Moves.EVERY = 3 -- seconds per animation in "all"
 
 local function Say(fmt, ...)
@@ -108,18 +119,19 @@ function Moves:Probe(arg)
         return Say("actor by %s; HasAnimation=%s GetAnimation=%s; has %d of %d: %s", how, tostring(known),
             tostring(setAnim), #names, #self.ANIMS, table.concat(names, ", "))
     end
-    if word == "all" then
+    if word == "all" or self.GROUPS[word] then
         cycle = cycle + 1
-        local mine, list = cycle, {}
+        local mine, list, only = cycle, {}, {}
+        for _, id in ipairs(self.GROUPS[word] or {}) do only[id] = true end
         for _, a in ipairs(self.ANIMS) do
-            if has[a[1]] ~= false then list[#list + 1] = a end -- (unknown: try it too)
+            if has[a[1]] ~= false and (word == "all" or only[a[1]]) then list[#list + 1] = a end -- (unknown: try it too)
         end
         local function Step(i)
             if mine ~= cycle then return end
             local a = list[i]
             if not a then
                 Call(actor, "SetAnimation", 0)
-                return Say("all: done, %d tried", #list)
+                return Say("%s: done, %d tried", word, #list)
             end
             local ok, err = Call(actor, "SetAnimation", a[1])
             -- What the actor reports right away and a moment later: a model without the
@@ -140,4 +152,110 @@ function Moves:Probe(arg)
     local ok, err = Call(actor, "SetAnimation", id)
     Say("%s (%d): SetAnimation %s; has it: %s; now %s", name, id, ok and "ok" or tostring(err), tostring(has[id]),
         Now(actor))
+end
+
+------------------------------------------------------------------------------
+-- The pet on the card
+------------------------------------------------------------------------------
+local A = { STAND = 0, SIT_DOWN = 96, SIT = 97, SIT_UP = 98, SLEEP_DOWN = 99, SLEEP = 100, SLEEP_UP = 101,
+    CAST = 754, HAPPY = 756, DEAD = 770 }
+Moves.A = A
+Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
+Moves.T = { down = 1.2, up = 1.4, happy = 2, cast = 2.5, dead = 4 } -- how long each one-off plays
+
+local shown = { token = 0, awake = {} } -- the card's pet, its pose, and pets woken this session
+
+local function Play(id)
+    local actor = Moves:Actor()
+    if actor then Call(actor, "SetAnimation", id) end
+end
+
+-- Steps { id, seconds }: each in turn; the last one stays. Replaces any running.
+function Moves:Sequence(steps)
+    shown.token = shown.token + 1
+    local mine = shown.token
+    local function Step(i)
+        if mine ~= shown.token then return end
+        local s = steps[i]
+        if not s then return end
+        Play(s[1])
+        if s[2] then C_Timer.After(s[2], function() Step(i + 1) end) end
+    end
+    Step(1)
+end
+
+local function HasTrait(key, id)
+    if not ns.Personality:Known(key) then return false end
+    for _, t in ipairs(ns.Personality:Traits(key)) do if t.id == id then return true end end
+    return false
+end
+
+-- Playing dead: the egg came up today with this pet, and it hasn't been seen yet.
+local function DeadToday(key)
+    local egg = ns.DB.char.eggs.dodsfall
+    return egg and egg.key == key and egg.day == ns.Today() and not egg.played
+end
+
+-- The pose the card's pet takes on its own.
+function Moves:Rest(key, t)
+    if DeadToday(key) then return "dead" end
+    if not shown.awake[key] then
+        if ns.Personality.IsNight(t or ns.Now()) and not HasTrait(key, "nattugle") then return "sleep" end
+        if HasTrait(key, "latsabb") then return "sit" end
+    end
+    return "stand"
+end
+
+local REST = {
+    sleep = { { A.SLEEP_DOWN, Moves.T.down }, { A.SLEEP } },
+    sit = { { A.STAND, Moves.SIT_AFTER }, { A.SIT_DOWN, Moves.T.down }, { A.SIT } },
+    dead = { { A.DEAD, Moves.T.dead }, { A.STAND } },
+    stand = { { A.STAND } },
+}
+
+-- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
+function Moves:Update(card, key)
+    if not key then
+        shown.key, shown.mode = nil, nil
+        shown.token = shown.token + 1
+        return
+    end
+    local mode = self:Rest(key)
+    if key == shown.key and mode == shown.mode then return end
+    shown.key, shown.mode = key, mode
+    if mode == "dead" then ns.DB.char.eggs.dodsfall.played = true end
+    self:Sequence(REST[mode])
+end
+
+-- After a reaction: back to its pose (awake now, if it slept or sat).
+local function Back(key)
+    shown.awake[key] = true
+    shown.mode = Moves:Rest(key)
+    return REST[shown.mode][#REST[shown.mode]][1]
+end
+
+-- A click on the pet (Cuddle.lua): wakes it up, or a happy hop.
+function Moves:Cuddle(key)
+    if key ~= shown.key then return end
+    local mode = shown.mode
+    local back = Back(key)
+    if mode == "sleep" then
+        self:Sequence({ { A.SLEEP_UP, self.T.up }, { A.HAPPY, self.T.happy }, { back } })
+    elseif mode == "sit" then
+        self:Sequence({ { A.SIT_UP, self.T.up }, { A.HAPPY, self.T.happy }, { back } })
+    else
+        self:Sequence({ { A.HAPPY, self.T.happy }, { back } })
+    end
+end
+
+-- A bond level reached (BondTrack's celebration): a little spell of joy.
+function Moves:Cheer(key)
+    if key ~= shown.key then return end
+    local back = Back(key)
+    self:Sequence({ { A.CAST, self.T.cast }, { back } })
+end
+
+-- The journal closing or our pages covering the card: stop, and start over next time.
+function Moves:Stop()
+    self:Update(nil, nil)
 end

@@ -122,6 +122,7 @@ function Cuddle:Pet(card, x, y)
     end
     d.glow:Show(); d.glow.anim:Play()
     ns.PlayFirstSound(self.SOUNDS)
+    ns.Moves:Cuddle(key) -- (wakes it, or a happy hop)
     -- Once a day, a cuddle for the bond: your adopted pet, out with you.
     local today = ns.Today()
     if ns.Pets:OutKey() == key and ns.DB.char.cardCuddle ~= today then

@@ -53,6 +53,9 @@ animation ids from the client's animation table (stand, bow, wave, cheer, dance,
 the ids need looking up, not guessing), and log which the client accepts and whether the pet
 moves. Then ask the user what they saw. Read docs/FOREVER_API.md (secret values, the model scene notes) first.
 
+Built 2026-11-10 (Menagerie/Moves.lua): asleep at night, the Latsabb sitting, the happy hop on a click, the level-up
+spell, playing dead. Still open below: the rest.
+
 What it could open, once we know which animations a companion has:
 - **Reactions on the card**: a cuddle click (Cuddle.lua) makes it bow or jump; a bond level-up (BondTrack's
   celebration) makes it cheer or dance; opening the card in the evening finds it asleep.

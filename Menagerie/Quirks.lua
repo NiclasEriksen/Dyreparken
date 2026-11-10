@@ -147,7 +147,7 @@ function Quirks:Egg(on, key, extra)
             local text = vars and Pick("egg." .. e.id, setmetatable({ pet = ctx.name }, { __index = vars }))
             if text then
                 had = ns.DB.char.eggs[e.id] or {}
-                had.n, had.day = (had.n or 0) + 1, today
+                had.n, had.day, had.key, had.played = (had.n or 0) + 1, today, key, nil -- (Moves: playing dead)
                 ns.DB.char.eggs[e.id] = had
                 self:Say(text, ("egg %s %s"):format(e.id, key))
                 return true

@@ -178,6 +178,7 @@ return function(test, H)
         no(ola:Printed("trygt", true))
         A:Emit("revive")
         ok(ola:Printed("Bombay Cat lurer på om det er trygt å bo hos deg.", true), "the third death today")
+        eq(ola.ns.DB.char.eggs.dodsfall.key, CAT, "which pet: it plays dead on its card (Moves.lua)")
         w:Skip(3601)
         ola.ns.DB.char.activity.quest = { total = 499, mine = 0, today = 0, pets = { [CAT] = 98 } }
         ola.ns.DB.char.quirkAt = ola.ns.Now()
