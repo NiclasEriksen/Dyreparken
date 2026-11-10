@@ -1034,6 +1034,8 @@ function Client:OpenJournal(o)
                 end
                 -- Retail's Enum.ModelBlendOperation: 0 None (cut straight to it), 1 Anim (blend).
                 function actor:SetAnimationBlendOperation(op) self.blendOp = op end
+                function actor:GetYaw() return self.yaw or 0 end
+                function actor:SetYaw(y) self.yaw = y end
                 function actor:HasAnimation(id)
                     return (client.petAnims or { [0] = true, [756] = true, [770] = true })[id] == true
                 end

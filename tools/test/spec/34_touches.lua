@@ -306,6 +306,7 @@ return function(test, H)
         ola:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath")
         w:RunTimers()
         ok(A:Got("dislikes"), "found it")
+        eq(ola.ns.DB.char.sulk.key, "s:40", "and it sulks on its card (Moves)")
         eq(w:Sent("ACH_EARNED", nil, m), 1, "news")
     end)
 

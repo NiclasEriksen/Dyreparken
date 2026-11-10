@@ -86,6 +86,7 @@ function Quirks:Dislike(key, id)
     self:Say(text, ("dislike %s %s"):format(key, id), "dislike", function()
         seen[key] = seen[key] or {}
         seen[key][id] = true
+        ns.DB.char.sulk = { key = key, day = ns.Today() } -- (Moves: its back turned on the card, once)
         if not first then return end
         ns.Bus:Fire("DISLIKE_FOUND", key, id)
         ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")

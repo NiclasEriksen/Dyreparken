@@ -400,6 +400,33 @@ local function Steps(key, mode)
     return { { Moves:MotionId(key) or STAND } }
 end
 
+-- Sulking (2026-11-10): the first time you open its card on a day a dislike
+-- of its came up (Quirks: char.sulk), the pet turns its back for a few
+-- seconds, a little cloud over it. ModelSceneActor:SetYaw is unverified on
+-- Forever: without it, just the cloud.
+Moves.SULK = 3
+local function Sulk(key)
+    local s = ns.DB.char.sulk
+    if not (s and s.key == key and s.day == ns.Today() and not s.shown) then return end
+    s.shown = true
+    local token = shown.token
+    C_Timer.After(Moves.SETTLE, function()
+        if token ~= shown.token or shown.key ~= key then return end
+        local card = rawget(_G, "PetJournalPetCard")
+        if card and ns.Fx then
+            ns.Fx:Burst({ card, "CENTER", 0, 60 }, "cloud", { n = 2, color = { 0.8, 0.8, 0.85 }, alpha = 0.7, size = 0.6, rise = 30 })
+        end
+        local actor = Moves:Actor()
+        local ok, yaw = Call(actor or {}, "GetYaw")
+        if not (ok and type(yaw) == "number") then return ns.Log("Moves", "sulk: no GetYaw") end
+        Call(actor, "SetYaw", yaw + math.pi)
+        ns.Log("Moves", "sulk %s: back turned", key)
+        C_Timer.After(Moves.SULK, function()
+            if Moves:Actor() == actor then Call(actor, "SetYaw", yaw) end
+        end)
+    end)
+end
+
 -- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
 function Moves:Update(card, key)
     self:Follow(key)
@@ -427,6 +454,7 @@ function Moves:Update(card, key)
         table.insert(steps, 1, { STAND, self.SETTLE })
     end
     self:Sequence(steps)
+    Sulk(key)
 end
 
 -- After a reaction: back to its pose (awake now, if it slept or sat).

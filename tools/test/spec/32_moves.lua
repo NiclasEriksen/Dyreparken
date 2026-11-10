@@ -379,4 +379,17 @@ return function(test, H)
         ola:Move()
         eq(actor.anim, 0)
     end)
+
+    test("a dislike today: the first look at its card, it turns its back for a moment", function()
+        local w, ola, actor = Setup(14)
+        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola:SelectPet(5159)
+        w:Run(ola.ns.Moves.SETTLE + 0.05)
+        ok(math.abs(actor.yaw - math.pi) < 1e-6, "back turned")
+        w:Run(ola.ns.Moves.SULK + 0.1)
+        eq(actor.yaw, 0, "and back")
+        ola:SelectPet(46); ola:SelectPet(5159)
+        w:Run(1)
+        eq(actor.yaw, 0, "once")
+    end)
 end

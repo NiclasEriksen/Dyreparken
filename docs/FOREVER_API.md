@@ -90,7 +90,8 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 - Settings: `Settings.RegisterCanvasLayoutCategory` / `Settings.RegisterAddOnCategory` exist.
 - The Addon Compartment TOC fields exist (`AddonCompartmentFunc` …); whether the button shows is unconfirmed.
 - Unverified, relied on since 2026-11-10 (each degrades to nothing when missing): `PLAYER_STARTED_MOVING`,
-  `PLAYER_STOPPED_MOVING` and `GetUnitSpeed("player")` (the card's pet walking with you, Moves.lua).
+  `PLAYER_STOPPED_MOVING` and `GetUnitSpeed("player")` (the card's pet walking with you, Moves.lua);
+  `ModelSceneActor:GetYaw/SetYaw` (the pet turning its back after a dislike).
 
 ## Companions (C_PetJournal)
 
