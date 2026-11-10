@@ -299,33 +299,66 @@ end
 
 local ROW_GAP = 10
 
+-- Past the side tabs when they're laid out; else about their width (Forever's, seen 2026-11-10).
+Story.TABS_W = 62
+local function Place(f)
+    local host = CollectionsJournal
+    local right, edge = ns.SidePage:TabsRight(), host:GetRight()
+    local x = (right and edge) and (right - edge) or Story.TABS_W
+    f:ClearAllPoints()
+    f:SetPoint("TOPLEFT", host, "TOPRIGHT", x + 2, 0)
+    f:SetPoint("BOTTOMLEFT", host, "BOTTOMRIGHT", x + 2, 0) -- (as tall as the window)
+end
+
+-- Like the Collections window itself (2026-11-10, the user: a plain dark box didn't
+-- match): Blizzard's ButtonFrameTemplate without its portrait, the content in an
+-- inset. Without the template (older clients), a plain frame of our own.
 function Story:BuildPanel()
     local host = CollectionsJournal
-    local f = CreateFrame("Frame", "DyreparkenStoryPanel", host)
+    local template = ns.SidePage.Template("ButtonFrameTemplate")
+    -- On UIParent, not the window: as the window's child, the side tab scan
+    -- (SidePage:TabsRight) took its buttons for tabs, and it crept right with
+    -- every pet shown (2026-11-10). Hidden with the window by the hooks below.
+    local f = CreateFrame("Frame", "DyreparkenStoryPanel", UIParent, template)
+    f:SetFrameStrata(host:GetFrameStrata() or "HIGH")
     f:SetWidth(self.WIDTH)
-    f:SetPoint("TOPLEFT", host, "TOPRIGHT", 2, 0)
-    f:SetPoint("BOTTOMLEFT", host, "BOTTOMRIGHT", 2, 0) -- (as tall as the window)
     f:EnableMouse(true)
-    f.bg = f:CreateTexture(nil, "BACKGROUND")
-    f.bg:SetAllPoints()
-    f.bg:SetColorTexture(0.06, 0.05, 0.04, 0.95)
-    f.edge = f:CreateTexture(nil, "BORDER")
-    f.edge:SetPoint("TOPLEFT"); f.edge:SetPoint("BOTTOMLEFT")
-    f.edge:SetWidth(2)
-    f.edge:SetColorTexture(1, 0.82, 0, 0.35)
-    f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-    f.title:SetPoint("TOPLEFT", f, "TOPLEFT", 14, -12)
-    f.title:SetPoint("RIGHT", f, "RIGHT", -34, 0)
-    f.title:SetJustifyH("LEFT")
-    f.title:SetWordWrap(false)
-    f.close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
-    f.close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -2)
+    if template then
+        if ButtonFrameTemplate_HidePortrait then ButtonFrameTemplate_HidePortrait(f) end
+    else
+        f.bg = f:CreateTexture(nil, "BACKGROUND")
+        f.bg:SetAllPoints()
+        f.bg:SetColorTexture(0.06, 0.05, 0.04, 0.95)
+    end
+    -- The title: the template's own title text, else ours.
+    f.SetStoryTitle = function(_, text)
+        if template and f.SetTitle then return f:SetTitle(text) end
+        if not f.title then
+            f.title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            f.title:SetPoint("TOP", f, "TOP", 0, -6)
+            f.title:SetPoint("LEFT", f, "LEFT", 30, 0)
+            f.title:SetPoint("RIGHT", f, "RIGHT", -30, 0)
+            f.title:SetWordWrap(false)
+        end
+        f.title:SetText(text)
+    end
+    f.close = rawget(f, "CloseButton")
+    if not f.close then
+        f.close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+        f.close:SetPoint("TOPRIGHT", f, "TOPRIGHT", -2, -2)
+    end
     f.close:SetScript("OnClick", function() Story:Close() end)
-    f.scroll = CreateFrame("ScrollFrame", nil, f, "UIPanelScrollFrameTemplate")
-    f.scroll:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -42)
-    f.scroll:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -30, 12)
+    local inset = rawget(f, "Inset")
+    if not inset then
+        inset = CreateFrame("Frame", nil, f, ns.SidePage.Template("InsetFrameTemplate"))
+        inset:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -60)
+        inset:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -6, 26)
+    end
+    f.scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
+    f.scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", 8, -8)
+    f.scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 6)
     f.child = CreateFrame("Frame", nil, f.scroll)
-    f.child:SetSize(self.WIDTH - 46, 1)
+    f.child:SetSize(self.WIDTH - 50, 1)
     f.scroll:SetScrollChild(f.child)
     f.rows = {}
     -- Only beside the pets: another tab of the window, or the window closing, closes it.
@@ -342,7 +375,7 @@ local function Row(f, i)
     r.date:SetJustifyH("LEFT")
     r.text = f.child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     r.text:SetJustifyH("LEFT")
-    r.text:SetWidth(Story.WIDTH - 50)
+    r.text:SetWidth(Story.WIDTH - 54)
     r.text:SetWordWrap(true)
     f.rows[i] = r
     return r
@@ -353,7 +386,7 @@ function Story:Redraw()
     local f = self.panel
     if not (f and f:IsShown() and f.key) then return end
     local key = f.key
-    f.title:SetText(ns.T("story.title", { pet = ns.Registry:NameOf(key) }))
+    f:SetStoryTitle(ns.T("story.title", { pet = ns.Registry:NameOf(key) }))
     local list = self:Of(key) or {}
     local firstAdopt
     for i, e in ipairs(list) do if e.k == "adopt" then firstAdopt = i; break end end
@@ -390,6 +423,7 @@ function Story:Show(key)
     if not key then return end
     if not self.panel then self:BuildPanel() end
     self.panel.key = key
+    Place(self.panel) -- (each time: the tabs may have moved since)
     self.panel:Show()
     self:Redraw()
 end

@@ -56,6 +56,15 @@ Proto.__index = Proto
 -- least half the window's height is such a container (look inside, two
 -- levels at most), anything smaller is a tab. Returns Blizzard's shown tabs
 -- top to bottom.
+-- How far right the side tabs reach (Blizzard's and ours), or nil before layout.
+function SidePage:TabsRight()
+    local right = host and host:GetRight()
+    if not right then return nil end
+    for _, f in ipairs(self:SideTabs()) do right = math.max(right, f:GetRight() or right) end
+    for f in pairs(ours) do if f:IsShown() then right = math.max(right, f:GetRight() or right) end end
+    return right
+end
+
 function SidePage:SideTabs()
     local tabs = {}
     local right = host and host:GetRight()

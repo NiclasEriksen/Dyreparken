@@ -33,7 +33,10 @@ return function(test, H)
         ok(p:IsShown())
         eq(p.points[1][2], ola.env.CollectionsJournal, "right of the window")
         eq(p.points[1][3], "TOPRIGHT"); eq(p.points[2][3], "BOTTOMRIGHT", "as tall as it")
-        eq(p.title.text, "Historien om Panda Cub")
+        eq(p.points[1][4], 64, "past where the side tabs would be")
+        eq(p.template, "ButtonFrameTemplate", "styled like the window")
+        ok(p.portraitHidden)
+        eq(p.titleText, "Historien om Panda Cub")
         eq(Lines(ola)[1], "Første hjem: flyttet inn hos deg")
         -- Thirty days on, and a name: newest at the top.
         w:SkipDays(31)
@@ -144,5 +147,37 @@ return function(test, H)
         ola.ns.Playdate:Count(PANDA, "Kari Berg", "s:46")
         eq(Count("first.play"), 1)
         eq(S:Text(PANDA, S:Of(PANDA)[#S:Of(PANDA)]), "Første lekedate: med Kari Berg sin White Kitten")
+    end)
+
+    test("the panel starts past the side tabs, ours too; without the window's template, a frame of its own", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola.ns.Bonds.PetOfTheDay = function() end
+        ola:OpenJournal({ sideTabs = 3 })
+        ola:Slash("adopter panda"); w:Run(5)
+        local card = ola:SelectPet(5159)
+        card.story:Click()
+        local p = ola.ns.Story.panel
+        local right = ola.ns.SidePage:TabsRight()
+        ok(right >= 755, "Blizzard's tabs reach 755")
+        eq(p.points[1][4], right - 700 + 2)
+        -- Shown again and again (another pet each time), laid out: it stays put.
+        p.geo = { l = right + 2, r = right + 302, t = 600, b = 0 }
+        p.close.geo = { l = right + 280, r = right + 300, t = 600, b = 580 }
+        ola:SelectPet(5159); ola.ns.Story:Show("s:5159"); ola.ns.Story:Show("s:5159")
+        eq(p.points[1][4], right - 700 + 2, "not pushed right by its own buttons")
+        -- An older client: no ButtonFrameTemplate.
+        local w2, kari = H.Setup{ ola = { 5159 } }
+        kari.oldTemplates = true
+        kari:OpenJournal()
+        kari.ns.Bonds.PetOfTheDay = function() end
+        kari:Slash("adopter panda"); w2:Run(5)
+        card = kari:SelectPet(5159)
+        card.story:Click()
+        p = kari.ns.Story.panel
+        eq(p.template, nil)
+        eq(p.title.text, "Historien om Panda Cub")
+        ok(p.close and p.close:IsShown())
+        p.close:Click()
+        no(p:IsShown())
     end)
 end
