@@ -165,9 +165,26 @@ Moves.T = { down = 1.2, up = 1.4, happy = 2, cast = 2.5, dead = 4 } -- how long 
 
 local shown = { token = 0, awake = {} } -- the card's pet, its pose, and pets woken this session
 
-local function Play(id)
+-- Set an animation, and check on it a moment later: the card refreshes
+-- often, and Blizzard may load the model anew and stand it up again
+-- (2026-11-10: a pet lay down, then flickered back to standing). If it was
+-- reset, once more. Both logged, to learn what the client does.
+Moves.RECHECK = 0.3
+local function Play(id, again)
     local actor = Moves:Actor()
-    if actor then Call(actor, "SetAnimation", id) end
+    if not actor then return end
+    shown.playing = id
+    local ok = Call(actor, "SetAnimation", id)
+    local token = shown.token
+    C_Timer.After(Moves.RECHECK, function()
+        if token ~= shown.token or shown.playing ~= id then return end
+        local now = Moves:Actor()
+        local got, at = Call(now or actor, "GetAnimation")
+        local reset = now ~= actor or (got and at ~= id)
+        ns.Log("Moves", "%s %d: %s; after %.1f s %s%s", tostring(shown.key), id, ok and "set" or "refused",
+            Moves.RECHECK, got and tostring(at) or "?", now ~= actor and " (a new actor)" or "")
+        if reset and not again then Play(id, true) end
+    end)
 end
 
 -- Steps { id, seconds }: each in turn; the last one stays. Replaces any running.
@@ -221,7 +238,11 @@ function Moves:Update(card, key)
         return
     end
     local mode = self:Rest(key)
-    if key == shown.key and mode == shown.mode then return end
+    if key == shown.key and mode == shown.mode then
+        -- The same pet refreshed: Blizzard may have stood the model up again; put back what plays.
+        if shown.playing then Play(shown.playing, true) end
+        return
+    end
     shown.key, shown.mode = key, mode
     if mode == "dead" then ns.DB.char.eggs.dodsfall.played = true end
     self:Sequence(REST[mode])

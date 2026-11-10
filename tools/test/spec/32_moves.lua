@@ -89,10 +89,10 @@ return function(test, H)
         eq(actor.anim, 756, "PetBattleCustom0: the panda's joyful hop")
         w:Run(2.1)
         eq(actor.anim, 0)
-        -- A refresh of the same pet doesn't start it over.
+        -- A refresh of the same pet doesn't start it over: only what plays is put back.
         local n = #actor.played
         ola.ns.JournalUI:Refresh()
-        eq(#actor.played, n)
+        eq(#actor.played, n + 1); eq(actor.played[#actor.played], 0)
     end)
 
     test("at night it's asleep on the card; a click wakes it, and it stays awake", function()
@@ -165,5 +165,26 @@ return function(test, H)
         ola.env.PetJournalPetCard:Show()
         ola:SelectPet(5159)
         eq(actor.anim, 0, "shown again: from the start")
+    end)
+
+    test("Blizzard standing the model up again: put back, and logged", function()
+        local w, ola, actor = Setup(23)
+        ola:SelectPet(5159)
+        eq(actor.anim, 99)
+        actor.anim = 0 -- (the model loaded anew)
+        w:Run(0.31)
+        eq(actor.anim, 99, "checked a moment later, and set again")
+        eq(#ola:Log("Moves\ts:5159 99: set; after 0.3 s 0"), 1)
+        w:Run(1.3)
+        eq(actor.anim, 100)
+        -- A refresh of the card (the same pet) stood it up: lying down again.
+        actor.anim = 0
+        ola.ns.JournalUI:Refresh()
+        eq(actor.anim, 100)
+        -- Only once per check: a model that won't keep it isn't fought over.
+        local n = #actor.played
+        actor.anim = 0
+        w:Run(2)
+        ok(#actor.played <= n + 1)
     end)
 end
