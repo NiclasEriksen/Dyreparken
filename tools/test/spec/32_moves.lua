@@ -284,7 +284,8 @@ return function(test, H)
         eq(M:For("s:5161", "sleep"), nil)
         ola:SelectPet(5161)
         eq(actor.anim, 0)
-        -- The Zergling (5160): its custom move is an attack, so a click only wakes it.
+        -- A species without a happy move (the Zergling's custom move is an attack): a click only wakes it.
+        ola.ns.PetMoves.species[5160] = { happy = false }
         ola:SelectPet(5160)
         w:Run(1.81)
         eq(actor.anim, 6)
