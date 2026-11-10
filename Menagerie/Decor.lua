@@ -154,7 +154,7 @@ Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
     glow = Decor.MEDIA .. "dot",
 }
 
--- What each level adds, for the bond's tooltip ("på nivå 3: ...").
+-- What each level adds, for the bond's tooltip ("på level 3: ...").
 Decor.LEVELS = {}
 for n = 2, 7 do Decor.LEVELS[n] = ns.L["decor.level." .. n] end
 

@@ -63,7 +63,7 @@ function Bond:Of(key)
     return p, self:Level(p)
 end
 
--- "Venn (nivå 3)" for a pet's current bond, or nil.
+-- "Venn (level 3)" for a pet's current bond, or nil.
 function Bond:Label(key)
     local p, level, name = self:Of(key)
     if not p then return nil end

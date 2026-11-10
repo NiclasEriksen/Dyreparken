@@ -49,10 +49,10 @@ return function(test, H)
         Points(ola, 7000)
         card = ola:SelectPet(5159)
         eq(b.text.text, "7000"); no(b.spark:IsShown())
-        -- The level preview shows that level's own name and points (it said "Bekjent (nivå 7)").
+        -- The level preview shows that level's own name and points (it said "Bekjent (level 7)").
         Points(ola, 30)
         ola:Slash("probe level 7")
-        eq(b.label.text, "Sjelevenn"); eq(b.level.text, 7); eq(b.next.text, "Det høyeste nivået")
+        eq(b.label.text, "Sjelevenn"); eq(b.level.text, 7); eq(b.next.text, "Høyeste level")
         ola:Slash("probe level 4")
         eq(b.label.text, "God venn"); eq(b.text.text, "530 / 900")
         ola:Slash("probe level off")
@@ -71,14 +71,14 @@ return function(test, H)
         local tip = ola.env.GameTooltip
         local p = card.bond.pips[4]
         p.scripts.OnEnter(p)
-        eq(table.concat(tip.lines, " / "), "Nivå 4: God venn / Fra 530 poeng. / Kortet får en glød under dyret.")
+        eq(table.concat(tip.lines, " / "), "Level 4: God venn / Fra 530 poeng. / Kortet får en glød under dyret.")
         p.scripts.OnLeave(p)
         p = card.bond.pips[1]
         p.scripts.OnEnter(p)
-        eq(table.concat(tip.lines, " / "), "Nivå 1: Bekjent / Der alle starter. / Nådd!")
+        eq(table.concat(tip.lines, " / "), "Level 1: Bekjent / Der alle starter. / Nådd!")
         local m = card.bond.medal
         m.scripts.OnEnter(m)
-        match(table.concat(tip.lines, " / "), "^Bånd: Venn %(nivå 3%) / 230 poeng til God venn%.")
+        match(table.concat(tip.lines, " / "), "^Bånd: Venn %(level 3%) / 230 poeng til God venn%.")
         m.scripts.OnLeave(m)
     end)
 
@@ -100,7 +100,7 @@ return function(test, H)
         for _, p in ipairs(cel.parts) do if p:IsShown() and p.anim:IsPlaying() then shown = shown + 1 end end
         eq(shown, #cel.parts, "a burst")
         eq(cel.text.title.text, "Kamerat!")
-        eq(cel.text.sub.text, "Panda Cub og du er nå på nivå 2.\nNy pynt: en kant og et hint av familiens farge.")
+        eq(cel.text.sub.text, "Panda Cub og du er nå på level 2.\nNy pynt: en kant og et hint av familiens farge.")
         eq(ola.sounds[1], ola.env.SOUNDKIT.UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT)
         eq(ola.ns.DB.char.bondSeen[PANDA], 2)
         -- Seen: not again.

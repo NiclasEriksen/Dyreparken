@@ -77,7 +77,7 @@ return function(test, H)
         g.life[KITTEN]["Kari Berg"] = { p = 300, f = w:ServerTime(), t = w:ServerTime() }
         ola.ns.Story:Scan()
         eq(Kinds(ola, KITTEN), "adopt level level")
-        eq(ola.ns.Story:Text(KITTEN, ola.ns.Story:Of(KITTEN)[3]), "Ble Venn med Kari Berg (nivå 3)")
+        eq(ola.ns.Story:Text(KITTEN, ola.ns.Story:Of(KITTEN)[3]), "Ble Venn med Kari Berg (level 3)")
         -- She lets it go after three days; Ola adopts it.
         w:SkipDays(3)
         kari:Slash("gislipp")

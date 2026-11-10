@@ -96,7 +96,7 @@ return function(test, H)
         eq(b.next.text, "Kari Berg sitt bånd")
         match(b.yours.text, "Ditt: Bekjent %(1%)$")
         b.scripts.OnEnter(b)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "Ditt eget bånd med dyret: Bekjent %(nivå 1%), 20 poeng%.")
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Ditt eget bånd med dyret: Bekjent %(level 1%), 20 poeng%.")
         b.scripts.OnLeave(b)
         match(card.decor.sig, "^s:46;2;", "the decorations follow the holder's bond")
         -- The list (only your own pets) keeps your progress.

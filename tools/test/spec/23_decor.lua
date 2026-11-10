@@ -259,7 +259,7 @@ return function(test, H)
         ok(d.glows[1]:IsShown()); ok(d.corners.TOPLEFT:IsShown())
         eq(#Parts(d), N(ola.ns.Decor, 4, 4), "the Dykker's bubbles")
         card.bond.scripts.OnEnter(card.bond)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "På nivå 5 får kortet gull overalt, og gnister som flyr%.")
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "På level 5 får kortet gull overalt, og gnister som flyr%.")
         -- Nobody's pet: the card's decorations go, the traits' stay.
         card = ola:SelectPet(40)
         no(d.glows[1]:IsShown()); no(d.corners.TOPLEFT:IsShown())

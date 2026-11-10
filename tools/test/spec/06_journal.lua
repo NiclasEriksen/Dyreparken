@@ -97,7 +97,7 @@ return function(test, H)
         no(card.nick.enabled, "locked until Venn")
         local tip = ola.env.GameTooltip
         card.nick.scripts.OnEnter(card.nick)
-        eq(tip.lines[1], "Du kan gi det et kallenavn når båndet deres er Venn (nivå 3).")
+        eq(tip.lines[1], "Du kan gi det et kallenavn når båndet deres er Venn (level 3).")
         card.nick.scripts.OnLeave(card.nick)
         w:SkipDays(7)
         w:Befriend()

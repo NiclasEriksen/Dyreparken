@@ -131,7 +131,7 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
 
 ## 4. Where it shows
 
-- **Pet card (journal):** under the big nickname, "Tam · Bestevenn (nivå 5)" and a **progress bar** to the next bond
+- **Pet card (journal):** under the big nickname, "Tam · Bestevenn (level 5)" and a **progress bar** to the next bond
   level. Hovering shows the likes and the quirk, and this bond's numbers: "12 boss-drap, 340 urter, 31 dager".
 - **Card decorations** (built 2026-11-08, Menagerie/Decor.lua): the holder's bond level dresses the card, one
   thing per level: 2 a border and a wash of the family color, 3 silver border and corners, 4 a strong glow under
