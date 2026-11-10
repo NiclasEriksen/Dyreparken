@@ -102,6 +102,7 @@ L["pat.other"] = "klapper {owner} sin {species}."
 L["pat.combat"] = "Ikke nå, du er i kamp."
 L["park.birthday"] = "Dyreparken fyller {n} år i dag! Takk for at dere tar vare på dyrene."
 L["today.mine"] = "{pet} er dagens dyr i guilden i dag! Alle kan se det på kortet sitt."
+L["pat.thanks"] = "{pet} logrer fornøyd etter klappen fra {who}."
 L["pat.nothing"] = "Summon dyret ditt, eller velg et dyr som mål."
 -- The pet's answer to a pat, by family (2026-11-10; only you see it).
 L["voice.cat"] = "{pet} maler: «mrrr ... mjau»."

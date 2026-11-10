@@ -147,8 +147,39 @@ function Bonds:PetOfTheDay(now)
     return pick, (ns.Registry:Holder(pick))
 end
 
+-- A guildmate's /dp klapp on your pet (2026-11-10): their emote reaches you
+-- as CHAT_MSG_EMOTE ("klapper Pepe (Ola Nord sin Panda Cub)."); no message of
+-- ours. Your pet answers with hearts at the chat window and a line, at most
+-- once per guildmate every PAT_AGAIN. Listened to only while you have an
+-- adopted pet. Unverified on Forever: that custom emotes arrive like this.
+Bonds.PAT_AGAIN = 300
+local patted = {} -- sender -> GetTime()
+function Bonds:Patted(text, sender)
+    text, sender = Plain(text), ns.NormalizeName(Plain(sender))
+    local key = ns.Registry:MyPet()
+    if type(text) ~= "string" or type(sender) ~= "string" or not key or ns.Pets:OutKey() ~= key then return end
+    local me = ns.PlayerKey()
+    if sender == me or ns.Guild:IsMember(sender) ~= true then return end
+    if not text:find(" " .. me .. " sin ", 1, true) and not text:find("(" .. me .. " sin ", 1, true) then return end
+    local now = GetTime()
+    if patted[sender] and now - patted[sender] < self.PAT_AGAIN then return end
+    patted[sender] = now
+    ns.Print("|cffd9b3ff" .. ns.T("pat.thanks", { pet = ns.Registry:NameOf(key), who = sender }) .. "|r")
+    if ns.Fx then ns.Fx:Burst({ DEFAULT_CHAT_FRAME, "TOPRIGHT", -24, -8 }, "heart", { n = 4, color = ns.Fx.PINK, size = 0.7 }) end
+end
+
+function Bonds:WatchPats()
+    if ns.Registry:MyPet() then
+        ns.Events:On("CHAT_MSG_EMOTE", Bonds, function(_, _, text, sender) Bonds:Patted(text, sender) end)
+    else
+        ns.Events:Off("CHAT_MSG_EMOTE", Bonds)
+    end
+end
+
 function Bonds:Init()
     C_Timer.After(SHOW_AFTER, function() Bonds:Celebrate() end)
+    ns.Bus:On("MY_RECORD", function() Bonds:WatchPats() end)
+    C_Timer.After(SHOW_AFTER, function() Bonds:WatchPats() end) -- (our record may come with the login SYNC)
 end
 
 -- The emote text for petting the target companion, or our own. nil if

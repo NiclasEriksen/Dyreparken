@@ -369,4 +369,30 @@ return function(test, H)
         ola.ns.Activity:Emit("explore", 1, "Westfall")
         no(Said("hjemme i Westfall"), "not a cat's place")
     end)
+
+    test("a guildmate's /dp klapp on your pet: hearts and a line, at most once every few minutes", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
+        local function Listening(e)
+            for _, f in ipairs(ola.frames) do if f.events[e] then return true end end
+        end
+        no(Listening("CHAT_MSG_EMOTE"), "no adopted pet: not listening")
+        ola:Slash("adopter panda")
+        w:Run(5)
+        ok(Listening("CHAT_MSG_EMOTE"))
+        ola:Summon(5159)
+        kari:Target({ species = 5159, owner = "Ola Nord" })
+        kari:Slash("klapp")
+        local said
+        for _, m in ipairs(w.chat) do if m.from == "Kari Berg" and m.chan == "EMOTE" then said = m.text end end
+        ola:Fire("CHAT_MSG_EMOTE", said, "Kari Berg")
+        ok(ola:Printed("Panda Cub logrer fornøyd etter klappen fra Kari Berg.", true))
+        ola:ClearPrinted()
+        ola:Fire("CHAT_MSG_EMOTE", said, "Kari Berg")
+        eq(#ola.printed, 0, "not again so soon")
+        ola:Fire("CHAT_MSG_EMOTE", "klapper Kari Berg sin Bombay Cat.", "Per Hansen")
+        eq(#ola.printed, 0, "someone else's pet, and not a guildmate")
+        ola:Slash("gislipp")
+        w:Run(1)
+        no(Listening("CHAT_MSG_EMOTE"), "let go: not listening")
+    end)
 end

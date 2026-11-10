@@ -92,7 +92,8 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 - Unverified, relied on since 2026-11-10 (each degrades to nothing when missing): `PLAYER_STARTED_MOVING`,
   `PLAYER_STOPPED_MOVING` and `GetUnitSpeed("player")` (the card's pet walking with you, Moves.lua);
   `ModelSceneActor:GetYaw/SetYaw` (the pet turning its back after a dislike); `GetBindLocation()` (the hearth
-  line names your inn); the enUS zone names in `Quirks.HOME_ZONES`.
+  line names your inn); the enUS zone names in `Quirks.HOME_ZONES`; custom emotes (`SendChatMessage(..., "EMOTE")`)
+  reaching nearby players as `CHAT_MSG_EMOTE` with a "First Surname" sender (a guildmate's /dp klapp, Bonds.lua).
 
 ## Companions (C_PetJournal)
 
