@@ -311,7 +311,8 @@ return function(test, H)
 
     test("a SYNC that starts and never finishes holds ours back once, not forever", function()
         local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
-        kari.ns.DB:Guild().claims["Zed Nobody"] = { at = 100, ts = 100 } -- (Kari knows something Ola doesn't)
+        local t0 = w:ServerTime() - DAY
+        kari.ns.DB:Guild().claims["Zed Nobody"] = { at = t0, ts = t0 } -- (Kari knows something Ola doesn't)
         local m = w:Mark()
         w:InjectMessage("Ola Nord", { k = "HELLO", p = kari.ns.PROTOCOL, v = "x", d = 1 })
         for _ = 1, 6 do
@@ -373,5 +374,15 @@ return function(test, H)
         eq(R:Nickname(PANDA), nil)
         card = ola:SelectPet(5159)
         no(card.nick:IsEnabled(), "nothing to clear: locked again")
+    end)
+
+    test("a client keeping what we refuse (an older version's forgery) doesn't make SYNCs forever", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
+        kari.ns.DB:Guild().claims["Zed Nobody"] = { k = "s:46", at = 100, ts = 100 } -- (before the epoch: Ola refuses it)
+        kari.ns.Registry:Changed()
+        local m = w:Mark()
+        w:InjectMessage("Ola Nord", { k = "HELLO", p = kari.ns.PROTOCOL, v = "x", d = 1 })
+        w:Run(600)
+        ok(w:Sent("SYNC", nil, m) <= 3 * 2, "a round or two, then quiet (it was 40 in ten minutes)")
     end)
 end

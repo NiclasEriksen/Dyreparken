@@ -132,6 +132,8 @@ local function Cancel()
     pending = nil
 end
 
+local answered = {} -- sender -> "their digest/ours" we last answered a SYNC for
+
 -- Entries in a part: a table of tables (n, b) counts the inner ones.
 local function Count(t, nested)
     if type(t) ~= "table" then return 0 end
@@ -207,12 +209,21 @@ function Sync:Init()
         MergeAll(msg.r, msg.l, msg.n, msg.b)
         ns.Achievements:MergeGuild(msg.a)
         local i, of = tonumber(msg.i), tonumber(msg.of)
+        local mine = Sync:Digest()
         if i and of and i < of then
-            Hold() -- more parts to come: judge when the last is in
-        elseif Sync:Digest() == msg.d then
+            -- More parts to come: judge when the last is in. A whole part arriving is progress,
+            -- so it holds ours back again (a big SYNC can take longer than one hold).
+            if pending then Later(HOLD) end
+        elseif mine == msg.d then
             Cancel() -- someone said it for us
+        elseif answered[sender] == tostring(msg.d) .. "/" .. mine then
+            -- The same disagreement we answered already: they keep what we refuse (an older
+            -- version kept a forgery the rules refuse now). Answering again would go on
+            -- forever (code review 2026-11-10); a change on either side answers anew.
+            ns.Log("Sync", "%s still differs the same way; not answering again", tostring(sender))
         else
             -- We know things the sender doesn't: answer soon (a hold ends here).
+            answered[sender] = tostring(msg.d) .. "/" .. mine
             Later(2 + math.random() * 6)
         end
     end, "GUILD")
