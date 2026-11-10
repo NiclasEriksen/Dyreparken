@@ -4,9 +4,9 @@ local _, ns = ...
 --
 -- In the world: companions get no nameplate on Forever (docs/FOREVER_API.md),
 -- so nothing follows a pet around. The mouse does: hovering a companion puts
--- the cursor on it, so a burst at the cursor comes from the pet. Its family's
--- ambience (feathers, embers...), and hearts for your own pet. Once per pet
--- per few seconds (the tooltip is redrawn while you hover), never in combat
+-- the cursor on it, so a burst at the cursor comes from the pet: a few
+-- hearts, any companion's (2026-11-10: its family's ambience as well was too
+-- much). Once per pet per few seconds (the tooltip is redrawn while you hover), never in combat
 -- (Tooltip.lua's COMPANION_SEEN).
 --
 -- On screen, discreetly: a few sparkles at the chat window's corner when a
@@ -103,16 +103,8 @@ function Fx:Hovered(species, owner)
     local scale = UIParent:GetEffectiveScale()
     local x, y = GetCursorPosition()
     local at = { UIParent, "BOTTOMLEFT", x / scale, y / scale }
-    local key = ns.Pets:KeyOfSpecies(species)
-    local family = ns.Scenes:Families(key)[1]
-    local amb = ns.Decor.FAMILY[family] or ns.Decor.FAMILY.default
-    local color = amb.color ~= "rainbow" and amb.color or nil
-    local kind = amb.kind == "mist" and "mote" or amb.kind -- (mist is a fog bank, too big for a puff)
-    self:Burst(at, kind, { n = 5, color = color, alpha = amb.alpha, size = 0.8 })
-    if owner == ns.PlayerKey() then
-        self:Burst(at, "heart", { n = 3, color = { 1, 0.45, 0.6 }, size = 0.7, rise = 60 })
-    end
-    ns.Log("Fx", "hover %s (%s) %s", key, tostring(owner), kind)
+    self:Burst(at, "heart", { n = 3, color = { 1, 0.45, 0.6 }, size = 0.7, rise = 60 })
+    ns.Log("Fx", "hover %s (%s)", tostring(species), tostring(owner))
 end
 
 ------------------------------------------------------------------------------

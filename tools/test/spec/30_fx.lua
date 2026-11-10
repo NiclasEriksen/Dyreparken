@@ -27,14 +27,13 @@ return function(test, H)
         return by, n
     end
 
-    test("a companion under the mouse: its family's ambience at the cursor, hearts for your own", function()
+    test("a companion under the mouse: a few hearts at the cursor, any companion's", function()
         local w, ola, Fx = Setup()
         ola.cursor = { 640, 360 }
         ola:Hover{ species = 40, owner = "Kari Berg" }
         local by, n = Started(ola)
-        eq(by.dot, 5, "a cat: warm motes"); eq(n, 5, "no hearts: not yours")
+        eq(by.heart, 3); eq(n, 3, "only hearts: the family's ambience as well was too much")
         local p = Fx.particles[1]
-        eq(p.icon.blend, "ADD")
         eq(p.points[1][2], ola.env.UIParent); eq(p.points[1][3], "BOTTOMLEFT")
         ok(math.abs(p.points[1][4] - 640) <= 10 and math.abs(p.points[1][5] - 360) <= 10, "at the cursor")
         ok(p.anim.looping == "NONE", "one-shot")
@@ -43,11 +42,11 @@ return function(test, H)
         eq(select(2, Started(ola)), 0)
         w:Run(5)
         ola:Hover{ species = 40, owner = "Kari Berg" }
-        eq(select(2, Started(ola)), 5)
-        -- Your own: hearts too. A dragon: embers.
+        eq(select(2, Started(ola)), 3)
+        -- Your own: the same.
         ola:Hover{ species = 5159, owner = "Ola Nord" }
-        by = Started(ola)
-        eq(by.ember, 5); eq(by.heart, 3)
+        by, n = Started(ola)
+        eq(by.heart, 3); eq(n, 3)
         -- In combat the tooltip isn't read at all.
         w:Run(5)
         ola.state.combat = true
@@ -58,21 +57,15 @@ return function(test, H)
         no(p:IsShown())
     end)
 
-    test("bursts reuse a small pool; an unknown family gets the default, mist a smaller puff", function()
+    test("bursts reuse a small pool", function()
         local w, ola, Fx = Setup()
-        for i = 1, 8 do
+        for i = 1, 10 do
             ola:Hover{ species = 40, owner = "Person " .. i }
         end
         eq(#Fx.particles, Fx.POOL, "never more than the pool")
         Started(ola)
-        ola:Hover{ species = 46, owner = "Kari Berg" } -- (no family known)
-        local by = Started(ola)
-        eq(by.dot, 5)
-        ola.ns.Companions.species[46] = { a = true, t = { "wolf" } }
-        w:Run(5)
         ola:Hover{ species = 46, owner = "Kari Berg" }
-        by = Started(ola)
-        eq(by.dot, 5, "mist would be a fog bank")
+        eq(Started(ola).heart, 3)
         Fx:Burst({ ola.env.UIParent, "CENTER", 0, 0 }, "nothing", {})
         eq(select(2, Started(ola)), 0)
     end)
