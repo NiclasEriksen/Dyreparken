@@ -141,6 +141,13 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   card on the last pet viewed, unlike retail (where it ends in `PetJournal_ShowPetCardBySpeciesID`). JournalUI then
   calls `PetJournal_ShowPetCardBySpeciesID` itself and logs the card's species after each call; whether that works
   on Forever is unverified.
+- **Animating the pet on the card** (2026-11-10, `/dp probe anim`): the actor is
+  `PetJournalPetCard.modelScene:GetActorByTag("unwrapped")`. It has `SetAnimation` and `GetAnimation`, but **no
+  `HasAnimation`**, and `SetAnimation` takes any id without an error, so code can't tell what a model has from the call
+  alone. By eye (one pet): the movement ones (0 Stand, 1 Death, 4 Walk, 5 Run, 37-39 jumping) play, the emotes (60-186:
+  talk, bow, dance, sit, sleep...) do nothing, and about half of the pet battle ones (742-772) play, the more general
+  ones. Ids from wowdev.wiki/M2/AnimationList. Whether `GetAnimation` reports a fallback for a missing animation is
+  being probed (the probe logs it).
 - **Companions get no nameplate** (2026-11-09, `/dp probe world`, outdoors): with a guildmate's Brown Prairie Dog
   right there, `C_NamePlate.GetNamePlates()` returned 0 plates and `GetNamePlateForUnit("mouseover")` nil, while
   hostile mobs nearby got plates (`NAME_PLATE_UNIT_ADDED`, not forbidden). `nameplateShowAll` and

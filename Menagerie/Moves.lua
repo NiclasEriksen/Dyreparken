@@ -72,6 +72,18 @@ end
 
 local cycle = 0 -- bumped to cancel a running "all"
 
+-- What the actor says it plays now (GetAnimation, if it answers).
+local function Now(actor)
+    local ok, id = Call(actor, "GetAnimation")
+    return ok and tostring(id) or "?"
+end
+
+-- The card's species, for the log: animations differ per model.
+local function Species()
+    local c = PetJournalPetCard
+    return c and tostring(rawget(c, "speciesID")) or "?"
+end
+
 function Moves:Probe(arg)
     local actor, how = self:Actor()
     if not actor then return Say("%s", how) end
@@ -110,7 +122,15 @@ function Moves:Probe(arg)
                 return Say("all: done, %d tried", #list)
             end
             local ok, err = Call(actor, "SetAnimation", a[1])
-            Say("%d/%d %s (%d): %s", i, #list, a[2], a[1], ok and "playing" or tostring(err))
+            -- What the actor reports right away and a moment later: a model without the
+            -- animation may fall back (2026-11-10: HasAnimation is missing on Forever, and
+            -- SetAnimation takes any id without a word).
+            local at = Now(actor)
+            C_Timer.After(0.5, function()
+                if mine ~= cycle then return end
+                Say("%d/%d %s (%d) species %s: %s, then %s, after 0.5 s %s", i, #list, a[2], a[1], Species(),
+                    ok and "set" or tostring(err), at, Now(actor))
+            end)
             C_Timer.After(self.EVERY, function() Step(i + 1) end)
         end
         return Step(1)
@@ -118,5 +138,6 @@ function Moves:Probe(arg)
     local id, name = Find(word)
     if not id then return Say("unknown animation %q (a number, or a name from the list)", word) end
     local ok, err = Call(actor, "SetAnimation", id)
-    Say("%s (%d): SetAnimation %s; has it: %s", name, id, ok and "ok" or tostring(err), tostring(has[id]))
+    Say("%s (%d): SetAnimation %s; has it: %s; now %s", name, id, ok and "ok" or tostring(err), tostring(has[id]),
+        Now(actor))
 end
