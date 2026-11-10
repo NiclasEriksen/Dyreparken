@@ -89,6 +89,12 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 - `ReloadUI()` is protected (no Reload buttons); users type /reload.
 - Settings: `Settings.RegisterCanvasLayoutCategory` / `Settings.RegisterAddOnCategory` exist.
 - The Addon Compartment TOC fields exist (`AddonCompartmentFunc` …); whether the button shows is unconfirmed.
+- The card's model scene (probed 2026-11-10, `/dp probe pos`): the actor has `GetPosition`/`SetPosition` (works:
+  the pet visibly moves), `GetScale`, `GetActiveBoundingBox`, `GetMaxBoundingBox`, `SetYaw`; the scene has
+  `Project3DPointTo2D` (answers in pixels: the scene's size × its effective scale, x matched) and `GetViewInsets`
+  (0, 0, 300, -50). Blizzard puts each model at its own height and camera (Brown Prairie Dog z 0.5, zoom 24;
+  Zergling z 2.5, zoom 20). The projected box did NOT match where the pet shows (y off by 60-200 px, differently
+  per pet), so neither its feet nor its head can be found from it: per-species `lift` by eye instead.
 - Unverified, relied on since 2026-11-10 (each degrades to nothing when missing): `PLAYER_STARTED_MOVING`,
   `PLAYER_STOPPED_MOVING` and `GetUnitSpeed("player")` (the card's pet walking with you, Moves.lua);
   `ModelSceneActor:GetYaw/SetYaw` (the pet turning its back after a dislike); `GetBindLocation()` (the hearth

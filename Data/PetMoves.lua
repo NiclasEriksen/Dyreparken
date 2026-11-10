@@ -26,11 +26,15 @@ local _, ns = ...
 --   dead   the day of the "is it safe to live with you?" egg, once
 --   walk   the pet you keep out (auto-summon), while you move on foot and it would just stand
 --   run    ... while you're mounted and moving (on a taxi it stands)
+--   lift   (not an animation) how much higher (or lower, negative) the pet stands on its card than
+--          Blizzard puts it: some models float, some sink. Found by eye with /dp probe pos z <delta>
+--          (2026-11-10: Brown Prairie Dog -0.2, Zergling 0.3).
 ns.PetMoves = {
     default = { sleep = 6, sleepAt = 1.2, sit = 97, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
+        [70] = { lift = -0.2 },  -- Brown Prairie Dog: floated over its shadow
         [5159] = { sleepAt = 1.5 },  -- Panda Cub: its fall ends later
-        [5160] = { happy = false, sleep = false },  -- Zergling: PetBattleCustom0 is an attack; asleep too messy for now (6 or 770 held at 2.7 were the best)
+        [5160] = { happy = false, sleep = false, lift = 0.3 },  -- Zergling: PetBattleCustom0 is an attack; asleep too messy for now (6 or 770 held at 2.7 were the best)
         [5161] = { sleep = false },  -- Mini Diablo: Dead (6) makes him vanish (Death bursts into flames)
     },
 }

@@ -306,7 +306,7 @@ return function(test, H)
         for sid, own in pairs(data.species) do
             ok(fresh.ns.Companions.species[sid], "species " .. sid .. " is in the journal")
             for what, id in pairs(own) do
-                ok(data.default[what] ~= nil, sid .. ": " .. what .. " is a reaction")
+                ok(data.default[what] ~= nil or what == "lift", sid .. ": " .. what .. " is a reaction")
                 ok(id == false or type(id) == "number", sid .. ": " .. what)
             end
         end
@@ -417,5 +417,29 @@ return function(test, H)
         ola:Slash("probe pos")
         ola:Slash("probe pos box")
         eq(#ola:Log("Probe\tpos no box"), 1)
+    end)
+
+    test("a species' lift moves it up or down on its card once it has loaded, and only that pet", function()
+        local w, ola, actor = Setup(14)
+        function actor:SetModelByCreatureDisplayID() self.pos = { 0, 0, 0 } end -- (the client: its own height)
+        ola.ns.PetMoves.species[5160] = { lift = 0.3 }
+        ola:SelectPet(5160)
+        eq(actor.pos[3], 0, "not while it loads")
+        w:Run(ola.ns.Moves.SETTLE + 0.05)
+        ok(math.abs(actor.pos[3] - 0.3) < 1e-6, "lifted")
+        ola.ns.JournalUI:Refresh()
+        w:Run(1)
+        ok(math.abs(actor.pos[3] - 0.3) < 1e-6, "not twice")
+        -- Another pet without a lift: back to its own height (were the client to leave ours).
+        ola:SelectPet(5159)
+        w:Run(ola.ns.Moves.SETTLE + 0.05)
+        eq(actor.pos[3], 0)
+        -- The client loading the model anew puts it at its own height: lifted again.
+        ola:SelectPet(5160)
+        w:Run(ola.ns.Moves.SETTLE + 0.05)
+        actor:SetModelByCreatureDisplayID(1)
+        w:Run(ola.ns.Moves.SETTLE + 0.05)
+        ok(math.abs(actor.pos[3] - 0.3) < 1e-6)
+        eq(ola.ns.Moves:For("s:70", "lift"), -0.2, "the Brown Prairie Dog, by eye")
     end)
 end

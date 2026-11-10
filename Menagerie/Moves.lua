@@ -384,6 +384,10 @@ Moves.REPOSE = 5
 local hooked, own = setmetatable({}, { __mode = "k" }), false
 local function Outside(what, arg)
     ns.Log("Moves", "%s(%s) from outside, holding %s", what, tostring(arg), tostring(shown.pose and shown.playing))
+    if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
+        local key, token = shown.key, shown.token
+        C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Moves.Lift(key) end end)
+    end
     if not shown.pose or shown.reposed >= Moves.REPOSE then return end
     shown.reposed = shown.reposed + 1
     local token, id, pose = shown.token, shown.playing, shown.pose
@@ -554,6 +558,36 @@ local function Steps(key, mode)
     return { { Moves:MotionId(key) or STAND } }
 end
 
+-- Standing on its shadow (2026-11-10): Blizzard puts each model at a height
+-- of its own, and some float or sink. A species' `lift` (Data/PetMoves.lua,
+-- found by eye) moves it, once the model has loaded; again if the client
+-- loads it anew. (Working it out from the model's box and the camera didn't
+-- match what's on screen: /dp probe pos box, 2026-11-10.)
+local function Lift(key)
+    local actor = Moves:Actor()
+    local ok, x, y, z = Call(actor or {}, "GetPosition")
+    if not (ok and type(z) == "number") then return end
+    local lift = Moves:For(key, "lift")
+    if shown.liftKey == key and shown.liftTo and math.abs(z - shown.liftTo) < 1e-3 then return end -- (done)
+    if shown.liftTo and math.abs(z - shown.liftTo) < 1e-3 and shown.liftKey ~= key then
+        z = shown.liftBase -- (still where the last pet was moved: its model's own height)
+    end
+    shown.liftKey, shown.liftBase, shown.liftTo = key, z, lift and z + lift or nil
+    if lift then
+        Call(actor, "SetPosition", x, y, z + lift)
+        ns.Log("Moves", "%s lifted %.2f (from %.2f)", key, lift, z)
+    elseif z ~= select(4, Call(actor, "GetPosition")) then
+        Call(actor, "SetPosition", x, y, z)
+    end
+end
+local function LiftSoon(key)
+    local token = shown.token
+    C_Timer.After(Moves.SETTLE, function()
+        if token == shown.token and shown.key == key then Lift(key) end
+    end)
+end
+Moves.Lift = Lift
+
 -- Sulking (2026-11-10): the first time you open its card on a day a dislike
 -- of its came up (Quirks: char.sulk), the pet turns its back for a few
 -- seconds, a little cloud over it. ModelSceneActor:SetYaw is unverified on
@@ -608,6 +642,7 @@ function Moves:Update(card, key)
         table.insert(steps, 1, { STAND, self.SETTLE })
     end
     self:Sequence(steps)
+    LiftSoon(key)
     Sulk(key)
 end
 
