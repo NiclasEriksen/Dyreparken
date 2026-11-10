@@ -144,10 +144,12 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - **Animating the pet on the card** (2026-11-10, `/dp probe anim`): the actor is
   `PetJournalPetCard.modelScene:GetActorByTag("unwrapped")`. It has `SetAnimation` and `GetAnimation`, but **no
   `HasAnimation`**, and `SetAnimation` takes any id without an error, so code can't tell what a model has from the call
-  alone. By eye (one pet): the movement ones (0 Stand, 1 Death, 4 Walk, 5 Run, 37-39 jumping) play, the emotes (60-186:
-  talk, bow, dance, sit, sleep...) do nothing, and about half of the pet battle ones (742-772) play, the more general
-  ones. Ids from wowdev.wiki/M2/AnimationList. Whether `GetAnimation` reports a fallback for a missing animation is
-  being probed (the probe logs it).
+  alone. By eye (one pet, 2026-11-10), what visibly plays: 1 Death, 4 Walk, 5 Run, 37-39 the jump, 96-98 sitting
+  down / sitting / getting up, 99-101 lying down / sleeping / getting up, and the pet battle 744 Death, 746 Run,
+  748 Wound, 750 Attack, 752 ReadySpell, 754 SpellCast, 756-762 Custom0-3, 770 Dead. Nothing: every emote (60-186:
+  talk, bow, wave, cheer, dance, laugh, roar...), and 742 PetBattleStand, 764 Victory, 766 Loss, 768 Stun,
+  772 Freeze (0 Stand is the rest pose). Ids from wowdev.wiki/M2/AnimationList. Other species may differ; whether
+  `GetAnimation` reports a fallback for a missing one is still to be probed (the probe logs it).
 - **Companions get no nameplate** (2026-11-09, `/dp probe world`, outdoors): with a guildmate's Brown Prairie Dog
   right there, `C_NamePlate.GetNamePlates()` returned 0 plates and `GetNamePlateForUnit("mouseover")` nil, while
   hostile mobs nearby got plates (`NAME_PLATE_UNIT_ADDED`, not forbidden). `nameplateShowAll` and
