@@ -196,7 +196,7 @@ function Moves:For(key, what)
     return id or nil
 end
 
-local shown = { token = 0, awake = {} } -- the card's pet, its pose, and pets woken this session
+local shown = { token = 0, awake = {}, reposed = 0 } -- the card's pet, its pose, and pets woken this session
 
 -- Set an animation, and check on it a moment later: the card refreshes
 -- often, and Blizzard may load the model anew and stand it up again
@@ -209,13 +209,45 @@ Moves.RECHECK = 0.3
 -- from standing frozen too; with no blend, frozen 1.2 s in (the fall over) it
 -- lay still.
 local NO_BLEND, BLEND = 0, 1 -- Enum.ModelBlendOperation (None, Anim)
-local function Play(id, again, pose)
+local Play
+
+-- 2026-11-10: about one time in three a held pose stood up again by itself
+-- right away, and GetAnimation (it only echoes what was set) can't tell. So
+-- we watch the actor: anything else that sets an animation or loads a model
+-- while a pose is held is logged, and the pose put back (after a model, once
+-- it has settled), at most Moves.REPOSE times per pet shown.
+Moves.REPOSE = 5
+local hooked, own = setmetatable({}, { __mode = "k" }), false
+local function Outside(what, arg)
+    ns.Log("Moves", "%s(%s) from outside, holding %s", what, tostring(arg), tostring(shown.pose and shown.playing))
+    if not shown.pose or shown.reposed >= Moves.REPOSE then return end
+    shown.reposed = shown.reposed + 1
+    local token, id, pose = shown.token, shown.playing, shown.pose
+    C_Timer.After(what == "SetAnimation" and 0 or Moves.SETTLE, function()
+        if token == shown.token and shown.playing == id and shown.pose == pose then Play(id, true, pose) end
+    end)
+end
+local function Watch(actor)
+    if hooked[actor] then return end
+    hooked[actor] = true
+    for _, m in ipairs({ "SetAnimation", "SetModelByCreatureDisplayID", "SetModelByFileID" }) do
+        local ok, fn = pcall(function() return actor[m] end)
+        if ok and type(fn) == "function" then
+            hooksecurefunc(actor, m, function(_, arg) if not own then Outside(m, arg) end end)
+        end
+    end
+end
+
+Play = function(id, again, pose)
     local actor = Moves:Actor()
     if not actor then return end
+    Watch(actor)
     shown.playing, shown.pose = id, pose
+    own = true
     Call(actor, "SetAnimationBlendOperation", pose and NO_BLEND or BLEND)
     local ok
     if pose then ok = Call(actor, "SetAnimation", id, 0, 0, pose) else ok = Call(actor, "SetAnimation", id) end
+    own = false
     local token = shown.token
     C_Timer.After(Moves.RECHECK, function()
         if token ~= shown.token or shown.playing ~= id then return end
@@ -231,6 +263,7 @@ end
 -- Steps { id, seconds, pose }: each in turn; the last one stays. Replaces any running.
 function Moves:Sequence(steps)
     shown.token = shown.token + 1
+    shown.reposed = 0
     local mine = shown.token
     local function Step(i)
         if mine ~= shown.token then return end

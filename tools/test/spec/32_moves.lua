@@ -225,6 +225,38 @@ return function(test, H)
         ok(#actor.played <= n + 1)
     end)
 
+    test("asleep, stood up by someone else (the journal, a model loading): lying down again", function()
+        local w, ola, actor = Setup(23)
+        function actor:SetModelByCreatureDisplayID(id) self.anim, self.speed, self.offset = 0, nil, nil end
+        ola:SelectPet(5159)
+        w:Run(0.61)
+        eq(actor.anim, 6)
+        actor:SetAnimation(0) -- (Blizzard's code, not ours)
+        eq(actor.anim, 0)
+        w:Run(0.1)
+        eq(actor.anim, 6, "put back at once"); eq(actor.offset, 1.2)
+        eq(#ola:Log("Moves\tSetAnimation%(0%) from outside, holding 6"), 1, "and logged, to learn what does it")
+        -- A model loaded anew: once it has settled (the camera frames it as it loads).
+        w:Run(1) -- (past the 0.3 s recheck)
+        actor:SetModelByCreatureDisplayID(1234)
+        w:Run(0.5)
+        eq(actor.anim, 0, "not while it loads")
+        w:Run(0.2)
+        eq(actor.anim, 6, "lying again"); eq(actor.offset, 1.2)
+        -- No fight with a client that insists: a few times per pet shown.
+        local before = #actor.played
+        for _ = 1, 10 do actor:SetAnimation(0); w:Run(0.1) end
+        eq(#actor.played - before, 10 + ola.ns.Moves.REPOSE - 2, "ten of theirs, five of ours in all")
+        -- Awake, nothing is held: theirs stand.
+        ola:SelectPet(46); ola:SelectPet(5159)
+        w:Run(0.61)
+        ola.ns.Cuddle:Pet(ola:Card())
+        w:Run(2.1)
+        before = #actor.played
+        actor:SetAnimation(0); w:Run(1)
+        eq(#actor.played - before, 1)
+    end)
+
     test("each reaction per species, from Data/PetMoves.lua: an id, or false for none", function()
         local w, ola, actor = Setup(23)
         local M = ola.ns.Moves
