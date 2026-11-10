@@ -72,6 +72,13 @@ local function BondTip(self, card)
     if yp then
         GameTooltip:AddLine(ns.T("bond.tip.yours", { level = yn, n = yl, p = yp }), 1, 0.6, 0.7, true)
     end
+    if mine then -- (your own: who it plays with most)
+        local owner, theirs, n = ns.Playdate:BestFriend(card.key)
+        if owner then
+            GameTooltip:AddLine(ns.T("play.best", { friend = ns.Registry:NameFor(theirs, owner), owner = owner, n = n }),
+                1, 0.85, 0.5, true)
+        end
+    end
     local others = Others(card.key, not mine and holder or nil)
     if #others > 0 then
         GameTooltip:AddLine(ns.T("bond.tip.others", { list = ns.Join(others) }), 0.8, 0.7, 1, true)

@@ -141,6 +141,8 @@ L["bond.levelup"] = "|cffffd100Båndet ditt med {pet} er nå på nivå {n}: {lev
 L["first.boss"] = "{pet} var med da {boss} falt!"          -- the first time this pet sees that boss fall
 L["first.place"] = "{pet} så {place} for første gang!"     -- the first time this pet is in that place
 L["play.line"] = "{pet} lekte med {friend} ({owner})!"   -- a playdate: our pet met a guildmate's in the group
+L["play.inseparable"] = "{pet} og {friend} er uatskillelige på lekeplassen."
+L["play.best"] = "Bestevenn i parken: {friend} ({owner}), {n} lekedater"
 L["bond.liked"] = "{pet} koste seg med {activity}!"   -- the first liked thing of the day
 L["bond.full"] = "|cffffd100Båndet med {pet} er fullt for i dag. Fortsett i morgen!|r"
 
@@ -348,6 +350,8 @@ L["egg.lordagsgodt.2"] = "{pet} deler gjerne lørdagsgodtet. Eller, nesten."
 L["egg.leet.1"] = "{pet} synes klokka er ekstremt kul akkurat nå. 13:37!"
 L["egg.navnebror.1"] = "{pet} heter det samme som deg. Det blir rot ved middagsbordet."
 L["egg.tvilling.1"] = "Nå finnes det to «{nick}» i parken!"
+L["egg.fullfest.1"] = "Full fest: {n} dyr fra parken på samme sted!"
+L["egg.fullfest.flokkdyr.1"] = "Full fest: {n} dyr fra parken på samme sted! {pet} er i sitt ess i flokken."
 L["egg.kjenner.1"] = "{pet} kjenner igjen {owner}! De bodde sammen en gang."
 L["egg.kjenner.2"] = "{pet} logrer ivrig mot {owner}. Gamle venner glemmer ikke."
 L["egg.fetter.1"] = "{pet} og {owner} sitt dyr snuser forsiktig på hverandre."

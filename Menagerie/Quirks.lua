@@ -175,6 +175,10 @@ Quirks.EGGS = {
             if key ~= ctx.key and ns.Registry:Nickname(key) == ctx.extra then return { nick = ctx.extra } end
         end
     end },
+    -- Three or more guildmates' pets out with yours (Playdate).
+    { id = "fullfest", on = "party", always = true, test = function(ctx)
+        return { n = ctx.extra, _key = HasTrait(ctx.key, "flokkdyr") and "egg.fullfest.flokkdyr" or nil }
+    end },
     { id = "midnatt", on = "*", chance = 0.5,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
     { id = "speil", on = "seen", test = function(ctx)
@@ -221,10 +225,13 @@ local function Families(key)
     return set
 end
 
+-- Eggs on moments that aren't activities: "*" eggs don't ride on them.
+local MOMENTS = { seen = true, name = true, party = true }
+
 function Quirks:Egg(on, key, extra, seen)
     local list = {}
     for _, e in ipairs(eggsOn[on] or {}) do list[#list + 1] = e end
-    if on ~= "seen" and on ~= "name" then for _, e in ipairs(eggsOn["*"]) do list[#list + 1] = e end end
+    if not MOMENTS[on] then for _, e in ipairs(eggsOn["*"]) do list[#list + 1] = e end end
     if #list == 0 then return false end
     local ctx = { key = key, name = ns.Registry:NameOf(key), id = on, extra = extra, t = ns.Now(),
         family = Families(key), today = select(3, ns.Activity:Count(on)) or 0, seen = seen }

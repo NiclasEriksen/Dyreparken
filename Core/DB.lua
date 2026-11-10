@@ -50,6 +50,7 @@ local CHAR_DEFAULTS = {
     activity = {},             -- activity counters (Core/Activity.lua)
     places = {},               -- [petKey] = { [zone] = true }: where each companion has been ("explore")
     chipRounds = {},           -- [petKey] = { [activity] = { m, day } }: a chip's round number reached (Stats)
+    playmates = {},            -- [petKey] = { ["owner\31theirKey"] = playdates }: best friends (Playdate)
     lastPlace = {},            -- [petKey] = the newest place it discovered with you (Stats: the explore chip)
     firsts = {},               -- [petKey] = { [boss name] = true }: bosses it has seen fall with you (Bond:First)
     dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (Quirks.lua; the card shows these)

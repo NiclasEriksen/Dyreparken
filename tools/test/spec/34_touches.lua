@@ -326,4 +326,30 @@ return function(test, H)
         w:SkipDays(1)
         no(ola.ns.Bonds:ParkBirthday())
     end)
+
+    test("playdates: a best friend in the bond's tooltip, inseparable at five; three friends at once is a party", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 }, journal = true }
+        w:AddMember("Per Hansen", 0); w:AddMember("Liv Lund", 0)
+        ola.ns.Guild:Refresh(true)
+        w:Run(1)
+        ola:Slash("adopter panda")
+        w:Run(5)
+        ola.ns.Quirks.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
+        local P = ola.ns.Playdate
+        for day = 1, 5 do
+            P:Heard("Kari Berg", "s:40")
+            if day < 5 then w:SkipDays(1) end
+        end
+        ok(ola:Printed("Panda Cub og Bombay Cat er uatskillelige på lekeplassen.", true))
+        P:Heard("Per Hansen", "s:46")
+        local owner, theirs, n = P:BestFriend(PANDA)
+        eq(owner, "Kari Berg"); eq(theirs, "s:40"); eq(n, 5)
+        local card = ola:SelectPet(5159)
+        card.bond.scripts.OnEnter(card.bond)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Bestevenn i parken: Bombay Cat %(Kari Berg%), 5 lekedater")
+        -- Kari, Per and Liv within ten minutes: a party, once a day.
+        P:Heard("Liv Lund", "s:72")
+        w:RunTimers()
+        ok(ola:Printed("Full fest: 3 dyr fra parken på samme sted!", true))
+    end)
 end

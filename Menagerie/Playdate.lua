@@ -39,13 +39,57 @@ function Playdate:Soon()
     if IsInGroup() then announceSoon() end
 end
 
+-- Best friends in the park (2026-11-10): playdates counted per pair, in
+-- char.playmates[ours]["owner\31theirs"] = n. The fifth with the same friend
+-- gets a line.
+Playdate.INSEPARABLE = 5
+function Playdate:Count(mine, sender, theirs)
+    local all = ns.DB.char.playmates
+    all[mine] = all[mine] or {}
+    local id = sender .. "\31" .. theirs
+    local n = (all[mine][id] or 0) + 1
+    all[mine][id] = n
+    if n == self.INSEPARABLE then
+        ns.Print("|cffd9b3ff" .. ns.T("play.inseparable", { pet = ns.Registry:NameOf(mine),
+            friend = ns.Registry:NameFor(theirs, sender) }) .. "|r")
+    end
+end
+
+-- A pet's best friend: owner, their pet's key, playdates; nil without one.
+function Playdate:BestFriend(mine)
+    local best, bestN
+    for id, n in pairs(ns.DB.char.playmates[mine] or {}) do
+        if not bestN or n > bestN or (n == bestN and id < best) then best, bestN = id, n end
+    end
+    if not best then return nil end
+    local owner, theirs = best:match("^(.-)\31(.+)$")
+    return owner, theirs, bestN
+end
+
+-- A full house: PLAY from this many guildmates within FULL_WITHIN seconds
+-- (the messages arrive anyway: no new traffic) is a party, once a day.
+Playdate.FULL, Playdate.FULL_WITHIN = 3, 600
+local heard = {} -- sender -> GetTime(), this session
+function Playdate:Party(sender, mine)
+    local now, n = GetTime(), 0
+    heard[sender] = now
+    for who, at in pairs(heard) do
+        if now - at > self.FULL_WITHIN then heard[who] = nil else n = n + 1 end
+    end
+    if n >= self.FULL then ns.Quirks:Egg("party", mine, n) end
+end
+
 -- Someone in our group has a pet out.
 function Playdate:Heard(sender, theirs)
     local mine = PetOut()
     if not mine or ns.Guild:IsMember(sender) ~= true then return end
     local line = ns.T("play.line", { pet = ns.Registry:NameOf(mine), friend = ns.Registry:NameFor(theirs, sender),
         owner = sender })
-    if ns.Bond:Reward("play", mine, line) then ns.Log("Bond", "playdate: %s with %s's %s", mine, sender, theirs) end
+    if ns.Bond:Reward("play", mine, line) then
+        ns.Log("Bond", "playdate: %s with %s's %s", mine, sender, theirs)
+        self:Count(mine, sender, theirs)
+    end
+    self:Party(sender, mine)
     self:Announce(true) -- so theirs happens too (they may not have heard us)
 end
 
