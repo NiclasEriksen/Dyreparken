@@ -46,7 +46,7 @@ return function(test, H)
         ok(P:Of("s:72").quest, "no family: quests")
         Give(ola, "glupsk", "reiseglad")
         ola:GivePet(84) -- (known: a personality is a surprise until collected)
-        eq(P:Line("s:84"), "Glupsk og Reiseglad · liker boss-kills, flyturer, omdømme og quests", "a like is listed once")
+        eq(P:Line("s:84"), "Glupsk og Reiseglad · liker boss-kills, flyturer, rep og quests", "a like is listed once")
         P.BY_FAMILY, P.DEFAULT = {}, {}
         Give(ola, "kosete", "helgedyr")
         P.Known = function() return true end

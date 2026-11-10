@@ -223,7 +223,7 @@ L["activity.jump.flavor"] = "{pet} hopper av glede!"
 L["activity.explore"] = "nye steder"
 L["activity.explore.flavor"] = "{pet} snuser på et nytt sted!"
 L["activity.skill"] = "skill-ups"
-L["activity.rep"] = "omdømme"
+L["activity.rep"] = "rep"
 
 ------------------------------------------------------------------------------
 -- Holidays (the Festglad trait)
