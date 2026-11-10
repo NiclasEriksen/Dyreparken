@@ -301,7 +301,13 @@ end
 
 -- A pose's steps for this pet; the last one is held.
 local function Steps(key, mode)
-    if mode == "sleep" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "sleep"), nil, Moves:For(key, "sleepAt") or 0 } } end
+    -- Lying down: played (blended) up to sleepAt, then held there. 2026-11-10: blended, Dead
+    -- (6) lies a pet down smoothly but then stands it up; sometimes it doesn't play at all,
+    -- and the held pose still comes.
+    if mode == "sleep" then
+        local id, at = Moves:For(key, "sleep"), Moves:For(key, "sleepAt") or 0
+        return { { STAND, Moves.SETTLE }, { id, at }, { id, nil, at } }
+    end
     if mode == "sit" then
         return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }
     end

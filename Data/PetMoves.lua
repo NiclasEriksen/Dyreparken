@@ -15,8 +15,8 @@ local _, ns = ...
 --
 -- Reactions:
 --   sleep  held at night while you look at the card (not for a Nattugle); a click
---          wakes it. Frozen sleepAt seconds into the animation, cut to without a
---          blend, so it stays down: try one with /dp probe anim blend none, then
+--          wakes it. Played for sleepAt seconds (it lies down), then frozen there,
+--          cut to without a blend, so it stays down: try one with /dp probe anim blend none, then
 --          /dp probe anim <id> 0 <seconds> (blend anim afterwards). To see the
 --          card at night by day: /dp probe anim night
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
