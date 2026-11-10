@@ -32,7 +32,7 @@ ns.Moves = Moves
 -- (read 2026-11-10). Only those that played on a companion: the emotes
 -- (60-186) and PetBattleStand, Victory, Loss, Stun and Freeze did nothing.
 Moves.ANIMS = {
-    { 0, "Stand" }, { 1, "Death" }, { 4, "Walk" }, { 5, "Run" },
+    { 0, "Stand" }, { 1, "Death" }, { 4, "Walk" }, { 5, "Run" }, { 6, "Dead" },
     { 37, "JumpStart" }, { 38, "Jump" }, { 39, "JumpEnd" },
     { 96, "SitGroundDown" }, { 97, "SitGround" }, { 98, "SitGroundUp" },
     { 99, "SleepDown" }, { 100, "Sleep" }, { 101, "SleepUp" },
