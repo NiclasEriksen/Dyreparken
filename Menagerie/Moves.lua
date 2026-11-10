@@ -273,7 +273,8 @@ function Moves:Probe(arg)
         if not id then return Say("sleep <id|name> [seconds]") end
         local at = tonumber(words[3]) or 1.2
         self:Sequence({ { id, at }, { id, nil, at } })
-        return Say("sleep: %s (%d), held at %.2f s", name, id, at)
+        return Say("sleep: %s (%d), held at %.2f s, %s", name, id, at,
+            Has(actor, "SetPaused") and "by pausing (SetPaused)" or "frozen (no SetPaused)")
     end
     -- 2026-11-10: frozen at speed 0, Dead (6) stood still instead of lying: the
     -- blend from standing seems frozen too. Retail's actors take a blend
@@ -419,11 +420,44 @@ local function Watch(actor)
     end
 end
 
+-- A held pose by pausing the actor (2026-11-10): frozen with speed 0 at an
+-- offset, the pet lay still for a second and then stood up to its idle (the
+-- user: "no longer frozen when they stand up"). Retail's ModelSceneActor has
+-- SetPaused; unverified on Forever, so used only when the actor has it: the
+-- animation plays at its own speed and is paused `pose` seconds in.
+local function Unpause(actor)
+    if shown.paused then Call(actor, "SetPaused", false); shown.paused = nil end
+end
+local function PlayPaused(actor, id, pose)
+    -- Already playing it (the lie-down step before this one): pause where it is now.
+    local playingFor = shown.playing == id and not shown.pose and shown.since and GetTime() - shown.since
+    shown.playing, shown.pose = id, pose
+    if not playingFor then
+        own = true
+        Call(actor, "SetAnimationBlendOperation", BLEND)
+        Call(actor, "SetAnimation", id)
+        own = false
+        shown.since, playingFor = GetTime(), 0
+    end
+    local token = shown.token
+    local function Pause()
+        if token ~= shown.token or shown.playing ~= id or shown.pose ~= pose then return end
+        local ok = Call(actor, "SetPaused", true)
+        shown.paused = ok or nil
+        ns.Log("Moves", "%s %d: paused %.2f s in: %s", tostring(shown.key), id, pose, ok and "ok" or "failed")
+    end
+    local wait = pose - playingFor
+    if wait <= 0.02 then Pause() else C_Timer.After(wait, Pause) end
+end
+
 Play = function(id, again, pose)
     local actor = Moves:Actor()
     if not actor then return end
     Watch(actor)
+    Unpause(actor)
+    if pose and Has(actor, "SetPaused") then return PlayPaused(actor, id, pose) end
     shown.playing, shown.pose = id, pose
+    shown.since = GetTime()
     own = true
     Call(actor, "SetAnimationBlendOperation", pose and NO_BLEND or BLEND)
     local ok
@@ -720,6 +754,8 @@ function Moves:Update(card, key)
     self:Follow(key)
     if not key then
         UnSulk()
+        local actor = Moves:Actor()
+        if actor then Unpause(actor) end -- (a paused actor would stay so for Blizzard's next pet)
         -- (nothing held either: a model loading on a closed card isn't posed again)
         shown.key, shown.mode, shown.playing, shown.pose, shown.last = nil, nil, nil, nil, nil
         shown.token = shown.token + 1

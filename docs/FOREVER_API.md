@@ -104,6 +104,9 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 - The card scales a model to its size as it loads (2026-11-10): an animation playing at that moment changes the
   size it measures. A pet shown mid-walk came out at scale 13.4 instead of 19.5 (Brown Prairie Dog), and stayed so
   until loaded again. So nothing but standing plays during `Moves.SETTLE` after a new model.
+- A pose frozen with `SetAnimation(id, 0, 0, offset)` (speed 0) doesn't hold (2026-11-10, the user): the pet lay
+  still for about a second, then stood up to its idle. Asleep now pauses the actor (`ModelSceneActor:SetPaused`,
+  retail's) when it has it; unverified on Forever (`/dp probe anim sleep` says which way it holds).
 - Unverified (2026-11-10, the roll and fishing eggs): `RANDOM_ROLL_RESULT` in CHAT_MSG_SYSTEM ("Hjelp Plask rolls 1
   (1-100)", the user), `LOOT_ROLL_ROLLED_NEED/GREED/DE` in CHAT_MSG_LOOT ("Need Roll - 1 for [item] by Name"), and
   `ERR_FISH_ESCAPED` / `ERR_FISH_NOT_HOOKED` as UI_ERROR_MESSAGE (type, text), a catch as LOOT_OPENED.
