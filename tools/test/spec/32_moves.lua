@@ -304,12 +304,12 @@ return function(test, H)
         -- Every value in the file (as it is, untouched) is a number or false, for a species in the journal.
         local _, fresh = H.Setup{ ola = {} }
         local data = fresh.ns.PetMoves
-        for what, id in pairs(data.default) do ok(type(id) == "number", what) end
+        for what, id in pairs(data.default) do ok(type(id) == "number" or what == "canSit" and id == true, what) end
         for sid, own in pairs(data.species) do
             ok(fresh.ns.Companions.species[sid], "species " .. sid .. " is in the journal")
             for what, id in pairs(own) do
                 ok(data.default[what] ~= nil or what == "lift", sid .. ": " .. what .. " is a reaction")
-                ok(id == false or type(id) == "number", sid .. ": " .. what)
+                ok(id == false or type(id) == "number" or what == "canSit", sid .. ": " .. what)
             end
         end
     end)
@@ -693,6 +693,9 @@ return function(test, H)
         -- A get-up: picked, played on its own, and left on it.
         Row("sleepUp").next:Click()
         eq(Row("sleepUp").anim.text, "Stand (0)")
+        Row("happy").prev:Click(); while Row("happy").anim.text ~= "none" do Row("happy").prev:Click() end
+        eq(ola.ns.DB.global.movePicks[5159].happy, false, "none is saved too")
+        f.reset:Click(); f.down:Click(); f.down:Click(); Row("sleepUp").next:Click()
         while not Row("sleepUp").anim.text:find("SleepUp") do Row("sleepUp").next:Click() end
         eq(ola.ns.DB.global.movePicks[5159].sleepUp, 101)
         Row("sleepUp").play:Click()
@@ -719,6 +722,15 @@ return function(test, H)
         Row("cheer").play:Click(); eq(actor.anim, 754)
         f.whole:Click(); eq(actor.anim, 754); w:Run(M.T.cheer); eq(actor.anim, 0)
         Row("happy").play:Click(); f.stand:Click(); eq(actor.anim, 0)
+        -- Sit? unticked: the sit rows go unused, and the card never sits it.
+        ok(f.sits:GetChecked())
+        f.sits:Click()
+        eq(ola.ns.DB.global.movePicks[5159].canSit, false)
+        no(Row("sit").play:IsEnabled(), "its sit rows are greyed")
+        ok(Row("sleep").play:IsEnabled())
+        f.sits:Click()
+        eq(ola.ns.DB.global.movePicks[5159].canSit, nil, "ticked: the file's (it sits)")
+        ok(Row("sit").play:IsEnabled())
         -- Next pet: its own; the count; File's for this pet.
         f.next:Click()
         ok(E:Species() ~= 5159)
@@ -737,6 +749,19 @@ return function(test, H)
         ola.env.PetJournal:Hide()
         ola:Slash("probe moves")
         ok(ola:Printed("Open the pet journal first."))
+    end)
+
+    test("a pet that can't sit (canSit false) never sits, not even a Latsabb", function()
+        local w, ola, actor = Setup(14, nil)
+        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("latsabb") } end
+        ola.ns.PetMoves.species[5159] = { canSit = false }
+        ola:SelectPet(5159)
+        w:Run(ola.ns.Moves.SIT_AFTER + 3)
+        eq(actor.anim, 0, "stands")
+        ola.ns.PetMoves.species[5159] = nil
+        ola:SelectPet(46); ola:SelectPet(5159)
+        w:Run(ola.ns.Moves.SIT_AFTER + 3)
+        eq(actor.anim, 97, "with it: sits")
     end)
 
     test("the parts on the card: a sleep held as a loop, a get-up when woken, a pet without a sit-down", function()

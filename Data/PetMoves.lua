@@ -21,6 +21,7 @@ local _, ns = ...
 --          card at night by day: /dp probe anim night
 --   sleepHold  (optional) a looping animation to hold instead of pausing the lie-down
 --   sleepUp    (optional) played when it's woken, before the happy move
+--   canSit false: the pet never sits (it has no sitting animation that looks right)
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
 --          with sitDown first, and gets up with sitUp), and by any pet of yours once its day's bond is full
 --   All of these, per pet, are easiest to pick with /dp probe moves (a window: step through the
@@ -35,7 +36,7 @@ local _, ns = ...
 --          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here
 --          (every pet set by eye 2026-11-10).
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 0.7, sitDown = 96, sit = 97, sitUp = 98, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
+    default = { sleep = 6, sleepAt = 0.7, canSit = true, sitDown = 96, sit = 97, sitUp = 98, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
         [39] = { lift = -0.1 },  -- Mechanical Squirrel
         [40] = { lift = -0.1 },  -- Bombay

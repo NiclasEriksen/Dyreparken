@@ -544,9 +544,11 @@ function Moves:Rest(key, t)
         end
         -- Moving with you beats sitting (the user, 2026-11-10); sleep at night still wins.
         if self:MotionId(key) then return "stand" end
-        if HasTrait(key, "latsabb") and self:For(key, "sit") then return "sit" end
+        -- Only a pet that can sit (canSit: the user's box in /dp probe moves, 2026-11-11).
+        local sits = self:For(key, "canSit") and self:For(key, "sit")
+        if HasTrait(key, "latsabb") and sits then return "sit" end
         -- Content for today: your pet sits once its day's bond is full (2026-11-10).
-        if self:For(key, "sit") and ns.Pets:IsOwned(key) then
+        if sits and ns.Pets:IsOwned(key) then
             local today, max = ns.Bond:Today(key)
             if today >= max then return "sit" end
         end

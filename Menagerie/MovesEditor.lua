@@ -73,7 +73,7 @@ function Editor:Set(what, value)
     local same = value == FileValue(sid, what)
     local p = Picks(sid, not same)
     if p then
-        p[what] = (not same) and value or nil
+        if same then p[what] = nil else p[what] = value end -- (value may be false: "none", or can't sit)
         if not next(p) then ns.DB.global.movePicks[sid] = nil end
     end
     self:Redraw(what == "sleepAt")
@@ -115,9 +115,16 @@ function Editor:Redraw(fromSlider)
     local p = Picks(sid) or {}
     f.name:SetText(("%s (%d)"):format(ns.Pets:NameOfKey(ns.Pets:KeyOfSpecies(sid)) or "?", sid))
     f.count:SetText(("%d / %d"):format(self.index, #self.list))
+    local sits = self:Value("canSit") ~= false
+    f.sits:SetChecked(sits)
+    if p.canSit ~= nil then f.sits.label:SetTextColor(0.4, 1, 0.4) else f.sits.label:SetTextColor(1, 0.82, 0) end
     for _, row in ipairs(f.rows) do
         row.anim:SetText(AnimName(self:Value(row.what)))
-        if p[row.what] ~= nil then row.anim:SetTextColor(0.4, 1, 0.4) else row.anim:SetTextColor(1, 1, 1) end
+        local off = row.what:find("^sit") and not sits -- (a pet that can't sit: its sit rows are unused)
+        if off then row.anim:SetTextColor(0.4, 0.4, 0.4)
+        elseif p[row.what] ~= nil then row.anim:SetTextColor(0.4, 1, 0.4)
+        else row.anim:SetTextColor(1, 1, 1) end
+        for _, b in ipairs({ row.prev, row.next, row.play }) do b:SetEnabled(not off) end
     end
     local paused = not self:Value("sleepHold") -- (a held loop isn't paused)
     f.slider:SetEnabled(paused)
@@ -148,7 +155,7 @@ end
 
 function Editor:Build()
     local f = CreateFrame("Frame", "DyreparkenMovesEditor", UIParent)
-    f:SetSize(400, 70 + #self.PARTS * ROW_H + 110)
+    f:SetSize(400, 70 + #self.PARTS * ROW_H + 136)
     f:SetPoint("LEFT", UIParent, "CENTER", 360, 0)
     f:SetFrameStrata("DIALOG")
     f:EnableMouse(true)
@@ -198,8 +205,18 @@ function Editor:Build()
         row.play:SetScript("OnClick", function() Editor:Try(part[1]) end)
         f.rows[i] = row
     end
+    -- Sit? Unticked, the pet never sits on the card (the user, 2026-11-11).
+    f.sits = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+    f.sits:SetSize(22, 22)
+    f.sits:SetPoint("RIGHT", f.rows[5].label, "LEFT", 0, 0)
+    f.sits.label = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    f.sits.label:SetPoint("TOPLEFT", f, "TOPLEFT", 12, -70 - #self.PARTS * ROW_H - 4)
+    f.sits:ClearAllPoints()
+    f.sits:SetPoint("LEFT", f.sits.label, "RIGHT", 2, 0)
+    f.sits.label:SetText("Sit?")
+    f.sits:SetScript("OnClick", function(self) Editor:Set("canSit", self:GetChecked() and true or false) end)
     -- How far into lying down it's paused; a change shows at once.
-    local y = -70 - #self.PARTS * ROW_H - 10
+    local y = -70 - #self.PARTS * ROW_H - 36
     f.slider = CreateFrame("Slider", "DyreparkenMovesSlider", f, "OptionsSliderTemplate")
     f.slider:SetPoint("TOP", f, "TOP", 0, y)
     f.slider:SetSize(200, 16)
