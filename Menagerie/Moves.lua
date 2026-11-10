@@ -597,7 +597,12 @@ local function Steps(key, mode)
             { Moves:For(key, "dead"), Moves.T.dead, on = function() ns.DB.char.eggs.dodsfall.played = true end },
             { STAND } }
     end
-    return { { Moves:MotionId(key) or STAND } }
+    -- Walking or running: only once the model has loaded. 2026-11-10: the client scales a
+    -- model to its size as it loads, and a walking one is bigger, so a pet shown mid-walk
+    -- came out at two thirds of its size (scale 13.4 instead of 19.5) until loaded again.
+    local motion = Moves:MotionId(key)
+    if motion then return { { STAND, Moves.SETTLE }, { motion } } end
+    return { { STAND } }
 end
 
 -- Standing on its shadow (2026-11-10): Blizzard puts each model at a height

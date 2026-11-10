@@ -97,6 +97,9 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
   per pet), so neither its feet nor its head can be found from it: per-species `lift` by eye instead.
 - Verified 2026-11-10 (the user, in game): the card's pet walks and runs with you, and stops after a flight path
   (`PLAYER_STARTED_MOVING`, `PLAYER_STOPPED_MOVING`, `PLAYER_CONTROL_GAINED`, `GetUnitSpeed`).
+- The card scales a model to its size as it loads (2026-11-10): an animation playing at that moment changes the
+  size it measures. A pet shown mid-walk came out at scale 13.4 instead of 19.5 (Brown Prairie Dog), and stayed so
+  until loaded again. So nothing but standing plays during `Moves.SETTLE` after a new model.
 - Unverified, relied on since 2026-11-10 (each degrades to nothing when missing): `PLAYER_STARTED_MOVING`,
   `PLAYER_STOPPED_MOVING`, `PLAYER_CONTROL_GAINED` and `GetUnitSpeed("player")` (the card's pet walking with you,
   Moves.lua; 2026-11-10: after landing from a flight path no stop came, so landing re-reads the speed);
