@@ -480,6 +480,17 @@ function Registry:SetNickname(nick)
     if self:Nickname(key) == clean then
         return false, clean and ns.T("nick.same", { nick = clean }) or ns.L["nick.none"]
     end
+    -- One new name a day per pet, with Config.NICKNAME_FIX seconds after the day's
+    -- first to fix a typo; clearing is always allowed (the user, 2026-11-10).
+    local today, named = ns.Today(), ns.DB.char.named
+    if not named or named.day ~= today then named = { day = today, at = {} }; ns.DB.char.named = named end
+    if not clear then
+        local first = named.at[key]
+        if first and ns.Now() - first > Config.NICKNAME_FIX then
+            return false, ns.T("nick.tomorrow", { pet = self:NameOf(key) })
+        end
+        named.at[key] = first or ns.Now()
+    end
     WriteName(key, { n = clean })
     return true, clean and ns.T("nick.set", { nick = clean }) or ns.L["nick.cleared"]
 end

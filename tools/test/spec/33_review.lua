@@ -420,4 +420,35 @@ return function(test, H)
         ok(ola.ns.Achievements:Got("loyal:30"))
         eq(w:Sent("ACH_EARNED", nil, m), 1, "announced")
     end)
+
+    test("renaming: one new name a day, free fixes for ten minutes, clearing always; three name lines a day", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local now = ola.ns.Now()
+        ola.ns.DB:Guild().life[PANDA] = { ["Ola Nord"] = { p = 300, f = now - 30 * DAY, t = now } } -- Venn
+        local function Posts()
+            local n = 0
+            for _, m in ipairs(w.chat) do if m.from == "Ola Nord" and m.chan == "GUILD" and m.text:find("«") then n = n + 1 end end
+            return n
+        end
+        local R = ola.ns.Registry
+        ola:Slash("navn Pepe"); w:Run(60)
+        ola:Slash("navn Peppe"); w:Run(60)
+        ola:Slash("navn Pepper"); w:Run(60)
+        eq(R:Nickname(PANDA), "Pepper", "fixes within ten minutes")
+        ola:Slash("navn Pepperoni")
+        eq(R:Nickname(PANDA), "Pepperoni")
+        eq(Posts(), 3, "three name lines a day, not four")
+        w:Run(ola.ns.Config.NICKNAME_FIX)
+        ola:Slash("navn Bambus")
+        eq(R:Nickname(PANDA), "Pepperoni", "later the same day: tomorrow")
+        ok(ola:Printed("Du kan endre det igjen i morgen.", true))
+        ola:Slash("navn")
+        eq(R:Nickname(PANDA), nil, "clearing is always allowed")
+        w:SkipDays(1)
+        ola:Slash("navn Bambus")
+        eq(R:Nickname(PANDA), "Bambus", "a new day")
+        eq(Posts(), 4)
+    end)
 end

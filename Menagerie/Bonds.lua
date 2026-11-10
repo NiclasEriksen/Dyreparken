@@ -233,6 +233,12 @@ function Bonds:Announce(kind, key)
     if kind == "name" and not nick then return end
     local id = kind .. key .. (kind == "name" and nick or "")
     if announced[id] and GetTime() - announced[id] < REPEAT_AFTER then return end
+    if kind == "name" then -- (at most Config.NAME_LINES a day: a typo fixed twice, say)
+        local today, lines = ns.Today(), ns.DB.char.nameLines
+        if not lines or lines.day ~= today then lines = { day = today, n = 0 }; ns.DB.char.nameLines = lines end
+        if lines.n >= ns.Config.NAME_LINES then return end
+        lines.n = lines.n + 1
+    end
     announced[id] = GetTime()
     local me, species = ns.PlayerKey(), ns.Pets:NameOfKey(key)
     local text

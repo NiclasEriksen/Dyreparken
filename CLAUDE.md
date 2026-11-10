@@ -245,7 +245,8 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   once their bond reaches Venn (level 3; it was 7 days of care until 2026-11-09). The name stays when they let go,
   and the next carer inherits it until they change it. A name set by
   anyone else during a holder's care doesn't count (`Registry:Nickname`). Clearing needs no bond level (2026-11-10):
-  a holder can drop the name the pet came with (or a forged one) at once. It replaces the title line of the world
+  a holder can drop the name the pet came with (or a forged one) at once. One new name a day per pet, with 10 minutes after the
+  day's first for typo fixes (Config.NICKNAME_FIX); at most three name lines in guild chat a day (Config.NAME_LINES). It replaces the title line of the world
   tooltip, with the species moved below it, and shows big on the journal's pet card.
 - Auto-summon turns itself off if AutoCompanion is loaded.
 - **Fewer commands** (2026-11-09, the addon spread beyond the guild): `/dp rapport` (calling out group members
