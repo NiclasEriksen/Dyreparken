@@ -353,4 +353,20 @@ return function(test, H)
         w:RunTimers()
         ok(ola:Printed("Full fest: 3 dyr fra parken på samme sted!", true))
     end)
+
+    test("home by name: the hearth line names where you're bound; pets feel at home in their family's places", function()
+        local w, ola, At, Said = Eggs({ "hjemlengsel", "rampete" }) -- likes going home
+        ola:Set("home", "Goldshire")
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 8690)
+        ok(ola:Printed("Bombay Cat er glad for å være hjemme i Goldshire!", true))
+        ola:Set("home", nil)
+        w:SkipDays(1)
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 8690)
+        ok(ola:Printed("Bombay Cat er glad for å være hjemme!", true), "no bind location: the plain line")
+        -- A cat, the first time in Winterspring.
+        ola.ns.Activity:Emit("explore", 1, "Winterspring")
+        ok(Said("Bombay Cat føler seg hjemme i Winterspring!"))
+        ola.ns.Activity:Emit("explore", 1, "Westfall")
+        no(Said("hjemme i Westfall"), "not a cat's place")
+    end)
 end

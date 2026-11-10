@@ -1304,6 +1304,7 @@ function Client:BuildEnv()
     env.UnitIsAFK = function(u) return u == "player" and S.afk or false end
     env.UnitLevel = function() return S.level or 10 end
     env.GetZoneText = function() return S.zone or "Elwynn Forest" end
+    env.GetBindLocation = function() return S.home end
     -- The chat formats skill-ups and reputation are read with (enUS GlobalStrings).
     env.SKILL_RANK_UP = "Your skill in %s has increased to %d."
     env.FACTION_STANDING_INCREASED = "Reputation with %s increased by %d." -- (Forever's, 2026-11-09)

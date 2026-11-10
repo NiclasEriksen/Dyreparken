@@ -112,6 +112,31 @@ end
 local function Weekday(t) return tonumber(date("%w", t)) end -- 0 = Sunday
 local function Hour(t) return tonumber(date("%H", t)) end
 
+-- Places a family feels at home in (2026-11-10): the zone's name as the
+-- client says it (enUS; GetZoneText, as "explore" carries it). Hand-made, to
+-- check in game: a name that never comes up only means no line.
+Quirks.HOME_ZONES = {
+    pirate = { "The Cape of Stranglethorn", "Stranglethorn Vale", "Tanaris" },
+    frog = { "Wailing Caverns", "Swamp of Sorrows", "Zangarmarsh" },
+    owl = { "Moonglade", "Teldrassil", "Darnassus" },
+    mechanical = { "Gnomeregan", "Netherstorm" },
+    dragon = { "Dragonblight", "Grim Batol", "Blackwing Lair", "Onyxia's Lair", "Wyrmrest Temple" },
+    snake = { "Uldum", "Wailing Caverns" },
+    wolf = { "Grizzly Hills", "Alterac Mountains", "Alterac Valley" },
+    demon = { "Hellfire Peninsula", "Felwood", "Shadowmoon Valley" },
+    bug = { "Silithus", "Ahn'Qiraj", "Azjol-Nerub" },
+    plant = { "Un'Goro Crater", "Feralas" },
+    spirit = { "Ghostlands", "Eastern Plaguelands" },
+    ooze = { "Naxxramas", "Blackrock Depths" },
+    farm = { "Westfall" },
+    rabbit = { "Elwynn Forest", "Mulgore" },
+    cat = { "Winterspring" },
+}
+local homeOf = {} -- zone -> { families }
+for family, zones in pairs(Quirks.HOME_ZONES) do
+    for _, z in ipairs(zones) do homeOf[z] = homeOf[z] or {}; table.insert(homeOf[z], family) end
+end
+
 -- Easter Sunday of a year (the anonymous Gregorian algorithm): "MMDD".
 function Quirks.Easter(y)
     local a, b, c = y % 19, math.floor(y / 100), y % 100
@@ -174,6 +199,15 @@ Quirks.EGGS = {
     { id = "tvilling", on = "name", always = true, test = function(ctx)
         for key in pairs(ns.Registry:Holders()) do
             if key ~= ctx.key and ns.Registry:Nickname(key) == ctx.extra then return { nick = ctx.extra } end
+        end
+    end },
+    -- The first time here with this pet, and it's a place its family feels at home in.
+    { id = "hjemme", on = "explore", always = true, test = function(ctx)
+        for _, family in ipairs(type(ctx.extra) == "string" and homeOf[ctx.extra] or {}) do
+            if ctx.family[family] then
+                local own = "egg.hjemme." .. family
+                return { zone = ctx.extra, _key = ns.Strings[own .. ".1"] and own or nil }
+            end
         end
     end },
     -- Three or more guildmates' pets out with yours (Playdate).
