@@ -435,6 +435,7 @@ local function PlayPaused(actor, id, pose)
     if not playingFor then
         own = true
         Call(actor, "SetAnimationBlendOperation", BLEND)
+        Call(actor, "SetAnimation", STAND) -- (else the one it's already on isn't started over)
         Call(actor, "SetAnimation", id)
         own = false
         shown.since, playingFor = GetTime(), 0
@@ -766,6 +767,9 @@ function Moves:Update(card, key)
         -- The same pet refreshed: Blizzard may have stood the model up again; put back the
         -- step that stays. Not a one-off (a hop, a cheer, the lie-down): it would start over
         -- on every guildmate's BOND message (code review 2026-11-10).
+        -- Paused where it lies: nothing to put back. (Played again, the client ignored the
+        -- Dead it was already on, so unpaused it got up, and the pause caught it standing: 2026-11-10.)
+        if shown.paused then return end
         if shown.playing and shown.last then Play(shown.playing, true, shown.pose) end
         return
     end
