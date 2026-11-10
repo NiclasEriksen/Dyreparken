@@ -288,7 +288,4 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 
 
 - A "companions the guild is missing" list, from `Data/Companions.lua`.
-- Mute the summon clank after loading screens and landing too. The game brings the pet back on its own there, with
-  no `SummonPetByGUID` call to hook, so it still clanks. AutoCompanion mutes for a window after
-  `PLAYER_ENTERING_WORLD` and dismounting (`AutoCompanion/Sound.lua`, `QuietSummon`).
 - A settings UI. The summon sound mute is `/dp lyd` for now; it gets a checkbox there.

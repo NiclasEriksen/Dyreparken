@@ -95,6 +95,8 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
   (0, 0, 300, -50). Blizzard puts each model at its own height and camera (Brown Prairie Dog z 0.5, zoom 24;
   Zergling z 2.5, zoom 20). The projected box did NOT match where the pet shows (y off by 60-200 px, differently
   per pet), so neither its feet nor its head can be found from it: per-species `lift` by eye instead.
+- Verified 2026-11-10 (the user, in game): the card's pet walks and runs with you, and stops after a flight path
+  (`PLAYER_STARTED_MOVING`, `PLAYER_STOPPED_MOVING`, `PLAYER_CONTROL_GAINED`, `GetUnitSpeed`).
 - Unverified, relied on since 2026-11-10 (each degrades to nothing when missing): `PLAYER_STARTED_MOVING`,
   `PLAYER_STOPPED_MOVING`, `PLAYER_CONTROL_GAINED` and `GetUnitSpeed("player")` (the card's pet walking with you,
   Moves.lua; 2026-11-10: after landing from a flight path no stop came, so landing re-reads the speed);

@@ -231,6 +231,11 @@ function Sync:Init()
         if channel == "GUILD" then Hold() end
     end)
     ns.Comm:Register("UPD", function(msg, sender, channel)
+        -- A record is written the moment it's sent: its ts against our clock shows how far
+        -- apart the two clocks are (the debug log: Config.CLOCK_SLACK assumes one clock).
+        if type(msg.r) == "table" and type(msg.r.ts) == "number" then
+            ns.Log("Sync", "clock: %s's record is %+d s from ours", tostring(sender), msg.r.ts - ns.Now())
+        end
         -- Only the owner writes their record. Relayed copies come via SYNC.
         MergeAll({ [sender] = msg.r }, nil)
     end, "GUILD")

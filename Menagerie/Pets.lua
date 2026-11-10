@@ -208,6 +208,8 @@ end
 function Pets:Probe()
     local PJ = C_PetJournal
     Out("build: %s", Pack(GetBuildInfo()))
+    -- (open questions in CLAUDE.md: does it exist, and what does it say standing?)
+    Out("UnitStandState: %s", type(UnitStandState) == "function" and tostring(UnitStandState("player")) or "missing")
     Out("project: WOW_PROJECT_ID=%s CAMELOT=%s", tostring(WOW_PROJECT_ID), tostring(WOW_PROJECT_CAMELOT))
     -- Identity: Forever has surnames and odd realm strings; we need to know
     -- which API matches the sender name in CHAT_MSG_ADDON.

@@ -198,6 +198,7 @@ end
 -- (default on). WoW forgets sound mutes on reload, so nothing can stick.
 local SUMMON_SOUNDS = { 567569, 568424 }
 local QUIET_FOR = 2.5 -- the sound comes with the server's answer, plus the ~1 s cooldown retry
+Summon.GAME_RESTORE, Summon.LOGIN_RESTORE = 5, 11 -- the game's own return: within 4 s, 10 after a login (AutoCompanion's)
 local quietGen, quiet = 0, false
 
 local function SetMuted(on)
@@ -206,12 +207,14 @@ local function SetMuted(on)
     for _, id in ipairs(SUMMON_SOUNDS) do fn(id) end
 end
 
-function Summon:QuietSummon()
+-- seconds: how long (QUIET_FOR by default; longer while the game brings the
+-- pet back on its own, which comes with no call of ours to hook).
+function Summon:QuietSummon(seconds)
     if not ns.DB.char.muteSummonSound then return end
     if not quiet then SetMuted(true); quiet = true end
     quietGen = quietGen + 1
     local gen = quietGen
-    C_Timer.After(QUIET_FOR, function()
+    C_Timer.After(seconds or QUIET_FOR, function()
         if gen ~= quietGen then return end
         quiet = false
         SetMuted(false)
@@ -258,13 +261,17 @@ function Summon:Watch()
         end
         return
     end
-    -- After a loading screen the summon can fail: give the world a moment.
-    ns.Events:On("PLAYER_ENTERING_WORLD", Summon, function()
+    -- After a loading screen the summon can fail: give the world a moment. The game
+    -- brings the last pet back by itself there, clank and all (2026-11-10, as
+    -- AutoCompanion does: longer after a login or /reload).
+    ns.Events:On("PLAYER_ENTERING_WORLD", Summon, function(_, _, login, reload)
+        Summon:QuietSummon((login or reload) and Summon.LOGIN_RESTORE or Summon.GAME_RESTORE)
         C_Timer.After(3, function() Summon:Check("PLAYER_ENTERING_WORLD") end)
     end)
     ns.Events:On("PLAYER_REGEN_ENABLED", Summon, function(_, event) Summon:Check(event) end)
     -- Landing / dismounting is when the pet usually goes missing.
     ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Summon, function()
+        if not Truthy(IsMounted()) then Summon:QuietSummon(Summon.GAME_RESTORE) end -- (and the game's own return)
         C_Timer.After(1.5, function() Summon:Check("dismount") end)
     end)
     -- Back on your feet: the retries while dead give up after a minute, and a
@@ -275,6 +282,7 @@ function Summon:Watch()
     local function Alive(_, event)
         if not Summon.died or Truthy(UnitIsDeadOrGhost("player")) then return end
         Summon.died = false
+        Summon:QuietSummon(Summon.GAME_RESTORE)
         C_Timer.After(1, function() Summon:Check(event) end)
     end
     ns.Events:On("PLAYER_DEAD", Summon, function() Summon.died = true end)
