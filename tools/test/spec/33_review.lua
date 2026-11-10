@@ -283,4 +283,41 @@ return function(test, H)
         ok(got and got.ann ~= "quiet", "every cat: told, not quiet")
         eq(w:Sent("ACH_EARNED", nil, m), 1)
     end)
+
+    test("a cached roster or a returning owner's new record doesn't lapse them", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        w:AddMember("Per Hansen", 31)
+        w:AddMember("Liv Lund", 31)
+        w:Run(12)
+        local R, now = c.ns.Registry, w:ServerTime()
+        R:MergeRecord("Per Hansen", { k = "s:40", at = 100, ts = 100 })
+        R:MergeRecord("Liv Lund", { k = "s:41", at = now - 60, ts = now - 60 }) -- back, and adopted just now
+        c.rosterIgnored = true -- (the server ignores the request: the client's cached roster)
+        c.ns.Guild:Refresh(true)
+        w:Run(16)
+        ok(c.ns.Guild.stale)
+        local _, lapses = R:All()
+        no(lapses["Per Hansen"], "not from a cached roster")
+        c.rosterIgnored = false
+        w:Run(301)
+        c.ns.Guild:Refresh(true)
+        w:Run(1)
+        _, lapses = R:All()
+        ok(lapses["Per Hansen"], "from the server's: 31 days")
+        no(lapses["Liv Lund"], "her own record says she's been here since")
+        eq(R:Holder("s:41"), "Liv Lund")
+    end)
+
+    test("a SYNC that starts and never finishes holds ours back once, not forever", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
+        kari.ns.DB:Guild().claims["Zed Nobody"] = { at = 100, ts = 100 } -- (Kari knows something Ola doesn't)
+        local m = w:Mark()
+        w:InjectMessage("Ola Nord", { k = "HELLO", p = kari.ns.PROTOCOL, v = "x", d = 1 })
+        for _ = 1, 6 do
+            w:Inject("Per Hansen", "GUILD", "F" .. ("x"):rep(200)) -- a first chunk, and nothing after it
+            w:Run(25)
+        end
+        ok(w:Sent("SYNC", "Kari Berg", m) > 0, "Kari's SYNC went out after one hold")
+    end)
 end

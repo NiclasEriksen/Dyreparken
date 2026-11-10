@@ -36,7 +36,7 @@ local function Read(stale)
             read = read + 1
         end
     end
-    Guild.members, Guild.at = members, ns.Now()
+    Guild.members, Guild.at, Guild.stale = members, ns.Now(), stale or false
     Guild.complete = not stale and total > 0 and read == total
     ns.Log("Guild", "roster: %d/%d rows", read, total)
     ns.Bus:Fire("ROSTER")

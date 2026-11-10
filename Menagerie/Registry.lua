@@ -239,7 +239,12 @@ function Registry:CheckRoster()
         if r.k and Active(g, owner, r) then
             local member = ns.Guild:IsMember(owner)
             local days = ns.Guild:DaysOffline(owner)
-            if member == false or (days and days >= Config.INACTIVE_RELEASE_DAYS) then
+            -- Days offline only from a roster the server just sent (a cached one can be from
+            -- before they came back), and not for an owner whose own record is newer than
+            -- that: they've been here since (code review 2026-11-10).
+            local away = days and days >= Config.INACTIVE_RELEASE_DAYS and not ns.Guild.stale
+                and ns.Now() - r.ts >= Config.INACTIVE_RELEASE_DAYS * 86400
+            if member == false or away then
                 local t = ns.Now()
                 if self:MergeLapse(owner, t) then
                     added = added or {}

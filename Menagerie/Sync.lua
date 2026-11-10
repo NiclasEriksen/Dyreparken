@@ -101,9 +101,15 @@ end
 
 -- Someone's SYNC is on its way: wait for it before sending ours (it may
 -- say it all). Comes back to it if that SYNC never finishes arriving.
+-- Once per SYNC of ours: a chunk that starts and never finishes (anyone can
+-- send one) held it back again every time (code review 2026-11-10).
 local HOLD = 30
+local held
 local function Hold()
-    if pending then Later(HOLD) end
+    if pending and pending ~= held then
+        Later(HOLD)
+        held = pending
+    end
 end
 
 -- Ask the guild for bonds with a pet (its card is showing): once per pet a
