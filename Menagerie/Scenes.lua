@@ -22,7 +22,7 @@ Scenes.BY_FAMILY = {
     owl = { EJ .. "ScarletMonastery" },
     farm = { EJ .. "Karazhan" },
     rabbit = { EJ .. "RazorfenDowns" },
-    frog = { EJ .. "WailingCaverns" },
+    frog = { EJ .. "Maraudon" }, -- (picked again 2026-11-10; was the Wailing Caverns, the plants' too)
     snake = { EJ .. "RazorfenKraul" },
     mechanical = { EJ .. "Gnomeregan" },
     dragon = { EJ .. "RagefireChasm" },
@@ -36,9 +36,9 @@ Scenes.BY_FAMILY = {
     demon = { EJ .. "MoltenCore" },
     ooze = { EJ .. "Uldaman" },
     spirit = { EJ .. "BlackfathomDeeps" },
-    -- (2026-11-10, the data pass: not picked in game yet; the first the client has)
-    bear = { EJ .. "DireMaul", EJ .. "Maraudon", EJ .. "RazorfenDowns" },
-    reptile = { EJ .. "SunkenTemple", EJ .. "TempleOfAtalHakkar", EJ .. "ZulFarrak", EJ .. "WailingCaverns" },
+    -- The data pass's new families, picked in game 2026-11-10.
+    bear = { EJ .. "OnyxiasLair" },
+    reptile = { EJ .. "SunkenTemple" },
     default = { EJ .. "BlackrockDepths" },
 }
 
