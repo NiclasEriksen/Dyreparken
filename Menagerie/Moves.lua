@@ -27,6 +27,8 @@ local _, ns = ...
 --   /dp probe anim all|custom  play each (or the four custom ones), 3 s apart
 --   /dp probe anim stop     back to standing
 --   /dp probe anim night    pretend it's night (or day again), to test sleep by day
+--   /dp probe anim sleep <id|name> [seconds]  lie down and hold as the card does at night,
+--                           with that animation, held that many seconds in (default 1.2)
 local Moves = {}
 ns.Moves = Moves
 
@@ -107,6 +109,13 @@ function Moves:Probe(arg)
     local word = words[1] or "list"
     local speed, offset = tonumber(words[2]), tonumber(words[3])
     if word == "night" then return self:ForceNight() end
+    if word == "sleep" then
+        local id, name = Find(words[2] or "")
+        if not id then return Say("sleep <id|name> [seconds]") end
+        local at = tonumber(words[3]) or 1.2
+        self:Sequence({ { id, at }, { id, nil, at } })
+        return Say("sleep: %s (%d), held at %.2f s", name, id, at)
+    end
     -- 2026-11-10: frozen at speed 0, Dead (6) stood still instead of lying: the
     -- blend from standing seems frozen too. Retail's actors take a blend
     -- operation (Enum.ModelBlendOperation: 0 None, 1 Anim); unknown on Forever.
