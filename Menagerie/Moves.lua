@@ -160,6 +160,10 @@ end
 ------------------------------------------------------------------------------
 local STAND, SIT_DOWN, SIT_UP = 0, 96, 98
 Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
+-- A new pet loads standing; its pose comes after this. Posed while loading,
+-- the Zergling and Mini Diablo were framed small and low and stayed so
+-- (2026-11-10): the card's camera seems to fit the model as it loads.
+Moves.SETTLE = 0.6
 Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4 } -- how long each one-off plays
 
 -- The animation a pet uses for a reaction (Data/PetMoves.lua, edited by
@@ -236,11 +240,11 @@ end
 
 -- A pose's steps for this pet; the last one is held.
 local function Steps(key, mode)
-    if mode == "sleep" then return { { Moves:For(key, "sleep") } } end
+    if mode == "sleep" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "sleep") } } end
     if mode == "sit" then
         return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }
     end
-    if mode == "dead" then return { { Moves:For(key, "dead"), Moves.T.dead }, { STAND } } end
+    if mode == "dead" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "dead"), Moves.T.dead }, { STAND } } end
     return { { STAND } }
 end
 
