@@ -1017,7 +1017,10 @@ function Client:OpenJournal(o)
             if not o.noActor then
                 local client = self
                 local actor = { played = {} }
-                function actor:SetAnimation(id) self.anim = id; self.played[#self.played + 1] = id end
+                function actor:SetAnimation(id, variation, speed)
+                    self.anim, self.speed = id, speed
+                    self.played[#self.played + 1] = id
+                end
                 -- What plays: the id, or standing (0) for one the model lacks (self.petAnims set).
                 function actor:GetAnimation()
                     if client.petAnims and not client.petAnims[self.anim] then return 0 end

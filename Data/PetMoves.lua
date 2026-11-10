@@ -14,7 +14,8 @@ local _, ns = ...
 -- [number] on the pet's line in Data/Companions.lua.
 --
 -- Reactions:
---   sleep  held at night while you look at the card (not for a Nattugle); a
+--   sleep  held at night while you look at the card (not for a Nattugle), frozen on its
+--          first frame so it stays down (try one with /dp probe anim <id> 0); a
 --          click wakes it
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
 --          with 96 first)

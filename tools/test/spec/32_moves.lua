@@ -24,7 +24,10 @@ return function(test, H)
         eq(actor.anim, 756)
         ok(ola:Printed("PetBattleCustom0 (756): SetAnimation ok; has it: true; now 756", true))
         ola:Slash("probe anim 770")
-        eq(actor.anim, 770)
+        eq(actor.anim, 770); eq(actor.speed, nil)
+        ola:Slash("probe anim 6 0")
+        eq(actor.anim, 6); eq(actor.speed, 0)
+        ok(ola:Printed("Dead (6) at speed 0: SetAnimation ok", true))
         ola:Slash("probe anim 9999")
         eq(actor.anim, 9999, "an id not in the list is tried too")
         ola:Slash("probe anim wiggle")
@@ -101,6 +104,7 @@ return function(test, H)
         eq(actor.anim, 0, "it loads standing (posed while loading, the camera framed some pets small)")
         w:Run(0.61)
         eq(actor.anim, 6, "asleep: lying as Dead (6)")
+        eq(actor.speed, 0, "frozen: played on, it ended and stood the pet up")
         w:Run(5)
         eq(actor.anim, 6, "and stays down")
         ola.ns.Cuddle:Pet(ola:Card())
@@ -178,10 +182,10 @@ return function(test, H)
         eq(actor.anim, 6, "checked a moment later, and set again")
         eq(#ola:Log("Moves\ts:5159 6: set; after 0.3 s 0"), 1)
         eq(actor.anim, 6)
-        -- A refresh of the card (the same pet) stood it up: lying down again.
-        actor.anim = 0
+        -- A refresh of the card (the same pet) stood it up: lying down again, still frozen.
+        actor.anim, actor.speed = 0, nil
         ola.ns.JournalUI:Refresh()
-        eq(actor.anim, 6)
+        eq(actor.anim, 6); eq(actor.speed, 0)
         -- Only once per check: a model that won't keep it isn't fought over.
         local n = #actor.played
         actor.anim = 0

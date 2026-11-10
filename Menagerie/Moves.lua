@@ -21,7 +21,7 @@ local _, ns = ...
 --
 -- And the research probe, in a git checkout:
 --   /dp probe anim          the actor, and the animations we try
---   /dp probe anim <id|name> play one
+--   /dp probe anim <id|name> [speed]  play one (speed 0: frozen on its first frame)
 --   /dp probe anim all|custom  play each (or the four custom ones), 3 s apart
 --   /dp probe anim stop     back to standing
 local Moves = {}
@@ -99,7 +99,9 @@ end
 function Moves:Probe(arg)
     local actor, how = self:Actor()
     if not actor then return Say("%s", how) end
-    local word = (arg or "list"):lower()
+    local word, speedArg = (arg or "list"):lower():match("^(%S+)%s*(%S*)$")
+    word = word or "list"
+    local speed = tonumber(speedArg)
     if word == "stop" then
         cycle = cycle + 1
         local ok = Call(actor, "SetAnimation", 0)
@@ -150,9 +152,10 @@ function Moves:Probe(arg)
     end
     local id, name = Find(word)
     if not id then return Say("unknown animation %q (a number, or a name from the list)", word) end
-    local ok, err = Call(actor, "SetAnimation", id)
-    Say("%s (%d): SetAnimation %s; has it: %s; now %s", name, id, ok and "ok" or tostring(err), tostring(has[id]),
-        Now(actor))
+    local ok, err
+    if speed then ok, err = Call(actor, "SetAnimation", id, 0, speed) else ok, err = Call(actor, "SetAnimation", id) end
+    Say("%s (%d)%s: SetAnimation %s; has it: %s; now %s", name, id, speed and (" at speed " .. speed) or "",
+        ok and "ok" or tostring(err), tostring(has[id]), Now(actor))
 end
 
 ------------------------------------------------------------------------------
@@ -183,11 +186,14 @@ local shown = { token = 0, awake = {} } -- the card's pet, its pose, and pets wo
 -- (2026-11-10: a pet lay down, then flickered back to standing). If it was
 -- reset, once more. Both logged, to learn what the client does.
 Moves.RECHECK = 0.3
-local function Play(id, again)
+-- speed: nil plays it normally; 0 freezes it on its first frame (a held pose:
+-- 2026-11-10, Dead (6) lay the pet flat, then ended and stood it up again).
+local function Play(id, again, speed)
     local actor = Moves:Actor()
     if not actor then return end
-    shown.playing = id
-    local ok = Call(actor, "SetAnimation", id)
+    shown.playing, shown.speed = id, speed
+    local ok
+    if speed then ok = Call(actor, "SetAnimation", id, 0, speed) else ok = Call(actor, "SetAnimation", id) end
     local token = shown.token
     C_Timer.After(Moves.RECHECK, function()
         if token ~= shown.token or shown.playing ~= id then return end
@@ -196,11 +202,11 @@ local function Play(id, again)
         local reset = now ~= actor or (got and at ~= id)
         ns.Log("Moves", "%s %d: %s; after %.1f s %s%s", tostring(shown.key), id, ok and "set" or "refused",
             Moves.RECHECK, got and tostring(at) or "?", now ~= actor and " (a new actor)" or "")
-        if reset and not again then Play(id, true) end
+        if reset and not again then Play(id, true, speed) end
     end)
 end
 
--- Steps { id, seconds }: each in turn; the last one stays. Replaces any running.
+-- Steps { id, seconds, speed }: each in turn; the last one stays. Replaces any running.
 function Moves:Sequence(steps)
     shown.token = shown.token + 1
     local mine = shown.token
@@ -208,7 +214,7 @@ function Moves:Sequence(steps)
         if mine ~= shown.token then return end
         local s = steps[i]
         if not s then return end
-        Play(s[1])
+        Play(s[1], nil, s[3])
         if s[2] then C_Timer.After(s[2], function() Step(i + 1) end) end
     end
     Step(1)
@@ -240,7 +246,7 @@ end
 
 -- A pose's steps for this pet; the last one is held.
 local function Steps(key, mode)
-    if mode == "sleep" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "sleep") } } end
+    if mode == "sleep" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "sleep"), nil, 0 } } end
     if mode == "sit" then
         return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }
     end
@@ -258,7 +264,7 @@ function Moves:Update(card, key)
     local mode = self:Rest(key)
     if key == shown.key and mode == shown.mode then
         -- The same pet refreshed: Blizzard may have stood the model up again; put back what plays.
-        if shown.playing then Play(shown.playing, true) end
+        if shown.playing then Play(shown.playing, true, shown.speed) end
         return
     end
     shown.key, shown.mode = key, mode
