@@ -178,7 +178,7 @@ end
 ------------------------------------------------------------------------------
 -- The pet on the card
 ------------------------------------------------------------------------------
-local STAND, SIT_DOWN, SIT_UP = 0, 96, 98
+local SIT_DOWN, SIT_UP = 96, 98
 Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
 -- A new pet loads standing; its pose comes after this. Posed while loading,
 -- the Zergling and Mini Diablo were framed small and low and stayed so
@@ -209,6 +209,7 @@ Moves.RECHECK = 0.3
 -- from standing frozen too; with no blend, frozen 1.2 s in (the fall over) it
 -- lay still.
 local NO_BLEND, BLEND = 0, 1 -- Enum.ModelBlendOperation (None, Anim)
+local STAND = 0
 local Play
 
 -- 2026-11-10: about one time in three a held pose stood up again by itself
@@ -246,7 +247,15 @@ Play = function(id, again, pose)
     own = true
     Call(actor, "SetAnimationBlendOperation", pose and NO_BLEND or BLEND)
     local ok
-    if pose then ok = Call(actor, "SetAnimation", id, 0, 0, pose) else ok = Call(actor, "SetAnimation", id) end
+    if pose then
+        -- Standing first, in the same moment: 2026-11-10, Dead (6) frozen right after Dead (6)
+        -- played (the lie-down) didn't take, and the pet stood up as the first one ended. The
+        -- client seems to ignore the animation it's already playing.
+        Call(actor, "SetAnimation", STAND)
+        ok = Call(actor, "SetAnimation", id, 0, 0, pose)
+    else
+        ok = Call(actor, "SetAnimation", id)
+    end
     own = false
     local token = shown.token
     C_Timer.After(Moves.RECHECK, function()

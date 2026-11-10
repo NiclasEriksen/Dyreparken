@@ -116,7 +116,10 @@ return function(test, H)
         eq(actor.anim, 6, "lying down: Dead played"); eq(actor.speed, nil); eq(actor.blendOp, 1, "smoothly")
         w:Run(0.9)
         eq(actor.speed, nil, "still lying down")
+        local n = #actor.played
         w:Run(0.3)
+        eq(actor.played[n + 1], 0, "standing, for a moment that isn't drawn: the client ignores the 6 it plays")
+        eq(actor.played[n + 2], 6)
         eq(actor.anim, 6, "asleep: lying as Dead (6)")
         eq(actor.speed, 0, "frozen: played on, it ended and stood the pet up")
         eq(actor.offset, 1.2, "at the end of its fall (frozen at the start, it stood still)")
@@ -248,9 +251,10 @@ return function(test, H)
         w:Run(0.2)
         eq(actor.anim, 6, "lying again"); eq(actor.offset, 1.2)
         -- No fight with a client that insists: a few times per pet shown.
+        local function Sixes(from) local n = 0; for i = from + 1, #actor.played do if actor.played[i] == 6 then n = n + 1 end end; return n end
         local before = #actor.played
         for _ = 1, 10 do actor:SetAnimation(0); w:Run(0.1) end
-        eq(#actor.played - before, 10 + ola.ns.Moves.REPOSE - 2, "ten of theirs, five of ours in all")
+        eq(Sixes(before), ola.ns.Moves.REPOSE - 2, "five of ours in all, against ten of theirs")
         -- Awake, nothing is held: theirs stand.
         ola:SelectPet(46); ola:SelectPet(5159)
         w:Run(1.81)
