@@ -21,6 +21,11 @@ ns.Quirks = Quirks
 Quirks.EVERY = 3600          -- seconds between quirk lines
 Quirks.DISLIKE_CHANCE = 0.35 -- per disliked activity (with the hour free)
 Quirks.random = math.random  -- (tests pin it)
+-- A line comes a while after what caused it, not the instant it happens
+-- (2026-11-10: "scared of flying" the moment you took off read as if it had
+-- flown for ages). Seconds, picked at random within; a dislike takes longer
+-- to sink in than an egg's moment.
+Quirks.DELAY = { dislike = { 20, 60 }, egg = { 5, 20 } }
 
 local T = ns.T
 
@@ -47,10 +52,17 @@ function Quirks:Ready()
     return not at or ns.Now() - at >= self.EVERY
 end
 
-function Quirks:Say(text, why)
+-- Decided now (the hour starts now, so nothing else slips in meanwhile), said
+-- after the delay; then(): what follows the line.
+function Quirks:Say(text, why, kind, after)
     ns.DB.char.quirkAt = ns.Now()
-    ns.Print("|cffd9b3ff" .. text .. "|r")
-    ns.Log("Quirks", "%s", why)
+    local span = self.DELAY[kind]
+    local wait = span[1] + self.random() * (span[2] - span[1])
+    ns.Log("Quirks", "%s, in %d s", why, wait)
+    C_Timer.After(wait, function()
+        ns.Print("|cffd9b3ff" .. text .. "|r")
+        if after then after() end
+    end)
 end
 
 ------------------------------------------------------------------------------
@@ -61,14 +73,15 @@ function Quirks:Dislike(key, id)
     local name = ns.Registry:NameOf(key)
     local text = Pick("dislike." .. id, { pet = name })
     if not text then return end
-    self:Say(text, ("dislike %s %s"):format(key, id))
     local seen = ns.DB.char.dislikes
     seen[key] = seen[key] or {}
-    if not seen[key][id] then
-        seen[key][id] = true
+    local first = not seen[key][id]
+    seen[key][id] = true
+    self:Say(text, ("dislike %s %s"):format(key, id), "dislike", function()
+        if not first then return end
         ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")
         if ns.JournalUI then ns.JournalUI:Refresh() end
-    end
+    end)
 end
 
 ------------------------------------------------------------------------------
@@ -149,7 +162,7 @@ function Quirks:Egg(on, key, extra)
                 had = ns.DB.char.eggs[e.id] or {}
                 had.n, had.day, had.key, had.played = (had.n or 0) + 1, today, key, nil -- (Moves: playing dead)
                 ns.DB.char.eggs[e.id] = had
-                self:Say(text, ("egg %s %s"):format(e.id, key))
+                self:Say(text, ("egg %s %s"):format(e.id, key), "egg")
                 return true
             end
         end

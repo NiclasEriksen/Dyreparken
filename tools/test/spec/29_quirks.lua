@@ -17,9 +17,12 @@ return function(test, H)
         w:Run(40)
         local Q = ola.ns.Quirks
         Q.random = function(n) return n and 1 or 0 end
+        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } } -- (said at once; the delay has its own test)
         return w, ola, Q
     end
+    local function Said(c, text) c.world:RunTimers(); return c:Printed(text, true) end
     local function Count(c, text)
+        c.world:RunTimers()
         local n = 0
         for _, l in ipairs(c.printed) do if l:find(text, 1, true) then n = n + 1 end end
         return n
@@ -51,8 +54,8 @@ return function(test, H)
         ok(ola.ns.Activity:IsListening("MIRROR_TIMER_START"), "watched for the cat")
         local before = Points(ola)
         Dive(ola)
-        ok(ola:Printed("Bombay Cat rister vannet av seg og ser fornærmet på deg.", true))
-        ok(ola:Printed("Nå vet du det: Bombay Cat liker ikke dykking.", true))
+        ok(Said(ola, "Bombay Cat rister vannet av seg og ser fornærmet på deg."))
+        ok(Said(ola, "Nå vet du det: Bombay Cat liker ikke dykking."))
         eq(Points(ola), before, "no effect on the bond")
         ok(ola.ns.DB.char.dislikes[CAT].dive)
         eq(card.likes.text, "Liker fisking, quests og PvP · liker ikke dykking")
@@ -69,7 +72,7 @@ return function(test, H)
         w:Run(61)
         Q.random = function(n) return n and 2 or 0 end
         Dive(ola)
-        ok(ola:Printed("Bombay Cat nekter å se på deg etter den dukkerten.", true), "another line")
+        ok(Said(ola, "Bombay Cat nekter å se på deg etter den dukkerten."), "another line")
         eq(Count(ola, "Nå vet du det"), 1, "found once")
         -- Alone on the card: capitalized. And it's kept across a reload.
         ola.ns.Personality.PINNED[40] = { "kosete", "festglad" }
@@ -79,6 +82,31 @@ return function(test, H)
         eq(card.likes.text, "Liker ikke dykking")
         ola:Reload()
         ok(ola.ns.DB.char.dislikes[CAT].dive)
+    end)
+
+    test("a line comes a while after what caused it, not the moment it happens", function()
+        local w, ola, Q = Setup()
+        Q.DELAY = { dislike = { 20, 60 }, egg = { 5, 20 } }
+        Q.random = function(n) return n and 1 or 0.25 end -- yes, and halfway-ish: 20 + 0.25 * 40 = 30 s
+        Dive(ola)
+        eq(Count(ola, "Bombay Cat rister"), 0, "not at once")
+        w:Run(29)
+        eq(Count(ola, "Bombay Cat rister"), 0)
+        no(ola:Printed("Nå vet du det", true))
+        ok(ola.ns.DB.char.quirkAt, "the hour starts at the dive: nothing else slips in meanwhile")
+        ola.ns.Activity:Emit("fish")
+        w:Run(1.1)
+        eq(Count(ola, "Bombay Cat rister"), 1, "about half a minute later")
+        ok(ola:Printed("Nå vet du det: Bombay Cat liker ikke dykking.", true), "and then that it's found out")
+        w:Run(30)
+        eq(Count(ola, "fangsten"), 0, "the catch came in the dislike's hour")
+        -- An egg's line: sooner (5 + 0.25 * 15 s).
+        w:Skip(3601)
+        ola.ns.Activity:Emit("fish")
+        w:Run(8.6)
+        eq(Count(ola, "fangsten"), 0)
+        w:Run(0.3)
+        eq(Count(ola, "fangsten"), 1)
     end)
 
     test("what Quirks watches gives no bond points: level-ups, deaths, dislikes, even with a moment trait", function()
@@ -133,14 +161,14 @@ return function(test, H)
         while Day(w:ServerTime()) - Day(at) < 200 do w:Skip(3600) end
         ola.ns.DB.char.quirkAt = ola.ns.Now()
         A:Emit("day")
-        ok(ola:Printed("Bombay Cat og du har bodd sammen i 200 dager!", true))
+        ok(Said(ola, "Bombay Cat og du har bodd sammen i 200 dager!"))
         w:SkipDays(1)
         A:Emit("day")
         eq(Count(ola, "bodd sammen"), 1, "only on the day")
         -- A holiday, once a day.
         w:Skip(os.time({ year = 2027, month = 5, day = 17, hour = 12 }) - w:ServerTime())
         A:Emit("day")
-        ok(ola:Printed("Bombay Cat har fått sløyfe i rødt, hvitt og blått. Hipp hurra!", true))
+        ok(Said(ola, "Bombay Cat har fått sløyfe i rødt, hvitt og blått. Hipp hurra!"))
         A:Emit("day"); A:Emit("day")
         eq(Count(ola, "sløyfe"), 1, "once a day")
         eq(ola.ns.DB.char.eggs.mai17.n, 1)
@@ -149,54 +177,54 @@ return function(test, H)
         -- Friday the 13th.
         w:Skip(os.time({ year = 2027, month = 8, day = 13, hour = 12 }) - w:ServerTime())
         A:Emit("day")
-        ok(ola:Printed("Bombay Cat går i en stor bue rundt alle svarte katter i dag.", true))
+        ok(Said(ola, "Bombay Cat går i en stor bue rundt alle svarte katter i dag."))
     end)
 
     test("easter eggs by chance and by the hour: fish, bosses, levels, deaths, midnight", function()
         local w, ola, Q = Setup()
         local A = ola.ns.Activity
         A:Emit("fish")
-        ok(ola:Printed("Bombay Cat har allerede spist halve fangsten.", true), "a cat and the catch")
+        ok(Said(ola, "Bombay Cat har allerede spist halve fangsten."), "a cat and the catch")
         A:Emit("boss", 1, "Hogger")
-        no(ola:Printed("som minne", true), "the hour isn't up")
+        no(Said(ola, "som minne"), "the hour isn't up")
         w:Skip(3601)
         Q.random = function(n) return n and 1 or 0.5 end
         A:Emit("boss", 1, "Hogger")
-        no(ola:Printed("som minne", true), "the dice said no (15%)")
+        no(Said(ola, "som minne"), "the dice said no (15%)")
         Q.random = function(n) return n and 1 or 0 end
         A:Emit("boss", 1, "?")
-        no(ola:Printed("som minne", true), "no name, no trophy")
+        no(Said(ola, "som minne"), "no name, no trophy")
         A:Emit("boss", 1, "Hogger")
-        ok(ola:Printed("Bombay Cat tok med seg en liten bit av Hogger som minne.", true))
+        ok(Said(ola, "Bombay Cat tok med seg en liten bit av Hogger som minne."))
         w:Skip(3601)
         A:Emit("level", 1, "29")
-        no(ola:Printed("kake", true))
+        no(Said(ola, "kake"))
         A:Emit("level", 1, "30")
-        ok(ola:Printed("Bombay Cat har bakt kake til nivå 30!", true))
+        ok(Said(ola, "Bombay Cat har bakt kake til nivå 30!"))
         w:Skip(3601)
         A:Emit("revive"); A:Emit("revive")
-        no(ola:Printed("trygt", true))
+        no(Said(ola, "trygt"))
         A:Emit("revive")
-        ok(ola:Printed("Bombay Cat lurer på om det er trygt å bo hos deg.", true), "the third death today")
+        ok(Said(ola, "Bombay Cat lurer på om det er trygt å bo hos deg."), "the third death today")
         eq(ola.ns.DB.char.eggs.dodsfall.key, CAT, "which pet: it plays dead on its card (Moves.lua)")
         w:Skip(3601)
         ola.ns.DB.char.activity.quest = { total = 499, mine = 0, today = 0, pets = { [CAT] = 98 } }
         ola.ns.DB.char.quirkAt = ola.ns.Now()
         A:Emit("quest")
-        no(ola:Printed("quests. Det", true), "500 quests in all, but 99 with this pet")
+        no(Said(ola, "quests. Det"), "500 quests in all, but 99 with this pet")
         A:Emit("quest")
-        ok(ola:Printed("Bombay Cat har hjulpet deg med 100 quests. Det fortjener en godbit!", true),
+        ok(Said(ola, "Bombay Cat har hjulpet deg med 100 quests. Det fortjener en godbit!"),
             "its own hundredth, not held back by the hour")
         -- Midnight: any activity in its first ten minutes.
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 0, min = 5 }) - w:ServerTime())
         A:Emit("herb")
-        ok(ola:Printed("Bombay Cat gjesper. Det er midnatt, vet du.", true))
+        ok(Said(ola, "Bombay Cat gjesper. Det er midnatt, vet du."))
     end)
 
     test("your pet meets its own kind under the mouse", function()
         local w, ola, Q = Setup()
         ola:Hover{ species = 40, owner = "Kari Berg" }
-        ok(ola:Printed("Bombay Cat stirrer på Kari Berg sitt dyr. Er det et speil?", true))
+        ok(Said(ola, "Bombay Cat stirrer på Kari Berg sitt dyr. Er det et speil?"))
         w:Skip(3601)
         ola:Hover{ species = 40, owner = "Kari Berg" }
         eq(Count(ola, "speil"), 1, "once a day")
