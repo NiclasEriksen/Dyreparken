@@ -465,6 +465,24 @@ return function(test, H)
             ok(ola.ns.Scenes.BY_FAMILY[family], family .. ": a scene")
             ok(ola.ns.Scenes.TINT[family], family .. ": a tint")
             ok(ola.ns.Decor.FAMILY[family], family .. ": an ambience")
+            ok(ola.ns.AchTexts.generic.families[family], family .. ": its name in the plural (Parken)")
         end
+    end)
+
+    test("together: bosses, honorable kills and quests with your adopted pet out, in high numbers", function()
+        local w, ola = H.Setup{ ola = { 5159, 46 } }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local A = ola.ns.Achievements
+        ola.ns.DB.char.activity.boss = { total = 99, mine = 99, today = 0, day = ola.ns.Today(), pets = {} }
+        ola:Summon(46)
+        ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
+        w:Run(1)
+        no(A:Got("boss:100"), "another pet out: not with your adopted one")
+        ola:Summon(5159)
+        ola:Fire("ENCOUNTER_END", 2, "Van Cleef", 1, 5, 1)
+        w:Run(1)
+        ok(A:Got("boss:100"), "the hundredth with the panda")
+        no(A:Got("boss:500"))
     end)
 end

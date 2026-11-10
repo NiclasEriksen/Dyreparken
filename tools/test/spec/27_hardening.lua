@@ -396,8 +396,7 @@ return function(test, H)
         ola:Fire("QUEST_TURNED_IN", 1) -- points (BOND), and an activity
         ola:Fire("QUEST_TURNED_IN", 2)
         w:Run(1)
-        eq(#ola:Log("Ach\tcheck") - before, 1, "one check for two quests and their points")
-        eq(#ola:Log("Ach\tcheck %(activity%)"), 0)
+        eq(#ola:Log("Ach\tcheck") - before, 1, "one check for two quests and their points (quests count: quest:500)")
     end)
 
     test("auto-summon listens to the game only while it can do something: on, with a pet to keep out", function()

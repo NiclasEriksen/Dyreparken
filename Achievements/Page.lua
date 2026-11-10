@@ -11,7 +11,7 @@ local Page = {}
 ns.AchPage = Page
 
 local ROW_H, HEADER_H = 46, 26
-local CATS = { "collection", "family", "loyalty", "guild" }
+local CATS = { "collection", "family", "loyalty", "together", "guild" }
 local ICON = "Interface\\Icons\\Achievement_General" -- (unverified) on Forever
 
 local sp, page, child -- the SidePage, its frame, the scroll child

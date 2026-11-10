@@ -199,3 +199,18 @@ turned back (SetYaw), the inn's name (GetBindLocation), the zone names, and a gu
 
 - **"Kjenner deg ut og inn"**: you've found every dislike of your adopted pet (char.dislikes against
   `Personality:Dislikes`). A new Defs kind. *Small.*
+
+# Waiting for later (noted 2026-11-10, the user: "most of these should wait")
+
+- **Temperament** (docs/PET_LIFE.md stage 4): a pet's total bond across all carers as stages (Vill → Sky →
+  Nysgjerrig → Tam → ... → Parklegende; "Kosete" clashes with the trait's name), a word in the world tooltip and a
+  colored border on the Parken map. Needs thresholds.
+- **The pet's story** (stage 5): first home, every carer and how long, milestones; Parken tooltip and the card.
+- **Collection sync** (stage 6, a protocol bump): what each member owns, so "the guild is missing these",
+  "arrived in the park" and "wild" pets nobody has.
+- **Trofast's halo** hangs at a fixed height like the old pet-of-the-day halo (the client can't say where a head
+  is): keep it, make it a glow under the pet, or drop it.
+- The leftover ideas above: today's mood word, a "Del" link for a funny quirk line, name suggestions, a "?" help,
+  the playdate hint, a first-day bonus, a live model on Parken.
+- **Whispers:** replies (bond answers) as whispers instead of guild-wide, once whispering "First Surname" is
+  probed on Forever.

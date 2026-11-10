@@ -58,6 +58,16 @@ ns.AchDefs = {
     { id = "loyal:365", kind = "bond", level = 6, scope = "char", cat = "loyalty", icon = { "Achievement_WorldEvent_Valentine", "Spell_Holy_SealOfSacrifice" } },
     { id = "nick", kind = "nick", scope = "char", cat = "loyalty", icon = { "INV_Inscription_Parchment", "INV_Misc_Note_01" } },
     { id = "dislikes", kind = "dislikes", scope = "char", cat = "loyalty", icon = { "Spell_Misc_EmotionSad", "INV_Misc_Book_09", "INV_Misc_Note_01" } },
+    -- Together (2026-11-10): with your adopted pet out. High: a dungeon has many bosses, and quests come quick.
+    { id = "boss:100", kind = "activity", act = "boss", n = 100, pet = true, scope = "char", cat = "together", icon = { "Achievement_Boss_Onyxia", "INV_Misc_Bone_HumanSkull_01" } },
+    { id = "boss:500", kind = "activity", act = "boss", n = 500, pet = true, scope = "char", cat = "together", icon = { "Achievement_Boss_Ragnaros", "INV_Misc_Head_Dragon_Black" } },
+    { id = "boss:2000", kind = "activity", act = "boss", n = 2000, pet = true, scope = "char", cat = "together", icon = { "Achievement_Boss_KelThuzad_01", "INV_Misc_Head_Dragon_Bronze" } },
+    { id = "pvp:250", kind = "activity", act = "pvp", n = 250, pet = true, scope = "char", cat = "together", icon = { "Ability_DualWield", "INV_Sword_04" } },
+    { id = "pvp:1000", kind = "activity", act = "pvp", n = 1000, pet = true, scope = "char", cat = "together", icon = { "Ability_Warrior_BattleShout", "INV_Sword_27" } },
+    { id = "pvp:5000", kind = "activity", act = "pvp", n = 5000, pet = true, scope = "char", cat = "together", icon = { "INV_Misc_Bandana_03", "Ability_Warrior_WarCry" } },
+    { id = "quest:500", kind = "activity", act = "quest", n = 500, pet = true, scope = "char", cat = "together", icon = { "INV_Misc_Book_09", "INV_Scroll_03" } },
+    { id = "quest:2500", kind = "activity", act = "quest", n = 2500, pet = true, scope = "char", cat = "together", icon = { "INV_Misc_Book_11", "INV_Scroll_03" } },
+    { id = "quest:10000", kind = "activity", act = "quest", n = 10000, pet = true, scope = "char", cat = "together", icon = { "INV_Misc_Book_07", "INV_Scroll_03" } },
     { id = "eggs:10", kind = "eggs", n = 10, scope = "char", cat = "loyalty", icon = { "INV_Egg_03", "INV_Egg_01", "INV_Misc_Food_57" } },
     { id = "eggs:25", kind = "eggs", n = 25, scope = "char", cat = "loyalty", icon = { "INV_Egg_04", "INV_Egg_03", "INV_Misc_Food_57" } },
 
