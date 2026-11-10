@@ -81,3 +81,109 @@ What it could open, once we know which animations a companion has:
   flood made-up owners until honest SYNC parts are over SYNC_MAX_ENTRIES. Names and bonds got per-member caps
   (Registry: Trim); owners can't be capped the same way (one record each). A fix would need a rule every client
   applies alike, e.g. dropping released records of owners not seen for a long time.
+
+# Small additions (creative review, 2026-11-10)
+
+Small touches that build on what's there. Nothing here is decided. Sizes: **tiny** (a table row or a few Locale
+lines), **small** (under ~60 lines and a test), **medium** (several modules). ★ = the review's favourites. Every
+idea keeps the rules: no bond points from flavor, no polling, events only while needed, Norwegian text.
+
+## The card
+
+- ★ **Zzz over a sleeping pet.** When Moves puts the pet to sleep at night, a few `zee` particles rise from it
+  (Decor.KINDS, the Latsabb kind). A click to wake it stops them. Only while the card shows. *Tiny.*
+- ★ **A cuddle answers in the pet's own particles.** One or two of Cuddle's four hearts become the first trait's
+  particle (`Decor.TRAITS[id].kind`): bubbles for a Dykker, a note for a Dansefot, a crumb for a Glupsk, a bolt for
+  a Fleibede. No trait particle: the family's (`Decor.FAMILY`). *Tiny.*
+- **Trait particles that remember today.** If a trait's activity happened today (`Activity:Count`), the trait shows
+  double its particles until midnight: chevrons on the day you dinged, Pratsom's speech bubbles after guild chat.
+  A multiplier in `Decor:Specs`. *Tiny.*
+- **"Fornøyd for i dag."** After BOND_FULL your pet on the card sits (the `sit` anim) instead of standing. *Tiny.*
+- **A happy hop when a wish comes true.** The first time you open the card after the wish is done, it plays its
+  happy move once (`Moves:Cuddle`, a `char.wish.shown` flag). *Tiny.*
+- **Round numbers on the chips.** A stat chip reaching 10, 50, 100 or 500 gets the `ring` texture as a gold rim
+  for the day; tooltip "100 quests sammen med {pet}!" (Stats:Update). *Small.*
+- **The last place you saw together.** The explore chip's tooltip: "Sist oppdaget sammen: Westfall"
+  (`Activity:CheckPlace` has the name; a `char.lastPlace[key]`). *Tiny.*
+- **A sulky back after a dislike** (builds on "turned back" above): the first card open on a dislike day, the pet
+  turns away for three seconds with a `cloud` puff. Needs `ModelSceneActor:SetYaw`, unverified on Forever. *Small.*
+- **The pet walks with you** (the user's idea, 2026-11-10). Only the active pet (char.activePet, auto-summon on):
+  it walks (anim 4) while you move on foot and runs (5) while you're mounted and moving; on a taxi it stands. It
+  **never overrides another animation**: cuddle, cheer, playing dead, asleep at night and the Latsabb's sit all
+  win; motion replaces only the plain stand. Both ids are in Moves.ANIMS (they play on companions); add
+  `walk = 4, run = 5` to `PetMoves.default`, with `false` per species where it looks wrong (wisps, oozes).
+  Events only while the card shows: `PLAYER_STARTED_MOVING`/`PLAYER_STOPPED_MOVING` (**unverified on Forever**),
+  `PLAYER_MOUNT_DISPLAY_CHANGED` + `IsMounted()` and `UnitOnTaxi` (both in use in Summon). Debounce the stop ~0.3 s
+  so key taps don't twitch it. Opening the card mid-run starts at rest unless `GetUnitSpeed`/`IsPlayerMoving` exist
+  (unverified). Open: mounted but standing still (suggested: stand). *Small to medium.*
+
+## The world and chat
+
+- ★ **Family voices for `/dp klapp`.** After the pat, a line only you see: "{pet} sier «mjau»." Cat «mjau», owl
+  «hu-hu», frog «kvekk», mechanical «bzzt-klikk», dragon a «fnys», snake «sssss», rodent «pip», wolf «auuu», ooze
+  «blubb», demon «hehehe». One Locale table `voice.<family>`. *Tiny.*
+- ★ **Hearing a guildmate's pat.** A nearby guildmate's `/dp klapp` emote reaches you as CHAT_MSG_EMOTE with your
+  pet's name: hearts at the chat window (Fx) and "{pet} logrer fornøyd etter klappen fra {who}." No new wire
+  message. Register only while your adopted pet is out; sender must be in the roster; `Plain()` the text.
+  Unprobed: whether custom emotes arrive that way. *Small.*
+- **Hearts in the holder's colors.** The cursor hearts on a companion (Fx) tinted by its holder's bond tier
+  (`Scenes.Tier`): pink, silver from 3, gold from 5. *Tiny.*
+- ★ **It remembers an old carer.** Hovering a companion whose owner has a `g.life` entry with your current pet:
+  an egg "{pet} kjenner igjen {owner}! De bodde sammen en gang." *Small.*
+- **Cousins meet.** COMPANION_SEEN with the same family, another species, chance 0.25: "{pet} og {owner} sitt dyr
+  snuser forsiktig på hverandre." Two owls: "To ugler, null søvn." *Tiny.*
+- **Home by name.** The hearth line names the inn: "{pet} er glad for å være hjemme i {home}!" Needs
+  `GetBindLocation`, unverified. *Tiny.*
+- **At home in a zone.** Family → zone: a pirate pet in Booty Bay, a frog in the Wailing Caverns, an owl in
+  Moonglade, a mechanical pet in Gnomeregan. "{pet} føler seg hjemme blant piratene i Booty Bay!" Zone names need a
+  look in game. *Small.*
+
+## The guild together
+
+- ★ **Congratulate from the cake.** A click on another member's milestone cake (Cake.lua) posts "Gratulerer med
+  {time}, {owner} og {pet}!" to guild chat (the click is the hardware event). Once per pet a day; respects
+  `/dp kunngjør`. *Small.*
+- **A best friend in the park.** Count playdates per pet pair (`char.playmates`); the bond tooltip: "Bestevenn i
+  parken: Mjau (Kari Berg), 6 lekedater." The fifth brings a line. *Small.*
+- **Full house.** PLAY from three or more guildmates within ten minutes: once a day, "Full fest: {n} dyr fra parken
+  på samme sted!" No new traffic. *Small.*
+- **Your pet is Dagens dyr.** A line after login, "{pet} er dagens dyr i guilden i dag!", and the `halo` over it on
+  the card that day (pairs with the crown in CLAUDE.md's Future additions). *Tiny.*
+- **The park's birthday.** The guild's first adoption is the day Dyreparken opened there (a guild fact, not a
+  player's birthday): confetti on every card and "Dyreparken fyller {n} år i dag!" *Small.*
+
+## Easter eggs (rows in Quirks.EGGS, lines egg.<id>.N)
+
+- ★ **Fredagstaco.** Fridays after 17:00 with a Glupsk pet or a cat: "{pet} lukter taco. Det er fredag!" Saturdays,
+  for a Helgetroll: "{pet} har funnet lørdagsgodteriet ditt." *Tiny.*
+- **Monday blues** for a Helgetroll: "{pet} er sur. Det er mandag, og helgen er fem dager unna." *Tiny.*
+- **13:37**: "{pet} synes klokka er ekstremt kul akkurat nå." *Tiny.*
+- **A midnight dance** (dance 00:00–00:30): "Midnattsdans! {pet} visste ikke at du hadde det i deg." *Tiny.*
+- **A hundred jumps** in a day: "{pet} har hoppet 100 ganger med deg i dag og må hvile litt." A Hoppetass: "...og
+  vil ha mer!" *Tiny.*
+- **A long nap** (nap ×5): "{pet} lurer på om dere har flyttet inn i vertshuset." *Tiny.*
+- **Early bird** (the day's visit before 07:00): "{pet} gnir søvnen ut av øynene. Så tidlig?" A Nattugle: "{pet}
+  har ikke lagt seg ennå." *Tiny.*
+- **A namesake** nickname (your own first name): "{pet} heter det samme som deg. Det blir rot ved middagsbordet."
+  Same as another guild pet: "Nå finnes det to «{nick}» i parken!" *Tiny.*
+- **April Fools for real.** On 1 April a Fleibede's card shows another species' name, picked from the date, with an
+  "Aprilsnarr!" tooltip. *Small.*
+
+## Seasons and time (date math, read when the card draws)
+
+- ★ **A December calendar.** 1–24 December, the first card open each day "opens a door": a gold star burst and
+  one of 24 lines ("Luke 7: {pet} fant en pepperkake bak sofaen." "Luke 24: {pet} har pakket inn en gave til deg.
+  Den er formet som en pinne."). A missed day stays shut. *Small, mostly writing.*
+- **Seasons on the card.** Autumn leaves in October–November on outdoor pets, clover in April–May, butterflies in
+  June–August (existing kinds, a `when = Month(...)` in `Decor:Specs`). *Tiny.*
+- **National days for everyone.** 17 May: confetti in red, white and blue on every card. Sankthans: embers from
+  below. New Year's Eve 23:50–00:10: sparks. *Tiny.*
+- **Easter and Fastelavn** (Easter Sunday by the Gauss formula): "{pet} har gjemt et påskeegg i bagen din. Kvikk
+  Lunsj?" Fastelavn: feathers and "{pet} har pyntet seg med fjær." *Small.*
+- **The clocks change** (`date("*t").isdst` differs from yesterday): "Klokka ble stilt i natt, og {pet} skjønner
+  ikke når det er middag." *Tiny.*
+
+## An achievement
+
+- **"Kjenner deg ut og inn"**: you've found every dislike of your adopted pet (char.dislikes against
+  `Personality:Dislikes`). A new Defs kind. *Small.*
