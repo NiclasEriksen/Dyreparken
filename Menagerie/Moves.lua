@@ -500,7 +500,8 @@ end
 ------------------------------------------------------------------------------
 local motion = { on = false, moving = false, token = 0 }
 Moves.STOP_AFTER = 0.3 -- a stop this short isn't one (tapped keys would twitch it)
-local MOTION_EVENTS = { "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "PLAYER_MOUNT_DISPLAY_CHANGED" }
+local MOTION_EVENTS = { "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "PLAYER_MOUNT_DISPLAY_CHANGED",
+    "PLAYER_CONTROL_GAINED" }
 local function Truthy(v) return ns.Plain(v) and true or false end
 
 -- The walk or run it plays now, or nil (standing still, on a taxi, not the pet you keep out).
@@ -508,6 +509,14 @@ function Moves:MotionId(key)
     if not (motion.on and motion.moving and key and ns.Summon:ActiveKey() == key) then return nil end
     if Truthy(UnitOnTaxi("player")) then return nil end
     return self:For(key, Truthy(IsMounted()) and "run" or "walk")
+end
+
+-- Are we moving (GetUnitSpeed), or nil when the client can't say.
+function Moves.Moving()
+    local ok, speed = pcall(function() return GetUnitSpeed and GetUnitSpeed("player") end)
+    speed = ok and ns.Plain(speed)
+    if type(speed) ~= "number" then return nil end
+    return speed > 0
 end
 
 -- Moving changed: a pet resting standing (its last step held) takes it up.
@@ -527,8 +536,7 @@ function Moves:Follow(key)
         for _, e in ipairs(MOTION_EVENTS) do ns.Events:Off(e, Moves) end
         return
     end
-    local ok, speed = pcall(function() return GetUnitSpeed and GetUnitSpeed("player") end)
-    motion.moving = ok and type(ns.Plain(speed)) == "number" and speed > 0
+    motion.moving = Moves.Moving() or false
     ns.Events:On("PLAYER_STARTED_MOVING", Moves, function()
         motion.token = motion.token + 1
         if not motion.moving then motion.moving = true; Repose() end
@@ -540,7 +548,15 @@ function Moves:Follow(key)
             if mine == motion.token and motion.moving then motion.moving = false; Repose() end
         end)
     end)
-    ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Moves, function() Repose() end)
+    -- Mounting, landing, a flight's end: how fast we really go now. (2026-11-10: landed from a
+    -- flight path and standing, the pet walked: no stop came after the flight.)
+    local function Resync()
+        local now = Moves.Moving()
+        if now ~= nil then motion.moving = now end
+        Repose()
+    end
+    ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Moves, Resync)
+    ns.Events:On("PLAYER_CONTROL_GAINED", Moves, Resync)
 end
 
 -- A pose's steps for this pet; the last one is held.

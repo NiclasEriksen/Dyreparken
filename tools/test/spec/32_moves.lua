@@ -331,6 +331,14 @@ return function(test, H)
         eq(actor.anim, 0, "a flight path: standing")
         ola:Set("taxi", false); ola:Dismount()
         eq(actor.anim, 4)
+        -- Landed from a flight, standing, and no stop came: the speed says so.
+        ola:Mount(); ola:Set("taxi", true); ola:Fire("PLAYER_MOUNT_DISPLAY_CHANGED")
+        ola:Set("taxi", false); ola.state.moving = false
+        ola:Fire("PLAYER_CONTROL_GAINED")
+        eq(actor.anim, 0, "standing after the flight")
+        ola:Dismount()
+        eq(actor.anim, 0)
+        ola:Move()
         -- A tap on the keys isn't a stop.
         ola:Halt(); w:Run(0.1); ola:Move(); w:Run(0.5)
         eq(actor.anim, 4)

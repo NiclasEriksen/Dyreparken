@@ -96,7 +96,8 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
   Zergling z 2.5, zoom 20). The projected box did NOT match where the pet shows (y off by 60-200 px, differently
   per pet), so neither its feet nor its head can be found from it: per-species `lift` by eye instead.
 - Unverified, relied on since 2026-11-10 (each degrades to nothing when missing): `PLAYER_STARTED_MOVING`,
-  `PLAYER_STOPPED_MOVING` and `GetUnitSpeed("player")` (the card's pet walking with you, Moves.lua);
+  `PLAYER_STOPPED_MOVING`, `PLAYER_CONTROL_GAINED` and `GetUnitSpeed("player")` (the card's pet walking with you,
+  Moves.lua; 2026-11-10: after landing from a flight path no stop came, so landing re-reads the speed);
   `ModelSceneActor:GetYaw/SetYaw` (the pet turning its back after a dislike); `GetBindLocation()` (the hearth
   line names your inn); the enUS zone names in `Quirks.HOME_ZONES`; custom emotes (`SendChatMessage(..., "EMOTE")`)
   reaching nearby players as `CHAT_MSG_EMOTE` with a "First Surname" sender (a guildmate's /dp klapp, Bonds.lua).
