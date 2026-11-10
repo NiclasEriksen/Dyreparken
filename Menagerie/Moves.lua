@@ -32,7 +32,7 @@ local _, ns = ...
 --   /dp probe anim stop     back to standing
 --   /dp probe anim night    pretend it's night (or day again), to test sleep by day
 --   /dp probe anim sleep <id|name> [seconds]  lie down and hold as the card does at night,
---                           with that animation, held that many seconds in (default 1.2)
+--                           with that animation, held that many seconds in (default: the file's sleepAt)
 local Moves = {}
 ns.Moves = Moves
 
@@ -271,7 +271,7 @@ function Moves:Probe(arg)
     if word == "sleep" then
         local id, name = Find(words[2] or "")
         if not id then return Say("sleep <id|name> [seconds]") end
-        local at = tonumber(words[3]) or 1.2
+        local at = tonumber(words[3]) or ns.PetMoves.default.sleepAt
         self:Sequence({ { id, at }, { id, nil, at } })
         return Say("sleep: %s (%d), held at %.2f s, %s", name, id, at,
             Has(actor, "SetPaused") and "by pausing (SetPaused)" or "frozen (no SetPaused)")

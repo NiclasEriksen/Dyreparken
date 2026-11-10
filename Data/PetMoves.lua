@@ -15,9 +15,9 @@ local _, ns = ...
 --
 -- Reactions:
 --   sleep  held at night while you look at the card (not for a Nattugle); a click
---          wakes it. Played for sleepAt seconds (it lies down), then frozen there,
---          cut to without a blend, so it stays down: try one with /dp probe anim blend none, then
---          /dp probe anim <id> 0 <seconds> (blend anim afterwards). To see the
+--          wakes it. Played for sleepAt seconds (it lies down), then paused there (SetPaused;
+--          0.8 s caught every pet tried lying down, 2026-11-10: later, most were getting up again).
+--          Try one with /dp probe anim sleep <id> <seconds>. To see the
 --          card at night by day: /dp probe anim night
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
 --          with 96 first), and by any pet of yours once its day's bond is full
@@ -31,7 +31,7 @@ local _, ns = ...
 --          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here
 --          (every pet set by eye 2026-11-10).
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 1.2, sit = 97, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
+    default = { sleep = 6, sleepAt = 0.8, sit = 97, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
         [39] = { lift = -0.1 },  -- Mechanical Squirrel
         [40] = { lift = -0.1 },  -- Bombay
@@ -79,8 +79,7 @@ ns.PetMoves = {
         [5154] = { lift = -0.15 },  -- Brown Ground Squirrel
         [5155] = { lift = -0.15 },  -- Red Ground Squirrel
         [5158] = { lift = 0.25 },  -- Eagle Owl
-        [5159] = { sleepAt = 1.5 },  -- Panda Cub: its fall ends later
-        [5160] = { sleep = false, happy = false, lift = 0.4 },  -- Zergling: PetBattleCustom0 is an attack; asleep too messy for now (6 or 770 held at 2.7 were the best)
+        [5160] = { happy = false, lift = 0.4 },  -- Zergling: PetBattleCustom0 is an attack
         [5161] = { sleep = false, lift = 0.2 },  -- Mini Diablo: Dead (6) makes him vanish (Death bursts into flames)
         [5162] = { lift = 0.8 },  -- Baby Crocolisk
         [5163] = { lift = -0.75 },  -- Shen'dorei Wisp

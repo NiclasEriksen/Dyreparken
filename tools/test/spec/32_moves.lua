@@ -9,6 +9,7 @@ return function(test, H)
         local w, ola = H.Setup{ ola = { 5159, 46, 5160, 5161 }, journal = true }
         ola.ns.Personality.Traits = function() return traits or { ola.ns.Personality.ById("glupsk") } end
         ola.ns.PetMoves.species[5159] = nil -- (the panda plays the default here, whatever the file says)
+        ola.ns.PetMoves.default.sleepAt = 1.2 -- (the timings here, whatever the file says)
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = hour }) - w:ServerTime())
         return w, ola, ola.petActor
     end
@@ -44,7 +45,7 @@ return function(test, H)
         eq(actor.anim, 100); eq(actor.speed, 0); eq(actor.offset, 0.8); eq(actor.blendOp, 0)
         ola:Slash("probe anim sleep Dead")
         w:Run(1.3)
-        eq(actor.anim, 6); eq(actor.offset, 1.2, "1.2 s unless told")
+        eq(actor.anim, 6); eq(actor.offset, ola.ns.PetMoves.default.sleepAt, "the file's unless told")
         ola:Slash("probe anim sleep")
         ok(ola:Printed("anim probe: sleep <id|name> [seconds]", true))
         ola:Slash("probe anim blend sideways")
