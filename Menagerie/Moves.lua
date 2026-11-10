@@ -21,7 +21,9 @@ local _, ns = ...
 --
 -- And the research probe, in a git checkout:
 --   /dp probe anim          the actor, and the animations we try
---   /dp probe anim <id|name> [speed]  play one (speed 0: frozen on its first frame)
+--   /dp probe anim <id|name> [speed] [offset]  play one (speed 0: frozen; offset:
+--                           start that many seconds in)
+--   /dp probe anim blend none|anim  cut straight to an animation, or blend (the default)
 --   /dp probe anim all|custom  play each (or the four custom ones), 3 s apart
 --   /dp probe anim stop     back to standing
 --   /dp probe anim night    pretend it's night (or day again), to test sleep by day
@@ -100,10 +102,20 @@ end
 function Moves:Probe(arg)
     local actor, how = self:Actor()
     if not actor then return Say("%s", how) end
-    local word, speedArg = (arg or "list"):lower():match("^(%S+)%s*(%S*)$")
-    word = word or "list"
-    local speed = tonumber(speedArg)
+    local words = {}
+    for w in (arg or ""):lower():gmatch("%S+") do words[#words + 1] = w end
+    local word = words[1] or "list"
+    local speed, offset = tonumber(words[2]), tonumber(words[3])
     if word == "night" then return self:ForceNight() end
+    -- 2026-11-10: frozen at speed 0, Dead (6) stood still instead of lying: the
+    -- blend from standing seems frozen too. Retail's actors take a blend
+    -- operation (Enum.ModelBlendOperation: 0 None, 1 Anim); unknown on Forever.
+    if word == "blend" then
+        local op = ({ none = 0, anim = 1 })[words[2] or ""]
+        if not op then return Say("blend none|anim") end
+        local ok, err = Call(actor, "SetAnimationBlendOperation", op)
+        return Say("blend %s: SetAnimationBlendOperation(%d) %s", words[2], op, ok and "ok" or tostring(err))
+    end
     if word == "stop" then
         cycle = cycle + 1
         local ok = Call(actor, "SetAnimation", 0)
@@ -155,8 +167,11 @@ function Moves:Probe(arg)
     local id, name = Find(word)
     if not id then return Say("unknown animation %q (a number, or a name from the list)", word) end
     local ok, err
-    if speed then ok, err = Call(actor, "SetAnimation", id, 0, speed) else ok, err = Call(actor, "SetAnimation", id) end
-    Say("%s (%d)%s: SetAnimation %s; has it: %s; now %s", name, id, speed and (" at speed " .. speed) or "",
+    if offset then ok, err = Call(actor, "SetAnimation", id, 0, speed or 1, offset)
+    elseif speed then ok, err = Call(actor, "SetAnimation", id, 0, speed)
+    else ok, err = Call(actor, "SetAnimation", id) end
+    Say("%s (%d)%s%s: SetAnimation %s; has it: %s; now %s", name, id, speed and (" at speed " .. speed) or "",
+        offset and (" from " .. offset .. " s") or "",
         ok and "ok" or tostring(err), tostring(has[id]), Now(actor))
 end
 

@@ -1017,8 +1017,8 @@ function Client:OpenJournal(o)
             if not o.noActor then
                 local client = self
                 local actor = { played = {} }
-                function actor:SetAnimation(id, variation, speed)
-                    self.anim, self.speed = id, speed
+                function actor:SetAnimation(id, variation, speed, offset)
+                    self.anim, self.speed, self.offset = id, speed, offset
                     self.played[#self.played + 1] = id
                 end
                 -- What plays: the id, or standing (0) for one the model lacks (self.petAnims set).
@@ -1026,6 +1026,8 @@ function Client:OpenJournal(o)
                     if client.petAnims and not client.petAnims[self.anim] then return 0 end
                     return self.anim
                 end
+                -- Retail's Enum.ModelBlendOperation: 0 None (cut straight to it), 1 Anim (blend).
+                function actor:SetAnimationBlendOperation(op) self.blendOp = op end
                 function actor:HasAnimation(id)
                     return (client.petAnims or { [0] = true, [756] = true, [770] = true })[id] == true
                 end
