@@ -42,7 +42,7 @@ Personality.BY_FAMILY = {
     frog = { "fish", "dive" }, snake = { "herb" }, mechanical = { "mine", "skill" }, dragon = { "boss", "taxi", "rep" },
     pirate = { "fish", "pvp", "dive" }, bug = { "herb" }, rodent = { "mine" }, wolf = { "boss" }, plant = { "herb" },
     festive = { "quest", "rep" }, demon = { "boss" }, ooze = { "boss" }, spirit = { "taxi", "rep" },
-    bear = { "fish", "herb" }, reptile = { "fish", "dive" }, -- (2026-11-10)
+    bear = { "fish", "herb" }, reptile = { "fish", "dive" }, murloc = { "fish", "dive" }, -- (2026-11-10)
 }
 Personality.DEFAULT = { "quest" } -- a pet with no family we know
 
@@ -77,7 +77,7 @@ Personality.DISLIKE_BY_FAMILY = {
     cat = { "dive" }, bird = { "pvp" }, owl = { "chat" }, farm = { "taxi" }, rabbit = { "boss" }, frog = { "taxi" },
     snake = { "jump" }, mechanical = { "dive" }, dragon = { "dive" }, pirate = { "hearth" }, bug = { "jump" },
     rodent = { "taxi" }, wolf = { "nap" }, plant = { "hearth" }, festive = { "pvp" }, demon = { "cuddle" },
-    ooze = { "jump" }, spirit = { "dive" }, bear = { "boss" }, reptile = { "taxi" },
+    ooze = { "jump" }, spirit = { "dive" }, bear = { "boss" }, reptile = { "taxi" }, murloc = { "taxi" },
 }
 
 -- The holidays the Festglad pets celebrate ("MMDD" -> name, Locale/nb.lua: holiday.*).

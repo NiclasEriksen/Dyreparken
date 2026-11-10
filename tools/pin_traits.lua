@@ -32,6 +32,11 @@ end
 -- Personality, for its unpinned pick.
 ns.Pets = { SpeciesOfKey = function(_, key) return tonumber(key:match("^s:(%d+)$")) end }
 ns.TraitPins = {}
+-- (what Personality.lua reads at load: the activity kinds and the strings; their text doesn't matter here)
+ns.Activity = { KINDS = {} }
+ns.Strings = {}
+ns.L = setmetatable({}, { __index = function(_, k) return k end })
+ns.T = function(k) return k end
 Load("Menagerie/Personality.lua", ns)
 local P = ns.Personality
 

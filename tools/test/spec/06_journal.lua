@@ -173,11 +173,11 @@ return function(test, H)
     test("counter: cared for of every companion in Forever, with a percentage", function()
         local w, ola = Setup()
         local card = ola:SelectPet(5159)
-        eq(card.counter.text, "2 av 83 (2%)", "the stub's count")
+        eq(card.counter.text, "2 av 84 (2%)", "the stub's count")
         -- A generated species list replaces the stub's count.
         ola.ns.Companions.species = { [5159] = true, [46] = true, [40] = true, [68] = true }
         ola:SelectPet(46)
-        eq(card.counter.text, "2 av 83 (2%)", "a pick doesn't redraw the guild's boxes")
+        eq(card.counter.text, "2 av 84 (2%)", "a pick doesn't redraw the guild's boxes")
         ola.ns.JournalUI:Refresh() -- (the guild's boxes: redrawn on a refresh, not on a pick)
         eq(card.counter.text, "2 av 4 (50%)")
         ola.ns.Companions = nil

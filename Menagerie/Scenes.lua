@@ -39,6 +39,7 @@ Scenes.BY_FAMILY = {
     -- The data pass's new families, picked in game 2026-11-10.
     bear = { EJ .. "OnyxiasLair" },
     reptile = { EJ .. "SunkenTemple" },
+    murloc = { EJ .. "BlackfathomDeeps", EJ .. "Deadmines" }, -- (2026-11-10: not picked in game yet)
     default = { EJ .. "BlackrockDepths" },
 }
 
@@ -67,7 +68,7 @@ Scenes.TINT = {
     pirate = { 0.08, 0.3, 0.46 }, bug = { 0.3, 0.3, 0.12 }, rodent = { 0.45, 0.32, 0.18 },
     wolf = { 0.3, 0.32, 0.38 }, plant = { 0.15, 0.42, 0.15 }, festive = { 0.55, 0.15, 0.2 },
     demon = { 0.4, 0.05, 0.2 }, ooze = { 0.2, 0.45, 0.1 }, spirit = { 0.3, 0.2, 0.5 },
-    bear = { 0.42, 0.27, 0.12 }, reptile = { 0.18, 0.36, 0.22 }, default = { 0.36, 0.26, 0.18 },
+    bear = { 0.42, 0.27, 0.12 }, reptile = { 0.18, 0.36, 0.22 }, murloc = { 0.08, 0.34, 0.4 }, default = { 0.36, 0.26, 0.18 },
 }
 
 -- Dungeon backgrounds to look for (not used until seen): the classic
@@ -84,7 +85,7 @@ for _, n in ipairs(NAMES) do Scenes.EXTRA[#Scenes.EXTRA + 1] = EJ .. n end
 for _, n in ipairs(NAMES) do Scenes.EXTRA[#Scenes.EXTRA + 1] = "Interface\\EncounterJournal\\UI-EJ-LOREBG-" .. n end
 
 -- The order families are tried in, for a pet with several tags.
-Scenes.ORDER = { "dragon", "demon", "mechanical", "pirate", "owl", "frog", "snake", "reptile", "spirit", "ooze",
+Scenes.ORDER = { "dragon", "demon", "mechanical", "pirate", "murloc", "owl", "frog", "snake", "reptile", "spirit", "ooze",
     "bear", "wolf", "cat", "bug", "plant", "rabbit", "rodent", "farm", "bird", "festive" }
 
 local function Exists(path)

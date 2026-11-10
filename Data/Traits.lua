@@ -83,6 +83,7 @@ ns.TraitPins = {
     [5172] = { "steinhard", "eventyrlysten" }, -- Tallstrider Hatchling
     [5174] = { "ambisios", "hoppetass" }, -- Minfernal
     [5176] = { "oppdager", "gronnfinger" }, -- Minimule
+    [5179] = { "dykker", "festglad" }, -- Azurky
     [5183] = { "vannhund", "trofast" }, -- Spawn of Grubthor
     [5200] = { "kjaelen", "hjemlengsel" }, -- Viridian Lashling
     [5201] = { "rampete", "helgedyr" }, -- Frosty Lashling

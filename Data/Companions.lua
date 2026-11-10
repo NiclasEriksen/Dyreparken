@@ -87,6 +87,7 @@ ns.Companions = {
         [5172] = { a = true, t = { "bird" } }, -- Tallstrider Hatchling
         [5174] = { a = false, t = { "demon" } }, -- Minfernal
         [5176] = { a = true, t = { "farm" } }, -- Minimule
+        [5179] = { a = false, t = { "murloc" } }, -- Azurky
         [5183] = { a = false, t = { "snake" } }, -- Spawn of Grubthor
         [5200] = { a = false, t = { "plant" } }, -- Viridian Lashling
         [5201] = { a = false, t = { "plant" } }, -- Frosty Lashling

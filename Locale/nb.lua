@@ -126,6 +126,7 @@ L["voice.ooze"] = "{pet} sier «blubb»."
 L["voice.spirit"] = "{pet} sier ingenting, men lyser litt sterkere."
 L["voice.bear"] = "{pet} brummer fornøyd."
 L["voice.reptile"] = "{pet} blunker sakte og fornøyd."
+L["voice.murloc"] = "{pet} sier «mrglglglgl!»"
 L["announce.adopt_nick"] = "Dyreparken: {player} adopterte {species} («{nick}»)!"
 L["announce.adopt"] = "Dyreparken: {player} adopterte {species}!"
 L["announce.name"] = "Dyreparken: {player} ga {species} kallenavnet «{nick}»!"
@@ -571,7 +572,7 @@ ns.AchTexts = {
             frog = "frosker og padder", mechanical = "mekaniske dyr", dragon = "drager", bird = "fugler",
             pirate = "piratdyr", bug = "insekter", rodent = "gnagere", wolf = "ulver", plant = "planter",
             festive = "høytidsdyr", demon = "demoner", ooze = "slimdyr", spirit = "ånder", bear = "bjørner",
-            reptile = "krypdyr" },
+            reptile = "krypdyr", murloc = "murloker" },
 
         -- The page in the Collections window (Page.lua)
         page_title = "Prestasjoner",

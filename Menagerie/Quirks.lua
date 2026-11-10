@@ -126,6 +126,7 @@ Quirks.HOME_ZONES = { -- (classic zone names: Forever is the classic world, the 
     dragon = { "Blackwing Lair", "Onyxia's Lair", "Burning Steppes", "Wetlands" },
     snake = { "Wailing Caverns", "Tanaris" },
     reptile = { "Swamp of Sorrows", "Dustwallow Marsh", "The Temple of Atal'Hakkar" },
+    murloc = { "Westfall", "Wetlands", "Darkshore" },
     wolf = { "Alterac Mountains", "Alterac Valley", "Silverpine Forest" },
     bear = { "Ashenvale", "Feralas" },
     demon = { "Felwood", "Blasted Lands", "Desolace" },

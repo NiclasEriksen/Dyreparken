@@ -270,6 +270,7 @@ Decor.FAMILY = {
     spirit = { kind = "wisp", n = 4, color = { 0.7, 0.75, 1 } },
     bear = { kind = "leaf", n = 3, color = { 0.55, 0.75, 0.35 } }, -- (2026-11-10: bamboo for the panda, the forest)
     reptile = { kind = "bubble", n = 3, color = { 0.6, 0.8, 0.55 } }, -- (2026-11-10: the swamp)
+    murloc = { kind = "bubble", n = 4, color = { 0.5, 0.85, 0.95 } }, -- (2026-11-10: the coast)
     default = { kind = "mote", n = 5, color = { 1, 0.9, 0.7 } },
 }
 Decor.FAMILY_ALPHA = 0.7 -- the ambience stays behind the traits

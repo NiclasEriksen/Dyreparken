@@ -222,6 +222,9 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   don't count; nor do pets nobody knows how to get yet (Musical Gustjumper, Pachimari, Galestrider Chick,
   Shen'dorei Wisp, Minfernal, Spawn of Grubthor, the four Lashlings). Event pets also get a body family.
   Forever is the classic world (Quirks.HOME_ZONES uses classic zone names).
+  Any pet can be adopted, whatever its availability; only achievements depend on it. The guild total counts every
+  pet in Data/Companions.lua, limited ones too: Azurky (5179, a 12-month subscription reward the journal hides)
+  was added by hand with a curation row, and has a family of its own, `murloc`.
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most
