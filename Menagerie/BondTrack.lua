@@ -211,6 +211,7 @@ end
 function Track:Pause(card)
     local b = card.bond
     if not b then return end
+    self:StopGains(card)
     b.medal.glow.pulse:Stop()
     for _, p in ipairs(b.pips) do p.halo.pulse:Stop() end
 end
@@ -252,6 +253,7 @@ function Track:Update(card, key, color)
     end
     -- Your own pet: what today brought, and whether the day is full.
     local mine = shownMine and not ns.Decor.preview
+    if mine then self:Gains(card, key, points, from, nextAt or math.max(points, 1)) end
     local today, max = 0, 0
     if mine then today, max = ns.Bond:Today(key) end
     local full = mine and today >= max
@@ -321,6 +323,100 @@ function Track:Update(card, key, color)
             seen[key] = level
             self:Celebrate(card, key, level)
         end
+    end
+end
+
+------------------------------------------------------------------------------
+-- Gains since you last looked (2026-11-10, the user: "feedback from loyalty
+-- gains"): opening your own pet's card, its bar grows from what the card
+-- showed last time (char.bondLook) to now, and each gain since (Bond:Add,
+-- char.bondGains) floats up from the bar as "+N", one after another. Gains
+-- while the card is open show the same way. Only where it can be seen; timers
+-- and one-shot groups only, stopped when the card hides or another pet shows.
+------------------------------------------------------------------------------
+Track.GROW = { delay = 0.4, steps = 14, every = 0.06 } -- the bar's growth: after the model, in steps
+Track.NUMBER_EVERY = 0.3 -- seconds between the numbers
+local NUMBERS = 6
+
+local function Numbers(b)
+    if b.numbers then return b.numbers end
+    b.numbers = {}
+    local holder = CreateFrame("Frame", nil, b)
+    holder:SetAllPoints() -- (a child: drawn over the bar)
+    for i = 1, NUMBERS do
+        local f = CreateFrame("Frame", nil, holder)
+        f:SetSize(60, 20)
+        f:Hide()
+        f.text = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        f.text:SetPoint("CENTER")
+        f.text:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
+        local a = ns.Anim.OneShot(f)
+        ns.Anim.Fade(a, 0, 1, 0.15, 1)
+        a.rise = a:CreateAnimation("Translation"); a.rise:SetOffset(0, 34); a.rise:SetDuration(1.3)
+        a.rise:SetSmoothing("OUT"); a.rise:SetOrder(2)
+        ns.Anim.Fade(a, 1, 0, 0.5, 3)
+        f.anim = a
+        b.numbers[i] = f
+    end
+    return b.numbers
+end
+
+function Track:StopGains(card)
+    local b = card.bond
+    if not b then return end
+    b.gainToken = (b.gainToken or 0) + 1
+    if b.growTo then b:SetValue(b.growTo); b.growTo, b.growAt = nil, nil end
+    for _, f in ipairs(b.numbers or {}) do f.anim:Stop(); f:Hide() end
+end
+
+function Track:Gains(card, key, points, from, top)
+    local b = card.bond
+    if key ~= b.gainKey then self:StopGains(card); b.gainKey = key end
+    if not card.panel:IsVisible() then return end -- (seen next time)
+    local look, gains = ns.DB.char.bondLook, ns.DB.char.bondGains
+    local last = look[key]
+    look[key] = points
+    local list = gains[key]
+    gains[key] = nil
+    if not last or points <= last then -- (the first look, or nothing new)
+        -- A refresh while the bar grows (Blizzard updates the card as it opens): it keeps growing.
+        if b.growTo == points and b.growAt then b:SetValue(b.growAt) end
+        return
+    end
+    local total = 0
+    for _, n in ipairs(list or {}) do total = total + n end
+    if total ~= points - last then list = { points - last } end -- (a crash, a sync: just the sum)
+    local token = (b.gainToken or 0) + 1
+    b.gainToken = token
+    -- The bar: from where it was (within this level) to now, in steps.
+    local start = math.max(from, last)
+    if start < points then
+        local g = self.GROW
+        b.growTo, b.growAt = points, start
+        b:SetValue(start)
+        for i = 1, g.steps do
+            C_Timer.After(g.delay + i * g.every, function()
+                if b.gainToken ~= token then return end
+                b.growAt = start + (points - start) * i / g.steps
+                b:SetValue(b.growAt)
+                if i == g.steps then b.growTo, b.growAt = nil, nil end
+            end)
+        end
+    end
+    -- The numbers, rising from the bar's tip, one after another.
+    local pool = Numbers(b)
+    local width = b:GetWidth() or 120
+    local x = width * math.max(0, math.min(1, (points - from) / math.max(1, top - from)))
+    for i, n in ipairs(list) do
+        if i > #pool then break end
+        C_Timer.After(self.GROW.delay + (i - 1) * self.NUMBER_EVERY, function()
+            if b.gainToken ~= token then return end
+            local f = pool[i]
+            f.text:SetText("+" .. n)
+            f:ClearAllPoints()
+            f:SetPoint("BOTTOM", b, "BOTTOMLEFT", x + ((i % 2 == 0) and 10 or -10), 6)
+            f:Show(); f.anim:Play()
+        end)
     end
 end
 

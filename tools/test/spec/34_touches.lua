@@ -485,4 +485,40 @@ return function(test, H)
         ok(A:Got("boss:50"), "the fiftieth with the panda")
         no(A:Got("boss:250"))
     end)
+
+    test("your pet's card shows the gains since you last looked: the bar grows, the numbers rise", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local card = ola:SelectPet(5159)
+        local b = card.bond
+        local before = ola.ns.Registry:Life(PANDA, "Ola Nord").p
+        eq(ola.ns.DB.char.bondLook[PANDA], before, "what the card showed")
+        ola:CloseJournal()
+        ola.ns.Bond:Add(5); ola.ns.Bond:Add(10)
+        eq(#ola.ns.DB.char.bondGains[PANDA], 2, "kept for the next look")
+        ola:OpenJournal()
+        card = ola:SelectPet(5159)
+        eq(b.value, before, "the bar starts where it was")
+        w:Run(ola.ns.BondTrack.GROW.delay + 0.01)
+        local shown = {}
+        for _, f in ipairs(b.numbers) do if f:IsShown() then shown[#shown + 1] = f.text.text end end
+        eq(shown[1], "+5")
+        w:Run(ola.ns.BondTrack.NUMBER_EVERY)
+        shown = {}
+        for _, f in ipairs(b.numbers) do if f:IsShown() then shown[#shown + 1] = f.text.text end end
+        eq(table.concat(shown, " "), "+5 +10", "one after another")
+        w:Run(2)
+        eq(b.value, before + 15, "grown to now")
+        eq(ola.ns.DB.char.bondGains[PANDA], nil, "seen")
+        -- Seen once: the next look is quiet.
+        ola:SelectPet(5159)
+        eq(b.value, before + 15)
+        -- Closing mid-way leaves it at its real value.
+        ola.ns.Bond:Add(5)
+        ola:CloseJournal(); ola:OpenJournal()
+        ola:SelectPet(5159)
+        ola:CloseJournal()
+        eq(b.value, before + 20)
+    end)
 end

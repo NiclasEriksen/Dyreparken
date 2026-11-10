@@ -126,6 +126,7 @@ end
 
 -- Add points to our bond with a pet (the one we hold, by default). Returns
 -- the new points.
+Bond.GAINS_KEPT = 8
 function Bond:Add(points, key)
     key = key or ns.Registry:MyPet()
     if not key or points <= 0 then return nil end
@@ -143,6 +144,15 @@ function Bond:Add(points, key)
     local oldLevel = self:Level(before)
     local level, name = self:Level(p)
     ns.Log("Bond", "%s +%d -> %d (level %d)", key, points, p, level)
+    -- Each gain, for the card to show as it next sees this pet (BondTrack: the numbers
+    -- rising from the bar). At most GAINS_KEPT; older ones are added into the oldest kept.
+    if p > before then
+        local all = ns.DB.char.bondGains
+        local list = all[key] or {}
+        all[key] = list
+        list[#list + 1] = p - before
+        while #list > self.GAINS_KEPT do list[2] = list[1] + list[2]; table.remove(list, 1) end
+    end
     if level > oldLevel then
         ns.Bus:Fire("BOND_LEVEL", key, level, name)
         Publish(key)

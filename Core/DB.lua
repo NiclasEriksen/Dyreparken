@@ -57,6 +57,8 @@ local CHAR_DEFAULTS = {
     sulk = nil,                -- { key, day, shown }: a dislike came up today (Moves: the pet turns its back, once)
     named = nil,               -- { day, at = { [petKey] = when } }: today's first new name per pet (Registry: once a day)
     nameLines = nil,           -- { day, n }: name lines posted to guild chat today (Bonds:Announce)
+    bondGains = {},            -- [petKey] = { gains not yet shown on its card } (Bond:Add; BondTrack shows them)
+    bondLook = {},             -- [petKey] = the bond points its card last showed (BondTrack: the bar grows from there)
     lastPlace = {},            -- [petKey] = the newest place it discovered with you (Stats: the explore chip)
     firsts = {},               -- [petKey] = { [boss name] = true }: bosses it has seen fall with you (Bond:First)
     dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (Quirks.lua; the card shows these)
