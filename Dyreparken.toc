@@ -32,6 +32,7 @@ Core\Activity.lua
 # Menagerie: companion registry
 Data\Companions.lua
 Data\Traits.lua
+Data\PetMoves.lua
 
 Menagerie\Pets.lua
 Menagerie\Registry.lua

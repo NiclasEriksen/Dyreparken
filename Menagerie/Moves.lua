@@ -3,20 +3,19 @@ local _, ns = ...
 -- The pet on the card moves (2026-11-10, docs/IDEAS.md "Animating the pet on
 -- demand"; what plays is in docs/FOREVER_API.md):
 --   at night it's asleep when you open the card (not a Nattugle), and a click
---     wakes it with a happy hop. Asleep is PetBattleDead, lying still: the
---     sleep ones (99-101) didn't hold on companions (2026-11-10: lying down is a
---     one-off that ends standing, and Sleep itself isn't there);
+--     wakes it with a happy move;
 --   a Latsabb sits down after a few seconds;
---   a click on it (Cuddle.lua) makes it happy: PetBattleCustom0, a joyful
---     hop on the Panda Cub;
---   a bond level-up (BondTrack's celebration) makes it cast a little spell;
+--   a click on it (Cuddle.lua) makes it happy;
+--   a bond level-up (BondTrack's celebration) makes it cheer;
 --   the day the "is it safe to live with you?" egg (three deaths) came up,
 --     it plays dead for a moment, the first time you see its card.
 -- The client can't tell us which animations a model has (no HasAnimation,
 -- SetAnimation takes any id, GetAnimation echoes it), and they differ: the
 -- most basic pets have only stand, death, walk, run and the pet battle set.
--- A missing one leaves the pet standing, which is fine for the idle poses;
--- the reactions use the pet battle set every pet has.
+-- Which animation each reaction uses, per species, is in Data/PetMoves.lua,
+-- edited by hand (found by eye with the probe below). Asleep is Dead (6):
+-- the sleep ones (99-101) didn't hold, and PetBattleDead (770) sank some
+-- pets into the floor (2026-11-10).
 -- Timers only while the card shows a pet; a new pet, the journal closing or
 -- our pages covering the card cancel them.
 --
@@ -159,11 +158,19 @@ end
 ------------------------------------------------------------------------------
 -- The pet on the card
 ------------------------------------------------------------------------------
-local A = { STAND = 0, SIT_DOWN = 96, SIT = 97, SIT_UP = 98, SLEEP_DOWN = 99, SLEEP = 100, SLEEP_UP = 101,
-    CAST = 754, HAPPY = 756, DEAD = 770 }
-Moves.A = A
+local STAND, SIT_DOWN, SIT_UP = 0, 96, 98
 Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
-Moves.T = { down = 1.2, up = 1.4, happy = 2, cast = 2.5, dead = 4 } -- how long each one-off plays
+Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4 } -- how long each one-off plays
+
+-- The animation a pet uses for a reaction (Data/PetMoves.lua, edited by
+-- hand): its species' own, else the default; nil when it doesn't do it.
+function Moves:For(key, what)
+    local data = ns.PetMoves or { default = {}, species = {} }
+    local own = data.species[ns.Pets:SpeciesOfKey(key) or 0]
+    local id = own and own[what]
+    if id == nil then id = data.default[what] end
+    return id or nil
+end
 
 local shown = { token = 0, awake = {} } -- the card's pet, its pose, and pets woken this session
 
@@ -217,20 +224,25 @@ end
 
 -- The pose the card's pet takes on its own.
 function Moves:Rest(key, t)
-    if DeadToday(key) then return "dead" end
+    if DeadToday(key) and self:For(key, "dead") then return "dead" end
     if not shown.awake[key] then
-        if ns.Personality.IsNight(t or ns.Now()) and not HasTrait(key, "nattugle") then return "sleep" end
-        if HasTrait(key, "latsabb") then return "sit" end
+        if ns.Personality.IsNight(t or ns.Now()) and not HasTrait(key, "nattugle") and self:For(key, "sleep") then
+            return "sleep"
+        end
+        if HasTrait(key, "latsabb") and self:For(key, "sit") then return "sit" end
     end
     return "stand"
 end
 
-local REST = {
-    sleep = { { A.DEAD } },
-    sit = { { A.STAND, Moves.SIT_AFTER }, { A.SIT_DOWN, Moves.T.down }, { A.SIT } },
-    dead = { { A.DEAD, Moves.T.dead }, { A.STAND } },
-    stand = { { A.STAND } },
-}
+-- A pose's steps for this pet; the last one is held.
+local function Steps(key, mode)
+    if mode == "sleep" then return { { Moves:For(key, "sleep") } } end
+    if mode == "sit" then
+        return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }
+    end
+    if mode == "dead" then return { { Moves:For(key, "dead"), Moves.T.dead }, { STAND } } end
+    return { { STAND } }
+end
 
 -- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
 function Moves:Update(card, key)
@@ -247,33 +259,35 @@ function Moves:Update(card, key)
     end
     shown.key, shown.mode = key, mode
     if mode == "dead" then ns.DB.char.eggs.dodsfall.played = true end
-    self:Sequence(REST[mode])
+    self:Sequence(Steps(key, mode))
 end
 
 -- After a reaction: back to its pose (awake now, if it slept or sat).
 local function Back(key)
     shown.awake[key] = true
     shown.mode = Moves:Rest(key)
-    return REST[shown.mode][#REST[shown.mode]][1]
+    local steps = Steps(key, shown.mode)
+    return steps[#steps][1]
 end
 
--- A click on the pet (Cuddle.lua): wakes it up, or a happy hop.
+-- A click on the pet (Cuddle.lua): wakes it up, gets it up, or a happy move.
 function Moves:Cuddle(key)
     if key ~= shown.key then return end
-    local mode = shown.mode
+    local mode, happy = shown.mode, self:For(key, "happy")
     local back = Back(key)
-    if mode == "sit" then
-        self:Sequence({ { A.SIT_UP, self.T.up }, { A.HAPPY, self.T.happy }, { back } })
-    else
-        self:Sequence({ { A.HAPPY, self.T.happy }, { back } })
-    end
+    local steps = {}
+    if mode == "sit" then steps[#steps + 1] = { SIT_UP, self.T.up } end
+    if happy then steps[#steps + 1] = { happy, self.T.happy } end
+    steps[#steps + 1] = { back }
+    self:Sequence(steps)
 end
 
--- A bond level reached (BondTrack's celebration): a little spell of joy.
+-- A bond level reached (BondTrack's celebration): its cheer, if it has one.
 function Moves:Cheer(key)
-    if key ~= shown.key then return end
+    local cheer = key == shown.key and self:For(key, "cheer")
+    if not cheer then return end
     local back = Back(key)
-    self:Sequence({ { A.CAST, self.T.cast }, { back } })
+    self:Sequence({ { cheer, self.T.cheer }, { back } })
 end
 
 -- The journal closing or our pages covering the card: stop, and start over next time.

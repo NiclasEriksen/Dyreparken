@@ -152,6 +152,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   `GetAnimation` only echoes the id set (both pets, every id), so it can't tell either. One-off animations (99 lying
   down) end by standing the pet up again, and Sleep (100) didn't hold: a pet "asleep" lies as PetBattleDead (770),
   which holds on every pet tried. (The Panda Cub's PetBattleCustom0 is a joyful hop; Mini Diablo's a roar.)
+  Correction, same night: 770 lies the Panda Cub down, but Mini Diablo and the Zergling only sink small below their
+  floor shadow, and the prairie dog gets up after a second or two. **Dead (6)** lies most pets down and holds; Mini
+  Diablo vanishes with it. **Death (1)** plays each model's own fall (Mini Diablo bursts into flames). The
+  Zergling's PetBattleCustom0 is an attack. Per-species choices live in Data/PetMoves.lua.
 - **Companions get no nameplate** (2026-11-09, `/dp probe world`, outdoors): with a guildmate's Brown Prairie Dog
   right there, `C_NamePlate.GetNamePlates()` returned 0 plates and `GetNamePlateForUnit("mouseover")` nil, while
   hostile mobs nearby got plates (`NAME_PLATE_UNIT_ADDED`, not forbidden). `nameplateShowAll` and

@@ -6,7 +6,7 @@ return function(test, H)
 
     -- Ola with the panda on the card at a given hour (the player's clock).
     local function Setup(hour, traits)
-        local w, ola = H.Setup{ ola = { 5159, 46 }, journal = true }
+        local w, ola = H.Setup{ ola = { 5159, 46, 5160, 5161 }, journal = true }
         ola.ns.Personality.Traits = function() return traits or { ola.ns.Personality.ById("glupsk") } end
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = hour }) - w:ServerTime())
         return w, ola, ola.petActor
@@ -98,9 +98,9 @@ return function(test, H)
     test("at night it's asleep on the card; a click wakes it, and it stays awake", function()
         local w, ola, actor = Setup(23)
         ola:SelectPet(5159)
-        eq(actor.anim, 770, "asleep: lying still (the sleep animations don't hold on companions)")
+        eq(actor.anim, 6, "asleep: lying as Dead (6)")
         w:Run(5)
-        eq(actor.anim, 770, "and stays down")
+        eq(actor.anim, 6, "and stays down")
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 756, "woken: glad to see you")
         w:Run(2.1)
@@ -142,7 +142,7 @@ return function(test, H)
         -- The egg came up today with the panda out.
         ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }
         ola:SelectPet(46); ola:SelectPet(5159)
-        eq(actor.anim, 770, "playing dead")
+        eq(actor.anim, 1, "playing dead: Death (1), the fall")
         w:Run(4.1)
         eq(actor.anim, 0, "and up again")
         ola:SelectPet(46); ola:SelectPet(5159)
@@ -168,20 +168,51 @@ return function(test, H)
     test("Blizzard standing the model up again: put back, and logged", function()
         local w, ola, actor = Setup(23)
         ola:SelectPet(5159)
-        eq(actor.anim, 770)
+        eq(actor.anim, 6)
         actor.anim = 0 -- (the model loaded anew)
         w:Run(0.31)
-        eq(actor.anim, 770, "checked a moment later, and set again")
-        eq(#ola:Log("Moves\ts:5159 770: set; after 0.3 s 0"), 1)
-        eq(actor.anim, 770)
+        eq(actor.anim, 6, "checked a moment later, and set again")
+        eq(#ola:Log("Moves\ts:5159 6: set; after 0.3 s 0"), 1)
+        eq(actor.anim, 6)
         -- A refresh of the card (the same pet) stood it up: lying down again.
         actor.anim = 0
         ola.ns.JournalUI:Refresh()
-        eq(actor.anim, 770)
+        eq(actor.anim, 6)
         -- Only once per check: a model that won't keep it isn't fought over.
         local n = #actor.played
         actor.anim = 0
         w:Run(2)
         ok(#actor.played <= n + 1)
+    end)
+
+    test("each reaction per species, from Data/PetMoves.lua: an id, or false for none", function()
+        local w, ola, actor = Setup(23)
+        local M = ola.ns.Moves
+        eq(M:For(PANDA, "sleep"), 6); eq(M:For(PANDA, "happy"), 756)
+        -- Mini Diablo (5161) vanishes as Dead: he stays up at night.
+        eq(M:For("s:5161", "sleep"), nil)
+        ola:SelectPet(5161)
+        eq(actor.anim, 0)
+        -- The Zergling (5160): its custom move is an attack, so a click only wakes it.
+        ola:SelectPet(5160)
+        eq(actor.anim, 6)
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 0, "up, no attack")
+        -- An edit to the file takes: another sleep for the panda, and no cheer.
+        ola.ns.PetMoves.species[5159] = { sleep = 100, cheer = false }
+        ola:SelectPet(5159)
+        eq(actor.anim, 100)
+        local n = #actor.played
+        M:Cheer(PANDA)
+        eq(#actor.played, n, "no cheer for it")
+        -- Every id in the file is a number or false, for a species in the journal.
+        for what, id in pairs(ola.ns.PetMoves.default) do ok(type(id) == "number", what) end
+        for sid, own in pairs(ola.ns.PetMoves.species) do
+            ok(ola.ns.Companions.species[sid], "species " .. sid .. " is in the journal")
+            for what, id in pairs(own) do
+                ok(ola.ns.PetMoves.default[what] ~= nil, sid .. ": " .. what .. " is a reaction")
+                ok(id == false or type(id) == "number", sid .. ": " .. what)
+            end
+        end
     end)
 end
