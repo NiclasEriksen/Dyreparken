@@ -63,7 +63,7 @@ ns.Companions = {
         [5005] = { a = false, t = { "frog" } }, -- Musical Gustjumper
         [5006] = { a = true, t = { "cat" } }, -- Corrupted Kitten
         [5018] = { a = true, t = { "wolf" } }, -- Snowy Wolf Pup
-        [5069] = { a = true, t = { "bird", "chicken", "farm" } }, -- Wild Chicken
+        [5069] = { a = false, t = { "bird", "chicken", "farm" } }, -- Wild Chicken
         [5075] = { a = true, t = { "ooze" } }, -- Excitable Slime
         [5094] = { a = true, t = { "snake" } }, -- Bitter Baitling
         [5121] = { a = true, t = { "wolf" } }, -- Prairie Wolf Pup

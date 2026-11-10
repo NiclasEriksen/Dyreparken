@@ -217,10 +217,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   per kind (was 5) and 10 in all; a trait's moment at most 10 a day (was 25). Unchanged: the day 10, likes 5 each
   (25 a day), wish 10, playdate 15, and the 75 a day (BOND_DAILY_MAX feeds validation). Likes are what fill a day.
 - **Data pass** (2026-11-10, with the user): every journal pet tagged and its source checked (tools/companions:
-  tags.csv, curation.csv; 70 of 83 count toward achievements). Two new families, `bear` (Panda Cub) and
+  tags.csv, curation.csv; 69 of 84 count toward achievements). Two new families, `bear` (Panda Cub) and
   `reptile` (Baby Crocolisk, Speedy). The Zergling is a demon. The CE pets (Panda Cub, Mini Diablo, Zergling)
   don't count; nor do pets nobody knows how to get yet (Musical Gustjumper, Pachimari, Galestrider Chick,
-  Shen'dorei Wisp, Minfernal, Spawn of Grubthor, the four Lashlings). Event pets also get a body family.
+  Shen'dorei Wisp, Minfernal, Spawn of Grubthor, the four Lashlings), nor the Wild Chicken, whose card shows no model on Forever. Event pets also get a body family.
   Forever is the classic world (Quirks.HOME_ZONES uses classic zone names).
   Any pet can be adopted, whatever its availability; only achievements depend on it. The guild total counts every
   pet in Data/Companions.lua, limited ones too: Azurky (5179, a 12-month subscription reward the journal hides)
