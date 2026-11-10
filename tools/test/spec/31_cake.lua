@@ -42,6 +42,40 @@ return function(test, H)
         for _, t in ipairs(cake.flames) do no(t.flicker:IsPlaying()) end
     end)
 
+    test("a click on a guildmate's cake congratulates them in guild chat, once a day, with announcing on", function()
+        local w, ola, kari = H.Setup{ ola = { 5159, 46 }, kari = { 46 }, journal = true }
+        ola:Slash("adopter panda"); kari:Slash("adopter white")
+        w:Run(10)
+        local at = select(2, ola.ns.Registry:Holder("s:46")).at
+        local Day = ola.ns.Bonds.DayNumber
+        while Day(w:ServerTime()) - Day(at) < 30 do w:Skip(3600) end
+        local function Posts()
+            local list = {}
+            for _, m in ipairs(w.chat) do if m.from == "Ola Nord" and m.chan == "GUILD" then list[#list + 1] = m.text end end
+            return list
+        end
+        local before = #Posts()
+        -- Her own: nothing to click.
+        local cake = ola:SelectPet(5159).cake
+        cake.scripts.OnEnter(cake)
+        no(table.concat(ola.env.GameTooltip.lines, " / "):find("gratulere"))
+        cake:Click()
+        eq(#Posts(), before)
+        -- Kari's: the tooltip says so, and a click posts.
+        cake = ola:SelectPet(46).cake
+        cake.scripts.OnEnter(cake)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Klikk for å gratulere")
+        cake:Click()
+        eq(Posts()[#Posts()], "Gratulerer med 1 måned, Kari Berg og White Kitten!")
+        cake:Click()
+        eq(#Posts(), before + 1, "once a day")
+        -- Announcing off: no post.
+        ola.ns.DB.char.congratulated = nil
+        ola:Slash("kunngjør av")
+        cake:Click()
+        eq(#Posts(), before + 1)
+    end)
+
     test("no cake for a pet without a home", function()
         local w, ola = H.Setup{ ola = { 5159 }, journal = true }
         local card = ola:SelectPet(5159)

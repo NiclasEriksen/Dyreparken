@@ -6,7 +6,9 @@ local _, ns = ...
 -- top left of its card, three candle flames flickering over it. Any adopted
 -- pet's card, not only yours: the guild's celebrations show too. Hovering
 -- it says which milestone. Only on the day itself; the flames play only
--- while it shows.
+-- while it shows. A click on a guildmate's cake congratulates them in guild
+-- chat (2026-11-10; the click is the hardware event Forever wants): once a
+-- day per pet, and only with announcing on (/dp kunngjør).
 local Cake = {}
 ns.Cake = Cake
 
@@ -21,11 +23,36 @@ local function Tip(self)
     GameTooltip:SetText(ns.L["card.cake.title"], 1, 0.82, 0)
     GameTooltip:AddLine(m.owner == ns.PlayerKey() and ns.T("milestone.mine", { pet = m.pet, time = m.time })
         or ns.T("milestone.other", { owner = m.owner, pet = m.pet, time = m.time }), 1, 1, 1, true)
+    if Cake:CanCongratulate(self.card.key, m) then GameTooltip:AddLine(ns.L["card.cake.click"], 0.5, 0.8, 0.5, true) end
     GameTooltip:Show()
 end
 
+local function Said()
+    local c = ns.DB.char.congratulated
+    if not c or c.day ~= ns.Today() then
+        c = { day = ns.Today(), pets = {} }
+        ns.DB.char.congratulated = c
+    end
+    return c.pets
+end
+
+function Cake:CanCongratulate(key, m)
+    return key and m and m.owner ~= ns.PlayerKey() and ns.DB.char.announce and IsInGuild() and not Said()[key]
+end
+
+-- From the click on the cake.
+function Cake:Congratulate(card)
+    local f, key = card.cake, card.key
+    local m = f and f.milestone
+    if not self:CanCongratulate(key, m) then return end
+    Said()[key] = true
+    SendChatMessage(ns.T("cake.congrats", { time = m.time, owner = m.owner, pet = m.pet }), "GUILD")
+    GameTooltip:Hide()
+end
+
 function Cake:Build(card, c)
-    local f = CreateFrame("Frame", nil, c)
+    local f = CreateFrame("Button", nil, c)
+    f.card = card
     f:SetSize(SIZE, SIZE)
     f:SetPoint("TOPLEFT", c, "TOPLEFT", 16, -14)
     f:SetFrameLevel(c:GetFrameLevel() + 30) -- over the model and the decor's corners, like the paw badge
@@ -47,6 +74,7 @@ function Cake:Build(card, c)
     f:EnableMouse(true)
     f:SetScript("OnEnter", Tip)
     f:SetScript("OnLeave", ns.HideTip)
+    f:SetScript("OnClick", function() Cake:Congratulate(card) end)
     -- The journal closing: no flames in the dark (shown again, the card redraws them).
     f:SetScript("OnHide", function(self) for _, t in ipairs(self.flames) do t.flicker:Stop() end end)
     f:Hide()
