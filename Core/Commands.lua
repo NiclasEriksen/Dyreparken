@@ -136,6 +136,7 @@ local PROBES = {
     { "celebrate", function() ns.BondTrack:Preview() end },
     { "anim", function(a) ns.Moves:Probe(a) end, "[list|all|custom|stop|night|sleep <id> [s]|blend none|anim|<id|name> [speed] [offset]]" },
     { "ach", function(a) ns.Pets:ProbeAch(a) end, "[post|now|group|groupnow]" },
+    { "pos", function(a) ns.Moves:ProbePos(a) end, "[x|y|z <delta>|scale <n>|reset]" },
 }
 local usage = {}
 for _, p in ipairs(PROBES) do usage[#usage + 1] = p[3] and (p[1] .. " " .. p[3]) or p[1] end

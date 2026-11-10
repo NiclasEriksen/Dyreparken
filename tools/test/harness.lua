@@ -1034,6 +1034,14 @@ function Client:OpenJournal(o)
                 end
                 -- Retail's Enum.ModelBlendOperation: 0 None (cut straight to it), 1 Anim (blend).
                 function actor:SetAnimationBlendOperation(op) self.blendOp = op end
+                -- Retail's ModelSceneActor geometry (unverified on Forever: /dp probe pos).
+                actor.pos, actor.scale = { 0, 0, 0 }, 1
+                function actor:GetPosition() return unpack(self.pos) end
+                function actor:SetPosition(x, y, z) self.pos = { x, y, z } end
+                function actor:GetScale() return self.scale end
+                function actor:SetScale(s) self.scale = s end
+                function actor:GetActiveBoundingBox() return -0.3, -0.2, 0, 0.3, 0.2, 0.8 end
+                function model:Project3DPointTo2D(x, y, z) return 200 + x * 100, 150 + z * 100, 1 end
                 function actor:GetYaw() return self.yaw or 0 end
                 function actor:SetYaw(y) self.yaw = y end
                 function actor:HasAnimation(id)

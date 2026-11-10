@@ -101,6 +101,106 @@ local function Species()
     return c and tostring(rawget(c, "speciesID")) or "?"
 end
 
+------------------------------------------------------------------------------
+-- /dp probe pos (2026-11-10): where the pet on the card is, and whether we
+-- can move it or find its head. Some models sit too high or too low, and the
+-- halo hangs at a fixed height. Logs what the scene, its camera and the
+-- actor answer; "x|y|z <delta>" moves the actor (to see if SetPosition
+-- shows), "scale <n>" scales it, "reset" puts it back.
+------------------------------------------------------------------------------
+local function Vals(ok, ...)
+    if not ok then return "error: " .. tostring((...)) end
+    local out = {}
+    for i = 1, select("#", ...) do
+        local v = ns.Plain(select(i, ...))
+        out[i] = type(v) == "number" and ("%.3f"):format(v) or tostring(v)
+    end
+    return #out > 0 and table.concat(out, ", ") or "(nothing)"
+end
+local function Has(obj, method)
+    local ok, fn = pcall(function() return obj[method] end)
+    return ok and type(fn) == "function"
+end
+local function PosSay(fmt, ...)
+    local msg = fmt:format(...)
+    ns.Print("pos probe: " .. msg)
+    ns.Log("Probe", "pos %s", msg)
+end
+local posStart -- the actor's position and scale before we moved it
+
+function Moves:ProbePos(arg)
+    local actor, how = self:Actor()
+    if not actor then return PosSay("%s", how) end
+    local scene = PetJournalPetCard.modelScene
+    local word, n = (arg or ""):match("^(%S*)%s*(%S*)$")
+    n = tonumber(n)
+    if word == "reset" then
+        if posStart then
+            Call(actor, "SetPosition", posStart[1], posStart[2], posStart[3])
+            if posStart[4] then Call(actor, "SetScale", posStart[4]) end
+            posStart = nil
+        end
+        return PosSay("reset: %s", Vals(Call(actor, "GetPosition")))
+    end
+    if (word == "x" or word == "y" or word == "z") and n then
+        local ok, x, y, z = Call(actor, "GetPosition")
+        if not (ok and type(x) == "number") then return PosSay("no GetPosition: %s", Vals(ok, x)) end
+        posStart = posStart or { x, y, z, select(2, Call(actor, "GetScale")) }
+        if word == "x" then x = x + n elseif word == "y" then y = y + n else z = z + n end
+        PosSay("SetPosition(%.3f, %.3f, %.3f): %s; now %s", x, y, z, Vals(Call(actor, "SetPosition", x, y, z)),
+            Vals(Call(actor, "GetPosition")))
+        return
+    end
+    if word == "scale" and n then
+        local ok, s = Call(actor, "GetScale")
+        posStart = posStart or { select(2, Call(actor, "GetPosition")), ok and s or nil }
+        if not posStart[1] then posStart = nil end
+        return PosSay("SetScale(%.3f): %s; now %s", n, Vals(Call(actor, "SetScale", n)), Vals(Call(actor, "GetScale")))
+    end
+    -- The dump.
+    PosSay("species %s, actor by %s", Species(), how)
+    local function Methods(obj, list)
+        local yes, no = {}, {}
+        for _, m in ipairs(list) do if Has(obj, m) then yes[#yes + 1] = m else no[#no + 1] = m end end
+        return table.concat(yes, " "), table.concat(no, " ")
+    end
+    PosSay("actor has: %s | lacks: %s", Methods(actor, { "GetPosition", "SetPosition", "GetActiveBoundingBox",
+        "GetMaxBoundingBox", "GetScale", "SetScale", "GetYaw", "SetYaw", "GetPitch", "GetModelFileID",
+        "GetModelPath", "SetUseCenterForOrigin", "GetUseCenterForOrigin" }))
+    PosSay("scene has: %s | lacks: %s", Methods(scene, { "Project3DPointTo2D", "GetActiveCamera", "GetCameraPosition",
+        "GetCameraForward", "GetCameraFieldOfView", "GetViewInsets", "GetModelSceneID" }))
+    PosSay("actor position: %s", Vals(Call(actor, "GetPosition")))
+    PosSay("actor scale: %s; yaw %s", Vals(Call(actor, "GetScale")), Vals(Call(actor, "GetYaw")))
+    PosSay("active box (minX, minY, minZ, maxX, maxY, maxZ): %s", Vals(Call(actor, "GetActiveBoundingBox")))
+    PosSay("max box: %s", Vals(Call(actor, "GetMaxBoundingBox")))
+    PosSay("center for origin: %s", Vals(Call(actor, "GetUseCenterForOrigin")))
+    PosSay("scene camera position: %s; forward %s; fov %s", Vals(Call(scene, "GetCameraPosition")),
+        Vals(Call(scene, "GetCameraForward")), Vals(Call(scene, "GetCameraFieldOfView")))
+    PosSay("scene id %s; size %s; insets %s", Vals(Call(scene, "GetModelSceneID")), Vals(Call(scene, "GetSize")),
+        Vals(Call(scene, "GetViewInsets")))
+    local okc, cam = Call(scene, "GetActiveCamera")
+    if okc and cam then
+        PosSay("camera: target %s; zoom %s; yaw %s; pitch %s", Vals(Call(cam, "GetTarget")),
+            Vals(Call(cam, "GetZoomDistance")), Vals(Call(cam, "GetYaw")), Vals(Call(cam, "GetPitch")))
+    end
+    -- Where the actor and its box's bottom and top land on the scene (pixels from its bottom left).
+    if Has(scene, "Project3DPointTo2D") then
+        local okp, x, y, z = Call(actor, "GetPosition")
+        local okb, x1, y1, z1, x2, y2, z2 = Call(actor, "GetActiveBoundingBox")
+        if okp and type(x) == "number" then
+            PosSay("projected position: %s", Vals(Call(scene, "Project3DPointTo2D", x, y, z)))
+            if okb and type(z1) == "number" then
+                local okS, s = Call(actor, "GetScale")
+                s = (okS and type(s) == "number") and s or 1
+                local cx, cy = x + (x1 + x2) / 2 * s, y + (y1 + y2) / 2 * s
+                PosSay("projected box bottom: %s; top: %s", Vals(Call(scene, "Project3DPointTo2D", cx, cy, z + z1 * s)),
+                    Vals(Call(scene, "Project3DPointTo2D", cx, cy, z + z2 * s)))
+            end
+        end
+    end
+    PosSay("done; try /dp probe pos z 0.2 (and reset)")
+end
+
 function Moves:Probe(arg)
     local actor, how = self:Actor()
     if not actor then return Say("%s", how) end

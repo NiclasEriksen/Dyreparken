@@ -392,4 +392,23 @@ return function(test, H)
         w:Run(1)
         eq(actor.yaw, 0, "once")
     end)
+
+    test("/dp probe pos: what the actor and the scene answer; moving and scaling the pet, and back", function()
+        local w, ola, actor = Setup(14)
+        ola:SelectPet(5159)
+        ola:Slash("probe pos")
+        eq(#ola:Log("Probe\tpos actor has: GetPosition SetPosition GetActiveBoundingBox"), 1)
+        eq(#ola:Log("Probe\tpos projected box bottom: 200.000, 150.000"), 1, "the feet on the scene")
+        ola:Slash("probe pos z 0.2")
+        eq(actor.pos[3], 0.2)
+        ola:Slash("probe pos scale 1.5")
+        eq(actor.scale, 1.5)
+        ola:Slash("probe pos reset")
+        eq(actor.pos[3], 0); eq(actor.scale, 1)
+        -- Without the geometry: says so, no error.
+        actor.GetPosition = nil
+        ola:Slash("probe pos z 0.2")
+        eq(#ola:Log("Probe\tpos no GetPosition"), 1)
+        ola:Slash("probe pos")
+    end)
 end
