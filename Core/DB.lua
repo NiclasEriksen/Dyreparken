@@ -38,6 +38,7 @@ local GUILD_DEFAULTS = {
     life = {},    -- [petKey] = { [carer] = bond entry }
     ach = {},     -- guild achievements earned
     achSeen = {}, -- guild achievements looked at
+    born = nil,   -- the guild's first adoption we know of: the park's birthday (Bonds:ParkBorn)
 }
 
 local CHAR_DEFAULTS = {

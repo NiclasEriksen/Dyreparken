@@ -308,4 +308,22 @@ return function(test, H)
         ok(A:Got("dislikes"), "found it")
         eq(w:Sent("ACH_EARNED", nil, m), 1, "news")
     end)
+
+    test("the park's birthday: a year after the guild's first adoption, a line and confetti on every card", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
+        kari:Slash("adopter bombay")
+        w:Run(5)
+        local born = select(3, kari.ns.Registry:Status("s:40")).at
+        no(ola.ns.Bonds:ParkBirthday(), "not before its first birthday")
+        w:SkipDays(365)
+        ola:Reload()
+        w:Settle("day")
+        eq(ola.ns.DB:Guild().born, born)
+        ok(ola:Printed("Dyreparken fyller 1 år i dag!", true))
+        local confetti
+        for _, s in ipairs(ola.ns.Decor:Specs(PANDA, 1, ola.ns.Now())) do if s.kind == "confetti" then confetti = s end end
+        ok(confetti, "confetti")
+        w:SkipDays(1)
+        no(ola.ns.Bonds:ParkBirthday())
+    end)
 end

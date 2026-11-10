@@ -77,9 +77,33 @@ end)
 ns.Bus:On("BOND_FULL", function(key) ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end)
 ns.Bus:On("BOND_LINE", function(_, text) ns.PrintGold(text) end)
 
+-- The park's birthday (2026-11-10): the day of the guild's first adoption we
+-- know of (the oldest claim: a bond with a pet you haven't adopted isn't an
+-- adoption), kept as it only ever gets earlier (g.born: a claim made again
+-- later moves its time on). A guild fact, not a player's birthday. Read at login.
+function Bonds:ParkBorn()
+    local g = ns.DB:Guild()
+    if not g then return nil end
+    local born = g.born
+    for _, r in pairs(g.claims) do if r.at and (not born or r.at < born) then born = r.at end end
+    g.born = born
+    return born
+end
+
+-- How many years old the park is today, on its birthday; else nil.
+function Bonds:ParkBirthday(t)
+    local g = ns.DB:Guild()
+    local born = g and g.born
+    if not born then return nil end
+    t = t or ns.Now()
+    local a, n = date("*t", born), date("*t", t)
+    if a.month == n.month and a.day == n.day and n.year > a.year then return n.year - a.year end
+end
+
 function Bonds:Celebrate()
     local g = ns.DB:Guild()
     if not g then return end
+    self:ParkBorn()
     local now, me = ns.Now(), ns.PlayerKey()
     local today = ns.Today(now)
     local char = ns.DB.char
@@ -96,6 +120,8 @@ function Bonds:Celebrate()
 
     if g.bondDay == today then return end
     g.bondDay = today
+    local years = self:ParkBirthday(now)
+    if years then ns.Print(Gold(ns.T("park.birthday", { n = years }))) end
     local lines = {}
     for petKey, owner in pairs(ns.Registry:Holders()) do
         local _, rec = ns.Registry:Holder(petKey)
