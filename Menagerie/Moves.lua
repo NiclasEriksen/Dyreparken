@@ -3,7 +3,9 @@ local _, ns = ...
 -- The pet on the card moves (2026-11-10, docs/IDEAS.md "Animating the pet on
 -- demand"; what plays is in docs/FOREVER_API.md):
 --   at night it's asleep when you open the card (not a Nattugle), and a click
---     wakes it with a stretch;
+--     wakes it with a happy hop. Asleep is PetBattleDead, lying still: the
+--     sleep ones (99-101) didn't hold on companions (2026-11-10: lying down is a
+--     one-off that ends standing, and Sleep itself isn't there);
 --   a Latsabb sits down after a few seconds;
 --   a click on it (Cuddle.lua) makes it happy: PetBattleCustom0, a joyful
 --     hop on the Panda Cub;
@@ -224,7 +226,7 @@ function Moves:Rest(key, t)
 end
 
 local REST = {
-    sleep = { { A.SLEEP_DOWN, Moves.T.down }, { A.SLEEP } },
+    sleep = { { A.DEAD } },
     sit = { { A.STAND, Moves.SIT_AFTER }, { A.SIT_DOWN, Moves.T.down }, { A.SIT } },
     dead = { { A.DEAD, Moves.T.dead }, { A.STAND } },
     stand = { { A.STAND } },
@@ -260,9 +262,7 @@ function Moves:Cuddle(key)
     if key ~= shown.key then return end
     local mode = shown.mode
     local back = Back(key)
-    if mode == "sleep" then
-        self:Sequence({ { A.SLEEP_UP, self.T.up }, { A.HAPPY, self.T.happy }, { back } })
-    elseif mode == "sit" then
+    if mode == "sit" then
         self:Sequence({ { A.SIT_UP, self.T.up }, { A.HAPPY, self.T.happy }, { back } })
     else
         self:Sequence({ { A.HAPPY, self.T.happy }, { back } })

@@ -211,10 +211,15 @@ function Kills:SyncWorld(on)
         if on then ns.Events:On(e, WORLD_OWNER, OnWorld) else ns.Events:Off(e, WORLD_OWNER) end
     end
 end
-ns.Bus:On("DEBUG", function(on) Kills:SyncWorld(on) end)
+-- Only after /dp probe world, while the log is on: in a city the nameplates
+-- alone filled the log's 2000 lines in minutes (2026-11-10).
+local worldWanted = false
+ns.Bus:On("DEBUG", function(on) Kills:SyncWorld(on and worldWanted) end)
 
 -- /dp probe world
 function Kills:ProbeWorld()
+    worldWanted = true
+    self:SyncWorld(ns.Debug.enabled)
     local parts = Valid(WORLD, {})
     local get = C_CVar and C_CVar.GetCVar
     for _, k in ipairs(CVARS) do parts[#parts + 1] = k .. "=" .. (get and Try(get, k) or "?") end

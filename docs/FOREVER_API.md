@@ -149,7 +149,9 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   748 Wound, 750 Attack, 752 ReadySpell, 754 SpellCast, 756-762 Custom0-3, 770 Dead. Nothing: every emote (60-186:
   talk, bow, wave, cheer, dance, laugh, roar...), and 742 PetBattleStand, 764 Victory, 766 Loss, 768 Stun,
   772 Freeze (0 Stand is the rest pose). Ids from wowdev.wiki/M2/AnimationList. Other species may differ; whether
-  `GetAnimation` reports a fallback for a missing one is still to be probed (the probe logs it).
+  `GetAnimation` only echoes the id set (both pets, every id), so it can't tell either. One-off animations (99 lying
+  down) end by standing the pet up again, and Sleep (100) didn't hold: a pet "asleep" lies as PetBattleDead (770),
+  which holds on every pet tried. (The Panda Cub's PetBattleCustom0 is a joyful hop; Mini Diablo's a roar.)
 - **Companions get no nameplate** (2026-11-09, `/dp probe world`, outdoors): with a guildmate's Brown Prairie Dog
   right there, `C_NamePlate.GetNamePlates()` returned 0 plates and `GetNamePlateForUnit("mouseover")` nil, while
   hostile mobs nearby got plates (`NAME_PLATE_UNIT_ADDED`, not forbidden). `nameplateShowAll` and

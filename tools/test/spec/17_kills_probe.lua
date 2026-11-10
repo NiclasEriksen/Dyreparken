@@ -114,8 +114,12 @@ return function(test, H)
         ok(c:Printed("plates=missing", true))
     end)
 
-    test("the world while the debug log is on: plates coming up, companions under the mouse", function()
+    test("the world while the debug log is on, after /dp probe world: plates coming up, companions under the mouse", function()
         local w, c = H.Setup{ ola = { 5159 }, settle = "hello" }
+        c:Nameplate{ species = 46, owner = "Kari Berg" }
+        eq(#c:Log("NAME_PLATE_UNIT_ADDED"), 0, "not before the probe: a city's nameplates filled the log")
+        c.plates = {}
+        c:Slash("probe world")
         local unit = c:Nameplate{ species = 40, owner = "Kari Berg" }
         eq(#c:Log("NAME_PLATE_UNIT_ADDED " .. unit .. " name=Bombay Cat companion=true species=40 owner=Kari Berg "
             .. "plate=yes shown=true marked instance=%[false, none%]"), 1)
@@ -129,7 +133,7 @@ return function(test, H)
         eq(#c:Log("UPDATE_MOUSEOVER_UNIT mouseover name=Bombay Cat .* plate=nil cursor=640,360"), 1)
         c:Hover{ species = 40, companion = false }
         c:Fire("UPDATE_MOUSEOVER_UNIT")
-        eq(#c:Log("UPDATE_MOUSEOVER_UNIT"), 1, "only companions")
+        eq(#c:Log("UPDATE_MOUSEOVER_UNIT mouseover"), 1, "only companions")
         c:Slash("debug off")
         c:Nameplate{ species = 40 }
         eq(#c:Log("NAME_PLATE_UNIT_ADDED nameplate3"), 0, "idle with the log off")
