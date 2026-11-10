@@ -144,6 +144,11 @@ function Editor:Open()
     end
     if not self.frame then self:Build() end
     self.list = List()
+    -- Picks already written into the file are no longer changes.
+    local picks = ns.DB.global.liftPicks
+    for sid, v in pairs(picks) do
+        if math.abs(v - Default(sid)) < 1e-6 then picks[sid] = nil end
+    end
     ns.Moves.liftEditing = true
     -- Start at the pet on the card, if it's one of them.
     local card = ns.JournalUI._card

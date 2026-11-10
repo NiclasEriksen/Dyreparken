@@ -542,6 +542,12 @@ return function(test, H)
         no(f:IsShown())
         ok(math.abs(actor.pos[3]) < 1e-6, "the file's (none) again")
         eq(ola.ns.DB.global.liftPicks[5159], -0.2, "kept for reading back")
+        -- Opened again after the picks went into the file: no longer changes.
+        ola.ns.PetMoves.species[5159] = { lift = -0.2 }
+        ola:Slash("probe lift")
+        eq(ola.ns.DB.global.liftPicks[5159], nil, "in the file now: dropped")
+        match(f.saved.text, "^0 changed")
+        E:Close()
         -- Without the journal: says so.
         ola.env.PetJournal:Hide()
         ola:Slash("probe lift")
