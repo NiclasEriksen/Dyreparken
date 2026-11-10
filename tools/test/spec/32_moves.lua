@@ -712,7 +712,7 @@ return function(test, H)
         eq(ola.ns.DB.global.movePicks[5159].sleepUp, 100)
         -- Held as a loop instead of paused: no pause point then.
         while not Row("sleepHold").anim.text:find("^Sleep ") do Row("sleepHold").next:Click() end
-        eq(f.time.text, "held as a loop: no pause")
+        eq(f.time.text, "lying down for 0.60 s, then the loop (changed)", "the slider sets how long lying down plays")
         Row("sleep").play:Click()
         w:Run(0.66); eq(actor.anim, 100); eq(actor.paused, false)
         -- Sitting, whole; a one-off; Stå.

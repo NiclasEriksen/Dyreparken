@@ -126,10 +126,11 @@ function Editor:Redraw(fromSlider)
         else row.anim:SetTextColor(1, 1, 1) end
         for _, b in ipairs({ row.prev, row.next, row.play }) do b:SetEnabled(not off) end
     end
-    local paused = not self:Value("sleepHold") -- (a held loop isn't paused)
-    f.slider:SetEnabled(paused)
-    f.time:SetText(paused and ("paused %.2f s into lying down%s"):format(self:Value("sleepAt") or 0,
-        p.sleepAt ~= nil and " (changed)" or "") or "held as a loop: no pause")
+    -- Paused there, or (with a held loop) how long lying down plays before the loop: cut
+    -- short, it snaps (2026-11-11, the user: the cats jittered as they lay down).
+    local paused = not self:Value("sleepHold")
+    f.time:SetText((paused and "paused %.2f s into lying down%s" or "lying down for %.2f s, then the loop%s"):format(
+        self:Value("sleepAt") or 0, p.sleepAt ~= nil and " (changed)" or ""))
     if not fromSlider then
         self.quiet = true
         f.slider:SetValue(self:Value("sleepAt") or 0)
