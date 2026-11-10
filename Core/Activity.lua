@@ -244,9 +244,9 @@ ns.Bus:On("DEBUG", function(on) if ns.DB.char then Activity:SetDebug(on) end end
 function Activity:CheckDay()
     local w = wanted.day
     if not (w and next(w)) then return end
+    self.dayChecked = Today() -- (checked, pet or not: a day change after this brings the visit)
     local key = PetNow()
     if not key then return end
-    self.dayChecked = Today()
     local c = Counter("day")
     c.on = c.on or {}
     local today = Today()

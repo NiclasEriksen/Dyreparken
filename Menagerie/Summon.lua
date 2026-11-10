@@ -253,7 +253,7 @@ function Summon:Watch()
     watching = want
     if not want then
         for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED", "PLAYER_MOUNT_DISPLAY_CHANGED",
-            "PLAYER_ALIVE", "PLAYER_UNGHOST" }) do
+            "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_DEAD" }) do
             ns.Events:Off(e, Summon)
         end
         return
@@ -270,10 +270,14 @@ function Summon:Watch()
     -- Back on your feet: the retries while dead give up after a minute, and a
     -- corpse run takes longer (code review 2026-11-10). PLAYER_ALIVE also fires
     -- on releasing to a ghost and at loading screens: only once really alive.
+    -- Only after a real death (code review 2026-11-10: at a loading screen a check
+    -- 1 s in could toggle away the pet the game was putting back).
     local function Alive(_, event)
-        if Truthy(UnitIsDeadOrGhost("player")) then return end
+        if not Summon.died or Truthy(UnitIsDeadOrGhost("player")) then return end
+        Summon.died = false
         C_Timer.After(1, function() Summon:Check(event) end)
     end
+    ns.Events:On("PLAYER_DEAD", Summon, function() Summon.died = true end)
     ns.Events:On("PLAYER_ALIVE", Summon, Alive)
     ns.Events:On("PLAYER_UNGHOST", Summon, Alive)
 end

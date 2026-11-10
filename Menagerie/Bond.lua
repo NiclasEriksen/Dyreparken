@@ -363,7 +363,7 @@ function Bond:OnActivity(id, n, key)
         -- A unit name we can't read mustn't cost the points: no bonus then.
         local ok, ctx = pcall(Bond.Context)
         for _, t in ipairs(ok and P:Fitting(key, ctx) or {}) do
-            if (d.got["trait:" .. t.id] or 0) < C.BOND_TRAIT_CAP then
+            if (d.got["trait:" .. t.id] or 0) < Scaled(C.BOND_TRAIT_CAP) then -- (at the pet's rate, as the room below)
                 capKey, per, cap = "trait:" .. t.id, C.BOND_LIKED_POINTS, C.BOND_TRAIT_CAP
                 flavor = ns.Fill(t.flavor, { pet = name })
                 break

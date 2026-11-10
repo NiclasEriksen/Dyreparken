@@ -424,6 +424,7 @@ end
 
 local summarized -- the "you already have N" line, once per session
 local learned = 0 -- NEW_PET_ADDED events since the last account check
+local learnedWaited = false -- some of them had no pet to show at the last check
 
 -- which: "account", "char", "guild", or nil for all.
 function Ach:Check(reason, which)
@@ -442,7 +443,12 @@ function Ach:Check(reason, which)
             -- Only the pets the collection shows count off: one learned before the journal
             -- lists it still explains the growth at the next check (code review 2026-11-10).
             local growth = math.max(0, ctx.ownedCount - (acc.owned or ctx.ownedCount))
-            acc.owned, learned = ctx.ownedCount, math.max(0, learned - growth)
+            -- What's left over waits one more check, no longer: a second copy of a species
+            -- adds to learned but never to the count, and must not explain a later jump.
+            local left = math.max(0, learned - growth)
+            if left > 0 and learnedWaited then left = 0 end
+            learnedWaited = left > 0
+            acc.owned, learned = ctx.ownedCount, left
         end
     end
     if which == nil or which == "char" then

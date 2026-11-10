@@ -343,6 +343,7 @@ end
 -- The pet on the card
 ------------------------------------------------------------------------------
 local SIT_DOWN, SIT_UP = 96, 98
+Moves.STAND = 0
 Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
 -- A new pet loads standing; its pose comes after this. Posed while loading,
 -- the Zergling and Mini Diablo were framed small and low and stayed so
@@ -375,6 +376,7 @@ Moves.RECHECK = 0.3
 local NO_BLEND, BLEND = 0, 1 -- Enum.ModelBlendOperation (None, Anim)
 local STAND = 0
 local Play
+local UnSulk -- (below)
 
 -- 2026-11-10: about one time in three a held pose stood up again by itself
 -- right away, and GetAnimation (it only echoes what was set) can't tell. So
@@ -447,7 +449,15 @@ function Moves:Sequence(steps)
         local s = steps[i]
         if not s then return end
         shown.last = i == #steps -- (a refresh puts back only the step that stays)
-        Play(s[1], nil, s[3])
+        if s.on then s.on() end -- (a once-a-day moment counts as seen only when it plays)
+        local id = s[1]
+        if shown.last and not s[3] then
+            -- Back to rest after a one-off: as things are now (code review 2026-11-10: a stop
+            -- during the hop left it walking; after playing dead it never walked).
+            if shown.mode == "dead" and Moves:Rest(shown.key) == "stand" then shown.mode = "stand" end
+            if shown.mode == "stand" then id = Moves:MotionId(shown.key) or Moves.STAND end
+        end
+        Play(id, nil, s[3])
         if s[2] then C_Timer.After(s[2], function() Step(i + 1) end) end
     end
     Step(1)
@@ -534,9 +544,10 @@ function Moves:Follow(key)
     if not want then
         motion.moving = false
         for _, e in ipairs(MOTION_EVENTS) do ns.Events:Off(e, Moves) end
-        return
+        return Repose() -- (code review 2026-11-10: turned off mid-walk, it walked on)
     end
     motion.moving = Moves.Moving() or false
+    if key == shown.key then Repose() end
     ns.Events:On("PLAYER_STARTED_MOVING", Moves, function()
         motion.token = motion.token + 1
         if not motion.moving then motion.moving = true; Repose() end
@@ -571,7 +582,11 @@ local function Steps(key, mode)
     if mode == "sit" then
         return { { STAND, Moves.SIT_AFTER }, { SIT_DOWN, Moves.T.down }, { Moves:For(key, "sit") } }
     end
-    if mode == "dead" then return { { STAND, Moves.SETTLE }, { Moves:For(key, "dead"), Moves.T.dead }, { STAND } } end
+    if mode == "dead" then
+        return { { STAND, Moves.SETTLE },
+            { Moves:For(key, "dead"), Moves.T.dead, on = function() ns.DB.char.eggs.dodsfall.played = true end },
+            { STAND } }
+    end
     return { { Moves:MotionId(key) or STAND } }
 end
 
@@ -605,6 +620,14 @@ local function LiftSoon(key)
 end
 Moves.Lift = Lift
 
+-- Its back turned again to face you (the sulk's end, another pet, the card closing).
+UnSulk = function()
+    local b = shown.sulk
+    if not b then return end
+    shown.sulk = nil
+    Call(b.actor, "SetYaw", b.yaw)
+end
+
 -- Sulking (2026-11-10): the first time you open its card on a day a dislike
 -- of its came up (Quirks: char.sulk), the pet turns its back for a few
 -- seconds, a little cloud over it. ModelSceneActor:SetYaw is unverified on
@@ -613,10 +636,10 @@ Moves.SULK = 3
 local function Sulk(key)
     local s = ns.DB.char.sulk
     if not (s and s.key == key and s.day == ns.Today() and not s.shown) then return end
-    s.shown = true
     local token = shown.token
     C_Timer.After(Moves.SETTLE, function()
         if token ~= shown.token or shown.key ~= key then return end
+        s.shown = true
         local card = rawget(_G, "PetJournalPetCard")
         if card and ns.Fx then
             ns.Fx:Burst({ card, "CENTER", 0, 60 }, "cloud", { n = 2, color = { 0.8, 0.8, 0.85 }, alpha = 0.7, size = 0.6, rise = 30 })
@@ -626,9 +649,9 @@ local function Sulk(key)
         if not (ok and type(yaw) == "number") then return ns.Log("Moves", "sulk: no GetYaw") end
         Call(actor, "SetYaw", yaw + math.pi)
         ns.Log("Moves", "sulk %s: back turned", key)
-        C_Timer.After(Moves.SULK, function()
-            if Moves:Actor() == actor then Call(actor, "SetYaw", yaw) end
-        end)
+        local back = { actor = actor, yaw = yaw }
+        shown.sulk = back
+        C_Timer.After(Moves.SULK, function() if shown.sulk == back then UnSulk() end end)
     end)
 end
 
@@ -636,6 +659,7 @@ end
 function Moves:Update(card, key)
     self:Follow(key)
     if not key then
+        UnSulk()
         -- (nothing held either: a model loading on a closed card isn't posed again)
         shown.key, shown.mode, shown.playing, shown.pose, shown.last = nil, nil, nil, nil, nil
         shown.token = shown.token + 1
@@ -649,13 +673,18 @@ function Moves:Update(card, key)
         if shown.playing and shown.last then Play(shown.playing, true, shown.pose) end
         return
     end
+    UnSulk()
     shown.key, shown.mode = key, mode
-    if mode == "dead" then ns.DB.char.eggs.dodsfall.played = true end
     local steps = Steps(key, mode)
-    local joy = mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
-    if joy then
-        ns.DB.char.wish.shown = true
-        table.insert(steps, 1, { joy, self.T.happy })
+    -- A one-off first, once the model has loaded: a level-up's cheer (celebrated as the card
+    -- opened, before the pet was posed: code review 2026-11-10), or a wish come true.
+    local cheer = shown.cheerFor == key and mode ~= "dead" and self:For(key, "cheer")
+    local joy = not cheer and mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
+    shown.cheerFor = nil
+    if cheer or joy then
+        if cheer then shown.awake[key] = true; mode = self:Rest(key); shown.mode = mode; steps = Steps(key, mode) end
+        table.insert(steps, 1, { cheer or joy, cheer and self.T.cheer or self.T.happy,
+            on = joy and function() ns.DB.char.wish.shown = true end or nil })
         table.insert(steps, 1, { STAND, self.SETTLE })
     end
     self:Sequence(steps)
@@ -688,7 +717,8 @@ end
 
 -- A bond level reached (BondTrack's celebration): its cheer, if it has one.
 function Moves:Cheer(key)
-    local cheer = key == shown.key and self:For(key, "cheer")
+    if key ~= shown.key then shown.cheerFor = key; return end -- (posed next: Update plays it)
+    local cheer = self:For(key, "cheer")
     if not cheer then return end
     local back = Back(key)
     self:Sequence({ { cheer, self.T.cheer }, { back } })
