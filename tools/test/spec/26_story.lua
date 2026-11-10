@@ -36,7 +36,7 @@ return function(test, H)
         chips[2].scripts.OnEnter(chips[2])
         eq(ola.env.GameTooltip.lines[1], "3 herbs sammen med Panda Cub")
         chips[1].scripts.OnEnter(chips[1])
-        eq(ola.env.GameTooltip.lines[1], "1 dager ute sammen med Panda Cub")
+        eq(ola.env.GameTooltip.lines[1], "1 dag ute sammen med Panda Cub")
         -- At the top; under the ribbon when there is one.
         eq(card.stats.points[1][3], "TOP"); eq(card.stats.points[1][5], -14)
         ola:Slash("probe level 6")

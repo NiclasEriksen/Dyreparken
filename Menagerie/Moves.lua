@@ -8,7 +8,11 @@ local _, ns = ...
 --   a click on it (Cuddle.lua) makes it happy;
 --   a bond level-up (BondTrack's celebration) makes it cheer;
 --   the day the "is it safe to live with you?" egg (three deaths) came up,
---     it plays dead for a moment, the first time you see its card.
+--     it plays dead for a moment, the first time you see its card;
+--   (all 2026-11-10) your pet sits once its day's bond is full; hops the first
+--     time you see it after its wish came true; the pet you keep out walks and
+--     runs with you; after a dislike it turns its back once; and a species'
+--     `lift` moves it up or down to stand on its shadow.
 -- The client can't tell us which animations a model has (no HasAnimation,
 -- SetAnimation takes any id, GetAnimation echoes it), and they differ: the
 -- most basic pets have only stand, death, walk, run and the pet battle set.
@@ -17,7 +21,7 @@ local _, ns = ...
 -- held frozen at its end (Play): the sleep ones (99-101) didn't hold, and
 -- PetBattleDead (770) sank some pets into the floor (2026-11-10).
 -- Timers only while the card shows a pet; a new pet, the journal closing or
--- our pages covering the card cancel them.
+-- our pages covering the card cancel them (the sulk turns back then too).
 --
 -- And the research probe, in a git checkout:
 --   /dp probe anim          the actor, and the animations we try

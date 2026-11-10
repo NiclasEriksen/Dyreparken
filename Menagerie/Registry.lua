@@ -10,8 +10,9 @@ local _, ns = ...
 --     ts: when the owner last changed the record. Copies merge by highest ts,
 --     which works because the owner is the only writer.
 --   g.lapses[owner] = serverTime
---     Someone saw this owner inactive for INACTIVE_RELEASE_DAYS, or missing
---     from a complete guild roster. Claims made before the lapse are void for
+--     Someone saw this owner inactive for INACTIVE_RELEASE_DAYS (in a roster
+--     the server just sent, with the owner's own record at least as old), or
+--     missing from a complete guild roster. Claims made before the lapse are void for
 --     good, so a returning player doesn't take back a pet someone else picked
 --     up meanwhile; they have to claim it again. Merges by max.
 --
@@ -22,7 +23,7 @@ local _, ns = ...
 -- NICKNAMES belong to the pet, not to an adoption: the name stays when its
 -- carer lets go, and the next carer may rename it once their bond with it
 -- reaches Config.NICKNAME_LEVEL (Venn; it was 7 days of care until
--- 2026-11-09). Only checked by the carer's own client. Each naming is its own entry, written only by the
+-- 2026-11-09); clearing it needs no level (2026-11-10). Only checked by the carer's own client. Each naming is its own entry, written only by the
 -- one who named it:
 --   g.names[petKey][namer] = { n = nick|nil, at = when, x = true? }
 --     n nil: the namer cleared the name. x: void (the namer lost an adoption

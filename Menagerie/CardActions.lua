@@ -112,8 +112,10 @@ StaticPopupDialogs["DYREPARKEN_NICKNAME"] = {
     hideOnEscape = 1,
     OnShow = function(self)
         local eb = self.editBox or self.EditBox
-        local key = ns.Registry:MyPet()
-        if eb then eb:SetText(key and ns.Registry:Nickname(key) or ""); eb:HighlightText() end
+        local key, r = ns.Registry:MyPet()
+        -- Below Venn, clearing is all it can do: an empty field makes that the obvious step.
+        local name = key and ns.Registry:CanNickname(r) and ns.Registry:Nickname(key) or ""
+        if eb then eb:SetText(name); eb:HighlightText() end
     end,
     OnAccept = function(self)
         local eb = self.editBox or self.EditBox

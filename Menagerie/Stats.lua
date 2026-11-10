@@ -76,7 +76,7 @@ local function Tip(self)
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
     local pet = ns.Registry:NameOf(card.key)
     if self.id == "day" then
-        GameTooltip:SetText(ns.T("stats.days", { n = self.n, pet = pet }), 1, 1, 1)
+        GameTooltip:SetText(ns.T(self.n == 1 and "stats.days_one" or "stats.days", { n = self.n, pet = pet }), 1, 1, 1)
     else
         GameTooltip:SetText(ns.T("stats.tip", { n = self.n, what = ns.Personality.NOUN[self.id], pet = pet }), 1, 1, 1)
     end

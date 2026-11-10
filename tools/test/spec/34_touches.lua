@@ -147,7 +147,9 @@ return function(test, H)
         ola:Hover({ species = 46, owner = "Kari Berg" })
         w:RunTimers()
         ok(ola:Printed("Bombay Cat og Kari Berg sitt dyr snuser forsiktig", true), "two cats: cousins")
-        -- Kari cared for the Bombay Cat once.
+        -- Kari cared for the Bombay Cat once (your adopted one: the egg is for that pet).
+        ola:Slash("adopter bombay")
+        w:Run(5)
         local now = ola.ns.Now()
         ola.ns.DB:Guild().life["s:40"] = { ["Kari Berg"] = { p = 120, f = now - 30 * 86400, t = now - 86400 } }
         ola.ns.DB.char.quirkAt = nil
@@ -162,7 +164,7 @@ return function(test, H)
         w:Run(5)
         ola:Reload()
         w:Settle("day")
-        ok(ola:Printed("Panda Cub er dagens dyr i guilden i dag!", true))
+        ok(ola:Printed("Panda Cub er dagens dyr i guilden!", true))
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
         ok(card.crown:IsShown())
@@ -284,7 +286,7 @@ return function(test, H)
         ola.ns.DB.char.quirkAt = nil
         ola.ns.DB.char.activity.nap = { total = 4, mine = 4, today = 4, day = ola.ns.Today(), pets = {} }
         ola.ns.Activity:Emit("nap")
-        ok(Said("flyttet inn i vertshuset"))
+        ok(Said("tenkt å bli her for godt"))
     end)
 
     test("named after you, or after another pet in the park", function()
@@ -370,17 +372,17 @@ return function(test, H)
             P:Heard("Kari Berg", "s:40")
             if day < 5 then w:SkipDays(1) end
         end
-        ok(ola:Printed("Panda Cub og Bombay Cat er uatskillelige på lekeplassen.", true))
+        ok(ola:Printed("Panda Cub og Bombay Cat leker alltid sammen i parken nå.", true))
         P:Heard("Per Hansen", "s:46")
         local owner, theirs, n = P:BestFriend(PANDA)
         eq(owner, "Kari Berg"); eq(theirs, "s:40"); eq(n, 5)
         local card = ola:SelectPet(5159)
         card.bond.scripts.OnEnter(card.bond)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "Bestevenn i parken: Bombay Cat %(Kari Berg%), 5 lekedater")
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Beste lekevenn: Bombay Cat %(Kari Berg%), 5 lekedater")
         -- Kari, Per and Liv within ten minutes: a party, once a day.
         P:Heard("Liv Lund", "s:72")
         w:RunTimers()
-        ok(ola:Printed("Full fest: 3 dyr fra parken på samme sted!", true))
+        ok(ola:Printed("Full fest: 4 dyr fra parken samlet!", true), "three of theirs and ours")
     end)
 
     test("home by name: the hearth line names where you're bound; pets feel at home in their family's places", function()
@@ -414,7 +416,7 @@ return function(test, H)
         local said
         for _, m in ipairs(w.chat) do if m.from == "Kari Berg" and m.chan == "EMOTE" then said = m.text end end
         ola:Fire("CHAT_MSG_EMOTE", said, "Kari Berg")
-        ok(ola:Printed("Panda Cub logrer fornøyd etter klappen fra Kari Berg.", true))
+        ok(ola:Printed("Panda Cub ser fornøyd ut etter klappen fra Kari Berg.", true))
         ola:ClearPrinted()
         ola:Fire("CHAT_MSG_EMOTE", said, "Kari Berg")
         eq(#ola.printed, 0, "not again so soon")

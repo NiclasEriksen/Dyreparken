@@ -20,8 +20,8 @@ local ROSTER_INTERVAL = 300 -- seconds
 local waiting
 
 -- stale: the server didn't answer our request, so this is whatever the
--- client had cached. Fine for days offline, but someone who joined since
--- would be missing, so it never counts as complete.
+-- client had cached. Someone who joined since would be missing, so it never
+-- counts as complete, and days offline from it lapse nobody (Registry).
 local function Read(stale)
     local total = GetNumGuildMembers()
     local members, read = {}, 0

@@ -40,8 +40,8 @@ function Playdate:Soon()
 end
 
 -- Best friends in the park (2026-11-10): playdates counted per pair, in
--- char.playmates[ours]["owner\31theirs"] = n. The fifth with the same friend
--- gets a line.
+-- char.playmates[ours]["owner\31theirs"] = n. The bond's tooltip names the
+-- one it has played with most (from two); the fifth with the same friend gets a line.
 Playdate.INSEPARABLE = 5
 function Playdate:Count(mine, sender, theirs)
     local all = ns.DB.char.playmates
@@ -61,7 +61,7 @@ function Playdate:BestFriend(mine)
     for id, n in pairs(ns.DB.char.playmates[mine] or {}) do
         if not bestN or n > bestN or (n == bestN and id < best) then best, bestN = id, n end
     end
-    if not best then return nil end
+    if not best or bestN < 2 then return nil end -- (one playdate isn't a best friend yet)
     local owner, theirs = best:match("^(.-)\31(.+)$")
     return owner, theirs, bestN
 end
@@ -76,7 +76,7 @@ function Playdate:Party(sender, mine)
     for who, at in pairs(heard) do
         if now - at > self.FULL_WITHIN then heard[who] = nil else n = n + 1 end
     end
-    if n >= self.FULL then ns.Quirks:Egg("party", mine, n) end
+    if n >= self.FULL then ns.Quirks:Egg("party", mine, n + 1) end -- (theirs and ours)
 end
 
 -- Someone in our group has a pet out.

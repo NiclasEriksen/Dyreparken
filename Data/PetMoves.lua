@@ -20,7 +20,7 @@ local _, ns = ...
 --          /dp probe anim <id> 0 <seconds> (blend anim afterwards). To see the
 --          card at night by day: /dp probe anim night
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
---          with 96 first)
+--          with 96 first), and by any pet of yours once its day's bond is full
 --   happy  a click on the pet (on the Panda Cub, PetBattleCustom0 is a hop)
 --   cheer  a bond level-up, during the celebration
 --   dead   the day of the "is it safe to live with you?" egg, once

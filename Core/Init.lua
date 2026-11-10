@@ -51,6 +51,11 @@ end
 -- day the daily limit, the wish, the cuddle and the counters belong to.
 function ns.Today(t) return date("%Y%m%d", t or ns.Now()) end
 
+-- lower() leaves Æ, Ø and Å alone (bytes, not letters): "/dp KUNNGJØR PÅ".
+function ns.Lower(s)
+    return (s:lower():gsub("Æ", "æ"):gsub("Ø", "ø"):gsub("Å", "å"))
+end
+
 -- A date as players read it: 08.11.2026.
 function ns.Date(t) return date("%d.%m.%Y", t) end
 

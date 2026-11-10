@@ -66,7 +66,7 @@ return function(test, H)
         cake.scripts.OnEnter(cake)
         match(table.concat(ola.env.GameTooltip.lines, " / "), "Klikk for å gratulere")
         cake:Click()
-        eq(Posts()[#Posts()], "Gratulerer med 1 måned, Kari Berg og White Kitten!")
+        eq(Posts()[#Posts()], "Gratulerer med 1 måned sammen, Kari Berg og White Kitten!")
         cake:Click()
         eq(#Posts(), before + 1, "once a day")
         -- Announcing off: no post.

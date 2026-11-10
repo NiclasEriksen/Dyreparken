@@ -172,7 +172,11 @@ Quirks.EGGS = {
     { id = "paske", on = "day", always = true,
         test = function(ctx) return date("%m%d", ctx.t) == Quirks.Easter(tonumber(date("%Y", ctx.t))) and {} end },
     { id = "klokka", on = "day", always = true, test = function(ctx) -- the clocks changed last night
-        return date("*t", ctx.t).isdst ~= date("*t", ctx.t - 86400).isdst and {}
+        -- (noon today against noon yesterday: the change is at night, whenever the day's visit comes)
+        local d = date("*t", ctx.t)
+        local noon = time({ year = d.year, month = d.month, day = d.day, hour = 12 })
+        local yesterday = time({ year = d.year, month = d.month, day = d.day - 1, hour = 12 })
+        return date("*t", noon).isdst ~= date("*t", yesterday).isdst and {}
     end },
     { id = "mandag", on = "day", test = function(ctx) return Weekday(ctx.t) == 1 and HasTrait(ctx.key, "helgedyr") and {} end },
     { id = "morgen", on = "day", test = function(ctx)
@@ -194,11 +198,12 @@ Quirks.EGGS = {
     { id = "leet", on = "*", test = function(ctx) return date("%H%M", ctx.t) == "1337" and {} end },
     -- Named: your own first name, or a name another pet in the park has.
     { id = "navnebror", on = "name", always = true, test = function(ctx)
-        return ctx.extra == ns.PlayerKey():match("^(%S+)") and {}
+        return ns.Lower(ctx.extra) == ns.Lower(ns.PlayerKey():match("^(%S+)")) and {}
     end },
     { id = "tvilling", on = "name", always = true, test = function(ctx)
         for key in pairs(ns.Registry:Holders()) do
-            if key ~= ctx.key and ns.Registry:Nickname(key) == ctx.extra then return { nick = ctx.extra } end
+            local other = key ~= ctx.key and ns.Registry:Nickname(key)
+            if other and ns.Lower(other) == ns.Lower(ctx.extra) then return { nick = ctx.extra } end
         end
     end },
     -- The first time here with this pet, and it's a place its family feels at home in.
@@ -219,8 +224,10 @@ Quirks.EGGS = {
     { id = "speil", on = "seen", test = function(ctx)
         return ns.Pets:SpeciesOfKey(ctx.key) == ctx.seen and { owner = ctx.extra }
     end },
-    -- (2026-11-10) Someone who once cared for your pet walks by with theirs.
+    -- (2026-11-10) Your adopted pet meets someone with a bond with its kind (a carer
+    -- before you, or their own copy: bonds don't tell which).
     { id = "kjenner", on = "seen", test = function(ctx)
+        if ns.Registry:MyPet() ~= ctx.key then return nil end
         local e = ns.Registry:Life(ctx.key, ctx.extra)
         return e and e.p > 0 and { owner = ctx.extra }
     end },

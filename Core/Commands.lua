@@ -18,10 +18,7 @@ local function Say(_, msg) if msg then ns.Print(msg) end end
 local ON = { ["på"] = true, on = true }
 local OFF = { av = true, off = true }
 
--- lower() leaves Æ, Ø and Å alone (bytes, not letters): "/dp KUNNGJØR PÅ".
-local function Lower(s)
-    return (s:lower():gsub("Æ", "æ"):gsub("Ø", "ø"):gsub("Å", "å"))
-end
+local Lower = ns.Lower
 
 -- "på"/"av" (or on/off) say which; nothing else flips the current setting.
 local function Toggle(arg, current)

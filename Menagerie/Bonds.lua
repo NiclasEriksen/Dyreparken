@@ -44,13 +44,19 @@ function Bonds:Milestone(at, now)
     if days <= 0 then return nil end
     if days == 30 then return ns.L["milestone.month"] end
     if days == 100 then return ns.L["milestone.days100"] end
-    local a, n = date("*t", at), date("*t", now)
+    local years = Bonds.Anniversary(at, now)
+    if years then return ns.T("milestone.years", { n = years }) end
+end
+
+-- Whole years since t, if now is its day of the year; else nil. Born on 29
+-- February: the 28th in the years without one.
+function Bonds.Anniversary(t, now)
+    local a, n = date("*t", t), date("*t", now)
     local day = a.day
-    -- Adopted on 29 February: the 28th in the years without one.
     if a.month == 2 and day == 29 and date("*t", time({ year = n.year, month = 3, day = 0, hour = 12 })).day == 28 then
         day = 28
     end
-    if a.month == n.month and day == n.day then return ns.T("milestone.years", { n = n.year - a.year }) end
+    if a.month == n.month and day == n.day and n.year > a.year then return n.year - a.year end
 end
 
 
@@ -95,9 +101,7 @@ function Bonds:ParkBirthday(t)
     local g = ns.DB:Guild()
     local born = g and g.born
     if not born then return nil end
-    t = t or ns.Now()
-    local a, n = date("*t", born), date("*t", t)
-    if a.month == n.month and a.day == n.day and n.year > a.year then return n.year - a.year end
+    return Bonds.Anniversary(born, t or ns.Now())
 end
 
 function Bonds:Celebrate()
@@ -160,7 +164,12 @@ function Bonds:Patted(text, sender)
     if type(text) ~= "string" or type(sender) ~= "string" or not key or ns.Pets:OutKey() ~= key then return end
     local me = ns.PlayerKey()
     if sender == me or ns.Guild:IsMember(sender) ~= true then return end
-    if not text:find(" " .. me .. " sin ", 1, true) and not text:find("(" .. me .. " sin ", 1, true) then return end
+    -- Our own emote's two shapes (pat.other, pat.other_nick), anchored: a nickname that
+    -- holds "Ola Nord sin" mustn't count (code review 2026-11-10).
+    local mine = me .. " sin "
+    local plain = not text:find("(", 1, true) and text:sub(1, #mine + 8) == "klapper " .. mine
+    local inner = text:match("%(([^()]*)%)%.$") -- (the last brackets: the owner and species)
+    if not plain and not (inner and inner:sub(1, #mine) == mine) then return end
     local now = GetTime()
     if patted[sender] and now - patted[sender] < self.PAT_AGAIN then return end
     patted[sender] = now

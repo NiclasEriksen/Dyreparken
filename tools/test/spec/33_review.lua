@@ -385,4 +385,26 @@ return function(test, H)
         w:Run(600)
         ok(w:Sent("SYNC", nil, m) <= 3 * 2, "a round or two, then quiet (it was 40 in ten minutes)")
     end)
+
+    test("review 2 (2026-11-10): pats anchored, one playdate isn't a best friend, anniversaries on 29 February", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        w:AddMember("Kari Berg", 0)
+        ola.ns.Guild:Refresh(true); w:Run(1)
+        ola:Slash("adopter panda"); w:Run(5)
+        ola:Summon(5159)
+        local B = ola.ns.Bonds
+        ola:ClearPrinted()
+        B:Patted("klapper Ola Nord sin venn (Per Berg sin Worg Pup).", "Kari Berg")
+        eq(#ola.printed, 0, "a nickname holding our name isn't us")
+        B:Patted("klapper Pepe (Ola Nord sin Panda Cub).", "Kari Berg")
+        eq(#ola.printed, 1)
+        -- Best friends from two playdates.
+        ola.ns.DB.char.playmates[PANDA] = { ["Kari Berg\31s:40"] = 1 }
+        eq(ola.ns.Playdate:BestFriend(PANDA), nil)
+        ola.ns.DB.char.playmates[PANDA]["Kari Berg\31s:40"] = 2
+        eq(ola.ns.Playdate:BestFriend(PANDA), "Kari Berg")
+        -- The park born on 29 February 2028: its birthday on the 28th in 2029.
+        ola.ns.DB:Guild().born = os.time({ year = 2028, month = 2, day = 29, hour = 12 })
+        eq(B:ParkBirthday(os.time({ year = 2029, month = 2, day = 28, hour = 12 })), 1)
+    end)
 end
