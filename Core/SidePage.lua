@@ -26,7 +26,9 @@ local _, ns = ...
 -- Without side tabs (a Retail-style window), text buttons left of the
 -- Auto-summon checkbox open the pages instead.
 --
--- A page: SidePage:New{ id, title, icon, build = fn(p), refresh = fn(p) }.
+-- A page: SidePage:New{ id, title, icon, build = fn(p), refresh = fn(p), tab }.
+-- tab = false: no side tab or fallback button (something else opens it: the
+-- settings' cog).
 -- build fills p.frame (the cover, background already set); refresh redraws.
 local SidePage = {}
 ns.SidePage = SidePage
@@ -269,20 +271,25 @@ function SidePage:Layout()
             f:HookScript("OnMouseDown", function() SidePage:CloseAll() end)
         end
     end
-    for _, p in ipairs(pages) do p.tab:SetShown(#tabs > 0); p.button:SetShown(#tabs == 0) end
+    for _, p in ipairs(pages) do
+        if p.tab then p.tab:SetShown(#tabs > 0); p.button:SetShown(#tabs == 0) end
+    end
     if #tabs == 0 then return end
     local last = tabs[#tabs]
     local gap = 2
     if #tabs >= 2 then gap = math.max(0, (tabs[#tabs - 1]:GetBottom() or 0) - (last:GetTop() or 0)) end
     for _, p in ipairs(pages) do
-        p.tab:SetSize(last:GetWidth() or 55, last:GetHeight() or 55)
-        p.tab:ClearAllPoints()
-        p.tab:SetPoint("TOPLEFT", last, "BOTTOMLEFT", 0, -gap)
-        last = p.tab
+        if p.tab then
+            p.tab:SetSize(last:GetWidth() or 55, last:GetHeight() or 55)
+            p.tab:ClearAllPoints()
+            p.tab:SetPoint("TOPLEFT", last, "BOTTOMLEFT", 0, -gap)
+            last = p.tab
+        end
     end
 end
 
 local function BuildTab(p)
+    if p.def.tab == false then return end
     -- Like Forever's side tabs (probed 2026-11-07): background, the icon
     -- masked to the tab's shape, a selected and a hover highlight. The
     -- atlases are 55x60 on a 55x55 tab.
@@ -320,7 +327,11 @@ local function BuildTab(p)
     local b = CreateFrame("Button", nil, anchor:GetParent(), "UIPanelButtonTemplate")
     b:SetSize(110, 22)
     local prev
-    for i, q in ipairs(pages) do if q == p then prev = pages[i - 1] end end
+    for i, q in ipairs(pages) do
+        if q == p then
+            for j = i - 1, 1, -1 do if pages[j].button then prev = pages[j]; break end end
+        end
+    end
     if prev then b:SetPoint("RIGHT", prev.button, "LEFT", -4, 0)
     else b:SetPoint("RIGHT", anchor, "LEFT", -6, 0) end
     b:SetText(p.def.title)

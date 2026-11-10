@@ -161,6 +161,9 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    the art probe /dp probe decor; DecorCandidates.lua is GENERATED from the retail atlas list, dev only),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon, a click opens its card on the Pets page (also pets you don't own);
                    loads after Achievements/Page.lua so its tab comes second),
+                   Settings (the settings page: a SidePage with no tab, opened by a cog in the pet journal's title
+                   bar; the four older per-character settings plus the account's DyreparkenDB.settings: chatLines,
+                   worldHearts, cardParticles all/few/none, cardMoves, celebrate; modules ask Settings:On(key)),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in
                    g.life, see Registry.lua; docs/PET_LIFE.md. Data only, it prints nothing: BOND_LEVEL, BOND_FULL,
                    BOND_LINE on the Bus. Rewards beyond activities (wish, first, playdate) are rows in Bond.REWARDS,
@@ -288,4 +291,3 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 
 
 - A "companions the guild is missing" list, from `Data/Companions.lua`.
-- A settings UI. The summon sound mute is `/dp lyd` for now; it gets a checkbox there.

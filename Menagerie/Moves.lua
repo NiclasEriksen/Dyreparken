@@ -661,6 +661,14 @@ end
 
 -- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
 function Moves:Update(card, key)
+    -- The pet's moves turned off (Settings: cardMoves): it just stands, on its shadow.
+    if key and not ns.Settings:On("cardMoves") then
+        local was = shown.key or shown.playing
+        self:Update(card, nil)
+        if was then Play(STAND); shown.playing = nil end -- (out of a held pose, once)
+        Lift(key)
+        return
+    end
     self:Follow(key)
     if not key then
         UnSulk()

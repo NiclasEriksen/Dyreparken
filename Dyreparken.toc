@@ -67,6 +67,7 @@ Achievements\Achievements.lua
 Achievements\Kills.lua
 Achievements\Page.lua
 Menagerie\ParkPage.lua
+Menagerie\Settings.lua
 
 # Party games
 Games\Framework.lua

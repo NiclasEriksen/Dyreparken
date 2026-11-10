@@ -108,6 +108,7 @@ function Fx:HeartColor(species, owner)
 end
 
 function Fx:Hovered(species, owner)
+    if not ns.Settings:On("worldHearts") then return end
     local id = tostring(species) .. "|" .. tostring(owner)
     local now = GetTime()
     if last[id] and now - last[id] < self.AGAIN then return end
@@ -127,10 +128,12 @@ local function AtChat()
 end
 
 function Fx:Line()
+    if not (ns.Settings:On("worldHearts") and ns.Settings:On("chatLines")) then return end
     self:Burst(AtChat(), "spark", { n = 4, color = { 1, 0.85, 0.4 }, size = 0.6, spread = 24, rise = 24 })
 end
 
 function Fx:LevelUp()
+    if not ns.Settings:On("worldHearts") then return end
     local at = AtChat()
     self:Burst(at, "spark", { n = 6, color = { 1, 0.85, 0.4 }, size = 0.8, spread = 40, rise = 40 })
     self:Burst(at, "heart", { n = 4, color = { 1, 0.45, 0.6 }, size = 0.8, spread = 30, rise = 70 })

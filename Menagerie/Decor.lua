@@ -716,7 +716,8 @@ function Decor:Apply(card, key, level, color)
     if key then
         local family = self.show and self.show.family or ns.Scenes:Families(key)[1] or "default"
         art = { self:Art("border", family), self:Art(level >= 5 and "cornerGold" or "corner", family), self:Art("glow"), self:Art("ribbon") }
-        local parts = { key, level, color and table.concat(color, ",") or "", table.concat(art, ";") }
+        local parts = { key, level, color and table.concat(color, ",") or "", table.concat(art, ";"),
+            tostring(ns.Settings:Get("cardParticles")) }
         for _, spec in ipairs(self:Specs(key, level, ns.Now())) do
             parts[#parts + 1] = spec.kind .. spec.n .. self:PartArt(spec.kind)
         end
@@ -795,13 +796,16 @@ function Decor:Apply(card, key, level, color)
         d.rays.turn:Play()
     end
     if level >= 7 then d.border.shimmer:Play() end
-    -- Particles, up to the pool's size.
+    -- Particles, up to the pool's size (Settings: all of them, half, or none).
+    local amount = ns.Settings:Get("cardParticles")
+    if amount == "none" then return end
     local rng = Rng((ns.Pets:SpeciesOfKey(key) or 1) * 7919 + level)
     for _, spec in ipairs(self:Specs(key, level, ns.Now())) do
-        for i = 1, spec.n do
+        local n = amount == "few" and math.max(1, math.ceil(spec.n / 2)) or spec.n
+        for i = 1, n do
             if d.used >= POOL then break end
             d.used = d.used + 1
-            Launch(d.parts[d.used], spec, rng, i, spec.n, d.panel)
+            Launch(d.parts[d.used], spec, rng, i, n, d.panel)
         end
     end
 end

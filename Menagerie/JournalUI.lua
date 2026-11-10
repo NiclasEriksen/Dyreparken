@@ -437,6 +437,8 @@ local function BuildCard()
 
     -- The achievements tab and page (Achievements/Page.lua).
     ns.AchPage:Attach(PetJournal, card.tabAnchor)
+    -- The settings' cog in the title bar (Settings.lua).
+    ns.Settings:AttachCog(PetJournal)
 end
 
 ------------------------------------------------------------------------------

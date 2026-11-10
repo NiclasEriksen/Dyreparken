@@ -401,7 +401,7 @@ end
 -- The moment: light, a burst, the level's name, what it brings, a sound.
 function Track:Celebrate(card, key, level)
     local cel = card.celebration
-    if not cel then return end
+    if not cel or not ns.Settings:On("celebrate") then return end
     self:StopCelebration(card)
     ns.Moves:Cheer(key)
     cel.flash:Show(); cel.flash.anim:Play()

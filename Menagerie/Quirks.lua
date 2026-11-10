@@ -307,7 +307,7 @@ function Quirks:Egg(on, key, extra, seen)
 end
 
 function Quirks:OnActivity(id, key, extra)
-    if not key then return end
+    if not key or not ns.Settings:On("chatLines") then return end
     if ns.Personality:Dislikes(key)[id] then return self:Dislike(key, id) end
     self:Egg(id, key, extra)
 end
@@ -317,6 +317,7 @@ end
 function Quirks:Seen(species, owner)
     local key = ns.Pets:OutKey()
     if not (key and owner and owner ~= ns.PlayerKey()) or type(species) ~= "number" then return end
+    if not ns.Settings:On("chatLines") then return end
     self:Egg("seen", key, owner, species)
 end
 
@@ -348,7 +349,9 @@ function Quirks:Init()
     ns.Bus:On("ACTIVITY", function(id, _, key, _, extra) Quirks:OnActivity(id, key, extra) end)
     ns.Bus:On("COMPANION_SEEN", function(species, owner) Quirks:Seen(species, owner) end)
     -- Named it (Registry's MY_NAME): a name's own eggs.
-    ns.Bus:On("MY_NAME", function(key, e) if type(e) == "table" and e.n then Quirks:Egg("name", key, e.n) end end)
+    ns.Bus:On("MY_NAME", function(key, e)
+        if type(e) == "table" and e.n and ns.Settings:On("chatLines") then Quirks:Egg("name", key, e.n) end
+    end)
     ns.Bus:On("MY_RECORD", function() Quirks:Watch() end)
     ns.Bus:On("ACTIVE_PET", function() Quirks:Watch() end)
     Quirks:Watch()

@@ -76,7 +76,7 @@ function Playdate:Party(sender, mine)
     for who, at in pairs(heard) do
         if now - at > self.FULL_WITHIN then heard[who] = nil else n = n + 1 end
     end
-    if n >= self.FULL then ns.Quirks:Egg("party", mine, n + 1) end -- (theirs and ours)
+    if n >= self.FULL and ns.Settings:On("chatLines") then ns.Quirks:Egg("party", mine, n + 1) end -- (theirs and ours)
 end
 
 -- Someone in our group has a pet out.

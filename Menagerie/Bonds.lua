@@ -81,7 +81,7 @@ ns.Bus:On("BOND_LEVEL", function(key, level, name)
     if key == ns.Registry:MyPet() then Bonds:TellNameUnlock() end
 end)
 ns.Bus:On("BOND_FULL", function(key) ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end)
-ns.Bus:On("BOND_LINE", function(_, text) ns.PrintGold(text) end)
+ns.Bus:On("BOND_LINE", function(_, text) if ns.Settings:On("chatLines") then ns.PrintGold(text) end end)
 
 -- The park's birthday (2026-11-10): the day of the guild's first adoption we
 -- know of (the oldest claim: a bond with a pet you haven't adopted isn't an
