@@ -134,6 +134,7 @@ function Moves:ProbePos(arg)
     local scene = PetJournalPetCard.modelScene
     local word, n = (arg or ""):match("^(%S*)%s*(%S*)$")
     n = tonumber(n)
+    if posStart and posStart.species ~= Species() then posStart = nil end -- (another pet: its own start)
     if word == "reset" then
         if posStart then
             Call(actor, "SetPosition", posStart[1], posStart[2], posStart[3])
@@ -145,7 +146,7 @@ function Moves:ProbePos(arg)
     if (word == "x" or word == "y" or word == "z") and n then
         local ok, x, y, z = Call(actor, "GetPosition")
         if not (ok and type(x) == "number") then return PosSay("no GetPosition: %s", Vals(ok, x)) end
-        posStart = posStart or { x, y, z, select(2, Call(actor, "GetScale")) }
+        posStart = posStart or { x, y, z, select(2, Call(actor, "GetScale")), species = Species() }
         if word == "x" then x = x + n elseif word == "y" then y = y + n else z = z + n end
         PosSay("SetPosition(%.3f, %.3f, %.3f): %s; now %s", x, y, z, Vals(Call(actor, "SetPosition", x, y, z)),
             Vals(Call(actor, "GetPosition")))
@@ -153,8 +154,10 @@ function Moves:ProbePos(arg)
     end
     if word == "scale" and n then
         local ok, s = Call(actor, "GetScale")
-        posStart = posStart or { select(2, Call(actor, "GetPosition")), ok and s or nil }
-        if not posStart[1] then posStart = nil end
+        if not posStart then
+            local okp, x, y, z = Call(actor, "GetPosition")
+            posStart = okp and type(x) == "number" and { x, y, z, ok and s or nil, species = Species() } or nil
+        end
         return PosSay("SetScale(%.3f): %s; now %s", n, Vals(Call(actor, "SetScale", n)), Vals(Call(actor, "GetScale")))
     end
     -- The dump.
