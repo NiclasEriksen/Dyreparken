@@ -53,10 +53,10 @@ ns.PetMoves = {
         [78] = { lift = -0.05 },  -- Crimson Snake
         [85] = { lift = 0.4 },  -- Tiny Walking Bomb
         [89] = { lift = 0.3 },  -- Worg Pup
-        [90] = { lift = 0.8 },  -- Smolderweb Hatchling
+        [90] = { lift = 1 },  -- Smolderweb Hatchling
         [95] = { lift = -0.1 },  -- Lifelike Toad
         [106] = { lift = -0.1 },  -- Jubling
-        [114] = { lift = -0.4 },  -- Disgusting Oozeling
+        [114] = { lift = -0.8 },  -- Disgusting Oozeling
         [116] = { lift = 0.4 },  -- Tranquil Mechanical Yeti
         [117] = { lift = 0.2 },  -- Tiny Snowman
         [118] = { lift = 0.4 },  -- Winter Reindeer
@@ -68,11 +68,13 @@ ns.PetMoves = {
         [162] = { lift = 0.6 },  -- Sinister Squashling
         [5005] = { lift = -0.1 },  -- Musical Gustjumper
         [5006] = { lift = -0.05 },  -- Corrupted Kitten
-        [5018] = { lift = 1.5 },  -- Snowy Wolf Pup
+        [5018] = { lift = 1.9 },  -- Snowy Wolf Pup
         [5075] = { lift = -0.5 },  -- Excitable Slime
-        [5094] = { lift = 0.5 },  -- Bitter Baitling
-        [5121] = { lift = 0.3 },  -- Prairie Wolf Pup
+        [5094] = { lift = 0.7 },  -- Bitter Baitling
+        [5121] = { lift = 0.15 },  -- Prairie Wolf Pup
         [5136] = { lift = -0.5 },  -- Weevil K. Neevil
+        [5138] = { lift = 0.1 },  -- Pachimari
+        [5139] = { lift = -0.15 },  -- Galestrider Chick
         [5153] = { lift = -0.1 },  -- Jungle Boa
         [5154] = { lift = -0.15 },  -- Brown Ground Squirrel
         [5155] = { lift = -0.15 },  -- Red Ground Squirrel
@@ -80,10 +82,11 @@ ns.PetMoves = {
         [5159] = { sleepAt = 1.5 },  -- Panda Cub: its fall ends later
         [5160] = { sleep = false, happy = false, lift = 0.4 },  -- Zergling: PetBattleCustom0 is an attack; asleep too messy for now (6 or 770 held at 2.7 were the best)
         [5161] = { sleep = false, lift = 0.2 },  -- Mini Diablo: Dead (6) makes him vanish (Death bursts into flames)
-        [5162] = { lift = 0.3 },  -- Baby Crocolisk
-        [5163] = { lift = -0.5 },  -- Shen'dorei Wisp
+        [5162] = { lift = 0.8 },  -- Baby Crocolisk
+        [5163] = { lift = -0.75 },  -- Shen'dorei Wisp
+        [5167] = { lift = -0.25 },  -- Condor Hatchling
         [5172] = { lift = 0.25 },  -- Tallstrider Hatchling
-        [5174] = { lift = 1.2 },  -- Minfernal
+        [5174] = { lift = 1.5 },  -- Minfernal
         [5176] = { lift = 0.6 },  -- Minimule
         [5179] = { lift = -1 },  -- Azurky
         [5183] = { lift = 0.5 },  -- Spawn of Grubthor
