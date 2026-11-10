@@ -274,4 +274,25 @@ return function(test, H)
         w:RunTimers()
         ok(ola:Printed("to «Pus» i parken", true))
     end)
+
+    test("a chip reaching a round number today wears a gold ring, with a line in its tooltip", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        ola.ns.DB.char.activity.quest = { total = 48, mine = 48, today = 0, day = ola.ns.Today(), pets = { [PANDA] = 48 } }
+        local function Chip()
+            local card = ola:SelectPet(5159)
+            for _, c in ipairs(card.stats.chips) do if c:IsShown() and c.id == "quest" then return c end end
+        end
+        no(Chip().ring:IsShown(), "48: nothing round, and old counts never light up")
+        ola:Fire("QUEST_TURNED_IN", 1)
+        no(Chip().ring:IsShown())
+        ola:Fire("QUEST_TURNED_IN", 1)
+        local chip = Chip()
+        ok(chip.ring:IsShown(), "50")
+        chip.scripts.OnEnter(chip)
+        match(table.concat(ola.env.GameTooltip.lines, " / "), "Rundt tall i dag: 50!")
+        w:SkipDays(1)
+        no(Chip().ring:IsShown(), "for the day")
+    end)
 end

@@ -450,6 +450,7 @@ L["decor.level.7"] = "hjerter, og alt gull skinner"
 L["stats.days"] = "{n} dager ute sammen med {pet}"
 L["stats.tip"] = "{n} {what} sammen med {pet}"
 L["stats.last_place"] = "Sist oppdaget sammen: {place}"
+L["stats.round"] = "Rundt tall i dag: {m}!"
 
 ------------------------------------------------------------------------------
 -- Today's wish (your own pet)

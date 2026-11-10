@@ -44,6 +44,33 @@ function Stats:For(key)
     return list
 end
 
+-- Round numbers (2026-11-10): a chip whose count reached 10, 50, 100, 500
+-- or 1000 today wears a gold ring for the day. Noted the moment it's reached
+-- (char.chipRounds[key][id] = { m, day }), so old counts never light up.
+Stats.ROUND = { 10, 50, 100, 500, 1000 }
+local function Round(before, after)
+    local hit
+    for _, m in ipairs(Stats.ROUND) do if before < m and after >= m then hit = m end end
+    return hit
+end
+
+function Stats:OnActivity(id, n, key)
+    if not (key and self.ICONS[id]) then return end
+    local _, _, _, now = ns.Activity:Count(id, key)
+    local m = Round(now - (n or 1), now)
+    if not m then return end
+    local all = ns.DB.char.chipRounds
+    all[key] = all[key] or {}
+    all[key][id] = { m = m, day = ns.Today() }
+end
+
+-- The round number a pet's chip reached today, or nil.
+function Stats:RoundToday(key, id)
+    local r = key and ns.DB.char.chipRounds[key]
+    r = r and r[id]
+    return r and r.day == ns.Today() and r.m or nil
+end
+
 local function Tip(self)
     local card = self.card
     GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
@@ -52,6 +79,10 @@ local function Tip(self)
         GameTooltip:SetText(ns.T("stats.days", { n = self.n, pet = pet }), 1, 1, 1)
     else
         GameTooltip:SetText(ns.T("stats.tip", { n = self.n, what = ns.Personality.NOUN[self.id], pet = pet }), 1, 1, 1)
+    end
+    local round = Stats:RoundToday(card.key, self.id)
+    if round then GameTooltip:AddLine(ns.T("stats.round", { m = round }), 1, 0.82, 0) end
+    if self.id ~= "day" then
         local last = self.id == "explore" and ns.DB.char.lastPlace[card.key]
         if last then GameTooltip:AddLine(ns.T("stats.last_place", { place = last }), 0.8, 0.8, 0.8) end
     end
@@ -74,6 +105,13 @@ function Stats:Build(card, c)
         chip.icon:SetPoint("LEFT", chip, "LEFT", 3, 0)
         chip.count = chip:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
         chip.count:SetPoint("LEFT", chip.icon, "RIGHT", 3, 0)
+        chip.ring = chip:CreateTexture(nil, "OVERLAY")
+        chip.ring:SetTexture(ns.Decor.MEDIA .. "ring")
+        chip.ring:SetBlendMode("ADD")
+        chip.ring:SetVertexColor(1, 0.82, 0.3, 1)
+        chip.ring:SetSize(ICON + 10, ICON + 10)
+        chip.ring:SetPoint("CENTER", chip.icon)
+        chip.ring:Hide()
         chip.card = card
         chip:EnableMouse(true)
         chip:SetScript("OnEnter", Tip)
@@ -98,6 +136,9 @@ function Stats:Update(card, key)
             chip.id, chip.n = s.id, s.n
             chip.icon:SetTexture(Icon(s.id))
             chip.count:SetText(s.n)
+            local round = self:RoundToday(key, s.id)
+            chip.ring:SetShown(round ~= nil)
+            if round then chip.count:SetTextColor(1, 0.82, 0) else chip.count:SetTextColor(1, 1, 1) end
             local w = 3 + ICON + 3 + chip.count:GetStringWidth() + 6
             chip:SetWidth(w)
             chip:ClearAllPoints()
@@ -118,3 +159,7 @@ function Stats:Update(card, key)
     end
     row:Show()
 end
+
+ns.Start("login", function()
+    ns.Bus:On("ACTIVITY", function(id, n, key) Stats:OnActivity(id, n, key) end)
+end)
