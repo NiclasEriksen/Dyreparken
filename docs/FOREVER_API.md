@@ -393,6 +393,8 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   1840-1842 Call to Arms (battlegrounds). No Children's Week, Brewfest or Pilgrim's Bounty. Used by Menagerie/Holidays.lua.
 - **The card's model never says it has loaded**: a hook on the actor's `OnModelLoaded` (the mixin's method) logged
   nothing over a whole session of cards, so SETTLE and SLEEP_AFTER stay guesses (2026-11-11).
+- **A new flight path is seen** (2026-11-11, build 1.60.1): `ERR_NEWTAXIPATH` matched on UI_INFO_MESSAGE or
+  CHAT_MSG_SYSTEM (Activity "newpath"); the user's pet said its line as the flight path was learned.
 - **Range to a group member** (2026-11-11, playdates): `UnitInRange(unit)` (in range, checked) and `UnitIsVisible`
   exist; what they answer on Forever is unverified (logged: "playdate range: ..."). Playdate.lua uses UnitInRange,
   and UnitIsVisible where it couldn't check.
