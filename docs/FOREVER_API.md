@@ -378,6 +378,10 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   Second run: the card's model scene is 399x386; in a frame that size the pet had the card's scale (19.48) but
   stood at 0.5 (the card: 0.3, its lift), and was still cut off at the same place: not by the frame's edge. With
   the scene's mouse off and a Button above it, clicks and drags work.
+  Third run: the cut-off is the frame's top edge after all: both scenes have the same camera (scene 1271: target
+  0, 0, 1.5, zoom 24, yaw 2.62, pitch 0.35, fov 0.94, near clip 0.2), but the card sets **view insets 0, 0, 300,
+  -50** (left, right, top, bottom) on its 386 px: the model's view is its bottom part, 50 px below the edge to 86
+  above, so the pet stands low with room above. Ours had none: the pet sat at the top, half out of the frame.
 - **Edit Mode**: `EventRegistry:RegisterCallback("EditMode.Enter"/"EditMode.Exit", fn, owner)` fire for an addon
   (the same test). `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.
 - **The year's holidays** (`/dp probe api holidays`, 2026-11-11, Nov 2026 to Oct 2027; event ids, `eventType` 4):

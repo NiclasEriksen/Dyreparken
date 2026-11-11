@@ -636,6 +636,7 @@ end
 
 -- Our own model scene with the pet that's out, built the way Blizzard's pet card does it
 -- (PetJournal_UpdatePetCard): the species' model scene id, then the "unwrapped" actor's model.
+Api.PETFRAME_W, Api.PETFRAME_H = 240, 220
 function S.petframe(out)
     local key = ns.Pets:OutKey()
     local sid = key and ns.Pets:SpeciesOfKey(key)
@@ -676,7 +677,11 @@ function S.petframe(out)
     local cardScene = card and rawget(card, "modelScene")
     local okW, w, h = pcall(function() return cardScene:GetSize() end)
     out.cardSize = okW and Show(w) .. " x " .. Show(h) or "(open the pet journal first)"
-    if okW and type(w) == "number" and w > 0 then f:SetSize(w, h) else f:SetSize(260, 260) end
+    -- (third run: our scene and the card's had the same camera, but the card sets view insets of
+    -- 0, 0, 300, -50 on 386 px: the model's view is its bottom part, from 50 px below the edge to 86
+    -- above, the space above it left to the text and to tall pets. The same here, at any height.)
+    f:SetSize(Api.PETFRAME_W, Api.PETFRAME_H)
+    out.insets = Try(function() return f.scene:SetViewInsets(0, 0, Api.PETFRAME_H - 86, -50) end)
     local scene = f.scene
     local info = Pack(pcall(C_PetJournal.GetPetModelSceneInfoBySpeciesID, sid))
     out.sceneInfo = Try(function() return select(2, unpack(info, 1, info.n)) end)
@@ -687,6 +692,7 @@ function S.petframe(out)
         return scene:TransitionToModelSceneID(sceneID, rawget(_G, "CAMERA_TRANSITION_TYPE_IMMEDIATE") or 1,
             rawget(_G, "CAMERA_MODIFICATION_TYPE_DISCARD") or 1, true)
     end)
+    pcall(function() scene:SetViewInsets(0, 0, Api.PETFRAME_H - 86, -50) end) -- (again: a new scene may reset them)
     local okA, actor = pcall(function() return scene:GetActorByTag("unwrapped") end)
     out.actor = okA and (actor and "found" or "no unwrapped actor") or ("failed: " .. tostring(actor))
     if not (okA and actor) then
