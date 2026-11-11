@@ -704,8 +704,13 @@ Steps = function(key, mode)
         return steps
     end
     if mode == "dead" then
+        -- Lying still for a while: paused just before its fall ends, where it's measured
+        -- (2026-11-11: a Death plays 1.4 to 2.7 s, then the pet stood up for the rest of T.dead).
+        local id = Moves:For(key, "dead")
+        local len = Moves:Length(key, id)
+        local pose = len and math.max(0.1, len - 0.05) or nil
         return { { STAND, Moves.SETTLE },
-            { Moves:For(key, "dead"), Moves.T.dead, on = function() ns.DB.char.eggs.dodsfall.played = true end },
+            { id, math.max(Moves.T.dead, (len or 0) + 1), pose, on = function() ns.DB.char.eggs.dodsfall.played = true end },
             { STAND } }
     end
     -- Walking or running: only once the model has loaded. 2026-11-10: the client scales a

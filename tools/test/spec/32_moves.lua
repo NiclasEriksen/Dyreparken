@@ -209,6 +209,20 @@ return function(test, H)
         eq(actor.anim, 0, "only once")
     end)
 
+    test("playing dead lies still: paused just before its measured fall ends, up again after a while", function()
+        local w, ola, actor = Setup(14)
+        function actor:SetPaused(p) self.paused = p end
+        ola.ns.AnimLengths[5159] = { [1] = 1.5 }
+        ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }
+        ola:SelectPet(5159)
+        w:Run(0.61)
+        eq(actor.anim, 1)
+        w:Run(1.46)
+        eq(actor.paused, true, "lying where the fall ends")
+        w:Run(ola.ns.Moves.T.dead - 1.46)
+        eq(actor.paused, false); eq(actor.anim, 0, "and up again")
+    end)
+
     test("closing the journal or opening our pages stops it; the next look starts over", function()
         local w, ola, actor = Setup(14)
         ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("latsabb") } end
@@ -838,5 +852,23 @@ return function(test, H)
         w:Run(0.4)
         actor:OnModelLoaded()
         ok(ola:Log("model loaded 0.40 s after it was set")[1])
+    end)
+
+    test("every pet's moves have a measured length or are known to have none (else: /dp probe api lengths)", function()
+        local _, ola = H.Setup{ ola = {} }
+        local M, missing = ola.ns.Moves, {}
+        for sid in pairs(ola.ns.Companions.species) do
+            local key = ola.ns.Pets:KeyOfSpecies(sid)
+            for _, what in ipairs({ "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "dead" }) do
+                local id = M:For(key, what)
+                local own = ola.ns.AnimLengths[sid]
+                if id and id ~= 0 and (what:sub(1, 3) ~= "sit" or M:For(key, "canSit") ~= false)
+                    and not (own and own[id] ~= nil) then
+                    missing[#missing + 1] = ("%d %s %d"):format(sid, what, id)
+                end
+            end
+        end
+        table.sort(missing)
+        eq(table.concat(missing, ", "), "", "moves without a length: rerun /dp probe api lengths, then tools/anim_lengths.lua")
     end)
 end
