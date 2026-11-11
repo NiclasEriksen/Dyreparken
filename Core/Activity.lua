@@ -64,6 +64,9 @@ Activity.KINDS = {
     { "hundred", wish = false },  -- a 100 on a 1-100 roll: only the eggs watch it
     { "epic", wish = false },     -- you looted an epic (or better): only the eggs watch it
     { "fishfail", wish = false }, -- the second fish in a row that got away: only the eggs watch it
+    { "duelwon", wish = false },  -- you won a duel (extra: who): only the eggs watch it
+    { "duellost", wish = false }, -- you lost one (extra: who): only the eggs watch it
+    { "newpath", wish = false },  -- a new flight path: only the eggs watch it
 }
 Activity.KIND = {}
 for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end
@@ -576,6 +579,45 @@ Activity:Source({ id = "fishfail", events = { "UI_ERROR_MESSAGE", "LOOT_OPENED" 
         if type(text) ~= "string" or not (text == _G.ERR_FISH_ESCAPED or text == _G.ERR_FISH_NOT_HOOKED) then return nil end
         escaped = escaped + 1
         if escaped == 2 then return 1 end
+    end })
+
+-- A duel's end (2026-11-11: the strings are in the client, /dp probe api), in system chat:
+-- DUEL_WINNER_KNOCKOUT "%1$s has defeated %2$s in a duel" (winner first) and
+-- DUEL_WINNER_RETREAT "%2$s has fled from %1$s in a duel" (the one who fled first).
+-- Your own duels only; extra: the other one.
+function Activity.Duel(text)
+    text = Plain(text)
+    if type(text) ~= "string" then return nil end
+    local function Read(global, winnerFirst)
+        local pattern = Activity.FormatPattern(_G[global])
+        if not pattern then return nil end
+        local a, b = text:match(pattern)
+        if not (a and b) then return nil end
+        local winner, loser = a, b
+        if not winnerFirst then winner, loser = b, a end
+        if Me(winner) then return "duelwon", ns.NormalizeName(loser) end
+        if Me(loser) then return "duellost", ns.NormalizeName(winner) end
+    end
+    local kind, who = Read("DUEL_WINNER_KNOCKOUT", true)
+    if not kind then kind, who = Read("DUEL_WINNER_RETREAT", false) end
+    return kind, who
+end
+for _, id in ipairs({ "duelwon", "duellost" }) do
+    Activity:Source({ id = id, events = { "CHAT_MSG_SYSTEM" },
+        available = function() return Activity.FormatPattern(_G.DUEL_WINNER_KNOCKOUT) ~= nil end,
+        filter = function(_, text)
+            local kind, who = Activity.Duel(text)
+            if kind == id then return 1, who end
+        end })
+end
+
+-- A new flight path (ERR_NEWTAXIPATH "New flight path discovered!"): a message on screen
+-- (UI_INFO_MESSAGE: type, text) or in system chat; which one, unverified on Forever.
+Activity:Source({ id = "newpath", events = { "UI_INFO_MESSAGE", "CHAT_MSG_SYSTEM" },
+    available = function() return type(_G.ERR_NEWTAXIPATH) == "string" end,
+    filter = function(event, a, b)
+        local text = Plain(event == "UI_INFO_MESSAGE" and b or a)
+        if text == _G.ERR_NEWTAXIPATH then return 1 end
     end })
 
 ChatSource("skill", "CHAT_MSG_SKILL", "SKILL_RANK_UP")

@@ -366,7 +366,7 @@ function Bond:OnActivity(id, n, key)
         per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
         flavor = P.FLAVOR[id] and ns.Fill(P.FLAVOR[id], { pet = name })
             or ns.T("bond.liked", { pet = name, activity = P.NOUN[id] })
-        -- Home by name (2026-11-10): the inn you're bound to. GetBindLocation is unverified on Forever.
+        -- Home by name (2026-11-10): the inn you're bound to (GetBindLocation works on Forever: /dp probe api, 2026-11-11).
         local home = id == "hearth" and type(GetBindLocation) == "function" and ns.Plain(GetBindLocation())
         if type(home) == "string" and home ~= "" then flavor = ns.T("activity.hearth.flavor_home", { pet = name, home = home }) end
     elseif P:WantsContext(key) then

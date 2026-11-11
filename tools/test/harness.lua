@@ -49,7 +49,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
     NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED
     PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING CHAT_MSG_EMOTE PLAYER_CONTROL_GAINED
-    CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST]]):gmatch("%S+") do
+    CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1359,6 +1359,9 @@ function Client:BuildEnv()
     env.LOOT_ITEM_SELF = "You receive loot: %s"
     env.LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
     env.ERR_FISH_ESCAPED = "Your fish got away!"
+    env.DUEL_WINNER_KNOCKOUT = "%1$s has defeated %2$s in a duel" -- (Forever's, /dp probe api 2026-11-11)
+    env.DUEL_WINNER_RETREAT = "%2$s has fled from %1$s in a duel"
+    env.ERR_NEWTAXIPATH = "New flight path discovered!"
     env.ERR_FISH_NOT_HOOKED = "No fish are hooked."
     -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
     env.C_Map = {

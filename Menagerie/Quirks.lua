@@ -258,6 +258,16 @@ Quirks.EGGS = {
     -- ... and is amazed (2026-11-11, the user's): a 100 of 100, an epic looted. Rare enough to come every time.
     { id = "hundre", on = "hundred", always = true, test = function() return {} end },
     { id = "lilla", on = "epic", always = true, test = function() return {} end },
+    -- A duel won or lost, a new flight path, fishing in the Sunday contest (2026-11-11, from
+    -- what /dp probe api found in the client).
+    { id = "duellvinner", on = "duelwon", always = true, test = function(ctx)
+        return type(ctx.extra) == "string" and { who = ctx.extra } end },
+    { id = "duelltaper", on = "duellost", always = true, test = function(ctx)
+        return type(ctx.extra) == "string" and { who = ctx.extra } end },
+    { id = "nyrute", on = "newpath", always = true, test = function(ctx)
+        return HasTrait(ctx.key, "reiseglad") and { _key = "egg.nyrute.reiseglad" } or {} end },
+    { id = "fiskekonk", on = "fish", always = true, test = function(ctx)
+        return ns.Holidays:Has(ctx.t, "stvfishing") and ns.Plain(GetZoneText()) == "Stranglethorn Vale" and {} end },
     { id = "kattefisk", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
     { id = "vinger", on = "taxi", chance = 0.3,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
@@ -346,7 +356,8 @@ end
 ------------------------------------------------------------------------------
 -- (Not dance: every emote nearby would wake it. The midnight dance comes only
 -- when a Dansefot's like already watches it.)
-Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic" }
+Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic", "duelwon", "duellost",
+    "newpath", "fish" }
 local watching = {}
 
 function Quirks:Watch()

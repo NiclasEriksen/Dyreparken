@@ -296,4 +296,34 @@ return function(test, H)
         Loot("You receive loot: |cffff8000|Hitem:2::::::::60:::::|h[Orange]|h|rx2.")
         eq(Eggs("lilla"), 2, "a legendary, in a stack")
     end)
+
+    test("a duel won or lost (yours), a new flight path, fishing in Stranglethorn on the contest's day", function()
+        local w, ola, Q = Setup()
+        local function Eggs(id) local e = ola.ns.DB.char.eggs[id]; return e and e.n or 0 end
+        local function Sys(text) ola:Fire("CHAT_MSG_SYSTEM", text); w:Run(1) end
+        Sys("Kari Berg has defeated Per Hansen in a duel")
+        eq(Eggs("duellvinner") + Eggs("duelltaper"), 0, "not yours")
+        Sys("Ola Nord has defeated Kari Berg in a duel")
+        eq(Eggs("duellvinner"), 1)
+        ok(Said(ola, "Bombay Cat") and ola:Printed("Kari Berg", true), "who it was against")
+        Sys("Ola Nord has fled from Kari Berg in a duel")
+        eq(Eggs("duelltaper"), 1, "fleeing is losing")
+        w:SkipDays(1)
+        Sys("Kari Berg has fled from Ola Nord in a duel")
+        eq(Eggs("duellvinner"), 2, "they fled: you won")
+        -- A new flight path, on screen.
+        ola:Fire("UI_INFO_MESSAGE", 0, "New flight path discovered!"); w:Run(1)
+        eq(Eggs("nyrute"), 1)
+        -- Fishing on the contest's day, in Stranglethorn only.
+        w:SkipDays(1)
+        ola.state.holidays = { [ola.ns.Today()] = { 301 } }
+        ola.ns.Holidays:On(w:ServerTime()); w:Run(1.1)
+        ok(ola.ns.Holidays:Has(w:ServerTime(), "stvfishing"))
+        eq(ola.ns.Personality.Holiday(w:ServerTime()), nil, "not a holiday")
+        local egg
+        for _, e in ipairs(Q.EGGS) do if e.id == "fiskekonk" then egg = e end end
+        no(egg.test({ t = w:ServerTime() }), "in Elwynn")
+        ola.state.zone = "Stranglethorn Vale"
+        ok(egg.test({ t = w:ServerTime() }), "in Stranglethorn")
+    end)
 end

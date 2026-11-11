@@ -22,7 +22,12 @@ Holidays.IDS = {
     [141] = "winterveil",  -- Feast of Winter Veil
 }
 
-local today -- { day = "YYYYMMDD", word = the holiday's or false }
+-- Other calendar events that aren't holidays (Festglad doesn't celebrate them), for eggs.
+Holidays.EVENTS = {
+    [301] = "stvfishing",  -- Stranglethorn Fishing Extravaganza (Sundays)
+}
+
+local today -- { day = "YYYYMMDD", word = the holiday's or false, events = { word = true } }
 
 -- The game holiday on the day of t (our word), or nil. Only today's is known: other days,
 -- nil. A new day asks the calendar again (until it answers, nil).
@@ -33,11 +38,18 @@ function Holidays:On(t)
     return nil
 end
 
+-- Is that other event (Holidays.EVENTS' word) on today?
+function Holidays:Has(t, word)
+    self:On(t)
+    local day = ns.Today(t)
+    return today and today.day == day and today.events and today.events[word] or false
+end
+
 function Holidays:Ask()
     if self.asking then return end
     local C = C_Calendar
     if not (C and C.OpenCalendar and C.GetNumDayEvents and C.GetDayEvent and C_DateAndTime) then
-        today = { day = ns.Today(), word = false }
+        today = { day = ns.Today(), word = false, events = {} }
         return
     end
     self.asking = true
@@ -49,7 +61,7 @@ end
 function Holidays:Read()
     ns.Events:Off("CALENDAR_UPDATE_EVENT_LIST", Holidays)
     self.asking = nil
-    local word = false
+    local word, events = false, {}
     local ok = pcall(function()
         local now = C_DateAndTime.GetCurrentCalendarTime()
         local shown = C_Calendar.GetMonthInfo and C_Calendar.GetMonthInfo(0)
@@ -58,9 +70,10 @@ function Holidays:Read()
             local e = C_Calendar.GetDayEvent(offset, now.monthDay, i)
             local id = e and ns.Plain(e.eventID)
             if id and self.IDS[id] then word = self.IDS[id] end
+            if id and self.EVENTS[id] then events[self.EVENTS[id]] = true end
         end
     end)
-    today = { day = ns.Today(), word = word }
+    today = { day = ns.Today(), word = word, events = events }
     ns.Log("Holidays", "today: %s%s", tostring(word), ok and "" or " (calendar failed)")
 end
 
