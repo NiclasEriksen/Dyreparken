@@ -422,7 +422,7 @@ return function(test, H)
         local b = card.bond
         eq(b.pips[1].points[1][4], 12); eq(b.pips[1].points[1][5], ola.ns.JournalUI.ROW_Y.strip)
         eq(b.points[1][1], "TOPLEFT"); ok(b.points[1][4] > b.pips[7].points[1][4], "the bar after the seventh star")
-        eq(b.next.points[1][2], b)
+        eq(b.next.points[1][1], "RIGHT"); eq(b.points[2][1], "RIGHT"); eq(b.points[2][2], b.next, "the bar fills up to the goal")
         eq(#ola:Log("rotate buttons moved above the panel"), 1)
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })

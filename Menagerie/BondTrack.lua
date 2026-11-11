@@ -142,11 +142,12 @@ function Track:Build(card, c, panel)
     b.label = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     b.label:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -10)
     b.label:SetJustifyH("RIGHT")
+    -- What's next, at the strip's right end at its own width; the bar fills the room between the
+    -- stars and it (a fixed bar cut the goal short: "✓ 244 poeng til...", 2026-11-11).
     b.next = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    b.next:SetPoint("LEFT", b, "RIGHT", 8, 0)
-    b.next:SetPoint("RIGHT", panel, "RIGHT", -12, 0)
-    b.next:SetJustifyH("LEFT")
-    b.next:SetWordWrap(false)
+    b.next:SetPoint("RIGHT", panel, "TOPRIGHT", -12, y - 7)
+    b.next:SetJustifyH("RIGHT")
+    b:SetPoint("RIGHT", b.next, "LEFT", -8, 0)
     -- Your own bond with someone else's adopted pet: small, at the right of the traits' row (2026-11-09).
     b.yours = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     b.yours:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, ns.JournalUI.ROW_Y.personality)
@@ -269,8 +270,9 @@ function Track:Update(card, key, color)
     local hi = math.max(0, math.min(1, (points - from) / span))
     if mine and today > 0 and hi > lo then
         b.today:ClearAllPoints()
-        b.today:SetPoint("TOPLEFT", b, "TOPLEFT", BAR_W * lo, 0)
-        b.today:SetSize(BAR_W * (hi - lo), b:GetHeight() or 13)
+        local w = b:GetWidth() or BAR_W -- (it stretches to the goal's text)
+        b.today:SetPoint("TOPLEFT", b, "TOPLEFT", w * lo, 0)
+        b.today:SetSize(w * (hi - lo), b:GetHeight() or 13)
         b.today:Show()
     else
         b.today:Hide()
