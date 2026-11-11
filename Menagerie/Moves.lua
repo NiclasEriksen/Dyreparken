@@ -667,6 +667,7 @@ function Moves.NewStage(name, opts)
         ns.Log("Moves", "%s %s: %s(%s) from outside, %.2f s into our %s%s", name, tostring(shown.key), what, tostring(arg),
             shown.since and GetTime() - shown.since or -1, tostring(shown.playing), shown.pose and " (held)" or "")
         if what ~= "SetAnimation" then shown.modelAt = GetTime() end
+        shown.touched = true -- (a refresh may put our pose back now: Update)
         if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
             local key, token = shown.key, shown.token
             C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Lift(key) end end)
@@ -736,6 +737,7 @@ function Moves.NewStage(name, opts)
         if pose and Has(actor, "SetPaused") then return PlayPaused(actor, id, pose) end
         shown.playing, shown.pose = id, pose
         shown.since = GetTime()
+        shown.touched = nil
         own = true
         Call(actor, "SetAnimationBlendOperation", pose and NO_BLEND or BLEND)
         local ok
@@ -949,7 +951,11 @@ function Moves.NewStage(name, opts)
             -- Paused where it lies: nothing to put back. (Played again, the client ignored the
             -- Dead it was already on, so unpaused it got up, and the pause caught it standing: 2026-11-10.)
             if shown.paused then return end
-            if shown.playing and shown.last then
+            -- On a stage of our own (opts.private: the pet frame), only if something else has set the
+            -- actor since: played again, the client starts the move over (2026-11-12: refreshed by
+            -- every companion nearby, the frame's sleeping pet lay down again every 20 s). The card's
+            -- Blizzard stands up unseen now and then (2026-11-10), so there it's always put back.
+            if shown.playing and shown.last and (shown.touched or not opts.private) then
                 ns.Log("Moves", "%s %s: refresh, %s again", name, key, tostring(shown.playing))
                 Play(shown.playing, true, shown.pose)
             end

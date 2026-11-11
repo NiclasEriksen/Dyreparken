@@ -372,4 +372,18 @@ return function(test, H)
         S.petFrameFade = false; Set:Refresh()
         no(slider:IsEnabled(), "not fading: the slider waits")
     end)
+
+    test("asleep in a loop on the frame, other companions nearby refreshing it leave the pose alone", function()
+        local w, ola, PF = Setup(23)
+        local S = ola.ns.DB.global.settings
+        S.petFrame = false; PF:Apply()
+        ola.ns.PetMoves.species[5159] = { sleepHold = 100, sleepUp = false }
+        S.petFrame = true; PF:Apply()
+        w:Run(ola.ns.Moves.SLEEP_AFTER + 2)
+        local actor = PF.actor
+        eq(actor.anim, 100)
+        local n = #actor.played
+        for _ = 1, 5 do ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(1) end
+        eq(#actor.played, n, "not played again: that starts the move over (2026-11-12)")
+    end)
 end

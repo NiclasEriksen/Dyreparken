@@ -148,6 +148,7 @@ function PF:Build()
     self:Art() -- (and the scene's size: PF:Draw)
     self.stage = ns.Moves.NewStage("frame", {
         moments = false, -- (the sulk, playing dead, the wish's hop: the card's, once; code review 2026-11-11)
+        private = true, -- (its own scene: nothing else stands it up, so a refresh leaves the pose alone)
         actor = function() return PF.actor end,
         scene = function() return PF.scene end,
         anchor = function() return PF.frame end,
