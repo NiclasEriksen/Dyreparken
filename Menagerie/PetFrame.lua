@@ -131,7 +131,7 @@ function PF:Build()
         if PF.editing or not PF.key then return end
         GameTooltip:SetOwner(b, "ANCHOR_TOP")
         GameTooltip:SetText(ns.Registry:NameOf(PF.key), 1, 0.82, 0)
-        GameTooltip:AddLine(L[PF:OtherPage() and "petframe.tip.pets" or "petframe.tip"], 1, 1, 1, true)
+        GameTooltip:AddLine(L["petframe.tip"], 1, 1, 1, true)
         GameTooltip:Show()
     end)
     click:SetScript("OnLeave", function(b) PF.hover = nil; PF:ShowBar(); ns.HideTip(b) end)
@@ -373,24 +373,18 @@ end
 ------------------------------------------------------------------------------
 -- A click: the pet journal, on this pet's card
 ------------------------------------------------------------------------------
--- Only onto the Pets page as it is: switching the window's tab is Blizzard's CollectionsJournal_SetTab,
--- which we never call (Core/SidePage.lua: taint; the Toy Box's buttons are secure), so neither is
--- ToggleCollectionsJournal given a tab (it would call it). Closed, the window opens on the page it
--- had: the Pets page, the card; another, it's left to the player. Open on another page: nothing (a
--- toggle would close it), as on the park's map (ParkPage.lua); the tooltip says so.
+-- Onto the Pets page, from wherever the window is (2026-11-11, the user: opening on the last page
+-- wasn't what a click on the pet should do). This runs Blizzard's tab switch from our click; opening
+-- the window from addon code at all runs it anyway (its OnShow sets the last tab), so the last-page
+-- way bought nothing. To confirm in game with a taint log: a toy from the Toy Box after this click.
 function PF:PetsPage() return rawget(_G, "PetJournal") ~= nil and PetJournal:IsVisible() == true end
-
-function PF:OtherPage()
-    local cj = rawget(_G, "CollectionsJournal")
-    return cj ~= nil and cj:IsShown() and not self:PetsPage()
-end
 
 function PF:OpenCard()
     local sid = self.key and ns.Pets:SpeciesOfKey(self.key)
-    if not sid or ns.InCombat() or self:OtherPage() then return end
+    if not sid or ns.InCombat() then return end
     if not self:PetsPage() then
         if type(ToggleCollectionsJournal) ~= "function" then return end
-        ToggleCollectionsJournal()
+        ToggleCollectionsJournal(rawget(_G, "COLLECTIONS_JOURNAL_TAB_INDEX_PETS") or 2)
         if not self:PetsPage() then return end
     end
     ns.SidePage:CloseAll() -- (our pages would cover the card)
