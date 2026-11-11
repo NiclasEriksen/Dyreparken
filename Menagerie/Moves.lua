@@ -431,9 +431,9 @@ local function DeadToday(key)
 end
 
 -- The pose the card's pet takes on its own.
-function Moves:Rest(key, t)
+function Moves:Rest(key, t, noMoments)
     if self.movesEditing then return "stand" end -- (the moves editor plays what you try)
-    if DeadToday(key) and self:For(key, "dead") then return "dead" end
+    if not noMoments and DeadToday(key) and self:For(key, "dead") then return "dead" end
     if not awake[key] then
         if (Moves.night or ns.Personality.IsNight(t or ns.Now())) and not HasTrait(key, "nattugle") and self:For(key, "sleep") then
             return "sleep"
@@ -480,9 +480,15 @@ local function Truthy(v) return ns.Plain(v) and true or false end
 
 -- The walk or run it plays now, or nil (standing still, on a taxi, not the pet you keep out).
 function Moves:MotionId(key)
-    if not (motion.on and motion.moving and key and ns.Summon:ActiveKey() == key) then return nil end
+    if not (motion.on and motion.moving and key and Moves.WithYou(key)) then return nil end
     if Truthy(UnitOnTaxi("player")) then return nil end
     return self:For(key, Moves.Riding() and "run" or "walk")
+end
+
+-- The pet with you: the one kept out, or (code review 2026-11-11: the pet frame shows the pet
+-- that's out, and one summoned by hand just stood) the one that's out now.
+function Moves.WithYou(key)
+    return key ~= nil and (ns.Summon:ActiveKey() == key or ns.Pets:OutKey() == key)
 end
 
 -- On a mount, or in a form that's as fast as one.
@@ -505,9 +511,8 @@ local function ReposeAll() for _, s in ipairs(Moves.stages) do s:Repose() end en
 
 -- Moving with you on every stage that shows the pet you keep out: the events while any does.
 function Moves:FollowAll()
-    local active = ns.Summon:ActiveKey()
     local want = false
-    for _, s in ipairs(self.stages) do if active and s.want == active then want = true end end
+    for _, s in ipairs(self.stages) do if Moves.WithYou(s.want) then want = true end end
     if want == motion.on then return end
     motion.on, motion.token = want, motion.token + 1
     if not want then
@@ -624,6 +629,11 @@ function Moves.NewStage(name, opts)
     local stage = setmetatable({ name = name, shown = shown }, { __index = Moves })
 
     local function Actor() return opts.actor() end
+    -- The once-a-day moments (the sulk, playing dead, the wish's hop) are the card's: a stage with
+    -- moments = false (the pet frame) leaves them to it (code review 2026-11-11: else the frame
+    -- spent them hours later, at its next pose).
+    local moments = opts.moments ~= false
+    local function Rest(key) return Moves:Rest(key, nil, not moments) end
 
     local Play, Lift
 
@@ -744,9 +754,9 @@ function Moves.NewStage(name, opts)
             if shown.last and not s[3] and not s.keep then -- (keep: the moves editor's, played as picked)
                 -- Back to rest after a one-off: as things are now (code review 2026-11-10: a stop
                 -- during the hop left it walking; after playing dead it never walked).
-                if shown.mode == "dead" and Moves:Rest(shown.key) == "stand" then shown.mode = "stand" end
+                if shown.mode == "dead" and Rest(shown.key) == "stand" then shown.mode = "stand" end
                 -- (stopped moving meanwhile, and it's a sitter: it settles again)
-                if shown.mode == "stand" and Moves:Rest(shown.key) == "sit" then
+                if shown.mode == "stand" and Rest(shown.key) == "sit" then
                     shown.mode = "sit"
                     return stage:Sequence(Steps(shown.key, "sit"))
                 end
@@ -763,7 +773,7 @@ function Moves.NewStage(name, opts)
     function stage:Repose()
         local key = shown.key
         if not key then return end
-        local mode = Moves:Rest(key)
+        local mode = Rest(key)
         if shown.mode == "sit" and mode == "stand" then -- (sitting, or about to: up and away)
             local seated = shown.playing == Moves:For(key, "sitDown") or shown.playing == Moves:For(key, "sit")
             shown.mode = "stand"
@@ -882,7 +892,7 @@ function Moves.NewStage(name, opts)
             shown.token = shown.token + 1
             return
         end
-        local mode = self:Rest(key)
+        local mode = Rest(key)
         if key == shown.key and mode == shown.mode then
             -- The same pet refreshed: Blizzard may have stood the model up again; put back the
             -- step that stays. Not a one-off (a hop, a cheer, the lie-down): it would start over
@@ -899,10 +909,10 @@ function Moves.NewStage(name, opts)
         -- A one-off first, once the model has loaded: a level-up's cheer (celebrated as the card
         -- opened, before the pet was posed: code review 2026-11-10), or a wish come true.
         local cheer = shown.cheerFor == key and mode ~= "dead" and self:For(key, "cheer")
-        local joy = not cheer and mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
+        local joy = moments and not cheer and mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
         shown.cheerFor = nil
         if cheer or joy then
-            if cheer then awake[key] = true; mode = self:Rest(key); shown.mode = mode; steps = Steps(key, mode) end
+            if cheer then awake[key] = true; mode = Rest(key); shown.mode = mode; steps = Steps(key, mode) end
             table.insert(steps, 1, { cheer or joy, self:Length(key, cheer or joy, cheer and self.T.cheer or self.T.happy),
                 on = joy and function() ns.DB.char.wish.shown = true end or nil })
             table.insert(steps, 1, { STAND, self.SETTLE })
@@ -910,13 +920,13 @@ function Moves.NewStage(name, opts)
         self:Sequence(steps)
         Lift(key)     -- at once (2026-11-10: a moment later read as a jump) ...
         LiftSoon(key) -- ... and again if the model, done loading, was put back
-        Sulk(key)
+        if moments then Sulk(key) end
     end
 
     -- After a reaction: back to its pose (awake now, if it slept or sat).
     local function Back(key)
         awake[key] = true
-        shown.mode = Moves:Rest(key)
+        shown.mode = Rest(key)
         local steps = Steps(key, shown.mode)
         return steps[#steps][1]
     end
@@ -938,6 +948,8 @@ function Moves.NewStage(name, opts)
         if happy then steps[#steps + 1] = { happy, self:Length(key, happy, self.T.happy) } end
         steps[#steps + 1] = { back }
         self:Sequence(steps)
+        -- Awake now on every stage that shows it (the frame wakes with the card's click).
+        for _, s in ipairs(Moves.stages) do if s ~= stage and s.shown.key == key then s:Update(nil, key) end end
         -- Woken up: its Zzz go (Decor reads the pose; the card's refresh leaves the hop playing).
         if mode == "sleep" and opts.refresh then opts.refresh() end
     end

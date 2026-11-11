@@ -1452,7 +1452,9 @@ function Client:BuildEnv()
     env.C_UnitAuras = { GetAuraDataBySpellName = function(unit, name, filter)
         assert(unit == "player" and filter == "HELPFUL")
         if S.aurasError then error("aura query failed") end
-        return S.auras[name] and { name = name } or nil
+        local a = S.auras[name]
+        if type(a) == "table" then return a end -- (a test's own AuraData: duration, expirationTime...)
+        return a and { name = name } or nil
     end }
 
     -- Identity (Forever: the second value is the SURNAME, not the realm)

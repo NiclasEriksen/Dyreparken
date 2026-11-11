@@ -19,7 +19,8 @@ local _, ns = ...
 local PF = {}
 ns.PetFrame = PF
 
-PF.W, PF.H = 200, 170   -- the model's area; the name and the bar go under it
+PF.W, PF.H = 200, 170   -- the model's area; the name and the bar go under it ...
+PF.FOOT = 50            -- ... in this much (2026-11-11: the level badge was snug against the bottom)
 PF.MIN_SCALE, PF.MAX_SCALE, PF.SCALE_STEP = 0.5, 2, 0.05
 PF.VIEW_TOP = 86        -- the card's view: 86 px above the scene's bottom ...
 PF.VIEW_BOTTOM = -50    -- ... to 50 below it
@@ -44,7 +45,7 @@ function PF:Enabled() return ns.Settings:Get("petFrame") == true end
 function PF:Build()
     if self.frame then return self.frame end
     local f = CreateFrame("Frame", "DyreparkenPetFrame", UIParent)
-    f:SetSize(self.W, self.H + 30)
+    f:SetSize(self.W, self.H + self.FOOT)
     f:SetFrameStrata("LOW")
     f:SetMovable(true)
     f:SetClampedToScreen(true)
@@ -58,25 +59,36 @@ function PF:Build()
     Call(scene, "EnableMouseWheel", false)
     self.scene = scene
 
+    -- The footer (2026-11-11, the user: "improve the layout + visual language"): the name, and
+    -- under it the bond as on the card, a bar in its level's colors with a dark edge, the level on
+    -- a badge (a dark disc in a gold ring) at its left end.
     f.name = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    f.name:SetPoint("TOP", scene, "BOTTOM", 0, 2)
+    f.name:SetPoint("TOP", scene, "BOTTOM", 0, -2)
     f.name:SetShadowColor(0, 0, 0, 1)
     f.name:SetShadowOffset(1, -1)
 
-    -- The bond: a slim bar with the level on a medallion at its left end.
     local bar = CreateFrame("StatusBar", nil, f)
-    bar:SetSize(self.W - 60, 8)
-    bar:SetPoint("TOP", f.name, "BOTTOM", 8, -4)
+    bar:SetSize(self.W - 76, 9)
+    bar:SetPoint("TOP", f.name, "BOTTOM", 14, -9)
     bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
-    bar.bg = bar:CreateTexture(nil, "BACKGROUND")
+    bar.edge = bar:CreateTexture(nil, "BACKGROUND", nil, -2)
+    bar.edge:SetPoint("TOPLEFT", bar, "TOPLEFT", -1, 1)
+    bar.edge:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 1, -1)
+    bar.edge:SetColorTexture(0, 0, 0, 0.9)
+    bar.bg = bar:CreateTexture(nil, "BACKGROUND", nil, -1)
     bar.bg:SetAllPoints()
-    bar.bg:SetColorTexture(0, 0, 0, 0.5)
+    bar.bg:SetColorTexture(0.12, 0.1, 0.08, 0.85)
     bar.medal = bar:CreateTexture(nil, "ARTWORK")
     bar.medal:SetTexture(ns.Decor.MEDIA .. "dot")
-    bar.medal:SetSize(22, 22)
-    bar.medal:SetPoint("RIGHT", bar, "LEFT", -2, 0)
-    bar.level = bar:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    bar.level:SetPoint("CENTER", bar.medal, "CENTER")
+    bar.medal:SetSize(26, 26)
+    bar.medal:SetPoint("CENTER", bar, "LEFT", -19, 0) -- (clear of the bar)
+    bar.medal:SetVertexColor(0.08, 0.06, 0.04, 1)
+    bar.ring = bar:CreateTexture(nil, "OVERLAY")
+    bar.ring:SetTexture(ns.Decor.MEDIA .. "ring")
+    bar.ring:SetSize(24, 24)
+    bar.ring:SetPoint("CENTER", bar.medal, "CENTER")
+    bar.level = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    bar.level:SetPoint("CENTER", bar.medal, "CENTER", 0, 0)
     f.bar = bar
     self.track = { bond = bar } -- (BondTrack:Animate's rising numbers, on this bar)
 
@@ -110,6 +122,7 @@ function PF:Build()
     click:SetScript("OnDragStart", function() if PF.editing then f:StartMoving() end end)
     click:SetScript("OnDragStop", function() f:StopMovingOrSizing(); PF:SavePoint() end)
     click:SetScript("OnMouseWheel", function(_, delta) if PF.editing then PF:Resize(delta) end end)
+    click:EnableMouseWheel(false) -- (a wheel script turns it on: the camera would never zoom over it)
     click:SetScript("OnEnter", function(b)
         if PF.editing or not PF.key then return end
         GameTooltip:SetOwner(b, "ANCHOR_TOP")
@@ -122,6 +135,7 @@ function PF:Build()
 
     self:Art()
     self.stage = ns.Moves.NewStage("frame", {
+        moments = false, -- (the sulk, playing dead, the wish's hop: the card's, once; code review 2026-11-11)
         actor = function() return PF.actor end,
         scene = function() return PF.scene end,
         anchor = function() return PF.frame end,
@@ -133,7 +147,8 @@ end
 -- Frame art (2026-11-11, the user: "toggle background+border, in the same modern client style as
 -- everything else uses"; Settings: petFrameArt, off by default): the rock of Blizzard's windows
 -- behind the pet, and their nine-slice border (NineSliceUtil, NineSliceLayouts: both on Forever).
-PF.ART_LAYOUTS = { "ButtonFrameTemplateNoPortrait", "SimplePanelTemplate" }
+-- (SimplePanelTemplate first: ButtonFrameTemplateNoPortrait brought a title bar strip, 2026-11-11.)
+PF.ART_LAYOUTS = { "SimplePanelTemplate", "ButtonFrameTemplateNoPortrait" }
 function PF:Art()
     local f = self.frame
     local on = ns.Settings:Get("petFrameArt") == true
@@ -220,8 +235,15 @@ function PF:Bond(animate)
     bar:SetMinMaxValues(from, top)
     bar:SetValue(nextAt and points or top)
     local tier = ns.Scenes.Tier(level)
-    bar:SetStatusBarColor(tier[1], tier[2], tier[3])
-    bar.medal:SetVertexColor(tier[1] * 0.5, tier[2] * 0.5, tier[3] * 0.5, 1)
+    -- As the card's bar: from the tier's dark to its bright.
+    local fill = bar:GetStatusBarTexture()
+    if fill and CreateColor then
+        fill:SetGradient("HORIZONTAL", CreateColor(tier[1] * 0.55, tier[2] * 0.55, tier[3] * 0.55, 1),
+            CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
+    else
+        bar:SetStatusBarColor(tier[1], tier[2], tier[3])
+    end
+    bar.ring:SetVertexColor(tier[1], tier[2], tier[3], 1)
     bar.level:SetText(level)
     local last = self.points
     self.points = points
@@ -237,6 +259,7 @@ function PF:Refresh()
     local key = not self.battle and ns.Pets:OutKey() or nil
     if not key then
         self.stage:Update(f, nil)
+        if self.key and self.actor then Call(self.actor, "ClearModel") end -- (Edit Mode's empty frame: no pet in it)
         self.key, self.points = nil, nil
         if self.editing then
             f.name:SetText(L["petframe.name"]); f.bar:Hide(); f:Show()
@@ -252,7 +275,7 @@ function PF:Refresh()
     end
     f.name:SetText(ns.Registry:NameOf(key))
     f:Show()
-    self:Bond(false)
+    if not f.bar.growTo then self:Bond(false) end -- (its rise is still on: left to it)
     self.stage:Update(f, key)
     self:Sleepy()
     self:NextChange()
@@ -284,10 +307,13 @@ function PF:NextChange()
     local hour = (d.hour >= 22 or d.hour < 4) and 4 or 22
     local at = time({ year = d.year, month = d.month, day = d.day, hour = hour, min = 0, sec = 1 })
     if at <= now then at = at + 86400 end
-    local token = {}
-    self.changeToken = token
+    -- One timer at a time (code review 2026-11-11: a new one on every refresh piled up thousands).
+    if self.changeAt == at then return end
+    self.changeAt = at
     C_Timer.After(at - now, function()
-        if PF.changeToken == token and PF.frame and PF.frame:IsShown() then PF:Refresh() end
+        if PF.changeAt ~= at then return end
+        PF.changeAt = nil
+        if PF.frame and PF.frame:IsShown() then PF:Refresh() end
     end)
 end
 
@@ -322,6 +348,8 @@ local refreshSoon
 function PF:On()
     if self.on then return self:Refresh() end
     self.on = true
+    local okB, inBattle = pcall(function() return C_PetBattles and C_PetBattles.IsInBattle() end)
+    self.battle = okB and ns.Plain(inBattle) and true or nil -- (a /reload in a pet battle)
     refreshSoon = refreshSoon or ns.Debounce(0.3, function() PF:Refresh() end)
     ns.Events:On("COMPANION_UPDATE", PF, refreshSoon)
     ns.Events:On("PLAYER_ENTERING_WORLD", PF, refreshSoon)

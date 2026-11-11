@@ -31,7 +31,7 @@ local function Set(key, value)
 end
 
 -- The rows, top to bottom: a heading, or { label, tip, get, set } for a checkbox,
--- or { label, choices } for a row of choices.
+-- or { label, choices } for a row of choices; { column = 2 }: the rest in the right half.
 local ROWS = {
     { head = "settings.head.pet" },
     { key = "settings.autosummon", get = function() return ns.DB.char.autoSummon and true or false end,
@@ -46,6 +46,7 @@ local ROWS = {
     { head = "settings.head.chat" },
     { key = "settings.chatlines", setting = "chatLines" },
     { key = "settings.hearts", setting = "worldHearts" },
+    { column = 2 }, -- (2026-11-11: one column had outgrown the page)
     { head = "settings.head.card" },
     { key = "settings.particles", choices = { "all", "few", "none" }, setting = "cardParticles" },
     { key = "settings.moves", setting = "cardMoves" },
@@ -57,6 +58,7 @@ local ROWS = {
         set = function(v) Set("petFrameArt", v); ns.PetFrame:Apply() end },
 }
 Settings.ROWS = ROWS
+Settings.COL_W = 330 -- a column's width (the page's inset is about 700)
 
 local function Get(row)
     if row.get then return row.get() end
@@ -84,24 +86,31 @@ local function Build(p)
     back:SetScript("OnClick", function() p:Close() end)
     p.back = back
     p.widgets = {}
-    local y = -16
-    for _, row in ipairs(ROWS) do
-        if row.head then
+    -- Two columns, each label within its own (2026-11-11, the user: "elements overlap and don't
+    -- wrap"): wrapped at COL_W, the row as tall as its text.
+    local COL_W = Settings.COL_W
+    local y, x, at = -16, 0, "TOPLEFT"
+    for i, row in ipairs(ROWS) do
+        if row.column then
+            y, x, at = -16, 10, "TOP"
+        elseif row.head then
+            if i > 1 and not ROWS[i - 1].column then y = y - 8 end -- (a little air before a heading)
             local h = inset:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-            h:SetPoint("TOPLEFT", inset, "TOPLEFT", 20, y - 6)
+            h:SetPoint("TOPLEFT", inset, at, x + 20, y - 6)
             h:SetText(L[row.head])
             y = y - 34
         elseif row.choices then
             local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            label:SetPoint("TOPLEFT", inset, "TOPLEFT", 40, y - 6)
+            label:SetPoint("TOPLEFT", inset, at, x + 40, y - 6)
             label:SetText(L[row.key])
+            y = y - 24 -- (the choices on a line of their own, under it)
             local w = { row = row, buttons = {} }
             local prev
             for _, choice in ipairs(row.choices) do
                 local b = CreateFrame("CheckButton", nil, inset, "UICheckButtonTemplate")
                 b:SetSize(24, 24)
                 if prev then b:SetPoint("LEFT", prev.label, "RIGHT", 14, 0)
-                else b:SetPoint("LEFT", label, "RIGHT", 12, 0) end
+                else b:SetPoint("TOPLEFT", inset, at, x + 52, y) end
                 b.label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                 b.label:SetPoint("LEFT", b, "RIGHT", 2, 0)
                 b.label:SetText(L[row.key .. "." .. choice])
@@ -120,9 +129,12 @@ local function Build(p)
         else
             local b = CreateFrame("CheckButton", nil, inset, "UICheckButtonTemplate")
             b:SetSize(26, 26)
-            b:SetPoint("TOPLEFT", inset, "TOPLEFT", 36, y)
+            b:SetPoint("TOPLEFT", inset, at, x + 36, y)
             b.label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            b.label:SetPoint("LEFT", b, "RIGHT", 4, 0)
+            b.label:SetPoint("TOPLEFT", b, "TOPRIGHT", 4, -6)
+            b.label:SetWidth(COL_W - 70)
+            b.label:SetJustifyH("LEFT")
+            b.label:SetWordWrap(true)
             b.label:SetText(L[row.key])
             b.row = row
             b:SetScript("OnClick", function(self)
@@ -133,7 +145,7 @@ local function Build(p)
             b:SetScript("OnEnter", Tip)
             b:SetScript("OnLeave", ns.HideTip)
             p.widgets[#p.widgets + 1] = { row = row, button = b }
-            y = y - 30
+            y = y - math.max(30, b.label:GetStringHeight() + 16)
         end
     end
 end

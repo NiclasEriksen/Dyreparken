@@ -101,4 +101,29 @@ return function(test, H)
         local near = Run({ "hjemlengsel", "glupsk" }, "Campfire")
         ok(near:Printed("Bombay Cat kikker lengselsfullt", true))
     end)
+
+    test("Well-Rested already there at login counts if it came just now (a sleeping bag); a refresh-only change isn't looked at", function()
+        local w, ola = Setup()
+        local now = ola.env.GetTime()
+        ola.state.auras["Well-Rested"] = { name = "Well-Rested", duration = 3600, expirationTime = now + 3590 }
+        ola:Fire("UNIT_AURA", "player")
+        eq(Count(ola, "rested"), 1, "applied ten seconds ago: new")
+        local w2, kari = Setup()
+        kari.state.auras["Well-Rested"] = { name = "Well-Rested", duration = 3600, expirationTime = kari.env.GetTime() + 1800 }
+        kari:Fire("UNIT_AURA", "player")
+        eq(Count(kari, "rested"), 0, "half an hour old: from before")
+        -- Durations refreshed only: not looked at (the buff appearing then is missed until a real change).
+        kari.state.auras["Well-Rested"] = nil
+        kari:Fire("UNIT_AURA", "player", { updatedAuraInstanceIDs = { 7 } })
+        kari.state.auras["Campfire's Warmth"] = true
+        kari:Fire("UNIT_AURA", "player", { updatedAuraInstanceIDs = { 7 } })
+        eq(Count(kari, "camp"), 0, "a refresh only: not looked at")
+        kari:Fire("UNIT_AURA", "player", { addedAuras = { {} } })
+        eq(Count(kari, "camp"), 1, "a buff added: looked at, and new")
+        kari.state.auras["Campfire's Warmth"] = nil
+        kari:Fire("UNIT_AURA", "player", { removedAuraInstanceIDs = { 8 } })
+        kari.state.auras["Campfire's Warmth"] = true
+        kari:Fire("UNIT_AURA", "player", { addedAuras = { {} } })
+        eq(Count(kari, "camp"), 2, "gone and back: again")
+    end)
 end

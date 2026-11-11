@@ -652,17 +652,42 @@ function Activity.HasAura(name)
     if not ok then return nil end
     return data ~= nil, data
 end
+-- UNIT_AURA comes often (code review 2026-11-11): a change that only refreshes durations can't
+-- add or remove a buff, so it's skipped; otherwise the buffs are looked up once per event, not
+-- once per source.
+Activity.AURA_NEW = 60 -- seconds: a buff there at the first look that came this recently is new
+local auraLook = { at = nil, has = {}, data = {} } -- (at: the event's updateInfo looked at)
+local function LookAt(updateInfo)
+    if type(updateInfo) == "table" and not updateInfo.isFullUpdate and not updateInfo.addedAuras
+        and not updateInfo.removedAuraInstanceIDs then
+        return false
+    end
+    -- (Once per event: the client passes each UNIT_AURA its own updateInfo table.)
+    if updateInfo == nil or auraLook.at ~= updateInfo then
+        auraLook.at = updateInfo
+        for id in pairs(Activity.AURAS) do
+            auraLook.has[id], auraLook.data[id] = Activity.HasAura(Activity.AuraName(id))
+        end
+    end
+    return true
+end
+-- Just applied (a sleeping bag's Well-Rested at login: code review 2026-11-11), by its timer.
+local function Fresh(data)
+    local d, at = data and Plain(data.duration), data and Plain(data.expirationTime)
+    if type(d) ~= "number" or type(at) ~= "number" or d <= 0 then return false end
+    return d - (at - GetTime()) <= Activity.AURA_NEW
+end
 for id in pairs(Activity.AURAS) do
     Activity:Source({ id = id, events = { "UNIT_AURA" }, unit = "player",
         available = function() return Activity.AuraName(id) ~= nil end,
-        filter = function()
-            if InCombatLockdown() then return nil end
+        filter = function(_, _, updateInfo)
+            if InCombatLockdown() or not LookAt(updateInfo) then return nil end
             local name = Activity.AuraName(id)
-            local has, data = Activity.HasAura(name)
+            local has, data = auraLook.has[id], auraLook.data[id]
             if has == nil then return nil end
             local before = auraHad[id]
             auraHad[id] = has
-            if has and before == false then
+            if has and (before == false or (before == nil and Fresh(data))) then
                 if not Activity.AURAS[id].id then
                     ns.Log("Activity", "%s: %s is spell %s", id, tostring(name), tostring(data and Plain(data.spellId)))
                 end
