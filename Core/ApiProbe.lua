@@ -387,7 +387,8 @@ function S.calendar(out)
     C_Timer.After(Api.CALENDAR_WAIT, function()
         if Api.calendarToken ~= token then return end
         local day = Try(function()
-            local t = C.GetDate and C.GetDate() or C.GetCurrentCalendarTime()
+            -- (Forever has no C_Calendar.GetDate: 2026-11-11)
+            local t = C.GetDate and C.GetDate() or C_DateAndTime.GetCurrentCalendarTime()
             return t.monthDay
         end)
         local monthDay = tonumber(day)
@@ -397,6 +398,7 @@ function S.calendar(out)
         out.count = okN and Show(n) or ("error: " .. tostring(n))
         for i = 1, (okN and type(n) == "number") and n or 0 do
             events[#events + 1] = Try(C.GetDayEvent, 0, monthDay, i)
+            if C.GetHolidayInfo then events[#events + 1] = "  holiday: " .. Try(C.GetHolidayInfo, 0, monthDay, i) end
         end
         out.events = events
         ns.Log("Api", "calendar: %s events today", tostring(out.count))

@@ -308,6 +308,59 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   `name, rankName, rankIndex, realm`, e.g. `Dyreparken, Dyrepasser, 1, CAMWOWEU4Realm5PvE`. `IsGuildLeader()`
   exists.
 
+## What the client has (`/dp probe api`, 2026-11-11, build 1.60.1 70888, enUS, EU)
+
+The full dump is `DyreparkenDebugDB.api` after a run (`/dp probe api`, then `/reload`). A Tauren shaman,
+level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
+
+- **Size**: 6195 global functions, 272 `C_*` namespaces (retail's, Housing and Delves included), `Enum`.
+- **Missing** (classic or old retail globals): `UnitStandState` (so Summon's sitting check never runs; there is no
+  stand state to read), `GetSpellInfo` (use `C_Spell`), `GetItemCount`, `GetContainerNumSlots` (use
+  `C_Container`), `GetNumFactions`, `GetWatchedFactionInfo` (`C_Reputation.GetWatchedFactionData` exists),
+  `GetNumSkillLines`, `GetSkillLineInfo` (`GetProfessions` works: `5, 7, nil, 8, 6`), `GetZonePVPInfo`, `GetNumAddOns`
+  (use `C_AddOns`), `C_Calendar.GetDate` (use `C_DateAndTime.GetCurrentCalendarTime`). The old companion API is
+  there but empty: `GetNumCompanions("CRITTER")` is 0; the pet journal is the only way.
+- **Works**: `GetBindLocation()` ("Grom'gol Base Camp"), `GetShapeshiftFormID()` (nil outside a form),
+  `GetUnitSpeed` (`0, 7, 7, 4.72`), `IsFlying/IsSwimming/IsSubmerged/IsFalling/IsIndoors/IsOutdoors/IsResting`,
+  `GetZoneText`/`GetRealZoneText` ("Stranglethorn Vale"), `GetSubZoneText`, `GetMinimapZoneText`,
+  `C_Map.GetBestMapForUnit("player")` (1434), `GetGuildRosterMOTD`, `C_DateAndTime` (`GetCurrentCalendarTime`,
+  `IsDayTime`, `GetSecondsUntilDailyReset`), `GetStatistic(60)` ("21": deaths), `GetNumCompletedAchievements()` (111):
+  Blizzard's achievements exist, `GetTotalAchievementPoints()` is 0.
+- **Names**: `UnitName("player")` and `UnitFullName("player")` return first name and **surname** as two values
+  ("Hjelp", "Plask"), where retail returns name and realm; `UnitPVPName` is "Hjelp Plask". The roster has
+  "First Surname" in one string.
+- **Companions as units**: a targeted companion (your own) is `UnitIsBattlePet` and `UnitIsBattlePetCompanion` true,
+  `UnitBattlePetSpeciesID` the species (70), `UnitBattlePetLevel` 1, `UnitBattlePetType` 5, `UnitCreatureType`
+  "Non-combat Pet", its GUID a `Creature-...`, `UnitName` the species name, and `UnitIsOtherPlayersBattlePet` false
+  for your own (not seen yet for someone else's). The owner isn't in any of these: still the tooltip.
+  `C_TooltipInfo.GetUnit` exists (structured tooltip lines, untried).
+- **Secret values**: `issecretvalue`, `issecrettable`, `hasanysecretvalues`, `canaccesssecrets`, `scrubsecretvalues`,
+  `secretwrap`, and `C_Secrets` (`ShouldUnitIdentityBeSecret`, ...) exist.
+- **Events**: of about 130 tried, the client refuses only `LEARNED_SPELL_IN_TAB`. That says they exist, not that
+  they fire (`UPDATE_SHAPESHIFT_FORM`, `CALENDAR_UPDATE_EVENT_LIST`, `CHAT_MSG_PET_INFO`, `PET_BATTLE_OPENING_START`,
+  `HEARTHSTONE_BOUND`, `START_LOOT_ROLL` all accepted).
+- **Templates**: all tried exist but `CharacterFrameTabButtonTemplate` and `ItemButtonTemplate`
+  (`ButtonFrameTemplate`, `WowStyle1DropdownTemplate`, `MinimalSliderWithSteppersTemplate`, `WowScrollBoxList` do).
+- **Global strings** for chat parsing: all present, in retail wording, e.g. `LOOT_ROLL_ROLLED_NEED`
+  "|HlootHistory:%d|h[Loot]|h: Need Roll - %d for %s by %s", `LOOT_ROLL_ROLLED_DE` "Disenchant Roll - %d for %s by %s",
+  `RANDOM_ROLL_RESULT` "%s rolls %d (%d-%d)", `ERR_FISH_ESCAPED` "Your fish got away!", `ERR_FISH_NOT_HOOKED`
+  "No fish are hooked.", `ERR_ZONE_EXPLORED` "Discovered: %s", `ERR_NEWTAXIPATH`, `ERR_DEATHBIND_SUCCESS_S`
+  "%s is now your home.", `ACHIEVEMENT_BROADCAST`, `DUEL_WINNER_KNOCKOUT`.
+- **The card's actor** (`ModelSceneActor`): no `HasScript` (no script handlers at all, so no `OnAnimFinished`), but
+  `SetOnModelLoadedCallback`/`GetOnModelLoadedCallback`, `IsLoaded` (true), `GetPaused` (exists, with `SetPaused`),
+  `GetAnimationVariation`, `PlayAnimationKit`/`StopAnimationKit`, `SetSpellVisualKit`, `GetActiveBoundingBox`/
+  `GetMaxBoundingBox`, `GetModelFileID` (125434 for the prairie dog), `SetModelByCreatureDisplayID`. Position was
+  `0, 0, 0.3`, scale 19.48. The scene is a `ModelScene` (id 1271), camera fov 0.94.
+- **PlayerModel** (an invisible one, `SetDisplayInfo` with the journal's display id, 1072 for the prairie dog) has
+  `OnAnimFinished`, `OnAnimStarted`, `OnModelLoaded`, `HasAnimation`, `SetAnimation`, `FreezeAnimation`,
+  `SetSequenceTime`, `GetPaused/SetPaused`, `PlayAnimKit`. **Animation lengths by OnAnimFinished** (prairie dog):
+  PetBattleCustom0 (756) 1.13 s, PetBattleSpellCast (754) 1.13 s, PetBattleWound (748) 1.00 s, Death (1) 1.37 s,
+  Stand (0) 2.00 s. Sit down (96) 2.01 s and get up (98) 2.67 s: the prairie dog can't sit, so those are probably
+  the fallback stand. `HasAnimation` listed only `0 1 4 5 9 16`, though 756 and 748 played with lengths of their
+  own: not to be trusted for the pet battle ids (or it was read too early).
+- **Calendar**: `C_Calendar` has `OpenCalendar`, `GetNumDayEvents(offsetMonths, monthDay)`, `GetDayEvent`,
+  `GetHolidayInfo`; today's events not read yet (the probe's first run asked `C_Calendar.GetDate`, which is missing).
+
 ## SavedVariables
 
 - Written on /reload and logout (not on a crash, and not on Alt+F4 / "Exit Now"?).

@@ -112,7 +112,7 @@ local function Eating()
 end
 
 -- Stand state: AutoCompanion treats 0 and 7 as standing, anything else as
--- sitting/lying. (unverified on Forever whether UnitStandState exists.)
+-- sitting/lying. (Forever has no UnitStandState: /dp probe api, 2026-11-11. Kept for a later client.)
 local function Sitting()
     if type(UnitStandState) ~= "function" then return false end
     local ok, state = pcall(UnitStandState, "player")

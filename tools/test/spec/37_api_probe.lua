@@ -10,10 +10,10 @@ return function(test, H)
         -- The stubs have no calendar: one with a holiday today.
         rawset(ola.env, "C_Calendar", {
             OpenCalendar = function() end,
-            GetDate = function() return { monthDay = 11 } end,
             GetNumDayEvents = function(offset, day) return (offset == 0 and day == 11) and 1 or 0 end,
             GetDayEvent = function() return { title = "Hallow's End" } end,
         })
+        rawset(ola.env, "C_DateAndTime", { GetCurrentCalendarTime = function() return { monthDay = 11 } end })
         local sent = #w.wire
         ola:Slash("probe api")
         local db = ola.env.DyreparkenDebugDB.api

@@ -292,7 +292,6 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 ## Open questions (ask the user before deciding)
 
 - Whisper targets with surnames ("First Surname") are unverified, so all replies go on the group/guild channel for now.
-- `UnitStandState` existence on Forever is unverified (sitting detection is skipped if it's missing).
 
 ## Future additions
 
