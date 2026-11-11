@@ -15,6 +15,7 @@ local _, ns = ...
 --   celebrate      the bond level-up celebration on the card
 --   petFrame       the pet frame on screen (off by default; placed and sized in Edit Mode: PetFrame.lua)
 --   petFrameArt    its background and border (off by default: it floats)
+--   petFrameCombat hidden in combat; petFrameFade faded to petFrameAlpha (0.25) when nothing happens (2026-11-11)
 -- Modules read them with Settings:On(key) / Settings:Get(key).
 local Settings = {}
 ns.Settings = Settings
@@ -57,6 +58,15 @@ local ROWS = {
     { key = "settings.petframeart", get = function() return ns.Settings:Get("petFrameArt") == true end,
         set = function(v) Set("petFrameArt", v); ns.PetFrame:Apply() end,
         needs = function() return ns.PetFrame:Enabled() end }, -- (greyed and indented while the frame is off)
+    { key = "settings.petframecombat", get = function() return ns.Settings:Get("petFrameCombat") == true end,
+        set = function(v) Set("petFrameCombat", v); ns.PetFrame:Apply() end,
+        needs = function() return ns.PetFrame:Enabled() end },
+    { key = "settings.petframefade", get = function() return ns.Settings:Get("petFrameFade") == true end,
+        set = function(v) Set("petFrameFade", v); ns.PetFrame:Apply() end,
+        needs = function() return ns.PetFrame:Enabled() end },
+    { key = "settings.petframealpha", slider = { 0.05, 0.9, 0.05 }, setting = "petFrameAlpha",
+        set = function(v) Set("petFrameAlpha", v); ns.PetFrame:Apply() end,
+        needs = function() return ns.PetFrame:Enabled() and ns.Settings:Get("petFrameFade") == true end },
 }
 Settings.ROWS = ROWS
 Settings.COL_W = 330 -- a column's width (the page's inset is about 700)
@@ -104,6 +114,31 @@ local function Build(p)
                 note:SetPoint("BOTTOMLEFT", h, "BOTTOMRIGHT", 8, 1)
                 note:SetText(L["settings.char.head"])
             end
+            y = y - 34
+        elseif row.slider then
+            -- A slider (2026-11-11: the pet frame's faded opacity), its value in percent beside it.
+            local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            label:SetPoint("TOPLEFT", inset, at, x + 54, y - 6)
+            label:SetText(L[row.key])
+            y = y - 26
+            local s = CreateFrame("Slider", nil, inset, "OptionsSliderTemplate")
+            s:SetPoint("TOPLEFT", inset, at, x + 58, y - 4)
+            s:SetSize(COL_W - 140, 16)
+            s:SetOrientation("HORIZONTAL")
+            s:SetMinMaxValues(row.slider[1], row.slider[2])
+            s:SetValueStep(row.slider[3])
+            s:SetObeyStepOnDrag(true)
+            s.pct = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            s.pct:SetPoint("LEFT", s, "RIGHT", 10, 0)
+            s.row, s.label = row, label
+            s:SetScript("OnValueChanged", function(self, v, user)
+                v = tonumber(("%.2f"):format(math.floor(v / row.slider[3] + 0.5) * row.slider[3])) -- (0.3, not 0.30000000000000004)
+                self.pct:SetText(("%d%%"):format(math.floor(v * 100 + 0.5)))
+                if user then row.set(v) end
+            end)
+            s:SetScript("OnEnter", Tip)
+            s:SetScript("OnLeave", ns.HideTip)
+            p.widgets[#p.widgets + 1] = { row = row, slider = s }
             y = y - 34
         elseif row.choices then
             local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -161,7 +196,13 @@ end
 
 local function Redraw(p)
     for _, w in ipairs(p.widgets or {}) do
-        if w.button then
+        if w.slider then
+            local on = not w.row.needs or w.row.needs()
+            w.slider:SetValue(Settings:Get(w.row.setting) or 0.25)
+            w.slider.pct:SetText(("%d%%"):format(math.floor((Settings:Get(w.row.setting) or 0.25) * 100 + 0.5)))
+            w.slider:SetEnabled(on)
+            if on then w.slider.label:SetTextColor(1, 1, 1) else w.slider.label:SetTextColor(0.5, 0.5, 0.5) end
+        elseif w.button then
             w.button:SetChecked(Get(w.row))
             local on = not w.row.needs or w.row.needs()
             w.button:SetEnabled(on)

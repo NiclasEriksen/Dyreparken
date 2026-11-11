@@ -177,7 +177,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    a click opens its card; placed and sized (mouse wheel) in Blizzard's Edit Mode, char.petFrame),
                    Settings (the settings page: a SidePage with no tab, opened by a cog in the pet journal's title
                    bar; the four older per-character settings plus the account's DyreparkenDB.settings: chatLines (hides the lines only),
-                   worldHearts, cardParticles all/few/none, cardMoves, celebrate; modules ask Settings:On(key)),
+                   worldHearts, cardParticles all/few/none, cardMoves, celebrate, and the pet frame's (petFrame, petFrameArt,
+                   petFrameCombat, petFrameFade, petFrameAlpha); modules ask Settings:On(key)),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in
                    g.life, see Registry.lua; docs/PET_LIFE.md. Data only, it prints nothing: BOND_LEVEL, BOND_FULL,
                    BOND_LINE on the Bus. Rewards beyond activities (wish, first, playdate) are rows in Bond.REWARDS,

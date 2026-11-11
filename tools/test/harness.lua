@@ -401,6 +401,7 @@ end
 function Region:SetRotation(r) self.rotation = r end
 Frame.CreateAnimationGroup = Region.CreateAnimationGroup
 function Frame:SetAlpha(a) self.alpha = a end
+function Frame:GetAlpha() return self.alpha or 1 end
 function Region:SetSize(w, h) self.size = { w, h } end
 function Region:SetVertexColor(r, g, b, a) self.vertexColor = { r, g, b, a } end
 -- Nine-slice a texture (Retail 10.0+): the margins stay, the middle stretches.

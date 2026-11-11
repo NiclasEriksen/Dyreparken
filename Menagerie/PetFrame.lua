@@ -36,6 +36,10 @@ PF.ZZZ_AT = { 22, 66 }  -- where they rise from: right of the middle, about head
 -- The bond bar and level show only under the mouse (2026-11-11, the user: "only visible on mouseover regardless
 -- of settings for now"), and while points rise (the numbers are drawn on the bar; a new level comes with points).
 PF.PEEK_HOLD = 1          -- seconds the bar stays after its last number has faded
+-- Faded (Settings: petFrameFade, to petFrameAlpha; 2026-11-11, the user: "inactive is always except for
+-- mouseover and pet events (level, bond, cheer etc.)"): full while the mouse is over it, and for a while
+-- after something happens to the pet: points rising, a new level, another pet out.
+PF.ACTIVE_FOR = 4         -- seconds at full after a pet event (rising points: as long as they rise)
 
 local L = ns.L
 
@@ -131,14 +135,14 @@ function PF:Build()
     click:SetScript("OnMouseWheel", function(_, delta) if PF.editing then PF:Resize(delta) end end)
     click:EnableMouseWheel(false) -- (a wheel script turns it on: the camera would never zoom over it)
     click:SetScript("OnEnter", function(b)
-        PF.hover = true; PF:ShowBar()
+        PF.hover = true; PF:ShowBar(); PF:Fade()
         if PF.editing or not PF.key then return end
         GameTooltip:SetOwner(b, "ANCHOR_TOP")
         GameTooltip:SetText(ns.Registry:NameOf(PF.key), 1, 0.82, 0)
         GameTooltip:AddLine(L["petframe.tip"], 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    click:SetScript("OnLeave", function(b) PF.hover = nil; PF:ShowBar(); ns.HideTip(b) end)
+    click:SetScript("OnLeave", function(b) PF.hover = nil; PF:ShowBar(); PF:Fade(); ns.HideTip(b) end)
     f.click = click
 
     self:Art() -- (and the scene's size: PF:Draw)
@@ -299,8 +303,30 @@ function PF:ShowBar()
     bar:SetShown(self.points ~= nil and (self.hover or self.peek) and true or false)
 end
 
+-- Faded or not, now (Settings: petFrameFade).
+function PF:Fade()
+    local f = self.frame
+    if not f then return end
+    local faded = ns.Settings:Get("petFrameFade") == true and not (self.hover or self.active or self.editing)
+    f:SetAlpha(faded and (ns.Settings:Get("petFrameAlpha") or 0.25) or 1)
+end
+
+-- Something happened to the pet: at full for `secs` (one token: the last timer decides).
+function PF:Active(secs)
+    self.activeToken = (self.activeToken or 0) + 1
+    local token = self.activeToken
+    self.active = true
+    self:Fade()
+    C_Timer.After(secs or self.ACTIVE_FOR, function()
+        if PF.activeToken ~= token then return end
+        PF.active = nil
+        PF:Fade()
+    end)
+end
+
 -- Shown for `secs`; a later peek extends it (one token: the last timer decides).
 function PF:Peek(secs)
+    self:Active(secs)
     self.peekToken = (self.peekToken or 0) + 1
     local token = self.peekToken
     self.peek = true
@@ -329,6 +355,7 @@ function PF:Refresh()
         return
     end
     if key ~= self.key then
+        if self.key then self:Active() end -- (another pet out: seen at full a moment)
         -- The last pet's rise, and the peek it kept up, end here: else its growth's timers set
         -- its points on this pet's bar, and the check below would leave that bar to them.
         ns.BondTrack:StopGains(self.track)
@@ -338,7 +365,9 @@ function PF:Refresh()
         self:Load(key)
     end
     f.name:SetText(ns.Registry:NameOf(key))
+    if self.combat and not self.editing then return f:Hide() end -- (Settings: petFrameCombat)
     f:Show()
+    self:Fade()
     if not f.bar.growTo then self:Bond(false) end -- (its rise is still on: left to it)
     self.stage:Update(f, key)
     self:Sleepy()
@@ -386,6 +415,7 @@ end
 function PF:LevelUp(key)
     if not (self.frame and self.frame:IsShown() and key == self.key) then return end
     self.stage:Cheer(key)
+    self:Active()
     if ns.Settings:Get("cardParticles") ~= "none" then
         local s = self.frame:GetScale() -- (as the Zzz: sized with the frame)
         ns.Fx:Burst({ self.scene, "BOTTOM", 0, self.ZZZ_AT[2] * s }, "star",
@@ -431,12 +461,29 @@ function PF:On()
     self:Refresh()
 end
 
+-- Hidden in combat (Settings: petFrameCombat): the combat events only while that's on. (Our own frame,
+-- nothing protected: hiding and showing it in combat is allowed.)
+function PF:Combat()
+    local want = self.on and ns.Settings:Get("petFrameCombat") == true
+    if want and not self.combatOn then
+        self.combatOn = true
+        ns.Events:On("PLAYER_REGEN_DISABLED", PF, function() PF.combat = true; PF:Refresh() end)
+        ns.Events:On("PLAYER_REGEN_ENABLED", PF, function() PF.combat = nil; PF:Refresh() end)
+    elseif not want and self.combatOn then
+        self.combatOn = nil
+        ns.Events:Off("PLAYER_REGEN_DISABLED", PF)
+        ns.Events:Off("PLAYER_REGEN_ENABLED", PF)
+    end
+    self.combat = want and ns.InCombat() or nil
+end
+
 function PF:Off()
     if not self.on and not self.frame then return end
     self.on = nil
     for _, e in ipairs({ "COMPANION_UPDATE", "PLAYER_ENTERING_WORLD", "PET_BATTLE_OPENING_START", "PET_BATTLE_CLOSE" }) do
         ns.Events:Off(e, PF)
     end
+    self:Combat()
     if self.frame then
         self.stage:Update(self.frame, nil)
         self.frame:Hide()
@@ -448,7 +495,9 @@ end
 function PF:Apply()
     if self:Enabled() then
         self:On()
-        if self.frame then self:Place(); self:Art() end
+        self:Combat()
+        self:Refresh()
+        if self.frame then self:Place(); self:Art(); self:Fade() end
     else
         self:Off()
     end
@@ -462,6 +511,7 @@ function PF:EditMode(on)
     f.click:EnableMouseWheel(on and true or false)
     if on then f.click:RegisterForDrag("LeftButton"); self:Label() else f.click:RegisterForDrag() end
     self:Refresh()
+    self:Fade()
 end
 
 -- Blizzard's Edit Mode tells addons when it opens and closes (verified on Forever, 2026-11-11).

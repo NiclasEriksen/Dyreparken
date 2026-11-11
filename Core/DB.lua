@@ -27,6 +27,7 @@ local ACCOUNT_DEFAULTS = {
     settings = { -- the account's settings (Menagerie/Settings.lua)
         chatLines = true, worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,
         petFrame = false, petFrameArt = false, -- (the pet frame and its background and border: off unless chosen, PetFrame.lua)
+        petFrameCombat = false, petFrameFade = false, petFrameAlpha = 0.25, -- (hidden in combat; faded when nothing happens, to this)
     },
     scenePicks = {}, -- family -> background path, picked in /dp probe bg (SceneGallery.lua)
     liftPicks = {},  -- species id -> lift, set in /dp probe lift (LiftEditor.lua); to write into Data/PetMoves.lua

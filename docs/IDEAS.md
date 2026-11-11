@@ -222,6 +222,8 @@ turned back (SetYaw), the inn's name (GetBindLocation), the zone names, and a gu
 
 # The pet frame's settings (noted 2026-11-11, the user)
 
+Built 2026-11-11 (both off by default; the faded opacity 25%, a slider in the settings).
+
 Two more options for the pet frame (Menagerie/PetFrame.lua, the "Dyret på skjermen" column in Settings):
 
 - **Hide in combat.** Hidden on PLAYER_REGEN_DISABLED, back on PLAYER_REGEN_ENABLED (registered only while the
