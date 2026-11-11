@@ -320,12 +320,12 @@ return function(test, H)
         -- Every value in the file (as it is, untouched) is a number or false, for a species in the journal.
         local _, fresh = H.Setup{ ola = {} }
         local data = fresh.ns.PetMoves
-        for what, id in pairs(data.default) do ok(type(id) == "number" or id == false or what == "canSit" and id == true, what) end
+        for what, id in pairs(data.default) do ok(type(id) == "number" or id == false or (what == "canSit" or what == "canJump") and id == true, what) end
         for sid, own in pairs(data.species) do
             ok(fresh.ns.Companions.species[sid], "species " .. sid .. " is in the journal")
             for what, id in pairs(own) do
                 ok(data.default[what] ~= nil or what == "lift", sid .. ": " .. what .. " is a reaction")
-                ok(id == false or type(id) == "number" or what == "canSit", sid .. ": " .. what)
+                ok(id == false or type(id) == "number" or what == "canSit" or what == "canJump", sid .. ": " .. what)
             end
         end
     end)
@@ -396,11 +396,12 @@ return function(test, H)
         w:Run(5)
         ola:SelectPet(5159)
         w:Run(1)
+        ola.ns.PetMoves.species[5159].canJump = false
         ola.env.JumpOrAscendStart()
-        eq(actor.anim, 0, "can't jump (the default): it stands")
-        ola.ns.PetMoves.species[5159].canJump = true
+        eq(actor.anim, 0, "canJump false: it stands")
+        ola.ns.PetMoves.species[5159].canJump = nil
         ola.env.JumpOrAscendStart()
-        eq(actor.anim, 37, "take off")
+        eq(actor.anim, 37, "the default: take off")
         w:Run(M.T.jumpStart + 0.01)
         eq(actor.anim, 38, "in the air")
         ola.env.JumpOrAscendStart() -- (another press in the air: it lands first)
@@ -428,7 +429,6 @@ return function(test, H)
         -- Not the pet with you (another pet's card): it doesn't jump.
         w:Run(3)
         ola:SelectPet(46)
-        ola.ns.PetMoves.species[46] = { canJump = true }
         ola.env.JumpOrAscendStart()
         eq(actor.anim, 0)
     end)
@@ -938,11 +938,11 @@ return function(test, H)
         eq(picks[5160], nil, "nothing left to copy: gone")
         eq(picks[46].happy, 999); eq(picks[46].sleepUp, nil); eq(picks[46].canSit, nil)
         match(E.frame.saved.text, "^1 pets changed")
-        -- Jump?: off by default; ticked, a pick; its rows in use.
-        no(E.frame.jumps:GetChecked())
+        -- Jump?: on by default; unticked, a pick.
+        ok(E.frame.jumps:GetChecked())
         E.frame.jumps:Click()
-        eq(picks[5159].canJump, true)
-        eq(ola.ns.Moves:For(PANDA, "canJump"), true, "the card uses the pick while open")
+        eq(picks[5159].canJump, false)
+        eq(ola.ns.Moves:For(PANDA, "canJump"), nil, "the card uses the pick while open")
         E:Close()
     end)
 end

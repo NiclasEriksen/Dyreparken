@@ -231,7 +231,7 @@ function Editor:Build()
     f.sits:SetPoint("LEFT", f.sits.label, "RIGHT", 2, 0)
     f.sits.label:SetText("Sit?")
     f.sits:SetScript("OnClick", function(self) Editor:Set("canSit", self:GetChecked() and true or false) end)
-    -- Jump? Ticked, the pet with you jumps when you do (off by default: few models can).
+    -- Jump? Ticked (the default), the pet with you jumps when you do.
     f.jumps = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
     f.jumps:SetSize(22, 22)
     f.jumps.label = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
