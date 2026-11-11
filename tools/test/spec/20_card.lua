@@ -43,7 +43,7 @@ return function(test, H)
         ola:OpenJournal()
         card = ola:SelectPet(5159)
         eq(card.nickname.text, "Pepe")
-        eq(card.status.plain, "Panda Cub · Hos deg i 30 dager")
+        eq(card.status.plain, "Panda Cub · Har bodd hos deg i 30 dager")
         -- Hover the name or the home line: everything in full, even if cut short on the card.
         card.nameHit.scripts.OnEnter(card.nameHit)
         eq(table.concat(ola.env.GameTooltip.lines, " / "), "Pepe / Panda Cub / |cffffd100Har bodd hos deg i 30 dager|r")
@@ -413,11 +413,16 @@ return function(test, H)
         local bottom = model.points[#model.points]
         eq(bottom[1], "BOTTOMRIGHT"); eq(bottom[2], card.panel); eq(bottom[5], 34)
         eq(card.model, model)
+        -- The full-width sheet: the name stops at the level's name, the home at the medallion, the rest run on.
         local last = card.status.points[#card.status.points]
-        eq(last[3], "RIGHT"); eq(last[4], -214, "rows run up to the bond column, never under it")
-        for _, row in ipairs({ card.nickname, card.personality, card.likes }) do
-            eq(row.points[#row.points][4], -214)
-        end
+        eq(last[3], "RIGHT"); eq(last[4], -72, "the home line stops short of the medallion")
+        eq(card.nickname.points[#card.nickname.points][4], -150)
+        for _, row in ipairs({ card.personality, card.likes }) do eq(row.points[#row.points][4], -12) end
+        -- The bond strip: stars from the left, the bar after them, the goal after the bar.
+        local b = card.bond
+        eq(b.pips[1].points[1][4], 12); eq(b.pips[1].points[1][5], ola.ns.JournalUI.ROW_Y.strip)
+        eq(b.points[1][1], "TOPLEFT"); ok(b.points[1][4] > b.pips[7].points[1][4], "the bar after the seventh star")
+        eq(b.next.points[1][2], b)
         eq(#ola:Log("rotate buttons moved above the panel"), 1)
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })
@@ -548,7 +553,7 @@ return function(test, H)
         local w, ola = Setup()
         local card = ola:SelectPet(5159)
         eq(card.nickname.font, "GameFontNormalHuge", "not laid out yet: the big one")
-        card.panel.geo = { l = 0, r = 400, t = 86, b = 0 } -- room for the name: 400 - 214 - 14 = 172 px
+        card.panel.geo = { l = 0, r = 336, t = 106, b = 0 } -- room for the name: 336 - 150 - 14 = 172 px
         card = ola:SelectPet(5159)
         eq(card.nickname.font, "GameFontNormalHuge", "'Panda Cub' fits big")
         ola.ns.Registry.Nickname = function() return "Brown Prairie Dogge" end -- 19 characters

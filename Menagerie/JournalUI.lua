@@ -37,8 +37,16 @@ local function CardSpecies()
     if c.petID then return (C_PetJournal.GetPetInfoByPetID(c.petID)) end
 end
 
-local PANEL_H = 86 -- four lines on the left: name, home, traits, likes
-local COLUMN = 214 -- the bond column, from the panel's right edge (BondTrack.lua): the left column ends there
+-- The panel, a full-width sheet (2026-11-11, the user picked "B" of three layouts: two columns had cut
+-- the home and the likes short while the bond column stood half empty). Rows, top to bottom, at fixed
+-- heights from the panel's top: the name (the level's name and medallion at its right), the species and
+-- home, the bond strip (stars, bar, goal: BondTrack.lua), the traits, the likes.
+local PANEL_H = 106
+local ROW_Y = { name = -6, status = -33, strip = -51, personality = -71, likes = -86 }
+local NAME_RIGHT = 150 -- the name stops short of the level's name and the medallion
+local STATUS_RIGHT = 72 -- the home line stops short of the medallion, which rises out of the top right
+local COLUMN = NAME_RIGHT -- (the name's room, for the font step-down)
+JournalUI.ROW_Y = ROW_Y
 local MODEL_LIFT = 34 -- the model's bottom, above the panel: clear of the turn buttons
 local NAME_FONTS = { "GameFontNormalHuge", "GameFontNormalLarge", "GameFontNormal" } -- the name, biggest first
 -- The panel's width once laid out (nil before).
@@ -136,18 +144,13 @@ local function UpdateCard()
     local key = ns.Pets:KeyOfSpecies(sid)
     local status, owner, r = ns.Registry:Status(key)
     local nick = ns.Registry:Nickname(key)
-    -- The line is short ("Hos deg i 3 dager": the full sentence was cut off, 2026-11-11); hovering it
-    -- gives the full sentence.
-    local text, short
+    local text
     if status == "free" then
         text = "|cff80cc80" .. ns.L["card.free"] .. "|r"
-        short = text
     elseif status == "mine" then
         text = ns.Gold(ns.Home(ns.L["home.you"], r.at))
-        short = ns.Gold(ns.Home(ns.L["home.you"], r.at, nil, true))
     else
         text = "|cffff8080" .. ns.Home(owner, r.at) .. "|r"
-        short = "|cffff8080" .. ns.Home(owner, r.at, nil, true) .. "|r"
     end
     -- Big: the nickname, else the species. Small: the species (if named) and its home.
     local species = ns.Pets:NameOfKey(key) or ""
@@ -159,7 +162,7 @@ local function UpdateCard()
         card.nickname:SetFontObject(font)
         if not room or card.nickname:GetStringWidth() <= room then break end
     end
-    card.status:SetText(nick and (species .. " · " .. short) or short) -- (no nickname: the big name is the species)
+    card.status:SetText(nick and (species .. " · " .. text) or text) -- (no nickname: the big name is the species)
     card.fullName, card.species, card.home = nick or species, species, text -- for the hover
     if ns.Personality:Known(key) then
         card.personality:SetText(ns.Personality:Names(key))
@@ -313,13 +316,12 @@ local function BuildCard()
     ns.Story:Build(card, c)
     c:HookScript("OnHide", function() ns.Moves:Stop() end) -- (the pet's pose starts over next time)
 
-    -- The left column: lines that stop at the bond column; a long one ends in
-    -- "...", and hovering it tells all.
-    local function Line(font, below, gap)
+    -- The rows: full width but for the medallion's corner; a long one ends in "...", and hovering
+    -- it tells all.
+    local function Line(font, y, right)
         local fs = panel:CreateFontString(nil, "OVERLAY", font)
-        if below then fs:SetPoint("TOPLEFT", below, "BOTTOMLEFT", 0, -gap)
-        else fs:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, -8) end
-        fs:SetPoint("RIGHT", panel, "RIGHT", -COLUMN, 0)
+        fs:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, y)
+        fs:SetPoint("RIGHT", panel, "RIGHT", -right, 0)
         fs:SetJustifyH("LEFT")
         fs:SetWordWrap(false)
         return fs
@@ -340,8 +342,8 @@ local function BuildCard()
         f:SetScript("OnLeave", ns.HideTip)
         return f
     end
-    card.nickname = Line("GameFontNormalHuge")
-    card.status = Line("GameFontHighlightSmall", card.nickname, 3)
+    card.nickname = Line("GameFontNormalHuge", ROW_Y.name, NAME_RIGHT)
+    card.status = Line("GameFontHighlightSmall", ROW_Y.status, STATUS_RIGHT)
     -- Hover the name or the home line: both in full.
     card.nameHit = HitOver(card.nickname, card.status, function()
         GameTooltip:SetText(card.fullName, 1, 0.82, 0)
@@ -349,9 +351,9 @@ local function BuildCard()
         GameTooltip:AddLine(card.home, 1, 1, 1, true)
     end)
     -- Its personality: the traits, then what it likes.
-    card.personality = Line("GameFontNormalSmall", card.status, 5)
+    card.personality = Line("GameFontNormalSmall", ROW_Y.personality, 12)
     card.personality:SetTextColor(0.95, 0.75, 0.45)
-    card.likes = Line("GameFontHighlightSmall", card.personality, 3)
+    card.likes = Line("GameFontHighlightSmall", ROW_Y.likes, 12)
     card.likes:SetTextColor(0.8, 0.76, 0.66) -- (was the disabled grey: hard to read, creative review 2026-11-09)
     -- Hover the lines: what the traits mean and do, what it likes, and why it matters.
     card.personalityHit = HitOver(card.personality, card.likes, function()
@@ -379,7 +381,7 @@ local function BuildCard()
         GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
     end)
 
-    -- The bond, right column: a medallion, the track of levels, a bar (BondTrack.lua).
+    -- The bond: the medallion and the level's name on the name row, the strip under the home (BondTrack.lua).
     ns.BondTrack:Build(card, c, panel)
 
     -- Blizzard's turn buttons sit where our rows go: move them to just above
@@ -403,8 +405,9 @@ local function BuildCard()
     end
     if not left then
         -- They stay wherever they are, likely mid-panel: keep our text clear of the middle.
-        card.nickname:SetPoint("RIGHT", panel, "CENTER", -52, 0)
-        card.status:SetPoint("RIGHT", panel, "CENTER", -52, 0)
+        for _, row in ipairs({ card.nickname, card.status, card.personality, card.likes }) do
+            row:SetPoint("RIGHT", panel, "CENTER", -52, 0)
+        end
     end
     ns.Log("Journal", "rotate buttons %s", left and "moved above the panel" or "not found")
     -- Blizzard's title row (the pet's icon and name at the top) says what the

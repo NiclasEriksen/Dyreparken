@@ -20,6 +20,7 @@ local DISC = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local RING = "communities-ring-gold"
 local GOLD = ns.Scenes.GOLD
 local BAR_W, PIP, PIP_GAP = 128, 14, 5
+local STRIP_X = 12 -- the strip's left edge on the panel, with the rows' text
 -- The level-up sound: the first of these the client knows.
 Track.SOUNDS = { "UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT", "UI_EPICLOOT_TOAST", "LEVELUPSOUND" }
 
@@ -109,10 +110,11 @@ end
 function Track:Build(card, c, panel)
     local b = CreateFrame("StatusBar", nil, panel)
     card.bond = b
-    -- The column, top to bottom: the level's name, the stars, the bar with
-    -- the points on it, what's next. The medallion stands to its right.
+    -- On the card's full-width sheet (JournalUI ROW_Y, 2026-11-11): the level's name on the name row,
+    -- left of the medallion; under the home, one strip: the stars, the bar, what's next.
+    local y = ns.JournalUI.ROW_Y.strip
     b:SetSize(BAR_W, 13)
-    b:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -48)
+    b:SetPoint("TOPLEFT", panel, "TOPLEFT", STRIP_X + #ns.Bond.LEVELS * (PIP + PIP_GAP) + 4, y - 1)
     b:SetStatusBarTexture(WHITE)
     b.bg = b:CreateTexture(nil, "BACKGROUND", nil, 1)
     b.bg:SetAllPoints()
@@ -138,14 +140,16 @@ function Track:Build(card, c, panel)
     b.text:SetPoint("CENTER", b, "CENTER", 0, 0)
     b.text:Hide()
     b.label = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    b.label:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -8)
+    b.label:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72, -10)
     b.label:SetJustifyH("RIGHT")
     b.next = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
-    b.next:SetPoint("TOPRIGHT", b, "BOTTOMRIGHT", 0, -4)
-    b.next:SetJustifyH("RIGHT")
-    -- Your own bond with someone else's adopted pet: small, under theirs (2026-11-09).
+    b.next:SetPoint("LEFT", b, "RIGHT", 8, 0)
+    b.next:SetPoint("RIGHT", panel, "RIGHT", -12, 0)
+    b.next:SetJustifyH("LEFT")
+    b.next:SetWordWrap(false)
+    -- Your own bond with someone else's adopted pet: small, at the right of the traits' row (2026-11-09).
     b.yours = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    b.yours:SetPoint("TOPRIGHT", b.next, "BOTTOMRIGHT", 0, -2)
+    b.yours:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, ns.JournalUI.ROW_Y.personality)
     b.yours:SetJustifyH("RIGHT")
     b.yours:SetTextColor(1, 0.6, 0.7)
 
@@ -176,13 +180,13 @@ function Track:Build(card, c, panel)
     b.medal = m
     b.level = m.num -- (the level number, as before)
 
-    -- The track: seven stars between the label and the bar.
+    -- The track: seven stars, at the strip's left.
     b.pips = {}
     local n = #ns.Bond.LEVELS
     for i = 1, n do
         local p = CreateFrame("Frame", nil, b)
         p:SetSize(PIP, PIP)
-        p:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -72 - (n - i) * (PIP + PIP_GAP), -27)
+        p:SetPoint("TOPLEFT", panel, "TOPLEFT", STRIP_X + (i - 1) * (PIP + PIP_GAP), y)
         p.n = i
         p.star = p:CreateTexture(nil, "ARTWORK")
         p.star:SetTexture(ns.Decor.MEDIA .. "star")

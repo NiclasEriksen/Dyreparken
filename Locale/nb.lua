@@ -20,7 +20,6 @@ L["time.years"] = "i {n} år"
 L["home.today"] = "Flyttet inn hos {who} i dag"
 L["home.yesterday"] = "Flyttet inn hos {who} i går"
 L["home.since"] = "Har bodd hos {who} {how}"          -- {how}: one of the time.* texts
-L["home.short"] = "Hos {who} {how}"                -- the card's line: short, so it fits beside the species (2026-11-11)
 L["home.you"] = "deg"                            -- {who} when it's your own pet
 
 ------------------------------------------------------------------------------
