@@ -536,7 +536,7 @@ return function(test, H)
         actor:SetModelByCreatureDisplayID(1)
         w:Run(ola.ns.Moves.SETTLE + 0.05)
         ok(math.abs(actor.pos[3] - 0.3) < 1e-6)
-        eq(ola.ns.Moves:For("s:70", "lift"), -0.2, "the Brown Prairie Dog, by eye")
+        eq(ola.ns.Moves:For("s:5172", "lift"), 0.25, "the Tallstrider Hatchling, by eye")
     end)
 
     test("review 2026-11-10: the walk follows the badge and the moment a hop ends; one-offs count only once seen", function()

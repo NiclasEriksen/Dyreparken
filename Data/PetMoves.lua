@@ -42,6 +42,8 @@ local _, ns = ...
 --          Blizzard puts it: some models float, some sink. Found by eye: /dp probe lift steps through
 --          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here
 --          (every pet set by eye 2026-11-10).
+--          2026-11-11 (the user): every pet that lies down with Death (sleep = 1) 0.2 higher: lying down or
+--          playing dead, they clipped out of the bottom of the card ("they're birds, they're flying").
 -- The default (2026-11-11) is what most pets got by eye in /dp probe moves: asleep in Dead (6),
 -- standing up on waking, never sitting. Overrides are only what differs from it.
 ns.PetMoves = {
@@ -56,20 +58,20 @@ ns.PetMoves = {
         [44] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, canSit = true, happy = 758 },  -- Siamese: the cats lie down, sleep and get up with their own sleep animations (/dp probe moves, the user 2026-11-11; all cats share the model)
         [45] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, canSit = true, happy = 758 },  -- Silver Tabby
         [46] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, canSit = true, happy = 758 },  -- White Kitten
-        [47] = { sleep = 1 },  -- Cockatiel
-        [49] = { sleep = 1 },  -- Hyacinth Macaw
-        [50] = { sleep = 1 },  -- Green Wing Macaw
-        [51] = { sleep = 1 },  -- Senegal
+        [47] = { lift = 0.2, sleep = 1 },  -- Cockatiel
+        [49] = { lift = 0.2, sleep = 1 },  -- Hyacinth Macaw
+        [50] = { lift = 0.2, sleep = 1 },  -- Green Wing Macaw
+        [51] = { lift = 0.2, sleep = 1 },  -- Senegal
         [55] = { lift = -0.05, sleepHold = false, sleepUp = false, canSit = true },  -- Cockroach
-        [56] = { sleep = 1 },  -- Dark Whelpling
-        [57] = { sleep = 1 },  -- Azure Whelpling
-        [58] = { sleep = 1 },  -- Crimson Whelpling
-        [59] = { sleep = 1 },  -- Emerald Whelpling
+        [56] = { lift = 0.2, sleep = 1 },  -- Dark Whelpling
+        [57] = { lift = 0.2, sleep = 1 },  -- Azure Whelpling
+        [58] = { lift = 0.2, sleep = 1 },  -- Crimson Whelpling
+        [59] = { lift = 0.2, sleep = 1 },  -- Emerald Whelpling
         [64] = { lift = -0.1, canSit = true },  -- Wood Frog
         [65] = { lift = -0.1 },  -- Tree Frog
-        [67] = { lift = 0.2, sleep = 1 },  -- Hawk Owl
-        [68] = { lift = 0.2, sleep = 1 },  -- Great Horned Owl
-        [70] = { lift = -0.2, sleep = 1, sleepAt = 0.6 },  -- Brown Prairie Dog: floated over its shadow
+        [67] = { lift = 0.4, sleep = 1 },  -- Hawk Owl
+        [68] = { lift = 0.4, sleep = 1 },  -- Great Horned Owl
+        [70] = { lift = 0, sleep = 1, sleepAt = 0.6 },  -- Brown Prairie Dog: floated over its shadow
         [74] = { lift = -0.05 },  -- Albino Snake
         [75] = { lift = -0.05 },  -- Black Kingsnake
         [77] = { lift = -0.05 },  -- Brown Snake
@@ -77,39 +79,39 @@ ns.PetMoves = {
         [85] = { lift = 0.4, sleep = 99, sleepHold = 100, sleepUp = 101, canSit = true },  -- Tiny Walking Bomb
         [87] = { sleep = 744, sleepUp = 101 },  -- Sprite Darter Hatchling
         [89] = { lift = 0.3 },  -- Worg Pup
-        [90] = { lift = 1, sleep = 1 },  -- Smolderweb Hatchling
+        [90] = { lift = 1.2, sleep = 1 },  -- Smolderweb Hatchling
         [95] = { lift = -0.1 },  -- Lifelike Toad
         [106] = { lift = -0.1 },  -- Jubling
-        [114] = { lift = -0.8, sleep = 1 },  -- Disgusting Oozeling
-        [116] = { lift = 0.4, sleep = 1 },  -- Tranquil Mechanical Yeti
-        [117] = { lift = 0.2, sleep = 1 },  -- Tiny Snowman
+        [114] = { lift = -0.6, sleep = 1 },  -- Disgusting Oozeling
+        [116] = { lift = 0.6, sleep = 1 },  -- Tranquil Mechanical Yeti
+        [117] = { lift = 0.4, sleep = 1 },  -- Tiny Snowman
         [118] = { lift = 0.4 },  -- Winter Reindeer
         [119] = { lift = 0.35, sleep = 99, sleepHold = 100, sleepUp = 101, canSit = true },  -- Father Winter's Helper
         [120] = { lift = 0.25, sleep = 99, sleepHold = 100, sleepUp = 101, canSit = true },  -- Winter's Little Helper
-        [125] = { lift = 0.2, sleep = 1 },  -- Speedy
+        [125] = { lift = 0.4, sleep = 1 },  -- Speedy
         [126] = { lift = 0.05 },  -- Mr. Wiggles
         [127] = { lift = -0.3 },  -- Whiskers the Rat
         [128] = { sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Spirit of Summer
-        [162] = { lift = 0.6, sleep = 1 },  -- Sinister Squashling
+        [162] = { lift = 0.8, sleep = 1 },  -- Sinister Squashling
         [341] = { sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Lunar Lantern
         [342] = { sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Festival Lantern
-        [5004] = { sleep = 1 },  -- Prairie Chicken
+        [5004] = { lift = 0.2, sleep = 1 },  -- Prairie Chicken
         [5005] = { lift = -0.1 },  -- Musical Gustjumper
         [5006] = { lift = -0.05, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Corrupted Kitten
         [5018] = { lift = 1.9 },  -- Snowy Wolf Pup
-        [5075] = { lift = -0.5, sleep = 1 },  -- Excitable Slime
+        [5075] = { lift = -0.3, sleep = 1 },  -- Excitable Slime
         [5094] = { lift = 0.7 },  -- Bitter Baitling
         [5121] = { lift = 0.15 },  -- Prairie Wolf Pup
-        [5135] = { sleep = 1 },  -- Shadowgale Squirrel
-        [5136] = { lift = -0.5, sleep = 1 },  -- Weevil K. Neevil
-        [5138] = { lift = 0.1, sleep = 1 },  -- Pachimari
+        [5135] = { lift = 0.2, sleep = 1 },  -- Shadowgale Squirrel
+        [5136] = { lift = -0.3, sleep = 1 },  -- Weevil K. Neevil
+        [5138] = { lift = 0.3, sleep = 1 },  -- Pachimari
         [5139] = { lift = -0.15 },  -- Galestrider Chick
         [5153] = { lift = -0.1 },  -- Jungle Boa
         [5154] = { lift = -0.15 },  -- Brown Ground Squirrel
         [5155] = { lift = -0.15 },  -- Red Ground Squirrel
-        [5158] = { lift = 0.25, sleep = 1 },  -- Eagle Owl
+        [5158] = { lift = 0.45, sleep = 1 },  -- Eagle Owl
         [5159] = { sleep = 99, sleepHold = 100, sleepUp = 101, canSit = true },  -- Panda Cub
-        [5160] = { lift = 0.4, sleep = 1, canSit = true, happy = 748 },  -- Zergling: PetBattleCustom0 is an attack
+        [5160] = { lift = 0.6, sleep = 1, canSit = true, happy = 748 },  -- Zergling: PetBattleCustom0 is an attack
         [5161] = { lift = 0.2, sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Mini Diablo: Dead (6) makes him vanish (Death bursts into flames)
         [5162] = { lift = 0.8 },  -- Baby Crocolisk
         [5163] = { lift = -0.75 },  -- Shen'dorei Wisp
@@ -117,7 +119,7 @@ ns.PetMoves = {
         [5172] = { lift = 0.25 },  -- Tallstrider Hatchling
         [5174] = { lift = 1.5 },  -- Minfernal
         [5176] = { lift = 0.6 },  -- Minimule
-        [5179] = { lift = -1, sleep = 1 },  -- Azurky
+        [5179] = { lift = -0.8, sleep = 1 },  -- Azurky
         [5183] = { lift = 0.5 },  -- Spawn of Grubthor
         [5200] = { lift = 0.2 },  -- Viridian Lashling
         [5201] = { lift = 0.2 },  -- Frosty Lashling
