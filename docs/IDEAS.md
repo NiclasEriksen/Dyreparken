@@ -222,3 +222,13 @@ turned back (SetYaw), the inn's name (GetBindLocation), the zone names, and a gu
 - **Playdates work at any distance** (the user, 2026-11-11): a guildmate's pet anywhere in the group counts, even
   far away. Only one in range should (Menagerie/Playdate.lua). Candidates to probe on Forever: `UnitInRange`,
   `CheckInteractDistance`, `UnitIsVisible`, or the companion seen nearby (Quirks' COMPANION_SEEN, Tooltip).
+
+# The pet frame's settings (noted 2026-11-11, the user)
+
+Two more options for the pet frame (Menagerie/PetFrame.lua, the "Dyret på skjermen" column in Settings):
+
+- **Hide in combat.** Hidden on PLAYER_REGEN_DISABLED, back on PLAYER_REGEN_ENABLED (registered only while the
+  frame and the option are on). The frame has no protected parts, so Hide/Show in combat is allowed.
+- **Fade when inactive.** The frame rests at a low alpha and comes to full on mouseover. Needs a rule for
+  "inactive" (always faded but on mouseover? or full for a while after something happens: a level, rising
+  numbers, a cheer?) and the faded alpha. The click layer already takes the mouse (OnEnter/OnLeave), so no polling.
