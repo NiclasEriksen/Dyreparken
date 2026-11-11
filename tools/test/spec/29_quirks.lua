@@ -345,4 +345,17 @@ return function(test, H)
         for _ = 1, 6 do kari:Fire("CHAT_MSG_GUILD", "hei", "Ola Nord", "", "", "", "", 0, 0, "", 0, 1, kari.env.UnitGUID("player")); w2:Run(5) end
         eq(kari.ns.DB.char.eggs.skravle, nil)
     end)
+
+    test("how long a line waits depends on the line: a roll's at once, a holiday's soon after, a flight's dislike later", function()
+        local w, ola, Q = Setup({ "glupsk", "reiseglad" })
+        local _, other = H.Setup{ ola = {} } -- (Setup pinned the waits to 0: the file's, from a fresh client)
+        Q.DELAY = other.ns.Quirks.DELAY
+        Q.random = function(n) return n and 1 or 0.49 end -- (within the egg's chance; near the middle of each wait)
+        ola:Fire("CHAT_MSG_SYSTEM", "Ola Nord rolls 1 (1-100)")
+        w:Run(Q.DELAY.now[2] + 0.1)
+        ok(Said(ola, "Bombay Cat så terningen lande på 1"), "a roll: within " .. Q.DELAY.now[2] .. " s")
+        ok(Q.DELAY.now[2] <= 3 and Q.DELAY.egg[2] <= 15 and Q.DELAY.dislike[2] <= 15, "nothing waits half a minute but the flight")
+        eq(Q.DISLIKE_DELAY.taxi, "slow")
+        ok(Q.DELAY.slow[1] >= 20, "a flight's dislike: not the moment you take off")
+    end)
 end

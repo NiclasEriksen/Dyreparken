@@ -25,7 +25,12 @@ Quirks.random = math.random  -- (tests pin it)
 -- (2026-11-10: "scared of flying" the moment you took off read as if it had
 -- flown for ages). Seconds, picked at random within; a dislike takes longer
 -- to sink in than an egg's moment.
-Quirks.DELAY = { dislike = { 20, 60 }, egg = { 5, 20 } }
+-- 2026-11-11, the user: "some remarks feel a little too separated as they come so late": by the
+-- line now. A reaction to something that just happened (a roll, a duel, a lost fish) comes almost at
+-- once ("now"); a day's egg (a holiday) a little after; the flight's dislike still waits ("slow").
+-- An egg names its own (delay = ...), day eggs are "day"; Quirks.DISLIKE_DELAY per activity.
+Quirks.DELAY = { dislike = { 8, 15 }, egg = { 3, 10 }, now = { 1, 3 }, day = { 5, 15 }, slow = { 20, 40 } }
+Quirks.DISLIKE_DELAY = { taxi = "slow" }
 -- Talking a lot (2026-11-11, the user): this many of your guild chat lines within CHAT_SPAN seconds.
 Quirks.CHAT_BURST, Quirks.CHAT_SPAN = 5, 120
 
@@ -62,9 +67,9 @@ end
 -- day, a dislike found) is saved only when it's said: a /reload in the
 -- delay used to spend it unsaid (code review 2026-11-10). said(): saves
 -- that, and what follows the line.
-function Quirks:Say(text, why, kind, said)
+function Quirks:Say(text, why, kind, said, delay)
     pending.line = true
-    local span = self.DELAY[kind]
+    local span = self.DELAY[delay] or self.DELAY[kind] -- (tests set DELAY to dislike and egg only)
     local wait = span[1] + self.random() * (span[2] - span[1])
     ns.Log("Quirks", "%s, in %d s", why, wait)
     C_Timer.After(wait, function()
@@ -96,7 +101,7 @@ function Quirks:Dislike(key, id)
             ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")
         end
         if ns.JournalUI then ns.JournalUI:Refresh() end
-    end)
+    end, self.DISLIKE_DELAY[id])
 end
 
 ------------------------------------------------------------------------------
@@ -238,42 +243,42 @@ Quirks.EGGS = {
     end },
     { id = "midnatt", on = "*", chance = 0.5,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
-    { id = "speil", on = "seen", test = function(ctx)
+    { id = "speil", delay = "now", on = "seen", test = function(ctx)
         return ns.Pets:SpeciesOfKey(ctx.key) == ctx.seen and { owner = ctx.extra }
     end },
     -- (2026-11-10) Your adopted pet meets someone with a bond with its kind (a carer
     -- before you, or their own copy: bonds don't tell which).
-    { id = "kjenner", on = "seen", test = function(ctx)
+    { id = "kjenner", delay = "now", on = "seen", test = function(ctx)
         if ns.Registry:MyPet() ~= ctx.key then return nil end
         local e = ns.Registry:Life(ctx.key, ctx.extra)
         return e and e.p > 0 and { owner = ctx.extra }
     end },
     -- Another species of the same family: cousins.
-    { id = "fetter", on = "seen", chance = 0.25, test = function(ctx)
+    { id = "fetter", delay = "now", on = "seen", chance = 0.25, test = function(ctx)
         if ns.Pets:SpeciesOfKey(ctx.key) == ctx.seen then return nil end
         local theirs = ns.Scenes:Families(ns.Pets:KeyOfSpecies(ctx.seen))[1]
         return theirs and ctx.family[theirs] and { owner = ctx.extra }
     end },
     -- The pet makes fun of you (2026-11-10, the user's): a 1 of 100, two fish lost in a row.
-    { id = "ener", on = "roll", always = true, chance = 0.5, test = function() return {} end },
-    { id = "fiskeflaks", on = "fishfail", chance = 0.5, test = function() return {} end },
+    { id = "ener", delay = "now", on = "roll", always = true, chance = 0.5, test = function() return {} end },
+    { id = "fiskeflaks", delay = "now", on = "fishfail", chance = 0.5, test = function() return {} end },
     -- ... and is amazed (2026-11-11, the user's): a 100 of 100, an epic looted. Rare enough to come every time.
-    { id = "hundre", on = "hundred", always = true, test = function() return {} end },
-    { id = "lilla", on = "epic", always = true, test = function() return {} end },
+    { id = "hundre", delay = "now", on = "hundred", always = true, test = function() return {} end },
+    { id = "lilla", delay = "now", on = "epic", always = true, test = function() return {} end },
     -- A duel won or lost, a new flight path, fishing in the Sunday contest (2026-11-11, from
     -- what /dp probe api found in the client).
-    { id = "duellvinner", on = "duelwon", always = true, test = function(ctx)
+    { id = "duellvinner", delay = "now", on = "duelwon", always = true, test = function(ctx)
         return type(ctx.extra) == "string" and { who = ctx.extra } end },
-    { id = "duelltaper", on = "duellost", always = true, test = function(ctx)
+    { id = "duelltaper", delay = "now", on = "duellost", always = true, test = function(ctx)
         return type(ctx.extra) == "string" and { who = ctx.extra } end },
-    { id = "nyrute", on = "newpath", always = true, test = function(ctx)
+    { id = "nyrute", delay = "now", on = "newpath", always = true, test = function(ctx)
         return HasTrait(ctx.key, "reiseglad") and { _key = "egg.nyrute.reiseglad" } or {} end },
     -- A lot of guild chat at once, for a pet that isn't a Pratsom (it would join in) (the user, 2026-11-11).
-    { id = "skravle", on = "chat", chance = 0.4, test = function(ctx)
+    { id = "skravle", delay = "now", on = "chat", chance = 0.4, test = function(ctx)
         return not HasTrait(ctx.key, "pratsom") and Quirks:Chatty() and {} end },
-    { id = "fiskekonk", on = "fish", always = true, test = function(ctx)
+    { id = "fiskekonk", delay = "now", on = "fish", always = true, test = function(ctx)
         return ns.Holidays:Has(ctx.t, "stvfishing") and ns.Plain(GetZoneText()) == "Stranglethorn Vale" and {} end },
-    { id = "kattefisk", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
+    { id = "kattefisk", delay = "now", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
     { id = "vinger", on = "taxi", chance = 0.3,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
     { id = "trofe", on = "boss", chance = 0.15, test = function(ctx)
@@ -333,7 +338,7 @@ function Quirks:Egg(on, key, extra, seen)
                     ns.DB.char.eggs[e.id] = got
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
                     ns.Story:Mine(key, "egg", text, e.id) -- (its story keeps the line, once per egg)
-                end)
+                end, e.delay or (e.on == "day" and "day" or nil))
                 any = true
             end
         end
