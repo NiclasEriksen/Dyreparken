@@ -125,4 +125,20 @@ return function(test, H)
         for _, p in ipairs(ola.ns.Fx.particles or {}) do if p:IsShown() then shown = shown + 1 end end
         eq(shown, 0)
     end)
+
+    test("the frame's art waits for the frame: greyed while it's off; the per-character sections say so", function()
+        local w, ola, S = Setup()
+        S:Open()
+        local art = Widget(S, "settings.petframeart").button
+        no(art:IsEnabled(), "the frame is off: nothing to frame")
+        eq(art.label.color[1], 0.5)
+        Widget(S, "settings.petframe").button:Click()
+        ok(art:IsEnabled())
+        eq(art.label.color[1], 1)
+        local notes = 0
+        for _, row in ipairs(S.ROWS) do if row.char and row.head then notes = notes + 1 end end
+        eq(notes, 2, "Dyret ditt and Guilden")
+        -- The particles are radio buttons.
+        eq(Widget(S, "settings.particles").buttons[1].template, "UIRadioButtonTemplate")
+    end)
 end

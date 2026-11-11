@@ -33,12 +33,12 @@ end
 -- The rows, top to bottom: a heading, or { label, tip, get, set } for a checkbox,
 -- or { label, choices } for a row of choices; { column = 2 }: the rest in the right half.
 local ROWS = {
-    { head = "settings.head.pet" },
+    { head = "settings.head.pet", char = true },
     { key = "settings.autosummon", get = function() return ns.DB.char.autoSummon and true or false end,
         set = function(v) ns.Summon:SetEnabled(v) end, char = true },
     { key = "settings.mute", get = function() return ns.DB.char.muteSummonSound and true or false end,
         set = function(v) ns.Summon:SetMuteSound(v) end, char = true },
-    { head = "settings.head.guild" },
+    { head = "settings.head.guild", char = true },
     { key = "settings.announce", get = function() return ns.DB.char.announce and true or false end,
         set = function(v) ns.DB.char.announce = v end, char = true },
     { key = "settings.achnotify", get = function() return ns.DB.char.achNotify and true or false end,
@@ -55,7 +55,8 @@ local ROWS = {
     { key = "settings.petframe", get = function() return ns.PetFrame:Enabled() end,
         set = function(v) Set("petFrame", v); ns.PetFrame:Apply() end },
     { key = "settings.petframeart", get = function() return ns.Settings:Get("petFrameArt") == true end,
-        set = function(v) Set("petFrameArt", v); ns.PetFrame:Apply() end },
+        set = function(v) Set("petFrameArt", v); ns.PetFrame:Apply() end,
+        needs = function() return ns.PetFrame:Enabled() end }, -- (greyed and indented while the frame is off)
 }
 Settings.ROWS = ROWS
 Settings.COL_W = 330 -- a column's width (the page's inset is about 700)
@@ -98,6 +99,11 @@ local function Build(p)
             local h = inset:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
             h:SetPoint("TOPLEFT", inset, at, x + 20, y - 6)
             h:SetText(L[row.head])
+            if row.char then -- (these are per character; the rest is for the account: UX review 2026-11-11)
+                local note = inset:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+                note:SetPoint("BOTTOMLEFT", h, "BOTTOMRIGHT", 8, 1)
+                note:SetText(L["settings.char.head"])
+            end
             y = y - 34
         elseif row.choices then
             local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -107,8 +113,11 @@ local function Build(p)
             local w = { row = row, buttons = {} }
             local prev
             for _, choice in ipairs(row.choices) do
-                local b = CreateFrame("CheckButton", nil, inset, "UICheckButtonTemplate")
-                b:SetSize(24, 24)
+                -- Radio buttons: one of three (they were checkboxes, UX review 2026-11-11). The template
+                -- isn't probed on Forever yet: checkboxes if it's missing.
+                local okR, b = pcall(CreateFrame, "CheckButton", nil, inset, "UIRadioButtonTemplate")
+                if okR and b then b:SetSize(18, 18)
+                else b = CreateFrame("CheckButton", nil, inset, "UICheckButtonTemplate"); b:SetSize(24, 24) end
                 if prev then b:SetPoint("LEFT", prev.label, "RIGHT", 14, 0)
                 else b:SetPoint("TOPLEFT", inset, at, x + 52, y) end
                 b.label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -129,7 +138,7 @@ local function Build(p)
         else
             local b = CreateFrame("CheckButton", nil, inset, "UICheckButtonTemplate")
             b:SetSize(26, 26)
-            b:SetPoint("TOPLEFT", inset, at, x + 36, y)
+            b:SetPoint("TOPLEFT", inset, at, x + 36 + (row.needs and 18 or 0), y)
             b.label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             b.label:SetPoint("TOPLEFT", b, "TOPRIGHT", 4, -6)
             b.label:SetWidth(COL_W - 70)
@@ -154,6 +163,9 @@ local function Redraw(p)
     for _, w in ipairs(p.widgets or {}) do
         if w.button then
             w.button:SetChecked(Get(w.row))
+            local on = not w.row.needs or w.row.needs()
+            w.button:SetEnabled(on)
+            if on then w.button.label:SetTextColor(1, 1, 1) else w.button.label:SetTextColor(0.5, 0.5, 0.5) end
         else
             local now = Settings:Get(w.row.setting) or "all"
             for _, b in ipairs(w.buttons) do b:SetChecked(b.choice == now) end

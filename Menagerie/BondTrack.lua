@@ -278,7 +278,11 @@ function Track:Update(card, key, color)
         b.text:SetText(ns.T(mine and today > 0 and "bond.bar.top_today" or "bond.bar.top", vars))
     end
     if full then
-        b.next:SetText(ns.T("bond.full.line", { icon = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t" }))
+        -- The goal stays, with a check for the full day (2026-11-11, the user: "Fullt for i dag" beside an
+        -- almost empty bar read as a contradiction); the tooltip says the day is full.
+        b.next:SetText(ns.T("bond.full.line", { icon = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t",
+            goal = nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
+                or ns.L["bond.top"] }))
         b.next:SetTextColor(0.4, 1, 0.4)
         b.edge:SetColorTexture(0.4, 1, 0.4, 0.6)
     else

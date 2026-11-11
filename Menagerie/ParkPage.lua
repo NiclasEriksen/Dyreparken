@@ -62,8 +62,9 @@ function Park:Records(now)
     end
     -- With one pet in the park, it's both the oldest and the newest: once is enough.
     if newest.key ~= oldest.key then
-        lines[#lines + 1] = ns.T("park.newest", { pet = ns.Registry:NameOf(newest.key), owner = newest.owner,
-            time = ns.CaredFor(newest.at, now) })
+        local home = ns.Home(newest.owner, newest.at, now)
+        lines[#lines + 1] = ns.T("park.newest", { pet = ns.Registry:NameOf(newest.key),
+            home = home:sub(1, 1):lower() .. home:sub(2) })
     end
     return lines
 end
@@ -73,7 +74,8 @@ local function ShowTooltip(cell)
     local R = ns.Registry
     local owner, r = R:Holder(key)
     local nick, namer, namedAt = R:Nickname(key)
-    GameTooltip:SetOwner(cell, "ANCHOR_RIGHT")
+    -- Below the icon: ANCHOR_RIGHT grew upwards over the page's header from the top rows (UX review 2026-11-11).
+    GameTooltip:SetOwner(cell, "ANCHOR_BOTTOMRIGHT")
     GameTooltip:SetText(nick or ns.Pets:NameOfKey(key))
     if nick then GameTooltip:AddLine(ns.Pets:NameOfKey(key), 0.7, 0.7, 0.7) end
     if owner then
@@ -87,10 +89,8 @@ local function ShowTooltip(cell)
         local by = namer == ns.PlayerKey() and ns.L["home.you"] or namer
         GameTooltip:AddLine(ns.T("tip.named_by", { who = by, date = Day(namedAt) }), 0.7, 0.7, 0.7)
     end
+    -- The traits by name only (2026-11-11, the user): what they do is on the card's personality tooltip.
     GameTooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
-    for _, t in ipairs(ns.Personality:Known(key) and ns.Personality:Traits(key) or {}) do
-        GameTooltip:AddLine(("%s: %s"):format(t.name, ns.Personality:Effect(t)), 0.9, 0.75, 0.3, true)
-    end
     if owner ~= ns.PlayerKey() and ns.Pets:IsOwned(key) then
         GameTooltip:AddLine(ns.L[owner and "park.also_yours" or "park.can_adopt"],
             1, 1, 1)
@@ -187,7 +187,8 @@ local function Build(p)
     records:SetPoint("TOPLEFT", child, "TOPLEFT", 8, -8)
     records:SetPoint("RIGHT", child, "RIGHT", -8, 0)
     records:SetJustifyH("LEFT")
-    legend = child:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    legend = child:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    legend:SetTextColor(0.8, 0.76, 0.66) -- (the disabled grey was hard to read, UX review 2026-11-11)
     legend:SetText(ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) }))
     Park._page, Park._records, Park._legend = page, records, legend
 end

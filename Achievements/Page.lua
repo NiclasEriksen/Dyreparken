@@ -133,8 +133,9 @@ local function FillRow(r, it)
         r.info:Show()
         r.bar:Hide()
     else
-        r.name:SetTextColor(0.6, 0.6, 0.6)
-        r.desc:SetTextColor(0.5, 0.5, 0.5)
+        -- Dimmed, still readable (the page was mostly low-contrast grey, UX review 2026-11-11).
+        r.name:SetTextColor(0.78, 0.78, 0.78)
+        r.desc:SetTextColor(0.7, 0.7, 0.7)
         r.info:Hide()
         r.bar:SetMinMaxValues(0, math.max(it.need or 1, 1))
         r.bar:SetValue(it.have or 0)

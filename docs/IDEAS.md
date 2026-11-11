@@ -265,6 +265,13 @@ sentences ("mining", "herbs", "level"), "Fleibede" (an inside joke), "trigge", "
 
 ## UX polish still open
 
+Done 2026-11-11 (the user picked): the card's home line is short ("Hos deg i 3 dager"; the full sentence on
+hover), a full day keeps the goal with a check ("✓ 57 poeng til God venn"), Parken's tooltip names the traits
+only and opens below the icon, its records and legend read better, the scrollbars hide when nothing scrolls,
+unearned achievements are brighter, the particle choice is radio buttons, the frame's art is greyed while the
+frame is off, and the per-character sections say so. Not changed: the pet frame's ring is the card's tier color
+(silver at 3); the story book's tooltip already names it. Still open below: the stat chips, Dagens dyr.
+
 - The card's home and likes lines are cut off ("Har bodd h…"); give the home line its own row.
 - "✓ Fullt for i dag" beside an almost empty bar reads as a contradiction, and hides "N poeng til …".
 - The stat chips are bare numbers; the story book under "Med deg" has no label.

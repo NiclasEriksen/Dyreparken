@@ -43,7 +43,7 @@ return function(test, H)
         ola:OpenJournal()
         card = ola:SelectPet(5159)
         eq(card.nickname.text, "Pepe")
-        eq(card.status.plain, "Panda Cub · Har bodd hos deg i 30 dager")
+        eq(card.status.plain, "Panda Cub · Hos deg i 30 dager")
         -- Hover the name or the home line: everything in full, even if cut short on the card.
         card.nameHit.scripts.OnEnter(card.nameHit)
         eq(table.concat(ola.env.GameTooltip.lines, " / "), "Pepe / Panda Cub / |cffffd100Har bodd hos deg i 30 dager|r")

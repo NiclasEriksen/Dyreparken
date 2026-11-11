@@ -251,7 +251,7 @@ Api.TEMPLATES = {
     { "UIPanelButtonTemplate", "Button" }, { "UIPanelCloseButton", "Button" }, { "UIPanelCloseButtonNoScripts", "Button" },
     { "PanelTabButtonTemplate", "Button" }, { "CharacterFrameTabButtonTemplate", "Button" },
     { "SecureActionButtonTemplate", "Button" }, { "ActionButtonTemplate", "CheckButton" },
-    { "ItemButtonTemplate", "Button" }, { "UICheckButtonTemplate", "CheckButton" },
+    { "ItemButtonTemplate", "Button" }, { "UICheckButtonTemplate", "CheckButton" }, { "UIRadioButtonTemplate", "CheckButton" },
     { "InterfaceOptionsCheckButtonTemplate", "CheckButton" }, { "SettingsCheckboxTemplate", "CheckButton" },
     { "OptionsSliderTemplate", "Slider" }, { "MinimalSliderWithSteppersTemplate", "Frame" },
     { "InputBoxTemplate", "EditBox" }, { "SearchBoxTemplate", "EditBox" },

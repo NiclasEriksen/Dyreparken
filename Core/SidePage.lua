@@ -166,6 +166,9 @@ function SidePage:ScrollInset(p, top)
     inset:SetPoint("TOPLEFT", host, "TOPLEFT", 4, -(top or 60))
     inset:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -6, 26)
     local scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
+    -- Blizzard's template hides its bar while there's nothing to scroll (ScrollFrame_OnScrollRangeChanged),
+    -- if asked: an empty bar beside a page that fits looked broken (UX review 2026-11-11).
+    scroll.scrollBarHideable = true
     scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", 4, -4)
     scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 4)
     local child = CreateFrame("Frame", nil, scroll)

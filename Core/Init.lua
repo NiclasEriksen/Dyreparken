@@ -261,10 +261,11 @@ end
 -- Where a pet lives, and since when, as a phrase: "Flyttet inn hos deg i
 -- dag", "... i går", else "Har bodd hos Kari Berg i 3 dager" (2026-11-10: past tense; 2026-11-08: "bor
 -- hos deg siden i dag" read badly). who: a name, or ns.L["home.you"].
-function ns.Home(who, t, now)
+-- short: "Hos deg i 3 dager" for "Har bodd hos deg i 3 dager" (the card's line, where room is short).
+function ns.Home(who, t, now, short)
     local kind = Ago(t, now or ns.Now())
     if kind == "today" or kind == "yesterday" then return ns.T("home." .. kind, { who = who }) end
-    return ns.T("home.since", { who = who, how = ns.CaredFor(t, now) })
+    return ns.T(short and "home.short" or "home.since", { who = who, how = ns.CaredFor(t, now) })
 end
 
 -- A time from the wire we can trust the shape of: a real number, not NaN or

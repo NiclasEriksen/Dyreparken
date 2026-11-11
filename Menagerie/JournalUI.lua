@@ -136,13 +136,18 @@ local function UpdateCard()
     local key = ns.Pets:KeyOfSpecies(sid)
     local status, owner, r = ns.Registry:Status(key)
     local nick = ns.Registry:Nickname(key)
-    local text
+    -- The line is short ("Hos deg i 3 dager": the full sentence was cut off, 2026-11-11); hovering it
+    -- gives the full sentence.
+    local text, short
     if status == "free" then
         text = "|cff80cc80" .. ns.L["card.free"] .. "|r"
+        short = text
     elseif status == "mine" then
         text = ns.Gold(ns.Home(ns.L["home.you"], r.at))
+        short = ns.Gold(ns.Home(ns.L["home.you"], r.at, nil, true))
     else
         text = "|cffff8080" .. ns.Home(owner, r.at) .. "|r"
+        short = "|cffff8080" .. ns.Home(owner, r.at, nil, true) .. "|r"
     end
     -- Big: the nickname, else the species. Small: the species (if named) and its home.
     local species = ns.Pets:NameOfKey(key) or ""
@@ -154,7 +159,7 @@ local function UpdateCard()
         card.nickname:SetFontObject(font)
         if not room or card.nickname:GetStringWidth() <= room then break end
     end
-    card.status:SetText(nick and (species .. " · " .. text) or text)
+    card.status:SetText(nick and (species .. " · " .. short) or short) -- (no nickname: the big name is the species)
     card.fullName, card.species, card.home = nick or species, species, text -- for the hover
     if ns.Personality:Known(key) then
         card.personality:SetText(ns.Personality:Names(key))
