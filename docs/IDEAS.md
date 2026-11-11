@@ -222,6 +222,9 @@ turned back (SetYaw), the inn's name (GetBindLocation), the zone names, and a gu
 - **Playdates work at any distance** (the user, 2026-11-11): a guildmate's pet anywhere in the group counts, even
   far away. Only one in range should (Menagerie/Playdate.lua). Candidates to probe on Forever: `UnitInRange`,
   `CheckInteractDistance`, `UnitIsVisible`, or the companion seen nearby (Quirks' COMPANION_SEEN, Tooltip).
+- **A forged one-part SYNC can cancel our pending SYNC** (found 2026-11-11, not fixed): Sync.lua cancels ours when
+  a SYNC arrives whose digest equals ours, and anyone can read our digest from HELLO. A forger could keep a
+  newcomer waiting until the next HELLO.
 
 # The pet frame's settings (noted 2026-11-11, the user)
 
