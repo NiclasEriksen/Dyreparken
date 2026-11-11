@@ -61,6 +61,8 @@ Activity.KINDS = {
     { "hearth", icons = { ICON .. "INV_Misc_Rune_01" } },
     { "jump" },
     { "roll", wish = false },     -- a 1 on a 1-100 roll (/roll or a loot roll): only the eggs watch it
+    { "hundred", wish = false },  -- a 100 on a 1-100 roll: only the eggs watch it
+    { "epic", wish = false },     -- you looted an epic (or better): only the eggs watch it
     { "fishfail", wish = false }, -- the second fish in a row that got away: only the eggs watch it
 }
 Activity.KIND = {}
@@ -509,36 +511,59 @@ local function ChatSource(id, event, global)
             if name then return 1, name end
         end })
 end
--- A 1 out of 1-100 (2026-11-10, the user: "Hjelp Plask rolls 1 (1-100)"), by
--- /roll (CHAT_MSG_SYSTEM, RANDOM_ROLL_RESULT) or on an item (CHAT_MSG_LOOT,
--- "Need Roll - 1 for [item] by Hjelp Plask": always 1-100). Your own only.
--- Unverified on Forever: the loot roll lines' wording.
+-- Your own roll of 1-100 (2026-11-10, the user: "Hjelp Plask rolls 1 (1-100)"), by
+-- /roll (CHAT_MSG_SYSTEM, RANDOM_ROLL_RESULT) or on an item (CHAT_MSG_LOOT: always
+-- 1-100). Forever's loot roll lines start with a loot history link (/dp probe api,
+-- 2026-11-11: "|HlootHistory:%d|h[Loot]|h: Need Roll - %d for %s by %s"), so the
+-- roll is the third capture from the end (roll, item, name), with or without it.
+-- A 1 (roll) or a 100 (hundred): the pet laughs at you, or is amazed.
 local LOOT_ROLLS = { "LOOT_ROLL_ROLLED_NEED", "LOOT_ROLL_ROLLED_GREED", "LOOT_ROLL_ROLLED_DE" }
 local function Me(name)
     name = type(name) == "string" and ns.NormalizeName(name)
     return name and (name == ns.PlayerKey() or name == Plain(UnitName("player")))
 end
-function Activity.RolledOne(event, text)
+function Activity.Rolled(event, text)
     text = Plain(text)
     if type(text) ~= "string" then return nil end
     if event == "CHAT_MSG_SYSTEM" then
         local pattern = Activity.FormatPattern(_G.RANDOM_ROLL_RESULT)
         if not pattern then return nil end
         local name, roll, low, high = text:match(pattern)
-        if name and Me(name) and roll == "1" and low == "1" and high == "100" then return 1 end
+        if name and Me(name) and low == "1" and high == "100" then return tonumber(roll) end
         return nil
     end
     for _, global in ipairs(LOOT_ROLLS) do
         local pattern = Activity.FormatPattern(_G[global])
-        if pattern then
-            local roll, _, name = text:match(pattern)
-            if roll == "1" and Me(name) then return 1 end
-        end
+        local got = pattern and { text:match(pattern) }
+        if got and #got >= 3 and Me(got[#got]) then return tonumber(got[#got - 2]) end
     end
 end
-Activity:Source({ id = "roll", events = { "CHAT_MSG_SYSTEM", "CHAT_MSG_LOOT" },
-    available = function() return Activity.FormatPattern(_G.RANDOM_ROLL_RESULT) ~= nil end,
-    filter = Activity.RolledOne })
+local function RollSource(id, value)
+    Activity:Source({ id = id, events = { "CHAT_MSG_SYSTEM", "CHAT_MSG_LOOT" },
+        available = function() return Activity.FormatPattern(_G.RANDOM_ROLL_RESULT) ~= nil end,
+        filter = function(event, text) return Activity.Rolled(event, text) == value and 1 or nil end })
+end
+RollSource("roll", 1)
+RollSource("hundred", 100)
+
+-- An epic (or better) you looted (2026-11-11, the user): "You receive loot: [item]"
+-- (LOOT_ITEM_SELF, or ..._MULTIPLE for a stack), the item link's color its quality
+-- (a335ee epic, ff8000 legendary, e6cc80 artifact). Not items pushed to you (quest
+-- rewards, crafting: LOOT_ITEM_PUSHED_SELF), and not someone else's loot.
+Activity.EPIC_COLORS = { a335ee = true, ff8000 = true, e6cc80 = true }
+function Activity.LootedEpic(text)
+    text = Plain(text)
+    if type(text) ~= "string" then return nil end
+    for _, global in ipairs({ "LOOT_ITEM_SELF", "LOOT_ITEM_SELF_MULTIPLE" }) do
+        local pattern = Activity.FormatPattern(_G[global])
+        local item = pattern and text:match(pattern)
+        local color = item and item:match("^|c%x%x(%x%x%x%x%x%x)")
+        if color and Activity.EPIC_COLORS[color:lower()] then return 1 end
+    end
+end
+Activity:Source({ id = "epic", events = { "CHAT_MSG_LOOT" },
+    available = function() return Activity.FormatPattern(_G.LOOT_ITEM_SELF) ~= nil end,
+    filter = function(_, text) return Activity.LootedEpic(text) end })
 
 -- Two fish in a row that got away (2026-11-10, the user): "Your fish got away!"
 -- or "No fish are hooked." (UI_ERROR_MESSAGE: type, text), with no loot window

@@ -364,6 +364,11 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   `numSequenceDays` 8, `startTime`/`endTime`, `iconTexture`), and `GetHolidayInfo(0, day, i)` their name and
   description: "Darkmoon Faire" ("...this time in idyllic Elwynn Forest") and "Call to Arms: Warsong Gulch". So the
   game's own holidays can come from the calendar; the names are English (the client's locale).
+- **Loot roll lines** start with a loot history link on Forever (need and greed, not disenchant):
+  "|HlootHistory:%d|h[Loot]|h: Need Roll - %d for %s by %s". Read the roll as the third capture from the end
+  (Activity.Rolled); before 2026-11-11 the history id was read as the roll. Loot you pick up: `LOOT_ITEM_SELF`
+  "You receive loot: %s"; items given to you: `LOOT_ITEM_PUSHED_SELF` "You receive item: %s". Unverified: how a
+  link's color code looks in these lines on Forever (an epic is read by `|cffa335ee`).
 - **The year's holidays** (`/dp probe api holidays`, 2026-11-11, Nov 2026 to Oct 2027; event ids, `eventType` 4):
   324 Hallow's End, 141 Feast of Winter Veil (Dec 15 to Jan 2), 327 Lunar Festival (Feb 2-16), 335 Love is in the
   Air (Feb 11-16), 181 Noblegarden (Mar 29-30), 341 Midsummer Fire Festival (Jun 21 to Jul 5), 321 Harvest Festival

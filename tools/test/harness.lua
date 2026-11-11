@@ -1352,9 +1352,12 @@ function Client:BuildEnv()
     env.FACTION_STANDING_INCREASED = "Reputation with %s increased by %d." -- (Forever's, 2026-11-09)
     -- Rolls and fishing (enUS GlobalStrings).
     env.RANDOM_ROLL_RESULT = "%s rolls %d (%d-%d)"
-    env.LOOT_ROLL_ROLLED_NEED = "Need Roll - %d for %s by %s"
-    env.LOOT_ROLL_ROLLED_GREED = "Greed Roll - %d for %s by %s"
+    -- (Forever's, /dp probe api 2026-11-11: need and greed start with a loot history link)
+    env.LOOT_ROLL_ROLLED_NEED = "|HlootHistory:%d|h[Loot]|h: Need Roll - %d for %s by %s"
+    env.LOOT_ROLL_ROLLED_GREED = "|HlootHistory:%d|h[Loot]|h: Greed Roll - %d for %s by %s"
     env.LOOT_ROLL_ROLLED_DE = "Disenchant Roll - %d for %s by %s"
+    env.LOOT_ITEM_SELF = "You receive loot: %s"
+    env.LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
     env.ERR_FISH_ESCAPED = "Your fish got away!"
     env.ERR_FISH_NOT_HOOKED = "No fish are hooked."
     -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.

@@ -248,12 +248,14 @@ return function(test, H)
         Roll("Ola Nord rolls 1 (1-100)")
         eq(Count(ola, LINE), 1)
         w:SkipDays(1)
-        ola:Fire("CHAT_MSG_LOOT", "Greed Roll - 1 for [Linen Cloth] by Kari Berg"); w:Run(1)
+        ola:Fire("CHAT_MSG_LOOT", "|HlootHistory:1|h[Loot]|h: Greed Roll - 1 for [Linen Cloth] by Kari Berg"); w:Run(1)
         eq(Count(ola, LINE), 1, "someone else's")
-        ola:Fire("CHAT_MSG_LOOT", "Need Roll - 1 for [Linen Cloth] by Ola Nord"); w:Run(1)
+        ola:Fire("CHAT_MSG_LOOT", "|HlootHistory:1|h[Loot]|h: Need Roll - 55 for [Linen Cloth] by Ola Nord"); w:Run(1)
+        eq(Count(ola, LINE), 1, "a 55 (the 1 in the loot history link isn't the roll)")
+        ola:Fire("CHAT_MSG_LOOT", "|HlootHistory:12|h[Loot]|h: Need Roll - 1 for [Linen Cloth] by Ola Nord"); w:Run(1)
         eq(Count(ola, LINE), 2, "a loot roll")
         -- Fishing: once at the second fish in a row that got away; a catch starts over.
-        w:Skip(3600) -- (not an `always` egg: the hour since the roll's line)
+        w:Skip(2700) -- (not an `always` egg: the 45 minutes since the roll's line)
         local FISH = "Bombay Cat ser på deg, så på vannet"
         local function Lost(text) ola:Fire("UI_ERROR_MESSAGE", 0, text or "Your fish got away!"); w:Run(1) end
         Lost()
@@ -266,5 +268,32 @@ return function(test, H)
         eq(Count(ola, FISH), 1, "once")
         Lost("You can't do that yet")
         eq(Count(ola, FISH), 1)
+    end)
+
+    test("the pet is amazed: a 100 of 100 (yours, /roll or loot), an epic you looted", function()
+        local w, ola, Q = Setup()
+        local function Eggs(id) local e = ola.ns.DB.char.eggs[id]; return e and e.n or 0 end
+        local function Roll(text) ola:Fire("CHAT_MSG_SYSTEM", text); w:Run(1) end
+        Roll("Ola Nord rolls 100 (1-1000)"); Roll("Kari Berg rolls 100 (1-100)"); Roll("Ola Nord rolls 99 (1-100)")
+        eq(Eggs("hundre"), 0, "not 1-100, not yours, not a 100")
+        Roll("Ola Nord rolls 100 (1-100)")
+        eq(Eggs("hundre"), 1)
+        Roll("Ola Nord rolls 100 (1-100)")
+        eq(Eggs("hundre"), 1, "once a day")
+        w:SkipDays(1)
+        ola:Fire("CHAT_MSG_LOOT", "Disenchant Roll - 100 for [Linen Cloth] by Ola Nord"); w:Run(1)
+        eq(Eggs("hundre"), 2, "a loot roll, no history link")
+        -- Loot: epic or better, yours, looted (not pushed to you).
+        local function Loot(text) ola:Fire("CHAT_MSG_LOOT", text); w:Run(1) end
+        local EPIC_LINK = "|cffa335ee|Hitem:19019::::::::60:::::|h[Thunderfury]|h|r"
+        Loot("You receive loot: |cff0070dd|Hitem:1::::::::60:::::|h[Blue Thing]|h|r")
+        Loot("You receive item: " .. EPIC_LINK)
+        Loot("Kari Berg receives loot: " .. EPIC_LINK)
+        eq(Eggs("lilla"), 0, "a rare, a reward pushed to you, someone else's")
+        Loot("You receive loot: " .. EPIC_LINK)
+        eq(Eggs("lilla"), 1, "an epic, at once (no 45 minutes needed)")
+        w:SkipDays(1)
+        Loot("You receive loot: |cffff8000|Hitem:2::::::::60:::::|h[Orange]|h|rx2.")
+        eq(Eggs("lilla"), 2, "a legendary, in a stack")
     end)
 end

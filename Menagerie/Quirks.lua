@@ -1,7 +1,7 @@
 local _, ns = ...
 
 -- Quirks (2026-11-09): flavor with no effect on anything. The more little
--- surprises, the better, but quietly: at most one quirk line an hour
+-- surprises, the better, but quietly: at most one quirk line every 45 minutes
 -- (char.quirkAt), and most only by chance.
 --
 -- Dislikes (Personality:Dislikes): something your pet doesn't like happened
@@ -18,7 +18,7 @@ local _, ns = ...
 local Quirks = {}
 ns.Quirks = Quirks
 
-Quirks.EVERY = 3600          -- seconds between quirk lines
+Quirks.EVERY = 2700          -- seconds between quirk lines (an hour until 2026-11-11: the user, 45 minutes)
 Quirks.DISLIKE_CHANCE = 0.35 -- per disliked activity (with the hour free)
 Quirks.random = math.random  -- (tests pin it)
 -- A line comes a while after what caused it, not the instant it happens
@@ -255,6 +255,9 @@ Quirks.EGGS = {
     -- The pet makes fun of you (2026-11-10, the user's): a 1 of 100, two fish lost in a row.
     { id = "ener", on = "roll", always = true, chance = 0.5, test = function() return {} end },
     { id = "fiskeflaks", on = "fishfail", chance = 0.5, test = function() return {} end },
+    -- ... and is amazed (2026-11-11, the user's): a 100 of 100, an epic looted. Rare enough to come every time.
+    { id = "hundre", on = "hundred", always = true, test = function() return {} end },
+    { id = "lilla", on = "epic", always = true, test = function() return {} end },
     { id = "kattefisk", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
     { id = "vinger", on = "taxi", chance = 0.3,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
@@ -343,7 +346,7 @@ end
 ------------------------------------------------------------------------------
 -- (Not dance: every emote nearby would wake it. The midnight dance comes only
 -- when a Dansefot's like already watches it.)
-Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail" }
+Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic" }
 local watching = {}
 
 function Quirks:Watch()

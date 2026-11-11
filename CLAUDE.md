@@ -150,7 +150,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    a tinted bar with a spark; a celebration once per new level of your own pet, char.bondSeen), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
                    Playdate (in a group with a guildmate whose pet is out: both pets play, once a day each;
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
-                   an hour; read its header), Fx (one-shot particle bursts outside the journal: hearts at the cursor over a
+                   every 45 minutes; read its header), Fx (one-shot particle bursts outside the journal: hearts at the cursor over a
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
                    lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
                    cheer, playing dead the day of the three-deaths egg; which animation per species: Data/PetMoves.lua; and the /dp probe anim research probe), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
@@ -238,7 +238,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most
-  one quirk line an hour; easter eggs (holidays, adoption anniversaries, meeting its own kind, midnight...) at most
+  one quirk line every 45 minutes (an hour until 2026-11-11); easter eggs (holidays, adoption anniversaries, meeting its own kind, midnight...) at most
   once a day each, counted in char.eggs. Lines: Locale dislike.<activity>.N and egg.<id>.N. No player birthdays
   (we don't know them).
 - **A personality is a surprise** (2026-11-09): traits, likes and trait particles show only for a pet you've
