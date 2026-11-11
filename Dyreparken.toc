@@ -70,6 +70,7 @@ Achievements\Achievements.lua
 Achievements\Kills.lua
 Achievements\Page.lua
 Menagerie\ParkPage.lua
+Menagerie\PetFrame.lua
 Menagerie\Settings.lua
 Menagerie\LiftEditor.lua
 Menagerie\MovesEditor.lua

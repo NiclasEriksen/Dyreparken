@@ -49,7 +49,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
     NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED
     PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING CHAT_MSG_EMOTE PLAYER_CONTROL_GAINED
-    CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE]]):gmatch("%S+") do
+    CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE PET_BATTLE_OPENING_START PET_BATTLE_CLOSE]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -148,6 +148,36 @@ end
 ------------------------------------------------------------------------------
 -- Frames
 ------------------------------------------------------------------------------
+-- A pet's actor in a model scene (retail's ModelSceneActor, as on Forever: /dp probe api). It has
+-- the animations in client.petAnims (default: stand, the happy hop, playing dead).
+function H.NewActor(client)
+    local actor = { played = {} }
+    function actor:SetAnimation(id, variation, speed, offset)
+        self.anim, self.speed, self.offset = id, speed, offset
+        self.played[#self.played + 1] = id
+    end
+    -- What plays: the id, or standing (0) for one the model lacks (client.petAnims set).
+    function actor:GetAnimation()
+        if client.petAnims and not client.petAnims[self.anim] then return 0 end
+        return self.anim
+    end
+    -- Retail's Enum.ModelBlendOperation: 0 None (cut straight to it), 1 Anim (blend).
+    function actor:SetAnimationBlendOperation(op) self.blendOp = op end
+    actor.pos, actor.scale = { 0, 0, 0 }, 1
+    function actor:GetPosition() return unpack(self.pos) end
+    function actor:SetPosition(x, y, z) self.pos = { x, y, z } end
+    function actor:GetScale() return self.scale end
+    function actor:SetScale(s) self.scale = s end
+    function actor:GetActiveBoundingBox() return -0.3, -0.2, 0, 0.3, 0.2, 0.8 end
+    function actor:GetYaw() return self.yaw or 0 end
+    function actor:OnModelLoaded() end -- (the mixin's: the client calls it once a model has loaded)
+    function actor:SetYaw(y) self.yaw = y end
+    function actor:SetModelByCreatureDisplayID(id) self.display = id end
+    function actor:HasAnimation(id)
+        return (client.petAnims or { [0] = true, [756] = true, [770] = true })[id] == true
+    end
+    return actor
+end
 local Frame = {}
 Frame.__index = function(self, k)
     local m = Frame[k]
@@ -166,6 +196,10 @@ for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPo
     "SetJustifyV", "SetFontObject", "SetWordWrap" }) do
     Frame[m] = noop
 end
+
+function Frame:SetClampedToScreen(v) self.clamped = v end
+function Frame:SetScale(s) self.scale = s end
+function Frame:GetScale() return self.scale or 1 end
 
 function Frame:RegisterEvent(e)
     if not KNOWN_EVENTS[e] then error("Attempt to register unknown event \"" .. tostring(e) .. "\"", 2) end
@@ -1041,33 +1075,8 @@ function Client:OpenJournal(o)
             -- The pet's actor (retail's ModelScene: GetActorByTag). It has the animations in
             -- self.petAnims (default: stand, the happy hop, playing dead); o.noActor leaves it out.
             if not o.noActor then
-                local client = self
-                local actor = { played = {} }
-                function actor:SetAnimation(id, variation, speed, offset)
-                    self.anim, self.speed, self.offset = id, speed, offset
-                    self.played[#self.played + 1] = id
-                end
-                -- What plays: the id, or standing (0) for one the model lacks (self.petAnims set).
-                function actor:GetAnimation()
-                    if client.petAnims and not client.petAnims[self.anim] then return 0 end
-                    return self.anim
-                end
-                -- Retail's Enum.ModelBlendOperation: 0 None (cut straight to it), 1 Anim (blend).
-                function actor:SetAnimationBlendOperation(op) self.blendOp = op end
-                -- Retail's ModelSceneActor geometry (unverified on Forever: /dp probe pos).
-                actor.pos, actor.scale = { 0, 0, 0 }, 1
-                function actor:GetPosition() return unpack(self.pos) end
-                function actor:SetPosition(x, y, z) self.pos = { x, y, z } end
-                function actor:GetScale() return self.scale end
-                function actor:SetScale(s) self.scale = s end
-                function actor:GetActiveBoundingBox() return -0.3, -0.2, 0, 0.3, 0.2, 0.8 end
+                local actor = H.NewActor(self)
                 function model:Project3DPointTo2D(x, y, z) return 200 + x * 100, 150 + z * 100, 1 end
-                function actor:GetYaw() return self.yaw or 0 end
-                function actor:OnModelLoaded() end -- (the mixin's: the client calls it once a model has loaded)
-                function actor:SetYaw(y) self.yaw = y end
-                function actor:HasAnimation(id)
-                    return (client.petAnims or { [0] = true, [756] = true, [770] = true })[id] == true
-                end
                 function model:GetModelSceneID() return self.sceneID end
                 function model:GetActorByTag(tag) if tag == "unwrapped" then return actor end end
                 self.petActor = actor
@@ -1237,6 +1246,13 @@ function Client:BuildEnv()
     env.C_Secrets = { ShouldAurasBeSecret = function() return S.secretAuras == true end }
 
     -- Frames
+    -- The Collections window by its key binding's function: loads and shows it on that tab (c.toggled counts).
+    env.ToggleCollectionsJournal = function(tab)
+        c.toggled = (c.toggled or 0) + 1
+        if not rawget(env, "CollectionsJournal") then c:OpenJournal() end
+        env.CollectionsJournal:Show()
+        env.CollectionsJournal_SetTab(env.CollectionsJournal, tab or 2)
+    end
     env.CreateFrame = function(ftype, name, parent, template)
         local f = setmetatable({ type = ftype, frameName = name, parent = parent, events = {}, scripts = {},
             shown = true, enabled = true, checked = false, textures = {}, fontStrings = {}, template = template }, Frame)
@@ -1244,6 +1260,21 @@ function Client:BuildEnv()
         c.frames[#c.frames + 1] = f
         -- PortraitFrameMixin, mixed in (a plain field, like the real client).
         if template == "ButtonFrameTemplate" then f.SetTitle = function(self, t) self.titleText = t end end
+        -- A model scene of our own (ModelSceneMixinTemplate, as on Forever: /dp probe api petframe):
+        -- set to a scene id, its "unwrapped" actor, view insets; it takes the mouse unless told not to.
+        if ftype == "ModelScene" and template == "ModelSceneMixinTemplate" then
+            f.mouse = true
+            function f:TransitionToModelSceneID(id) self.sceneID = id end
+            function f:GetModelSceneID() return self.sceneID end
+            function f:SetViewInsets(l, r, t, b) self.insets = { l, r, t, b } end
+            function f:EnableMouseWheel(v) self.wheel = v end
+            function f:EnableMouse(v) self.mouse = v end
+            function f:GetActorByTag(tag)
+                if tag ~= "unwrapped" or not self.sceneID then return nil end
+                self.actor = self.actor or H.NewActor(c)
+                return self.actor
+            end
+        end
         if name then rawset(env, name, f) end
         return f
     end
@@ -1636,6 +1667,8 @@ function Client:BuildEnv()
             return H.SPECIES[sid], 1000 + sid, 5, 272330, "", "", false, true, false, true, true, 20000 + sid
         end,
         GetNumPets = function() return #(c.journalList or c.pets), #c.pets end,
+        -- (Forever: 1271, 7 for the prairie dog, /dp probe api petframe; one scene for all here)
+        GetPetModelSceneInfoBySpeciesID = function(sid) if H.SPECIES[sid] then return 1271, 7 end end,
         GetPetInfoByIndex = function(i)
             local list = c.journalList or {}
             if not c.journalList then

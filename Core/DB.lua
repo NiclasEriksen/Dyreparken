@@ -26,6 +26,7 @@ local ACCOUNT_DEFAULTS = {
     achHeard = {}, -- ["sender\31id"] = when: others' achievements already told (Achievements: OnEarned)
     settings = { -- the account's settings (Menagerie/Settings.lua)
         chatLines = true, worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,
+        petFrame = false, petFrameSize = "medium", -- (the pet frame: off unless chosen, PetFrame.lua)
     },
     scenePicks = {}, -- family -> background path, picked in /dp probe bg (SceneGallery.lua)
     liftPicks = {},  -- species id -> lift, set in /dp probe lift (LiftEditor.lua); to write into Data/PetMoves.lua
@@ -69,6 +70,7 @@ local CHAR_DEFAULTS = {
     quirkAt = nil,             -- when the last quirk line was shown (at most one an hour)
     cardCuddle = nil,          -- the day a click on the card last counted as a cuddle (Cuddle.lua)
     bondSeen = {},             -- [petKey] = the bond level last shown on its card (BondTrack: celebrate once)
+    petFrame = nil,            -- { point, relativePoint, x, y }: where the pet frame stands (PetFrame.lua, Edit Mode)
     ach = { got = {}, seen = {} }, -- character-scope achievements (Achievements.lua)
     warnedVersion = nil, -- newest version we've already told the player about
 }
