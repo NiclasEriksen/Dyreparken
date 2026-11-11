@@ -362,6 +362,14 @@ Moves.HAPPY_TOO_CHANCE = 1 / 3 -- a click plays happyToo instead of happy this o
 Moves.random = math.random -- (tests pin it)
 Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4 } -- how long each one-off plays
 
+-- How long a one-off plays on this pet: as measured (Data/AnimLengths.lua, /dp probe lengths), else
+-- the fixed time. (2026-11-11: with a fixed 2 s, a pet froze on the end of a 1.1 s hop.)
+function Moves:Length(key, id, fallback)
+    local sid = key and ns.Pets:SpeciesOfKey(key)
+    local own = sid and ns.AnimLengths and ns.AnimLengths[sid]
+    return own and id and own[id] or fallback
+end
+
 -- The animation a pet uses for a reaction (Data/PetMoves.lua, edited by
 -- hand): its species' own, else the default; nil when it doesn't do it.
 function Moves:For(key, what)
@@ -409,6 +417,7 @@ Moves.REPOSE = 5
 local hooked, own = setmetatable({}, { __mode = "k" }), false
 local function Outside(what, arg)
     ns.Log("Moves", "%s(%s) from outside, holding %s", what, tostring(arg), tostring(shown.pose and shown.playing))
+    if what ~= "SetAnimation" then shown.modelAt = GetTime() end
     if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
         local key, token = shown.key, shown.token
         C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Moves.Lift(key) end end)
@@ -428,6 +437,14 @@ local function Watch(actor)
         if ok and type(fn) == "function" then
             hooksecurefunc(actor, m, function(_, arg) if not own then Outside(m, arg) end end)
         end
+    end
+    -- Research (2026-11-11, /dp probe api: the actor has an OnModelLoaded and IsLoaded): when does a
+    -- model on the card say it has loaded? Logged, to replace SETTLE and SLEEP_AFTER's guesses.
+    local ok, fn = pcall(function() return actor.OnModelLoaded end)
+    if ok and type(fn) == "function" then
+        hooksecurefunc(actor, "OnModelLoaded", function()
+            ns.Log("Moves", "model loaded %s after it was set", shown.modelAt and ("%.2f s"):format(GetTime() - shown.modelAt) or "?")
+        end)
     end
 end
 
@@ -617,7 +634,7 @@ local function Repose()
         local seated = shown.playing == Moves:For(key, "sitDown") or shown.playing == Moves:For(key, "sit")
         shown.mode = "stand"
         local up = Moves:For(key, "sitUp")
-        local steps = (seated and up) and { { up, Moves.T.up } } or {}
+        local steps = (seated and up) and { { up, Moves:Length(key, up, Moves.T.up) } } or {}
         steps[#steps + 1] = { STAND }
         return Moves:Sequence(steps)
     end
@@ -682,7 +699,7 @@ Steps = function(key, mode)
     if mode == "sit" then
         local down = Moves:For(key, "sitDown")
         local steps = { { STAND, Moves.SIT_AFTER } }
-        if down then steps[#steps + 1] = { down, Moves.T.down } end
+        if down then steps[#steps + 1] = { down, Moves:Length(key, down, Moves.T.down) } end
         steps[#steps + 1] = { Moves:For(key, "sit") }
         return steps
     end
@@ -820,7 +837,7 @@ function Moves:Update(card, key)
     shown.cheerFor = nil
     if cheer or joy then
         if cheer then shown.awake[key] = true; mode = self:Rest(key); shown.mode = mode; steps = Steps(key, mode) end
-        table.insert(steps, 1, { cheer or joy, cheer and self.T.cheer or self.T.happy,
+        table.insert(steps, 1, { cheer or joy, self:Length(key, cheer or joy, cheer and self.T.cheer or self.T.happy),
             on = joy and function() ns.DB.char.wish.shown = true end or nil })
         table.insert(steps, 1, { STAND, self.SETTLE })
     end
@@ -851,8 +868,8 @@ function Moves:Cuddle(key)
     local seated = shown.playing == self:For(key, "sitDown") or shown.playing == self:For(key, "sit")
     local up = mode == "sit" and seated and self:For(key, "sitUp")
         or mode == "sleep" and self:For(key, "sleepUp")
-    if up then steps[#steps + 1] = { up, self.T.up } end
-    if happy then steps[#steps + 1] = { happy, self.T.happy } end
+    if up then steps[#steps + 1] = { up, self:Length(key, up, self.T.up) } end
+    if happy then steps[#steps + 1] = { happy, self:Length(key, happy, self.T.happy) } end
     steps[#steps + 1] = { back }
     self:Sequence(steps)
     -- Woken up: its Zzz go (Decor reads the pose; the card's refresh leaves the hop playing).
@@ -865,7 +882,7 @@ function Moves:Cheer(key)
     local cheer = self:For(key, "cheer")
     if not cheer then return end
     local back = Back(key)
-    self:Sequence({ { cheer, self.T.cheer }, { back } })
+    self:Sequence({ { cheer, self:Length(key, cheer, self.T.cheer) }, { back } })
 end
 
 -- /dp probe anim night: night until toggled off or /reload, every pet asleep
@@ -903,20 +920,21 @@ local function PartSteps(F, what)
 end
 
 -- The whole reaction in order (the moves editor's "Hele"), ending standing.
-local function WholeSteps(F, reaction)
+local function WholeSteps(F, reaction, key)
     local steps = {}
     local function Add(id, t, pose) if id then steps[#steps + 1] = { id, t, pose } end end
+    local function Len(id, t) return Moves:Length(key, id, t) end
     if reaction:find("^sleep") then
         local id, at, hold = F("sleep"), F("sleepAt") or 0, F("sleepHold")
         Add(id, at)
         if hold then Add(hold, Moves.TRY_HOLD) else Add(id, Moves.TRY_HOLD, at) end
-        Add(F("sleepUp"), Moves.T.up)
+        Add(F("sleepUp"), Len(F("sleepUp"), Moves.T.up))
     elseif reaction:find("^sit") then
-        Add(F("sitDown"), Moves.T.down)
+        Add(F("sitDown"), Len(F("sitDown"), Moves.T.down))
         Add(F("sit"), Moves.TRY_HOLD)
-        Add(F("sitUp"), Moves.T.up)
+        Add(F("sitUp"), Len(F("sitUp"), Moves.T.up))
     else
-        Add(F(reaction), reaction == "dead" and Moves.T.dead or Moves.T.cheer)
+        Add(F(reaction), reaction == "dead" and Moves.T.dead or Len(F(reaction), Moves.T.cheer))
     end
     steps[#steps + 1] = { STAND, keep = true }
     return steps
@@ -926,7 +944,7 @@ end
 function Moves:Try(key, what, whole)
     if key ~= shown.key then return end
     local F = function(w) return self:For(key, w) end
-    local steps = what == "stand" and { { STAND, keep = true } } or whole and WholeSteps(F, what) or PartSteps(F, what)
+    local steps = what == "stand" and { { STAND, keep = true } } or whole and WholeSteps(F, what, key) or PartSteps(F, what)
     if not steps or not steps[1] then return end
     shown.mode = "stand"
     -- Standing first, in the same moment: the client doesn't start over the one it's on.

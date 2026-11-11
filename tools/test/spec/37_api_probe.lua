@@ -91,4 +91,83 @@ return function(test, H)
         ola:Slash("probe api model")
         match(ola:Printed("api probe model", true), "open a pet's card first")
     end)
+
+    -- A PlayerModel like the client's: loads, says when an animation ends (Stand 2 s, 99 never, others 1.2 s).
+    local function Models(ola)
+        local real, made = ola.env.CreateFrame, {}
+        ola.env.CreateFrame = function(kind, ...)
+            if kind ~= "PlayerModel" then return real(kind, ...) end
+            local scripts = {}
+            local m = { scripts = scripts }
+            function m.SetSize() end
+            function m.SetPoint() end
+            function m.SetAlpha() end
+            function m:Hide() self.hidden = true end
+            function m:SetDisplayInfo(id)
+                self.display = id
+                ola.env.C_Timer.After(0.5, function() if scripts.OnModelLoaded then scripts.OnModelLoaded(self) end end)
+            end
+            function m.SetScript(_, h, fn) scripts[h] = fn end
+            function m:SetAnimation(id)
+                self.anim = id
+                if id == 99 then return end
+                ola.env.C_Timer.After(id == 0 and 2 or 1.2, function()
+                    if self.anim == id and scripts.OnAnimFinished then scripts.OnAnimFinished(self) end
+                end)
+            end
+            made[#made + 1] = m
+            return m
+        end
+        return made
+    end
+
+    test("lengths: every species' one-offs timed on a few models at once, saved for tools/anim_lengths.lua", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local made = Models(ola)
+        ola:Slash("probe api lengths")
+        eq(#made, 6, "six at a time")
+        w:Run(900)
+        local saved = ola.env.DyreparkenDebugDB.animLengths
+        local n = 0
+        for _ in pairs(saved) do n = n + 1 end
+        eq(n, 84, "every species")
+        eq(saved[5159][0], 2, "Stand, to tell a missing one by")
+        eq(saved[5159][756], 1.2)
+        eq(saved[40][99], "none", "the cats' lie-down: no end")
+        ok(made[1].hidden, "hidden when done")
+        match(ola:Printed("api probe", true), "lengths done, 84 species")
+    end)
+
+    test("holidays: the calendar stepped through a year, each holiday once with its days, and put back", function()
+        local w, ola = H.Setup{ ola = {} }
+        local at = { month = 11, year = 2026 }
+        local set = {}
+        rawset(ola.env, "C_DateAndTime", { GetCurrentCalendarTime = function() return { month = 11, year = 2026, monthDay = 11 } end })
+        rawset(ola.env, "C_Calendar", {
+            OpenCalendar = function() end,
+            SetAbsMonth = function(m, y) at = { month = m, year = y }; set[#set + 1] = m .. "/" .. y end,
+            GetNumDayEvents = function(_, day)
+                if at.month == 11 and day >= 9 and day <= 16 then return 1 end
+                if at.month == 12 and day == 25 then return 1 end
+                return 0
+            end,
+            GetDayEvent = function(_, day)
+                return at.month == 11 and { eventID = 263, title = "Darkmoon Faire", eventType = 4, iconTexture = 235447 }
+                    or { eventID = 141, title = "Feast of Winter Veil", eventType = 4 }
+            end,
+            GetHolidayInfo = function() return { name = at.month == 11 and "Darkmoon Faire" or "Feast of Winter Veil" } end,
+        })
+        ola:Slash("probe api holidays")
+        w:Run(40)
+        local list = ola.env.DyreparkenDebugDB.api.holidays.list
+        eq(#list, 2)
+        eq(list[1].id, 263); eq(list[1].first, "2026-11-09"); eq(list[1].last, "2026-11-16"); eq(list[1].texture, 235447)
+        eq(#list[1].dates, 8, "every day it's on")
+        eq(list[2].id, 141); eq(list[2].first, "2026-12-25")
+        eq(set[2], "12/2026"); eq(set[3], "1/2027", "into the next year")
+        eq(set[#set], "11/2026", "put back")
+        rawset(ola.env, "C_Calendar", {})
+        ola:Slash("probe api holidays")
+        match(ola:Printed("api probe holidays", true), "no C_Calendar.SetAbsMonth")
+    end)
 end

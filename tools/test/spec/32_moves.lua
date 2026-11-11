@@ -810,4 +810,33 @@ return function(test, H)
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 756, "happyToo false: always its happy move")
     end)
+
+    test("a one-off plays as long as it does on that pet (Data/AnimLengths.lua), else the fixed time", function()
+        local w, ola, actor = Setup(12)
+        ola.ns.AnimLengths[5159] = { [756] = 1.1 }
+        ola:SelectPet(5159)
+        w:Run(1)
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 756)
+        w:Run(1.11)
+        eq(actor.anim, 0, "back at once, not frozen on its end")
+        ola.ns.AnimLengths[5159] = nil
+        ola.ns.Cuddle:Pet(ola:Card())
+        w:Run(1.11)
+        eq(actor.anim, 756, "unmeasured: the fixed time")
+        w:Run(ola.ns.Moves.T.happy)
+        eq(actor.anim, 0)
+    end)
+
+    test("research: when the card's model says it has loaded, logged", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        ola:Slash("debug on")
+        local actor = ola.petActor
+        function actor:SetModelByCreatureDisplayID() end
+        ola:SelectPet(5159)
+        actor:SetModelByCreatureDisplayID(5)
+        w:Run(0.4)
+        actor:OnModelLoaded()
+        ok(ola:Log("model loaded 0.40 s after it was set")[1])
+    end)
 end

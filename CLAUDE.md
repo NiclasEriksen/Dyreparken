@@ -122,11 +122,14 @@ Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prest
                    celebrate|anim|ach|pos|lift|moves|gains|api] and debug; a release never logs (Debug:Init turns a saved log off)
 Core/ApiProbe.lua  /dp probe api [section|clear]: what the client really has (globals, C_* namespaces, Enum, events,
                    widget types and their methods/handlers, templates, global strings, getters' values, the card's
-                   actor, the calendar, a pet model's animations and lengths), read-only, in DyreparkenDebugDB.api
+                   actor, the calendar, a pet model's animations and lengths), read-only, in DyreparkenDebugDB.api; by name only:
+                   holidays (the calendar a year ahead) and lengths (every species' moves, DyreparkenDebugDB.animLengths)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/PetMoves.lua  which animation each pet uses for each reaction on the card (sleep, sit, happy, cheer, dead): a
                    default and per-species overrides, EDITED BY HAND by the user (found by eye, /dp probe anim)
+Data/AnimLengths.lua GENERATED (luajit tools/anim_lengths.lua, from a /dp probe api lengths run): how long each
+                   species' one-off moves play, so the card moves on when one ends (Moves:Length); else Moves.T. Don't edit
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
                    After regenerating Data/Companions.lua, run `luajit tools/pin_traits.lua`: it adds new species
                    (least-used traits) and never changes an existing line. Change a species by hand only.

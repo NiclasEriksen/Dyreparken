@@ -20,7 +20,11 @@ local _, ns = ...
 --   model       a model of the card's pet in an invisible PlayerModel: which animations it
 --               has (HasAnimation), and how long the card's ones play (OnAnimFinished)
 -- `/dp probe api` runs them all (open a pet's card first for card and model);
--- `/dp probe api <section>` one; `/dp probe api clear` forgets them.
+-- `/dp probe api <section>` one; `/dp probe api clear` forgets them. Two more, run only by name:
+--   holidays    the calendar's holidays for the coming year (it steps the calendar through the months and
+--               puts it back), for Data/Holidays.lua
+--   lengths     how long every species' one-off moves play (all species, a few minutes), into
+--               DyreparkenDebugDB.animLengths for tools/anim_lengths.lua -> Data/AnimLengths.lua
 local Api = {}
 ns.ApiProbe = Api
 
@@ -491,6 +495,141 @@ function Api:Finish(out)
     ns.Print("api probe: model done; /reload to write DyreparkenDebugDB.api")
 end
 
+-- The coming year's holidays: the calendar set to each month in turn (its events load a moment
+-- later), every day's events read, then set back to this month.
+Api.MONTH_WAIT, Api.MONTHS = 2, 12
+function S.holidays(out)
+    local C = G("C_Calendar")
+    if type(C) ~= "table" or not C.SetAbsMonth then return "no C_Calendar.SetAbsMonth" end
+    pcall(C.OpenCalendar)
+    local now = C_DateAndTime.GetCurrentCalendarTime()
+    local seen, list = {}, {}
+    out.list = list
+    local function Month(i)
+        if i >= Api.MONTHS then
+            pcall(C.SetAbsMonth, now.month, now.year)
+            table.sort(list, function(a, b) return a.first < b.first end)
+            ns.Log("Api", "holidays: %d", #list)
+            return ns.Print(("api probe: holidays done, %d; /reload to write them"):format(#list))
+        end
+        local m = (now.month - 1 + i) % 12 + 1
+        local y = now.year + math.floor((now.month - 1 + i) / 12)
+        pcall(C.SetAbsMonth, m, y)
+        C_Timer.After(Api.MONTH_WAIT, function()
+            for day = 1, 31 do
+                local okN, n = pcall(C.GetNumDayEvents, 0, day)
+                for j = 1, (okN and type(n) == "number") and n or 0 do
+                    local okE, e = pcall(C.GetDayEvent, 0, day, j)
+                    if okE and type(e) == "table" and e.eventID then
+                        local when = ("%04d-%02d-%02d"):format(y, m, day)
+                        local h = seen[e.eventID]
+                        if not h then
+                            local okH, info = pcall(C.GetHolidayInfo, 0, day, j)
+                            h = { id = e.eventID, title = Show(e.title), type = e.eventType, texture = e.iconTexture,
+                                sequence = e.sequenceType, days = e.numSequenceDays, first = when, dates = {},
+                                name = okH and type(info) == "table" and Show(info.name) or nil,
+                                description = okH and type(info) == "table" and Show(info.description) or nil }
+                            seen[e.eventID] = h
+                            list[#list + 1] = h
+                        end
+                        h.last = when
+                        h.dates[#h.dates + 1] = when
+                    end
+                end
+            end
+            Month(i + 1)
+        end)
+    end
+    Month(0)
+    return ("asked; %d months, %d s each"):format(Api.MONTHS, Api.MONTH_WAIT)
+end
+
+-- How long every species' one-off moves play, by OnAnimFinished on invisible PlayerModels, a few at a
+-- time. Each is timed twice (the first may be cut short by the stand it interrupts); the second counts.
+Api.WORKERS, Api.LOAD_WAIT = 6, 2
+Api.PARTS = { "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "sleep", "dead" }
+function S.lengths(out)
+    local queue = {}
+    for sid in pairs(ns.Companions.species) do queue[#queue + 1] = sid end
+    table.sort(queue)
+    local total = #queue
+    local saved = {}
+    DyreparkenDebugDB.animLengths = saved
+    out.species, out.done = #queue, 0
+    local workers = 0
+    local function Ids(sid)
+        local key, ids, seen = ns.Pets:KeyOfSpecies(sid), { 0 }, { [0] = true }
+        for _, what in ipairs(Api.PARTS) do
+            local id = ns.Moves:For(key, what)
+            if id and not seen[id] then seen[id] = true; ids[#ids + 1] = id end
+        end
+        return ids
+    end
+    local function Work(m)
+        local sid = table.remove(queue, 1)
+        if not sid then
+            workers = workers - 1
+            pcall(m.Hide, m)
+            if workers == 0 then
+                ns.Log("Api", "lengths: done, %d species", out.done)
+                ns.Print(("api probe: lengths done, %d species; /reload to write them"):format(out.done))
+            end
+            return
+        end
+        local info = Pack(pcall(C_PetJournal.GetPetInfoBySpeciesID, sid))
+        local display = info[13]
+        local mine = { display = display }
+        saved[sid] = mine
+        local ids, i, round, started, token = Ids(sid), 0, 0, 0, nil
+        local function Next()
+            round = round + 1
+            if round > 2 then round, i = 1, i + 1 end
+            if i == 0 then i = 1 end
+            local id = ids[i]
+            if not id then
+                token = nil
+                out.done = out.done + 1
+                if out.done % 10 == 0 then ns.Print(("api probe: lengths %d / %d"):format(out.done, out.species)) end
+                return Work(m)
+            end
+            local t = {}
+            token, started = t, GetTime()
+            pcall(m.SetAnimation, m, id)
+            C_Timer.After(Api.TIME_OUT, function()
+                if token ~= t then return end
+                mine[id] = "none"
+                Next()
+            end)
+        end
+        m:SetScript("OnAnimFinished", function()
+            if not token or not ids[i] then return end
+            local took = GetTime() - started
+            if round == 2 then mine[ids[i]] = tonumber(("%.2f"):format(took)) end
+            Next()
+        end)
+        local loaded
+        local function Go()
+            if loaded then return end
+            loaded = true
+            Next()
+        end
+        m:SetScript("OnModelLoaded", Go)
+        if not (display and pcall(m.SetDisplayInfo, m, display)) then
+            mine.error, out.done = "no display", out.done + 1
+            return Work(m)
+        end
+        C_Timer.After(Api.LOAD_WAIT, Go)
+    end
+    for _ = 1, Api.WORKERS do
+        local ok, m = pcall(CreateFrame, "PlayerModel", nil, UIParent)
+        if not ok then return "no PlayerModel: " .. tostring(m) end
+        pcall(function() m:SetSize(64, 64); m:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0); m:SetAlpha(0) end)
+        workers = workers + 1
+        Work(m)
+    end
+    return ("%d species, %d at a time"):format(total, Api.WORKERS)
+end
+
 ------------------------------------------------------------------------------
 Api.ORDER = { "globals", "namespaces", "enum", "events", "widgets", "templates", "strings", "values", "card",
     "calendar", "model" }
@@ -507,7 +646,7 @@ function Api:Run(arg)
     local list = arg and { arg } or self.ORDER
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ")) end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out)

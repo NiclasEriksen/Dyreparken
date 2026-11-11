@@ -33,6 +33,7 @@ Core\Activity.lua
 Data\Companions.lua
 Data\Traits.lua
 Data\PetMoves.lua
+Data\AnimLengths.lua
 
 Menagerie\Pets.lua
 Menagerie\Registry.lua

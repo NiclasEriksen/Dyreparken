@@ -1059,6 +1059,7 @@ function Client:OpenJournal(o)
                 function actor:GetActiveBoundingBox() return -0.3, -0.2, 0, 0.3, 0.2, 0.8 end
                 function model:Project3DPointTo2D(x, y, z) return 200 + x * 100, 150 + z * 100, 1 end
                 function actor:GetYaw() return self.yaw or 0 end
+                function actor:OnModelLoaded() end -- (the mixin's: the client calls it once a model has loaded)
                 function actor:SetYaw(y) self.yaw = y end
                 function actor:HasAnimation(id)
                     return (client.petAnims or { [0] = true, [756] = true, [770] = true })[id] == true
@@ -1590,7 +1591,9 @@ function Client:BuildEnv()
         end,
         GetPetInfoBySpeciesID = function(sid)
             if not H.SPECIES[sid] then return nil end
-            return H.SPECIES[sid], 1000 + sid, 5, 272330
+            -- name, icon, petType, creatureID, sourceText, description, isWild, canBattle, tradable, unique,
+            -- obtainable, creatureDisplayID (as on Forever: /dp probe api, 2026-11-11)
+            return H.SPECIES[sid], 1000 + sid, 5, 272330, "", "", false, true, false, true, true, 20000 + sid
         end,
         GetNumPets = function() return #(c.journalList or c.pets), #c.pets end,
         GetPetInfoByIndex = function(i)
