@@ -930,6 +930,11 @@ function Moves.NewStage(name, opts)
             return
         end
         local mode = Rest(key)
+        -- Why this pose (2026-11-11, the user: "none of them seem to be sleeping, but there's Zzz").
+        ns.Log("Moves", "%s %s: %s (was %s; awake %s, night %s, editing %s, sleep %s, hold %s)", name, key, mode,
+            tostring(key == shown.key and shown.mode), tostring(awake[key] or false),
+            tostring(ns.Personality.IsNight(ns.Now()) or Moves.night or false), tostring(Moves.movesEditing or false),
+            tostring(Moves:For(key, "sleep")), tostring(Moves:For(key, "sleepHold")))
         if key == shown.key and mode == shown.mode then
             -- The same pet refreshed: Blizzard may have stood the model up again; put back the
             -- step that stays. Not a one-off (a hop, a cheer, the lie-down): it would start over
