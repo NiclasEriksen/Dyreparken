@@ -391,7 +391,18 @@ function Moves:For(key, what)
     return id or nil
 end
 
-local shown = { token = 0, awake = {}, reposed = 0 } -- the card's pet, its pose, and pets woken this session
+
+-- Stages (2026-11-11, groundwork for the pet frame: "share the code with the pet journal and be 1:1
+-- in animation / reaction"): everything that poses a pet on a model actor lives in a stage, made by
+-- Moves.NewStage. The journal card is one (Moves.card); the on-screen pet frame will be another, with
+-- its own actor. What's shared: which pets were woken this session (awake), moving with you (motion),
+-- and every rule of what a pet does (For, Length, Rest, Steps). The old Moves:Update/Cuddle/... calls
+-- are the card's.
+local awake = {} -- pets woken this session (by a click, a cheer): on every stage
+Moves.awake = awake
+Moves.stages = {}
+Moves.REPOSE = 5
+local hooked, own = setmetatable({}, { __mode = "k" }), false
 
 -- Set an animation, and check on it a moment later: the card refreshes
 -- often, and Blizzard may load the model anew and stand it up again
@@ -405,141 +416,7 @@ Moves.RECHECK = 0.3
 -- lay still.
 local NO_BLEND, BLEND = 0, 1 -- Enum.ModelBlendOperation (None, Anim)
 local STAND = 0
-local Play
-local UnSulk, Steps -- (below)
-
--- 2026-11-10: about one time in three a held pose stood up again by itself
--- right away, and GetAnimation (it only echoes what was set) can't tell. So
--- we watch the actor: anything else that sets an animation or loads a model
--- while a pose is held is logged, and the pose put back (after a model, once
--- it has settled), at most Moves.REPOSE times per pet shown.
-Moves.REPOSE = 5
-local hooked, own = setmetatable({}, { __mode = "k" }), false
-local function Outside(what, arg)
-    ns.Log("Moves", "%s(%s) from outside, holding %s", what, tostring(arg), tostring(shown.pose and shown.playing))
-    if what ~= "SetAnimation" then shown.modelAt = GetTime() end
-    if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
-        local key, token = shown.key, shown.token
-        C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Moves.Lift(key) end end)
-    end
-    if not shown.pose or shown.reposed >= Moves.REPOSE then return end
-    shown.reposed = shown.reposed + 1
-    local token, id, pose = shown.token, shown.playing, shown.pose
-    C_Timer.After(what == "SetAnimation" and 0 or Moves.SETTLE, function()
-        if token == shown.token and shown.playing == id and shown.pose == pose then Play(id, true, pose) end
-    end)
-end
-local function Watch(actor)
-    if hooked[actor] then return end
-    hooked[actor] = true
-    for _, m in ipairs({ "SetAnimation", "SetModelByCreatureDisplayID", "SetModelByFileID" }) do
-        local ok, fn = pcall(function() return actor[m] end)
-        if ok and type(fn) == "function" then
-            hooksecurefunc(actor, m, function(_, arg) if not own then Outside(m, arg) end end)
-        end
-    end
-    -- Research (2026-11-11, /dp probe api: the actor has an OnModelLoaded and IsLoaded): when does a
-    -- model on the card say it has loaded? Logged, to replace SETTLE and SLEEP_AFTER's guesses.
-    local ok, fn = pcall(function() return actor.OnModelLoaded end)
-    if ok and type(fn) == "function" then
-        hooksecurefunc(actor, "OnModelLoaded", function()
-            ns.Log("Moves", "model loaded %s after it was set", shown.modelAt and ("%.2f s"):format(GetTime() - shown.modelAt) or "?")
-        end)
-    end
-end
-
--- A held pose by pausing the actor (2026-11-10): frozen with speed 0 at an
--- offset, the pet lay still for a second and then stood up to its idle (the
--- user: "no longer frozen when they stand up"). Retail's ModelSceneActor has
--- SetPaused; unverified on Forever, so used only when the actor has it: the
--- animation plays at its own speed and is paused `pose` seconds in.
-local function Unpause(actor)
-    if shown.paused then Call(actor, "SetPaused", false); shown.paused = nil end
-end
-local function PlayPaused(actor, id, pose)
-    -- Already playing it (the lie-down step before this one): pause where it is now.
-    local playingFor = shown.playing == id and not shown.pose and shown.since and GetTime() - shown.since
-    shown.playing, shown.pose = id, pose
-    if not playingFor then
-        own = true
-        Call(actor, "SetAnimationBlendOperation", BLEND)
-        Call(actor, "SetAnimation", STAND) -- (else the one it's already on isn't started over)
-        Call(actor, "SetAnimation", id)
-        own = false
-        shown.since, playingFor = GetTime(), 0
-    end
-    local token = shown.token
-    local function Pause()
-        if token ~= shown.token or shown.playing ~= id or shown.pose ~= pose then return end
-        local ok = Call(actor, "SetPaused", true)
-        shown.paused = ok or nil
-        ns.Log("Moves", "%s %d: paused %.2f s in: %s", tostring(shown.key), id, pose, ok and "ok" or "failed")
-    end
-    local wait = pose - playingFor
-    if wait <= 0.02 then Pause() else C_Timer.After(wait, Pause) end
-end
-
-Play = function(id, again, pose)
-    local actor = Moves:Actor()
-    if not actor then return end
-    Watch(actor)
-    Unpause(actor)
-    if pose and Has(actor, "SetPaused") then return PlayPaused(actor, id, pose) end
-    shown.playing, shown.pose = id, pose
-    shown.since = GetTime()
-    own = true
-    Call(actor, "SetAnimationBlendOperation", pose and NO_BLEND or BLEND)
-    local ok
-    if pose then
-        -- Standing first, in the same moment: 2026-11-10, Dead (6) frozen right after Dead (6)
-        -- played (the lie-down) didn't take, and the pet stood up as the first one ended. The
-        -- client seems to ignore the animation it's already playing.
-        Call(actor, "SetAnimation", STAND)
-        ok = Call(actor, "SetAnimation", id, 0, 0, pose)
-    else
-        ok = Call(actor, "SetAnimation", id)
-    end
-    own = false
-    local token = shown.token
-    C_Timer.After(Moves.RECHECK, function()
-        if token ~= shown.token or shown.playing ~= id then return end
-        local now = Moves:Actor()
-        local got, at = Call(now or actor, "GetAnimation")
-        local reset = now ~= actor or (got and at ~= id)
-        ns.Log("Moves", "%s %d: %s; after %.1f s %s%s", tostring(shown.key), id, ok and "set" or "refused",
-            Moves.RECHECK, got and tostring(at) or "?", now ~= actor and " (a new actor)" or "")
-        if reset and not again then Play(id, true, pose) end
-    end)
-end
-
--- Steps { id, seconds, pose }: each in turn; the last one stays. Replaces any running.
-function Moves:Sequence(steps)
-    shown.token = shown.token + 1
-    shown.reposed = 0
-    local mine = shown.token
-    local function Step(i)
-        if mine ~= shown.token then return end
-        local s = steps[i]
-        if not s then return end
-        shown.last = i == #steps -- (a refresh puts back only the step that stays)
-        if s.on then s.on() end -- (a once-a-day moment counts as seen only when it plays)
-        local id = s[1]
-        if shown.last and not s[3] and not s.keep then -- (keep: the moves editor's, played as picked)
-            -- Back to rest after a one-off: as things are now (code review 2026-11-10: a stop
-            -- during the hop left it walking; after playing dead it never walked).
-            if shown.mode == "dead" and Moves:Rest(shown.key) == "stand" then shown.mode = "stand" end
-            -- (stopped moving meanwhile, and it's a sitter: it settles again)
-            if shown.mode == "stand" and Moves:Rest(shown.key) == "sit" then
-                shown.mode = "sit"
-                return Moves:Sequence(Steps(shown.key, "sit"))
-            end
-            if shown.mode == "stand" then id = Moves:MotionId(shown.key) or Moves.STAND end
-        end
-        Play(id, nil, s[3])
-        if s[2] then C_Timer.After(s[2], function() Step(i + 1) end) end
-    end
-    Step(1)
-end
+local Steps -- (below)
 
 local function HasTrait(key, id)
     if not ns.Personality:Known(key) then return false end
@@ -557,7 +434,7 @@ end
 function Moves:Rest(key, t)
     if self.movesEditing then return "stand" end -- (the moves editor plays what you try)
     if DeadToday(key) and self:For(key, "dead") then return "dead" end
-    if not shown.awake[key] then
+    if not awake[key] then
         if (Moves.night or ns.Personality.IsNight(t or ns.Now())) and not HasTrait(key, "nattugle") and self:For(key, "sleep") then
             return "sleep"
         end
@@ -624,49 +501,31 @@ function Moves.Moving()
     return speed > 0
 end
 
--- Moving changed: a sitting pet gets up and goes with you, and sits again when
--- you stop; a pet resting standing (its last step held) takes the walk up.
-local function Repose()
-    local key = shown.key
-    if not key then return end
-    local mode = Moves:Rest(key)
-    if shown.mode == "sit" and mode == "stand" then -- (sitting, or about to: up and away)
-        local seated = shown.playing == Moves:For(key, "sitDown") or shown.playing == Moves:For(key, "sit")
-        shown.mode = "stand"
-        local up = Moves:For(key, "sitUp")
-        local steps = (seated and up) and { { up, Moves:Length(key, up, Moves.T.up) } } or {}
-        steps[#steps + 1] = { STAND }
-        return Moves:Sequence(steps)
-    end
-    if shown.mode == "stand" and mode == "sit" and shown.last then -- (stopped: it settles again)
-        shown.mode = "sit"
-        return Moves:Sequence(Steps(key, "sit"))
-    end
-    if shown.mode ~= "stand" or not shown.last then return end
-    local id = Moves:MotionId(key) or STAND
-    if shown.playing ~= id then Play(id) end
-end
+local function ReposeAll() for _, s in ipairs(Moves.stages) do s:Repose() end end
 
-function Moves:Follow(key)
-    local want = key ~= nil and ns.Summon:ActiveKey() == key
+-- Moving with you on every stage that shows the pet you keep out: the events while any does.
+function Moves:FollowAll()
+    local active = ns.Summon:ActiveKey()
+    local want = false
+    for _, s in ipairs(self.stages) do if active and s.want == active then want = true end end
     if want == motion.on then return end
     motion.on, motion.token = want, motion.token + 1
     if not want then
         motion.moving = false
         for _, e in ipairs(MOTION_EVENTS) do ns.Events:Off(e, Moves) end
-        return Repose() -- (code review 2026-11-10: turned off mid-walk, it walked on)
+        return ReposeAll() -- (code review 2026-11-10: turned off mid-walk, it walked on)
     end
     motion.moving = Moves.Moving() or false
-    if key == shown.key then Repose() end
+    ReposeAll()
     ns.Events:On("PLAYER_STARTED_MOVING", Moves, function()
         motion.token = motion.token + 1
-        if not motion.moving then motion.moving = true; Repose() end
+        if not motion.moving then motion.moving = true; ReposeAll() end
     end)
     ns.Events:On("PLAYER_STOPPED_MOVING", Moves, function()
         motion.token = motion.token + 1
         local mine = motion.token
         C_Timer.After(Moves.STOP_AFTER, function()
-            if mine == motion.token and motion.moving then motion.moving = false; Repose() end
+            if mine == motion.token and motion.moving then motion.moving = false; ReposeAll() end
         end)
     end)
     -- Mounting, landing, a flight's end: how fast we really go now. (2026-11-10: landed from a
@@ -674,7 +533,7 @@ function Moves:Follow(key)
     local function Resync()
         local now = Moves.Moving()
         if now ~= nil then motion.moving = now end
-        Repose()
+        ReposeAll()
     end
     ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Moves, Resync)
     ns.Events:On("PLAYER_CONTROL_GAINED", Moves, Resync)
@@ -721,195 +580,6 @@ Steps = function(key, mode)
     return { { STAND } }
 end
 
--- Standing on its shadow (2026-11-10): Blizzard puts each model at a height
--- of its own, and some float or sink. A species' `lift` (Data/PetMoves.lua,
--- found by eye) moves it at once, and again once the model has loaded (or the
--- client loads it anew) if it was put back. (Working it out from the model's box and the camera didn't
--- match what's on screen: /dp probe pos box, 2026-11-10.)
--- The height isn't the pet's but its model scene's (GetModelSceneID: a few scenes,
--- heights 0.5, 1, 1.5, 2.5...): Blizzard sets it only when the card changes scene,
--- and between two pets of one scene leaves the actor where we put it. So each
--- scene's height is read once, as it arrives, and a lift always lands on that,
--- never on what's left from the last pet (reading heights by pet was wrong
--- whenever two pets shared a scene: 2026-11-10).
-local bases, lastScene = {}, nil
-local function Scene(key)
-    local scene = PetJournalPetCard and rawget(PetJournalPetCard, "modelScene")
-    local ok, id = Call(scene or {}, "GetModelSceneID")
-    if ok and id then return "scene " .. tostring(id) end
-    return key -- (no scene ids: by pet)
-end
-local function Lift(key)
-    local actor = Moves:Actor()
-    local ok, x, y, z = Call(actor or {}, "GetPosition")
-    if not (ok and type(z) == "number") then return end
-    local scene = Scene(key)
-    if scene ~= lastScene or not bases[scene] then bases[scene] = z end -- (just set by Blizzard)
-    lastScene = scene
-    local base = bases[scene]
-    local lift = Moves:For(key, "lift")
-    local target = base + (lift or 0)
-    if math.abs(z - target) < 1e-3 then return end
-    Call(actor, "SetPosition", x, y, target)
-    ns.Log("Moves", "%s at %.2f (%s at %.2f%s)", key, target, scene, base, lift and ("%+.2f"):format(lift) or "")
-end
-local function LiftSoon(key)
-    local token = shown.token
-    C_Timer.After(Moves.SETTLE, function()
-        if token == shown.token and shown.key == key then Lift(key) end
-    end)
-end
-Moves.Lift = Lift
-
--- The card's pet at its own height again, then lifted as For says now (the lift editor).
-function Moves:Relift()
-    if shown.key then Lift(shown.key) end
-end
-
--- Its back turned again to face you (the sulk's end, another pet, the card closing).
-UnSulk = function()
-    local b = shown.sulk
-    if not b then return end
-    shown.sulk = nil
-    Call(b.actor, "SetYaw", b.yaw)
-end
-
--- Sulking (2026-11-10): the first time you open its card on a day a dislike
--- of its came up (Quirks: char.sulk), the pet turns its back for a few
--- seconds, a little cloud over it. ModelSceneActor:SetYaw is unverified on
--- Forever: without it, just the cloud.
-Moves.SULK = 3
-local function Sulk(key)
-    local s = ns.DB.char.sulk
-    if not (s and s.key == key and s.day == ns.Today() and not s.shown) then return end
-    local token = shown.token
-    C_Timer.After(Moves.SETTLE, function()
-        if token ~= shown.token or shown.key ~= key then return end
-        s.shown = true
-        local card = rawget(_G, "PetJournalPetCard")
-        if card and ns.Fx then
-            ns.Fx:Burst({ card, "CENTER", 0, 60 }, "cloud", { n = 2, color = { 0.8, 0.8, 0.85 }, alpha = 0.7, size = 0.6, rise = 30 })
-        end
-        local actor = Moves:Actor()
-        local ok, yaw = Call(actor or {}, "GetYaw")
-        if not (ok and type(yaw) == "number") then return ns.Log("Moves", "sulk: no GetYaw") end
-        Call(actor, "SetYaw", yaw + math.pi)
-        ns.Log("Moves", "sulk %s: back turned", key)
-        local back = { actor = actor, yaw = yaw }
-        shown.sulk = back
-        C_Timer.After(Moves.SULK, function() if shown.sulk == back then UnSulk() end end)
-    end)
-end
-
--- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
-function Moves:Update(card, key)
-    -- The pet's moves turned off (Settings: cardMoves): it just stands, on its shadow.
-    if key and not ns.Settings:On("cardMoves") then
-        local was = shown.key or shown.playing
-        self:Update(card, nil)
-        if was then Play(STAND); shown.playing = nil end -- (out of a held pose, once)
-        Lift(key)
-        return
-    end
-    self:Follow(key)
-    if not key then
-        UnSulk()
-        local actor = Moves:Actor()
-        if actor then Unpause(actor) end -- (a paused actor would stay so for Blizzard's next pet)
-        -- (nothing held either: a model loading on a closed card isn't posed again)
-        shown.key, shown.mode, shown.playing, shown.pose, shown.last = nil, nil, nil, nil, nil
-        shown.token = shown.token + 1
-        return
-    end
-    local mode = self:Rest(key)
-    if key == shown.key and mode == shown.mode then
-        -- The same pet refreshed: Blizzard may have stood the model up again; put back the
-        -- step that stays. Not a one-off (a hop, a cheer, the lie-down): it would start over
-        -- on every guildmate's BOND message (code review 2026-11-10).
-        -- Paused where it lies: nothing to put back. (Played again, the client ignored the
-        -- Dead it was already on, so unpaused it got up, and the pause caught it standing: 2026-11-10.)
-        if shown.paused then return end
-        if shown.playing and shown.last then Play(shown.playing, true, shown.pose) end
-        return
-    end
-    UnSulk()
-    shown.key, shown.mode = key, mode
-    local steps = Steps(key, mode)
-    -- A one-off first, once the model has loaded: a level-up's cheer (celebrated as the card
-    -- opened, before the pet was posed: code review 2026-11-10), or a wish come true.
-    local cheer = shown.cheerFor == key and mode ~= "dead" and self:For(key, "cheer")
-    local joy = not cheer and mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
-    shown.cheerFor = nil
-    if cheer or joy then
-        if cheer then shown.awake[key] = true; mode = self:Rest(key); shown.mode = mode; steps = Steps(key, mode) end
-        table.insert(steps, 1, { cheer or joy, self:Length(key, cheer or joy, cheer and self.T.cheer or self.T.happy),
-            on = joy and function() ns.DB.char.wish.shown = true end or nil })
-        table.insert(steps, 1, { STAND, self.SETTLE })
-    end
-    self:Sequence(steps)
-    Lift(key)     -- at once (2026-11-10: a moment later read as a jump) ...
-    LiftSoon(key) -- ... and again if the model, done loading, was put back
-    Sulk(key)
-end
-
--- After a reaction: back to its pose (awake now, if it slept or sat).
-local function Back(key)
-    shown.awake[key] = true
-    shown.mode = Moves:Rest(key)
-    local steps = Steps(key, shown.mode)
-    return steps[#steps][1]
-end
-
--- A click on the pet (Cuddle.lua): wakes it up, gets it up, or a happy move.
-function Moves:Cuddle(key)
-    if key ~= shown.key then return end
-    local mode, happy = shown.mode, self:For(key, "happy")
-    local too = self:For(key, "happyToo")
-    if happy and too and Moves.random() < Moves.HAPPY_TOO_CHANCE then happy = too end -- (no happy: none at all)
-    local back = Back(key)
-    local steps = {}
-    -- Up first only if it's sitting already (2026-11-10: clicked in its first seconds, still
-    -- standing, it "got up" for 1.4 s before the hop).
-    local seated = shown.playing == self:For(key, "sitDown") or shown.playing == self:For(key, "sit")
-    local up = mode == "sit" and seated and self:For(key, "sitUp")
-        or mode == "sleep" and self:For(key, "sleepUp")
-    if up then steps[#steps + 1] = { up, self:Length(key, up, self.T.up) } end
-    if happy then steps[#steps + 1] = { happy, self:Length(key, happy, self.T.happy) } end
-    steps[#steps + 1] = { back }
-    self:Sequence(steps)
-    -- Woken up: its Zzz go (Decor reads the pose; the card's refresh leaves the hop playing).
-    if mode == "sleep" and ns.JournalUI then ns.JournalUI:Refresh() end
-end
-
--- A bond level reached (BondTrack's celebration): its cheer, if it has one.
-function Moves:Cheer(key)
-    if key ~= shown.key then shown.cheerFor = key; return end -- (posed next: Update plays it)
-    local cheer = self:For(key, "cheer")
-    if not cheer then return end
-    local back = Back(key)
-    self:Sequence({ { cheer, self:Length(key, cheer, self.T.cheer) }, { back } })
-end
-
--- /dp probe anim night: night until toggled off or /reload, every pet asleep
--- again, and the card's pet posed anew.
-function Moves:ForceNight()
-    self.night = not self.night or nil
-    wipe(shown.awake)
-    local key = shown.key
-    shown.key = nil
-    if key then self:Update(nil, key) end
-    Say("night %s%s", self.night and "on" or "off", key and "" or " (open a pet's card)")
-end
-
--- /dp probe moves (MovesEditor.lua): the card's pet stands while it's open, and
--- plays a reaction whole when asked, from a clean start.
-function Moves:SetEditing(on)
-    self.movesEditing = on or nil
-    local key = shown.key
-    shown.key = nil
-    if key then self:Update(nil, key) end
-end
-
 Moves.TRY_HOLD = 3 -- seconds a whole tried sleep or sit holds before it gets up
 
 -- Steps for one part (the moves editor's ▶): it plays at once and stays (a
@@ -945,25 +615,404 @@ local function WholeSteps(F, reaction, key)
     return steps
 end
 
--- whole: the whole reaction the part belongs to; else just the part.
-function Moves:Try(key, what, whole)
-    if key ~= shown.key then return end
-    local F = function(w) return self:For(key, w) end
-    local steps = what == "stand" and { { STAND, keep = true } } or whole and WholeSteps(F, what, key) or PartSteps(F, what)
-    if not steps or not steps[1] then return end
-    shown.mode = "stand"
-    -- Standing first, in the same moment: the client doesn't start over the one it's on.
-    Play(STAND)
-    ns.Log("Moves", "try %s%s on %s", what, whole and " (whole)" or "", key)
-    self:Sequence(steps)
+-- A stage: opts.actor() the model actor, opts.scene() its model scene (for the lift's scene id),
+-- opts.anchor() the frame a sulk's cloud bursts from, opts.refresh() redraws around it (a woken
+-- pet's Zzz go).
+function Moves.NewStage(name, opts)
+    local shown = { token = 0, reposed = 0 } -- what this stage shows: its pet, its pose
+
+    local stage = setmetatable({ name = name, shown = shown }, { __index = Moves })
+
+    local function Actor() return opts.actor() end
+
+    local Play, Lift
+
+    -- 2026-11-10: about one time in three a held pose stood up again by itself
+    -- right away, and GetAnimation (it only echoes what was set) can't tell. So
+    -- we watch the actor: anything else that sets an animation or loads a model
+    -- while a pose is held is logged, and the pose put back (after a model, once
+    -- it has settled), at most Moves.REPOSE times per pet shown.
+    local function Outside(what, arg)
+        ns.Log("Moves", "%s(%s) from outside, holding %s", what, tostring(arg), tostring(shown.pose and shown.playing))
+        if what ~= "SetAnimation" then shown.modelAt = GetTime() end
+        if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
+            local key, token = shown.key, shown.token
+            C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Lift(key) end end)
+        end
+        if not shown.pose or shown.reposed >= Moves.REPOSE then return end
+        shown.reposed = shown.reposed + 1
+        local token, id, pose = shown.token, shown.playing, shown.pose
+        C_Timer.After(what == "SetAnimation" and 0 or Moves.SETTLE, function()
+            if token == shown.token and shown.playing == id and shown.pose == pose then Play(id, true, pose) end
+        end)
+    end
+    local function Watch(actor)
+        if hooked[actor] then return end
+        hooked[actor] = true
+        for _, m in ipairs({ "SetAnimation", "SetModelByCreatureDisplayID", "SetModelByFileID" }) do
+            local ok, fn = pcall(function() return actor[m] end)
+            if ok and type(fn) == "function" then
+                hooksecurefunc(actor, m, function(_, arg) if not own then Outside(m, arg) end end)
+            end
+        end
+        -- Research (2026-11-11, /dp probe api: the actor has an OnModelLoaded and IsLoaded): when does a
+        -- model on the card say it has loaded? Logged, to replace SETTLE and SLEEP_AFTER's guesses.
+        local ok, fn = pcall(function() return actor.OnModelLoaded end)
+        if ok and type(fn) == "function" then
+            hooksecurefunc(actor, "OnModelLoaded", function()
+                ns.Log("Moves", "model loaded %s after it was set", shown.modelAt and ("%.2f s"):format(GetTime() - shown.modelAt) or "?")
+            end)
+        end
+    end
+
+    -- A held pose by pausing the actor (2026-11-10): frozen with speed 0 at an
+    -- offset, the pet lay still for a second and then stood up to its idle (the
+    -- user: "no longer frozen when they stand up"). Retail's ModelSceneActor has
+    -- SetPaused; unverified on Forever, so used only when the actor has it: the
+    -- animation plays at its own speed and is paused `pose` seconds in.
+    local function Unpause(actor)
+        if shown.paused then Call(actor, "SetPaused", false); shown.paused = nil end
+    end
+    local function PlayPaused(actor, id, pose)
+        -- Already playing it (the lie-down step before this one): pause where it is now.
+        local playingFor = shown.playing == id and not shown.pose and shown.since and GetTime() - shown.since
+        shown.playing, shown.pose = id, pose
+        if not playingFor then
+            own = true
+            Call(actor, "SetAnimationBlendOperation", BLEND)
+            Call(actor, "SetAnimation", STAND) -- (else the one it's already on isn't started over)
+            Call(actor, "SetAnimation", id)
+            own = false
+            shown.since, playingFor = GetTime(), 0
+        end
+        local token = shown.token
+        local function Pause()
+            if token ~= shown.token or shown.playing ~= id or shown.pose ~= pose then return end
+            local ok = Call(actor, "SetPaused", true)
+            shown.paused = ok or nil
+            ns.Log("Moves", "%s %d: paused %.2f s in: %s", tostring(shown.key), id, pose, ok and "ok" or "failed")
+        end
+        local wait = pose - playingFor
+        if wait <= 0.02 then Pause() else C_Timer.After(wait, Pause) end
+    end
+
+    Play = function(id, again, pose)
+        local actor = Actor()
+        if not actor then return end
+        Watch(actor)
+        Unpause(actor)
+        if pose and Has(actor, "SetPaused") then return PlayPaused(actor, id, pose) end
+        shown.playing, shown.pose = id, pose
+        shown.since = GetTime()
+        own = true
+        Call(actor, "SetAnimationBlendOperation", pose and NO_BLEND or BLEND)
+        local ok
+        if pose then
+            -- Standing first, in the same moment: 2026-11-10, Dead (6) frozen right after Dead (6)
+            -- played (the lie-down) didn't take, and the pet stood up as the first one ended. The
+            -- client seems to ignore the animation it's already playing.
+            Call(actor, "SetAnimation", STAND)
+            ok = Call(actor, "SetAnimation", id, 0, 0, pose)
+        else
+            ok = Call(actor, "SetAnimation", id)
+        end
+        own = false
+        local token = shown.token
+        C_Timer.After(Moves.RECHECK, function()
+            if token ~= shown.token or shown.playing ~= id then return end
+            local now = Actor()
+            local got, at = Call(now or actor, "GetAnimation")
+            local reset = now ~= actor or (got and at ~= id)
+            ns.Log("Moves", "%s %d: %s; after %.1f s %s%s", tostring(shown.key), id, ok and "set" or "refused",
+                Moves.RECHECK, got and tostring(at) or "?", now ~= actor and " (a new actor)" or "")
+            if reset and not again then Play(id, true, pose) end
+        end)
+    end
+
+    -- Steps { id, seconds, pose }: each in turn; the last one stays. Replaces any running.
+    function stage:Sequence(steps)
+        shown.token = shown.token + 1
+        shown.reposed = 0
+        local mine = shown.token
+        local function Step(i)
+            if mine ~= shown.token then return end
+            local s = steps[i]
+            if not s then return end
+            shown.last = i == #steps -- (a refresh puts back only the step that stays)
+            if s.on then s.on() end -- (a once-a-day moment counts as seen only when it plays)
+            local id = s[1]
+            if shown.last and not s[3] and not s.keep then -- (keep: the moves editor's, played as picked)
+                -- Back to rest after a one-off: as things are now (code review 2026-11-10: a stop
+                -- during the hop left it walking; after playing dead it never walked).
+                if shown.mode == "dead" and Moves:Rest(shown.key) == "stand" then shown.mode = "stand" end
+                -- (stopped moving meanwhile, and it's a sitter: it settles again)
+                if shown.mode == "stand" and Moves:Rest(shown.key) == "sit" then
+                    shown.mode = "sit"
+                    return stage:Sequence(Steps(shown.key, "sit"))
+                end
+                if shown.mode == "stand" then id = Moves:MotionId(shown.key) or Moves.STAND end
+            end
+            Play(id, nil, s[3])
+            if s[2] then C_Timer.After(s[2], function() Step(i + 1) end) end
+        end
+        Step(1)
+    end
+
+    -- Moving changed: a sitting pet gets up and goes with you, and sits again when
+    -- you stop; a pet resting standing (its last step held) takes the walk up.
+    function stage:Repose()
+        local key = shown.key
+        if not key then return end
+        local mode = Moves:Rest(key)
+        if shown.mode == "sit" and mode == "stand" then -- (sitting, or about to: up and away)
+            local seated = shown.playing == Moves:For(key, "sitDown") or shown.playing == Moves:For(key, "sit")
+            shown.mode = "stand"
+            local up = Moves:For(key, "sitUp")
+            local steps = (seated and up) and { { up, Moves:Length(key, up, Moves.T.up) } } or {}
+            steps[#steps + 1] = { STAND }
+            return stage:Sequence(steps)
+        end
+        if shown.mode == "stand" and mode == "sit" and shown.last then -- (stopped: it settles again)
+            shown.mode = "sit"
+            return stage:Sequence(Steps(key, "sit"))
+        end
+        if shown.mode ~= "stand" or not shown.last then return end
+        local id = Moves:MotionId(key) or STAND
+        if shown.playing ~= id then Play(id) end
+    end
+
+    -- Standing on its shadow (2026-11-10): Blizzard puts each model at a height
+    -- of its own, and some float or sink. A species' `lift` (Data/PetMoves.lua,
+    -- found by eye) moves it at once, and again once the model has loaded (or the
+    -- client loads it anew) if it was put back. (Working it out from the model's box and the camera didn't
+    -- match what's on screen: /dp probe pos box, 2026-11-10.)
+    -- The height isn't the pet's but its model scene's (GetModelSceneID: a few scenes,
+    -- heights 0.5, 1, 1.5, 2.5...): Blizzard sets it only when the card changes scene,
+    -- and between two pets of one scene leaves the actor where we put it. So each
+    -- scene's height is read once, as it arrives, and a lift always lands on that,
+    -- never on what's left from the last pet (reading heights by pet was wrong
+    -- whenever two pets shared a scene: 2026-11-10).
+    local bases, lastScene = {}, nil
+    local function Scene(key)
+        local scene = opts.scene()
+        local ok, id = Call(scene or {}, "GetModelSceneID")
+        if ok and id then return "scene " .. tostring(id) end
+        return key -- (no scene ids: by pet)
+    end
+    Lift = function(key)
+        local actor = Actor()
+        local ok, x, y, z = Call(actor or {}, "GetPosition")
+        if not (ok and type(z) == "number") then return end
+        local scene = Scene(key)
+        if scene ~= lastScene or not bases[scene] then bases[scene] = z end -- (just set by Blizzard)
+        lastScene = scene
+        local base = bases[scene]
+        local lift = Moves:For(key, "lift")
+        local target = base + (lift or 0)
+        if math.abs(z - target) < 1e-3 then return end
+        Call(actor, "SetPosition", x, y, target)
+        ns.Log("Moves", "%s at %.2f (%s at %.2f%s)", key, target, scene, base, lift and ("%+.2f"):format(lift) or "")
+    end
+    local function LiftSoon(key)
+        local token = shown.token
+        C_Timer.After(Moves.SETTLE, function()
+            if token == shown.token and shown.key == key then Lift(key) end
+        end)
+    end
+    stage.Lift = Lift
+
+    -- The card's pet at its own height again, then lifted as For says now (the lift editor).
+    function stage:Relift()
+        if shown.key then Lift(shown.key) end
+    end
+
+    -- Its back turned again to face you (the sulk's end, another pet, the card closing).
+    local function UnSulk()
+        local b = shown.sulk
+        if not b then return end
+        shown.sulk = nil
+        Call(b.actor, "SetYaw", b.yaw)
+    end
+
+    -- Sulking (2026-11-10): the first time you open its card on a day a dislike
+    -- of its came up (Quirks: char.sulk), the pet turns its back for a few
+    -- seconds, a little cloud over it. ModelSceneActor:SetYaw is unverified on
+    -- Forever: without it, just the cloud.
+    Moves.SULK = 3
+    local function Sulk(key)
+        local s = ns.DB.char.sulk
+        if not (s and s.key == key and s.day == ns.Today() and not s.shown) then return end
+        local token = shown.token
+        C_Timer.After(Moves.SETTLE, function()
+            if token ~= shown.token or shown.key ~= key then return end
+            s.shown = true
+            local anchor = opts.anchor()
+            if anchor and ns.Fx then
+                ns.Fx:Burst({ anchor, "CENTER", 0, 60 }, "cloud", { n = 2, color = { 0.8, 0.8, 0.85 }, alpha = 0.7, size = 0.6, rise = 30 })
+            end
+            local actor = Actor()
+            local ok, yaw = Call(actor or {}, "GetYaw")
+            if not (ok and type(yaw) == "number") then return ns.Log("Moves", "sulk: no GetYaw") end
+            Call(actor, "SetYaw", yaw + math.pi)
+            ns.Log("Moves", "sulk %s: back turned", key)
+            local back = { actor = actor, yaw = yaw }
+            shown.sulk = back
+            C_Timer.After(Moves.SULK, function() if shown.sulk == back then UnSulk() end end)
+        end)
+    end
+
+    -- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
+    function stage:Update(card, key)
+        -- The pet's moves turned off (Settings: cardMoves): it just stands, on its shadow.
+        if key and not ns.Settings:On("cardMoves") then
+            local was = shown.key or shown.playing
+            self:Update(card, nil)
+            if was then Play(STAND); shown.playing = nil end -- (out of a held pose, once)
+            Lift(key)
+            return
+        end
+        self.want = key -- (Moves:FollowAll: which pets the stages show)
+        Moves:FollowAll()
+        if not key then
+            UnSulk()
+            local actor = Actor()
+            if actor then Unpause(actor) end -- (a paused actor would stay so for Blizzard's next pet)
+            -- (nothing held either: a model loading on a closed card isn't posed again)
+            shown.key, shown.mode, shown.playing, shown.pose, shown.last = nil, nil, nil, nil, nil
+            shown.token = shown.token + 1
+            return
+        end
+        local mode = self:Rest(key)
+        if key == shown.key and mode == shown.mode then
+            -- The same pet refreshed: Blizzard may have stood the model up again; put back the
+            -- step that stays. Not a one-off (a hop, a cheer, the lie-down): it would start over
+            -- on every guildmate's BOND message (code review 2026-11-10).
+            -- Paused where it lies: nothing to put back. (Played again, the client ignored the
+            -- Dead it was already on, so unpaused it got up, and the pause caught it standing: 2026-11-10.)
+            if shown.paused then return end
+            if shown.playing and shown.last then Play(shown.playing, true, shown.pose) end
+            return
+        end
+        UnSulk()
+        shown.key, shown.mode = key, mode
+        local steps = Steps(key, mode)
+        -- A one-off first, once the model has loaded: a level-up's cheer (celebrated as the card
+        -- opened, before the pet was posed: code review 2026-11-10), or a wish come true.
+        local cheer = shown.cheerFor == key and mode ~= "dead" and self:For(key, "cheer")
+        local joy = not cheer and mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
+        shown.cheerFor = nil
+        if cheer or joy then
+            if cheer then awake[key] = true; mode = self:Rest(key); shown.mode = mode; steps = Steps(key, mode) end
+            table.insert(steps, 1, { cheer or joy, self:Length(key, cheer or joy, cheer and self.T.cheer or self.T.happy),
+                on = joy and function() ns.DB.char.wish.shown = true end or nil })
+            table.insert(steps, 1, { STAND, self.SETTLE })
+        end
+        self:Sequence(steps)
+        Lift(key)     -- at once (2026-11-10: a moment later read as a jump) ...
+        LiftSoon(key) -- ... and again if the model, done loading, was put back
+        Sulk(key)
+    end
+
+    -- After a reaction: back to its pose (awake now, if it slept or sat).
+    local function Back(key)
+        awake[key] = true
+        shown.mode = Moves:Rest(key)
+        local steps = Steps(key, shown.mode)
+        return steps[#steps][1]
+    end
+
+    -- A click on the pet (Cuddle.lua): wakes it up, gets it up, or a happy move.
+    function stage:Cuddle(key)
+        if key ~= shown.key then return end
+        local mode, happy = shown.mode, self:For(key, "happy")
+        local too = self:For(key, "happyToo")
+        if happy and too and Moves.random() < Moves.HAPPY_TOO_CHANCE then happy = too end -- (no happy: none at all)
+        local back = Back(key)
+        local steps = {}
+        -- Up first only if it's sitting already (2026-11-10: clicked in its first seconds, still
+        -- standing, it "got up" for 1.4 s before the hop).
+        local seated = shown.playing == self:For(key, "sitDown") or shown.playing == self:For(key, "sit")
+        local up = mode == "sit" and seated and self:For(key, "sitUp")
+            or mode == "sleep" and self:For(key, "sleepUp")
+        if up then steps[#steps + 1] = { up, self:Length(key, up, self.T.up) } end
+        if happy then steps[#steps + 1] = { happy, self:Length(key, happy, self.T.happy) } end
+        steps[#steps + 1] = { back }
+        self:Sequence(steps)
+        -- Woken up: its Zzz go (Decor reads the pose; the card's refresh leaves the hop playing).
+        if mode == "sleep" and opts.refresh then opts.refresh() end
+    end
+
+    -- A bond level reached (BondTrack's celebration): its cheer, if it has one.
+    function stage:Cheer(key)
+        if key ~= shown.key then shown.cheerFor = key; return end -- (posed next: Update plays it)
+        local cheer = self:For(key, "cheer")
+        if not cheer then return end
+        local back = Back(key)
+        self:Sequence({ { cheer, self:Length(key, cheer, self.T.cheer) }, { back } })
+    end
+
+    -- whole: the whole reaction the part belongs to; else just the part.
+    function stage:Try(key, what, whole)
+        if key ~= shown.key then return end
+        local F = function(w) return self:For(key, w) end
+        local steps = what == "stand" and { { STAND, keep = true } } or whole and WholeSteps(F, what, key) or PartSteps(F, what)
+        if not steps or not steps[1] then return end
+        shown.mode = "stand"
+        -- Standing first, in the same moment: the client doesn't start over the one it's on.
+        Play(STAND)
+        ns.Log("Moves", "try %s%s on %s", what, whole and " (whole)" or "", key)
+        self:Sequence(steps)
+    end
+
+    -- The journal closing or our pages covering the card: stop, and start over next time.
+    function stage:Stop()
+        self:Update(nil, nil)
+    end
+
+    Moves.stages[#Moves.stages + 1] = stage
+    return stage
 end
 
--- The journal closing or our pages covering the card: stop, and start over next time.
-function Moves:Stop()
-    self:Update(nil, nil)
+-- The journal's pet card.
+Moves.card = Moves.NewStage("card", {
+    actor = function() return Moves:Actor() end,
+    scene = function() return PetJournalPetCard and rawget(PetJournalPetCard, "modelScene") end,
+    anchor = function() return rawget(_G, "PetJournalPetCard") end,
+    refresh = function() if ns.JournalUI then ns.JournalUI:Refresh() end end,
+})
+for _, m in ipairs({ "Update", "Sequence", "Cuddle", "Try", "Stop", "Relift" }) do
+    Moves[m] = function(_, ...) return Moves.card[m](Moves.card, ...) end
+end
+function Moves.Lift(key) return Moves.card.Lift(key) end
+
+-- A bond level reached (BondTrack's celebration): its cheer, on every stage (those not showing it
+-- play it when they next do).
+function Moves:Cheer(key)
+    for _, s in ipairs(self.stages) do s:Cheer(key) end
 end
 
--- Another pet made the one kept out (or auto-summon off) while the card shows.
-ns.Bus:On("ACTIVE_PET", function()
-    if shown.key then Moves:Follow(shown.key) end
-end)
+-- /dp probe anim night: night until toggled off or /reload, every pet asleep
+-- again, and every stage's pet posed anew.
+function Moves:ForceNight()
+    self.night = not self.night or nil
+    wipe(awake)
+    local any
+    for _, s in ipairs(self.stages) do
+        local key = s.shown.key
+        s.shown.key = nil
+        if key then s:Update(nil, key); any = true end
+    end
+    Say("night %s%s", self.night and "on" or "off", any and "" or " (open a pet's card)")
+end
+
+-- /dp probe moves (MovesEditor.lua): the card's pet stands while it's open, and
+-- plays a reaction whole when asked, from a clean start.
+function Moves:SetEditing(on)
+    self.movesEditing = on or nil
+    local key = self.card.shown.key
+    self.card.shown.key = nil
+    if key then self.card:Update(nil, key) end
+end
+
+-- Another pet made the one kept out (or auto-summon off) while a stage shows one.
+ns.Bus:On("ACTIVE_PET", function() Moves:FollowAll() end)
