@@ -26,7 +26,8 @@ quirks. When you learn something new about the client, add it there with the dat
 ## Verify
 
 - `tools/check.sh` runs the TOC↔file check, a Lua 5.1 syntax check (luajit), a scan for 5.2+ syntax, and
-  the test suite with coverage floors (~25 s). `tools/check.sh --quick` skips coverage (~2 s).
+  the test suite with coverage floors (~50 s). `tools/check.sh --quick` skips coverage (~5 s). The runner
+  uses every core (`--jobs=N`; one process for a filter or `-v`): coverage alone made a run ~9x slower.
 - The game can't run from here. For in-game checks, ask the user to `/reload` and run `/dp debug on`, then
   `/dp probe` or the feature. Then read the log at
   `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated

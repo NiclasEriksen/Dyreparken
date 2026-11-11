@@ -6,6 +6,8 @@
 --   luajit tools/test/run.lua --min=Menagerie/=95 --min=Core/Comm=90
 --                                              fail if a file under the prefix is below n%
 --   -v                                         print each test name
+--   --jobs=N                                   run in N processes (default: every core for the whole suite,
+--                                              one for a filter or -v); coverage merged from all
 --
 -- Specs live in tools/test/spec/*.lua and return function(test, H).
 -- After each test the runner fails it if any client logged a Lua error,
@@ -17,7 +19,16 @@ local args = { filter = nil, coverage = false, missed = {}, min = {}, verbose = 
 for _, a in ipairs(arg) do
     local m = a:match("^%-%-missed=(.+)$")
     local mp, mv = a:match("^%-%-min=(.+)=(%d+)$")
-    if a == "--coverage" then
+    local jobs = a:match("^%-%-jobs=(%d+)$")
+    local k, n = a:match("^%-%-shard=(%d+)/(%d+)$")
+    local out = a:match("^%-%-hits%-out=(.+)$")
+    if jobs then
+        args.jobs = tonumber(jobs)
+    elseif k then
+        args.shard, args.shards = tonumber(k), tonumber(n)
+    elseif out then
+        args.hitsOut = out
+    elseif a == "--coverage" then
         args.coverage = true
     elseif m then
         args.coverage = true
@@ -33,12 +44,26 @@ for _, a in ipairs(arg) do
 end
 
 ------------------------------------------------------------------------------
+-- In parallel (2026-11-11, the user: "tests taking soooooo long"): the line hook makes a
+-- coverage run ~9x slower, so the suite runs in N processes, each taking every Nth test
+-- (by index: the long sync tests spread out), each writing the lines it hit to a file.
+-- This process then only merges and reports.
+------------------------------------------------------------------------------
+if not args.shard and not args.jobs then
+    local cores = 1
+    local p = io.popen("nproc 2>/dev/null")
+    if p then cores = tonumber(p:read("*l") or "") or 1; p:close() end
+    args.jobs = (args.filter or args.verbose) and 1 or cores
+end
+local parallel = not args.shard and args.jobs > 1
+
+------------------------------------------------------------------------------
 -- Coverage: a line hook counts executed lines of addon files; the lines
 -- that can execute at all come from LuaJIT's bytecode line info, so blank
 -- lines, comments and bare `end`s don't count against us.
 ------------------------------------------------------------------------------
 local hits = {} -- path -> { [line] = true }
-if args.coverage then
+if args.coverage and not parallel then
     require("jit").off()
     local getinfo = debug.getinfo
     debug.sethook(function(_, line)
@@ -98,8 +123,52 @@ end
 
 local passed, failed = 0, {}
 local t0 = os.clock()
-for _, t in ipairs(tests) do
-    if not args.filter or t.name:find(args.filter, 1, true) then
+local wall0 = os.time()
+local index = 0
+if parallel then
+    -- Each shard in its own process, all at once; their output and hits in temp files.
+    local cmds, files = {}, {}
+    for k = 1, args.jobs do
+        local outFile, hitFile = os.tmpname(), os.tmpname()
+        files[k] = { out = outFile, hits = hitFile }
+        local passArgs = {}
+        for _, a in ipairs(arg) do
+            if not a:match("^%-%-jobs=") and not a:match("^%-%-min=") and not a:match("^%-%-missed=") then
+                passArgs[#passArgs + 1] = ("'%s'"):format(a:gsub("'", "'\\''"))
+            end
+        end
+        cmds[#cmds + 1] = ("luajit tools/test/run.lua --shard=%d/%d %s %s > %s 2>&1 &"):format(k, args.jobs,
+            args.coverage and ("--coverage --hits-out=" .. hitFile) or "", table.concat(passArgs, " "), outFile)
+    end
+    os.execute("{ " .. table.concat(cmds, " ") .. " wait; }")
+    for _, f in ipairs(files) do
+        local text = io.open(f.out):read("*a")
+        local p, fl = text:match("(%d+) passed, (%d+) failed")
+        if not p then
+            failed[#failed + 1] = "a shard crashed"
+            print(text)
+        else
+            passed = passed + tonumber(p)
+            for name in text:gmatch("  FAIL ([^\n]+)") do failed[#failed + 1] = name end
+            local body = text:gsub("\n%d+ passed, %d+ failed[^\n]*\n?$", "")
+            if body:match("%S") then io.write(body, "\n") end
+        end
+        if args.coverage then
+            for src, line in io.open(f.hits):read("*a"):gmatch("([^\t\n]+)\t(%d+)") do
+                hits[src] = hits[src] or {}
+                hits[src][tonumber(line)] = true
+            end
+        end
+        os.remove(f.out); os.remove(f.hits)
+    end
+end
+for _, t in ipairs(parallel and {} or tests) do
+    local mine = not args.filter or t.name:find(args.filter, 1, true)
+    if mine and args.shard then
+        index = index + 1
+        mine = (index - 1) % args.shards == args.shard - 1
+    end
+    if mine then
         H.worlds = {}
         math.randomseed(42)
         local ok, err = xpcall(t.fn, debug.traceback)
@@ -130,8 +199,22 @@ for _, t in ipairs(tests) do
         end
     end
 end
-if args.coverage then debug.sethook() end
-local elapsed = os.clock() - t0
+if args.coverage and not parallel then debug.sethook() end
+local elapsed = parallel and os.difftime(os.time(), wall0) or (os.clock() - t0)
+if args.shard then
+    -- A shard: its hits for the parent, its counts (the parent reads the last line).
+    if args.hitsOut then
+        local f = assert(io.open(args.hitsOut, "w"))
+        for src, lines in pairs(hits) do
+            if src:sub(1, 1) == "@" and not src:find("^@Libs/") and not src:find("^@tools/") then
+                for l in pairs(lines) do f:write(src, "\t", l, "\n") end
+            end
+        end
+        f:close()
+    end
+    print(("\n%d passed, %d failed (%.1fs)"):format(passed, #failed, elapsed))
+    os.exit(#failed > 0 and 1 or 0)
+end
 
 ------------------------------------------------------------------------------
 -- Coverage report
