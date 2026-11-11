@@ -664,7 +664,8 @@ function Moves.NewStage(name, opts)
     -- while a pose is held is logged, and the pose put back (after a model, once
     -- it has settled), at most Moves.REPOSE times per pet shown.
     local function Outside(what, arg)
-        ns.Log("Moves", "%s(%s) from outside, holding %s", what, tostring(arg), tostring(shown.pose and shown.playing))
+        ns.Log("Moves", "%s %s: %s(%s) from outside, %.2f s into our %s%s", name, tostring(shown.key), what, tostring(arg),
+            shown.since and GetTime() - shown.since or -1, tostring(shown.playing), shown.pose and " (held)" or "")
         if what ~= "SetAnimation" then shown.modelAt = GetTime() end
         if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
             local key, token = shown.key, shown.token
@@ -721,7 +722,7 @@ function Moves.NewStage(name, opts)
             if token ~= shown.token or shown.playing ~= id or shown.pose ~= pose then return end
             local ok = Call(actor, "SetPaused", true)
             shown.paused = ok or nil
-            ns.Log("Moves", "%s %d: paused %.2f s in: %s", tostring(shown.key), id, pose, ok and "ok" or "failed")
+            ns.Log("Moves", "%s %s: %d paused %.2f s in: %s", name, tostring(shown.key), id, pose, ok and "ok" or "failed")
         end
         local wait = pose - playingFor
         if wait <= 0.02 then Pause() else C_Timer.After(wait, Pause) end
@@ -748,20 +749,30 @@ function Moves.NewStage(name, opts)
             ok = Call(actor, "SetAnimation", id)
         end
         own = false
+        ns.Log("Moves", "%s %s: play %d%s%s%s", name, tostring(shown.key), id, pose and (" at %.2f"):format(pose) or "",
+            again and " (again)" or "", ok and "" or " REFUSED")
         local token = shown.token
         C_Timer.After(Moves.RECHECK, function()
             if token ~= shown.token or shown.playing ~= id then return end
             local now = Actor()
             local got, at = Call(now or actor, "GetAnimation")
             local reset = now ~= actor or (got and at ~= id)
-            ns.Log("Moves", "%s %d: %s; after %.1f s %s%s", tostring(shown.key), id, ok and "set" or "refused",
-                Moves.RECHECK, got and tostring(at) or "?", now ~= actor and " (a new actor)" or "")
+            if reset then
+                ns.Log("Moves", "%s %s: %d reads %s after %.1f s%s", name, tostring(shown.key), id,
+                    got and tostring(at) or "?", Moves.RECHECK, now ~= actor and " (a new actor)" or "")
+            end
             if reset and not again then Play(id, true, pose) end
         end)
     end
 
     -- Steps { id, seconds, pose }: each in turn; the last one stays. Replaces any running.
-    function stage:Sequence(steps)
+    function stage:Sequence(steps, why)
+        local parts = {}
+        for _, s in ipairs(steps) do
+            parts[#parts + 1] = tostring(s[1]) .. (s[2] and ("/%.1fs"):format(s[2]) or "") .. (s[3] and "p" or "")
+        end
+        ns.Log("Moves", "%s %s: %s [%s] mode %s", name, tostring(shown.key), why or "steps", table.concat(parts, " > "),
+            tostring(shown.mode))
         shown.token = shown.token + 1
         shown.reposed = 0
         local mine = shown.token
@@ -779,7 +790,7 @@ function Moves.NewStage(name, opts)
                 -- (stopped moving meanwhile, and it's a sitter: it settles again)
                 if shown.mode == "stand" and Rest(shown.key) == "sit" then
                     shown.mode = "sit"
-                    return stage:Sequence(Steps(shown.key, "sit"))
+                    return stage:Sequence(Steps(shown.key, "sit"), "settles again")
                 end
                 if shown.mode == "stand" then id = Moves:MotionId(shown.key) or Moves.STAND end
             end
@@ -801,11 +812,11 @@ function Moves.NewStage(name, opts)
             local up = Moves:For(key, "sitUp")
             local steps = (seated and up) and { { up, Moves:Length(key, up, Moves.T.up) } } or {}
             steps[#steps + 1] = { STAND }
-            return stage:Sequence(steps)
+            return stage:Sequence(steps, "up to go with you")
         end
         if shown.mode == "stand" and mode == "sit" and shown.last then -- (stopped: it settles again)
             shown.mode = "sit"
-            return stage:Sequence(Steps(key, "sit"))
+            return stage:Sequence(Steps(key, "sit"), "stopped: sits")
         end
         if shown.mode ~= "stand" or not shown.last then return end
         local id = Moves:MotionId(key) or STAND
@@ -826,7 +837,7 @@ function Moves.NewStage(name, opts)
         if land then steps[#steps + 1] = { land, Moves:Length(key, land, Moves.T.jumpEnd) } end
         if #steps == 0 then return end
         steps[#steps + 1] = { STAND } -- (then as things are: standing, walking or running)
-        stage:Sequence(steps)
+        stage:Sequence(steps, "jump")
     end
 
     -- Standing on its shadow (2026-11-10): Blizzard puts each model at a height
@@ -931,11 +942,6 @@ function Moves.NewStage(name, opts)
             return
         end
         local mode = Rest(key)
-        -- Why this pose (2026-11-11, the user: "none of them seem to be sleeping, but there's Zzz").
-        ns.Log("Moves", "%s %s: %s (was %s; awake %s, night %s, editing %s, sleep %s, hold %s)", name, key, mode,
-            tostring(key == shown.key and shown.mode), tostring(awake[key] or false),
-            tostring(ns.Personality.IsNight(ns.Now()) or Moves.night or false), tostring(Moves.movesEditing or false),
-            tostring(Moves:For(key, "sleep")), tostring(Moves:For(key, "sleepHold")))
         if key == shown.key and mode == shown.mode then
             -- The same pet refreshed: Blizzard may have stood the model up again; put back the
             -- step that stays. Not a one-off (a hop, a cheer, the lie-down): it would start over
@@ -943,9 +949,17 @@ function Moves.NewStage(name, opts)
             -- Paused where it lies: nothing to put back. (Played again, the client ignored the
             -- Dead it was already on, so unpaused it got up, and the pause caught it standing: 2026-11-10.)
             if shown.paused then return end
-            if shown.playing and shown.last then Play(shown.playing, true, shown.pose) end
+            if shown.playing and shown.last then
+                ns.Log("Moves", "%s %s: refresh, %s again", name, key, tostring(shown.playing))
+                Play(shown.playing, true, shown.pose)
+            end
             return
         end
+        -- Why this pose (2026-11-11, the user: "none of them seem to be sleeping, but there's Zzz").
+        ns.Log("Moves", "%s %s: pose %s (was %s %s; awake %s, night %s, editing %s, sleep %s/%s, hold %s)", name, key,
+            mode, tostring(shown.key), tostring(shown.mode), tostring(awake[key] or false),
+            tostring(ns.Personality.IsNight(ns.Now()) or Moves.night or false), tostring(Moves.movesEditing or false),
+            tostring(Moves:For(key, "sleep")), tostring(Moves:For(key, "sleepAt")), tostring(Moves:For(key, "sleepHold")))
         UnSulk()
         local newPet = key ~= shown.key
         shown.key, shown.mode = key, mode
@@ -955,7 +969,13 @@ function Moves.NewStage(name, opts)
         -- with no call we can see (GetAnimation echoes what was set; IsLoaded said true at once). Set
         -- twice, the client played it as a one-off and got up. So a new pet stands while its model
         -- loads, as the lie-down sleepers do (SLEEP_AFTER), then sleeps; the same pet sleeps at once.
+        -- (And now that it stands first, it lies down before the loop, as a pet with a lie-down of its own
+        -- should: 2026-11-11, the user: "lacking the get up / down animations".)
         if mode == "sleep" and #steps == 1 and newPet then
+            local down = self:For(key, "sleep")
+            if down and down ~= steps[1][1] then
+                table.insert(steps, 1, { down, self:For(key, "sleepAt") or self:Length(key, down, self.T.down) })
+            end
             table.insert(steps, 1, { STAND, Moves.SLEEP_AFTER })
         end
         -- A one-off first, once the model has loaded: a level-up's cheer (celebrated as the card
@@ -969,7 +989,7 @@ function Moves.NewStage(name, opts)
                 on = joy and function() ns.DB.char.wish.shown = true end or nil })
             table.insert(steps, 1, { STAND, self.SETTLE })
         end
-        self:Sequence(steps)
+        self:Sequence(steps, "pose " .. tostring(mode))
         Lift(key)     -- at once (2026-11-10: a moment later read as a jump) ...
         LiftSoon(key) -- ... and again if the model, done loading, was put back
         if moments then Sulk(key) end
@@ -999,7 +1019,7 @@ function Moves.NewStage(name, opts)
         if up then steps[#steps + 1] = { up, self:Length(key, up, self.T.up) } end
         if happy then steps[#steps + 1] = { happy, self:Length(key, happy, self.T.happy) } end
         steps[#steps + 1] = { back }
-        self:Sequence(steps)
+        self:Sequence(steps, "click")
         -- Awake now on every stage that shows it (the frame wakes with the card's click).
         for _, s in ipairs(Moves.stages) do if s ~= stage and s.shown.key == key then s:Update(nil, key) end end
         -- Woken up: its Zzz go (Decor reads the pose; the card's refresh leaves the hop playing).
@@ -1012,7 +1032,7 @@ function Moves.NewStage(name, opts)
         local cheer = self:For(key, "cheer")
         if not cheer then return end
         local back = Back(key)
-        self:Sequence({ { cheer, self:Length(key, cheer, self.T.cheer) }, { back } })
+        self:Sequence({ { cheer, self:Length(key, cheer, self.T.cheer) }, { back } }, "cheer")
     end
 
     -- whole: the whole reaction the part belongs to; else just the part.
@@ -1025,7 +1045,7 @@ function Moves.NewStage(name, opts)
         -- Standing first, in the same moment: the client doesn't start over the one it's on.
         Play(STAND)
         ns.Log("Moves", "try %s%s on %s", what, whole and " (whole)" or "", key)
-        self:Sequence(steps)
+        self:Sequence(steps, "try " .. tostring(what))
     end
 
     -- The journal closing or our pages covering the card: stop, and start over next time.

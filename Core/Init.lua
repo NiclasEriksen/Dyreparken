@@ -186,7 +186,7 @@ ns.Config = {
     SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole
     NAMES_PER_MEMBER = 50,        -- nickname entries kept per namer, and ...
     LIFE_PER_MEMBER = 400,        -- ... bond entries per carer: past that the oldest go (Registry: Trim)
-    DEBUG_RING_SIZE = 2000,       -- lines kept in DyreparkenDebugDB
+    DEBUG_RING_SIZE = 8000,       -- lines kept in DyreparkenDebugDB (a long play session's worth: 2026-11-11)
     COMM_PREFIX = "Dyreparken",   -- max 16 characters
 }
 
