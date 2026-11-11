@@ -32,7 +32,7 @@ return function(test, H)
         } } }
         c:Login()
         local g = c.env.DyreparkenDB.guilds.Dyreparken
-        eq(c.env.DyreparkenDB.schema, 10)
+        eq(c.env.DyreparkenDB.schema, 11)
         eq(g.life[PANDA]["Ola Nord"].p, 90, "within today and a spare day (150): kept")
         eq(g.life[PANDA]["Kari Berg"].p, 20)
         eq(g.life[PANDA]["Per Hansen"], nil, "older than the addon: gone")
@@ -514,5 +514,47 @@ return function(test, H)
         w:InjectMessage("Liv Lund", { k = "BOND_REQ", p = p, pet = "s:1002" }, "GUILD")
         w:Run(3)
         eq(w:Sent("BOND", "Ola Nord", m3), 1)
+    end)
+
+    test("guild achievements dated before the addon, or shared before they were earned, are refused; migration 11 drops stored ones", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 }, login = false })
+        local kari = w:AddClient("Kari Berg", { pets = { 46 } })
+        local now = w:ServerTime()
+        local epoch = 1790000000 - 1000 * DAY -- (the harness's, tools/test/harness.lua)
+        ola.saved.DyreparkenDB = { schema = 10, guilds = { Dyreparken = {
+            claims = {}, lapses = {}, names = {}, life = {}, achSeen = {},
+            ach = {
+                ["guild:count:1"] = { at = now - DAY, ann = now - 10 },  -- fine
+                ["guild:count:5"] = { at = now - DAY },                  -- fine, never shared
+                ["guild:count:10"] = { at = 1, ann = 1 },                -- the dawn of time
+                ["guild:count:20"] = { at = now - DAY, ann = epoch - DAY }, -- shared before it was earned
+                ["guild:count:25"] = { at = now - DAY, ann = now - 2 * DAY },
+            },
+        } } }
+        ola:Login()
+        local g = ola.env.DyreparkenDB.guilds.Dyreparken
+        ok(g.ach["guild:count:1"]); ok(g.ach["guild:count:5"])
+        eq(g.ach["guild:count:10"], nil); eq(g.ach["guild:count:20"], nil); eq(g.ach["guild:count:25"], nil)
+        w:Settle("hello")
+        -- From the wire: the same rules. A forged early date can't win the minimum for good.
+        local p = ola.ns.PROTOCOL
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = {
+            ["guild:count:1"] = { at = 1, ann = 1 },
+            ["guild:count:5"] = { at = now - DAY, ann = now - 2 * DAY },
+            ["guild:count:30"] = { at = epoch - 1 },
+        } }, "GUILD")
+        w:Run(20)
+        for _, c in ipairs({ ola, kari }) do
+            local a = c.ns.DB:Guild().ach
+            ok(a["guild:count:1"] == nil or a["guild:count:1"].at >= epoch, c.name)
+            ok(a["guild:count:5"] == nil or a["guild:count:5"].ann == nil, c.name)
+            eq(a["guild:count:30"], nil, c.name)
+        end
+        eq(ola.ns.DB:Guild().ach["guild:count:1"].at, now - DAY)
+        -- A good one still lands.
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:count:40"] = { at = now - 5, q = true } } }, "GUILD")
+        w:Run(2)
+        eq(kari.ns.DB:Guild().ach["guild:count:40"].at, now - 5)
     end)
 end

@@ -15,7 +15,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 10
+local SCHEMA = 11
 local CHAR_SCHEMA = 1
 
 local ACCOUNT_DEFAULTS = {
@@ -179,6 +179,19 @@ local MIGRATIONS = {
                     end
                 end
                 if type(byKey) ~= "table" or not next(byKey) then g.names[key] = nil end
+            end
+        end
+    end,
+    -- 11 (2026-11-11, code review): guild achievements dated before the addon
+    -- (BOND_EPOCH), or shared before they were earned, are refused now: drop
+    -- the stored ones, so peers agree on what they keep. Only forgeries fail these.
+    [11] = function(db)
+        local valid = ns.Achievements.ValidGuildRecord
+        for _, g in pairs(db.guilds or {}) do
+            if type(g.ach) == "table" then
+                for id, rec in pairs(g.ach) do
+                    if not valid(id, rec) then g.ach[id] = nil end
+                end
             end
         end
     end,

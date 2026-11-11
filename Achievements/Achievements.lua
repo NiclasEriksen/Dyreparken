@@ -381,12 +381,16 @@ local function Run(scope, ctx, quietAll, new)
     return quiet
 end
 
+-- Dates merge by the earliest, so a forged early one won for good: none
+-- before the addon (BOND_EPOCH), and no share before the earning (code review
+-- 2026-11-11, migration 11; no protocol bump: only forgeries fail these).
 local function ValidGuildRecord(id, rec)
     return type(id) == "string" and #id <= 64 and id:find("^guild:[%w:_]+$") ~= nil
-        and type(rec) == "table" and ns.SaneTime(rec.at)
-        and (rec.ann == nil or ns.SaneTime(rec.ann))
+        and type(rec) == "table" and ns.SaneTime(rec.at) and rec.at >= ns.Config.BOND_EPOCH
+        and (rec.ann == nil or (ns.SaneTime(rec.ann) and rec.ann >= rec.at))
         and (rec.q == nil or rec.q == true)
 end
+Ach.ValidGuildRecord = ValidGuildRecord
 
 -- Merge guild records from a peer (ACH or SYNC). Returns true if anything
 -- changed. Records new to us that aren't quiet get one line.

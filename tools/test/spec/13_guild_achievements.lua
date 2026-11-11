@@ -146,46 +146,47 @@ return function(test, H)
         local kari = cs["Kari Berg"]
         local p = kari.ns.PROTOCOL
         local A = kari.ns.Achievements
+        local E = kari.ns.Config.BOND_EPOCH -- (earlier dates are refused)
         w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = {
             ["guild:family:cat"] = { at = "soon" },
-            ["family:cat"] = { at = 5 },            -- not a guild id
-            ["guild:x"] = { at = 5, ann = -1 },
-            ["guild:y"] = { at = 5, q = "yes" },
-            ["guild:" .. ("z"):rep(70)] = { at = 5 },
-            ["guild:bad id"] = { at = 5 },
+            ["family:cat"] = { at = E + 5 },        -- not a guild id
+            ["guild:x"] = { at = E + 5, ann = -1 },
+            ["guild:y"] = { at = E + 5, q = "yes" },
+            ["guild:" .. ("z"):rep(70)] = { at = E + 5 },
+            ["guild:bad id"] = { at = E + 5 },
         } })
         w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = "nope" })
-        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = 5 } } }, "PARTY")
-        w:InjectMessage("Per Hansen", { k = "ACH", p = 99, a = { ["guild:future:thing"] = { at = 5 } } })
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = E + 5 } } }, "PARTY")
+        w:InjectMessage("Per Hansen", { k = "ACH", p = 99, a = { ["guild:future:thing"] = { at = E + 5 } } })
         w:Run(1)
         eq(next(kari.ns.DB:Guild().ach), nil, "all rejected")
-        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = 5, ann = 6 } } })
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = E + 5, ann = E + 6 } } })
         w:Run(1)
         ok(kari.ns.DB:Guild().ach["guild:future:thing"], "kept for the sync")
         no(kari:Printed("future", true), "not shown")
         -- Earlier dates and shares win; later ones don't.
-        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = 9, ann = 9 } } })
-        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = 3, ann = 4 } } })
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = E + 9, ann = E + 9 } } })
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = E + 3, ann = E + 4 } } })
         w:Run(1)
         local rec = kari.ns.DB:Guild().ach["guild:future:thing"]
-        eq(rec.at, 3); eq(rec.ann, 4)
+        eq(rec.at, E + 3); eq(rec.ann, E + 4)
         -- The store holds at most 128 records, however they arrive; known ones still update.
         for batch = 0, 2 do
             local many = {}
-            for i = 1, 60 do many["guild:n" .. (batch * 60 + i)] = { at = 5 } end
+            for i = 1, 60 do many["guild:n" .. (batch * 60 + i)] = { at = E + 5 } end
             w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = many })
         end
         w:Run(1)
         local n = 0
         for _ in pairs(kari.ns.DB:Guild().ach) do n = n + 1 end
         eq(n, 128)
-        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = 2 } } })
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = E + 2 } } })
         w:Run(1)
-        eq(kari.ns.DB:Guild().ach["guild:future:thing"].at, 2)
+        eq(kari.ns.DB:Guild().ach["guild:future:thing"].at, E + 2)
         -- Far-future or broken times are refused.
-        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = 1, ann = 1 / 0 } } })
+        w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = E + 1, ann = E + 1 / 0 } } })
         w:Run(1)
-        eq(kari.ns.DB:Guild().ach["guild:future:thing"].at, 2)
+        eq(kari.ns.DB:Guild().ach["guild:future:thing"].at, E + 2)
         eq(A:MergeGuild(nil), false)
     end)
 

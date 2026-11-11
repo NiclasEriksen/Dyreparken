@@ -221,7 +221,7 @@ return function(test, H)
         } }
         c:Login()
         local db = c.env.DyreparkenDB
-        eq(db.schema, 10)
+        eq(db.schema, 11)
         ok(db.guilds.Dyreparken and db.guilds.Dyreparken.claims and db.guilds.Dyreparken.lapses)
         no(db.guilds.Dyreparken.pets, "old shape dropped")
         ok(db.guilds["Annet Laug"].claims)
@@ -234,7 +234,7 @@ return function(test, H)
         local d = w:AddClient("Kari Berg", { login = false })
         d.saved.DyreparkenDB = { schema = 0, junk = true }
         d:Login()
-        eq(d.env.DyreparkenDB.schema, 10)
+        eq(d.env.DyreparkenDB.schema, 11)
         no(d.env.DyreparkenDB.junk, "unmigratable data is wiped")
         eq(#d:Log("no migration 0%->1, resetting"), 1)
     end)
