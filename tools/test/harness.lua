@@ -49,7 +49,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
     NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED
     PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING CHAT_MSG_EMOTE PLAYER_CONTROL_GAINED
-    CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED]]):gmatch("%S+") do
+    CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1330,7 +1330,8 @@ function Client:BuildEnv()
     env.InCombatLockdown = function() return S.combat == true end
     env.UnitAffectingCombat = function() return S.combat == true end
     env.IsMounted = function() return S.mounted or false end
-    env.GetUnitSpeed = function(u) assert(u == "player"); return S.moving and (S.mounted and 14 or 7) or 0 end
+    env.GetShapeshiftFormID = function() return S.form end -- (nil: no form, like the client)
+    env.GetUnitSpeed = function(u) assert(u == "player"); return S.moving and ((S.mounted or S.form) and 14 or 7) or 0 end
     env.UnitOnTaxi = function() return S.taxi or false end
     env.UnitIsDeadOrGhost = function() return S.dead or false end
     env.IsFlying = function() return S.flying or false end

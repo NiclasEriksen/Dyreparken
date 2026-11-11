@@ -335,6 +335,15 @@ return function(test, H)
         eq(actor.anim, 0, "a flight path: standing")
         ola:Set("taxi", false); ola:Dismount()
         eq(actor.anim, 4)
+        -- Travel Form and Ghost Wolf ride like a mount; another form (Bear) walks.
+        ola:Set("form", 3); ola:Fire("UPDATE_SHAPESHIFT_FORM")
+        eq(actor.anim, 5, "Travel Form: running")
+        ola:Set("form", 16); ola:Fire("UPDATE_SHAPESHIFT_FORM")
+        eq(actor.anim, 5, "Ghost Wolf: running")
+        ola:Set("form", 5); ola:Fire("UPDATE_SHAPESHIFT_FORM")
+        eq(actor.anim, 4, "Bear Form: walking")
+        ola:Set("form", nil); ola:Fire("UPDATE_SHAPESHIFT_FORM")
+        eq(actor.anim, 4)
         -- Landed from a flight, standing, and no stop came: the speed says so.
         ola:Mount(); ola:Set("taxi", true); ola:Fire("PLAYER_MOUNT_DISPLAY_CHANGED")
         ola:Set("taxi", false); ola.state.moving = false

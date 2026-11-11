@@ -578,14 +578,25 @@ end
 local motion = { on = false, moving = false, token = 0 }
 Moves.STOP_AFTER = 0.3 -- a stop this short isn't one (tapped keys would twitch it)
 local MOTION_EVENTS = { "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "PLAYER_MOUNT_DISPLAY_CHANGED",
-    "PLAYER_CONTROL_GAINED" }
+    "PLAYER_CONTROL_GAINED", "UPDATE_SHAPESHIFT_FORM" }
+-- Forms that ride like a mount, for the pet's run (the user, 2026-11-11): GetShapeshiftFormID's
+-- Travel Form (druid) and Ghost Wolf (shaman).
+Moves.RIDING_FORMS = { [3] = true, [16] = true }
 local function Truthy(v) return ns.Plain(v) and true or false end
 
 -- The walk or run it plays now, or nil (standing still, on a taxi, not the pet you keep out).
 function Moves:MotionId(key)
     if not (motion.on and motion.moving and key and ns.Summon:ActiveKey() == key) then return nil end
     if Truthy(UnitOnTaxi("player")) then return nil end
-    return self:For(key, Truthy(IsMounted()) and "run" or "walk")
+    return self:For(key, Moves.Riding() and "run" or "walk")
+end
+
+-- On a mount, or in a form that's as fast as one.
+function Moves.Riding()
+    if Truthy(IsMounted()) then return true end
+    local ok, form = pcall(function() return GetShapeshiftFormID and GetShapeshiftFormID() end)
+    form = ok and ns.Plain(form)
+    return form and Moves.RIDING_FORMS[form] or false
 end
 
 -- Are we moving (GetUnitSpeed), or nil when the client can't say.
@@ -650,6 +661,7 @@ function Moves:Follow(key)
     end
     ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Moves, Resync)
     ns.Events:On("PLAYER_CONTROL_GAINED", Moves, Resync)
+    ns.Events:On("UPDATE_SHAPESHIFT_FORM", Moves, Resync)
 end
 
 -- A pose's steps for this pet; the last one is held.
