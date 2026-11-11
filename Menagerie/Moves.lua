@@ -471,6 +471,10 @@ end
 ------------------------------------------------------------------------------
 local motion = { on = false, moving = false, token = 0 }
 Moves.STOP_AFTER = 0.3 -- a stop this short isn't one (tapped keys would twitch it)
+-- A jump with you (2026-11-11, the user): the pet's JumpStart, its Jump held for the rest of the time
+-- you're in the air (about JUMP_AIR from the key), then JumpEnd. No event says you landed, and no polling.
+Moves.JUMP_AIR = 0.7
+Moves.T.jumpStart, Moves.T.jumpEnd = 0.3, 0.4 -- (unmeasured lengths: else Data/AnimLengths.lua)
 local MOTION_EVENTS = { "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "PLAYER_MOUNT_DISPLAY_CHANGED",
     "PLAYER_CONTROL_GAINED", "UPDATE_SHAPESHIFT_FORM" }
 -- Forms that ride like a mount, for the pet's run (the user, 2026-11-11): GetShapeshiftFormID's
@@ -509,6 +513,11 @@ end
 
 local function ReposeAll() for _, s in ipairs(Moves.stages) do s:Repose() end end
 
+function Moves:JumpAll()
+    if Truthy(IsSwimming and IsSwimming()) or Truthy(UnitOnTaxi("player")) then return end -- (swimming up, not a jump)
+    for _, s in ipairs(self.stages) do s:Jump() end
+end
+
 -- Moving with you on every stage that shows the pet you keep out: the events while any does.
 function Moves:FollowAll()
     local want = false
@@ -539,6 +548,11 @@ function Moves:FollowAll()
         local now = Moves.Moving()
         if now ~= nil then motion.moving = now end
         ReposeAll()
+    end
+    -- Jumping: Blizzard's jump binding (a function hook, set once: idle while nothing shows a pet with you).
+    if not motion.hooked and type(JumpOrAscendStart) == "function" then
+        motion.hooked = true
+        hooksecurefunc("JumpOrAscendStart", function() if motion.on then Moves:JumpAll() end end)
     end
     ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", Moves, Resync)
     ns.Events:On("PLAYER_CONTROL_GAINED", Moves, Resync)
@@ -613,6 +627,12 @@ local function WholeSteps(F, reaction, key)
         Add(F("sitDown"), Len(F("sitDown"), Moves.T.down))
         Add(F("sit"), Moves.TRY_HOLD)
         Add(F("sitUp"), Len(F("sitUp"), Moves.T.up))
+    elseif reaction:find("^jump") then -- (as when you jump: take off, in the air, land)
+        local start = F("jumpStart")
+        local startLen = start and Len(start, Moves.T.jumpStart) or 0
+        Add(start, startLen)
+        Add(F("jump"), math.max(0.1, Moves.JUMP_AIR - startLen))
+        Add(F("jumpEnd"), Len(F("jumpEnd"), Moves.T.jumpEnd))
     else
         Add(F(reaction), reaction == "dead" and Moves.T.dead or Len(F(reaction), Moves.T.cheer))
     end
@@ -789,6 +809,23 @@ function Moves.NewStage(name, opts)
         if shown.mode ~= "stand" or not shown.last then return end
         local id = Moves:MotionId(key) or STAND
         if shown.playing ~= id then Play(id) end
+    end
+
+    -- You jumped: a pet with you that can jump does too, if it's only standing or walking (not
+    -- asleep, sitting, or in the middle of a reaction, a jump included).
+    function stage:Jump()
+        local key = shown.key
+        if not (key and Moves.WithYou(key) and Moves:For(key, "canJump")) then return end
+        if shown.mode ~= "stand" or not shown.last then return end -- (in the air too: it lands first)
+        local start, air, land = Moves:For(key, "jumpStart"), Moves:For(key, "jump"), Moves:For(key, "jumpEnd")
+        local steps = {}
+        local startLen = start and Moves:Length(key, start, Moves.T.jumpStart) or 0
+        if start then steps[#steps + 1] = { start, startLen } end
+        if air then steps[#steps + 1] = { air, math.max(0.1, Moves.JUMP_AIR - startLen) } end
+        if land then steps[#steps + 1] = { land, Moves:Length(key, land, Moves.T.jumpEnd) } end
+        if #steps == 0 then return end
+        steps[#steps + 1] = { STAND } -- (then as things are: standing, walking or running)
+        stage:Sequence(steps)
     end
 
     -- Standing on its shadow (2026-11-10): Blizzard puts each model at a height

@@ -26,6 +26,7 @@ Editor.PARTS = {
     { "sitDown", "Sit: sit down" }, { "sit", "Sit: sitting" }, { "sitUp", "Sit: get up" },
     { "happy", "Happy (a click)" }, { "happyToo", "Happy: now and then" }, { "cheer", "Cheer (level-up)" }, { "dead", "Playing dead" },
     { "walk", "Walk" }, { "run", "Run" },
+    { "jumpStart", "Jump: take off" }, { "jump", "Jump: in the air" }, { "jumpEnd", "Jump: land" },
 }
 Editor.MIN, Editor.MAX, Editor.STEP = 0.1, 2.5, 0.05
 local ROW_H = 24
@@ -37,6 +38,16 @@ local function FileValue(sid, what)
     local v = own and own[what]
     if v == nil then v = data.default[what] end
     return v
+end
+
+-- Picks the file has caught up with (written into Data/PetMoves.lua, or a default that changed to
+-- them): dropped, so the count is what's still to copy (2026-11-11, the user: "67 changed animals").
+function Editor:Prune()
+    local all = ns.DB.global.movePicks
+    for sid, p in pairs(all) do
+        for what, v in pairs(p) do if v == FileValue(sid, what) then p[what] = nil end end
+        if not next(p) then all[sid] = nil end
+    end
 end
 
 local function List()
@@ -118,9 +129,13 @@ function Editor:Redraw(fromSlider)
     local sits = self:Value("canSit") ~= false
     f.sits:SetChecked(sits)
     if p.canSit ~= nil then f.sits.label:SetTextColor(0.4, 1, 0.4) else f.sits.label:SetTextColor(1, 0.82, 0) end
+    local jumps = self:Value("canJump") == true
+    f.jumps:SetChecked(jumps)
+    if p.canJump ~= nil then f.jumps.label:SetTextColor(0.4, 1, 0.4) else f.jumps.label:SetTextColor(1, 0.82, 0) end
     for _, row in ipairs(f.rows) do
         row.anim:SetText(AnimName(self:Value(row.what)))
-        local off = row.what:find("^sit") and not sits -- (a pet that can't sit: its sit rows are unused)
+        -- (a pet that can't sit or jump: those rows are unused)
+        local off = (row.what:find("^sit") and not sits) or (row.what:find("^jump") and not jumps)
         if off then row.anim:SetTextColor(0.4, 0.4, 0.4)
         elseif p[row.what] ~= nil then row.anim:SetTextColor(0.4, 1, 0.4)
         else row.anim:SetTextColor(1, 1, 1) end
@@ -216,6 +231,14 @@ function Editor:Build()
     f.sits:SetPoint("LEFT", f.sits.label, "RIGHT", 2, 0)
     f.sits.label:SetText("Sit?")
     f.sits:SetScript("OnClick", function(self) Editor:Set("canSit", self:GetChecked() and true or false) end)
+    -- Jump? Ticked, the pet with you jumps when you do (off by default: few models can).
+    f.jumps = CreateFrame("CheckButton", nil, f, "UICheckButtonTemplate")
+    f.jumps:SetSize(22, 22)
+    f.jumps.label = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    f.jumps.label:SetPoint("LEFT", f.sits, "RIGHT", 24, 0)
+    f.jumps:SetPoint("LEFT", f.jumps.label, "RIGHT", 2, 0)
+    f.jumps.label:SetText("Jump?")
+    f.jumps:SetScript("OnClick", function(self) Editor:Set("canJump", self:GetChecked() and true or false) end)
     -- How far into lying down it's paused; a change shows at once.
     local y = -70 - #self.PARTS * ROW_H - 36
     f.slider = CreateFrame("Slider", "DyreparkenMovesSlider", f, "OptionsSliderTemplate")
@@ -260,6 +283,7 @@ function Editor:Open()
     end
     if not self.frame then self:Build() end
     self.list = List()
+    self:Prune()
     ns.Moves:SetEditing(true)
     local card = ns.JournalUI._card
     local sid = card and card.key and ns.Pets:SpeciesOfKey(card.key)

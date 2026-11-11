@@ -34,6 +34,9 @@ local _, ns = ...
 --   dead   the day of the "is it safe to live with you?" egg, once
 --   walk   the pet you keep out (auto-summon), while you move on foot and it would just stand
 --   run    ... while you're mounted and moving (on a taxi it stands)
+--   canJump  true: the pet with you jumps when you do (jumpStart, jump held while you're in the air,
+--            jumpEnd), standing or walking; off by default, since only a few models have it (the user,
+--            2026-11-11: set per pet in /dp probe moves, "Jump?")
 --   lift   (not an animation) how much higher (or lower, negative) the pet stands on its card than
 --          Blizzard puts it: some models float, some sink. Found by eye: /dp probe lift steps through
 --          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here
@@ -41,7 +44,8 @@ local _, ns = ...
 -- The default (2026-11-11) is what most pets got by eye in /dp probe moves: asleep in Dead (6),
 -- standing up on waking, never sitting. Overrides are only what differs from it.
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 0.7, sleepHold = 6, sleepUp = 0, canSit = false, sitDown = 96, sit = 97, sitUp = 98, happy = 756, happyToo = 748, cheer = 754, dead = 1, walk = 4, run = 5 },
+    default = { sleep = 6, sleepAt = 0.7, sleepHold = 6, sleepUp = 0, canSit = false, sitDown = 96, sit = 97, sitUp = 98, happy = 756, happyToo = 748, cheer = 754, dead = 1, walk = 4, run = 5,
+        canJump = false, jumpStart = 37, jump = 38, jumpEnd = 39 },
     species = {
         [39] = { lift = -0.1 },  -- Mechanical Squirrel
         [40] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, canSit = true, happy = 758 },  -- Bombay
