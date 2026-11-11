@@ -507,8 +507,9 @@ function Activity.FormatPattern(fmt)
     pat = pat:gsub("%%%%%d?%%?%$?s", "(.+)"):gsub("%%%%%d?%%?%$?d", "(%%d+)")
     return "^" .. pat .. "$"
 end
-local function ChatSource(id, event, global)
-    local pattern
+-- together: lines within this many seconds of the last one counted are the same gain.
+local function ChatSource(id, event, global, together)
+    local pattern, last
     Activity:Source({ id = id, events = { event },
         available = function() return Activity.FormatPattern(_G[global]) ~= nil end,
         filter = function(_, text)
@@ -516,7 +517,11 @@ local function ChatSource(id, event, global)
             pattern = pattern or Activity.FormatPattern(_G[global])
             if type(text) ~= "string" or not pattern then return nil end
             local name = text:match(pattern)
-            if name then return 1, name end
+            if not name then return nil end
+            local now = GetTime()
+            if together and last and now - last < together then return nil end
+            last = now
+            return 1, name
         end })
 end
 -- Your own roll of 1-100 (2026-11-10, the user: "Hjelp Plask rolls 1 (1-100)"), by
@@ -697,6 +702,9 @@ for id in pairs(Activity.AURAS) do
 end
 
 ChatSource("skill", "CHAT_MSG_SKILL", "SKILL_RANK_UP")
-ChatSource("rep", "CHAT_MSG_COMBAT_FACTION_CHANGE", "FACTION_STANDING_INCREASED")
+-- One quest can raise several factions at once (2026-11-12: one Steamwheedle turn-in, six lines, Booty Bay to
+-- Ratchet): one gain (the user).
+Activity.REP_TOGETHER = 2
+ChatSource("rep", "CHAT_MSG_COMBAT_FACTION_CHANGE", "FACTION_STANDING_INCREASED", Activity.REP_TOGETHER)
 
 ns.Start("loaded", function() Activity:Init() end)

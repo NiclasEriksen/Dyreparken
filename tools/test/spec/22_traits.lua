@@ -222,6 +222,16 @@ return function(test, H)
         ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Your Stormwind reputation has decreased by 25.")
         eq(table.concat(seen, ","), "skill:Swords,rep:Stormwind")
         eq(A:Count("skill"), 1); eq(A:Count("rep"), 1)
+        -- One quest, several factions at once (Steamwheedle, 2026-11-12): one gain; a later one counts.
+        for _, f in ipairs({ "Booty Bay", "Everlook", "Gadgetzan", "Ratchet" }) do
+            ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with " .. f .. " increased by 75.")
+        end
+        eq(A:Count("rep"), 1, "within moments of Stormwind's: the same gain")
+        w:Run(A.REP_TOGETHER + 0.1)
+        for _, f in ipairs({ "Booty Bay", "Everlook", "Gadgetzan", "Ratchet" }) do
+            ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with " .. f .. " increased by 75.")
+        end
+        eq(A:Count("rep"), 2, "the next quest's: one more")
         eq(A.FormatPattern("Din %1$s økte til %2$d."), "^Din (.+) økte til (%d+)%.$", "positional formats too")
         -- Without the format string the client can't say: unavailable, quietly.
         ola.env.SKILL_RANK_UP = nil
