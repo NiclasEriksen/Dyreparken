@@ -202,4 +202,29 @@ return function(test, H)
         eq(next(lone.ns.Achievements:GuildRecords()), nil)
         lone.ns.Achievements:Check("test", "guild")
     end)
+
+    test("every family has its guild achievement: each pet of it with a different member", function()
+        local w = H.World()
+        local ola = Fix(w:AddClient("Ola Nord", { pets = { 7 }, rank = 1 }))
+        local kari = Fix(w:AddClient("Kari Berg", { pets = { 84 }, rank = 3 }))
+        w:Settle("hello")
+        ola:Slash("adopter")
+        w:Run(20)
+        no(ola.ns.Achievements:Got("guild:family:farm"), "one of two farm pets")
+        kari:Slash("adopter")
+        w:Run(20)
+        for _, c in ipairs({ ola, kari }) do
+            ok(c.ns.Achievements:Got("guild:family:farm"), c.name)
+            ok(c:Printed("Dyreparken: Dyreparken fikk [Bondegården]!", true))
+        end
+        -- A family without counting pets here (owls) is never earned.
+        no(ola.ns.Achievements:Got("guild:family:owl"))
+        -- Every family has its name and line.
+        for _, d in ipairs(ola.ns.AchDefs) do
+            if d.kind == "guildfamily" then
+                local t = ola.ns.AchTexts[d.id]
+                ok(t and t.name and t.desc and t.flavor, d.id)
+            end
+        end
+    end)
 end

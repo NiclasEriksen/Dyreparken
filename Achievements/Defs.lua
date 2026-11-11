@@ -86,4 +86,14 @@ ns.AchDefs = {
         icon = { "Achievement_GuildPerk_MassResurrection", "Ability_Mount_WhiteTiger" } },
     { id = "guild:family:cat", kind = "guildfamily", tag = "cat", scope = "guild", cat = "guild",
         icon = { "INV_Pet_Cats_SilverTabbyCat", "Ability_Druid_CatForm" } },
+    -- Every family (2026-11-11, the user: "guild-specific achievements for those would be fun").
+    { id = "guild:family:farm", kind = "guildfamily", tag = "farm", scope = "guild", cat = "guild", icon = "Spell_Magic_PolymorphChicken" },
+    { id = "guild:family:owl", kind = "guildfamily", tag = "owl", scope = "guild", cat = "guild", icon = "Ability_Hunter_Pet_Owl" },
+    { id = "guild:family:rabbit", kind = "guildfamily", tag = "rabbit", scope = "guild", cat = "guild", icon = { "Spell_Magic_PolymorphRabbit", CARRIER } },
+    { id = "guild:family:snake", kind = "guildfamily", tag = "snake", scope = "guild", cat = "guild", icon = { "Ability_Hunter_CobraShot", "Ability_Hunter_SerpentSwiftness", "Ability_Hunter_Quickshot", "Ability_Hunter_Pet_WindSerpent" } },
+    { id = "guild:family:frog", kind = "guildfamily", tag = "frog", scope = "guild", cat = "guild", icon = { "Spell_Shaman_Hex", CARRIER } },
+    { id = "guild:family:mechanical", kind = "guildfamily", tag = "mechanical", scope = "guild", cat = "guild", icon = { "INV_Misc_Gear_01", "Trade_Engineering" } },
+    { id = "guild:family:dragon", kind = "guildfamily", tag = "dragon", scope = "guild", cat = "guild", icon = "INV_Misc_Head_Dragon_01" },
+    { id = "guild:family:bird", kind = "guildfamily", tag = "bird", scope = "guild", cat = "guild", icon = "Spell_Nature_RavenForm" },
+    { id = "guild:family:pirate", kind = "guildfamily", tag = "pirate", scope = "guild", cat = "guild", icon = { "INV_Helmet_66", "INV_Misc_Bandana_03", CARRIER } },
 }
