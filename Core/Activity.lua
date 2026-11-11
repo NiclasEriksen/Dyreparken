@@ -67,6 +67,11 @@ Activity.KINDS = {
     { "duelwon", wish = false },  -- you won a duel (extra: who): only the eggs watch it
     { "duellost", wish = false }, -- you lost one (extra: who): only the eggs watch it
     { "newpath", wish = false },  -- a new flight path: only the eggs watch it
+    -- Campfires, new on Forever (2026-11-11, the user): the buffs, as they come (Activity: AuraSource).
+    { "campnear", wish = false }, -- a campfire nearby (pops up all the time out in the world): eggs only
+    { "campwarm", wish = false }, -- sat down at one: Welcoming Campfire, a minute counting down
+    { "camp" },                   -- the campfire's buff, after that minute: a wish for any pet (Wish.lua)
+    { "rested" },                 -- Well-Rested, a night in a sleeping bag: a wish for cozy pets
 }
 Activity.KIND = {}
 for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end
@@ -619,6 +624,52 @@ Activity:Source({ id = "newpath", events = { "UI_INFO_MESSAGE", "CHAT_MSG_SYSTEM
         local text = Plain(event == "UI_INFO_MESSAGE" and b or a)
         if text == _G.ERR_NEWTAXIPATH then return 1 end
     end })
+
+-- A buff of yours appearing (it wasn't there at the last look): campfires and sleeping bags
+-- (2026-11-11, the user's ids). Looked up by name (the client's language), like Summon's food,
+-- from the spell id, or by a given name where the id isn't known yet; read on UNIT_AURA, out of
+-- combat only (camps are), and not while auras are secret. The first look only notes what's
+-- there (a /reload by the fire isn't a new fire).
+Activity.AURAS = {
+    campnear = { id = 1283391 },                       -- a campfire nearby
+    campwarm = { name = "Welcoming Campfire" },        -- (id unknown: logged when seen)
+    camp = { id = 1229741 },                           -- the buff after a minute by the fire
+    rested = { id = 429959 },                          -- Well-Rested (a sleeping bag)
+}
+local auraHad, auraNames = {}, {}
+function Activity.AuraName(id)
+    if auraNames[id] then return auraNames[id] end -- (UNIT_AURA comes often: looked up once)
+    local a = Activity.AURAS[id]
+    local name = a and (a.id and ns.SpellName(a.id) or a.name)
+    auraNames[id] = name
+    return name
+end
+function Activity.HasAura(name)
+    local byName = C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName
+    if not (byName and name) then return nil end
+    if C_Secrets and C_Secrets.ShouldAurasBeSecret and C_Secrets.ShouldAurasBeSecret() then return nil end
+    local ok, data = pcall(byName, "player", name, "HELPFUL")
+    if not ok then return nil end
+    return data ~= nil, data
+end
+for id in pairs(Activity.AURAS) do
+    Activity:Source({ id = id, events = { "UNIT_AURA" }, unit = "player",
+        available = function() return Activity.AuraName(id) ~= nil end,
+        filter = function()
+            if InCombatLockdown() then return nil end
+            local name = Activity.AuraName(id)
+            local has, data = Activity.HasAura(name)
+            if has == nil then return nil end
+            local before = auraHad[id]
+            auraHad[id] = has
+            if has and before == false then
+                if not Activity.AURAS[id].id then
+                    ns.Log("Activity", "%s: %s is spell %s", id, tostring(name), tostring(data and Plain(data.spellId)))
+                end
+                return 1
+            end
+        end })
+end
 
 ChatSource("skill", "CHAT_MSG_SKILL", "SKILL_RANK_UP")
 ChatSource("rep", "CHAT_MSG_COMBAT_FACTION_CHANGE", "FACTION_STANDING_INCREASED")

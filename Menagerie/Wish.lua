@@ -18,8 +18,21 @@ for _, k in ipairs(ns.Activity.KINDS) do
     if k.wish == false then Wish.NEVER[k.id] = true end
 end
 
+-- Wishes beyond its likes (2026-11-11, the user): now and then any pet wishes for time by a
+-- campfire, and a cozy one for a night in a sleeping bag. One day in CAMP_EVERY each, by the date.
+Wish.CAMP_EVERY = 6
+Wish.SLEEPERS = { latsabb = true, kosete = true, hjemlengsel = true, friluftsdyr = true }
+local function Sleeper(key)
+    if not ns.Personality:Known(key) then return false end
+    for _, t in ipairs(ns.Personality:Traits(key)) do if Wish.SLEEPERS[t.id] then return true end end
+    return false
+end
+
 -- What the pet wishes for on a day ("YYYYMMDD").
 function Wish:For(key, day)
+    local roll = LibStub("LibDeflate"):Adler32("camp " .. day .. " " .. key) % self.CAMP_EVERY
+    if roll == 0 and ns.Activity:Available("camp") then return "camp" end
+    if roll == 1 and Sleeper(key) and ns.Activity:Available("rested") then return "rested" end
     local _, list = ns.Personality:Of(key)
     local choices = {}
     for _, act in ipairs(list) do

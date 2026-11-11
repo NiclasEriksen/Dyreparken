@@ -236,6 +236,12 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   Any pet can be adopted, whatever its availability; only achievements depend on it. The guild total counts every
   pet in Data/Companions.lua, limited ones too: Azurky (5179, a 12-month subscription reward the journal hides)
   was added by hand with a curation row, and has a family of its own, `murloc`.
+- **Campfires** (2026-11-11, the user; new on Forever): four buffs as activities (Activity.AURAS, by spell name
+  on UNIT_AURA, out of combat): campnear 1283391 (a fire nearby, constantly), campwarm (Welcoming Campfire, the
+  minute's countdown; id unknown, matched by name and logged), camp 1229741 (after the minute), rested 429959
+  (Well-Rested, a sleeping bag). Any pet wishes for camp one day in Wish.CAMP_EVERY; Latsabb, Kosete,
+  Hjemlengsel and Friluftsdyr also for rested. Eggs: cozy traits (Quirks.COZY) enjoy it, adventurous ones
+  (Quirks.ADVENTUROUS) get restless, the rest say nothing.
 - **The fishing contest bonus** (2026-11-11, the user): a pet that likes fishing, out while you fish in Stranglethorn
   on the day the calendar has the Stranglethorn Fishing Extravaganza: 10 points once that day (Bond:Contest,
   Config.BOND_CONTEST_POINTS, within the day's 75; no protocol change). A new flight path matters only to a pet

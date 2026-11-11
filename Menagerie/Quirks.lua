@@ -120,6 +120,13 @@ local function HasTrait(key, id)
     for _, t in ipairs(ns.Personality:Traits(key)) do if t.id == id then return true end end
     return false
 end
+-- Cozy or adventurous (for the campfire eggs), or nil: cozy wins if it's both.
+Quirks.COZY = { "latsabb", "kosete", "hjemlengsel" }
+Quirks.ADVENTUROUS = { "eventyrlysten", "oppdager", "reiseglad", "hoppetass" }
+local function Kind(key)
+    for _, id in ipairs(Quirks.COZY) do if HasTrait(key, id) then return "cozy" end end
+    for _, id in ipairs(Quirks.ADVENTUROUS) do if HasTrait(key, id) then return "adventurous" end end
+end
 local function Weekday(t) return tonumber(date("%w", t)) end -- 0 = Sunday
 local function Hour(t) return tonumber(date("%H", t)) end
 
@@ -278,6 +285,19 @@ Quirks.EGGS = {
         if ns.Personality:Of(ctx.key).taxi then return {} end
         if ns.Personality:Dislikes(ctx.key).taxi then return { _key = "egg.nyrute.redd" } end
     end },
+    -- Campfires and sleeping bags (2026-11-11, the user): cozy pets love them, adventurous ones get
+    -- restless; a fire passed by only now and then catches a cozy pet's eye.
+    { id = "baalnaer", on = "campnear", chance = 0.03, test = function(ctx)
+        return Kind(ctx.key) == "cozy" and {} end },
+    { id = "baalvarm", on = "campwarm", chance = 0.5, test = function(ctx)
+        local kind = Kind(ctx.key)
+        return kind and (kind == "cozy" and {} or { _key = "egg.baalvarm.eventyr" }) end },
+    { id = "baal", on = "camp", chance = 0.6, test = function(ctx)
+        local kind = Kind(ctx.key)
+        return kind and (kind == "cozy" and {} or { _key = "egg.baal.eventyr" }) end },
+    { id = "sovepose", on = "rested", chance = 0.6, test = function(ctx)
+        local kind = Kind(ctx.key)
+        return kind and (kind == "cozy" and {} or { _key = "egg.sovepose.eventyr" }) end },
     -- A lot of guild chat at once, for a pet that isn't a Pratsom (it would join in) (the user, 2026-11-11).
     { id = "skravle", delay = "now", on = "chat", chance = 0.4, test = function(ctx)
         return not HasTrait(ctx.key, "pratsom") and Quirks:Chatty() and {} end },
@@ -387,7 +407,7 @@ end
 -- (Not dance: every emote nearby would wake it. The midnight dance comes only
 -- when a Dansefot's like already watches it.)
 Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic", "duelwon", "duellost",
-    "newpath", "fish", "chat" }
+    "newpath", "fish", "chat", "campnear", "campwarm", "camp", "rested" }
 local watching = {}
 
 function Quirks:Watch()
