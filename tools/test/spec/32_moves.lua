@@ -868,11 +868,22 @@ return function(test, H)
         local real = actor.SetAnimation
         function actor:SetAnimation(id, ...) set = id; return real(self, id, ...) end
         function actor:GetAnimation() return set end
+        local loaded = false
+        function actor:IsLoaded() return loaded end
         ola:SelectPet(46)
-        eq(actor.anim, 100)
-        actor.anim = 0 -- (the kitten's model done loading: standing, as the client leaves a new model)
+        eq(actor.anim, 0, "the kitten's model still loading: standing")
+        loaded = true
         w:Run(ola.ns.Moves.SETTLE + 0.01)
-        eq(actor.anim, 100, "the loop again, once loaded (2026-11-11: swapping pets broke their sleep)")
+        eq(actor.anim, 100, "loaded: asleep (2026-11-11: swapping pets broke their sleep)")
+        local n = 0
+        for _, id in ipairs(actor.played) do if id == 100 then n = n + 1 end end
+        w:Run(3)
+        local m = 0
+        for _, id in ipairs(actor.played) do if id == 100 then m = m + 1 end end
+        eq(m, n, "set once: twice, the client played it as a one-off and got up")
+        -- Back to the panda, its model loaded already: asleep at once.
+        ola:SelectPet(5159)
+        eq(actor.anim, 100)
     end)
 
     test("a click now and then plays the pet's other happy move (a pet battle wound), never on a pet with no happy move", function()

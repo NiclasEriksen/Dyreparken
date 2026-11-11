@@ -571,10 +571,8 @@ Steps = function(key, mode)
         -- (Sleep starts only as a card opens: once woken, it stays awake.) The others lie down
         -- and are paused there, which needs the model loaded first (SLEEP_AFTER).
         local hold = Moves:For(key, "sleepHold")
-        -- Again once the model has loaded (2026-11-11, the user: asleep on reopening, but "it quickly
-        -- broke when swapping": a new pet's model loads after the loop is set, and stands it up). The
-        -- client ignores the one it's already playing, so a loop that held just goes on.
-        if hold then return { { hold, Moves.SETTLE }, { hold } } end
+        -- (A model still loading would stand it up again: stage:Update waits for it first.)
+        if hold then return { { hold } } end
         return { { STAND, Moves.SLEEP_AFTER }, { id, at }, { id, nil, at } }
     end
     if mode == "sit" then
@@ -951,6 +949,14 @@ function Moves.NewStage(name, opts)
         UnSulk()
         shown.key, shown.mode = key, mode
         local steps = Steps(key, mode)
+        -- A sleep loop on a model still loading (a new pet: 2026-11-11, the user: asleep on reopening,
+        -- but "it quickly broke when swapping"): the load stands it up, unseen (GetAnimation echoes
+        -- what was set). Set twice, the client played it as a one-off and got up. So it stands while
+        -- the model loads (IsLoaded; without it, always), then sleeps.
+        if mode == "sleep" and #steps == 1 then
+            local ok, loaded = Call(Actor() or {}, "IsLoaded")
+            if not (ok and ns.Plain(loaded)) then table.insert(steps, 1, { STAND, Moves.SETTLE }) end
+        end
         -- A one-off first, once the model has loaded: a level-up's cheer (celebrated as the card
         -- opened, before the pet was posed: code review 2026-11-10), or a wish come true.
         local cheer = shown.cheerFor == key and mode ~= "dead" and self:For(key, "cheer")
