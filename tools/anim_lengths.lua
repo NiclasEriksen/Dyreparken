@@ -19,7 +19,8 @@ for sid in pairs(data) do ids[#ids + 1] = sid end
 table.sort(ids)
 local lines, kept, dropped = {}, 0, 0
 for _, sid in ipairs(ids) do
-    local own, stand = data[sid], data[sid][0]
+    local own = data[sid]
+    local stand = type(own[0]) == "number" and own[0] or nil -- ("none": a Stand that loops without an end)
     local parts = {}
     local anims = {}
     for id, len in pairs(own) do if type(id) == "number" and id ~= 0 then anims[#anims + 1] = id end end
