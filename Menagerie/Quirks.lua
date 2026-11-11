@@ -271,13 +271,21 @@ Quirks.EGGS = {
         return type(ctx.extra) == "string" and { who = ctx.extra } end },
     { id = "duelltaper", delay = "now", on = "duellost", always = true, test = function(ctx)
         return type(ctx.extra) == "string" and { who = ctx.extra } end },
+    -- A new flight path matters only to a pet that likes flying (it's thrilled) or dislikes it (it
+    -- shivers at the thought); the others don't care (the user, 2026-11-11).
     { id = "nyrute", delay = "now", on = "newpath", always = true, test = function(ctx)
-        return HasTrait(ctx.key, "reiseglad") and { _key = "egg.nyrute.reiseglad" } or {} end },
+        if not ns.Personality:Known(ctx.key) then return nil end
+        if ns.Personality:Of(ctx.key).taxi then return {} end
+        if ns.Personality:Dislikes(ctx.key).taxi then return { _key = "egg.nyrute.redd" } end
+    end },
     -- A lot of guild chat at once, for a pet that isn't a Pratsom (it would join in) (the user, 2026-11-11).
     { id = "skravle", delay = "now", on = "chat", chance = 0.4, test = function(ctx)
         return not HasTrait(ctx.key, "pratsom") and Quirks:Chatty() and {} end },
-    { id = "fiskekonk", delay = "now", on = "fish", always = true, test = function(ctx)
-        return ns.Holidays:Has(ctx.t, "stvfishing") and ns.Plain(GetZoneText()) == "Stranglethorn Vale" and {} end },
+    -- The Sunday fishing contest, for a pet that likes fishing: excited about the day (the bonus for
+    -- fishing there is Bond's, Bond:Contest).
+    { id = "fiskedag", on = "day", always = true, test = function(ctx)
+        return ns.Personality:Known(ctx.key) and ns.Personality:Of(ctx.key).fish
+            and ns.Holidays:Has(ctx.t, "stvfishing") and {} end },
     { id = "kattefisk", delay = "now", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
     { id = "vinger", on = "taxi", chance = 0.3,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
@@ -400,6 +408,12 @@ end
 function Quirks:Init()
     ns.Bus:On("ACTIVITY", function(id, _, key, _, extra) Quirks:OnActivity(id, key, extra) end)
     ns.Bus:On("COMPANION_SEEN", function(species, owner) Quirks:Seen(species, owner) end)
+    -- The calendar answered after the day's visit (past midnight, or just after login): the day's
+    -- eggs again, for the game's holidays (each egg still once a day).
+    ns.Bus:On("HOLIDAYS", function()
+        local key = ns.Pets:OutKey()
+        if key and select(3, ns.Activity:Count("day")) > 0 then Quirks:Egg("day", key) end
+    end)
     -- Named it (Registry's MY_NAME): a name's own eggs.
     ns.Bus:On("MY_NAME", function(key, e)
         if type(e) == "table" and e.n then Quirks:Egg("name", key, e.n) end

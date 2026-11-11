@@ -311,20 +311,22 @@ return function(test, H)
         w:SkipDays(1)
         Sys("Kari Berg has fled from Ola Nord in a duel")
         eq(Eggs("duellvinner"), 2, "they fled: you won")
-        -- A new flight path, on screen.
-        ola:Fire("UI_INFO_MESSAGE", 0, "New flight path discovered!"); w:Run(1)
+        -- A new flight path: this cat neither likes nor dislikes flying, so it doesn't care.
+        local function Path() ola:Fire("UI_INFO_MESSAGE", 0, "New flight path discovered!"); w:Run(4) end
+        Path()
+        eq(Eggs("nyrute"), 0, "doesn't care")
+        -- Dislikes flying: shivers.
+        local P = ola.ns.Personality
+        local dislikes = P.Dislikes
+        P.Dislikes = function() return { taxi = true }, { "taxi" } end
+        Path()
         eq(Eggs("nyrute"), 1)
-        -- Fishing on the contest's day, in Stranglethorn only.
-        w:SkipDays(1)
-        ola.state.holidays = { [ola.ns.Today()] = { 301 } }
-        ola.ns.Holidays:On(w:ServerTime()); w:Run(1.1)
-        ok(ola.ns.Holidays:Has(w:ServerTime(), "stvfishing"))
-        eq(ola.ns.Personality.Holiday(w:ServerTime()), nil, "not a holiday")
-        local egg
-        for _, e in ipairs(Q.EGGS) do if e.id == "fiskekonk" then egg = e end end
-        no(egg.test({ t = w:ServerTime() }), "in Elwynn")
-        ola.state.zone = "Stranglethorn Vale"
-        ok(egg.test({ t = w:ServerTime() }), "in Stranglethorn")
+        ok(Said(ola, "Bombay Cat skjelver ved tanken"), "a shiver")
+        P.Dislikes = dislikes
+        -- Likes flying (Reiseglad): thrilled.
+        local w2, kari = Setup({ "reiseglad", "glupsk" })
+        kari:Fire("UI_INFO_MESSAGE", 0, "New flight path discovered!"); w2:Run(4)
+        ok(Said(kari, "Bombay Cat er i ekstase"), "thrilled")
     end)
 
     test("a lot of guild chat at once: a pet that isn't a Pratsom comments, now and then", function()
@@ -357,5 +359,43 @@ return function(test, H)
         ok(Q.DELAY.now[2] <= 3 and Q.DELAY.egg[2] <= 15 and Q.DELAY.dislike[2] <= 15, "nothing waits half a minute but the flight")
         eq(Q.DISLIKE_DELAY.taxi, "slow")
         ok(Q.DELAY.slow[1] >= 20, "a flight's dislike: not the moment you take off")
+    end)
+
+    test("the fishing contest: a pet that likes fishing looks forward to it, and gets a bonus fishing in Stranglethorn", function()
+        local w, ola, Q = Setup({ "vannhund", "glupsk" })
+        local function Eggs(id) local e = ola.ns.DB.char.eggs[id]; return e and e.n or 0 end
+        local B = ola.ns.Bond
+        -- The contest is on tomorrow; the calendar answers after the day's visit (past midnight).
+        w:SkipDays(1)
+        ola.state.holidays = { [ola.ns.Today()] = { 301 } }
+        ola.ns.Activity:Emit("day"); w:Run(2)
+        eq(Eggs("fiskedag"), 1, "once the calendar answered: the day's eggs again")
+        ok(Said(ola, "fiskekonkurransen i Stranglethorn i dag"))
+        eq(ola.ns.Personality.Holiday(w:ServerTime()), nil, "not a holiday")
+        -- Fishing: in Elwynn nothing more, in Stranglethorn the bonus, once.
+        local function Fish() local was = B:Today("s:40"); ola.ns.Activity:Emit("fish"); w:Run(1); return B:Today("s:40") - was end
+        Fish()
+        eq(Count(ola, "jubler over fisket"), 0, "not in Elwynn")
+        ola.state.zone = "Stranglethorn Vale"
+        ok(Fish() >= ola.ns.Config.BOND_CONTEST_POINTS, "the bonus, on top of the fishing")
+        eq(Count(ola, "Bombay Cat jubler over fisket i fiskekonkurransen! (+10 bånd-poeng)"), 1)
+        ok(Fish() < ola.ns.Config.BOND_CONTEST_POINTS, "once a day")
+        eq(Count(ola, "jubler over fisket"), 1)
+        -- A pet that doesn't care for fishing: no bonus, no day egg.
+        local w2, kari = Setup({ "glupsk", "rampete" })
+        local Of = kari.ns.Personality.Of
+        kari.ns.Personality.Of = function(self, key)
+            local likes, a, b = Of(self, key)
+            local copy = {}
+            for k, v in pairs(likes) do if k ~= "fish" then copy[k] = v end end
+            return copy, a, b
+        end
+        w2:SkipDays(1)
+        kari.state.holidays = { [kari.ns.Today()] = { 301 } }
+        kari.ns.Activity:Emit("day"); w2:Run(2)
+        eq(kari.ns.DB.char.eggs.fiskedag, nil)
+        kari.state.zone = "Stranglethorn Vale"
+        kari.ns.Activity:Emit("fish"); w2:Run(1)
+        no(kari:Printed("jubler over fisket", true))
     end)
 end

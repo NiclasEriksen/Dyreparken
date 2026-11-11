@@ -432,22 +432,23 @@ L["egg.hundre.1"] = "{pet} måper. Hundre av hundre!"
 L["egg.hundre.2"] = "{pet} lurer på om terningen din er jukset med."
 L["egg.hundre.3"] = "{pet} hopper av glede. Den visste du hadde flaks i deg!"
 L["egg.hundre.4"] = "{pet} vil gjerne at du kaster for den neste gang."
-L["egg.lilla.1"] = "{pet} stirrer på det lilla skinnet med store øyne."
-L["egg.lilla.2"] = "{pet} vil gjerne bære den episke tingen. Bare litt."
+L["egg.lilla.1"] = "{pet} stirrer på den lilla teksten med store øyne."
+L["egg.lilla.2"] = "{pet} vil gjerne holde det episke itemet. Bare litt."
 L["egg.lilla.3"] = "{pet} snuser på byttet. Det lukter episk."
 L["egg.lilla.4"] = "{pet} har aldri sett noe så lilla før. Gratulerer!"
 L["egg.duellvinner.1"] = "{pet} jubler! Du vant duellen mot {who}."
 L["egg.duellvinner.2"] = "{pet} visste hele tiden at du ville slå {who}."
 L["egg.duelltaper.1"] = "{pet} slikker sårene dine etter duellen mot {who}."
 L["egg.duelltaper.2"] = "{pet} synes {who} jukset. Helt sikkert."
-L["egg.nyrute.1"] = "{pet} har fått et nytt sted å fly til!"
-L["egg.nyrute.2"] = "{pet} tar en titt på det nye flykartet. Hvor skal dere først?"
-L["egg.nyrute.reiseglad.1"] = "{pet} er i ekstase: en ny flyrute! Når drar vi?"
+L["egg.nyrute.1"] = "{pet} er i ekstase: en ny flyrute! Når drar vi?"
+L["egg.nyrute.2"] = "{pet} studerer det nye flykartet. Hvor skal dere først?"
+L["egg.nyrute.redd.1"] = "{pet} skjelver ved tanken på enda en flyrute."
+L["egg.nyrute.redd.2"] = "{pet} håper du ikke har tenkt å bruke den nye flyruten med det første."
+L["egg.fiskedag.1"] = "{pet} har hørt om fiskekonkurransen i Stranglethorn i dag og vil være med!"
+L["egg.fiskedag.2"] = "{pet} drømmer om den største fisken i Stranglethorn. Det er konkurranse i dag!"
 L["egg.skravle.1"] = "{pet} lurer på om du har tenkt å puste snart. Så mye prat!"
 L["egg.skravle.2"] = "{pet} har sovnet. Guildpraten din ble visst litt lang."
 L["egg.skravle.3"] = "{pet} prøver å få et ord inn, men du snakker for fort."
-L["egg.fiskekonk.1"] = "{pet} heier på deg i fiskekonkurransen i Stranglethorn!"
-L["egg.fiskekonk.2"] = "{pet} har sett seg ut den største fisken i Stranglethorn. Den er din!"
 L["egg.kattefisk.1"] = "{pet} har allerede spist halve fangsten."
 L["egg.vinger.1"] = "{pet} mener den kunne fløyet dit raskere selv."
 L["egg.trofe.1"] = "{pet} tok med seg en liten bit av {boss} som minne."
@@ -484,7 +485,7 @@ L["settings.head.card"] = "Dyrekortet"
 L["settings.autosummon"] = "Ta med dyret ut automatisk"
 L["settings.autosummon.tip"] = "Kaller ut dyret du har valgt med «Med deg» når du er klar: etter lasteskjermer, kamp og når du går av fjellet ditt."
 L["settings.mute"] = "Demp lyden når et dyr kalles ut"
-L["settings.mute.tip"] = "Klirringen når et dyr kommer ut, også når spillet henter det tilbake selv."
+L["settings.mute.tip"] = "Lydeffekten når et dyr kommer ut, også når spillet summoner det tilbake selv."
 L["settings.announce"] = "Fortell guilden når du adopterer eller gir navn"
 L["settings.announce.tip"] = "En linje i guild-chatten når du adopterer et dyr eller gir det kallenavn, og når du gratulerer fra en kake."
 L["settings.achnotify"] = "Fortell andre med Dyreparken om prestasjonene dine"
@@ -566,7 +567,7 @@ L["bond.celebrate.title"] = "{level}!"
 L["bond.celebrate.text"] = "{pet} og du er nå på level {n}."
 L["bond.celebrate.decor"] = "Ny pynt: {decor}."
 -- What the card gets at each level (also in the tooltips above).
-L["decor.level.2"] = "en kant og et hint av familiens farge"
+L["decor.level.2"] = "en kant og et hint av farge"
 L["decor.level.3"] = "sølvkant og sølvhjørner"
 L["decor.level.4"] = "en glød under dyret"
 L["decor.level.5"] = "gull overalt, og gnister som flyr"
@@ -590,6 +591,7 @@ L["wish.done"] = "Ønsket er oppfylt!"
 L["wish.title"] = "Dagens ønske"
 L["wish.tip"] = "Gjør det med {pet} ute i dag, så får dere {n} ekstra bånd-poeng."
 L["wish.tip.done"] = "Oppfylt! {pet} er fornøyd. Et nytt ønske kommer i morgen."
+L["bond.contest"] = "{pet} jubler over at du fisket i fiskekonkurransen! (+{n} bånd-poeng)"
 L["wish.granted"] = "{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} bånd-poeng)"
 
 ------------------------------------------------------------------------------
@@ -734,10 +736,10 @@ ns.AchTexts = {
         flavor = "{player} og {pet} har fullført 500 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 500 quests sammen! {name}" },
     ["quest:1000"] = { name = "Hele Azeroths hjelpere", desc = "Fullfør 1000 quests med dyret ditt ute.",
         flavor = "{player} og {pet} har fullført 1000 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 1000 quests sammen! {name}" },
-    ["eggs:10"] = { name = "Påskeegghøne", desc = "Finn 10 forskjellige påskeegg med dyrene dine.",
-        flavor = "{player} har funnet 10 forskjellige påskeegg med dyrene sine! {name}" },
-    ["eggs:25"] = { name = "Eggspert", desc = "Finn 25 forskjellige påskeegg med dyrene dine.",
-        flavor = "{player} har funnet 25 forskjellige påskeegg! Ingen hemmelighet er trygg. {name}" },
+    ["eggs:10"] = { name = "Påskeegghøne", desc = "Trigge 10 hemmelige interaksjoner med dyrene dine.",
+        flavor = "{player} har funnet 10 forskjellige hemmelige interaksjoner med dyrene sine! {name}" },
+    ["eggs:25"] = { name = "Eggspert", desc = "Finn 25 forskjellige hemmelige interaksjoner med dyrene dine.",
+        flavor = "{player} har funnet 25 forskjellige interaksjoner! Ingen hemmelighet er trygg. {name}" },
     ["dislikes"] = { name = "Kjenner deg ut og inn", desc = "Finn ut alt dyret ditt ikke liker.",
         flavor = "{player} vet nå alt {pet} ikke liker! {name}",
         plain = "{player} kjenner dyret sitt ut og inn! {name}" },

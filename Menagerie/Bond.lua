@@ -315,7 +315,18 @@ Bond.REWARDS = {
     wish = { points = "BOND_WISH_POINTS" },  -- today's wish done (Wish.lua: once a day already)
     first = { points = "BOND_FIRST_POINTS", lines = "FIRST_LINES", cap = "BOND_FIRST_CAP" }, -- a first together
     play = { points = "BOND_PLAY_POINTS", once = true }, -- a playdate (Playdate.lua)
+    contest = { points = "BOND_CONTEST_POINTS", once = true }, -- fishing in the Sunday contest (Bond:Contest)
 }
+
+-- A pet that likes fishing, out while you fish in Stranglethorn on the fishing contest's day
+-- (the calendar's Stranglethorn Fishing Extravaganza, Holidays.lua): a bonus, once that day
+-- (the user, 2026-11-11).
+function Bond:Contest(key)
+    if not (key and ns.Personality:Of(key).fish and ns.Holidays:Has(ns.Now(), "stvfishing")) then return end
+    if ns.Plain(GetZoneText()) ~= "Stranglethorn Vale" then return end
+    self:Reward("contest", key, ns.T("bond.contest", { pet = ns.Registry:NameOf(key),
+        n = math.ceil(ns.Config.BOND_CONTEST_POINTS * self:Rate(key)) }))
+end
 
 -- A reward for a pet: its line, then its points within the day's limit and
 -- at the pet's rate. False if a once-a-day one was had today.
@@ -342,6 +353,7 @@ end
 -- Points for an activity done with a pet of ours out (half for one we
 -- haven't adopted: Bond:Rate).
 function Bond:OnActivity(id, n, key)
+    if id == "fish" then self:Contest(key) end
     local C, P = ns.Config, ns.Personality
     local name = ns.Registry:NameOf(key)
     local rate = self:Rate(key)

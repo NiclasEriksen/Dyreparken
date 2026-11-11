@@ -235,6 +235,10 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   Any pet can be adopted, whatever its availability; only achievements depend on it. The guild total counts every
   pet in Data/Companions.lua, limited ones too: Azurky (5179, a 12-month subscription reward the journal hides)
   was added by hand with a curation row, and has a family of its own, `murloc`.
+- **The fishing contest bonus** (2026-11-11, the user): a pet that likes fishing, out while you fish in Stranglethorn
+  on the day the calendar has the Stranglethorn Fishing Extravaganza: 10 points once that day (Bond:Contest,
+  Config.BOND_CONTEST_POINTS, within the day's 75; no protocol change). A new flight path matters only to a pet
+  that likes or dislikes flying.
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most

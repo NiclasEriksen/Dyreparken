@@ -177,6 +177,7 @@ ns.Config = {
     BOND_FIRST_POINTS = 5,        -- a first together: a boss this pet hasn't seen fall, a place it hasn't seen (10 until 2026-11-10)
     BOND_FIRST_CAP = 15,          -- ... at most this many a day (2026-11-10: one dungeon of firsts filled the day)
     FIRST_LINES = 3,              -- ... lines about firsts in chat, per pet a day (the points don't stop)
+    BOND_CONTEST_POINTS = 10,     -- fishing in the Sunday fishing contest, a pet that likes fishing, once a day
     BOND_PLAY_POINTS = 15,        -- a playdate: in a group with a guildmate whose pet is out, once a day per pet
     BOND_DAILY_MAX = 75,          -- the most bond points a calendar day can bring (the day + activities); bounds the wire
     BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries

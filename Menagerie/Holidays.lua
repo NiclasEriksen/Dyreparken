@@ -75,6 +75,7 @@ function Holidays:Read()
     end)
     today = { day = ns.Today(), word = word, events = events }
     ns.Log("Holidays", "today: %s%s", tostring(word), ok and "" or " (calendar failed)")
+    ns.Bus:Fire("HOLIDAYS")
 end
 
 ns.Start("settled", function() Holidays:Ask() end)
