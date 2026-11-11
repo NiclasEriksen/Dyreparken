@@ -82,10 +82,38 @@ function Playdate:Party(sender, mine)
     if n >= self.FULL then ns.Quirks:Egg("party", mine, n + 1) end -- (theirs and ours)
 end
 
+-- Their unit in our group ("party2", "raid7"), or nil.
+local function UnitOf(sender)
+    local raid = IsInRaid()
+    local n = raid and GetNumGroupMembers() or GetNumSubgroupMembers()
+    for i = 1, n do
+        local unit = (raid and "raid" or "party") .. i
+        if ns.UnitKey(unit) == sender then return unit end
+    end
+end
+
+-- Close enough to play (2026-11-11, the user: "play date works on way too long distances, it should only
+-- trigger when they're in range of us"): UnitInRange, a group member within about 40 yards; where it
+-- can't say (another instance, say), whether the client shows them at all (UnitIsVisible).
+-- Both exist on Forever (/dp probe api); what they answer there is logged until seen.
+function Playdate:Near(sender)
+    local unit = UnitOf(sender)
+    if not unit then return false end
+    local okR, inRange, checked = pcall(function() return UnitInRange(unit) end)
+    inRange, checked = okR and ns.Plain(inRange), okR and ns.Plain(checked)
+    local okV, visible = pcall(function() return UnitIsVisible(unit) end)
+    visible = okV and ns.Plain(visible)
+    ns.Log("Bond", "playdate range: %s (%s) in range %s, checked %s, visible %s", sender, unit,
+        tostring(inRange), tostring(checked), tostring(visible))
+    if checked then return inRange and true or false end
+    return visible and true or false
+end
+
 -- Someone in our group has a pet out.
 function Playdate:Heard(sender, theirs)
     local mine = PetOut()
     if not mine or ns.Guild:IsMember(sender) ~= true then return end
+    if not self:Near(sender) then return end -- (no answer either: they're far from us too)
     local line = ns.T("play.line", { pet = ns.Registry:NameOf(mine), friend = ns.Registry:NameFor(theirs, sender),
         owner = sender })
     if ns.Bond:Reward("play", mine, line) then

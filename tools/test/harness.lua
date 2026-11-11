@@ -1486,6 +1486,20 @@ function Client:BuildEnv()
         if unit then return unit.name end
     end
     env.UnitName = UnitNameOf
+    -- Range in the group: everyone is together unless w.apart[name] (that player is far from the rest).
+    -- Like retail: in range, and whether it could check (not for a unit outside the group).
+    local function InGroup(u) return tostring(u):match("^party%d") or tostring(u):match("^raid%d") end
+    env.UnitInRange = function(u)
+        local first, surname = UnitNameOf(u)
+        if not (first and InGroup(u)) then return false, false end
+        local name = surname and surname ~= "" and (first .. " " .. surname) or first
+        local apart = w.apart and (w.apart[name] or w.apart[c.name])
+        return not apart, true
+    end
+    env.UnitIsVisible = function(u)
+        local first = UnitNameOf(u)
+        return first ~= nil
+    end
     env.UnitFullName = UnitNameOf
     env.UnitExists = function(u) return u == "player" or c.units[u] ~= nil end
     env.UnitGUID = function() return ("Player-0000-%08X"):format(c.idx) end

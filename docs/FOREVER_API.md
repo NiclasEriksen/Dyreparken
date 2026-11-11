@@ -393,6 +393,9 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   1840-1842 Call to Arms (battlegrounds). No Children's Week, Brewfest or Pilgrim's Bounty. Used by Menagerie/Holidays.lua.
 - **The card's model never says it has loaded**: a hook on the actor's `OnModelLoaded` (the mixin's method) logged
   nothing over a whole session of cards, so SETTLE and SLEEP_AFTER stay guesses (2026-11-11).
+- **Range to a group member** (2026-11-11, playdates): `UnitInRange(unit)` (in range, checked) and `UnitIsVisible`
+  exist; what they answer on Forever is unverified (logged: "playdate range: ..."). Playdate.lua uses UnitInRange,
+  and UnitIsVisible where it couldn't check.
 - **A new model stands itself up once it has loaded, unseen** (2026-11-11, build 1.60.1, pet card swaps at night):
   a sleep loop set the moment Blizzard swapped the card's model was lost a moment later, with no Lua call on the actor
   (no SetAnimation hook fired) and `GetAnimation` still answering the loop. `actor:IsLoaded()` said true right after

@@ -373,6 +373,7 @@ return function(test, H)
         w:Run(5)
         ola.ns.Quirks.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
         local P = ola.ns.Playdate
+        P.Near = function() return true end -- (no group here; range has its own test, 28_multibond)
         for day = 1, 5 do
             P:Heard("Kari Berg", "s:40")
             if day < 5 then w:SkipDays(1) end

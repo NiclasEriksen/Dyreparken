@@ -219,9 +219,6 @@ turned back (SetYaw), the inn's name (GetBindLocation), the zone names, and a gu
 
 # Known bugs (to fix later)
 
-- **Playdates work at any distance** (the user, 2026-11-11): a guildmate's pet anywhere in the group counts, even
-  far away. Only one in range should (Menagerie/Playdate.lua). Candidates to probe on Forever: `UnitInRange`,
-  `CheckInteractDistance`, `UnitIsVisible`, or the companion seen nearby (Quirks' COMPANION_SEEN, Tooltip).
 
 # The pet frame's settings (noted 2026-11-11, the user)
 
