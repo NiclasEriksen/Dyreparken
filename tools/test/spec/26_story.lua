@@ -124,6 +124,45 @@ return function(test, H)
         eq(kari.ns.Wish:Today(), nil)
     end)
 
+    test("wishes in a row: counted once a day, a missed day starts over; on the line and in achievements", function()
+        local w, ola = Setup()
+        local W = ola.ns.Wish
+        W.For = function() return "herb" end
+        ola.ns.DB.char.wish = nil
+        local s = ola.ns.DB.char.wishes
+        local function Herb() ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366) end
+        Herb()
+        eq(s.n, 1); eq(s.streak, 1)
+        eq(ola:SelectPet(5159).wish.text.text, "Ønsket er oppfylt!", "one day: no run yet")
+        -- The same day again (another pet's wish after a swap): still one day.
+        W:Count(ola.ns.Today())
+        eq(s.n, 1); eq(s.streak, 1)
+        -- The next day: the tooltip says what keeps the run; done, two in a row.
+        w:SkipDays(1)
+        local card = ola:SelectPet(5159)
+        card.wish.scripts.OnEnter(card.wish)
+        ok(table.concat(ola.env.GameTooltip.lines, " / "):find("Oppfyll det i dag, så blir det 2 dager på rad.", 1, true))
+        Herb()
+        eq(s.streak, 2)
+        card = ola:SelectPet(5159)
+        eq(card.wish.text.text, "Ønsket er oppfylt! 2 dager på rad")
+        card.wish.scripts.OnEnter(card.wish)
+        ok(table.concat(ola.env.GameTooltip.lines, " / "):find("2 oppfylte ønsker på rad.", 1, true))
+        -- A day missed: the run is over (the best stays), and starts again at one.
+        w:SkipDays(2)
+        eq((W:Streak()), 0)
+        Herb()
+        eq(s.streak, 1); eq(s.best, 2); eq(s.n, 3)
+        -- Seven in a row: Ønskeuke.
+        for _ = 1, 6 do w:SkipDays(1); Herb() end
+        eq(s.streak, 7)
+        ok(ola.ns.DB.char.ach.got["wish:7"], "seven days in a row")
+        no(ola.ns.DB.char.ach.got["wish:30"])
+        s.n = 99
+        w:SkipDays(1); Herb()
+        ok(ola.ns.DB.char.ach.got["wish:100"], "a hundred in all")
+    end)
+
     test("petting the pet on the card: a ripple, a few hearts, a glow, a sound; once a day a cuddle", function()
         local w, ola, kari = Setup()
         local card = ola:SelectPet(5159)

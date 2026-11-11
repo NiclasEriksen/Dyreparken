@@ -17,6 +17,8 @@ local _, ns = ...
 --   nick              have given your companion a nickname          (char)
 --   dislikes          have found out everything your companion dislikes (Quirks.lua) (char)
 --   eggs      n       have found n different easter eggs (Quirks.lua, char.eggs)        (char)
+--   wishstreak n      today's wish come true n days in a row (Wish.lua, char.wishes.best) (char)
+--   wishes    n       n wishes come true in all, a day each (char.wishes.n)            (char)
 --   activity act n    n of an activity (Core/Activity.lua: "boss", "quest", ...); pet = true counts
 --                     only with your adopted companion out. Hidden while the client can't produce it.
 --                                                                    (char)
@@ -70,6 +72,9 @@ ns.AchDefs = {
     { id = "quest:1000", kind = "activity", act = "quest", n = 1000, pet = true, scope = "char", cat = "together", icon = { "INV_Misc_Book_07", "INV_Scroll_03" } },
     { id = "eggs:10", kind = "eggs", n = 10, scope = "char", cat = "loyalty", icon = { "INV_Egg_03", "INV_Egg_01", "INV_Misc_Food_57" } },
     { id = "eggs:25", kind = "eggs", n = 25, scope = "char", cat = "loyalty", icon = { "INV_Egg_04", "INV_Egg_03", "INV_Misc_Food_57" } },
+    { id = "wish:7", kind = "wishstreak", n = 7, scope = "char", cat = "loyalty", icon = { "INV_Misc_Coin_02", "INV_Misc_Coin_01" } },
+    { id = "wish:30", kind = "wishstreak", n = 30, scope = "char", cat = "loyalty", icon = { "INV_Misc_Coin_04", "INV_Misc_Coin_03" } },
+    { id = "wish:100", kind = "wishes", n = 100, scope = "char", cat = "loyalty", icon = { "INV_Misc_Coin_17", "INV_Misc_Coin_06", "INV_Misc_Coin_01" } },
 
     { id = "guild:count:10", kind = "guildcount", n = 10, scope = "guild", cat = "guild",
         icon = { "Achievement_GuildPerk_EverybodysFriend", CARRIER } },

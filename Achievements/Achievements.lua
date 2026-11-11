@@ -204,6 +204,15 @@ function Eval.eggs(d)
     for _, e in pairs(ns.DB.char.eggs) do if type(e) == "table" and (e.n or 0) > 0 then have = have + 1 end end
     return have >= d.n, math.min(have, d.n), d.n
 end
+-- Wishes come true (Wish.lua, 2026-11-11): the best run of days, and all of them.
+function Eval.wishstreak(d)
+    local have = ns.DB.char.wishes.best or 0
+    return have >= d.n, math.min(have, d.n), d.n
+end
+function Eval.wishes(d)
+    local have = ns.DB.char.wishes.n or 0
+    return have >= d.n, math.min(have, d.n), d.n
+end
 function Eval.activity(d)
     if not ns.Activity:Available(d.act) then return nil end
     local total, mine = ns.Activity:Count(d.act)
@@ -695,6 +704,7 @@ function Ach:Init()
     ns.Bus:On("BOND", function() Ach:CheckCharSoon("BOND") end)
     ns.Bus:On("DISLIKE_FOUND", function() Ach:Check("DISLIKE_FOUND", "char") end)
     ns.Bus:On("EGG_FOUND", function() Ach:Check("EGG_FOUND", "char") end)
+    ns.Bus:On("WISH_DONE", function() Ach:Check("WISH_DONE", "char") end)
     ns.Bus:On("MY_NAME", function()
         grew.nick = true
         Ach:Check("MY_NAME", "char")

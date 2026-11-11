@@ -9,6 +9,10 @@ local _, ns = ...
 -- the pet, so it holds all day and through reloads; never something you
 -- can't do when you like (dying, a level). Kept per character in
 -- char.wish = { day, pet, id, done }.
+--
+-- Streaks (2026-11-11, the user): every day a wish comes true counts, whichever adopted pet
+-- wished it (char.wishes); a day without one ends the run. Shown on the line from two days in a
+-- row; achievements at 7 and 30 in a row and 100 in all.
 local Wish = {}
 ns.Wish = Wish
 
@@ -63,6 +67,34 @@ function Wish:OnActivity(id, key)
     w.done = true
     ns.Bond:Reward("wish", key, ns.T("wish.granted", { pet = ns.Registry:NameOf(key),
         activity = ns.Personality.NOUN[id], n = ns.Config.BOND_WISH_POINTS }))
+    self:Count(w.day)
+end
+
+-- The calendar day before a day ("YYYYMMDD"): noon of the day before, safe around DST.
+local function DayBefore(day)
+    local y, m, d = day:match("^(%d%d%d%d)(%d%d)(%d%d)$")
+    return date("%Y%m%d", time({ year = tonumber(y), month = tonumber(m), day = tonumber(d) - 1, hour = 12 }))
+end
+
+-- A wish came true on `day`: counted once a day (another pet's wish the same day, after a swap, isn't
+-- a second day).
+function Wish:Count(day)
+    local s = ns.DB.char.wishes
+    if s.last == day then return end
+    s.streak = (s.last and s.last == DayBefore(day)) and (s.streak or 0) + 1 or 1
+    s.n = (s.n or 0) + 1
+    s.best = math.max(s.best or 0, s.streak)
+    s.last = day
+    ns.Bus:Fire("WISH_DONE")
+end
+
+-- Days in a row so far: the run still holds today if its last day was today or yesterday.
+-- Returns the run, and whether today already counts.
+function Wish:Streak()
+    local s, today = ns.DB.char.wishes, ns.Today()
+    if s.last == today then return s.streak or 0, true end
+    if s.last and s.last == DayBefore(today) then return s.streak or 0, false end
+    return 0, false
 end
 
 function Wish:Init()
@@ -90,6 +122,12 @@ function Wish:Build(card, c)
         GameTooltip:SetText(ns.L["wish.title"], 1, 0.82, 0)
         GameTooltip:AddLine(ns.T(w.done and "wish.tip.done" or "wish.tip", { pet = ns.Registry:NameOf(w.pet),
             n = ns.Config.BOND_WISH_POINTS }), 1, 1, 1, true)
+        local run, counted = Wish:Streak()
+        if counted and run >= 2 then
+            GameTooltip:AddLine(ns.T("wish.streak.tip", { n = run }), 0.4, 1, 0.4, true)
+        elseif not counted and run >= 1 then
+            GameTooltip:AddLine(ns.T("wish.streak.keep", { n = run + 1 }), 1, 0.82, 0, true)
+        end
         GameTooltip:Show()
     end)
     f:SetScript("OnLeave", ns.HideTip)
@@ -104,7 +142,8 @@ function Wish:Update(card, key)
     if not w or w.pet ~= key then f:Hide(); return end
     f.icon:SetTexture(ns.Stats.Icon(w.id) or (ns.Decor.MEDIA .. "heart")) -- (the first that exists)
     if w.done then
-        f.text:SetText(ns.L["wish.done"])
+        local run = self:Streak()
+        f.text:SetText(run >= 2 and ns.T("wish.done.streak", { n = run }) or ns.L["wish.done"])
         f.text:SetTextColor(0.4, 1, 0.4)
         f.icon:SetDesaturated(false)
     else

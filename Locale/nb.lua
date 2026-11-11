@@ -619,6 +619,9 @@ L["wish.done"] = "Ønsket er oppfylt!"
 L["wish.title"] = "Dagens ønske"
 L["wish.tip"] = "Gjør det med {pet} ute i dag, så får dere {n} ekstra båndpoeng."
 L["wish.tip.done"] = "Oppfylt! {pet} er fornøyd. Et nytt ønske kommer i morgen."
+L["wish.done.streak"] = "Ønsket er oppfylt! {n} dager på rad"
+L["wish.streak.tip"] = "{n} oppfylte ønsker på rad."
+L["wish.streak.keep"] = "Oppfyll det i dag, så blir det {n} dager på rad."
 L["bond.contest"] = "{pet} jubler over at du fisket i fiskekonkurransen! (+{n} båndpoeng)"
 L["wish.granted"] = "{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} båndpoeng)"
 
@@ -768,6 +771,13 @@ ns.AchTexts = {
         flavor = "{player} har funnet 10 forskjellige hemmelige interaksjoner med dyrene sine! {name}" },
     ["eggs:25"] = { name = "Eggspert", desc = "Finn 25 forskjellige hemmelige interaksjoner med dyrene dine.",
         flavor = "{player} har funnet 25 forskjellige interaksjoner! Ingen hemmelighet er trygg. {name}" },
+    -- Wishes come true (2026-11-11): days in a row, and in all.
+    ["wish:7"] = { name = "Ønskeuke", desc = "Oppfyll dagens ønske 7 dager på rad.",
+        flavor = "{player} har oppfylt dyrets ønske 7 dager på rad! {name}" },
+    ["wish:30"] = { name = "Ønskemåned", desc = "Oppfyll dagens ønske 30 dager på rad.",
+        flavor = "{player} har oppfylt dyrets ønske 30 dager på rad! {name}" },
+    ["wish:100"] = { name = "Ønskebrønnen", desc = "Oppfyll 100 ønsker.",
+        flavor = "{player} har oppfylt 100 ønsker! {name}" },
     ["dislikes"] = { name = "Kjenner deg ut og inn", desc = "Finn ut alt dyret ditt ikke liker.",
         flavor = "{player} vet nå alt {pet} ikke liker! {name}",
         plain = "{player} kjenner dyret sitt ut og inn! {name}" },
