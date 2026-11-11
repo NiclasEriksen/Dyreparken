@@ -359,7 +359,13 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   the fallback stand. `HasAnimation` listed only `0 1 4 5 9 16`, though 756 and 748 played with lengths of their
   own: not to be trusted for the pet battle ids (or it was read too early).
 - **Calendar**: `C_Calendar` has `OpenCalendar`, `GetNumDayEvents(offsetMonths, monthDay)`, `GetDayEvent`,
-  `GetHolidayInfo`; today's events not read yet (the probe's first run asked `C_Calendar.GetDate`, which is missing).
+  `GetHolidayInfo`. **Works** (2026-11-11, `/dp probe api calendar`, 3 s after `OpenCalendar`): `GetNumDayEvents(0, 11)`
+  was 2, `GetDayEvent` gave tables (`eventID` 263 and 1842, `eventType` 4 = holiday, `sequenceType` "ONGOING",
+  `numSequenceDays` 8, `startTime`/`endTime`, `iconTexture`), and `GetHolidayInfo(0, day, i)` their name and
+  description: "Darkmoon Faire" ("...this time in idyllic Elwynn Forest") and "Call to Arms: Warsong Gulch". So the
+  game's own holidays can come from the calendar; the names are English (the client's locale).
+- **Ghost Wolf** counts as a riding form (`Moves.RIDING_FORMS`, form id 16): the pet ran on its card in it (the user,
+  2026-11-11). Travel Form (3) not tried.
 
 ## SavedVariables
 
