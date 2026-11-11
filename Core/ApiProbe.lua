@@ -25,6 +25,10 @@ local _, ns = ...
 --               puts it back), for Data/Holidays.lua
 --   lengths     how long every species' one-off moves play (all species, a few minutes), into
 --               DyreparkenDebugDB.animLengths for tools/anim_lengths.lua -> Data/AnimLengths.lua
+--   petframe    (2026-11-11, groundwork for the on-screen pet frame) a test frame in the middle of the
+--               screen: our own model scene with the pet that's out, as the journal card builds it.
+--               Left-click: its happy move; right-click: close. Logs each step, and whether Edit Mode
+--               tells us when it opens and closes (EventRegistry "EditMode.Enter"/"EditMode.Exit").
 local Api = {}
 ns.ApiProbe = Api
 
@@ -628,6 +632,77 @@ function S.lengths(out)
         Work(m)
     end
     return ("%d species, %d at a time"):format(total, Api.WORKERS)
+end
+
+-- Our own model scene with the pet that's out, built the way Blizzard's pet card does it
+-- (PetJournal_UpdatePetCard): the species' model scene id, then the "unwrapped" actor's model.
+function S.petframe(out)
+    local key = ns.Pets:OutKey()
+    local sid = key and ns.Pets:SpeciesOfKey(key)
+    if not sid then return "summon a pet first" end
+    out.species = sid
+    local f = Api.petFrame
+    if not f then
+        f = CreateFrame("Frame", "DyreparkenPetFrameProbe", UIParent)
+        f:SetSize(180, 180)
+        f:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
+        f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
+        f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
+        local okS, scene = pcall(CreateFrame, "ModelScene", nil, f, "ModelSceneMixinTemplate")
+        out.scene = okS and "made" or ("failed: " .. tostring(scene))
+        if not okS then return out.scene end
+        scene:SetAllPoints()
+        f.scene = scene
+        Api.petFrame = f
+    end
+    local scene = f.scene
+    local info = Pack(pcall(C_PetJournal.GetPetModelSceneInfoBySpeciesID, sid))
+    out.sceneInfo = Try(function() return select(2, unpack(info, 1, info.n)) end)
+    local sceneID = info[2]
+    local display = Pack(pcall(C_PetJournal.GetPetInfoBySpeciesID, sid))[13]
+    out.display = Show(display)
+    out.transition = Try(function()
+        return scene:TransitionToModelSceneID(sceneID, rawget(_G, "CAMERA_TRANSITION_TYPE_IMMEDIATE") or 1,
+            rawget(_G, "CAMERA_MODIFICATION_TYPE_DISCARD") or 1, true)
+    end)
+    local okA, actor = pcall(function() return scene:GetActorByTag("unwrapped") end)
+    out.actor = okA and (actor and "found" or "no unwrapped actor") or ("failed: " .. tostring(actor))
+    if not (okA and actor) then
+        -- Not in this scene: one of our own.
+        okA, actor = pcall(function() return scene:CreateActor() end)
+        out.created = okA and (actor and "made one" or "nil") or ("failed: " .. tostring(actor))
+    end
+    if okA and actor then
+        out.model = Try(function() return actor:SetModelByCreatureDisplayID(display) end)
+        out.methods = #Methods(actor) .. " methods"
+        f.actor = actor
+    end
+    f:SetScript("OnMouseUp", function(_, button)
+        if button == "RightButton" then f:Hide(); return end
+        if f.actor then
+            local happy = ns.Moves:For(key, "happy") or 756
+            ns.Log("Api", "petframe click: SetAnimation(%d): %s", happy, Try(function() return f.actor:SetAnimation(happy) end))
+        end
+    end)
+    f:Show()
+    -- Edit Mode: does it tell us when it opens and closes?
+    local ER = G("EventRegistry")
+    out.editMode = { manager = G("EditModeManagerFrame") ~= nil, registry = ER ~= nil }
+    if ER and ER.RegisterCallback and not Api.editHooked then
+        Api.editHooked = true
+        for _, ev in ipairs({ "EditMode.Enter", "EditMode.Exit" }) do
+            out.editMode[ev] = Try(function()
+                ER:RegisterCallback(ev, function()
+                    ns.Log("Api", "petframe: %s fired", ev)
+                    ns.Print("api probe: " .. ev .. " fired")
+                end, Api)
+            end)
+        end
+    end
+    ns.Log("Api", "petframe: scene %s, info %s, transition %s, actor %s, model %s", tostring(out.scene),
+        tostring(out.sceneInfo), tostring(out.transition), tostring(out.actor), tostring(out.model))
+    return ("species %d: scene %s, actor %s; click it, then open and close Edit Mode"):format(sid,
+        tostring(out.scene), tostring(out.actor))
 end
 
 ------------------------------------------------------------------------------

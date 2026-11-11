@@ -170,4 +170,47 @@ return function(test, H)
         ola:Slash("probe api holidays")
         match(ola:Printed("api probe holidays", true), "no C_Calendar.SetAbsMonth")
     end)
+
+    test("petframe: our own scene with the pet that's out, a click plays its happy move, Edit Mode's callbacks", function()
+        local _, none = H.Setup{ ola = {} }
+        none.ns.Pets.OutKey = function() return nil end -- (no pet out)
+        none:Slash("probe api petframe")
+        match(none:Printed("api probe petframe", true), "summon a pet first")
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        ok(ola.ns.Pets:OutKey(), "out")
+        -- A ModelScene like the client's, with the pet card's "unwrapped" actor.
+        local real = ola.env.CreateFrame
+        local actor = { SetModelByCreatureDisplayID = function(self, id) self.display = id end,
+            SetAnimation = function(self, id) self.anim = id end }
+        ola.env.CreateFrame = function(kind, name, parent, template)
+            local f = real(kind == "ModelScene" and "Frame" or kind, name, parent, template)
+            if kind == "ModelScene" then
+                function f:TransitionToModelSceneID(id) self.sceneID = id end
+                function f:GetActorByTag(tag) return tag == "unwrapped" and self.sceneID and actor or nil end
+            end
+            return f
+        end
+        ola.env.C_PetJournal.GetPetModelSceneInfoBySpeciesID = function() return 1271, 1272 end
+        local callbacks = {}
+        rawset(ola.env, "EventRegistry", { RegisterCallback = function(_, ev, fn) callbacks[ev] = fn end })
+        rawset(ola.env, "EditModeManagerFrame", {})
+        ola:Slash("probe api petframe")
+        local out = ola.env.DyreparkenDebugDB.api.petframe
+        eq(out.scene, "made"); eq(out.actor, "found")
+        eq(actor.display, 20000 + 5159, "the species' display")
+        local f = ola.env.DyreparkenPetFrameProbe
+        f.scripts.OnMouseUp(f, "LeftButton")
+        eq(actor.anim, ola.ns.Moves:For("s:5159", "happy"))
+        ok(callbacks["EditMode.Enter"] and callbacks["EditMode.Exit"])
+        callbacks["EditMode.Enter"]()
+        ok(ola:Printed("EditMode.Enter fired", true))
+        f.scripts.OnMouseUp(f, "RightButton")
+        no(f:IsShown())
+        -- No unwrapped actor in the scene: one of our own.
+        ola.env.C_PetJournal.GetPetModelSceneInfoBySpeciesID = function() return nil end
+        f.scene.CreateActor = function() return actor end
+        ola:Slash("probe api petframe")
+        eq(ola.env.DyreparkenDebugDB.api.petframe.created, "made one")
+    end)
 end
