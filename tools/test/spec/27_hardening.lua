@@ -491,6 +491,34 @@ return function(test, H)
         eq(kari.ns.Registry:Holder("s:40"), "Ola Nord", "sent within the cap")
     end)
 
+    test("a lone SYNC part carrying our digest can't cancel the answer a newcomer waits for", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        local p = ola.ns.PROTOCOL
+        kari:Logout()
+        ola:Slash("adopter panda"); w:Run(3)
+        local m = w:Mark()
+        kari:Login()
+        for _ = 1, 300 do if w:Sent("HELLO", "Kari Berg", m) > 0 then break end; w:Run(0.1) end
+        w:Run(0.2) -- (Kari's HELLO is in: Ola's answer is on its way)
+        w:InjectMessage("Per Hansen", { k = "SYNC", p = p, i = 1, of = 1, d = ola.ns.Sync:Digest() }, "GUILD")
+        w:Run(40)
+        no(ola:Log("Per Hansen's SYNC said it all")[1], "a lone part: Ola's answer stands")
+        eq(kari.ns.Registry:Holder(PANDA), "Ola Nord")
+        -- A whole SYNC saying the same as Ola's still spares hers.
+        kari:Logout(); w:Run(1)
+        ola:Slash("gislipp"); w:Run(3) -- (news Kari hasn't heard)
+        local m2 = w:Mark()
+        kari:Login()
+        for _ = 1, 300 do if w:Sent("HELLO", "Kari Berg", m2) > 0 then break end; w:Run(0.1) end
+        w:Run(0.2)
+        local d = ola.ns.Sync:Digest()
+        w:InjectMessage("Liv Lund", { k = "SYNC", p = p, i = 1, of = 3 }, "GUILD")
+        w:InjectMessage("Liv Lund", { k = "SYNC", p = p, i = 2, of = 3 }, "GUILD")
+        w:InjectMessage("Liv Lund", { k = "SYNC", p = p, i = 3, of = 3, d = d }, "GUILD")
+        w:Run(1)
+        ok(ola:Log("Liv Lund's SYNC said it all")[1], "a whole one: hers isn't needed")
+    end)
+
     test("one member asking about many pets can't fill our outbox with bond answers", function()
         local w, ola = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
         local p = ola.ns.PROTOCOL

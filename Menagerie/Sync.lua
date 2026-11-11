@@ -137,7 +137,8 @@ end
 -- with a SYNC, the usual way (delayed, one at a time).
 function Sync:Nudge() Schedule() end
 
-local function Cancel()
+local function Cancel(by)
+    if pending then ns.Log("Sync", "%s's SYNC said it all: ours cancelled", tostring(by)) end
     pending = nil
 end
 
@@ -249,9 +250,13 @@ function Sync:Init()
             end
             return
         end
+        -- A whole SYNC (every part before this one came, in order) saying what we'd say: ours isn't
+        -- needed. Only a whole one: a lone forged last part carrying our digest (anyone reads it in
+        -- HELLO) cancelled the answer a newcomer was waiting for (found 2026-11-11).
+        local whole = of and of >= 2 and progress[sender] == of - 1
         progress[sender] = nil
-        if mine == msg.d then
-            Cancel() -- someone said it for us
+        if mine == msg.d and whole then
+            Cancel(sender) -- someone said it for us
         elseif answered[sender] == tostring(msg.d) .. "/" .. mine then
             -- The same disagreement we answered already: they keep what we refuse (an older
             -- version kept a forgery the rules refuse now). Answering again would go on
