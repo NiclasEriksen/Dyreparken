@@ -141,6 +141,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring; the card's
                    widgets are one ordered list, WIDGETS: Build + a line there),
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
+                   Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
+                   Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour; the
                    card's tier colors: Tier, Bright), SceneGallery (/dp probe bg and decor: thumbnails of every

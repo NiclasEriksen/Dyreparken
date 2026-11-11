@@ -104,6 +104,7 @@ end
 -- `always`: not held back by the hour (rare by nature, and a day late is lost).
 ------------------------------------------------------------------------------
 local function On(md) return function(ctx) return date("%m%d", ctx.t) == md and {} end end
+local function Game(word) return function(ctx) return ns.Holidays:On(ctx.t) == word and {} end end
 
 local MILESTONES = { [200] = true, [500] = true, [1000] = true }
 
@@ -163,6 +164,14 @@ Quirks.EGGS = {
     { id = "nyttar", on = "day", always = true, test = On("1231") },
     { id = "april", on = "day", always = true, test = On("0401") },
     { id = "halloween", on = "day", always = true, test = On("1031") },
+    -- The game's holidays (Holidays.lua, 2026-11-11), while they last.
+    { id = "lunar", on = "day", always = true, test = Game("lunar") },
+    { id = "love", on = "day", always = true, test = Game("love") },
+    { id = "noblegarden", on = "day", always = true, test = Game("noblegarden") },
+    { id = "midsummer", on = "day", always = true, test = Game("midsummer") },
+    { id = "harvest", on = "day", always = true, test = Game("harvest") },
+    { id = "hallowsend", on = "day", always = true, test = Game("hallowsend") },
+    { id = "winterveil", on = "day", always = true, test = Game("winterveil") },
     { id = "fredag13", on = "day", always = true,
         test = function(ctx) return date("%d%w", ctx.t) == "135" and {} end },
     -- Round days since you adopted it, on the day (calendar days, as the

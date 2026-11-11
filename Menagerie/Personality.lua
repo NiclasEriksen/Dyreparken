@@ -91,7 +91,11 @@ local function Hour(t) return tonumber(date("%H", t)) end
 -- The moments some traits care about, by the player's clock. Decor shows
 -- the matching particles by the same rules.
 function Personality.IsNight(t) local h = Hour(t); return h >= 22 or h < 4 end
-function Personality.Holiday(t) return Personality.HOLIDAYS[date("%m%d", t)] end -- its name, or nil
+-- Its name, or nil: ours by date, else the game's (Holidays.lua: from the calendar, today only).
+function Personality.Holiday(t)
+    local game = ns.Holidays:On(t) -- (asked even on our own: its egg comes that day too)
+    return Personality.HOLIDAYS[date("%m%d", t)] or game and L["holiday.game." .. game] or nil
+end
 function Personality.IsWeekend(t) local w = tonumber(date("%w", t)); return w == 0 or w == 6 end
 
 -- ids are permanent (they key the pinned list). What players read about a

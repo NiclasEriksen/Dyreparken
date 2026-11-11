@@ -364,6 +364,15 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   `numSequenceDays` 8, `startTime`/`endTime`, `iconTexture`), and `GetHolidayInfo(0, day, i)` their name and
   description: "Darkmoon Faire" ("...this time in idyllic Elwynn Forest") and "Call to Arms: Warsong Gulch". So the
   game's own holidays can come from the calendar; the names are English (the client's locale).
+- **The year's holidays** (`/dp probe api holidays`, 2026-11-11, Nov 2026 to Oct 2027; event ids, `eventType` 4):
+  324 Hallow's End, 141 Feast of Winter Veil (Dec 15 to Jan 2), 327 Lunar Festival (Feb 2-16), 335 Love is in the
+  Air (Feb 11-16), 181 Noblegarden (Mar 29-30), 341 Midsummer Fire Festival (Jun 21 to Jul 5), 321 Harvest Festival
+  (Sep 11-18); 263 and 264 Darkmoon Faire (every month, in turn), 301 Stranglethorn Fishing Extravaganza (weekly),
+  1840-1842 Call to Arms (battlegrounds). No Children's Week, Brewfest or Pilgrim's Bounty. Used by Menagerie/Holidays.lua.
+- **The card's model never says it has loaded**: a hook on the actor's `OnModelLoaded` (the mixin's method) logged
+  nothing over a whole session of cards, so SETTLE and SLEEP_AFTER stay guesses (2026-11-11).
+- **Animation lengths** for every species: Data/AnimLengths.lua (`/dp probe api lengths`, 2026-11-11). Stand
+  plays 2-4 s depending on the model, and a move a model lacks plays as Stand (same length).
 - **Ghost Wolf** counts as a riding form (`Moves.RIDING_FORMS`, form id 16): the pet ran on its card in it (the user,
   2026-11-11). Travel Form (3) not tried.
 

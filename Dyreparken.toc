@@ -52,6 +52,7 @@ Menagerie\Cake.lua
 Menagerie\Crown.lua
 Menagerie\Story.lua
 Menagerie\Moves.lua
+Menagerie\Holidays.lua
 Menagerie\Personality.lua
 Menagerie\JournalList.lua
 Menagerie\CardActions.lua
