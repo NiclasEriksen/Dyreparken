@@ -312,7 +312,9 @@ end
 -- cap: at most that many points a day per pet from it (the lines go on).
 -- A new one is a row here and a Bond:Reward call where it happens.
 Bond.REWARDS = {
-    wish = { points = "BOND_WISH_POINTS" },  -- today's wish done (Wish.lua: once a day already)
+    -- today's wish done. once here too: Wish.lua starts a fresh wish when you adopt the
+    -- pet again the same day, and it paid twice (code review 2026-11-11).
+    wish = { points = "BOND_WISH_POINTS", once = true },
     first = { points = "BOND_FIRST_POINTS", lines = "FIRST_LINES", cap = "BOND_FIRST_CAP" }, -- a first together
     play = { points = "BOND_PLAY_POINTS", once = true }, -- a playdate (Playdate.lua)
     contest = { points = "BOND_CONTEST_POINTS", once = true }, -- fishing in the Sunday contest (Bond:Contest)

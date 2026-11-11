@@ -163,6 +163,30 @@ return function(test, H)
         ok(ola.ns.DB.char.ach.got["wish:100"], "a hundred in all")
     end)
 
+    test("today's wish pays once a day per pet, even after letting it go and adopting it again", function()
+        local w, ola = Setup()
+        local W = ola.ns.Wish
+        W.For = function() return "herb" end
+        ola.ns.DB.char.wish = nil
+        local function Earned() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
+        ola:Summon(5159)
+        local before = Earned()
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        eq(Earned() - before, 5 + 10, "the herb and the wish")
+        -- Over to the cat and back: a fresh wish for the panda, the same day (review 2026-11-11).
+        ola:Slash("adopter bombay"); w:Run(5)
+        ola:Slash("adopter panda"); w:Run(5)
+        ola:Summon(5159)
+        before = Earned()
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        eq(Earned() - before, 5, "just a herb")
+        local lines = 0
+        for _, line in ipairs(ola.printed) do
+            if line:find("fikk ønsket sitt oppfylt", 1, true) then lines = lines + 1 end
+        end
+        eq(lines, 1, "one wish line")
+    end)
+
     test("petting the pet on the card: a ripple, a few hearts, a glow, a sound; once a day a cuddle", function()
         local w, ola, kari = Setup()
         local card = ola:SelectPet(5159)
