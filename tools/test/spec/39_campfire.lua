@@ -3,7 +3,7 @@
 -- get restless.
 return function(test, H)
     local eq, ok, no = H.eq, H.ok, H.no
-    local NAMES = { [1283391] = "Campfire", [1229741] = "Campfire's Warmth", [429959] = "Well-Rested" }
+    local NAMES = { [1283391] = "Campfire", [1229741] = "Campfire's Warmth", [429959] = "Well-Rested", [1229739] = "Welcoming Campfire" }
 
     -- Ola with her Bombay Cat adopted, with these traits (ids).
     local function Setup(ids)
@@ -39,10 +39,10 @@ return function(test, H)
         eq(Count(ola, "rested"), 1)
         Buff(ola, "Campfire", false); Buff(ola, "Campfire", true)
         eq(Count(ola, "campnear"), 1)
-        -- Welcoming Campfire: by name, its id logged.
+        -- Welcoming Campfire: by its id now (seen in game 2026-11-11), so nothing to log.
         Buff(ola, "Welcoming Campfire", false); Buff(ola, "Welcoming Campfire", true)
         eq(Count(ola, "campwarm"), 1)
-        ok(ola:Log("campwarm: Welcoming Campfire is spell")[1])
+        no(ola:Log("campwarm: Welcoming Campfire is spell")[1])
         -- In combat, nothing; secret auras, nothing.
         Buff(ola, "Campfire", false)
         ola.state.combat = true

@@ -224,7 +224,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   once per pet a session (BOND_REQ); they may be a little behind, by design. Wish and nicknames stay adoption-only.
 - **More ways to bond** (2026-11-09): firsts together (a boss this pet hasn't seen fall, a place it hasn't been: 10
   points), playdates (15, once a day per pet, with a guildmate's pet out in the group; Menagerie/Playdate.lua), and
-  skill-ups (verified 2026-11-09) and reputation (unverified on Forever; `/dp probe life`) as activities. All at the pet's rate, within
+  skill-ups (verified 2026-11-09) and reputation (verified 2026-11-11) as activities. All at the pet's rate, within
   its day.
 - **Balance pass** (2026-11-10, the user: "many max out after 15 mins of normal activity"; one dungeon of firsts
   filled the day): firsts 5 points (was 10), at most 15 a day; everyday (not liked) activities 1 each, at most 3
@@ -240,8 +240,8 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   pet in Data/Companions.lua, limited ones too: Azurky (5179, a 12-month subscription reward the journal hides)
   was added by hand with a curation row, and has a family of its own, `murloc`.
 - **Campfires** (2026-11-11, the user; new on Forever): four buffs as activities (Activity.AURAS, by spell name
-  on UNIT_AURA, out of combat): campnear 1283391 (a fire nearby, constantly), campwarm (Welcoming Campfire, the
-  minute's countdown; id unknown, matched by name and logged), camp 1229741 (after the minute), rested 429959
+  on UNIT_AURA, out of combat): campnear 1283391 (a fire nearby, constantly), campwarm 1229739 (Welcoming Campfire, the
+  minute's countdown), camp 1229741 (after the minute), rested 429959
   (Well-Rested, a sleeping bag). Any pet wishes for camp one day in Wish.CAMP_EVERY; Latsabb, Kosete,
   Hjemlengsel and Friluftsdyr also for rested. Eggs: cozy traits (Quirks.COZY) enjoy it, adventurous ones
   (Quirks.ADVENTUROUS) get restless, the rest say nothing.

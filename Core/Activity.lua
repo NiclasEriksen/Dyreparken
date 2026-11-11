@@ -627,12 +627,12 @@ Activity:Source({ id = "newpath", events = { "UI_INFO_MESSAGE", "CHAT_MSG_SYSTEM
 
 -- A buff of yours appearing (it wasn't there at the last look): campfires and sleeping bags
 -- (2026-11-11, the user's ids). Looked up by name (the client's language), like Summon's food,
--- from the spell id, or by a given name where the id isn't known yet; read on UNIT_AURA, out of
+-- from the spell id (or a given name, for one whose id isn't known); read on UNIT_AURA, out of
 -- combat only (camps are), and not while auras are secret. The first look only notes what's
 -- there (a /reload by the fire isn't a new fire).
 Activity.AURAS = {
     campnear = { id = 1283391 },                       -- a campfire nearby
-    campwarm = { name = "Welcoming Campfire" },        -- (id unknown: logged when seen)
+    campwarm = { id = 1229739 },                       -- Welcoming Campfire, the minute's countdown (seen 2026-11-11)
     camp = { id = 1229741 },                           -- the buff after a minute by the fire
     rested = { id = 429959 },                          -- Well-Rested (a sleeping bag)
 }

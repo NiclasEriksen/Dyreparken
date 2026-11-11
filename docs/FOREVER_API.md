@@ -107,14 +107,16 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 - A pose frozen with `SetAnimation(id, 0, 0, offset)` (speed 0) doesn't hold (2026-11-10, the user): the pet lay
   still for about a second, then stood up to its idle. Asleep now pauses the actor (`ModelSceneActor:SetPaused`,
   retail's) when it has it; unverified on Forever (`/dp probe anim sleep` says which way it holds).
-- Unverified (2026-11-10, the roll and fishing eggs): `RANDOM_ROLL_RESULT` in CHAT_MSG_SYSTEM ("Hjelp Plask rolls 1
+- (2026-11-10, the roll and fishing eggs; a loot roll of 1 verified 2026-11-11: `roll +1` logged in Gnomeregan)
+  `RANDOM_ROLL_RESULT` in CHAT_MSG_SYSTEM ("Hjelp Plask rolls 1
   (1-100)", the user), `LOOT_ROLL_ROLLED_NEED/GREED/DE` in CHAT_MSG_LOOT ("Need Roll - 1 for [item] by Name"), and
   `ERR_FISH_ESCAPED` / `ERR_FISH_NOT_HOOKED` as UI_ERROR_MESSAGE (type, text), a catch as LOOT_OPENED.
-- Unverified, relied on since 2026-11-10 (each degrades to nothing when missing): `PLAYER_STARTED_MOVING`,
-  `PLAYER_STOPPED_MOVING`, `PLAYER_CONTROL_GAINED` and `GetUnitSpeed("player")` (the card's pet walking with you,
-  Moves.lua; 2026-11-10: after landing from a flight path no stop came, so landing re-reads the speed);
-  `ModelSceneActor:GetYaw/SetYaw` (the pet turning its back after a dislike); `GetBindLocation()` (the hearth
-  line names your inn); the enUS zone names in `Quirks.HOME_ZONES`; custom emotes (`SendChatMessage(..., "EMOTE")`)
+- Relied on since 2026-11-10 (each degrades to nothing when missing). **Verified 2026-11-11** (the pet walks, runs
+  and jumps with you on the card and the pet frame, the user): `PLAYER_STARTED_MOVING`, `PLAYER_STOPPED_MOVING`,
+  `GetUnitSpeed("player")`, a `hooksecurefunc("JumpOrAscendStart")` firing on every jump, and `GetBindLocation()`.
+  Still unverified: `PLAYER_CONTROL_GAINED` (2026-11-10: after landing from a flight path no stop came, so landing
+  re-reads the speed);
+  `ModelSceneActor:GetYaw/SetYaw` (the pet turning its back after a dislike); the enUS zone names in `Quirks.HOME_ZONES`; custom emotes (`SendChatMessage(..., "EMOTE")`)
   reaching nearby players as `CHAT_MSG_EMOTE` with a "First Surname" sender (a guildmate's /dp klapp, Bonds.lua).
 
 ## Companions (C_PetJournal)
@@ -300,8 +302,8 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   `CHAT_MSG_COMBAT_FACTION_CHANGE`, matched against the client's own `SKILL_RANK_UP` ("Your skill in %s has
   increased to %d.") and `FACTION_STANDING_INCREASED`, which on Forever reads "Reputation with %s increased by
   %d." (not Retail's wording; `/dp probe life`, 2026-11-09). Both events exist. **Skill-ups verified** the same day:
-  a weapon skill-up ("Two-Handed Axes") with the pet out logged `skill +1` and its bond point. Reputation: not
-  seen yet. If Forever lacks the events or the strings, the activities are just unavailable.
+  a weapon skill-up ("Two-Handed Axes") with the pet out logged `skill +1` and its bond point. **Reputation
+  verified** 2026-11-11 (build 1.60.1): `rep +1` logged six times in a session. If Forever lacks the events or the strings, the activities are just unavailable.
 - Events that exist (`C_EventUtils.IsEventValid`, 2026-11-06): `NEW_PET_ADDED`, `COMPANION_LEARNED`,
   `PET_JOURNAL_LIST_UPDATE`, `CHAT_MSG_GUILD`.
 - Officers: `C_GuildInfo.IsGuildOfficer()` works (true for rank 1). `GetGuildInfo("player")` returns

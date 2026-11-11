@@ -8,8 +8,8 @@ drop. Each idea notes what it builds on.
 
 Done 2026-11-09: Dagens dyr (a gold star instead of the label, and a click shows the pet in the journal through
 `PetJournal_SelectSpecies`, unverified on Forever), the quest chip (the quest giver's "!", a book as fallback), the
-list's "free" mark (a little house), and the likes line (light text). Still open: the empty space, the level shown
-three times.
+list's "free" mark (a little house), and the likes line (light text). The bottom panel was redone 2026-11-11 (a
+full-width sheet: name and level, the home in full, one bond strip, the personality).
 
 - **"Dagens dyr" is cut off** ("Br…"). The box only gets the room left of the card's right edge
   (JournalUI: `todayBox`). Show the nickname or a short name with the rest on hover, and **make the box clickable**:
