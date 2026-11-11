@@ -375,12 +375,12 @@ return function(test, H)
         -- Fishing: in Elwynn nothing more, in Stranglethorn the bonus, once.
         local function Fish() local was = B:Today("s:40"); ola.ns.Activity:Emit("fish"); w:Run(1); return B:Today("s:40") - was end
         Fish()
-        eq(Count(ola, "jubler over fisket"), 0, "not in Elwynn")
+        eq(Count(ola, "jubler over at du fisket"), 0, "not in Elwynn")
         ola.state.zone = "Stranglethorn Vale"
         ok(Fish() >= ola.ns.Config.BOND_CONTEST_POINTS, "the bonus, on top of the fishing")
-        eq(Count(ola, "Bombay Cat jubler over fisket i fiskekonkurransen! (+10 bånd-poeng)"), 1)
+        eq(Count(ola, "Bombay Cat jubler over at du fisket i fiskekonkurransen! (+10 bånd-poeng)"), 1)
         ok(Fish() < ola.ns.Config.BOND_CONTEST_POINTS, "once a day")
-        eq(Count(ola, "jubler over fisket"), 1)
+        eq(Count(ola, "jubler over at du fisket"), 1)
         -- A pet that doesn't care for fishing: no bonus, no day egg.
         local w2, kari = Setup({ "glupsk", "rampete" })
         local Of = kari.ns.Personality.Of
@@ -396,6 +396,6 @@ return function(test, H)
         eq(kari.ns.DB.char.eggs.fiskedag, nil)
         kari.state.zone = "Stranglethorn Vale"
         kari.ns.Activity:Emit("fish"); w2:Run(1)
-        no(kari:Printed("jubler over fisket", true))
+        no(kari:Printed("jubler over at du fisket", true))
     end)
 end

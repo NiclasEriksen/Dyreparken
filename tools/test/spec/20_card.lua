@@ -494,7 +494,7 @@ return function(test, H)
         hit.scripts.OnLeave(hit)
         card.bond.scripts.OnEnter(card.bond)
         text = table.concat(tip.lines, " / ")
-        match(text, "^Bånd: Bekjent %(level 1%) / %d+ poeng til Kamerat%. / På level 2 får kortet en kant og et hint av familiens farge%. / I dag: %+%d+ av 75 mulige poeng%. / Vokser for hver dag")
+        match(text, "^Bånd: Bekjent %(level 1%) / %d+ poeng til Kamerat%. / På level 2 får kortet en kant og et hint av farge%. / I dag: %+%d+ av 75 mulige poeng%. / Vokser for hver dag")
         card.bond.scripts.OnLeave(card.bond)
         -- At the top level.
         local now = w:ServerTime()

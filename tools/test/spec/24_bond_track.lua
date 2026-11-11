@@ -100,7 +100,7 @@ return function(test, H)
         for _, p in ipairs(cel.parts) do if p:IsShown() and p.anim:IsPlaying() then shown = shown + 1 end end
         eq(shown, #cel.parts, "a burst")
         eq(cel.text.title.text, "Kamerat!")
-        eq(cel.text.sub.text, "Panda Cub og du er nå på level 2.\nNy pynt: en kant og et hint av familiens farge.")
+        eq(cel.text.sub.text, "Panda Cub og du er nå på level 2.\nNy pynt: en kant og et hint av farge.")
         eq(ola.sounds[1], ola.env.SOUNDKIT.UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT)
         eq(ola.ns.DB.char.bondSeen[PANDA], 2)
         -- Seen: not again.
