@@ -684,8 +684,8 @@ function Decor:Specs(key, level, t)
     end
     -- The park's birthday: confetti on every card.
     if ns.Bonds:ParkBirthday(t) then list[#list + 1] = { kind = "confetti", n = 8, color = "rainbow" } end
-    -- Asleep on the card (Moves): a few Zzz, whatever its traits.
-    if ns.Moves:Rest(key, t) == "sleep" then list[#list + 1] = { kind = "zee", n = 3, color = { 0.8, 0.85, 1 } } end
+    -- Asleep on the card (Moves): a few Zzz, whatever its traits. Not with its moves off: it stands.
+    if ns.Settings:On("cardMoves") and ns.Moves:Rest(key, t) == "sleep" then list[#list + 1] = { kind = "zee", n = 3, color = { 0.8, 0.85, 1 } } end
     for _, d in ipairs(self.DATES) do
         if not d.season and d.when(t) then list[#list + 1] = Thinned(d.spec, f) end
     end

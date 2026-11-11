@@ -449,4 +449,28 @@ return function(test, H)
         end
         eq(D.TRAITS.dykker.n, 4)
     end)
+
+    -- The pet's moves turned off (Settings: cardMoves), it stands at night: no Zzz over it (a review,
+    -- 2026-11-11). On, it sleeps under them.
+    test("the Zzz show only over a pet that sleeps: none with the card's moves off", function()
+        local w, ola = H.Setup{ ola = { 5159, 40 }, journal = true }
+        ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
+        w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 23 }) - w:ServerTime())
+        local function Zzz(card)
+            local n = 0
+            for _, p in ipairs(card.decor.parts) do
+                if p:IsShown() and p.icon.tex == ola.ns.Decor.MEDIA .. "zee" then n = n + 1 end
+            end
+            return n
+        end
+        ola.ns.DB.global.settings.cardMoves = false
+        local card = ola:SelectPet(5159)
+        w:Run(2)
+        eq(ola.petActor.anim or 0, 0, "standing")
+        eq(Zzz(card), 0, "no Zzz over a standing pet")
+        ola.ns.DB.global.settings.cardMoves = true
+        ola:SelectPet(40); card = ola:SelectPet(5159)
+        w:Run(2)
+        ok(Zzz(card) > 0, "asleep: Zzz")
+    end)
 end
