@@ -13,7 +13,7 @@ return function(test, H)
             for _, id in ipairs(traits or { "glupsk" }) do list[#list + 1] = P.ById(id) end
             return list
         end
-        ola.ns.PetMoves.species[5159] = nil
+        ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
         local t = os.date("*t", ola.ns.Now())
         t.month, t.day, t.hour, t.min, t.isdst = month, day, hour, 0, nil
         w:Skip(os.time(t) - ola.ns.Now())

@@ -8,7 +8,7 @@ return function(test, H)
     local function Setup(hour, traits)
         local w, ola = H.Setup{ ola = { 5159, 46, 5160, 5161 }, journal = true }
         ola.ns.Personality.Traits = function() return traits or { ola.ns.Personality.ById("glupsk") } end
-        ola.ns.PetMoves.species[5159] = nil -- (the panda plays the default here, whatever the file says)
+        ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true } -- (the panda lies down, is paused there, and sits, whatever the file says)
         ola.ns.PetMoves.default.sleepAt = 1.2 -- (the timings here, whatever the file says)
         ola.ns.Moves.SLEEP_AFTER = 0.6
         ola.ns.Moves.random = function() return 1 end -- (a click: its happy move, not now-and-then)
@@ -283,7 +283,8 @@ return function(test, H)
         local w, ola, actor = Setup(23)
         local M = ola.ns.Moves
         eq(M:For(PANDA, "sleep"), 6); eq(M:For(PANDA, "happy"), 756)
-        -- Mini Diablo (5161) vanishes as Dead: he stays up at night.
+        -- A species that doesn't sleep (Mini Diablo vanished as Dead before he had his own): he stays up at night.
+        ola.ns.PetMoves.species[5161] = { sleep = false }
         eq(M:For("s:5161", "sleep"), nil)
         ola:SelectPet(5161)
         eq(actor.anim, 0)
@@ -295,7 +296,7 @@ return function(test, H)
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 0, "up, no attack")
         -- An edit to the file takes: another sleep for the panda, and no cheer.
-        ola.ns.PetMoves.species[5159] = { sleep = 100, sleepAt = 0.4, cheer = false }
+        ola.ns.PetMoves.species[5159] = { sleep = 100, sleepAt = 0.4, sleepHold = false, cheer = false }
         ola:SelectPet(5159)
         w:Run(1.81)
         eq(actor.anim, 100); eq(actor.offset, 0.4, "and its own point in it")
@@ -622,7 +623,7 @@ return function(test, H)
 
     test("asleep by pausing, when the actor can (SetPaused): lies down at its own speed, paused there, unpaused to wake", function()
         local w, ola, actor = Setup(23)
-        ola.ns.PetMoves.species[46] = nil -- (the kitten as the default: paused, not a sleep loop)
+        ola.ns.PetMoves.species[46] = { sleepHold = false } -- (the kitten paused, not in a sleep loop)
         function actor:SetPaused(p) self.paused = p end
         function actor:SetModelByCreatureDisplayID() self.anim = 0 end
         ola:SelectPet(5159)
@@ -760,7 +761,7 @@ return function(test, H)
         ola:SelectPet(5159)
         w:Run(ola.ns.Moves.SIT_AFTER + 3)
         eq(actor.anim, 0, "stands")
-        ola.ns.PetMoves.species[5159] = nil
+        ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
         ola:SelectPet(46); ola:SelectPet(5159)
         w:Run(ola.ns.Moves.SIT_AFTER + 3)
         eq(actor.anim, 97, "with it: sits")

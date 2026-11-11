@@ -83,7 +83,7 @@ return function(test, H)
 
     test("a closed card holds no pose: a model loading there isn't laid down again", function()
         local w, ola = H.Setup{ ola = { 5159 }, journal = true }
-        ola.ns.PetMoves.species[5159] = nil
+        ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 23 }) - w:ServerTime())
         ola:SelectPet(5159)
         local actor = ola.petActor
