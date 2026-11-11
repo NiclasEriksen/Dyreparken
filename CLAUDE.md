@@ -174,7 +174,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    loads after Achievements/Page.lua so its tab comes second),
                    PetFrame (the pet that's out on screen, optional and off by default: its own ModelScene with the card's view
                    insets, a stage of Moves so it moves 1:1 as on the card, name and a slim bond bar with the rising numbers;
-                   a click opens its card; placed in Blizzard's Edit Mode, char.petFrame; size in the settings),
+                   a click opens its card; placed and sized (mouse wheel) in Blizzard's Edit Mode, char.petFrame),
                    Settings (the settings page: a SidePage with no tab, opened by a cog in the pet journal's title
                    bar; the four older per-character settings plus the account's DyreparkenDB.settings: chatLines (hides the lines only),
                    worldHearts, cardParticles all/few/none, cardMoves, celebrate; modules ask Settings:On(key)),

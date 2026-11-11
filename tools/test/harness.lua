@@ -198,6 +198,7 @@ for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPo
 end
 
 function Frame:SetClampedToScreen(v) self.clamped = v end
+function Frame:EnableMouseWheel(v) self.wheel = v end
 function Frame:SetScale(s) self.scale = s end
 function Frame:GetScale() return self.scale or 1 end
 

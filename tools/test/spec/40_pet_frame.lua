@@ -81,13 +81,27 @@ return function(test, H)
         eq(ola.toggled, 1)
         f:ClearAllPoints(); f:SetPoint("TOPLEFT", ola.env.UIParent, "TOPLEFT", 40, -50)
         f.click.scripts.OnDragStop(f.click)
-        eq(table.concat(ola.ns.DB.char.petFrame, " "), "TOPLEFT TOPLEFT 40 -50")
+        eq(table.concat(ola.ns.DB.char.petFrame, " "), "TOPLEFT TOPLEFT 40 -50 1")
+        -- Sized with the mouse wheel, between half and double; the label says how big.
+        ok(f.click.wheel, "the wheel, only in Edit Mode")
+        eq(f.edit.label.text, "Dyreparken: dyret ditt\nDra for å flytte, rull for størrelse (100%)")
+        for _ = 1, 4 do f.click.scripts.OnMouseWheel(f.click, 1) end
+        eq(f:GetScale(), 1.2)
+        ok(f.edit.label.text:find("(120%)", 1, true))
+        for _ = 1, 40 do f.click.scripts.OnMouseWheel(f.click, -1) end
+        eq(f:GetScale(), PF.MIN_SCALE, "no smaller than half")
+        for _ = 1, 4 do f.click.scripts.OnMouseWheel(f.click, 1) end
+        eq(ola.ns.DB.char.petFrame[5], 0.7, "kept with the spot")
         callbacks["EditMode.Exit"]()
         no(f.edit:IsShown())
+        no(f.click.wheel, "out of Edit Mode: no wheel")
+        f.click.scripts.OnMouseWheel(f.click, 1)
+        eq(f:GetScale(), 0.7, "(and a stray scroll changes nothing)")
         -- Kept: after a reload it stands there.
         ola:Reload(); w:Run(15)
         local p = ola.env.DyreparkenPetFrame.points[1]
         eq(p[1], "TOPLEFT"); eq(p[4], 40); eq(p[5], -50)
+        eq(ola.env.DyreparkenPetFrame:GetScale(), 0.7)
     end)
 
     test("it follows the pet that's out: dismissed, hidden (but shown in Edit Mode); another pet, its model; a pet battle hides it", function()
@@ -108,7 +122,7 @@ return function(test, H)
         ok(f:IsShown())
     end)
 
-    test("the bar: your bond, its points rising as they come; the size from the settings", function()
+    test("the bar: your bond, its points rising as they come; its tooltip", function()
         local w, ola, PF = Setup(14)
         local bar = PF.frame.bar
         ola.ns.Bond:Add(7, PANDA)
@@ -116,8 +130,6 @@ return function(test, H)
         local shown = {}
         for _, n in ipairs(bar.numbers or {}) do if n:IsShown() then shown[#shown + 1] = n.text.text end end
         eq(table.concat(shown, " "), "+7")
-        ola.ns.DB.global.settings.petFrameSize = "large"; PF:Apply()
-        eq(PF.frame.scale, PF.SCALES.large)
         -- Its tooltip: the name, and what a click does.
         PF.frame.click.scripts.OnEnter(PF.frame.click)
         eq(ola.env.GameTooltip.lines[1], "Panda Cub")

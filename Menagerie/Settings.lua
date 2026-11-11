@@ -13,7 +13,7 @@ local _, ns = ...
 --   cardParticles  "all", "few" or "none" on the pet card
 --   cardMoves      the pet on the card moves (asleep, hops, walks...)
 --   celebrate      the bond level-up celebration on the card
---   petFrame       the pet frame on screen (off by default), petFrameSize small/medium/large (PetFrame.lua)
+--   petFrame       the pet frame on screen (off by default; placed and sized in Edit Mode: PetFrame.lua)
 -- Modules read them with Settings:On(key) / Settings:Get(key).
 local Settings = {}
 ns.Settings = Settings
@@ -52,8 +52,6 @@ local ROWS = {
     { head = "settings.head.frame" },
     { key = "settings.petframe", get = function() return ns.PetFrame:Enabled() end,
         set = function(v) Set("petFrame", v); ns.PetFrame:Apply() end },
-    { key = "settings.petframesize", choices = { "small", "medium", "large" }, setting = "petFrameSize",
-        after = function() ns.PetFrame:Apply() end },
 }
 Settings.ROWS = ROWS
 
@@ -107,7 +105,6 @@ local function Build(p)
                 b.row, b.choice = row, choice
                 b:SetScript("OnClick", function()
                     Set(row.setting, choice)
-                    if row.after then row.after() end
                     Settings:Refresh()
                 end)
                 b:SetScript("OnEnter", Tip)

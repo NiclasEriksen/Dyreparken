@@ -5,7 +5,8 @@ local _, ns = ...
 -- at: it moves 1:1 as on the journal card (its own stage of Moves.lua: asleep at night, sitting,
 -- playing dead, walking and running with you, turning its back in a sulk, a cheer at a new level),
 -- and a click opens the pet journal on its card. Placed in Blizzard's Edit Mode (dragged while
--- it's open; the spot saved per character, char.petFrame); its size in our settings.
+-- it's open, and sized with the mouse wheel there: the spot and size saved per character,
+-- char.petFrame; 2026-11-11, the user: "It would be optimal if we could resize it in edit mode").
 --
 -- How the model shows (docs/FOREVER_API.md, /dp probe api petframe, 2026-11-11): a ModelScene
 -- of our own (ModelSceneMixinTemplate), set to the species' model scene and its "unwrapped" actor,
@@ -19,7 +20,7 @@ local PF = {}
 ns.PetFrame = PF
 
 PF.W, PF.H = 200, 170   -- the model's area; the name and the bar go under it
-PF.SCALES = { small = 0.75, medium = 1, large = 1.35 }
+PF.MIN_SCALE, PF.MAX_SCALE, PF.SCALE_STEP = 0.5, 2, 0.05
 PF.VIEW_TOP = 86        -- the card's view: 86 px above the scene's bottom ...
 PF.VIEW_BOTTOM = -50    -- ... to 50 below it
 PF.DEFAULT_POINT = { "CENTER", "CENTER", -380, -160 }
@@ -77,11 +78,26 @@ function PF:Build()
     f.bar = bar
     self.track = { bond = bar } -- (BondTrack:Animate's rising numbers, on this bar)
 
-    -- Edit Mode's highlight.
-    f.edit = f:CreateTexture(nil, "BACKGROUND")
-    f.edit:SetAllPoints()
-    f.edit:SetColorTexture(0.25, 0.55, 1, 0.25)
-    f.edit:Hide()
+    -- Edit Mode's highlight, like Blizzard's own frames there: a blue wash, a bright edge, a label.
+    -- (2026-11-11, the user: a faint wash alone wasn't seen.)
+    local edit = CreateFrame("Frame", nil, f)
+    edit:SetAllPoints()
+    edit:SetFrameLevel(scene:GetFrameLevel() + 4)
+    edit.wash = edit:CreateTexture(nil, "BACKGROUND")
+    edit.wash:SetAllPoints()
+    edit.wash:SetColorTexture(0.2, 0.5, 1, 0.35)
+    for _, side in ipairs({ { "TOPLEFT", "TOPRIGHT", nil, 2 }, { "BOTTOMLEFT", "BOTTOMRIGHT", nil, 2 },
+        { "TOPLEFT", "BOTTOMLEFT", 2, nil }, { "TOPRIGHT", "BOTTOMRIGHT", 2, nil } }) do
+        local t = edit:CreateTexture(nil, "BORDER")
+        t:SetColorTexture(0.45, 0.75, 1, 1)
+        t:SetPoint(side[1]); t:SetPoint(side[2])
+        if side[3] then t:SetWidth(side[3]) else t:SetHeight(side[4]) end
+    end
+    edit.label = edit:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    edit.label:SetPoint("TOP", edit, "TOP", 0, -8)
+    edit.label:SetWidth(self.W - 16)
+    edit:Hide()
+    f.edit = edit
 
     -- Over it all: a click opens the pet's card; in Edit Mode, a drag moves it.
     local click = CreateFrame("Button", nil, f)
@@ -91,6 +107,7 @@ function PF:Build()
     click:SetScript("OnClick", function() if not PF.editing then PF:OpenCard() end end)
     click:SetScript("OnDragStart", function() if PF.editing then f:StartMoving() end end)
     click:SetScript("OnDragStop", function() f:StopMovingOrSizing(); PF:SavePoint() end)
+    click:SetScript("OnMouseWheel", function(_, delta) if PF.editing then PF:Resize(delta) end end)
     click:SetScript("OnEnter", function(b)
         if PF.editing or not PF.key then return end
         GameTooltip:SetOwner(b, "ANCHOR_TOP")
@@ -115,12 +132,26 @@ function PF:Place()
     local p = ns.DB.char.petFrame or self.DEFAULT_POINT
     f:ClearAllPoints()
     f:SetPoint(p[1], UIParent, p[2], p[3], p[4])
-    f:SetScale(self.SCALES[ns.Settings:Get("petFrameSize")] or 1)
+    f:SetScale(p[5] or 1)
 end
 
 function PF:SavePoint()
     local point, _, rel, x, y = self.frame:GetPoint()
-    if point then ns.DB.char.petFrame = { point, rel, x, y } end
+    if point then ns.DB.char.petFrame = { point, rel, x, y, self.frame:GetScale() } end
+end
+
+-- The mouse wheel in Edit Mode: a size step up or down.
+function PF:Resize(delta)
+    local f = self.frame
+    local scale = f:GetScale() + (delta > 0 and self.SCALE_STEP or -self.SCALE_STEP)
+    scale = math.floor(math.max(self.MIN_SCALE, math.min(self.MAX_SCALE, scale)) * 100 + 0.5) / 100
+    f:SetScale(scale)
+    self:SavePoint()
+    self:Label()
+end
+
+function PF:Label()
+    self.frame.edit.label:SetText(ns.T("petframe.edit", { pct = math.floor(self.frame:GetScale() * 100 + 0.5) }))
 end
 
 -- The pet's model, as Blizzard's card shows it: its scene, then the unwrapped actor.
@@ -244,7 +275,8 @@ function PF:EditMode(on)
     if not self.frame then return end
     local f = self.frame
     f.edit:SetShown(on and true or false)
-    if on then f.click:RegisterForDrag("LeftButton") else f.click:RegisterForDrag() end
+    f.click:EnableMouseWheel(on and true or false)
+    if on then f.click:RegisterForDrag("LeftButton"); self:Label() else f.click:RegisterForDrag() end
     self:Refresh()
 end
 
