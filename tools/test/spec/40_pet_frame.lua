@@ -130,10 +130,37 @@ return function(test, H)
         local shown = {}
         for _, n in ipairs(bar.numbers or {}) do if n:IsShown() then shown[#shown + 1] = n.text.text end end
         eq(table.concat(shown, " "), "+7")
+        ok(bar:IsShown(), "shown while the numbers rise")
         -- Its tooltip: the name, and what a click does.
         PF.frame.click.scripts.OnEnter(PF.frame.click)
         eq(ola.env.GameTooltip.lines[1], "Panda Cub")
         eq(ola.env.GameTooltip.lines[2], ola.ns.L["petframe.tip"])
+    end)
+
+    test("the bar and level show only under the mouse, and while points rise (a level comes with them)", function()
+        local w, ola, PF = Setup(14)
+        local f, bar = PF.frame, PF.frame.bar
+        no(bar:IsShown(), "hidden at rest")
+        f.click.scripts.OnEnter(f.click)
+        ok(bar:IsShown(), "under the mouse")
+        f.click.scripts.OnLeave(f.click)
+        no(bar:IsShown())
+        -- Points: it shows while they rise, then hides; a level, the same.
+        ola.ns.Bond:Add(7, PANDA)
+        ok(bar:IsShown())
+        w:Run(3)
+        ok(bar:IsShown(), "still rising")
+        w:Run(3)
+        no(bar:IsShown(), "gone again")
+        ola.ns.Bond:Add(150, PANDA)
+        ok(bar:IsShown())
+        w:Run(6)
+        no(bar:IsShown())
+        -- The mouse over it when a peek ends: it stays.
+        ola.ns.Bond:Add(3, PANDA)
+        f.click.scripts.OnEnter(f.click)
+        w:Run(10)
+        ok(bar:IsShown(), "the mouse still over it")
     end)
 
     local function Bursts(ola, tex)

@@ -27,6 +27,9 @@ PF.VIEW_BOTTOM = -50    -- ... to 50 below it
 PF.DEFAULT_POINT = { "CENTER", "CENTER", -380, -160 }
 PF.ZZZ_EVERY = 2.5      -- seconds between the Zzz over a sleeping pet
 PF.ZZZ_AT = { 22, 66 }  -- where they rise from: right of the middle, about head height in the card's view
+-- The bond bar and level show only under the mouse (2026-11-11, the user: "only visible on mouseover regardless
+-- of settings for now"), and while points rise (the numbers are drawn on the bar; a new level comes with points).
+PF.PEEK_HOLD = 1          -- seconds the bar stays after its last number has faded
 
 local L = ns.L
 
@@ -124,13 +127,14 @@ function PF:Build()
     click:SetScript("OnMouseWheel", function(_, delta) if PF.editing then PF:Resize(delta) end end)
     click:EnableMouseWheel(false) -- (a wheel script turns it on: the camera would never zoom over it)
     click:SetScript("OnEnter", function(b)
+        PF.hover = true; PF:ShowBar()
         if PF.editing or not PF.key then return end
         GameTooltip:SetOwner(b, "ANCHOR_TOP")
         GameTooltip:SetText(ns.Registry:NameOf(PF.key), 1, 0.82, 0)
         GameTooltip:AddLine(L["petframe.tip"], 1, 1, 1, true)
         GameTooltip:Show()
     end)
-    click:SetScript("OnLeave", function(b) ns.HideTip(b) end)
+    click:SetScript("OnLeave", function(b) PF.hover = nil; PF:ShowBar(); ns.HideTip(b) end)
     f.click = click
 
     self:Art()
@@ -230,8 +234,7 @@ end
 function PF:Bond(animate)
     local bar, key = self.frame.bar, self.key
     local points, level, _, from, nextAt = ns.Bond:Own(key)
-    if not points then bar:Hide(); return end
-    bar:Show()
+    if not points then self.points = nil; bar:Hide(); return end
     local top = nextAt or math.max(points, 1)
     bar:SetMinMaxValues(from, top)
     bar:SetValue(nextAt and points or top)
@@ -249,8 +252,31 @@ function PF:Bond(animate)
     local last = self.points
     self.points = points
     if animate and last and points > last then
-        ns.BondTrack:Animate(self.track, points, from, top, last, { points - last })
+        local T = ns.BondTrack
+        self:Peek(T.GROW.delay + T.NUMBER.fadeIn + T.NUMBER.rise + T.NUMBER.fadeOut + self.PEEK_HOLD)
+        T:Animate(self.track, points, from, top, last, { points - last })
     end
+    self:ShowBar()
+end
+
+-- The bar shows while the mouse is over the frame or during a peek, and only with a bond to show.
+function PF:ShowBar()
+    local bar = self.frame and self.frame.bar
+    if not bar then return end
+    bar:SetShown(self.points ~= nil and (self.hover or self.peek) and true or false)
+end
+
+-- Shown for `secs`; a later peek extends it (one token: the last timer decides).
+function PF:Peek(secs)
+    self.peekToken = (self.peekToken or 0) + 1
+    local token = self.peekToken
+    self.peek = true
+    self:ShowBar()
+    C_Timer.After(secs, function()
+        if PF.peekToken ~= token then return end
+        PF.peek = nil
+        PF:ShowBar()
+    end)
 end
 
 -- Show what should show now: the pet that's out (or Edit Mode's empty frame), or nothing.
