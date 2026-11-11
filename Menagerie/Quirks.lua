@@ -26,6 +26,8 @@ Quirks.random = math.random  -- (tests pin it)
 -- flown for ages). Seconds, picked at random within; a dislike takes longer
 -- to sink in than an egg's moment.
 Quirks.DELAY = { dislike = { 20, 60 }, egg = { 5, 20 } }
+-- Talking a lot (2026-11-11, the user): this many of your guild chat lines within CHAT_SPAN seconds.
+Quirks.CHAT_BURST, Quirks.CHAT_SPAN = 5, 120
 
 local T = ns.T
 
@@ -266,6 +268,9 @@ Quirks.EGGS = {
         return type(ctx.extra) == "string" and { who = ctx.extra } end },
     { id = "nyrute", on = "newpath", always = true, test = function(ctx)
         return HasTrait(ctx.key, "reiseglad") and { _key = "egg.nyrute.reiseglad" } or {} end },
+    -- A lot of guild chat at once, for a pet that isn't a Pratsom (it would join in) (the user, 2026-11-11).
+    { id = "skravle", on = "chat", chance = 0.4, test = function(ctx)
+        return not HasTrait(ctx.key, "pratsom") and Quirks:Chatty() and {} end },
     { id = "fiskekonk", on = "fish", always = true, test = function(ctx)
         return ns.Holidays:Has(ctx.t, "stvfishing") and ns.Plain(GetZoneText()) == "Stranglethorn Vale" and {} end },
     { id = "kattefisk", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
@@ -336,7 +341,19 @@ function Quirks:Egg(on, key, extra, seen)
     return any
 end
 
+-- Your guild chat lines' times (this session), for the talking-a-lot egg.
+local chatTimes = {}
+function Quirks:Chatty()
+    local now, n = GetTime(), 0
+    for _, t in ipairs(chatTimes) do if now - t <= self.CHAT_SPAN then n = n + 1 end end
+    return n >= self.CHAT_BURST
+end
+
 function Quirks:OnActivity(id, key, extra)
+    if id == "chat" then
+        table.insert(chatTimes, GetTime())
+        if #chatTimes > self.CHAT_BURST then table.remove(chatTimes, 1) end
+    end
     if not key then return end
     if ns.Personality:Dislikes(key)[id] then return self:Dislike(key, id) end
     self:Egg(id, key, extra)
@@ -357,7 +374,7 @@ end
 -- (Not dance: every emote nearby would wake it. The midnight dance comes only
 -- when a Dansefot's like already watches it.)
 Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic", "duelwon", "duellost",
-    "newpath", "fish" }
+    "newpath", "fish", "chat" }
 local watching = {}
 
 function Quirks:Watch()

@@ -326,4 +326,23 @@ return function(test, H)
         ola.state.zone = "Stranglethorn Vale"
         ok(egg.test({ t = w:ServerTime() }), "in Stranglethorn")
     end)
+
+    test("a lot of guild chat at once: a pet that isn't a Pratsom comments, now and then", function()
+        local w, ola, Q = Setup()
+        local function Eggs(id) local e = ola.ns.DB.char.eggs[id]; return e and e.n or 0 end
+        local function Say(n, gap)
+            for _ = 1, n do ola:Fire("CHAT_MSG_GUILD", "hei", "Ola Nord", "", "", "", "", 0, 0, "", 0, 1, ola.env.UnitGUID("player")); w:Run(gap or 5) end
+        end
+        Say(5, 40)
+        eq(Eggs("skravle"), 0, "five lines over three minutes: not a lot")
+        Say(5)
+        eq(Eggs("skravle"), 1, "five in half a minute")
+        Q.random = function(n) return n and 1 or 0.9 end
+        w:SkipDays(1); Say(5)
+        eq(Eggs("skravle"), 1, "by chance only")
+        -- A Pratsom just likes it.
+        local w2, kari = Setup({ "pratsom", "glupsk" })
+        for _ = 1, 6 do kari:Fire("CHAT_MSG_GUILD", "hei", "Ola Nord", "", "", "", "", 0, 0, "", 0, 1, kari.env.UnitGUID("player")); w2:Run(5) end
+        eq(kari.ns.DB.char.eggs.skravle, nil)
+    end)
 end
