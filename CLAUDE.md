@@ -119,7 +119,10 @@ Core/SidePage.lua  our pages of the Collections window: a side tab each under Bl
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp; Norwegian
                    only). Only in a git checkout (ns.DEV): probe [more|tabs|kills|life|world|card|bg|decor|frames|level|
-                   celebrate|anim|ach|pos|lift|moves|gains] and debug; a release never logs (Debug:Init turns a saved log off)
+                   celebrate|anim|ach|pos|lift|moves|gains|api] and debug; a release never logs (Debug:Init turns a saved log off)
+Core/ApiProbe.lua  /dp probe api [section|clear]: what the client really has (globals, C_* namespaces, Enum, events,
+                   widget types and their methods/handlers, templates, global strings, getters' values, the card's
+                   actor, the calendar, a pet model's animations and lengths), read-only, in DyreparkenDebugDB.api
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/PetMoves.lua  which animation each pet uses for each reaction on the card (sleep, sit, happy, cheer, dead): a

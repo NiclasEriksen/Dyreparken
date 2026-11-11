@@ -75,5 +75,6 @@ Menagerie\MovesEditor.lua
 # Party games
 Games\Framework.lua
 
+Core\ApiProbe.lua
 Core\Commands.lua
 Main.lua

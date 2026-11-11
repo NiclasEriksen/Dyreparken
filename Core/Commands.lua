@@ -137,6 +137,7 @@ local PROBES = {
     { "lift", function() ns.LiftEditor:Toggle() end },
     { "moves", function() ns.MovesEditor:Toggle() end },
     { "gains", function(a) ns.BondTrack:PreviewGains(a) end, "[n n ...]" },
+    { "api", function(a) ns.ApiProbe:Run(a) end, "[section|clear]" },
 }
 local usage = {}
 for _, p in ipairs(PROBES) do usage[#usage + 1] = p[3] and (p[1] .. " " .. p[3]) or p[1] end
