@@ -521,7 +521,7 @@ function Track:Celebrate(card, key, level)
     local cel = card.celebration
     if not cel or not ns.Settings:On("celebrate") then return end
     self:StopCelebration(card)
-    ns.Moves:Cheer(key)
+    ns.Moves.card:Cheer(key) -- (the pet frame cheers when the level comes: PetFrame.lua)
     cel.flash:Show(); cel.flash.anim:Play()
     for i, p in ipairs(cel.parts) do
         local heart = i % 3 == 0

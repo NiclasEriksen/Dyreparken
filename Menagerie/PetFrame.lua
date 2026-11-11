@@ -24,6 +24,8 @@ PF.MIN_SCALE, PF.MAX_SCALE, PF.SCALE_STEP = 0.5, 2, 0.05
 PF.VIEW_TOP = 86        -- the card's view: 86 px above the scene's bottom ...
 PF.VIEW_BOTTOM = -50    -- ... to 50 below it
 PF.DEFAULT_POINT = { "CENTER", "CENTER", -380, -160 }
+PF.ZZZ_EVERY = 2.5      -- seconds between the Zzz over a sleeping pet
+PF.ZZZ_AT = { 22, 66 }  -- where they rise from: right of the middle, about head height in the card's view
 
 local L = ns.L
 
@@ -118,6 +120,7 @@ function PF:Build()
     click:SetScript("OnLeave", function(b) ns.HideTip(b) end)
     f.click = click
 
+    self:Art()
     self.stage = ns.Moves.NewStage("frame", {
         actor = function() return PF.actor end,
         scene = function() return PF.scene end,
@@ -125,6 +128,41 @@ function PF:Build()
     })
     self:Place()
     return f
+end
+
+-- Frame art (2026-11-11, the user: "toggle background+border, in the same modern client style as
+-- everything else uses"; Settings: petFrameArt, off by default): the rock of Blizzard's windows
+-- behind the pet, and their nine-slice border (NineSliceUtil, NineSliceLayouts: both on Forever).
+PF.ART_LAYOUTS = { "ButtonFrameTemplateNoPortrait", "SimplePanelTemplate" }
+function PF:Art()
+    local f = self.frame
+    local on = ns.Settings:Get("petFrameArt") == true
+    if on and not f.bg then
+        f.bg = f:CreateTexture(nil, "BACKGROUND", nil, -7) -- (on the frame itself: under the scene)
+        f.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -4)
+        f.bg:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -4, 4)
+        f.bg:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock", "REPEAT", "REPEAT")
+        f.bg:SetHorizTile(true)
+        f.bg:SetVertTile(true)
+        local border = CreateFrame("Frame", nil, f, "NineSlicePanelTemplate")
+        border:SetAllPoints()
+        border:SetFrameLevel(self.scene:GetFrameLevel() + 2) -- (over the scene's edges, under the click layer)
+        local layouts = rawget(_G, "NineSliceLayouts")
+        local util = rawget(_G, "NineSliceUtil")
+        for _, name in ipairs(self.ART_LAYOUTS) do
+            local layout = layouts and layouts[name]
+            if layout and util and util.ApplyLayout then
+                local ok = pcall(util.ApplyLayout, border, layout)
+                ns.Log("PetFrame", "art: %s %s", name, ok and "applied" or "failed")
+                if ok then break end
+            end
+        end
+        f.border = border
+    end
+    if f.bg then
+        f.bg:SetShown(on)
+        f.border:SetShown(on)
+    end
 end
 
 function PF:Place()
@@ -216,6 +254,51 @@ function PF:Refresh()
     f:Show()
     self:Bond(false)
     self.stage:Update(f, key)
+    self:Sleepy()
+    self:NextChange()
+end
+
+-- Asleep: a Zzz now and then, as over the card's pet (2026-11-11, "reactions only": no ambience).
+-- A timer chain that ends itself once the pet wakes or the frame hides; none at "no particles".
+function PF:Sleepy()
+    if self.zzz then return end
+    local function Tick()
+        local f = self.frame
+        if not (f and f:IsShown() and self.stage.shown.mode == "sleep" and ns.Settings:Get("cardParticles") ~= "none") then
+            self.zzz = nil
+            return
+        end
+        ns.Fx:Burst({ self.scene, "BOTTOM", self.ZZZ_AT[1], self.ZZZ_AT[2] }, "zee",
+            { n = 1, color = { 0.8, 0.85, 1 }, alpha = 0.9, size = 0.7, spread = 6, rise = 40 })
+        C_Timer.After(self.ZZZ_EVERY, Tick)
+    end
+    self.zzz = true
+    Tick()
+end
+
+-- The card's pet is posed anew each time the card opens; this one is always there, so it's
+-- posed again when night falls or ends (Personality.IsNight: 22 to 4), by one timer to then.
+function PF:NextChange()
+    local now = ns.Now()
+    local d = date("*t", now)
+    local hour = (d.hour >= 22 or d.hour < 4) and 4 or 22
+    local at = time({ year = d.year, month = d.month, day = d.day, hour = hour, min = 0, sec = 1 })
+    if at <= now then at = at + 86400 end
+    local token = {}
+    self.changeToken = token
+    C_Timer.After(at - now, function()
+        if PF.changeToken == token and PF.frame and PF.frame:IsShown() then PF:Refresh() end
+    end)
+end
+
+-- A new level with this pet: its cheer, and stars.
+function PF:LevelUp(key)
+    if not (self.frame and self.frame:IsShown() and key == self.key) then return end
+    self.stage:Cheer(key)
+    if ns.Settings:Get("cardParticles") ~= "none" then
+        ns.Fx:Burst({ self.scene, "BOTTOM", 0, self.ZZZ_AT[2] }, "star",
+            { n = 8, color = { 1, 0.85, 0.35 }, size = 0.8, spread = 50, rise = 50 })
+    end
 end
 
 ------------------------------------------------------------------------------
@@ -264,7 +347,7 @@ end
 function PF:Apply()
     if self:Enabled() then
         self:On()
-        if self.frame then self:Place() end
+        if self.frame then self:Place(); self:Art() end
     else
         self:Off()
     end
@@ -291,6 +374,9 @@ end
 ns.Start("settled", function()
     -- The bar follows the bond; a new name, the name.
     ns.Bus:On("BOND", function(key) if PF.frame and key == PF.key then PF:Bond(true) end end)
+    ns.Bus:On("BOND_LEVEL", function(key) PF:LevelUp(key) end)
+    -- Its day full: it sits (Moves:Rest), as on the card.
+    ns.Bus:On("BOND_FULL", function(key) if PF.frame and PF.frame:IsShown() and key == PF.key then PF:Refresh() end end)
     ns.Bus:On("REGISTRY", function() if PF.frame and PF.key then PF.frame.name:SetText(ns.Registry:NameOf(PF.key)) end end)
     PF:HookEditMode()
     PF:Apply()

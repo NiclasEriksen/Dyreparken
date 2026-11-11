@@ -26,7 +26,7 @@ local ACCOUNT_DEFAULTS = {
     achHeard = {}, -- ["sender\31id"] = when: others' achievements already told (Achievements: OnEarned)
     settings = { -- the account's settings (Menagerie/Settings.lua)
         chatLines = true, worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,
-        petFrame = false, -- (the pet frame: off unless chosen, PetFrame.lua)
+        petFrame = false, petFrameArt = false, -- (the pet frame and its background and border: off unless chosen, PetFrame.lua)
     },
     scenePicks = {}, -- family -> background path, picked in /dp probe bg (SceneGallery.lua)
     liftPicks = {},  -- species id -> lift, set in /dp probe lift (LiftEditor.lua); to write into Data/PetMoves.lua

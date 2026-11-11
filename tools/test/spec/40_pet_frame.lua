@@ -135,4 +135,59 @@ return function(test, H)
         eq(ola.env.GameTooltip.lines[1], "Panda Cub")
         eq(ola.env.GameTooltip.lines[2], ola.ns.L["petframe.tip"])
     end)
+
+    local function Bursts(ola, tex)
+        local n = 0
+        for _, p in ipairs(ola.ns.Fx.particles or {}) do
+            if p:IsShown() and tostring(p.icon.tex):find(tex .. "$") then n = n + 1 end
+        end
+        return n
+    end
+
+    test("asleep, a Zzz rises now and then (none once it's awake); night falls on it while it's there", function()
+        local w, ola, PF = Setup(23)
+        ok(Bursts(ola, "zee") >= 1, "a Zzz")
+        w:Run(PF.ZZZ_EVERY + 0.01)
+        ok(PF.zzz, "and on")
+        ola.ns.Moves:Cheer(PANDA) -- (woken)
+        w:Run(PF.ZZZ_EVERY * 2)
+        no(PF.zzz, "awake: the Zzz end")
+        -- At 21:00, standing; at 22:00 it lies down without anything else happening.
+        local w2, kari, PF2 = Setup(21)
+        w2:Run(3590)
+        eq(PF2.stage.shown.mode, "stand")
+        w2:Run(12)
+        eq(PF2.stage.shown.mode, "sleep", "night fell")
+        ok(PF2.zzz)
+    end)
+
+    test("a new level with the pet that's out: it cheers on the frame, stars burst, the bar shows the level", function()
+        local w, ola, PF = Setup(14)
+        local actor = PF.actor
+        ola.ns.Bond:Add(150, PANDA)
+        eq(actor.anim, 754, "its cheer")
+        ok(Bursts(ola, "star") >= 1, "stars")
+        eq(PF.frame.bar.level.text, 2)
+        -- Another pet's level: nothing here.
+        local played = #actor.played
+        ola.ns.PetFrame:LevelUp("s:46")
+        eq(#actor.played, played)
+    end)
+
+    test("frame art, off by default: the window rock behind the pet and Blizzard's nine-slice border", function()
+        local w, ola, PF = Setup(14, false)
+        local applied
+        rawset(ola.env, "NineSliceLayouts", { ButtonFrameTemplateNoPortrait = { name = "bftnp" } })
+        rawset(ola.env, "NineSliceUtil", { ApplyLayout = function(frame, layout) applied = layout.name end })
+        ola.ns.DB.global.settings.petFrame = true; PF:Apply()
+        local f = PF.frame
+        eq(f.bg, nil, "off: it floats")
+        ola.ns.DB.global.settings.petFrameArt = true; PF:Apply()
+        ok(f.bg:IsShown() and f.border:IsShown())
+        eq(applied, "bftnp", "the modern window border")
+        ok(f.border:GetFrameLevel() > PF.scene:GetFrameLevel(), "over the scene's edges")
+        ok(f.click:GetFrameLevel() > f.border:GetFrameLevel(), "under the click layer")
+        ola.ns.DB.global.settings.petFrameArt = false; PF:Apply()
+        no(f.bg:IsShown()); no(f.border:IsShown())
+    end)
 end

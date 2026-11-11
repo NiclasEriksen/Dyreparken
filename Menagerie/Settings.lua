@@ -14,6 +14,7 @@ local _, ns = ...
 --   cardMoves      the pet on the card moves (asleep, hops, walks...)
 --   celebrate      the bond level-up celebration on the card
 --   petFrame       the pet frame on screen (off by default; placed and sized in Edit Mode: PetFrame.lua)
+--   petFrameArt    its background and border (off by default: it floats)
 -- Modules read them with Settings:On(key) / Settings:Get(key).
 local Settings = {}
 ns.Settings = Settings
@@ -52,6 +53,8 @@ local ROWS = {
     { head = "settings.head.frame" },
     { key = "settings.petframe", get = function() return ns.PetFrame:Enabled() end,
         set = function(v) Set("petFrame", v); ns.PetFrame:Apply() end },
+    { key = "settings.petframeart", get = function() return ns.Settings:Get("petFrameArt") == true end,
+        set = function(v) Set("petFrameArt", v); ns.PetFrame:Apply() end },
 }
 Settings.ROWS = ROWS
 
