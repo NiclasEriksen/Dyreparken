@@ -229,7 +229,7 @@ return function(test, H)
         ola.ns.Bond:Add(60) -- Venn
         w:Run(15)
         eq(w:Sent("ACH_EARNED", nil, m), 1, "a real moment")
-        ok(kari:Printed("Ola Nord fikk [Bestevenner]!", true))
+        ok(kari:Printed("Ola Nord fikk [Venner i parken]!", true))
         -- A crash: Ola's saved files are from before it, and she earns it again.
         ola:Logout(); ola.saved = H.CopyTable(snap)
         ola:Login()

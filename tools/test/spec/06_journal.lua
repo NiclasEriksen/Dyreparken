@@ -140,7 +140,7 @@ return function(test, H)
         card.reserve:Click()
         eq(ola.ns.Registry:MyPet(), nil, "not before it's confirmed")
         eq(ola.popup.which, "DYREPARKEN_ADOPT")
-        eq(ola.popup.args[1], "Adoptere White Kitten?\n\nAdopsjonen blir kunngjort i guild-chatten, så hele guilden får se den."
+        eq(ola.popup.args[1], "Adoptere White Kitten?\n\nAdopsjonen blir kunngjort i guildchatten, så hele guilden får se den."
             .. " (Slå av med /dp kunngjør.)")
         ola:PopupAccept()
         eq(ola.ns.Registry:MyPet(), "s:46")
@@ -316,7 +316,7 @@ return function(test, H)
         local card = ola:SelectPet(46)
         card.reserve:Click()
         eq(ola.popup.args[1], "Adoptere White Kitten?\nDu gir da slipp på Panda Cub.\n\nAdopsjonen blir kunngjort i"
-            .. " guild-chatten, så hele guilden får se den. (Slå av med /dp kunngjør.)")
+            .. " guildchatten, så hele guilden får se den. (Slå av med /dp kunngjør.)")
         eq(ola.popup.args[3], "s:46", "the pet goes along with the popup")
         -- Cancelled: nothing happens.
         ola.popup = nil

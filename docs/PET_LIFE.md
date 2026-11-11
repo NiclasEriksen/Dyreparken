@@ -38,7 +38,7 @@ a day), so the very fastest bond takes 30 days. Each step is longer than the las
 
 Venn also unlocks naming the pet (Config.NICKNAME_LEVEL; it was 7 days of care). The protocol went to 7.
 10 a day is the pet out and nothing else; ~35 is a liked activity most days. The loyalty achievements are levels
-(Bestevenner at Venn, Uatskillelige at God venn, Venner for livet at Uatskillelig), so they follow the curve.
+(Venner i parken at Venn, Gode kamerater at God venn (renamed from Bestevenner and Uatskillelige 2026-11-11: they clashed with the level names), Venner for livet at Uatskillelig), so they follow the curve.
 `Bond.LEVELS` in Menagerie/Bond.lua. The sync digest holds levels, so the change bumped the protocol to 6.
 
 ### Temperament stages
@@ -146,7 +146,7 @@ Shown as a short timeline in the park map tooltip and on the pet card's tooltip.
   level in a gold ring, and its nickname under the name.
 - **World tooltip:** under the species line, the temperament: "Pepe / Panda Cub / tam og kosete".
 - **Park map:** the icon border is colored by temperament stage, and the tooltip carries the story.
-- **Achievements:** the loyalty ones move to bond levels. "Bestevenner" means reaching "Venn", and so on. Ones
+- **Achievements:** the loyalty ones move to bond levels. "Venner i parken" means reaching "Venn", and so on. Ones
   already earned stay earned.
 - **Guild chat** (respects `/dp kunngjør`): only the big moments, e.g. "Pepe er blitt en parklegende!"
 

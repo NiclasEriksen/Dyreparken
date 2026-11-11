@@ -53,11 +53,11 @@ return function(test, H)
         eq(P:Line("s:999"), "Klengete og Helgetroll", "nothing liked but the days")
         -- What each kind of trait does, in numbers.
         local E = function(id) return P:Effect(P.ById(id)) end
-        eq(E("glupsk"), "Quests med dyret ute gir 5 bånd-poeng (opptil 25 om dagen), mot 1 ellers.")
-        eq(E("kosete"), "Hver dag sammen gir dobbelt så mange bånd-poeng (20 i stedet for 10).")
-        eq(E("helgedyr"), "En lørdag eller søndag sammen gir dobbelt så mange bånd-poeng (20 i stedet for 10).")
-        match(E("festglad"), "^En høytidsdag sammen %(17%. mai, .*%) gir tre ganger så mange bånd%-poeng %(30 i stedet for 10%)%.$")
-        eq(E("flokkdyr"), "Alt dere gjør sammen med en fra guilden i gruppen gir 5 bånd-poeng (opptil 10 om dagen), mot 1 ellers.")
+        eq(E("glupsk"), "Quests med dyret ute gir 5 båndpoeng (opptil 25 om dagen), mot 1 ellers.")
+        eq(E("kosete"), "Hver dag sammen gir dobbelt så mange båndpoeng (20 i stedet for 10).")
+        eq(E("helgedyr"), "En lørdag eller søndag sammen gir dobbelt så mange båndpoeng (20 i stedet for 10).")
+        match(E("festglad"), "^En høytidsdag sammen %(17%. mai, .*%) gir tre ganger så mange båndpoeng %(30 i stedet for 10%)%.$")
+        eq(E("flokkdyr"), "Alt dere gjør sammen med en fra guilden i gruppen gir 5 båndpoeng (opptil 10 om dagen), mot 1 ellers.")
     end)
 
     test("two traits per species: the same everywhere, never a contradiction, all of them in use", function()

@@ -378,7 +378,7 @@ return function(test, H)
         eq(Count(ola, "jubler over at du fisket"), 0, "not in Elwynn")
         ola.state.zone = "Stranglethorn Vale"
         ok(Fish() >= ola.ns.Config.BOND_CONTEST_POINTS, "the bonus, on top of the fishing")
-        eq(Count(ola, "Bombay Cat jubler over at du fisket i fiskekonkurransen! (+10 bånd-poeng)"), 1)
+        eq(Count(ola, "Bombay Cat jubler over at du fisket i fiskekonkurransen! (+10 båndpoeng)"), 1)
         ok(Fish() < ola.ns.Config.BOND_CONTEST_POINTS, "once a day")
         eq(Count(ola, "jubler over at du fisket"), 1)
         -- A pet that doesn't care for fishing: no bonus, no day egg.

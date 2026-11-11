@@ -39,8 +39,8 @@ L["cmd.help.gislipp"] = "gislipp - gi slipp på dyret ditt"
 L["cmd.help.navn"] = "navn [kallenavn] - gi dyret ditt et kallenavn (tomt fjerner det)"
 L["cmd.help.liste"] = "liste - hvilke dyr som har et hjem i guilden"
 L["cmd.help.lyd"] = "lyd [på|av] - klirringen når et dyr summones (dempet som standard)"
-L["cmd.help.prestasjoner"] = "prestasjoner [del|varsel på|av] - prestasjonene dine; del nye i guild-chatten"
-L["cmd.help.kunngjor"] = "kunngjør [på|av] - del adopsjoner og kallenavn i guild-chatten (på som standard)"
+L["cmd.help.prestasjoner"] = "prestasjoner [del|varsel på|av] - prestasjonene dine; del nye i guildchatten"
+L["cmd.help.kunngjor"] = "kunngjør [på|av] - del adopsjoner og kallenavn i guildchatten (på som standard)"
 L["cmd.help.klapp"] = "klapp - klapp dyret du har valgt som mål, eller ditt eget"
 
 ------------------------------------------------------------------------------
@@ -71,7 +71,7 @@ L["adopt.done_swap"] = "Du adopterte {pet} (og ga slipp på {old})."
 L["adopt.keeps_own_name"] = " Det heter fortsatt «{nick}»."
 L["adopt.confirm"] = "Adoptere {pet}?"
 L["adopt.confirm.swap"] = "Du gir da slipp på {pet}."
-L["adopt.confirm.announce"] = "Adopsjonen blir kunngjort i guild-chatten, så hele guilden får se den. (Slå av med /dp kunngjør.)"
+L["adopt.confirm.announce"] = "Adopsjonen blir kunngjort i guildchatten, så hele guilden får se den. (Slå av med /dp kunngjør.)"
 L["adopt.inherits_name"] = " Det heter «{nick}», et navn det fikk av {namer}. Ta godt vare på det!"
 L["release.none"] = "Du har ikke adoptert noe dyr."
 L["release.done"] = "Du ga slipp på {pet}."
@@ -151,8 +151,8 @@ L["voice.murloc"] = "{pet} sier «mrglglglgl!»"
 L["announce.adopt_nick"] = "Dyreparken: {player} adopterte {species} («{nick}»)!"
 L["announce.adopt"] = "Dyreparken: {player} adopterte {species}!"
 L["announce.name"] = "Dyreparken: {player} ga {species} kallenavnet «{nick}»!"
-L["announce.on"] = "Adopsjoner og kallenavn kunngjøres i guild-chatten."
-L["announce.off"] = "Adopsjoner og kallenavn kunngjøres ikke lenger i guild-chatten."
+L["announce.on"] = "Adopsjoner og kallenavn kunngjøres i guildchatten."
+L["announce.off"] = "Adopsjoner og kallenavn kunngjøres ikke lenger i guildchatten."
 
 ------------------------------------------------------------------------------
 -- The bond (Bond, BondTrack)
@@ -328,12 +328,12 @@ L["trait.friluftsdyr.flavor"] = "{pet} nøt den friske luften!"
 ------------------------------------------------------------------------------
 -- What a trait does, in numbers (the numbers come from the code)
 ------------------------------------------------------------------------------
-L["effect.day"] = "{when} gir {times} så mange bånd-poeng ({n} i stedet for {base})."
+L["effect.day"] = "{when} gir {times} så mange båndpoeng ({n} i stedet for {base})."
 L["effect.times.2"] = "dobbelt"
 L["effect.times.3"] = "tre ganger"
 L["effect.when"] = "Alt dere gjør sammen {when}"
 L["effect.activity"] = "{activity} med dyret ute"   -- {activity}: activity.*, capitalized
-L["effect.liked"] = "{what} gir {n} bånd-poeng (opptil {cap} om dagen), mot {other} ellers."
+L["effect.liked"] = "{what} gir {n} båndpoeng (opptil {cap} om dagen), mot {other} ellers."
 L["effect.activity.dance"] = "/dance med dyret ute"
 L["effect.activity.cuddle"] = "/pet, /hug eller /cuddle på dyret"
 L["effect.activity.chat"] = "Hver linje du skriver i guildchatten"
@@ -364,7 +364,7 @@ L["dislike.taxi.1"] = "{pet} holdt øynene igjen hele flyturen."
 L["dislike.taxi.2"] = "{pet} er grønn i fjeset etter flyturen."
 L["dislike.boss.1"] = "{pet} gjemte seg bak beina dine til bossen falt."
 L["dislike.boss.2"] = "{pet} skjelver fortsatt litt etter den bossen."
-L["dislike.jump.1"] = "{pet} blir svimmel av alt hoppingen."
+L["dislike.jump.1"] = "{pet} blir svimmel av all hoppingen."
 L["dislike.jump.2"] = "{pet} ser på deg som om du har gått fra vettet."
 L["dislike.hearth.1"] = "{pet} ble kvalm av hearthstonen."
 L["dislike.hearth.2"] = "{pet} var ikke ferdig der dere var!"
@@ -503,13 +503,13 @@ L["settings.head.guild"] = "Guilden"
 L["settings.head.chat"] = "Chatten og verden"
 L["settings.head.card"] = "Dyrekortet"
 L["settings.autosummon"] = "Ta med dyret ut automatisk"
-L["settings.autosummon.tip"] = "Kaller ut dyret du har valgt med «Med deg» når du er klar: etter lasteskjermer, kamp og når du går av fjellet ditt."
-L["settings.mute"] = "Demp lyden når et dyr kalles ut"
+L["settings.autosummon.tip"] = "Summoner dyret du har valgt med «Med deg» når du er klar: etter lasteskjermer, kamp og når du går av fjellet ditt."
+L["settings.mute"] = "Demp lyden når et dyr summones"
 L["settings.mute.tip"] = "Lydeffekten når et dyr kommer ut, også når spillet summoner det tilbake selv."
 L["settings.announce"] = "Fortell guilden når du adopterer eller gir navn"
-L["settings.announce.tip"] = "En linje i guild-chatten når du adopterer et dyr eller gir det kallenavn, og når du gratulerer fra en kake."
+L["settings.announce.tip"] = "En linje i guildchatten når du adopterer et dyr eller gir det kallenavn, og når du gratulerer fra en kake."
 L["settings.achnotify"] = "Fortell andre med Dyreparken om prestasjonene dine"
-L["settings.achnotify.tip"] = "Guildmedlemmer med Dyreparken får en linje når du får en prestasjon. Ingenting i guild-chatten."
+L["settings.achnotify.tip"] = "Guildmedlemmer med Dyreparken får en linje når du får en prestasjon. Ingenting i guildchatten."
 L["settings.chatlines"] = "Småting i chatten"
 L["settings.chatlines.tip"] = "Linjene om påskeegg, ting dyret ikke liker, ting det elsker og første ganger sammen. Av: de skjer og teller like fullt, bare uten linje. Nye levels vises alltid."
 L["settings.hearts"] = "Hjerter og gnister"
@@ -617,10 +617,10 @@ L["stats.round"] = "Rundt tall i dag: {m}!"
 L["wish.line"] = "{pet} ønsker seg {activity} i dag"
 L["wish.done"] = "Ønsket er oppfylt!"
 L["wish.title"] = "Dagens ønske"
-L["wish.tip"] = "Gjør det med {pet} ute i dag, så får dere {n} ekstra bånd-poeng."
+L["wish.tip"] = "Gjør det med {pet} ute i dag, så får dere {n} ekstra båndpoeng."
 L["wish.tip.done"] = "Oppfylt! {pet} er fornøyd. Et nytt ønske kommer i morgen."
-L["bond.contest"] = "{pet} jubler over at du fisket i fiskekonkurransen! (+{n} bånd-poeng)"
-L["wish.granted"] = "{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} bånd-poeng)"
+L["bond.contest"] = "{pet} jubler over at du fisket i fiskekonkurransen! (+{n} båndpoeng)"
+L["wish.granted"] = "{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} båndpoeng)"
 
 ------------------------------------------------------------------------------
 -- The park (the map page)
@@ -664,7 +664,7 @@ ns.AchTexts = {
         earned_one = "{player} fikk {name}!",                    -- Ola Nord fikk [Alle kattene]!
         earned_many = "{player} fikk {list} og {last}!",             -- Ola Nord fikk [A], [B] og [C]!
         share = "{player} fikk {name}!",               -- guild chat, when an achievement has no flavor
-        share_hint = "Del det i guild-chatten med /dp prestasjoner del.",
+        share_hint = "Del det i guildchatten med /dp prestasjoner del.",
         already = "Du har allerede {n} prestasjoner fra før. Se dem med /dp prestasjoner.",
         none_to_share = "Ingen nye prestasjoner å dele.",
         not_in_guild = "Du er ikke i en guild.",
@@ -673,7 +673,7 @@ ns.AchTexts = {
         list_header = "Prestasjoner ({n} av {total}):",
         points = "{have}/{need} poeng",
         guild_earned = "{guild} fikk {list}!",                  -- Dyreparken fikk [Kattehuset]!
-        guild_hint = "Som offiser kan du dele det i guild-chatten med /dp prestasjoner del.",
+        guild_hint = "Som offiser kan du dele det i guildchatten med /dp prestasjoner del.",
 
         -- Families in the plural, for "Mest populære familie" (Menagerie/ParkPage.lua).
         families = { cat = "katter", farm = "gårdsdyr", owl = "ugler", rabbit = "kaniner", snake = "slanger",
@@ -691,9 +691,9 @@ ns.AchTexts = {
         cat_together = "Sammen på eventyr",
         cat_guild = "Guilden",
         share_button = "Del",
-        share_button_tip = "Del det i guild-chatten.",
+        share_button_tip = "Del det i guildchatten.",
         tip_earned = "Fått {date}",
-        tip_shared = "Delt i guild-chatten.",
+        tip_shared = "Delt i guildchatten.",
         tip_missing = "Mangler:",
         tip_no_home = "trenger et hjem",
         tip_no_home_title = "Trenger et hjem:",
@@ -733,10 +733,10 @@ ns.AchTexts = {
         flavor = "Det var en meget gledelig overraskelse, {player}, med alle piratdyrene om bord! {name}" },
 
     -- Loyalty: the companion you care for (per character).
-    ["loyal:30"] = { name = "Bestevenner", desc = "Nå Venn med dyret ditt.",
+    ["loyal:30"] = { name = "Venner i parken", desc = "Nå Venn med dyret ditt.",
         flavor = "{player} og {pet} er blitt ordentlige venner! {name}",
         plain = "{player} og dyret sitt er blitt ordentlige venner! {name}" },
-    ["loyal:100"] = { name = "Uatskillelige", desc = "Nå God venn med dyret ditt.",
+    ["loyal:100"] = { name = "Gode kamerater", desc = "Nå God venn med dyret ditt.",
         flavor = "{player} og {pet} er nå gode venner! {name}",
         plain = "{player} og dyret sitt er nå gode venner! {name}" },
     ["loyal:365"] = { name = "Venner for livet", desc = "Nå Uatskillelig med dyret ditt.",
@@ -773,13 +773,13 @@ ns.AchTexts = {
         plain = "{player} kjenner dyret sitt ut og inn! {name}" },
 
     -- Guild: the companions the guild cares for, all at once (one per member).
-    ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guilden tar vare på 10 dyr samtidig.",
+    ["guild:count:10"] = { name = "Dyreparken åpner", desc = "Guilden tar vare på 10 dyr samtidig (av dem som kan skaffes i spillet).",
         flavor = "Portene er åpne: {guild} tar vare på ti dyr! {name}" },
-    ["guild:count:25"] = { name = "Full drift", desc = "Guilden tar vare på 25 dyr samtidig.",
+    ["guild:count:25"] = { name = "Full drift", desc = "Guilden tar vare på 25 dyr samtidig (av dem som kan skaffes i spillet).",
         flavor = "{guild} tar vare på 25 dyr! Dyreparken er i full drift. {name}" },
-    ["guild:count:50"] = { name = "Nordens største dyrepark", desc = "Guilden tar vare på 50 dyr samtidig.",
+    ["guild:count:50"] = { name = "Nordens største dyrepark", desc = "Guilden tar vare på 50 dyr samtidig (av dem som kan skaffes i spillet).",
         flavor = "{guild} tar vare på 50 dyr! {name}" },
-    ["guild:all"] = { name = "Hele parken", desc = "Guilden tar vare på alle dyrene som finnes, samtidig.",
+    ["guild:all"] = { name = "Hele parken", desc = "Guilden tar vare på alle dyrene som kan skaffes i spillet, samtidig.",
         flavor = "Hvert eneste dyr har et hjem i {guild}! {name}" },
     ["guild:family:cat"] = { name = "Kattehuset", desc = "Hver katt har sin egen eier i guilden.",
         flavor = "Hver eneste katt har fått sitt eget hjem i {guild}! {name}" },
