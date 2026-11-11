@@ -644,17 +644,34 @@ function S.petframe(out)
     local f = Api.petFrame
     if not f then
         f = CreateFrame("Frame", "DyreparkenPetFrameProbe", UIParent)
-        f:SetSize(180, 180)
         f:SetPoint("CENTER", UIParent, "CENTER", 0, 120)
-        f:SetMovable(true); f:EnableMouse(true); f:RegisterForDrag("LeftButton")
-        f:SetScript("OnDragStart", f.StartMoving); f:SetScript("OnDragStop", f.StopMovingOrSizing)
+        f:SetMovable(true)
         local okS, scene = pcall(CreateFrame, "ModelScene", nil, f, "ModelSceneMixinTemplate")
         out.scene = okS and "made" or ("failed: " .. tostring(scene))
         if not okS then return out.scene end
         scene:SetAllPoints()
+        -- (2026-11-11, the first run: the scene took the mouse, to rotate the pet; a click never arrived)
+        pcall(function() scene:EnableMouse(false) end); pcall(function() scene:EnableMouseWheel(false) end)
         f.scene = scene
+        -- On top: takes the clicks (left: its happy move; right: close) and drags.
+        local click = CreateFrame("Button", nil, f)
+        click:SetAllPoints()
+        click:SetFrameLevel(scene:GetFrameLevel() + 5)
+        click:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        click:RegisterForDrag("LeftButton")
+        click:SetScript("OnDragStart", function() f:StartMoving() end)
+        click:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
+        f.click = click
         Api.petFrame = f
     end
+    -- The card's shape (2026-11-11, the first run: in a 180x180 frame only the pet's bottom half
+    -- showed; the scene's camera is set for the card): the card's scene size, if the journal has
+    -- been open, else a guess.
+    local card = G("PetJournalPetCard")
+    local cardScene = card and rawget(card, "modelScene")
+    local okW, w, h = pcall(function() return cardScene:GetSize() end)
+    out.cardSize = okW and Show(w) .. " x " .. Show(h) or "(open the pet journal first)"
+    if okW and type(w) == "number" and w > 0 then f:SetSize(w, h) else f:SetSize(260, 260) end
     local scene = f.scene
     local info = Pack(pcall(C_PetJournal.GetPetModelSceneInfoBySpeciesID, sid))
     out.sceneInfo = Try(function() return select(2, unpack(info, 1, info.n)) end)
@@ -676,8 +693,17 @@ function S.petframe(out)
         out.model = Try(function() return actor:SetModelByCreatureDisplayID(display) end)
         out.methods = #Methods(actor) .. " methods"
         f.actor = actor
+        -- Where it stands, against the card's actor (0, 0, 0.3 at scale 19.48 for the prairie dog).
+        C_Timer.After(1, function()
+            out.position = Try(function() return actor:GetPosition() end)
+            out.scale = Try(function() return actor:GetScale() end)
+            local cardActor = ns.Moves:Actor()
+            out.cardPosition = cardActor and Try(function() return cardActor:GetPosition() end) or "(no card)"
+            ns.Log("Api", "petframe: size %s, position %s, scale %s; card's position %s", tostring(out.cardSize),
+                tostring(out.position), tostring(out.scale), tostring(out.cardPosition))
+        end)
     end
-    f:SetScript("OnMouseUp", function(_, button)
+    f.click:SetScript("OnClick", function(_, button)
         if button == "RightButton" then f:Hide(); return end
         if f.actor then
             local happy = ns.Moves:For(key, "happy") or 756

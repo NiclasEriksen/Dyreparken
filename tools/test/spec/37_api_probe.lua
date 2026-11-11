@@ -200,12 +200,12 @@ return function(test, H)
         eq(out.scene, "made"); eq(out.actor, "found")
         eq(actor.display, 20000 + 5159, "the species' display")
         local f = ola.env.DyreparkenPetFrameProbe
-        f.scripts.OnMouseUp(f, "LeftButton")
+        f.click.scripts.OnClick(f.click, "LeftButton")
         eq(actor.anim, ola.ns.Moves:For("s:5159", "happy"))
         ok(callbacks["EditMode.Enter"] and callbacks["EditMode.Exit"])
         callbacks["EditMode.Enter"]()
         ok(ola:Printed("EditMode.Enter fired", true))
-        f.scripts.OnMouseUp(f, "RightButton")
+        f.click.scripts.OnClick(f.click, "RightButton")
         no(f:IsShown())
         -- No unwrapped actor in the scene: one of our own.
         ola.env.C_PetJournal.GetPetModelSceneInfoBySpeciesID = function() return nil end
