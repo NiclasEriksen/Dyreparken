@@ -163,6 +163,21 @@ return function(test, H)
         ok(bar:IsShown(), "the mouse still over it")
     end)
 
+    test("another pet out while the bar still grows: the new pet's bond, not the last one's rise", function()
+        local w, ola, PF = Setup(14)
+        local bar = PF.frame.bar
+        ola.ns.Bond:Add(50, PANDA)
+        w:Run(ola.ns.BondTrack.GROW.delay + 0.1) -- (growing, a number rising)
+        ola:Summon(46); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.35)
+        w:Run(3)
+        local p, level, _, _, nextAt = ola.ns.Bond:Own("s:46")
+        eq(PF.key, "s:46")
+        eq(bar:GetValue(), nextAt and p or math.max(p, 1), "the kitten's points")
+        eq(bar.level.text, level)
+        for _, n in ipairs(bar.numbers or {}) do no(n:IsShown(), "no numbers from the panda") end
+        no(bar:IsShown(), "and no peek for them")
+    end)
+
     local function Bursts(ola, tex)
         local n = 0
         for _, p in ipairs(ola.ns.Fx.particles or {}) do

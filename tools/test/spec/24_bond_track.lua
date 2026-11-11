@@ -227,4 +227,25 @@ return function(test, H)
         ola:Slash("navn Pepe")
         eq(ola.ns.Registry:Nickname(PANDA), "Pepe")
     end)
+
+    -- Another pet's card while your pet's bar still grows (2026-11-11, a review): the growth and its
+    -- numbers stop, else they'd land on the next pet's bar. Both a pet with a holder and one without.
+    for _, other in ipairs({ 40, 46 }) do
+        test("another pet's card mid-growth shows that pet's bond, not the last one's rise (" .. other .. ")", function()
+            local w, ola, kari = H.Setup{ ola = { 5159, 40 }, kari = { 46 }, journal = true }
+            ola:Slash("adopter panda"); w:Run(5)
+            if other == 46 then kari:Slash("adopter kitten"); w:Run(5) end
+            local b = ola:SelectPet(5159).bond
+            ola:CloseJournal()
+            ola.ns.Bond:Add(30)
+            ola:OpenJournal()
+            ola:SelectPet(5159)
+            w:Run(0.5) -- (growing)
+            ola:SelectPet(other)
+            w:Run(3)
+            local p, _, _, _, nextAt = ola.ns.Bond:Shown("s:" .. other)
+            eq(b.value, nextAt and p or math.max(p, 1), "the other pet's bar")
+            for _, f in ipairs(b.numbers or {}) do no(f:IsShown(), "no numbers from the last pet") end
+        end)
+    end
 end

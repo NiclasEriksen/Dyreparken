@@ -296,6 +296,10 @@ function PF:Refresh()
         return
     end
     if key ~= self.key then
+        -- The last pet's rise, and the peek it kept up, end here: else its growth's timers set
+        -- its points on this pet's bar, and the check below would leave that bar to them.
+        ns.BondTrack:StopGains(self.track)
+        self.peekToken, self.peek = (self.peekToken or 0) + 1, nil
         self.key, self.points = key, nil
         self.stage:Update(f, nil) -- (the last pet's pose ends)
         self:Load(key)
