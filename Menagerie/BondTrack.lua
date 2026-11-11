@@ -335,7 +335,11 @@ end
 -- and one-shot groups only, stopped when the card hides or another pet shows.
 ------------------------------------------------------------------------------
 Track.GROW = { delay = 0.4, steps = 14, every = 0.06 } -- the bar's growth: after the model, in steps
-Track.NUMBER_EVERY = 0.3 -- seconds between the numbers
+Track.NUMBER_EVERY = 0.45 -- seconds between the numbers
+-- How a number shows: in, rising, then out. 2026-11-11, the user: "hard to see. They're blending with the
+-- text underneath and they're gone too soon": longer (about 3 s, was 2), outlined, on a dark halo, and
+-- drawn above the window (DIALOG), so nothing on the card covers them.
+Track.NUMBER = { fadeIn = 0.2, rise = 2.2, fadeOut = 0.8, height = 40 }
 local NUMBERS = 6
 
 local function Numbers(b)
@@ -343,18 +347,29 @@ local function Numbers(b)
     b.numbers = {}
     local holder = CreateFrame("Frame", nil, b)
     holder:SetAllPoints() -- (a child: drawn over the bar)
+    holder:SetFrameStrata("DIALOG") -- (and over everything on the card)
+    local N = Track.NUMBER
     for i = 1, NUMBERS do
         local f = CreateFrame("Frame", nil, holder)
-        f:SetSize(60, 20)
+        f:SetSize(60, 24)
         f:Hide()
+        f.halo = f:CreateTexture(nil, "BACKGROUND")
+        f.halo:SetTexture(ns.Decor.MEDIA .. "dot")
+        f.halo:SetPoint("CENTER")
+        f.halo:SetSize(64, 34)
+        f.halo:SetVertexColor(0, 0, 0, 0.75)
         f.text = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
         f.text:SetPoint("CENTER")
+        local path, size = f.text:GetFont()
+        if path then f.text:SetFont(path, (size or 16) + 2, "OUTLINE") end
+        f.text:SetShadowColor(0, 0, 0, 1)
+        f.text:SetShadowOffset(1, -1)
         f.text:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
         local a = ns.Anim.OneShot(f)
-        ns.Anim.Fade(a, 0, 1, 0.15, 1)
-        a.rise = a:CreateAnimation("Translation"); a.rise:SetOffset(0, 34); a.rise:SetDuration(1.3)
+        ns.Anim.Fade(a, 0, 1, N.fadeIn, 1)
+        a.rise = a:CreateAnimation("Translation"); a.rise:SetOffset(0, N.height); a.rise:SetDuration(N.rise)
         a.rise:SetSmoothing("OUT"); a.rise:SetOrder(2)
-        ns.Anim.Fade(a, 1, 0, 0.5, 3)
+        ns.Anim.Fade(a, 1, 0, N.fadeOut, 3)
         f.anim = a
         b.numbers[i] = f
     end

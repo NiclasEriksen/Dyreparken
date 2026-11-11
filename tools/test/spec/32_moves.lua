@@ -591,6 +591,12 @@ return function(test, H)
         local shown = {}
         for _, f in ipairs(card.bond.numbers) do if f:IsShown() then shown[#shown + 1] = f.text.text end end
         eq(table.concat(shown, " "), "+3 +7")
+        -- Easy to see (the user, 2026-11-11): outlined, on a dark halo, about three seconds.
+        local f = card.bond.numbers[1]
+        eq(f.text.fontFlags, "OUTLINE"); ok(f.halo)
+        local total = 0
+        for _, a in ipairs(f.anim.anims) do total = total + (a.duration or 0) end
+        ok(total >= 3, "on screen about three seconds")
         eq(ola.ns.DB.char.bondLook[PANDA], look, "nothing saved")
         ola:Slash("probe gains")
         ok(ola:Printed("Gains preview: 5, 10, 25"))

@@ -390,6 +390,10 @@ function Region:SetText(x) self.text = x; self.plain = x and StripColors(x) end
 function Region:GetText() return self.text end
 function Region:SetTextColor(r, g, b) self.color = { r, g, b } end
 function Region:SetShadowOffset(x, y) self.shadow = { x, y } end
+function Region:SetShadowColor(r, g, b, a) self.shadowColor = { r, g, b, a } end
+-- A font string's font: path, size, flags (OUTLINE...), as the client returns it.
+function Region:GetFont() return self.fontPath or "Fonts\\FRIZQT__.TTF", self.fontSize or 16, self.fontFlags or "" end
+function Region:SetFont(path, size, flags) self.fontPath, self.fontSize, self.fontFlags = path, size, flags; return true end
 function Region:SetAlpha(a) self.alpha = a end
 function Region:SetGradient(o, a, b) self.gradient = { o, a, b } end
 function Region:SetBlendMode(m) self.blend = m end
