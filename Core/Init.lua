@@ -349,9 +349,12 @@ function ns.Utf8Len(s)
 end
 
 -- Compare release versions like "v0.1.0", "0.1.0-beta2". Returns -1, 0, 1.
--- Numbers before any "-" are compared first; on a tie a release beats a
--- pre-release (0.1.0 > 0.1.0-beta2), and pre-releases compare by their
--- trailing numbers (beta2 > beta1). "dev" equals everything.
+-- Numbers before any "-" are compared first; on a tie the label decides
+-- (alpha < beta < any other label < release: 0.1.0-alpha3 < 0.1.0-beta1 <
+-- 0.1.0), then its trailing numbers (beta2 > beta1). "dev" equals everything.
+-- (Labels were ignored until 2026-11-11: alpha3 came out ahead of beta1.)
+local LABEL_RANK = { alpha = 1, beta = 2 }
+local OTHER_RANK, RELEASE_RANK = 3, 4
 local function ParseVersion(v)
     v = tostring(v or "")
     local core, pre = v:match("^v?([%d%.]+)%-?(.*)$")
@@ -359,7 +362,9 @@ local function ParseVersion(v)
     for n in (core or ""):gmatch("%d+") do nums[#nums + 1] = tonumber(n) end
     local preNums = {}
     for n in (pre or ""):gmatch("%d+") do preNums[#preNums + 1] = tonumber(n) end
-    return nums, pre ~= nil and pre ~= "", preNums, core ~= nil
+    local rank = RELEASE_RANK
+    if pre and pre ~= "" then rank = LABEL_RANK[(pre:match("^%a+") or ""):lower()] or OTHER_RANK end
+    return nums, rank, preNums, core ~= nil
 end
 
 local function CompareLists(a, b)
@@ -371,12 +376,12 @@ local function CompareLists(a, b)
 end
 
 function ns.CompareVersions(a, b)
-    local na, preA, pnA, okA = ParseVersion(a)
-    local nb, preB, pnB, okB = ParseVersion(b)
+    local na, rankA, pnA, okA = ParseVersion(a)
+    local nb, rankB, pnB, okB = ParseVersion(b)
     if not okA or not okB then return 0 end -- "dev" or garbage
     local c = CompareLists(na, nb)
     if c ~= 0 then return c end
-    if preA ~= preB then return preA and -1 or 1 end
+    if rankA ~= rankB then return rankA < rankB and -1 or 1 end
     return CompareLists(pnA, pnB)
 end
 
