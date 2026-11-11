@@ -571,7 +571,10 @@ Steps = function(key, mode)
         -- (Sleep starts only as a card opens: once woken, it stays awake.) The others lie down
         -- and are paused there, which needs the model loaded first (SLEEP_AFTER).
         local hold = Moves:For(key, "sleepHold")
-        if hold then return { { hold } } end
+        -- Again once the model has loaded (2026-11-11, the user: asleep on reopening, but "it quickly
+        -- broke when swapping": a new pet's model loads after the loop is set, and stands it up). The
+        -- client ignores the one it's already playing, so a loop that held just goes on.
+        if hold then return { { hold, Moves.SETTLE }, { hold } } end
         return { { STAND, Moves.SLEEP_AFTER }, { id, at }, { id, nil, at } }
     end
     if mode == "sit" then

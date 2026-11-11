@@ -857,6 +857,24 @@ return function(test, H)
         eq(actor.anim, 756, "then glad to see you")
     end)
 
+    test("asleep in a loop, swapped to a pet whose model loads after: asleep again once it has", function()
+        local w, ola, actor = Setup(23)
+        ola.ns.PetMoves.species[46] = { sleepHold = 100 }
+        ola.ns.PetMoves.species[5159] = { sleepHold = 100 }
+        ola:SelectPet(5159)
+        w:Run(2)
+        -- On Forever GetAnimation only echoes what was set, so a model loading over it isn't seen.
+        local set
+        local real = actor.SetAnimation
+        function actor:SetAnimation(id, ...) set = id; return real(self, id, ...) end
+        function actor:GetAnimation() return set end
+        ola:SelectPet(46)
+        eq(actor.anim, 100)
+        actor.anim = 0 -- (the kitten's model done loading: standing, as the client leaves a new model)
+        w:Run(ola.ns.Moves.SETTLE + 0.01)
+        eq(actor.anim, 100, "the loop again, once loaded (2026-11-11: swapping pets broke their sleep)")
+    end)
+
     test("a click now and then plays the pet's other happy move (a pet battle wound), never on a pet with no happy move", function()
         local w, ola, actor = Setup(12)
         ola:SelectPet(5159)
