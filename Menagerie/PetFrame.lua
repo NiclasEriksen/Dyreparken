@@ -203,7 +203,17 @@ function PF:Resize(delta)
     local f = self.frame
     local scale = f:GetScale() + (delta > 0 and self.SCALE_STEP or -self.SCALE_STEP)
     scale = math.floor(math.max(self.MIN_SCALE, math.min(self.MAX_SCALE, scale)) * 100 + 0.5) / 100
+    -- SetScale keeps the anchor's offsets, and the client counts them in the frame's own (scaled)
+    -- units: the frame would slide away from its spot with every step. Its centre stays put on
+    -- screen instead, anchored anew (GetCenter: own units; times the effective scale: the screen's).
+    local x, y = f:GetCenter()
+    local was = f:GetEffectiveScale()
     f:SetScale(scale)
+    if x and y then
+        local now = f:GetEffectiveScale()
+        f:ClearAllPoints()
+        f:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x * was / now, y * was / now)
+    end
     self:SavePoint()
     self:Label()
 end
@@ -322,8 +332,9 @@ function PF:Sleepy()
             self.zzz = nil
             return
         end
-        ns.Fx:Burst({ self.scene, "BOTTOM", self.ZZZ_AT[1], self.ZZZ_AT[2] }, "zee",
-            { n = 1, color = { 0.8, 0.85, 1 }, alpha = 0.9, size = 0.7, spread = 6, rise = 40 })
+        local s = f:GetScale() -- (the particles live on UIParent: the frame's size is theirs to follow)
+        ns.Fx:Burst({ self.scene, "BOTTOM", self.ZZZ_AT[1] * s, self.ZZZ_AT[2] * s }, "zee",
+            { n = 1, color = { 0.8, 0.85, 1 }, alpha = 0.9, size = 0.7 * s, spread = 6 * s, rise = 40 * s })
         C_Timer.After(self.ZZZ_EVERY, Tick)
     end
     self.zzz = true
@@ -353,8 +364,9 @@ function PF:LevelUp(key)
     if not (self.frame and self.frame:IsShown() and key == self.key) then return end
     self.stage:Cheer(key)
     if ns.Settings:Get("cardParticles") ~= "none" then
-        ns.Fx:Burst({ self.scene, "BOTTOM", 0, self.ZZZ_AT[2] }, "star",
-            { n = 8, color = { 1, 0.85, 0.35 }, size = 0.8, spread = 50, rise = 50 })
+        local s = self.frame:GetScale() -- (as the Zzz: sized with the frame)
+        ns.Fx:Burst({ self.scene, "BOTTOM", 0, self.ZZZ_AT[2] * s }, "star",
+            { n = 8, color = { 1, 0.85, 0.35 }, size = 0.8 * s, spread = 50 * s, rise = 50 * s })
     end
 end
 

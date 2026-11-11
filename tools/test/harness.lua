@@ -265,7 +265,11 @@ function Frame:IsEnabled() return self.enabled end
 function Frame:SetEnabled(v) self.enabled = not not v end
 -- Geometry: nil (not laid out) unless a test sets f.geo = { l, r, t, b }.
 function Frame:GetLeft() return self.geo and self.geo.l end
-function Frame:GetEffectiveScale() return self.scale or 1 end
+-- Its own scale times its parents' (geometry, as the client reports it, is in the frame's own units).
+function Frame:GetEffectiveScale() return (self.scale or 1) * (self.parent and self.parent:GetEffectiveScale() or 1) end
+function Frame:GetCenter()
+    if self.geo then return (self.geo.l + self.geo.r) / 2, (self.geo.t + self.geo.b) / 2 end
+end
 function Frame:GetFrameStrata() return "MEDIUM" end -- (a new frame's)
 function Frame:GetRight() return self.geo and self.geo.r end
 function Frame:GetTop() return self.geo and self.geo.t end

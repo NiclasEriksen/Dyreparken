@@ -268,4 +268,65 @@ return function(test, H)
         ola.ns.DB.global.settings.petFrameArt = false; PF:Apply()
         no(f.bg:IsShown()); no(f.border:IsShown())
     end)
+
+    -- The wheel in Edit Mode keeps the frame's centre on screen (2026-11-11, a review): the client counts
+    -- anchor offsets in the frame's own scaled units, so SetScale alone moved it away from its spot.
+    test("sized with the wheel, it stays where it is: its centre kept on screen", function()
+        local w, ola, PF = Setup(14)
+        local f, env = PF.frame, ola.env
+        env.UIParent.scale = 0.8 -- (the UI's own scale: it cancels out)
+        PF:EditMode(true)
+        f.geo = { l = 100, r = 300, t = 420, b = 200 } -- (laid out: its centre at 200, 310 in its own units)
+        local function Screen()
+            local p = f.points[#f.points]
+            eq(p[1], "CENTER"); eq(p[2], env.UIParent); eq(p[3], "BOTTOMLEFT")
+            return p[4] * f:GetEffectiveScale(), p[5] * f:GetEffectiveScale()
+        end
+        f.click.scripts.OnMouseWheel(f.click, 1)
+        eq(f:GetScale(), 1.05)
+        local x, y = Screen()
+        ok(math.abs(x - 200 * 0.8) < 1e-6 and math.abs(y - 310 * 0.8) < 1e-6, "the same spot on screen")
+        -- The client lays it out there; a few steps down, still there.
+        local p = f.points[#f.points]
+        f.geo = { l = p[4] - 100, r = p[4] + 100, t = p[5] + 110, b = p[5] - 110 }
+        for _ = 1, 3 do
+            f.click.scripts.OnMouseWheel(f.click, -1)
+            p = f.points[#f.points]
+            f.geo = { l = p[4] - 100, r = p[4] + 100, t = p[5] + 110, b = p[5] - 110 }
+        end
+        eq(f:GetScale(), 0.9)
+        x, y = Screen()
+        ok(math.abs(x - 200 * 0.8) < 1e-6 and math.abs(y - 310 * 0.8) < 1e-6, "still")
+        local saved = ola.ns.DB.char.petFrame
+        eq(saved[1], "CENTER"); eq(saved[2], "BOTTOMLEFT"); eq(saved[5], 0.9)
+        ok(math.abs(saved[3] * 0.9 * 0.8 - 160) < 1e-6, "saved as it stands")
+    end)
+
+    test("the Zzz and a level's stars are sized and placed with the frame", function()
+        local w, ola, PF = Setup(23, false)
+        ola.ns.DB.char.petFrame = { "CENTER", "CENTER", 0, 0, 2 }
+        ola.ns.DB.global.settings.petFrame = true; PF:Apply()
+        local z
+        for _, p in ipairs(ola.ns.Fx.particles or {}) do
+            if p:IsShown() and tostring(p.icon.tex):find("zee$") then z = p end
+        end
+        ok(z, "a Zzz")
+        local at = z.points[1]
+        ok(at[4] >= PF.ZZZ_AT[1] * 2 - 4 and at[4] <= PF.ZZZ_AT[1] * 2 + 4, "right of the middle, twice as far")
+        ok(at[5] >= PF.ZZZ_AT[2] * 2 - 4 and at[5] <= PF.ZZZ_AT[2] * 2 + 4, "head height, twice as high")
+        ok(z.size[1] >= 12 * 0.7 * 2, "twice the size")
+        eq(z.anim.up.offset[2], 20 * 2, "rising twice as far")
+        -- By day, a level: the stars, the same.
+        local w2, kari, PF2 = Setup(14, false)
+        kari.ns.DB.char.petFrame = { "CENTER", "CENTER", 0, 0, 2 }
+        kari.ns.DB.global.settings.petFrame = true; PF2:Apply()
+        kari.ns.Bond:Add(150, PANDA)
+        local star
+        for _, p in ipairs(kari.ns.Fx.particles or {}) do
+            if p:IsShown() and tostring(p.icon.tex):find("star$") and p.points[1][2] == PF2.scene then star = p end
+        end
+        ok(star, "stars over the pet")
+        ok(star.size[1] >= 10 * 0.8 * 2, "twice the size")
+        eq(star.anim.up.offset[2], 25 * 2)
+    end)
 end
