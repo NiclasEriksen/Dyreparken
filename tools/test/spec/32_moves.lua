@@ -11,6 +11,7 @@ return function(test, H)
         ola.ns.PetMoves.species[5159] = nil -- (the panda plays the default here, whatever the file says)
         ola.ns.PetMoves.default.sleepAt = 1.2 -- (the timings here, whatever the file says)
         ola.ns.Moves.SLEEP_AFTER = 0.6
+        ola.ns.Moves.random = function() return 1 end -- (a click: its happy move, not now-and-then)
         w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = hour }) - w:ServerTime())
         return w, ola, ola.petActor
     end
@@ -776,5 +777,27 @@ return function(test, H)
         eq(actor.anim, 101, "gets up first")
         w:Run(ola.ns.Moves.T.up + 0.01)
         eq(actor.anim, 756, "then glad to see you")
+    end)
+
+    test("a click now and then plays the pet's other happy move (a pet battle wound), never on a pet with no happy move", function()
+        local w, ola, actor = Setup(12)
+        ola:SelectPet(5159)
+        w:Run(1)
+        local roll = 0.9
+        ola.ns.Moves.random = function() return roll end
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 756, "mostly its happy move")
+        w:Run(3)
+        roll = 0.1
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 748, "now and then PetBattleWound")
+        w:Run(3)
+        ola.ns.PetMoves.species[5159] = { happy = false }
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 0, "no happy move: none at all")
+        w:Run(3)
+        ola.ns.PetMoves.species[5159] = { happyToo = false }
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 756, "happyToo false: always its happy move")
     end)
 end

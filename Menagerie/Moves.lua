@@ -358,6 +358,8 @@ Moves.SETTLE = 0.6
 -- the same on a card open a while lay still. The model seems to load (and its animation
 -- start) later than our clock says.
 Moves.SLEEP_AFTER = 2
+Moves.HAPPY_TOO_CHANCE = 1 / 3 -- a click plays happyToo instead of happy this often
+Moves.random = math.random -- (tests pin it)
 Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4 } -- how long each one-off plays
 
 -- The animation a pet uses for a reaction (Data/PetMoves.lua, edited by
@@ -828,6 +830,8 @@ end
 function Moves:Cuddle(key)
     if key ~= shown.key then return end
     local mode, happy = shown.mode, self:For(key, "happy")
+    local too = self:For(key, "happyToo")
+    if happy and too and Moves.random() < Moves.HAPPY_TOO_CHANCE then happy = too end -- (no happy: none at all)
     local back = Back(key)
     local steps = {}
     -- Up first only if it's sitting already (2026-11-10: clicked in its first seconds, still

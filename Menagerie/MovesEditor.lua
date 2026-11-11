@@ -24,7 +24,7 @@ ns.MovesEditor = Editor
 Editor.PARTS = {
     { "sleep", "Sleep: lie down" }, { "sleepHold", "Sleep: held (none: paused)" }, { "sleepUp", "Sleep: get up" },
     { "sitDown", "Sit: sit down" }, { "sit", "Sit: sitting" }, { "sitUp", "Sit: get up" },
-    { "happy", "Happy (a click)" }, { "cheer", "Cheer (level-up)" }, { "dead", "Playing dead" },
+    { "happy", "Happy (a click)" }, { "happyToo", "Happy: now and then" }, { "cheer", "Cheer (level-up)" }, { "dead", "Playing dead" },
     { "walk", "Walk" }, { "run", "Run" },
 }
 Editor.MIN, Editor.MAX, Editor.STEP = 0.1, 2.5, 0.05

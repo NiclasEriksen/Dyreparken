@@ -28,6 +28,8 @@ local _, ns = ...
 --   All of these, per pet, are easiest to pick with /dp probe moves (a window: step through the
 --   pets and the parts, "Prøv" plays it from a clean start; picks saved in DyreparkenDB.movePicks)
 --   happy  a click on the pet (on the Panda Cub, PetBattleCustom0 is a hop)
+--   happyToo  played instead of happy now and then (Moves.HAPPY_TOO_CHANCE), for variation: the
+--             pet battle wounds have some neat moves (the user, 2026-11-11). false: always happy
 --   cheer  a bond level-up, during the celebration
 --   dead   the day of the "is it safe to live with you?" egg, once
 --   walk   the pet you keep out (auto-summon), while you move on foot and it would just stand
@@ -37,7 +39,7 @@ local _, ns = ...
 --          every pet with a slider and saves the changes in DyreparkenDB.liftPicks, to copy in here
 --          (every pet set by eye 2026-11-10).
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 0.7, sleepHold = false, sleepUp = false, canSit = true, sitDown = 96, sit = 97, sitUp = 98, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
+    default = { sleep = 6, sleepAt = 0.7, sleepHold = false, sleepUp = false, canSit = true, sitDown = 96, sit = 97, sitUp = 98, happy = 756, happyToo = 748, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
         [39] = { lift = -0.1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Mechanical Squirrel
         [40] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Bombay
