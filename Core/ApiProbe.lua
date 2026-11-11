@@ -662,6 +662,11 @@ function S.petframe(out)
         click:SetScript("OnDragStart", function() f:StartMoving() end)
         click:SetScript("OnDragStop", function() f:StopMovingOrSizing() end)
         f.click = click
+        -- Its bounds, faintly (2026-11-11, the second run: the pet still cut off at the same place in a
+        -- bigger frame, so not by the frame's edge).
+        f.bg = f:CreateTexture(nil, "BACKGROUND")
+        f.bg:SetAllPoints()
+        f.bg:SetColorTexture(0, 0, 0, 0.3)
         Api.petFrame = f
     end
     -- The card's shape (2026-11-11, the first run: in a 180x180 frame only the pet's bottom half
@@ -701,6 +706,28 @@ function S.petframe(out)
             out.cardPosition = cardActor and Try(function() return cardActor:GetPosition() end) or "(no card)"
             ns.Log("Api", "petframe: size %s, position %s, scale %s; card's position %s", tostring(out.cardSize),
                 tostring(out.position), tostring(out.scale), tostring(out.cardPosition))
+            -- The camera and view of ours against the card's: what clips the pet?
+            local function View(sc)
+                if not sc then return "(none)" end
+                local parts = {}
+                for _, m in ipairs({ "GetViewInsets", "GetCameraPosition", "GetCameraFieldOfView", "GetCameraNearClip",
+                    "GetCameraFarClip", "GetModelSceneID", "GetSize", "GetEffectiveScale", "DoesClipChildren" }) do
+                    local okM, fn = pcall(function() return sc[m] end)
+                    parts[#parts + 1] = m .. "=" .. ((okM and type(fn) == "function") and Try(fn, sc) or "-")
+                end
+                local okC, cam = pcall(function() return sc:GetActiveCamera() end)
+                if okC and cam then
+                    for _, m in ipairs({ "GetTarget", "GetZoomDistance", "GetMinZoomDistance", "GetMaxZoomDistance",
+                        "GetYaw", "GetPitch", "GetFieldOfView", "GetNearClip", "GetFarClip" }) do
+                        local okM, fn = pcall(function() return cam[m] end)
+                        parts[#parts + 1] = "cam." .. m .. "=" .. ((okM and type(fn) == "function") and Try(fn, cam) or "-")
+                    end
+                end
+                return table.concat(parts, "; ")
+            end
+            out.view, out.cardView = View(scene), View(cardScene)
+            ns.Log("Api", "petframe view: %s", out.view)
+            ns.Log("Api", "petframe card view: %s", out.cardView)
         end)
     end
     f.click:SetScript("OnClick", function(_, button)

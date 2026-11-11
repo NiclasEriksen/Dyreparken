@@ -375,6 +375,9 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   (found) and `actor:SetModelByCreatureDisplayID(display)` show the pet, as on the card. In a 180x180 frame only its
   bottom half showed: the scene's camera is set for the card's shape. The scene takes the mouse itself (the pet could
   be rotated by dragging), so a click on the frame under it never arrived.
+  Second run: the card's model scene is 399x386; in a frame that size the pet had the card's scale (19.48) but
+  stood at 0.5 (the card: 0.3, its lift), and was still cut off at the same place: not by the frame's edge. With
+  the scene's mouse off and a Button above it, clicks and drags work.
 - **Edit Mode**: `EventRegistry:RegisterCallback("EditMode.Enter"/"EditMode.Exit", fn, owner)` fire for an addon
   (the same test). `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.
 - **The year's holidays** (`/dp probe api holidays`, 2026-11-11, Nov 2026 to Oct 2027; event ids, `eventType` 4):
