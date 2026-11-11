@@ -31,7 +31,13 @@ return function(test, H)
         ok(Listening(ola, "COMPANION_UPDATE"))
         local scene = PF.scene
         eq(scene.sceneID, 1271, "the species' model scene")
-        eq(table.concat(scene.insets, " "), "0 0 " .. (PF.H - 86) .. " -50", "the card's view, for its height")
+        -- The pet draws past the frame (sides and top), with the card's view where it was; the frame
+        -- itself, the click and Edit Mode's box, stays the rectangle around the pet.
+        eq(table.concat(scene.insets, " "), "60 60 " .. (80 + PF.H - 86) .. " -50", "the card's view, in the wider scene")
+        eq(scene.size[1], PF.W + 120); eq(scene.size[2], PF.H + 80)
+        local sp = scene.points[#scene.points]
+        eq(sp[1], "TOPLEFT"); eq(sp[2], f); eq(sp[4], -60); eq(sp[5], 80)
+        eq(f.size[1], PF.W, "the frame: the clickable rectangle")
         no(scene.mouse, "the scene takes no mouse (it would rotate the pet)")
         eq(PF.actor.display, 20000 + 5159, "the pet's model")
         eq(f.name.text, "Panda Cub")
@@ -245,8 +251,11 @@ return function(test, H)
         eq(applied, "bftnp", "the modern window border")
         ok(f.border:GetFrameLevel() > PF.scene:GetFrameLevel(), "over the scene's edges")
         ok(f.click:GetFrameLevel() > f.border:GetFrameLevel(), "under the click layer")
+        eq(table.concat(PF.scene.insets, " "), "0 0 " .. (PF.H - 86) .. " -50", "framed: the pet stays within the border")
+        eq(PF.scene.size[1], PF.W)
         ola.ns.DB.global.settings.petFrameArt = false; PF:Apply()
         no(f.bg:IsShown()); no(f.border:IsShown())
+        eq(PF.scene.size[1], PF.W + 120, "unframed: wide again")
     end)
 
     -- The wheel in Edit Mode keeps the frame's centre on screen (2026-11-11, a review): the client counts

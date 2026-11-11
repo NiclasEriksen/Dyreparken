@@ -24,6 +24,12 @@ PF.FOOT = 50            -- ... in this much (2026-11-11: the level badge was snu
 PF.MIN_SCALE, PF.MAX_SCALE, PF.SCALE_STEP = 0.5, 2, 0.05
 PF.VIEW_TOP = 86        -- the card's view: 86 px above the scene's bottom ...
 PF.VIEW_BOTTOM = -50    -- ... to 50 below it
+-- The pet draws past the frame (2026-11-11, the user: "make the frame a bit bigger, put clickthrough
+-- except for a rectangle in the middle around the pet ... In Edit Mode we only show the clickable
+-- rectangle"): the frame is that rectangle (the click, Edit Mode's highlight, the saved spot), and
+-- the scene reaches this far past its sides and top, taking no mouse, with the view kept where it
+-- was so the pet stays the same size. Not with the frame art: the pet stays within the border.
+PF.DRAW_X, PF.DRAW_TOP = 60, 80
 PF.DEFAULT_POINT = { "CENTER", "CENTER", -380, -160 }
 PF.ZZZ_EVERY = 2.5      -- seconds between the Zzz over a sleeping pet
 PF.ZZZ_AT = { 22, 66 }  -- where they rise from: right of the middle, about head height in the card's view
@@ -56,8 +62,6 @@ function PF:Build()
     self.frame = f
 
     local scene = CreateFrame("ModelScene", nil, f, "ModelSceneMixinTemplate")
-    scene:SetPoint("TOP", f, "TOP")
-    scene:SetSize(self.W, self.H)
     Call(scene, "EnableMouse", false)
     Call(scene, "EnableMouseWheel", false)
     self.scene = scene
@@ -137,7 +141,7 @@ function PF:Build()
     click:SetScript("OnLeave", function(b) PF.hover = nil; PF:ShowBar(); ns.HideTip(b) end)
     f.click = click
 
-    self:Art()
+    self:Art() -- (and the scene's size: PF:Draw)
     self.stage = ns.Moves.NewStage("frame", {
         moments = false, -- (the sulk, playing dead, the wish's hop: the card's, once; code review 2026-11-11)
         actor = function() return PF.actor end,
@@ -183,6 +187,25 @@ function PF:Art()
         f.bg:SetShown(on)
         f.border:SetShown(on)
     end
+    self:Draw(not on)
+end
+
+-- The scene: past the frame's sides and top (wide), or just the frame's model area (with the art).
+-- Its bottom stays put either way, so the name, the bar and the Zzz stay where they were.
+function PF:Draw(wide)
+    local scene = self.scene
+    local x, top = wide and self.DRAW_X or 0, wide and self.DRAW_TOP or 0
+    self.drawX, self.drawTop = x, top
+    scene:ClearAllPoints()
+    scene:SetPoint("TOPLEFT", self.frame, "TOPLEFT", -x, top)
+    scene:SetSize(self.W + 2 * x, self.H + top)
+    self:Insets()
+end
+
+-- The card's view, wherever the scene reaches: the same box as on a frame of W x H.
+function PF:Insets()
+    local x, top = self.drawX or 0, self.drawTop or 0
+    Call(self.scene, "SetViewInsets", x, x, top + self.H - self.VIEW_TOP, self.VIEW_BOTTOM)
 end
 
 function PF:Place()
@@ -231,7 +254,7 @@ function PF:Load(key)
         Call(scene, "TransitionToModelSceneID", sceneID, rawget(_G, "CAMERA_TRANSITION_TYPE_IMMEDIATE") or 1,
             rawget(_G, "CAMERA_MODIFICATION_TYPE_DISCARD") or 1, true)
     end
-    Call(scene, "SetViewInsets", 0, 0, self.H - self.VIEW_TOP, self.VIEW_BOTTOM)
+    self:Insets()
     local okA, actor = Call(scene, "GetActorByTag", "unwrapped")
     actor = okA and actor or nil
     local display = select(12, C_PetJournal.GetPetInfoBySpeciesID(sid))
