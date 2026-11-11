@@ -229,6 +229,7 @@ Two more options for the pet frame (Menagerie/PetFrame.lua, the "Dyret på skjer
 
 - **Hide in combat.** Hidden on PLAYER_REGEN_DISABLED, back on PLAYER_REGEN_ENABLED (registered only while the
   frame and the option are on). The frame has no protected parts, so Hide/Show in combat is allowed.
-- **Fade when inactive.** The frame rests at a low alpha and comes to full on mouseover. Needs a rule for
-  "inactive" (always faded but on mouseover? or full for a while after something happens: a level, rising
-  numbers, a cheer?) and the faded alpha. The click layer already takes the mouse (OnEnter/OnLeave), so no polling.
+- **Fade when inactive.** Decided (the user, 2026-11-11): the frame is faded at all times, except while the
+  mouse is over it and briefly when something happens to the pet (a new level, bond points rising, a cheer and the
+  like), then it fades back. Faded opacity 25% by default, with a slider in Settings to change it. The click layer
+  already takes the mouse (OnEnter/OnLeave), so no polling.
