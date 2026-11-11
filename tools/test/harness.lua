@@ -171,7 +171,6 @@ function H.NewActor(client)
     function actor:GetActiveBoundingBox() return -0.3, -0.2, 0, 0.3, 0.2, 0.8 end
     function actor:GetYaw() return self.yaw or 0 end
     function actor:OnModelLoaded() end -- (the mixin's: the client calls it once a model has loaded)
-    function actor:IsLoaded() return true end -- (models load at once here; a test can say otherwise)
     function actor:SetYaw(y) self.yaw = y end
     function actor:SetModelByCreatureDisplayID(id) self.display = id end
     function actor:HasAnimation(id)

@@ -391,6 +391,11 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   1840-1842 Call to Arms (battlegrounds). No Children's Week, Brewfest or Pilgrim's Bounty. Used by Menagerie/Holidays.lua.
 - **The card's model never says it has loaded**: a hook on the actor's `OnModelLoaded` (the mixin's method) logged
   nothing over a whole session of cards, so SETTLE and SLEEP_AFTER stay guesses (2026-11-11).
+- **A new model stands itself up once it has loaded, unseen** (2026-11-11, build 1.60.1, pet card swaps at night):
+  a sleep loop set the moment Blizzard swapped the card's model was lost a moment later, with no Lua call on the actor
+  (no SetAnimation hook fired) and `GetAnimation` still answering the loop. `actor:IsLoaded()` said true right after
+  `SetModelByCreatureDisplayID`, so it can't tell either. And setting the same loop again doesn't refresh it: the
+  client played it as a one-off, and the pet got up when it ended. So wait (SLEEP_AFTER) before posing a new model.
 - **Animation lengths** for every species: Data/AnimLengths.lua (`/dp probe api lengths`, 2026-11-11). Stand
   plays 2-4 s depending on the model, and a move a model lacks plays as Stand (same length).
 - **Ghost Wolf** counts as a riding form (`Moves.RIDING_FORMS`, form id 16): the pet ran on its card in it (the user,

@@ -947,15 +947,16 @@ function Moves.NewStage(name, opts)
             return
         end
         UnSulk()
+        local newPet = key ~= shown.key
         shown.key, shown.mode = key, mode
         local steps = Steps(key, mode)
-        -- A sleep loop on a model still loading (a new pet: 2026-11-11, the user: asleep on reopening,
-        -- but "it quickly broke when swapping"): the load stands it up, unseen (GetAnimation echoes
-        -- what was set). Set twice, the client played it as a one-off and got up. So it stands while
-        -- the model loads (IsLoaded; without it, always), then sleeps.
-        if mode == "sleep" and #steps == 1 then
-            local ok, loaded = Call(Actor() or {}, "IsLoaded")
-            if not (ok and ns.Plain(loaded)) then table.insert(steps, 1, { STAND, Moves.SETTLE }) end
+        -- A sleep loop on a pet just put on the stage (2026-11-11, the user: asleep on reopening, but
+        -- "it quickly broke when swapping"): its model finishes loading in the engine and stands it up,
+        -- with no call we can see (GetAnimation echoes what was set; IsLoaded said true at once). Set
+        -- twice, the client played it as a one-off and got up. So a new pet stands while its model
+        -- loads, as the lie-down sleepers do (SLEEP_AFTER), then sleeps; the same pet sleeps at once.
+        if mode == "sleep" and #steps == 1 and newPet then
+            table.insert(steps, 1, { STAND, Moves.SLEEP_AFTER })
         end
         -- A one-off first, once the model has loaded: a level-up's cheer (celebrated as the card
         -- opened, before the pet was posed: code review 2026-11-10), or a wish come true.

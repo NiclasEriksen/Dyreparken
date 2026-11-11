@@ -848,8 +848,10 @@ return function(test, H)
         local w, ola, actor = Setup(23)
         ola.ns.PetMoves.species[5159] = { sleepHold = 100, sleepUp = 101, sitDown = false }
         ola:SelectPet(5159)
-        eq(actor.anim, 100, "asleep in its loop as the card opens: no standing, no lying down")
-        w:Run(ola.ns.Moves.SLEEP_AFTER + 1.21)
+        eq(actor.anim, 0, "standing while its model loads (2026-11-11: a loop set at once was stood up by the load)")
+        w:Run(ola.ns.Moves.SLEEP_AFTER + 0.01)
+        eq(actor.anim, 100, "then asleep in its loop: no lying down")
+        w:Run(1.2)
         eq(actor.anim, 100, "and stays so")
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 101, "gets up first")
@@ -868,21 +870,18 @@ return function(test, H)
         local real = actor.SetAnimation
         function actor:SetAnimation(id, ...) set = id; return real(self, id, ...) end
         function actor:GetAnimation() return set end
-        local loaded = false
-        function actor:IsLoaded() return loaded end
         ola:SelectPet(46)
-        eq(actor.anim, 0, "the kitten's model still loading: standing")
-        loaded = true
-        w:Run(ola.ns.Moves.SETTLE + 0.01)
-        eq(actor.anim, 100, "loaded: asleep (2026-11-11: swapping pets broke their sleep)")
+        eq(actor.anim, 0, "a new pet: standing while its model loads")
+        w:Run(ola.ns.Moves.SLEEP_AFTER + 0.01)
+        eq(actor.anim, 100, "then asleep (2026-11-11: swapping pets broke their sleep)")
         local n = 0
         for _, id in ipairs(actor.played) do if id == 100 then n = n + 1 end end
         w:Run(3)
         local m = 0
         for _, id in ipairs(actor.played) do if id == 100 then m = m + 1 end end
         eq(m, n, "set once: twice, the client played it as a one-off and got up")
-        -- Back to the panda, its model loaded already: asleep at once.
-        ola:SelectPet(5159)
+        -- The same pet's card refreshed: it stays asleep, nothing set again.
+        ola:SelectPet(46)
         eq(actor.anim, 100)
     end)
 
