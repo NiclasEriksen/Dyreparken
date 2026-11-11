@@ -528,6 +528,7 @@ L["settings.petframe.tip"] = "Dyret du har ute, med navnet og båndet deres, på
 L["settings.petframeart"] = "Bakgrunn og ramme rundt dyret"
 L["settings.petframeart.tip"] = "Steinbakgrunn og ramme som på vinduene i spillet. Av: dyret svever fritt på skjermen."
 L["petframe.tip"] = "Klikk for å åpne dyrekortet."
+L["petframe.tip.pets"] = "Åpne Pets-fanen, så kan du klikke her for å se dyrekortet."
 L["petframe.name"] = "Dyreparken: dyret ditt"
 L["petframe.edit"] = "Dyreparken: dyret ditt\nDra for å flytte, rull for størrelse ({pct}%)"
 L["settings.celebrate.tip"] = "Lys, gnister og en lyd når båndet ditt med dyret når et nytt level."

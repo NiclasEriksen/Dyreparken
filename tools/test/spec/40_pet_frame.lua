@@ -104,6 +104,42 @@ return function(test, H)
         eq(ola.env.DyreparkenPetFrame:GetScale(), 0.7)
     end)
 
+    -- Never Blizzard's CollectionsJournal_SetTab (taint: the Toy Box's buttons are secure): the window
+    -- opens on the page it had, and a click on another page does nothing (the tooltip says so).
+    test("a click never switches the Collections window's tab: another page is left to the player", function()
+        local w, ola, PF = Setup(14)
+        local f, env = PF.frame, ola.env
+        ola:OpenJournal({ sideTabs = 3 })
+        local setTab = 0
+        local real = env.CollectionsJournal_SetTab
+        rawset(env, "CollectionsJournal_SetTab", function(...) setTab = setTab + 1; return real(...) end)
+        ola:ClickTab(1) -- (the player: Mounts)
+        setTab = 0
+        f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
+        eq(ola.toggled, nil, "open on Mounts: nothing (a toggle would close it)")
+        ok(env.MountJournal:IsVisible())
+        f.click.scripts.OnEnter(f.click)
+        eq(env.GameTooltip.lines[2], ola.ns.L["petframe.tip.pets"])
+        f.click.scripts.OnLeave(f.click)
+        -- Closed on Mounts: opened as it was, on Mounts.
+        ola:CloseJournal()
+        f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
+        eq(ola.toggled, 1)
+        ok(env.CollectionsJournal:IsShown()); ok(env.MountJournal:IsVisible())
+        eq(setTab, 0, "not switched to Pets")
+        no(env.PetJournal:IsVisible())
+        -- The player picks Pets and closes it: next time, the card.
+        ola:ClickTab(2); ola:CloseJournal()
+        setTab = 0
+        f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
+        eq(ola.toggled, 2)
+        ok(env.PetJournal:IsVisible())
+        eq(env.PetJournalPetCard.speciesID, 5159)
+        eq(setTab, 0, "never switched by us")
+        f.click.scripts.OnEnter(f.click)
+        eq(env.GameTooltip.lines[2], ola.ns.L["petframe.tip"])
+    end)
+
     test("it follows the pet that's out: dismissed, hidden (but shown in Edit Mode); another pet, its model; a pet battle hides it", function()
         local w, ola, PF = Setup(14)
         local f = PF.frame

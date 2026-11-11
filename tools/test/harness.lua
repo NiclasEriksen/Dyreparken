@@ -1247,12 +1247,16 @@ function Client:BuildEnv()
     env.C_Secrets = { ShouldAurasBeSecret = function() return S.secretAuras == true end }
 
     -- Frames
-    -- The Collections window by its key binding's function: loads and shows it on that tab (c.toggled counts).
+    -- The Collections window by its key binding's function (c.toggled counts), as Blizzard's: shown on
+    -- that tab (no tab: hidden, or shown, the first time loaded, on the page it had: CollectionsJournal_SetTab
+    -- only with a tab); hidden again when it's open on that tab or none was given.
     env.ToggleCollectionsJournal = function(tab)
         c.toggled = (c.toggled or 0) + 1
-        if not rawget(env, "CollectionsJournal") then c:OpenJournal() end
+        local cj = rawget(env, "CollectionsJournal")
+        if cj and cj:IsShown() and (not tab or tab == cj.selectedTab) then cj:Hide(); return end
+        if not cj then c:OpenJournal() end
         env.CollectionsJournal:Show()
-        env.CollectionsJournal_SetTab(env.CollectionsJournal, tab or 2)
+        if tab then env.CollectionsJournal_SetTab(env.CollectionsJournal, tab) end
     end
     env.CreateFrame = function(ftype, name, parent, template)
         local f = setmetatable({ type = ftype, frameName = name, parent = parent, events = {}, scripts = {},
