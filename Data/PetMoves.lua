@@ -62,25 +62,30 @@ ns.PetMoves = {
         [67] = { lift = 0.2, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Hawk Owl
         [68] = { lift = 0.2, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Great Horned Owl
         [70] = { lift = -0.2, sleep = 1, sleepAt = 0.6, sleepHold = 6, sleepUp = 0, canSit = false },  -- Brown Prairie Dog: floated over its shadow
-        [74] = { lift = -0.05 },  -- Albino Snake
-        [75] = { lift = -0.05 },  -- Black Kingsnake
-        [77] = { lift = -0.05 },  -- Brown Snake
-        [78] = { lift = -0.05 },  -- Crimson Snake
-        [85] = { lift = 0.4 },  -- Tiny Walking Bomb
-        [89] = { lift = 0.3 },  -- Worg Pup
-        [90] = { lift = 1 },  -- Smolderweb Hatchling
-        [95] = { lift = -0.1 },  -- Lifelike Toad
-        [106] = { lift = -0.1 },  -- Jubling
-        [114] = { lift = -0.8 },  -- Disgusting Oozeling
-        [116] = { lift = 0.4 },  -- Tranquil Mechanical Yeti
-        [117] = { lift = 0.2 },  -- Tiny Snowman
-        [118] = { lift = 0.4 },  -- Winter Reindeer
-        [119] = { lift = 0.35 },  -- Father Winter's Helper
-        [120] = { lift = 0.25 },  -- Winter's Little Helper
-        [125] = { lift = 0.2 },  -- Speedy
-        [126] = { lift = 0.05 },  -- Mr. Wiggles
-        [127] = { lift = -0.3 },  -- Whiskers the Rat
-        [162] = { lift = 0.6 },  -- Sinister Squashling
+        [72] = { sleepHold = 6, sleepUp = 0, canSit = false },  -- Snowshoe Rabbit
+        [74] = { lift = -0.05, sleepHold = 6, sleepUp = 0, canSit = false },  -- Albino Snake
+        [75] = { lift = -0.05, sleepHold = 6, sleepUp = 0, canSit = false },  -- Black Kingsnake
+        [77] = { lift = -0.05, sleepHold = 6, sleepUp = 0, canSit = false },  -- Brown Snake
+        [78] = { lift = -0.05, sleepHold = 6, sleepUp = 0, canSit = false },  -- Crimson Snake
+        [83] = { sleepHold = 6, sleepUp = 0, canSit = false },  -- Mechanical Chicken
+        [85] = { lift = 0.4, sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Tiny Walking Bomb
+        [87] = { sleep = 744, sleepHold = 6, sleepUp = 101, canSit = false },  -- Sprite Darter Hatchling
+        [89] = { lift = 0.3, sleepHold = 6, sleepUp = 0, canSit = false },  -- Worg Pup
+        [90] = { lift = 1, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Smolderweb Hatchling
+        [95] = { lift = -0.1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Lifelike Toad
+        [106] = { lift = -0.1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Jubling
+        [114] = { lift = -0.8, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Disgusting Oozeling
+        [116] = { lift = 0.4, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Tranquil Mechanical Yeti
+        [117] = { lift = 0.2, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Tiny Snowman
+        [118] = { lift = 0.4, sleepHold = 6, sleepUp = 0, canSit = false },  -- Winter Reindeer
+        [119] = { lift = 0.35, sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Father Winter's Helper
+        [120] = { lift = 0.25, sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Winter's Little Helper
+        [122] = { sleepHold = 6, sleepUp = 0, canSit = false },  -- Peddlefeet
+        [125] = { lift = 0.2, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Speedy
+        [126] = { lift = 0.05, sleepHold = 6, sleepUp = 0, canSit = false },  -- Mr. Wiggles
+        [127] = { lift = -0.3, sleepHold = 6, sleepUp = 0, canSit = false },  -- Whiskers the Rat
+        [128] = { sleep = 99, sleepHold = 100, sleepUp = 101, canSit = false },  -- Spirit of Summer
+        [162] = { lift = 0.6, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Sinister Squashling
         [5005] = { lift = -0.1 },  -- Musical Gustjumper
         [5006] = { lift = -0.05, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Corrupted Kitten
         [5018] = { lift = 1.9 },  -- Snowy Wolf Pup
