@@ -85,9 +85,18 @@ local function SendFull()
     end
 end
 
+-- However often others' SYNCs hold ours back (below), it goes out this many
+-- seconds after it was first scheduled: parts anyone can send, rising and
+-- starting over, held it forever (code review 2026-11-11). A real SYNC of a
+-- big guild takes well under this; past it, two SYNCs at once only cost traffic.
+local MAX_HOLD = 120
+local deadline -- GetTime() by which the pending SYNC goes out
+
 local function Later(delay)
     local token = {}
+    if not pending then deadline = GetTime() + MAX_HOLD end
     pending = token
+    delay = math.max(0, math.min(delay, deadline - GetTime()))
     if lastSent then delay = math.max(delay, lastSent + SYNC_GAP - GetTime()) end
     C_Timer.After(delay, function()
         if pending == token then SendFull() end
@@ -133,6 +142,7 @@ local function Cancel()
 end
 
 local answered = {} -- sender -> "their digest/ours" we last answered a SYNC for
+local progress = {} -- sender -> the last part (i) of their SYNC on its way
 
 -- Entries in a part: a table of tables (n, b) counts the inner ones.
 local function Count(t, nested)
@@ -212,9 +222,17 @@ function Sync:Init()
         local mine = Sync:Digest()
         if i and of and i < of then
             -- More parts to come: judge when the last is in. A whole part arriving is progress,
-            -- so it holds ours back again (a big SYNC can take longer than one hold).
-            if pending then Later(HOLD) end
-        elseif mine == msg.d then
+            -- so it holds ours back again (a big SYNC can take longer than one hold). Only a
+            -- part past the sender's last one is: the same first part sent over and over held
+            -- ours forever (code review 2026-11-11).
+            if i > (progress[sender] or 0) then
+                progress[sender] = i
+                if pending then Later(HOLD) end
+            end
+            return
+        end
+        progress[sender] = nil
+        if mine == msg.d then
             Cancel() -- someone said it for us
         elseif answered[sender] == tostring(msg.d) .. "/" .. mine then
             -- The same disagreement we answered already: they keep what we refuse (an older

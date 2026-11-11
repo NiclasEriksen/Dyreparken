@@ -461,4 +461,33 @@ return function(test, H)
         eq(ola.ns.Registry:Nickname("s:40"), nil)
         H.assertConverged(w)
     end)
+
+    -- The review of 2026-11-11: each test below failed before its fix.
+    test("SYNC parts that never finish can't hold the guild's answers back for good", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159, 40 } }, { "Kari Berg", { 46 } } })
+        local p = ola.ns.PROTOCOL
+        kari:Logout()
+        ola:Slash("adopter panda"); w:Run(3)
+        kari:Login()
+        -- A first part, again and again, with no second: it held Ola's answer every time.
+        for _ = 1, 12 do
+            w:InjectMessage("Per Hansen", { k = "SYNC", p = p, i = 1, of = 2 }, "GUILD")
+            w:Run(10)
+        end
+        eq(kari.ns.Registry:Holder(PANDA), "Ola Nord", "Ola's SYNC went out")
+        -- Parts that do rise, and a last one Ola has answered already: each round is progress,
+        -- so only the cap on holding ends it.
+        kari:Logout()
+        ola:Slash("adopter bombay"); w:Run(3)
+        w:InjectMessage("Per Hansen", { k = "SYNC", p = p, i = 1, of = 1, d = 5 }, "GUILD")
+        w:Run(40)
+        kari:Login()
+        for _ = 1, 25 do
+            w:InjectMessage("Per Hansen", { k = "SYNC", p = p, i = 1, of = 2 }, "GUILD")
+            w:Run(4)
+            w:InjectMessage("Per Hansen", { k = "SYNC", p = p, i = 2, of = 2, d = 5 }, "GUILD")
+            w:Run(4)
+        end
+        eq(kari.ns.Registry:Holder("s:40"), "Ola Nord", "sent within the cap")
+    end)
 end
