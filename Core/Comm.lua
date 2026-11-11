@@ -106,6 +106,10 @@ function Comm:MayReply(kind, channel)
     return true
 end
 
+-- Chunks waiting in the outbox: answers nobody needs at once can skip a turn
+-- while it's long, so our own news isn't stuck behind them.
+function Comm:Backlog() return last - first + 1 end
+
 local FROM = { GUILD = { GUILD = true }, GROUP = { PARTY = true, RAID = true } }
 function Comm:Register(kind, fn, from)
     local list = handlers[kind]

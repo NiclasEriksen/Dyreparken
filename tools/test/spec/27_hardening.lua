@@ -490,4 +490,29 @@ return function(test, H)
         end
         eq(kari.ns.Registry:Holder("s:40"), "Ola Nord", "sent within the cap")
     end)
+
+    test("one member asking about many pets can't fill our outbox with bond answers", function()
+        local w, ola = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        local p = ola.ns.PROTOCOL
+        local g, now = ola.ns.DB:Guild(), ola.ns.Now()
+        for i = 1, 20 do g.life["s:" .. (1000 + i)] = { ["Ola Nord"] = { p = 5, f = now - 100, t = now - 50 } } end
+        local m = w:Mark()
+        for _ = 1, 12 do
+            for i = 1, 20 do w:InjectMessage("Per Hansen", { k = "BOND_REQ", p = p, pet = "s:" .. (1000 + i) }, "GUILD") end
+            w:Run(5)
+        end
+        local answers = w:Sent("BOND", "Ola Nord", m)
+        ok(answers >= 1 and answers <= 12, answers .. " answers to 240 asks in a minute")
+        -- Ola's own news isn't stuck behind them.
+        local m2 = w:Mark()
+        for _ = 1, 20 do w:InjectMessage("Per Hansen", { k = "BOND_REQ", p = p, pet = "s:1001" }, "GUILD") end
+        ola:Slash("adopter panda")
+        w:Run(3)
+        eq(w:Sent("UPD", "Ola Nord", m2), 1, "the adoption went out at once")
+        -- Someone else asking still gets an answer.
+        local m3 = w:Mark()
+        w:InjectMessage("Liv Lund", { k = "BOND_REQ", p = p, pet = "s:1002" }, "GUILD")
+        w:Run(3)
+        eq(w:Sent("BOND", "Ola Nord", m3), 1)
+    end)
 end

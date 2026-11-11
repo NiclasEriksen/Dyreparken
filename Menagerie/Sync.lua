@@ -144,6 +144,24 @@ end
 local answered = {} -- sender -> "their digest/ours" we last answered a SYNC for
 local progress = {} -- sender -> the last part (i) of their SYNC on its way
 
+-- BOND_REQ answers: once per pet every few seconds (Comm:MayReply) let one
+-- member asking about many pets in a loop fill our outbox, a minute and more
+-- ahead of our own UPD (code review 2026-11-11). So each asker gets at most
+-- BOND_ANSWERS a minute (a card asks once per pet a session; a bond answered
+-- late is fine, by design), and none while the outbox already has a queue.
+local BOND_ANSWERS, BOND_WINDOW, BOND_BACKLOG = 10, 60, 2
+local budget = {} -- asker -> { n = answers, at = GetTime() the window began }
+local function AnswerBudget(asker)
+    local now, b = GetTime(), budget[asker]
+    if not b or now - b.at >= BOND_WINDOW then
+        b = { n = 0, at = now }
+        budget[asker] = b
+    end
+    if b.n >= BOND_ANSWERS then return false end
+    b.n = b.n + 1
+    return true
+end
+
 -- Entries in a part: a table of tables (n, b) counts the inner ones.
 local function Count(t, nested)
     if type(t) ~= "table" then return 0 end
@@ -266,10 +284,11 @@ function Sync:Init()
         if type(msg.pet) ~= "string" then return end
         MergeAll(nil, nil, nil, { [msg.pet] = { [sender] = msg.e } })
     end, "GUILD")
-    ns.Comm:Register("BOND_REQ", function(msg, _, channel)
+    ns.Comm:Register("BOND_REQ", function(msg, sender, channel)
         if not ns.Registry.ValidKey(msg.pet) then return end
         local e = ns.Registry:Life(msg.pet, ns.PlayerKey())
-        if e and ns.Comm:MayReply("BOND:" .. msg.pet, channel) then
+        if not e or ns.Comm:Backlog() > BOND_BACKLOG then return end
+        if ns.Comm:MayReply("BOND:" .. msg.pet, channel) and AnswerBudget(sender) then
             ns.Comm:Send("BOND", { pet = msg.pet, e = e }, "GUILD")
         end
     end, "GUILD")
