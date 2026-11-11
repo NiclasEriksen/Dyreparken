@@ -233,3 +233,53 @@ Two more options for the pet frame (Menagerie/PetFrame.lua, the "Dyret på skjer
   mouse is over it and briefly when something happens to the pet (a new level, bond points rising, a cheer and the
   like), then it fades back. Faded opacity 25% by default, with a slider in Settings to change it. The click layer
   already takes the mouse (OnEnter/OnLeave), so no polling.
+
+# Reviews of 2026-11-11 (feature, bug and UX)
+
+Built the same day: the bug fixes, the wording (båndpoeng, guildchatten, summon), the two loyalty achievement
+renames, wish streaks and the guild family achievements. Kept as they are (the user): English activity words in
+sentences ("mining", "herbs", "level"), "Fleibede" (an inside joke), "trigge", "Ti små indianere".
+
+## For later (the user: "make note of it")
+
+- **Onboarding.** Nothing tells a new player to press Adopter or what feeds a bond. One line once per account
+  after "settled", plus the "?" on the card (above, "Barriers to fun").
+- **Share big moments.** A `[Del]` chat link after a bond level-up, a milestone or a funny quirk line posts it
+  to guild chat (the click is the hardware event). Guildmates without the addon never see bonds grow today.
+- **Temperament** (docs/PET_LIFE.md stage 4) **needs its own plan**: a pet's bond across all carers as stages,
+  a word in the world tooltip, borders on Parken, guild news when a pet reaches a stage. Sum only the adopted
+  holders' entries (the ones the full SYNC carries) so every client agrees. Thresholds from the user.
+
+## Other ideas from the feature review (not decided)
+
+- Pet stories on the Parken tooltip (the newest three entries; PET_LIFE §3 promises it).
+- Data that never pays off: places, firsts and playmates only feed the story and a tooltip.
+- A click on the crown congratulates the pet of the day in guild chat (like the cake).
+- A monthly park report after the first login of a month; a week's park goal on Parken.
+- Titles from eggs and dislikes under the nickname.
+- Achievements the DesignDocument names but Defs lacks: world event pets, "Kardemomme by", hidden ones.
+- The games framework is still a stub (Games/Framework.lua: GAME_START/MSG/END).
+
+## UX polish still open
+
+- The card's home and likes lines are cut off ("Har bodd h…"); give the home line its own row.
+- "✓ Fullt for i dag" beside an almost empty bar reads as a contradiction, and hides "N poeng til …".
+- The stat chips are bare numbers; the story book under "Med deg" has no label.
+- The pet frame's bar: a plain ring and grey fill, not the card's tier colors.
+- Parken: the tooltip covers the header (top row, ANCHOR_RIGHT), heavy trait paragraphs, an empty scrollbar, a
+  faint legend; records read awkwardly ("Timon og Hjelp Plask (i 2 dager)").
+- Achievements: unearned rows are low-contrast grey.
+- Settings: the three particle choices are checkboxes for an exclusive choice (radio buttons); "Bakgrunn og
+  ramme" stays clickable with the frame off; nothing shows which settings are per character.
+
+## Suspicious, unconfirmed (from the bug hunts)
+
+- CHAT_MSG_LOOT/SYSTEM rebuild up to five patterns per line, always registered (Activity.lua ~533).
+- The pet frame redoes its whole refresh on every nearby companion's COMPANION_UPDATE (an early return
+  when nothing changed).
+- HELLO is handled on any channel (Version.lua); a whisper can trigger a fake "newer version" notice.
+- Holidays: `asking` stays true if CALENDAR_UPDATE_EVENT_LIST never comes; the day is filed under the local date.
+- Comm retries only AddonMessageThrottle; other send failures drop a chunk silently.
+- Pet frame: Edit Mode's cancel doesn't undo a move; a named frame moved with StartMoving may be saved in the
+  layout cache (SetUserPlaced(false)); cardMoves/cardParticles changes don't refresh the frame.
+- Moves: a pose can stay "dead" after playing dead ends at night or for a sitting pet.
