@@ -39,7 +39,7 @@ local _, ns = ...
 ns.PetMoves = {
     default = { sleep = 6, sleepAt = 0.7, sleepHold = false, sleepUp = false, canSit = true, sitDown = 96, sit = 97, sitUp = 98, happy = 756, cheer = 754, dead = 1, walk = 4, run = 5 },
     species = {
-        [39] = { lift = -0.1 },  -- Mechanical Squirrel
+        [39] = { lift = -0.1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Mechanical Squirrel
         [40] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Bombay
         [41] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Cornish Rex
         [42] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Black Tabby
@@ -47,12 +47,21 @@ ns.PetMoves = {
         [44] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Siamese: the cats lie down, sleep and get up with their own sleep animations (/dp probe moves, the user 2026-11-11; all cats share the model)
         [45] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Silver Tabby
         [46] = { lift = -0.1, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- White Kitten
+        [47] = { sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Cockatiel
+        [49] = { sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Hyacinth Macaw
+        [50] = { sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Green Wing Macaw
+        [51] = { sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Senegal
+        [52] = { sleepHold = 6, sleepUp = 0, canSit = false },  -- Ancona Chicken
         [55] = { lift = -0.05 },  -- Cockroach
-        [64] = { lift = -0.1 },  -- Wood Frog
-        [65] = { lift = -0.1 },  -- Tree Frog
-        [67] = { lift = 0.2 },  -- Hawk Owl
-        [68] = { lift = 0.2 },  -- Great Horned Owl
-        [70] = { lift = -0.2 },  -- Brown Prairie Dog: floated over its shadow
+        [56] = { sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Dark Whelpling
+        [57] = { sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Azure Whelpling
+        [58] = { sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Crimson Whelpling
+        [59] = { sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Emerald Whelpling
+        [64] = { lift = -0.1, sleepHold = 6, sleepUp = 0 },  -- Wood Frog
+        [65] = { lift = -0.1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Tree Frog
+        [67] = { lift = 0.2, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Hawk Owl
+        [68] = { lift = 0.2, sleep = 1, sleepHold = 6, sleepUp = 0, canSit = false },  -- Great Horned Owl
+        [70] = { lift = -0.2, sleep = 1, sleepAt = 0.6, sleepHold = 6, sleepUp = 0, canSit = false },  -- Brown Prairie Dog: floated over its shadow
         [74] = { lift = -0.05 },  -- Albino Snake
         [75] = { lift = -0.05 },  -- Black Kingsnake
         [77] = { lift = -0.05 },  -- Brown Snake
