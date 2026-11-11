@@ -21,9 +21,9 @@ done
 while IFS= read -r f; do
     f=${f#./}
     printf '%s\n' "${listed[@]}" | grep -qxF "$f" || { echo "TOC: $f not listed"; fail=1; }
-done < <(find . -name '*.lua' -not -path './Libs/*' -not -path './tools/*')
+done < <(find . -name '*.lua' -not -path './Libs/*' -not -path './tools/*' -not -path './.claude/*')
 
-own=$(find . -name '*.lua' -not -path './Libs/*' -not -path './tools/*')
+own=$(find . -name '*.lua' -not -path './Libs/*' -not -path './tools/*' -not -path './.claude/*')
 # One luajit for every file (a process per file was most of this step's time).
 out=$(luajit -e "local bad = false
 for _, f in ipairs(arg) do
