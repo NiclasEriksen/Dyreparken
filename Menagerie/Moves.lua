@@ -657,9 +657,13 @@ Steps = function(key, mode)
     -- and the held pose still comes.
     if mode == "sleep" then
         local id, at = Moves:For(key, "sleep"), Moves:For(key, "sleepAt") or 0
-        -- Then paused where it lies, or (sleepHold) a looping animation of its own.
+        -- A pet with a sleep loop of its own (sleepHold) is asleep already when its card opens
+        -- (the user, 2026-11-11): a loop needs no timing, so no wait for the model to load.
+        -- (Sleep starts only as a card opens: once woken, it stays awake.) The others lie down
+        -- and are paused there, which needs the model loaded first (SLEEP_AFTER).
         local hold = Moves:For(key, "sleepHold")
-        return { { STAND, Moves.SLEEP_AFTER }, { id, at }, hold and { hold } or { id, nil, at } }
+        if hold then return { { hold } } end
+        return { { STAND, Moves.SLEEP_AFTER }, { id, at }, { id, nil, at } }
     end
     if mode == "sit" then
         local down = Moves:For(key, "sitDown")

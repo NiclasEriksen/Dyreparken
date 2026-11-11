@@ -19,8 +19,8 @@ local _, ns = ...
 --          0.7 s caught most pets lying down, 2026-11-10: at 0.8 the cats were getting up again).
 --          Try one with /dp probe anim sleep <id> <seconds>. To see the
 --          card at night by day: /dp probe anim night
---   sleepHold  (optional) a looping animation to hold instead of pausing the lie-down; sleepAt is
---              then how long lying down plays before it (too short, and it snaps into the loop)
+--   sleepHold  (optional) a looping animation to hold instead of pausing the lie-down: the pet is
+--              then asleep in it as its card opens (sleep and sleepAt only show in /dp probe moves)
 --   sleepUp    (optional) played when it's woken, before the happy move
 --   canSit false: the pet never sits (it has no sitting animation that looks right)
 --   sit    held by a Latsabb after a few seconds on the card (it sits down
