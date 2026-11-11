@@ -154,8 +154,9 @@ function PF:Art()
     local on = ns.Settings:Get("petFrameArt") == true
     if on and not f.bg then
         f.bg = f:CreateTexture(nil, "BACKGROUND", nil, -7) -- (on the frame itself: under the scene)
-        f.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -4)
-        f.bg:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -4, 4)
+        -- (to 2 px from the edge: the border covers it; at 4 a gap showed on the left, 2026-11-11)
+        f.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 2, -2)
+        f.bg:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2)
         f.bg:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock", "REPEAT", "REPEAT")
         f.bg:SetHorizTile(true)
         f.bg:SetVertTile(true)
