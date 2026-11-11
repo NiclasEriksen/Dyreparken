@@ -67,7 +67,14 @@ return function(test, H)
             eq(c.ns.Summon.Busy(), reason, key)
             c:Slash("adopter panda")
             eq(c.summonCalls, 0, key .. " blocks")
+            -- Combat, a mount and death end in an event of their own (no retries for them); the rest are retried.
+            if key == "dead" then c:Fire("PLAYER_DEAD") end
+            w:Run(3.1)
+            if c.ns.Summon.WAITS_FOR[reason] then eq(#c:Log("check %(retry%)"), 0, key .. ": no polling") end
             c:Set(key, key == "stand" and 0 or nil)
+            if key == "combat" then c:LeaveCombat()
+            elseif key == "mounted" then c:Dismount()
+            elseif key == "dead" then c:Fire("PLAYER_ALIVE") end
             w:Run(3.1)
             eq(c.summoned, PANDA_GUID(c), key .. " then idle")
         end

@@ -14,7 +14,9 @@ local _, ns = ...
 -- would catch it, but it fires for every nearby player's companion too.
 --
 -- If the check finds you busy, it retries every RETRY_EVERY seconds for up to
--- RETRY_FOR seconds, then waits for the next trigger. One timer at most.
+-- RETRY_FOR seconds, then waits for the next trigger. One timer at most. Not
+-- when the end of being busy is a trigger itself (combat, a mount, death):
+-- logged in on a mount, it checked every 3 s for a minute (the log, 2026-11-12).
 --
 -- Defers to AutoCompanion: if it's loaded, auto-summon is off and we say so
 -- once per session.
@@ -31,6 +33,8 @@ local Summon = {}
 ns.Summon = Summon
 
 local RETRY_EVERY, RETRY_FOR = 3, 60
+-- Busy states whose end is a trigger (PLAYER_REGEN_ENABLED, dismounting, PLAYER_ALIVE/UNGHOST): no retries.
+Summon.WAITS_FOR = { combat = true, mounted = true, dead = true }
 local MAX_ATTEMPTS = 3 -- actual summon calls per trigger; each failure shows an error
 
 function Summon:Deferring()
@@ -160,8 +164,8 @@ function Summon:Check(reason)
     local busy = Busy()
     if busy then
         ns.Log("Summon", "busy: %s", busy)
-        -- PvP is a place, not a moment: don't keep polling there.
-        if busy ~= "pvp" then self:Retry(reason) end
+        -- PvP is a place, not a moment: don't keep polling there. Nor for what ends in a trigger.
+        if busy ~= "pvp" and not Summon.WAITS_FOR[busy] then self:Retry(reason) end
         return
     end
     if reason ~= "retry" and reason ~= "verify" then attempts = 0 end
