@@ -14,26 +14,42 @@ local _, ns = ...
 --
 -- One-shot groups only (each particle: wait, rise and fade in, drift and fade
 -- out; hidden when done), from a small pool built on first use. Nothing runs
--- between bursts.
+-- between bursts. The same engine plays the card's bursts (Fx:Emit: the bond's
+-- celebration, a cuddle's ripple and hearts, the paw badge's ring) on the card's
+-- own layer, a pool per parent.
 local Fx = {}
 ns.Fx = Fx
 
 Fx.POOL = 24
 Fx.AGAIN = 4 -- seconds before the same companion bursts again
 
-local layer, pool, nextOne
+-- One engine for every burst (docs/REFACTOR.md, Phase 4): the world's and the chat's on a layer over
+-- UIParent at HIGH strata; the card's on the card itself, at a frame level each burst picks, so they
+-- stay under our side pages (the user, 2026-11-12). A pool per parent, built on first use.
+local pools = {} -- parent -> { list, next, max }
+local function Pool(parent, max)
+    local pool = pools[parent]
+    if not pool then
+        pool = { list = {}, next = 1, max = max or Fx.POOL }
+        pools[parent] = pool
+    end
+    return pool
+end
+
+local layer
 local function Layer()
     if layer then return layer end
     layer = CreateFrame("Frame", nil, UIParent)
     layer:SetAllPoints()
     layer:SetFrameStrata("HIGH")
-    pool, nextOne = {}, 1
-    Fx.particles = pool -- (for the tests)
+    Fx.particles = Pool(layer).list -- (for the tests)
     return layer
 end
 
-local function NewParticle()
-    local p = CreateFrame("Frame", nil, Layer())
+-- Each particle plays one group: a hold (unseen), then step A (up: a move, fadeIn), then step B
+-- (drift: a move, fadeOut, grow: a scale from 1); hidden when done.
+local function NewParticle(parent)
+    local p = CreateFrame("Frame", nil, parent)
     p:Hide()
     p.icon = p:CreateTexture(nil, "ARTWORK")
     p.icon:SetAllPoints()
@@ -48,45 +64,104 @@ local function NewParticle()
     return p
 end
 
--- The next particle, reusing the oldest when all are busy.
-local function Take()
-    Layer()
-    local p = pool[nextOne]
-    if not p then p = NewParticle(); pool[nextOne] = p end
-    nextOne = nextOne % Fx.POOL + 1
+-- The next particle of a parent's pool, reusing the oldest when all are busy.
+local function Take(parent, max)
+    local pool = Pool(parent, max)
+    local p = pool.list[pool.next]
+    if not p then p = NewParticle(parent); pool.list[pool.next] = p end
+    pool.next = pool.next % pool.max + 1
     p.anim:Stop()
     return p
 end
 
+local function Move(a, m, dur)
+    a:SetOffset(m and m[1] or 0, m and m[2] or 0)
+    a:SetDuration(m and m[3] or dur)
+    a:SetSmoothing(m and m[4] or "NONE")
+end
+local function Alpha(a, f, dur)
+    a:SetFromAlpha(f[1]); a:SetToAlpha(f[2]); a:SetDuration(f[3] or dur)
+end
+
+-- Particles from a point, each as told. o: parent (nil: the HIGH layer), level (a frame level),
+-- pool (its size, the first time a parent is used), tag (Fx:Stop's), anchor { frame, point, x, y }.
+-- A particle: tex (path), add (blend ADD), color { r, g, b }, alpha, size (px, or { w, h }),
+-- x, y (from the anchor), delay (s), up { dx, dy, dur, smoothing } and fadeIn { from, to, dur },
+-- then drift { dx, dy, dur, smoothing }, fadeOut { from, to, dur } and grow { to, dur, smoothing }.
+-- Returns the particles.
+function Fx:Emit(o, list)
+    local parent = o.parent or Layer()
+    local out = {}
+    for i, s in ipairs(list) do
+        local p = Take(parent, o.pool)
+        p.tag = o.tag
+        if o.level then p:SetFrameLevel(o.level) end
+        p.icon:SetTexture(s.tex)
+        p.icon:SetBlendMode(s.add and "ADD" or "BLEND")
+        local c = s.color or { 1, 1, 1 }
+        p.icon:SetVertexColor(c[1], c[2], c[3], s.alpha or 1)
+        local w, h = s.size, s.size
+        if type(w) == "table" then w, h = w[1], w[2] end
+        p:SetSize(w, h)
+        p:ClearAllPoints()
+        local at = o.anchor
+        p:SetPoint("CENTER", at[1], at[2], (at[3] or 0) + (s.x or 0), (at[4] or 0) + (s.y or 0))
+        local g = p.anim
+        g.hold:SetDuration(s.delay or 0.01)
+        local fadeIn = s.fadeIn or { 0, 1, 0.01 }
+        Move(g.up, s.up, fadeIn[3] or 0.01)
+        Alpha(g.fadeIn, fadeIn, 0.01)
+        local fadeOut = s.fadeOut or { 1, 0, 0.01 }
+        Move(g.drift, s.drift, fadeOut[3] or 0.01)
+        Alpha(g.fadeOut, fadeOut, 0.01)
+        local grow = s.grow or {}
+        g.grow:SetScaleTo(grow[1] or 1, grow[1] or 1)
+        g.grow:SetDuration(grow[2] or fadeOut[3] or 0.01)
+        g.grow:SetSmoothing(grow[3] or "NONE")
+        p:Show()
+        g:Play()
+        out[i] = p
+    end
+    return out
+end
+
+-- Stop a parent's particles (nil: the HIGH layer's), only a tag's if given.
+function Fx:Stop(parent, tag)
+    local pool = pools[parent or Layer()]
+    for _, p in ipairs(pool and pool.list or {}) do
+        if tag == nil or p.tag == tag then p.anim:Stop(); p:Hide() end
+    end
+end
+
+-- How many of a parent's particles (of a tag) are playing now.
+function Fx:Playing(parent, tag)
+    local pool, n = pools[parent or Layer()], 0
+    for _, p in ipairs(pool and pool.list or {}) do
+        if (tag == nil or p.tag == tag) and p:IsShown() and p.anim:IsPlaying() then n = n + 1 end
+    end
+    return n
+end
+
 -- A burst of n particles of a kind (Decor.KINDS) from a point: anchor =
--- { frame, point, x, y }. o: n, color, alpha, size (scale), spread, rise (px).
+-- { frame, point, x, y }. o: n, color, alpha, size (scale), spread, rise (px);
+-- parent, level, tag (as Emit's).
 function Fx:Burst(anchor, kind, o)
     local k = ns.Decor.KINDS[kind]
     if not k then return end
     local n, size, spread, rise = o.n or 5, o.size or 1, o.spread or 30, o.rise or 50
-    local c = o.color or { 1, 1, 1 }
+    local fall = k.path == "fall" and -1 or 1 -- feathers and leaves drift down
+    local shrink = k.path == "burst" and 0.4 or 0.8
+    local list = {}
     for i = 1, n do
-        local p = Take()
-        p.icon:SetTexture(ns.Icon(k.tex))
-        p.icon:SetBlendMode(k.add and "ADD" or "BLEND")
-        p.icon:SetVertexColor(c[1], c[2], c[3], o.alpha or 1)
         local s = math.random(k.size[1], k.size[2]) * size
-        p:SetSize(s, s)
-        p:ClearAllPoints()
-        p:SetPoint("CENTER", anchor[1], anchor[2], anchor[3] + math.random(-spread, spread) / 3,
-            anchor[4] + math.random(-spread, spread) / 3)
-        local g, dx = p.anim, math.random(-spread, spread)
-        local fall = k.path == "fall" and -1 or 1 -- feathers and leaves drift down
-        g.hold:SetDuration(0.01 + (i - 1) * 0.08)
-        g.up:SetOffset(dx * 0.4, fall * rise * 0.5); g.up:SetDuration(0.4)
-        g.fadeIn:SetDuration(0.25)
-        g.drift:SetOffset(dx * 0.6, fall * rise * 0.5); g.drift:SetDuration(1.1)
-        g.fadeOut:SetDuration(1.1)
-        g.grow:SetScaleTo(k.path == "burst" and 0.4 or 0.8, k.path == "burst" and 0.4 or 0.8)
-        g.grow:SetDuration(1.1)
-        p:Show()
-        g:Play()
+        local x, y = math.random(-spread, spread) / 3, math.random(-spread, spread) / 3
+        local dx = math.random(-spread, spread)
+        list[i] = { tex = ns.Icon(k.tex), add = k.add, color = o.color, alpha = o.alpha, size = s, x = x, y = y,
+            delay = 0.01 + (i - 1) * 0.08,
+            up = { dx * 0.4, fall * rise * 0.5, 0.4, "OUT" }, fadeIn = { 0, 1, 0.25 },
+            drift = { dx * 0.6, fall * rise * 0.5, 1.1 }, fadeOut = { 1, 0, 1.1 }, grow = { shrink, 1.1 } }
     end
+    return self:Emit({ parent = o.parent, level = o.level, tag = o.tag, anchor = anchor }, list)
 end
 
 ------------------------------------------------------------------------------

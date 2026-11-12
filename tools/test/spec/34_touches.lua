@@ -44,7 +44,7 @@ return function(test, H)
         -- Its personality still a surprise: the family's.
         ola.ns.Personality.Known = function() return false end
         ola.ns.Cuddle:Pet(card)
-        no(h[2].icon.tex == ola.ns.Decor.MEDIA .. "bubble")
+        no(card.cuddle.hearts[2].icon.tex == ola.ns.Decor.MEDIA .. "bubble")
     end)
 
     test("a trait's particles double on a day its liked activity happened", function()

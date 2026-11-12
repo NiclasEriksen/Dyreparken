@@ -24,7 +24,7 @@ local STRIP_X = 12 -- the strip's left edge on the panel, with the rows' text
 Track.SOUNDS = { "UI_70_ARTIFACT_FORGE_TRAIT_GOLD_TRAIT", "UI_EPICLOOT_TOAST", "LEVELUPSOUND" }
 
 
-local Pulse, Fade, Scale, Hide = ns.Anim.Pulse, ns.Anim.Fade, ns.Anim.Scale, ns.HideTip
+local Pulse, Fade, Scale = ns.Anim.Pulse, ns.Anim.Fade, ns.Anim.Scale
 
 -- The bond's tooltip (the bar and the medallion).
 -- Others' bonds with a pet, strongest first: "Kari Berg (Venn), Per Hansen (Kamerat)".
@@ -195,7 +195,7 @@ function Track:Build(card, c, panel)
     end
     b:EnableMouse(true)
     b:SetScript("OnEnter", function(self) self.text:Show(); ns.ShowTip(self, "ANCHOR_TOP", Track.BondLines(card.key)) end)
-    b:SetScript("OnLeave", function(self) self.text:Hide(); Hide(self) end)
+    b:SetScript("OnLeave", function(self) self.text:Hide(); ns.HideTip(self) end)
     self:BuildCelebration(card, c, panel)
     b:Hide()
 end
@@ -349,7 +349,7 @@ local BURST = 16
 local OneShot = ns.Anim.OneShot
 
 function Track:BuildCelebration(card, c, panel)
-    local cel = { parts = {} }
+    local cel = { parts = {}, c = c, panel = panel }
     card.celebration = cel
     -- A flash of the light rays, turning as it fades.
     cel.flash = c:CreateTexture(nil, "BORDER", nil, 7)
@@ -366,24 +366,7 @@ function Track:BuildCelebration(card, c, panel)
     Fade(g, 1, 0, 1.8, 2)
     local outR = g:CreateAnimation("Rotation"); outR:SetDegrees(-60); outR:SetDuration(1.8); outR:SetOrder(2)
     cel.flash.anim = g
-    -- A burst of sparks and hearts out from the pet.
-    for i = 1, BURST do
-        local p = CreateFrame("Frame", nil, c)
-        p:SetFrameLevel(c:GetFrameLevel())
-        p:SetSize(20, 20)
-        p:SetPoint("CENTER", panel, "TOP", 0, 100)
-        p:SetAlpha(0)
-        p:Hide()
-        p.icon = p:CreateTexture(nil, "ARTWORK")
-        p.icon:SetAllPoints()
-        local a = OneShot(p)
-        a.move = a:CreateAnimation("Translation"); a.move:SetDuration(1.3); a.move:SetSmoothing("OUT"); a.move:SetOrder(1)
-        Fade(a, 0, 1, 0.12, 1)
-        Fade(a, 1, 0, 0.7, 2)
-        Scale(a, 1, 0.4, 0.7, 2)
-        p.anim = a
-        cel.parts[i] = p
-    end
+    -- (the burst of sparks and hearts out from the pet: Fx, on the card's own layer)
     -- The level's name, rising and growing over the pet, then fading.
     local t = CreateFrame("Frame", nil, c)
     t:SetFrameLevel(c:GetFrameLevel() + 20) -- over the pet
@@ -411,7 +394,7 @@ function Track:StopCelebration(card)
     if not cel then return end
     cel.flash.anim:Stop(); cel.flash:Hide()
     cel.text.anim:Stop(); cel.text:Hide()
-    for _, p in ipairs(cel.parts) do p.anim:Stop(); p:Hide() end
+    ns.Fx:Stop(cel.c, "celebration")
 end
 
 -- The moment: light, a burst, the level's name, what it brings, a sound.
@@ -421,15 +404,18 @@ function Track:Celebrate(card, key, level)
     self:StopCelebration(card)
     ns.Moves.card:Cheer(key) -- (the pet frame cheers when the level comes: PetFrame.lua)
     cel.flash:Show(); cel.flash.anim:Play()
-    for i, p in ipairs(cel.parts) do
+    -- A burst of sparks and hearts out from the pet, every third a heart, in a ring.
+    local burst = {}
+    for i = 1, BURST do
         local heart = i % 3 == 0
-        p.icon:SetTexture(ns.Icon(heart and "heart" or "sparkle"))
-        if heart then p.icon:SetVertexColor(1, 0.45, 0.55, 1) else p.icon:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1) end
         local angle = (i - 1) / BURST * 2 * math.pi
         local dist = 110 + (i % 4) * 22
-        p.anim.move:SetOffset(math.cos(angle) * dist, math.sin(angle) * dist * 0.8)
-        p:Show(); p.anim:Play()
+        burst[i] = { tex = ns.Icon(heart and "heart" or "sparkle"), color = heart and { 1, 0.45, 0.55 } or GOLD, size = 20,
+            up = { math.cos(angle) * dist, math.sin(angle) * dist * 0.8, 1.3, "OUT" }, fadeIn = { 0, 1, 0.12 },
+            fadeOut = { 1, 0, 0.7 }, grow = { 0.4, 0.7 } }
     end
+    cel.parts = ns.Fx:Emit({ parent = cel.c, level = cel.c:GetFrameLevel(), tag = "celebration",
+        anchor = { cel.panel, "TOP", 0, 100 } }, burst)
     local name = ns.Bond.LEVELS[level][2]
     cel.text.title:SetText(ns.T("bond.celebrate.title", { level = name }))
     local decor = ns.Decor.LEVELS[level]

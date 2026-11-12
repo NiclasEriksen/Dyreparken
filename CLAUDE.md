@@ -182,7 +182,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    ns.BondBar.New, :Set(points, from, top, tier), :Gains(last, list) grows it and floats the "+N", :Stop), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
                    Playdate (in a group with a guildmate whose pet is out: both pets play, once a day each;
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
-                   every 45 minutes; read its header), Fx (one-shot particle bursts outside the journal: hearts at the cursor over a
+                   every 45 minutes; read its header), Fx (the one particle burst engine, a pool per parent: the card's bursts on the card; outside the journal: hearts at the cursor over a
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
                    lines and level-ups), Voyage (zeppelins and boats: a loading screen between two zones a route joins,
                    ROUTES, not after a hearthstone or portal; a zeppelin counts as flying too; eggs luftskip, seilas

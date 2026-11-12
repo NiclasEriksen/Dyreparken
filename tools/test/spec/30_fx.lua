@@ -81,4 +81,28 @@ return function(test, H)
         eq(by.sparkle, 6); eq(by.heart, 4)
         eq(Fx.particles[5].icon.tex, MEDIA .. "sparkle")
     end)
+
+    test("the card's bursts play on the card itself, under our pages, each stopped on its own", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local card = ola:SelectPet(5159)
+        local Fx, c = ola.ns.Fx, card.cuddle.c
+        w:SkipDays(1)
+        ola.ns.Bond:Add(100) -- (a level: celebrated on the open card)
+        ola.ns.Cuddle:Pet(card, 500, 500)
+        for _, p in ipairs(Fx.particles) do no(p.tag, "nothing of the card's on the HIGH layer (only the chat's)") end
+        eq(Fx:Playing(c, "celebration"), 16, "the celebration's sparks and hearts")
+        eq(Fx:Playing(c, "cuddle"), 5, "a ripple and four hearts")
+        local spark, heart = card.celebration.parts[1], card.cuddle.hearts[1]
+        eq(spark:GetParent(), c); eq(spark:GetFrameLevel(), c:GetFrameLevel())
+        eq(heart:GetFrameLevel(), c:GetFrameLevel() + 20, "the cuddle over the pet")
+        eq(spark.anim.up.offset[1], 132, "the first spark flies right, its own way (110 + 22)")
+        -- A new cuddle stops the last one only; the page over the card stops the rest.
+        ola.ns.Cuddle:Stop(card)
+        eq(Fx:Playing(c, "cuddle"), 0)
+        eq(Fx:Playing(c, "celebration"), 16, "the celebration plays on")
+        ola.ns.ParkPage._sp:Open()
+        eq(Fx:Playing(c), 0)
+    end)
 end

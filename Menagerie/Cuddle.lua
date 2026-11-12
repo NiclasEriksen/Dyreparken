@@ -29,44 +29,12 @@ local CLICK_PX, CLICK_S = 5, 0.4 -- a click: moved less than this, shorter than 
 -- The sound: the first of these the client knows.
 Cuddle.SOUNDS = { "IG_CHARACTER_INFO_TAB", "IG_MAINMENU_OPTION_CHECKBOX_ON" }
 
-local OneShot, Fade, Scale = ns.Anim.OneShot, ns.Anim.Fade, ns.Anim.Scale
-
--- A frame over the pet, unseen at rest, holding one texture.
-local function Piece(c, level, size, texture)
-    local p = CreateFrame("Frame", nil, c)
-    p:SetFrameLevel(c:GetFrameLevel() + level)
-    p:SetSize(size, size)
-    p:SetAlpha(0)
-    p:Hide()
-    p.icon = p:CreateTexture(nil, "ARTWORK")
-    p.icon:SetAllPoints()
-    p.icon:SetTexture(ns.Icon(texture))
-    return p
-end
+local OneShot, Fade = ns.Anim.OneShot, ns.Anim.Fade
 
 function Cuddle:Build(card, c, panel)
+    -- (the ripple and the hearts: Fx, on the card's own layer, over the pet; Pet)
     local d = { hearts = {}, c = c, panel = panel }
     card.cuddle = d
-    -- The ripple: a ring growing and fading where you clicked.
-    d.ripple = Piece(c, 20, 24, "ring")
-    d.ripple.icon:SetVertexColor(1, 0.85, 0.75, 1)
-    d.ripple.icon:SetBlendMode("ADD")
-    local r = OneShot(d.ripple)
-    Fade(r, 0, 0.9, 0.08, 1)
-    Scale(r, 1, 3, 0.6, 2, "OUT")
-    Fade(r, 0.9, 0, 0.6, 2)
-    d.ripple.anim = r
-    -- A few small hearts rising from the same spot.
-    for i = 1, HEARTS do
-        local p = Piece(c, 20, 12, "heart")
-        p.icon:SetVertexColor(1, 0.5, 0.6, 0.85)
-        local a = OneShot(p)
-        a.move = a:CreateAnimation("Translation"); a.move:SetDuration(0.8); a.move:SetSmoothing("OUT"); a.move:SetOrder(1)
-        Fade(a, 0, 1, 0.12, 1)
-        Fade(a, 1, 0, 0.45, 2)
-        p.anim = a
-        d.hearts[i] = p
-    end
     -- A warm glow flaring under the pet, behind it.
     d.glow = c:CreateTexture(nil, "BORDER", nil, 4)
     d.glow:SetTexture(ns.Icon("dot"))
@@ -103,8 +71,7 @@ end
 function Cuddle:Stop(card)
     local d = card.cuddle
     if not d then return end
-    for _, p in ipairs(d.hearts) do p.anim:Stop(); p:Hide() end
-    d.ripple.anim:Stop(); d.ripple:Hide()
+    ns.Fx:Stop(d.c, "cuddle")
     d.glow.anim:Stop(); d.glow:Hide()
 end
 
@@ -139,27 +106,23 @@ function Cuddle:Pet(card, x, y)
     if not d or not key then return end
     self:Stop(card)
     local cx, cy = OnCard(d.c, x, y)
-    local function Place(p)
-        p:ClearAllPoints()
-        if cx then p:SetPoint("CENTER", d.c, "BOTTOMLEFT", cx, cy)
-        else p:SetPoint("CENTER", d.panel, "TOP", 0, 110) end -- not laid out: over the pet
-    end
-    Place(d.ripple)
-    d.ripple:Show(); d.ripple.anim:Play()
-    -- Every other heart is the pet's own particle: bubbles from a Dykker, crumbs from a Glupsk.
+    local o = { parent = d.c, level = d.c:GetFrameLevel() + 20, tag = "cuddle",
+        anchor = cx and { d.c, "BOTTOMLEFT", cx, cy } or { d.panel, "TOP", 0, 110 } } -- (not laid out: over the pet)
+    -- The ripple: a ring growing and fading where you clicked.
+    d.ripple = ns.Fx:Emit(o, { { tex = ns.Icon("ring"), add = true, color = { 1, 0.85, 0.75 }, size = 24,
+        fadeIn = { 0, 0.9, 0.08 }, fadeOut = { 0.9, 0, 0.6 }, grow = { 3, 0.6, "OUT" } } })[1]
+    -- A few small hearts rising from the same spot; every other one the pet's own particle:
+    -- bubbles from a Dykker, crumbs from a Glupsk.
     local tex, color = Own(key)
-    for i, p in ipairs(d.hearts) do
-        if i % 2 == 0 then
-            p.icon:SetTexture(ns.Icon(tex))
-            p.icon:SetVertexColor(color[1], color[2], color[3], 0.9)
-        else
-            p.icon:SetTexture(ns.Icon("heart"))
-            p.icon:SetVertexColor(1, 0.5, 0.6, 0.85)
-        end
-        Place(p)
-        p.anim.move:SetOffset((i - (HEARTS + 1) / 2) * 12, 30 + (i % 2) * 10) -- up, a little apart
-        p:Show(); p.anim:Play()
+    local hearts = {}
+    for i = 1, HEARTS do
+        local own = i % 2 == 0
+        hearts[i] = { tex = ns.Icon(own and tex or "heart"), color = own and color or { 1, 0.5, 0.6 },
+            alpha = own and 0.9 or 0.85, size = 12,
+            up = { (i - (HEARTS + 1) / 2) * 12, 30 + (i % 2) * 10, 0.8, "OUT" }, fadeIn = { 0, 1, 0.12 }, -- up, a little apart
+            fadeOut = { 1, 0, 0.45 } }
     end
+    d.hearts = ns.Fx:Emit(o, hearts)
     d.glow:Show(); d.glow.anim:Play()
     ns.PlayFirstSound(self.SOUNDS)
     ns.Moves:Cuddle(key) -- (wakes it, or a happy hop)

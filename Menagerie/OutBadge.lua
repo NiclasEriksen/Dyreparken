@@ -54,18 +54,6 @@ function OutBadge:Build(card, c)
     b.label = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     b.label:SetPoint("TOP", b, "BOTTOM", 0, -1)
     b.label:SetShadowOffset(1, -1)
-    -- A burst when a pet comes along: a ring growing out of the badge.
-    b.burst = b:CreateTexture(nil, "OVERLAY")
-    b.burst:SetTexture(ns.Icon("ring"))
-    b.burst:SetBlendMode("ADD")
-    b.burst:SetVertexColor(1, 0.85, 0.4, 1)
-    b.burst:SetPoint("CENTER")
-    b.burst:SetSize(SIZE, SIZE)
-    b.burst:Hide()
-    local g = ns.Anim.OneShot(b.burst)
-    ns.Anim.Fade(g, 1, 0, 0.6, 1)
-    ns.Anim.Scale(g, 1, 2.2, 0.6, 1, "OUT")
-    b.burst.anim = g
 
     b:SetMotionScriptsWhileDisabled(true)
     b:SetScript("OnClick", function(self)
@@ -73,7 +61,10 @@ function OutBadge:Build(card, c)
         local on = not self.on
         ns.Summon:SetActive(card.key, on)
         if on then
-            self.burst:Show(); self.burst.anim:Play()
+            -- A burst: a ring growing out of the badge.
+            self.burst = ns.Fx:Emit({ parent = self, pool = 1, anchor = { self, "CENTER", 0, 0 } }, { { tex = ns.Icon("ring"),
+                add = true, color = { 1, 0.85, 0.4 }, size = SIZE, fadeIn = { 1, 1 }, fadeOut = { 1, 0, 0.6 },
+                grow = { 2.2, 0.6, "OUT" } } })[1]
             ns.PlayFirstSound(OutBadge.SOUNDS)
         end
         ns.JournalUI:Refresh()
