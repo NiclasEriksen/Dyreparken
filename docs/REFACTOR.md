@@ -266,9 +266,11 @@ This is the payoff for "easier to add pets, traits and eggs".
   check, Comm:Register field specs, the protocol fingerprint (52_protocol), tunables in Config.
   **Q4 not done**: dropping non-members' data can't be done without old and new clients' digests
   disagreeing (a SYNC round per login in a mixed guild) unless X-Protocol is bumped; B11 stays open.
-  Options for the user: A bump now; B/C partial caps without a bump; D fold it into the next bump.
-  Open: B10 refuses an honest mass removal (over a third at once) for good; should new message kinds
-  alone need a bump (the fingerprint says yes)?
+  **Decided (the user): D, at the next X-Protocol bump ("probably very soon. Don't forget").** 52_protocol's
+  message for a missing snapshot says so, so the bump itself brings it up.
+  B10 follow-up (the user: "hell yeah"): a batch held back as too big goes once a roster on a later day
+  still misses the same owners (g.rosterHeld). New message kinds alone need no bump (the user: OK);
+  52_protocol lets them through.
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
   lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client

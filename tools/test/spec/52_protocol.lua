@@ -8,6 +8,7 @@
 -- The per-member caps (NAMES_PER_MEMBER, LIFE_PER_MEMBER) aren't in it: they only bite under
 -- a flood and came without a bump by decision (2026-11-09).
 --
+-- A kind that's only new passes (older clients drop kinds they don't know); a changed one doesn't.
 -- When it fails: if the change is meant, bump `## X-Protocol` in Dyreparken.toc and add the
 -- printed fingerprint below under the new number (keep the old ones: they're the history). A
 -- bump means older clients ignore every message from newer ones (Comm), so a guild on mixed
@@ -88,6 +89,30 @@ store b part=3 nested=true count=true
         return table.concat(lines, "\n") .. "\n"
     end
 
+    -- A message kind that's only new needs no bump (the user, 2026-11-12): older clients drop
+    -- kinds they don't know. Everything else must match the snapshot line for line.
+    local function Lines(text)
+        local set, kinds = {}, {}
+        for l in text:gmatch("[^\n]+") do
+            set[l] = true
+            local kind = l:match("^kind (%S+)")
+            if kind then kinds[kind] = true end
+        end
+        return set, kinds
+    end
+    local function Changed(snap, now)
+        if not snap then return true end
+        if now == snap then return false end
+        local was, wasKinds = Lines(snap)
+        local is = Lines(now)
+        for l in pairs(was) do if not is[l] then return true end end
+        for l in pairs(is) do
+            local kind = l:match("^kind (%S+)")
+            if not was[l] and not (kind and not wasKinds[kind]) then return true end
+        end
+        return false
+    end
+
     test("what peers accept changes only with an X-Protocol bump", function()
         local w = H.World()
         local c = w:AddClient("Ola Nord")
@@ -95,12 +120,15 @@ store b part=3 nested=true count=true
         local proto = tonumber(H.TOC.meta["X-Protocol"])
         eq(c.ns.PROTOCOL, proto)
         local now, snap = Fingerprint(c), SNAPSHOTS[proto]
-        if now ~= snap then
+        local changed = Changed(snap, now)
+        if changed then
             print(("-- the fingerprint now (X-Protocol %d in the TOC):\n%s"):format(proto, now))
             error(snap and ("what peers accept changed, but X-Protocol is still %d: bump it in Dyreparken.toc and add "
                 .. "the fingerprint printed above as SNAPSHOTS[%d] in this file (or undo the change)"):format(proto, proto + 1)
                 or ("X-Protocol is %d and there's no snapshot for it: add the fingerprint printed above as "
-                .. "SNAPSHOTS[%d] in this file"):format(proto, proto), 0)
+                .. "SNAPSHOTS[%d] in this file. AND, decided with the user (docs/REFACTOR.md, Q4): this bump is when "
+                .. "the sync keeps only guild members' data (refuse and prune non-members' claims, lapses, names, "
+                .. "bonds and guild achievements; B11)"):format(proto, proto), 0)
         end
         -- The fingerprint sees what it should: a limit, a field spec, a Config value.
         local before = Fingerprint(c)
@@ -111,5 +139,12 @@ store b part=3 nested=true count=true
         ok(Fingerprint(c) ~= before, "a Config value")
         c.ns.Comm:Register("NICK", function() end, "GUILD", { pet = "table" })
         ok(Fingerprint(c) ~= before, "a field spec")
+        -- A new kind alone needs no bump; a changed one does.
+        local base = "kind NICK from=GUILD fields=pet:key\nlimit KEY_LEN=64\n"
+        ok(not Changed(base, base .. "kind HUG from=GUILD fields=pet:key\n"), "a new kind")
+        ok(Changed(base, "kind NICK from=GUILD fields=pet:table\nlimit KEY_LEN=64\n"), "a kind's fields")
+        ok(Changed(base, "kind NICK from=GUILD fields=pet:key\n"), "a limit gone")
+        ok(Changed(base, base .. "kind NICK from=GROUP fields=pet:key\n"), "a known kind on another channel")
+        ok(Changed(base, base .. "limit NEW=1\n"), "a new limit")
     end)
 end
