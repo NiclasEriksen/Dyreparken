@@ -431,7 +431,7 @@ return function(test, H)
         local added = {}
         for k in pairs(ola.env) do if not ola.stubKeys[k] then added[#added + 1] = tostring(k) end end
         table.sort(added)
-        eq(table.concat(added, " "), "ChatThrottleLib DyreparkenCharDB DyreparkenDB DyreparkenDebugDB LibStub "
+        eq(table.concat(added, " "), "DyreparkenCharDB DyreparkenDB DyreparkenDebugDB LibStub "
             .. "SLASH_DYREPARKEN1 SLASH_DYREPARKEN2")
         -- Every command, with what an accident might type: the guild's data stays as it was.
         -- (Bonds grow with time on their own, so compare who holds and names what, and the lapses.)

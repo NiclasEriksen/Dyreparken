@@ -280,9 +280,6 @@ frame is off, and the per-character sections say so. Not changed: the pet frame'
 
 ## Suspicious, unconfirmed (from the bug hunts)
 
-- CHAT_MSG_LOOT/SYSTEM rebuild up to five patterns per line, always registered (Activity.lua ~533).
-- The pet frame redoes its whole refresh on every nearby companion's COMPANION_UPDATE (an early return
-  when nothing changed).
 - HELLO is handled on any channel (Version.lua); a whisper can trigger a fake "newer version" notice.
 - Holidays: `asking` stays true if CALENDAR_UPDATE_EVENT_LIST never comes; the day is filed under the local date.
 - Comm retries only AddonMessageThrottle; other send failures drop a chunk silently.

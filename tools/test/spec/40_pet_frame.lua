@@ -386,4 +386,29 @@ return function(test, H)
         for _ = 1, 5 do ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(1) end
         eq(#actor.played, n, "not played again: that starts the move over (2026-11-12)")
     end)
+
+    test("idle, it costs nothing: other companions don't redo it, and the scene's camera runs only after a change", function()
+        local w, ola, PF = Setup(14)
+        local scene = PF.scene
+        ok(scene.scripts.OnUpdate, "the template's OnUpdate, right after the pet's scene was set")
+        w:Run(PF.CAMERA_FOR + 0.5)
+        eq(scene.scripts.OnUpdate, nil, "taken off once the camera has settled")
+        local updates = scene.updates
+        w:Run(10)
+        eq(scene.updates, updates, "nothing runs every frame while it just stands there")
+        -- Other companions nearby: no refresh at all.
+        local refreshes = 0
+        local Refresh = PF.Refresh
+        PF.Refresh = function(...) refreshes = refreshes + 1; return Refresh(...) end
+        for _ = 1, 10 do ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.5) end
+        eq(refreshes, 0, "the same pet out: nothing to redo")
+        -- Another pet out: redone, its scene's camera running again for a while.
+        ola:Summon(46); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
+        eq(refreshes, 1)
+        eq(PF.key, "s:46")
+        ok(scene.scripts.OnUpdate, "the camera runs again for the new pet's scene")
+        w:Run(PF.CAMERA_FOR + 0.5)
+        eq(scene.scripts.OnUpdate, nil)
+        PF.Refresh = Refresh
+    end)
 end

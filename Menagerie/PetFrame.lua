@@ -211,6 +211,30 @@ end
 function PF:Insets()
     local x, top = self.drawX or 0, self.drawTop or 0
     Call(self.scene, "SetViewInsets", x, x, top + self.H - self.VIEW_TOP, self.VIEW_BOTTOM)
+    self:Camera()
+end
+
+-- The scene's camera runs only while it may move (review 2026-11-12). ModelSceneMixinTemplate's
+-- OnUpdate drives its camera in Lua on every frame drawn, and ours never moves (no mouse, no zoom):
+-- the frame, shown all day, was most of our idle CPU. So the template's OnUpdate runs for
+-- CAMERA_FOR seconds after the scene changes (a new pet's scene, the insets), then is taken off;
+-- the camera stays where it was put, and the pet's animations are the engine's. (To confirm in game:
+-- the pet still moves and stands where it did.)
+PF.CAMERA_FOR = 2
+function PF:Camera()
+    local scene = self.scene
+    if not scene then return end
+    if self.sceneUpdate == nil then
+        local ok, fn = pcall(scene.GetScript, scene, "OnUpdate")
+        self.sceneUpdate = ok and type(fn) == "function" and fn or false
+    end
+    if not self.sceneUpdate then return end
+    scene:SetScript("OnUpdate", self.sceneUpdate)
+    self.cameraToken = (self.cameraToken or 0) + 1
+    local token = self.cameraToken
+    C_Timer.After(self.CAMERA_FOR, function()
+        if PF.cameraToken == token then PF.scene:SetScript("OnUpdate", nil) end
+    end)
 end
 
 function PF:Place()
@@ -448,14 +472,21 @@ end
 ------------------------------------------------------------------------------
 -- On and off; Edit Mode
 ------------------------------------------------------------------------------
-local refreshSoon
+local refreshSoon, companionSoon
 function PF:On()
     if self.on then return self:Refresh() end
     self.on = true
     local okB, inBattle = pcall(function() return C_PetBattles and C_PetBattles.IsInBattle() end)
     self.battle = okB and ns.Plain(inBattle) and true or nil -- (a /reload in a pet battle)
     refreshSoon = refreshSoon or ns.Debounce(0.3, function() PF:Refresh() end)
-    ns.Events:On("COMPANION_UPDATE", PF, refreshSoon)
+    -- COMPANION_UPDATE comes for every companion nearby (in a city, all the time): only another
+    -- pet out (or none) needs the frame redone; the rest has its own events (BOND, REGISTRY, the
+    -- night's timer, Moves' motion). (Review 2026-11-12: it redid all of it, about 3 times a second.)
+    companionSoon = companionSoon or ns.Debounce(0.3, function()
+        local key = not PF.battle and ns.Pets:OutKey() or nil -- (as Refresh reads it)
+        if key ~= PF.key then PF:Refresh() end
+    end)
+    ns.Events:On("COMPANION_UPDATE", PF, companionSoon)
     ns.Events:On("PLAYER_ENTERING_WORLD", PF, refreshSoon)
     ns.Events:On("PET_BATTLE_OPENING_START", PF, function() PF.battle = true; PF:Refresh() end)
     ns.Events:On("PET_BATTLE_CLOSE", PF, function() PF.battle = nil; PF:Refresh() end)

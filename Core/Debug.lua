@@ -26,6 +26,10 @@ local function Write(module, fmt, ...)
 end
 
 function Debug:Init()
+    -- A release keeps nothing of a log (review 2026-11-12): players who had /dp debug before
+    -- 0.2 (or ran a git checkout) carried its lines and the probes' dumps (api, animLengths:
+    -- a megabyte or more), read in at every login and written out at every logout.
+    if not ns.DEV then DyreparkenDebugDB = nil end
     DyreparkenDebugDB = DyreparkenDebugDB or {}
     local db = DyreparkenDebugDB
     db.lines = db.lines or { head = 0 }

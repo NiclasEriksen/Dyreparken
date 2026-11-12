@@ -1274,6 +1274,9 @@ function Client:BuildEnv()
         -- set to a scene id, its "unwrapped" actor, view insets; it takes the mouse unless told not to.
         if ftype == "ModelScene" and template == "ModelSceneMixinTemplate" then
             f.mouse = true
+            -- The mixin's OnUpdate (it drives the camera, on every frame drawn): counted.
+            f.updates = 0
+            f.scripts.OnUpdate = function(self) self.updates = self.updates + 1 end
             function f:TransitionToModelSceneID(id) self.sceneID = id end
             function f:GetModelSceneID() return self.sceneID end
             function f:SetViewInsets(l, r, t, b) self.insets = { l, r, t, b } end

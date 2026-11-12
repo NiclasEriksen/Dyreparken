@@ -11,15 +11,24 @@ ns.Events = Events
 
 local frame = CreateFrame("Frame")
 local handlers = {} -- event -> { [owner] = fn }
+-- event -> { owner, fn, owner, fn, ... }: who listens, as an array, rebuilt only when that changes.
+-- A handler may add or remove listeners of this very event, and changing a table pairs() is
+-- walking can throw ("invalid key to 'next'"), so dispatch walks this instead. It used to copy
+-- the listeners on every event: a table of garbage per CHAT_MSG_ADDON (every addon's traffic, in
+-- a raid hundreds a second) and per COMPANION_UPDATE (every companion nearby). (Review 2026-11-12.)
+local snapshots = {}
 
 frame:SetScript("OnEvent", function(_, event, ...)
     local list = handlers[event]
     if not list then return end
-    -- A copy: a handler may add or remove listeners of this very event, and
-    -- changing a table pairs() is walking can throw ("invalid key to 'next'").
-    local copy = {}
-    for owner, fn in pairs(list) do copy[owner] = fn end
-    for owner, fn in pairs(copy) do
+    local snap = snapshots[event]
+    if not snap then
+        snap = {}
+        for owner, fn in pairs(list) do snap[#snap + 1] = owner; snap[#snap + 1] = fn end
+        snapshots[event] = snap
+    end
+    for i = 1, #snap, 2 do
+        local owner, fn = snap[i], snap[i + 1]
         if list[owner] == fn then -- (still listening: an earlier handler may have removed it)
             local ok, err = pcall(fn, owner, event, ...)
             if not ok then geterrorhandler()(err) end
@@ -39,14 +48,14 @@ function Events:On(event, owner, fn)
         list = {}
         handlers[event] = list
     end
-    list[owner] = fn
+    if list[owner] ~= fn then list[owner] = fn; snapshots[event] = nil end
     return true
 end
 
 function Events:Off(event, owner)
     local list = handlers[event]
     if not list then return end
-    list[owner] = nil
+    if list[owner] ~= nil then list[owner] = nil; snapshots[event] = nil end
     if next(list) == nil then
         handlers[event] = nil
         frame:UnregisterEvent(event)

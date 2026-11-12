@@ -769,12 +769,14 @@ function Moves.NewStage(name, opts)
 
     -- Steps { id, seconds, pose }: each in turn; the last one stays. Replaces any running.
     function stage:Sequence(steps, why)
-        local parts = {}
-        for _, s in ipairs(steps) do
-            parts[#parts + 1] = tostring(s[1]) .. (s[2] and ("/%.1fs"):format(s[2]) or "") .. (s[3] and "p" or "")
+        if ns.Debug.enabled then -- (the steps' text only for the log: ns.Log's arguments are built even when it's off)
+            local parts = {}
+            for _, s in ipairs(steps) do
+                parts[#parts + 1] = tostring(s[1]) .. (s[2] and ("/%.1fs"):format(s[2]) or "") .. (s[3] and "p" or "")
+            end
+            ns.Log("Moves", "%s %s: %s [%s] mode %s", name, tostring(shown.key), why or "steps", table.concat(parts, " > "),
+                tostring(shown.mode))
         end
-        ns.Log("Moves", "%s %s: %s [%s] mode %s", name, tostring(shown.key), why or "steps", table.concat(parts, " > "),
-            tostring(shown.mode))
         shown.token = shown.token + 1
         shown.reposed = 0
         local mine = shown.token
@@ -962,10 +964,12 @@ function Moves.NewStage(name, opts)
             return
         end
         -- Why this pose (2026-11-11, the user: "none of them seem to be sleeping, but there's Zzz").
-        ns.Log("Moves", "%s %s: pose %s (was %s %s; awake %s, night %s, editing %s, sleep %s/%s, hold %s)", name, key,
-            mode, tostring(shown.key), tostring(shown.mode), tostring(awake[key] or false),
-            tostring(ns.Personality.IsNight(ns.Now()) or Moves.night or false), tostring(Moves.movesEditing or false),
-            tostring(Moves:For(key, "sleep")), tostring(Moves:For(key, "sleepAt")), tostring(Moves:For(key, "sleepHold")))
+        if ns.Debug.enabled then
+            ns.Log("Moves", "%s %s: pose %s (was %s %s; awake %s, night %s, editing %s, sleep %s/%s, hold %s)", name, key,
+                mode, tostring(shown.key), tostring(shown.mode), tostring(awake[key] or false),
+                tostring(ns.Personality.IsNight(ns.Now()) or Moves.night or false), tostring(Moves.movesEditing or false),
+                tostring(Moves:For(key, "sleep")), tostring(Moves:For(key, "sleepAt")), tostring(Moves:For(key, "sleepHold")))
+        end
         UnSulk()
         local newPet = key ~= shown.key
         shown.key, shown.mode = key, mode

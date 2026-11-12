@@ -500,12 +500,19 @@ end })
 -- unverified on Forever (docs/FOREVER_API.md); without the format string the
 -- activity is unavailable. Weapon skills count too: the day's caps keep them
 -- small.
+-- Built once per format string (review 2026-11-12: every CHAT_MSG_LOOT and CHAT_MSG_SYSTEM line,
+-- always watched, built up to eight of them anew, three gsubs each; in a raid, every member's loot).
+local patterns = {}
 function Activity.FormatPattern(fmt)
     if type(fmt) ~= "string" or fmt == "" then return nil end
+    local pat = patterns[fmt]
+    if pat then return pat end
     -- Escape everything, then turn the (now escaped) %s / %d / %1$s back into captures.
-    local pat = fmt:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
+    pat = fmt:gsub("[%^%$%(%)%%%.%[%]%*%+%-%?]", "%%%0")
     pat = pat:gsub("%%%%%d?%%?%$?s", "(.+)"):gsub("%%%%%d?%%?%$?d", "(%%d+)")
-    return "^" .. pat .. "$"
+    pat = "^" .. pat .. "$"
+    patterns[fmt] = pat
+    return pat
 end
 -- together: lines within this many seconds of the last one counted are the same gain.
 local function ChatSource(id, event, global, together)
@@ -535,6 +542,13 @@ local function Me(name)
     name = type(name) == "string" and ns.NormalizeName(name)
     return name and (name == ns.PlayerKey() or name == Plain(UnitName("player")))
 end
+-- The roll in a loot roll line's captures (the third from the end), if the roller is you.
+-- (Captures as arguments: no table for every loot line.)
+local function RollOf(...)
+    local n = select("#", ...)
+    if n < 3 or not Me((select(n, ...))) then return nil end
+    return tonumber((select(n - 2, ...)))
+end
 function Activity.Rolled(event, text)
     text = Plain(text)
     if type(text) ~= "string" then return nil end
@@ -547,8 +561,8 @@ function Activity.Rolled(event, text)
     end
     for _, global in ipairs(LOOT_ROLLS) do
         local pattern = Activity.FormatPattern(_G[global])
-        local got = pattern and { text:match(pattern) }
-        if got and #got >= 3 and Me(got[#got]) then return tonumber(got[#got - 2]) end
+        local roll = pattern and RollOf(text:match(pattern))
+        if roll then return roll end
     end
 end
 local function RollSource(id, value)

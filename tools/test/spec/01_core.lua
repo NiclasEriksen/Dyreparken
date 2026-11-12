@@ -149,6 +149,53 @@ return function(test, H)
         eq(hits, 1)
     end)
 
+    test("events: listeners changing during an event; no garbage per event", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        local E = c.ns.Events
+        local a, b, d, ran = {}, {}, {}, {}
+        local function D() ran[#ran + 1] = "d" end
+        E:On("UNIT_AURA", a, function()
+            ran[#ran + 1] = "a"
+            E:Off("UNIT_AURA", b) -- (removed before its turn: it doesn't run)
+            E:On("UNIT_AURA", d, D) -- (added: from the next event on)
+        end)
+        E:On("UNIT_AURA", b, function() ran[#ran + 1] = "b" end)
+        c:Fire("UNIT_AURA", "player")
+        ok(ran[1] == "a" or ran[1] == "b")
+        local first = table.concat(ran, ",")
+        ok(first == "a" or first == "b,a", "b ran only if before a: " .. first)
+        ran = {}
+        c:Fire("UNIT_AURA", "player")
+        table.sort(ran)
+        eq(table.concat(ran, ","), "a,d")
+        E:Off("UNIT_AURA", a); E:Off("UNIT_AURA", d)
+        -- An event that keeps coming makes no garbage of its own. (Not measurable under --coverage:
+        -- its line hook allocates.)
+        if debug.gethook() then return E:Off("UNIT_AURA", a) end
+        E:On("UNIT_AURA", a, function() end)
+        c:Fire("UNIT_AURA", "player")
+        collectgarbage("stop")
+        local before = collectgarbage("count")
+        for _ = 1, 1000 do c:Fire("UNIT_AURA", "player") end
+        local grew = collectgarbage("count") - before
+        collectgarbage("restart")
+        ok(grew < 40, ("%.1f KB for 1000 events"):format(grew))
+        E:Off("UNIT_AURA", a)
+    end)
+
+    test("a release forgets a debug log left from a git checkout or an old version", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { version = "v0.3.0", login = false })
+        c.saved.DyreparkenDebugDB = { enabled = true, echo = true, lines = { head = 2, "a", "b" },
+            api = { globals = {} }, animLengths = { [1] = {} } }
+        c:Login()
+        local db = c.env.DyreparkenDebugDB
+        no(c.ns.Debug.enabled)
+        eq(db.lines.head, 0); eq(db.lines[1], nil)
+        eq(db.api, nil); eq(db.animLengths, nil)
+    end)
+
     test("OutOfCombat runs now, or right after combat", function()
         local w = H.World()
         local c = w:AddClient("Ola Nord")
@@ -267,7 +314,7 @@ return function(test, H)
         c:Slash("liste")
         w:Run(5)
         local allowed = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true,
-            SLASH_DYREPARKEN1 = true, SLASH_DYREPARKEN2 = true, LibStub = true, ChatThrottleLib = true }
+            SLASH_DYREPARKEN1 = true, SLASH_DYREPARKEN2 = true, LibStub = true }
         for k in pairs(c.newGlobals) do ok(allowed[k], "unexpected global written: " .. tostring(k)) end
         -- Optional APIs the addon checks for before using them.
         local optional = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true, -- first login
