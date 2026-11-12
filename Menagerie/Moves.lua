@@ -360,7 +360,7 @@ Moves.SETTLE = 0.6
 Moves.SLEEP_AFTER = 2
 Moves.HAPPY_TOO_CHANCE = 1 / 3 -- a click plays happyToo instead of happy this often
 Moves.random = math.random -- (tests pin it)
-Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4 } -- how long each one-off plays
+Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4, attack = 1.5, cower = 1.5 } -- how long each one-off plays
 
 -- How long a one-off plays on this pet: as measured (Data/AnimLengths.lua, /dp probe lengths), else
 -- the fixed time. (2026-11-11: with a fixed 2 s, a pet froze on the end of a 1.1 s hop.)
@@ -373,7 +373,7 @@ end
 -- The species with a one-off move not measured in Data/AnimLengths.lua (a new companion, or a move changed
 -- in Data/PetMoves.lua): what /dp probe api lengths times by default (2026-11-12). A sit move counts only
 -- for a pet that can sit. Sorted ids.
-Moves.MEASURED = { "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "dead" }
+Moves.MEASURED = { "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "dead", "attack", "cower" }
 function Moves:Unmeasured()
     local list = {}
     for sid in pairs(ns.Companions and ns.Companions.species or {}) do
@@ -1064,6 +1064,16 @@ function Moves.NewStage(name, opts)
         if not cheer then return end
         local back = Back(key)
         self:Sequence({ { cheer, self:Length(key, cheer, self.T.cheer) }, { back } }, "cheer")
+    end
+
+    -- A one-off reaction played once, then back to its pose (Fight.lua: attack, cower). false: the pet
+    -- isn't on this stage, or doesn't do it.
+    function stage:Act(key, what)
+        if key ~= shown.key then return false end
+        local id = self:For(key, what)
+        if not id then return false end
+        self:Sequence({ { id, self:Length(key, id, self.T[what] or self.T.happy) }, { Back(key) } }, what)
+        return true
     end
 
     -- whole: the whole reaction the part belongs to; else just the part.

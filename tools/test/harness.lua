@@ -49,7 +49,8 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
     NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED
     PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING CHAT_MSG_EMOTE PLAYER_CONTROL_GAINED
-    CHAT_MSG_MONEY LOADING_SCREEN_ENABLED UNIT_HEALTH SPELLS_CHANGED ACTIVE_TALENT_GROUP_CHANGED TRAIT_CONFIG_UPDATED PLAYER_INTERACTION_MANAGER_FRAME_SHOW CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE PET_BATTLE_OPENING_START PET_BATTLE_CLOSE]]):gmatch("%S+") do
+    CHAT_MSG_MONEY LOADING_SCREEN_ENABLED UNIT_HEALTH SPELLS_CHANGED ACTIVE_TALENT_GROUP_CHANGED TRAIT_CONFIG_UPDATED PLAYER_INTERACTION_MANAGER_FRAME_SHOW CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE PET_BATTLE_OPENING_START PET_BATTLE_CLOSE
+    PLAYER_ENTER_COMBAT PLAYER_LEAVE_COMBAT START_AUTOREPEAT_SPELL STOP_AUTOREPEAT_SPELL UNIT_COMBAT]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1387,6 +1388,9 @@ function Client:BuildEnv()
     env.GetShapeshiftFormID = function() return S.form end -- (nil: no form, like the client)
     env.GetUnitSpeed = function(u) assert(u == "player"); return S.moving and ((S.mounted or S.form) and 14 or 7) or 0 end
     env.UnitOnTaxi = function() return S.taxi or false end
+    -- The swing: main hand and off hand speeds; ranged speed first. (Secret in combat? Unknown, 2026-11-12.)
+    env.UnitAttackSpeed = function(u) assert(u == "player"); return S.swing or 2.0, nil end
+    env.UnitRangedDamage = function(u) assert(u == "player"); return S.rangedSwing or 0, 0, 0, 0, 0, 0 end
     env.UnitIsDeadOrGhost = function() return S.dead or false end
     env.IsFlying = function() return S.flying or false end
     env.IsStealthed = function() return S.stealthed or false end
@@ -1444,7 +1448,9 @@ function Client:BuildEnv()
         c.sounds[#c.sounds + 1] = id
         return true
     end
-    env.C_Spell = { GetSpellName = function(id) return S.spellNames and S.spellNames[id] end }
+    env.C_Spell = { GetSpellName = function(id) return S.spellNames and S.spellNames[id] end,
+        -- (6603 Attack: true while auto-attack is on; the global IsCurrentSpell doesn't exist on Forever)
+        IsCurrentSpell = function(id) return id == 6603 and S.attacking or false end }
     -- Spells the character knows (S.spells: id -> true; c:Learn), talents unspent (S.unspent), quests.
     env.IsPlayerSpell = function(id) return S.spells ~= nil and S.spells[id] == true end
     env.IsSpellKnown = function(id) return S.spells ~= nil and S.spells[id] == true end

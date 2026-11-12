@@ -128,7 +128,8 @@ Core/ApiProbe.lua  /dp probe api [section|clear]: what the client really has (gl
                    holidays (the calendar a year ahead), lengths (every species' moves, DyreparkenDebugDB.animLengths)
                    and feats (Feats' spell and quest ids as the client has them, Forever's copies among your completed
                    quests, talent/spec getters; then logs the candidate talent, spec and trainer events this session);
-                   transport (zone, map and world changes, casts and a sample every 5 s, this session: zeppelins and boats)
+                   transport (zone, map and world changes, casts and a sample every 5 s, this session: zeppelins and boats);
+                   combat (auto-attack, auto shot, casts, UNIT_COMBAT on you and your target, swing speeds, this session)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git; a new companion:
                    tools/companions/add.py, see "Adding a companion" in tools/companions/README.md): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
@@ -163,7 +164,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
                    lines and level-ups), Voyage (zeppelins and boats: a loading screen between two zones a route joins,
                    ROUTES, not after a hearthstone or portal; a zeppelin counts as flying too; eggs luftskip, seilas
-                   by trait and family), Meter (0.5: after a boss kill in a group of three or more, with a pet out, the
+                   by trait and family), Fight (the pet frame's pet joins your fights now and then, by its traits: an
+                   attack move, a timid one cowers, a Latsabb watches; no combat log, so a "swing" is a physical hit on
+                   your target (UNIT_COMBAT) while your auto-attack is on, one per weapon swing, plus your casts; only in
+                   a fight and only while the pet frame shows a pet), Meter (0.5: after a boss kill in a group of three or more, with a pet out, the
                    meter's Current session read once, a second after the boss activity: first in damage, first in healing
                    in a raid, the most interrupts are eggs-only activities (dmgtop, healtop, kicktop); their eggs
                    (toppen, helter, sparket) a gold bubble and a cheer, likelier in a raid and far ahead), Feats (a character's big moments, 0.5: a class quest's reward, riding, level 60

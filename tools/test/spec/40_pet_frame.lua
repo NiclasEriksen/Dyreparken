@@ -327,18 +327,18 @@ return function(test, H)
         local f = PF.frame
         local S = ola.ns.DB.global.settings
         -- Hidden in combat: off by default, nothing listened to.
-        no(Listening(ola, "PLAYER_REGEN_DISABLED"))
+        no(PF.combatOn) -- (the fight events are Fight.lua's too, while the frame is on)
         ola:EnterCombat(); w:Run(0.1)
         ok(f:IsShown(), "the option is off")
         ola:LeaveCombat()
         S.petFrameCombat = true; PF:Apply()
-        ok(Listening(ola, "PLAYER_REGEN_DISABLED"))
+        ok(PF.combatOn)
         ola:EnterCombat()
         no(f:IsShown(), "in combat: hidden")
         ola:LeaveCombat()
         ok(f:IsShown(), "out again")
         S.petFrameCombat = false; PF:Apply()
-        no(Listening(ola, "PLAYER_REGEN_DISABLED"), "off: the events go")
+        no(PF.combatOn, "off: the events go")
         -- Faded: off by default.
         eq(f:GetAlpha(), 1)
         w:Run(10) -- (the day's first points just rose: at full a moment)

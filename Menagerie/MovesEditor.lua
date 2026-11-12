@@ -25,6 +25,7 @@ Editor.PARTS = {
     { "sleep", "Sleep: lie down" }, { "sleepHold", "Sleep: held (none: paused)" }, { "sleepUp", "Sleep: get up" },
     { "sitDown", "Sit: sit down" }, { "sit", "Sit: sitting" }, { "sitUp", "Sit: get up" },
     { "happy", "Happy (a click)" }, { "happyToo", "Happy: now and then" }, { "cheer", "Cheer (level-up)" }, { "dead", "Playing dead" },
+    { "attack", "Attack (your fights)" }, { "cower", "Cower (a timid one's)" },
     { "walk", "Walk" }, { "run", "Run" },
     { "jumpStart", "Jump: take off" }, { "jump", "Jump: in the air" }, { "jumpEnd", "Jump: land" },
 }

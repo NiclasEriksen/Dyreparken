@@ -462,7 +462,7 @@ end
 -- How long each of the card's moves plays on this model, by OnAnimFinished.
 function Api:TimeMoves(m, key, out)
     local ids, seen = {}, {}
-    for _, what in ipairs({ "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "sleep", "dead" }) do
+    for _, what in ipairs({ "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "sleep", "dead", "attack", "cower" }) do
         local id = ns.Moves:For(key, what)
         if id and not seen[id] then seen[id] = true; ids[#ids + 1] = { what, id } end
     end
@@ -556,7 +556,7 @@ end
 -- How long every species' one-off moves play, by OnAnimFinished on invisible PlayerModels, a few at a
 -- time. Each is timed twice (the first may be cut short by the stand it interrupts); the second counts.
 Api.WORKERS, Api.LOAD_WAIT = 6, 2
-Api.PARTS = { "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "sleep", "dead" }
+Api.PARTS = { "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "sleep", "dead", "attack", "cower" }
 -- arg (2026-11-12, the user: "running the lengths probe for all animals when we add a single new one"):
 -- none: only the species with a move unmeasured (Moves:Unmeasured: a new companion, or a move changed in
 -- Data/PetMoves.lua); "all": every species; species ids: those. Each run saves only what it measured (a
@@ -1098,6 +1098,46 @@ function S.transport(out)
 end
 
 ------------------------------------------------------------------------------
+-- combat (2026-11-12, by name only: an attack move for the pet frame, the user). There's no combat log on
+-- Forever, so this logs what a fight looks like without one: auto-attack on and off (PLAYER_ENTER/LEAVE_COMBAT),
+-- auto shot or a wand (START/STOP_AUTOREPEAT_SPELL), your casts, UNIT_COMBAT on you and your target (each
+-- hit: whose? secret?), and at each start the swing speeds (UnitAttackSpeed, UnitRangedDamage: secret in
+-- combat?). To the debug log ("combat ..."), this session, at most COMBAT_MAX lines. Fight a few mobs in
+-- melee (and with a wand or a bow if you have one), then /reload.
+Api.COMBAT_EVENTS = { "PLAYER_ENTER_COMBAT", "PLAYER_LEAVE_COMBAT", "START_AUTOREPEAT_SPELL", "STOP_AUTOREPEAT_SPELL",
+    "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "PLAYER_TARGET_SET_ATTACKING", "UNIT_ATTACK", "UNIT_ATTACK_SPEED" }
+Api.COMBAT_MAX = 400
+function Api.Swing()
+    return ("speed %s | ranged %s | attacking %s | autorepeat %s | current 6603 %s | combat %s"):format(
+        Try(UnitAttackSpeed, "player"), Try(UnitRangedDamage, "player"), Try(IsCurrentSpell, 6603),
+        Try(IsAutoRepeatSpell, "Shoot"), Try(C_Spell and C_Spell.IsCurrentSpell or IsCurrentSpell, 6603),
+        Try(InCombatLockdown))
+end
+function S.combat(out)
+    out.now = Api.Swing()
+    if Api.combatWatch then return "watching already: " .. out.now end
+    local f = CreateFrame("Frame")
+    Api.combatWatch = f
+    local refused, n = {}, 0
+    for _, e in ipairs(Api.COMBAT_EVENTS) do
+        if not pcall(f.RegisterEvent, f, e) then refused[#refused + 1] = e end
+    end
+    if not pcall(f.RegisterUnitEvent, f, "UNIT_SPELLCAST_SUCCEEDED", "player") then refused[#refused + 1] = "UNIT_SPELLCAST_SUCCEEDED" end
+    if not pcall(f.RegisterUnitEvent, f, "UNIT_COMBAT", "player", "target") then refused[#refused + 1] = "UNIT_COMBAT" end
+    out.refused = refused
+    f:SetScript("OnEvent", function(_, event, a, b, c, d, e)
+        n = n + 1
+        if n > Api.COMBAT_MAX then return f:UnregisterAllEvents() end
+        local extra = ""
+        if event == "PLAYER_ENTER_COMBAT" or event == "START_AUTOREPEAT_SPELL" or event == "PLAYER_REGEN_DISABLED" then
+            extra = " | " .. Api.Swing()
+        end
+        ns.Log("Api", "combat %s (%s, %s, %s, %s, %s)%s", event, Show(a), Show(b), Show(c), Show(d), Show(e), extra)
+    end)
+    return ("watching this session (events refused: %s): %s"):format(#refused > 0 and table.concat(refused, " ") or "none", out.now)
+end
+
+------------------------------------------------------------------------------
 Api.ORDER = { "globals", "namespaces", "enum", "events", "widgets", "templates", "strings", "values", "card",
     "calendar", "model" }
 
@@ -1116,7 +1156,7 @@ function Api:Run(arg)
     rest = rest ~= "" and rest or nil
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, transport)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, transport, combat)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out, rest)

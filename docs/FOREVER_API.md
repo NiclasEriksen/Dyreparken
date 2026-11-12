@@ -424,6 +424,17 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   Forever's 14 routes (wowforever.be, from the 1.60.1 game files): new are Steamwheedle Port to Powderfuse Port,
   Stormwind Harbor to Auberdine, Menethil to Southshore to Auberdine, and Zephras Isle's zeppelins (Valanaar to
   Dalaran and to Skywatcher Plateau); their zone names other than Riverglades are unverified.
+- **A melee fight without a combat log** (2026-11-12, 1.60.1, `/dp probe api combat`, a shaman, solo, one mob):
+  `PLAYER_ENTER_COMBAT` fires when auto-attack starts (here 5 s before `PLAYER_REGEN_DISABLED`: walking up to the
+  mob) and `PLAYER_LEAVE_COMBAT` when it stops (just before `PLAYER_REGEN_ENABLED`). `UNIT_COMBAT` registered for
+  "player" and "target" fires each hit: unit, action (`WOUND`, `MISS`, `DODGE`), flag text (`CRITICAL`, `GLANCING`,
+  `BLOCK_REDUCED`, or ""), amount **secret**, school mask **plain** (1 physical; 4 fire, 8 nature, 16 frost: the
+  shaman's shocks and weapon procs). It doesn't say who hit: on "target" solo, the physical hits come every 2.4-2.9 s,
+  your swings (`UnitAttackSpeed("player")` 2.4, read out of combat); in a group anyone's would. `UNIT_SPELLCAST_SUCCEEDED`
+  in combat gave plain spell ids (8053 Flame Shock, 8058, 10412, 408510). `C_Spell.IsCurrentSpell(6603)` (Attack) is
+  true while auto-attack is on; the globals `IsCurrentSpell` and `IsAutoRepeatSpell` don't exist.
+  `UnitRangedDamage("player")` answers (0 speed without a ranged weapon). `START/STOP_AUTOREPEAT_SPELL` register fine
+  (unseen: no ranged weapon); `PLAYER_TARGET_SET_ATTACKING` doesn't exist.
 - **The layout cache** (2026-11-12, 1.60.1, from Logs/AccountData.log): a named frame moved with `StartMoving` is
   user-placed, and the client saves its spot itself ("Frame: DyreparkenPetFrame", anchor, x, y), to restore it
   before our code runs. A frame that keeps its own spot calls `SetUserPlaced(false)` after a drag. `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.

@@ -560,6 +560,7 @@ local refreshSoon, companionSoon
 function PF:On()
     if self.on then return self:Refresh() end
     self.on = true
+    if ns.Fight then ns.Fight:Watch(true) end
     local okB, inBattle = pcall(function() return C_PetBattles and C_PetBattles.IsInBattle() end)
     self.battle = okB and ns.Plain(inBattle) and true or nil -- (a /reload in a pet battle)
     refreshSoon = refreshSoon or ns.Debounce(0.3, function() PF:Refresh() end)
@@ -596,6 +597,7 @@ end
 function PF:Off()
     if not self.on and not self.frame then return end
     self.on = nil
+    if ns.Fight then ns.Fight:Watch(false) end
     for _, e in ipairs({ "COMPANION_UPDATE", "PLAYER_ENTERING_WORLD", "PET_BATTLE_OPENING_START", "PET_BATTLE_CLOSE" }) do
         ns.Events:Off(e, PF)
     end

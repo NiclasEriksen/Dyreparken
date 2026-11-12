@@ -31,6 +31,8 @@ local _, ns = ...
 --   happyToo  played instead of happy now and then (Moves.HAPPY_TOO_CHANCE), for variation: the
 --             pet battle wounds have some neat moves (the user, 2026-11-11). false: always happy
 --   cheer  a bond level-up, during the celebration
+--   attack  the pet frame's pet joins your fight now and then (Menagerie/Fight.lua; false: it doesn't)
+--   cower   ... a timid one cowers instead (Kosete, Kjælen, Hjemlengsel, Venneflokk)
 --   dead   the day of the "is it safe to live with you?" egg, once
 --   walk   the pet you keep out (auto-summon), while you move on foot and it would just stand
 --   run    ... while you're mounted and moving (on a taxi it stands)
@@ -48,7 +50,7 @@ local _, ns = ...
 -- The default (2026-11-11) is what most pets got by eye in /dp probe moves: asleep in Dead (6),
 -- standing up on waking, never sitting. Overrides are only what differs from it.
 ns.PetMoves = {
-    default = { sleep = 6, sleepAt = 0.7, sleepHold = 6, sleepUp = 0, canSit = false, sitDown = 96, sit = 97, sitUp = 98, happy = 756, happyToo = 748, cheer = 754, dead = 1, walk = 4, run = 5,
+    default = { sleep = 6, sleepAt = 0.7, sleepHold = 6, sleepUp = 0, canSit = false, sitDown = 96, sit = 97, sitUp = 98, happy = 756, happyToo = 748, cheer = 754, dead = 1, attack = 750, cower = 748, walk = 4, run = 5,
         canJump = true, jumpStart = 37, jump = 38, jumpEnd = 39 },
     species = {
         [39] = { lift = -0.1 },  -- Mechanical Squirrel
@@ -104,7 +106,7 @@ ns.PetMoves = {
         [5075] = { lift = -0.5, sleep = 1 },  -- Excitable Slime
         [5094] = { lift = 0.7 },  -- Bitter Baitling
         [5121] = { lift = 0.15 },  -- Prairie Wolf Pup
-        [5135] = { sleep = 1 },  -- Shadowgale Squirrel
+        [5135] = { sleep = 1, attack = 754, cower = false },  -- Shadowgale Squirrel: no 748, 750 or 756 (lengths probe, 2026-11-12)
         [5136] = { lift = -0.5, sleep = 1 },  -- Weevil K. Neevil
         [5138] = { lift = 0.1, sleep = 1 },  -- Pachimari
         [5139] = { lift = -0.15 },  -- Galestrider Chick

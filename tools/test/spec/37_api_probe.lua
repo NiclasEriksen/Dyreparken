@@ -140,10 +140,19 @@ return function(test, H)
         match(ola:Printed("api probe", true), "lengths done, " .. species .. " species")
     end)
 
+    test("lengths: the probe times every move Moves:Unmeasured asks about", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local timed = {}
+        for _, what in ipairs(ola.ns.ApiProbe.PARTS) do timed[what] = true end
+        for _, what in ipairs(ola.ns.Moves.MEASURED) do ok(timed[what], what .. " (ApiProbe.PARTS)") end
+    end)
+
     test("lengths: only the species with a move unmeasured (a new companion), added to the last run; or ids", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         Models(ola)
         local M = ola.ns.Moves
+        -- (the attack and cower moves, 2026-11-12, as if already measured)
+        for _, own in pairs(ola.ns.AnimLengths) do own[750] = own[750] or 1; own[748] = own[748] or 1 end
         ola.ns.AnimLengths[40] = nil -- (as if the Bombay were new)
         local missing = M:Unmeasured()
         ok(#missing >= 1)
@@ -315,6 +324,20 @@ return function(test, H)
         secret = false
         rawset(ola.env, "C_DamageMeter", nil)
         eq(ola.ns.ApiProbe.MeterRead(1, 0), "no C_DamageMeter")
+    end)
+
+    test("combat: auto-attack, auto shot, casts and hits logged this session, with the swing speeds", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("debug on")
+        ola:Slash("probe api combat")
+        match(ola:Printed("api probe combat", true), "watching this session.*speed 2")
+        ola:Fire("PLAYER_ENTER_COMBAT")
+        match(ola:Log("combat PLAYER_ENTER_COMBAT")[1], "| speed 2")
+        ola:Fire("UNIT_COMBAT", "target", "WOUND", "", 120, 1)
+        match(ola:Log("combat UNIT_COMBAT")[1], '"target", "WOUND"')
+        ola.env.DyreparkenDebugDB.api = nil
+        ola:Slash("probe api combat")
+        match(ola:Printed("api probe combat", true), "watching already")
     end)
 
     test("transport: where you are, logged at every zone and world change, each cast, and every few seconds", function()
