@@ -47,4 +47,44 @@ return function(test, H)
         no(card.bond.medal.glow.pulse:IsPlaying())
         for _, p in ipairs(card.decor.parts) do no(p.anim:IsPlaying()) end
     end)
+
+    test("ns.Timers: After and Every run in time; a cancelled callback never runs, a later one does", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local t = ola.ns.Timers()
+        local ran = {}
+        t:After(1, function() ran[#ran + 1] = "a" end)
+        t:Every(0.5, 3, function(i) ran[#ran + 1] = "e" .. i end)
+        w:Run(1.01)
+        eq(table.concat(ran, " "), "e1 e2 a")
+        t:After(2, function() ran[#ran + 1] = "x" end)
+        t:Cancel()
+        w:Run(5)
+        eq(table.concat(ran, " "), "e1 e2 a", "nothing after the cancel")
+        t:After(1, function() ran[#ran + 1] = "b" end)
+        w:Run(1.01)
+        eq(ran[#ran], "b", "scheduled after the cancel: runs")
+        -- Cancelled from its own callback: the chain ends there.
+        local n = 0
+        t:Every(0.5, 5, function() n = n + 1; if n == 2 then t:Cancel() end end)
+        w:Run(5)
+        eq(n, 2)
+        -- Groups are apart.
+        local other, hit = ola.ns.Timers(), false
+        other:After(1, function() hit = true end)
+        t:Cancel()
+        w:Run(1.01)
+        ok(hit)
+    end)
+
+    test("a stale growth can't land on the bar once another pet's is drawn", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        local card = ola:SelectPet(5159)
+        local T, b = ola.ns.BondTrack, card.bond
+        T:Animate(card, 50, 0, 100, 10, { 40 })
+        w:Run(T.GROW.delay + 0.1) -- (growing)
+        b:SetValue(80) -- another pet's bar, with nothing to grow
+        T:Animate(card, 80, 0, 100, 80, {})
+        w:Run(3)
+        eq(b:GetValue(), 80, "the last pet's growth stopped")
+    end)
 end

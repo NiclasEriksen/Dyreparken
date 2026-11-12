@@ -42,6 +42,8 @@ PF.PEEK_HOLD = 1          -- seconds the bar stays after its last number has fad
 PF.ACTIVE_FOR = 4         -- seconds at full after a pet event (rising points: as long as they rise)
 
 local L = ns.L
+-- One group each: a new one cancels the last (the last timer decides).
+local cameraT, activeT, peekT, changeT = ns.Timers(), ns.Timers(), ns.Timers(), ns.Timers()
 
 local function Call(obj, method, ...)
     if not obj then return false end
@@ -237,11 +239,8 @@ function PF:Camera()
     end
     if not self.sceneUpdate then return end
     scene:SetScript("OnUpdate", self.sceneUpdate)
-    self.cameraToken = (self.cameraToken or 0) + 1
-    local token = self.cameraToken
-    C_Timer.After(self.CAMERA_FOR, function()
-        if PF.cameraToken == token then PF.scene:SetScript("OnUpdate", nil) end
-    end)
+    cameraT:Cancel()
+    cameraT:After(self.CAMERA_FOR, function() PF.scene:SetScript("OnUpdate", nil) end)
 end
 
 function PF:Place()
@@ -343,28 +342,24 @@ function PF:Fade()
     f:SetAlpha(faded and (ns.Settings:Get("petFrameAlpha") or 0.25) or 1)
 end
 
--- Something happened to the pet: at full for `secs` (one token: the last timer decides).
+-- Something happened to the pet: at full for `secs` (the last timer decides).
 function PF:Active(secs)
-    self.activeToken = (self.activeToken or 0) + 1
-    local token = self.activeToken
     self.active = true
     self:Fade()
-    C_Timer.After(secs or self.ACTIVE_FOR, function()
-        if PF.activeToken ~= token then return end
+    activeT:Cancel()
+    activeT:After(secs or self.ACTIVE_FOR, function()
         PF.active = nil
         PF:Fade()
     end)
 end
 
--- Shown for `secs`; a later peek extends it (one token: the last timer decides).
+-- Shown for `secs`; a later peek extends it (the last timer decides).
 function PF:Peek(secs)
     self:Active(secs)
-    self.peekToken = (self.peekToken or 0) + 1
-    local token = self.peekToken
     self.peek = true
     self:ShowBar()
-    C_Timer.After(secs, function()
-        if PF.peekToken ~= token then return end
+    peekT:Cancel()
+    peekT:After(secs, function()
         PF.peek = nil
         PF:ShowBar()
     end)
@@ -391,7 +386,7 @@ function PF:Refresh()
         -- The last pet's rise, and the peek it kept up, end here: else its growth's timers set
         -- its points on this pet's bar, and the check below would leave that bar to them.
         ns.BondTrack:StopGains(self.track)
-        self.peekToken, self.peek = (self.peekToken or 0) + 1, nil
+        peekT:Cancel(); self.peek = nil
         self.key, self.points = key, nil
         self.stage:Update(f, nil) -- (the last pet's pose ends)
         self:Load(key)
@@ -436,8 +431,8 @@ function PF:NextChange()
     -- One timer at a time (code review 2026-11-11: a new one on every refresh piled up thousands).
     if self.changeAt == at then return end
     self.changeAt = at
-    C_Timer.After(at - now, function()
-        if PF.changeAt ~= at then return end
+    changeT:Cancel()
+    changeT:After(at - now, function()
         PF.changeAt = nil
         if PF.frame and PF.frame:IsShown() then PF:Refresh() end
     end)

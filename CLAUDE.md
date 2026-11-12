@@ -139,6 +139,8 @@ Core/Activity.lua  the activity engine: game events -> activities, every one dec
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
                    (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
 Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, Scale): no BOUNCE loops, one group per region
+Core/Timers.lua    ns.Timers(): a group of cancellable timers (After, Every, Cancel bumps a generation): use it instead of
+                   a hand-written token guard around C_Timer.After
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp; Norwegian

@@ -22,6 +22,7 @@ Locale\nb.lua
 Core\Debug.lua
 Core\Events.lua
 Core\Anim.lua
+Core\Timers.lua
 Core\DB.lua
 Core\Comm.lua
 Core\Version.lua

@@ -383,10 +383,16 @@ local function Numbers(b)
     return b.numbers
 end
 
+-- The bar's growth and numbers: one group of timers, cancelled whenever they stop.
+local function Timers(b)
+    b.gainTimers = b.gainTimers or ns.Timers()
+    return b.gainTimers
+end
+
 function Track:StopGains(card)
     local b = card.bond
     if not b then return end
-    b.gainToken = (b.gainToken or 0) + 1
+    Timers(b):Cancel()
     if b.growTo then b:SetValue(b.growTo); b.growTo, b.growAt = nil, nil end
     for _, f in ipairs(b.numbers or {}) do f.anim:Stop(); f:Hide() end
 end
@@ -414,22 +420,21 @@ end
 -- the numbers in `list` rising from its tip. (/dp probe gains plays it too.)
 function Track:Animate(card, points, from, top, last, list)
     local b = card.bond
-    local token = (b.gainToken or 0) + 1
-    b.gainToken = token
+    local t = Timers(b)
+    t:Cancel() -- (an earlier growth ends here)
     -- The bar: from where it was (within this level) to now, in steps.
     local start = math.max(from, last)
     if start < points then
         local g = self.GROW
         b.growTo, b.growAt = points, start
         b:SetValue(start)
-        for i = 1, g.steps do
-            C_Timer.After(g.delay + i * g.every, function()
-                if b.gainToken ~= token then return end
+        t:After(g.delay, function()
+            t:Every(g.every, g.steps, function(i)
                 b.growAt = start + (points - start) * i / g.steps
                 b:SetValue(b.growAt)
                 if i == g.steps then b.growTo, b.growAt = nil, nil end
             end)
-        end
+        end)
     end
     -- The numbers, rising from the bar's tip, one after another.
     local pool = Numbers(b)
@@ -437,8 +442,7 @@ function Track:Animate(card, points, from, top, last, list)
     local x = width * math.max(0, math.min(1, (points - from) / math.max(1, top - from)))
     for i, n in ipairs(list) do
         if i > #pool then break end
-        C_Timer.After(self.GROW.delay + (i - 1) * self.NUMBER_EVERY, function()
-            if b.gainToken ~= token then return end
+        t:After(self.GROW.delay + (i - 1) * self.NUMBER_EVERY, function()
             local f = pool[i]
             f.text:SetText("+" .. n)
             f:ClearAllPoints()
