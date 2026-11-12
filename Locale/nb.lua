@@ -430,7 +430,7 @@ L["egg.ener.1"] = "{pet} så terningen lande på 1 og prøver tappert å holde m
 L["egg.ener.2"] = "{pet} ler så den hikster. En av hundre!"
 L["egg.ener.3"] = "{pet} har aldri sett noen rulle så dårlig. Imponerende, egentlig."
 L["egg.ener.4"] = "{pet} klapper deg trøstende. 1 er også et tall."
-L["egg.fiskeflaks.1"] = "{pet} ser på deg, så på vannet, så på deg igjen. To fisker i strekk!"
+L["egg.fiskeflaks.1"] = "{pet} ser på deg, så på vannet, så på deg igjen."
 L["egg.fiskeflaks.2"] = "{pet} lurer på om du har hørt om agn."
 L["egg.fiskeflaks.3"] = "{pet} fniser. Fisken lo nok også."
 L["egg.fiskeflaks.4"] = "{pet} tilbyr seg å hoppe uti og hente den neste selv."
@@ -453,7 +453,7 @@ L["egg.nyrute.redd.2"] = "{pet} håper du ikke har tenkt å bruke den nye flight
 L["egg.fiskedag.1"] = "{pet} har hørt om fiskekonkurransen i Stranglethorn i dag og vil være med!"
 L["egg.fiskedag.2"] = "{pet} drømmer om den største fisken i Stranglethorn. Det er konkurranse i dag!"
 L["egg.baalnaer.1"] = "{pet} kikker lengselsfullt mot leirbålet. Skal vi ikke sette oss litt?"
-L["egg.baalnaer.2"] = "{pet} lukter bålrøyk og blir helt myk i blikket."
+L["egg.baalnaer.2"] = "{pet} lukter bålrøyk og blir helt myk i sjela."
 L["egg.baalvarm.1"] = "{pet} krøller seg sammen ved bålet og varmer potene."
 L["egg.baalvarm.2"] = "{pet} har funnet den beste plassen ved bålet."
 L["egg.baalvarm.eventyr.1"] = "{pet} tripper rundt bålet. Skal vi sitte her lenge?"
@@ -762,11 +762,11 @@ ns.AchTexts = {
         flavor = "{player} og {pet} har felt 250 bosser sammen! {name}", plain = "{player} og dyret sitt har felt 250 bosser sammen! {name}" },
     ["boss:1000"] = { name = "Bossjeger", desc = "Drep 1000 bosser med dyret ditt ute.",
         flavor = "{player} og {pet} har felt 1000 bosser sammen! {name}", plain = "{player} og dyret sitt har felt 1000 bosser sammen! {name}" },
-    ["pvp:50"] = { name = "Kampklar", desc = "Ta 50 honorable kills med dyret ditt ute.",
+    ["pvp:50"] = { name = "Kampklar", desc = "Få 50 honorable kills med dyret ditt ute.",
         flavor = "{player} og {pet} har tatt 50 honorable kills sammen! {name}", plain = "{player} og dyret sitt har tatt 50 honorable kills sammen! {name}" },
-    ["pvp:250"] = { name = "Slagmarkens skrekk", desc = "Ta 250 honorable kills med dyret ditt ute.",
+    ["pvp:250"] = { name = "Slagmarkens skrekk", desc = "Få 250 honorable kills med dyret ditt ute.",
         flavor = "{player} og {pet} har tatt 250 honorable kills sammen! {name}", plain = "{player} og dyret sitt har tatt 250 honorable kills sammen! {name}" },
-    ["pvp:1000"] = { name = "Krigsherre", desc = "Ta 1000 honorable kills med dyret ditt ute.",
+    ["pvp:1000"] = { name = "Krigsherre", desc = "Få 1000 honorable kills med dyret ditt ute.",
         flavor = "{player} og {pet} har tatt 1000 honorable kills sammen! {name}", plain = "{player} og dyret sitt har tatt 1000 honorable kills sammen! {name}" },
     ["quest:100"] = { name = "Hjelpsomme sjeler", desc = "Fullfør 100 quests med dyret ditt ute.",
         flavor = "{player} og {pet} har fullført 100 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 100 quests sammen! {name}" },
@@ -798,24 +798,24 @@ ns.AchTexts = {
         flavor = "{guild} tar vare på 50 dyr! {name}" },
     ["guild:all"] = { name = "Hele parken", desc = "Guilden tar vare på alle dyrene som kan skaffes i spillet, samtidig.",
         flavor = "Hvert eneste dyr har et hjem i {guild}! {name}" },
-    ["guild:family:cat"] = { name = "Kattehuset", desc = "Hver katt har sin egen eier i guilden.",
+    ["guild:family:cat"] = { name = "Kattehuset", desc = "Hver katt blir tatt vare på i guilden.",
         flavor = "Hver eneste katt har fått sitt eget hjem i {guild}! {name}" },
-    ["guild:family:farm"] = { name = "Bondegården", desc = "Hvert gårdsdyr har sin egen eier i guilden.",
+    ["guild:family:farm"] = { name = "KuToppen", desc = "Hvert gårdsdyr blir tatt vare på i guilden.",
         flavor = "Hvert eneste gårdsdyr har fått sitt eget hjem i {guild}! Kua er fornøyd. {name}" },
-    ["guild:family:owl"] = { name = "Ugleparlamentet", desc = "Hver ugle har sin egen eier i guilden.",
+    ["guild:family:owl"] = { name = "Ugleparlamentet", desc = "Hver ugle blir tatt vare på i guilden.",
         flavor = "Hver eneste ugle har fått sitt eget hjem i {guild}! Parlamentet er satt. {name}" },
-    ["guild:family:rabbit"] = { name = "Kaninøya", desc = "Hver kanin har sin egen eier i guilden.",
+    ["guild:family:rabbit"] = { name = "Kaninøya", desc = "Hver kanin blir tatt vare på i guilden.",
         flavor = "Hver eneste kanin har fått sitt eget hjem i {guild}! (Tell dem igjen i morgen.) {name}" },
-    ["guild:family:snake"] = { name = "Terrariet", desc = "Hver slange har sin egen eier i guilden.",
+    ["guild:family:snake"] = { name = "Terrariet", desc = "Hver slange blir tatt vare på i guilden.",
         flavor = "Hver eneste slange har fått sitt eget hjem i {guild}! Sssss. {name}" },
-    ["guild:family:frog"] = { name = "Kvekkekoret", desc = "Hver frosk og padde har sin egen eier i guilden.",
+    ["guild:family:frog"] = { name = "Kvekkekoret", desc = "Hver frosk og padde blir tatt vare på i guilden.",
         flavor = "Hver eneste frosk og padde har fått sitt eget hjem i {guild}! Koret er komplett. {name}" },
-    ["guild:family:mechanical"] = { name = "Verkstedet", desc = "Hvert mekaniske dyr har sin egen eier i guilden.",
+    ["guild:family:mechanical"] = { name = "Verkstedet", desc = "Hvert mekaniske dyr blir tatt vare på i guilden.",
         flavor = "Hvert eneste mekaniske dyr har fått sitt eget hjem i {guild}! Bzzt-klikk. {name}" },
-    ["guild:family:dragon"] = { name = "Dragefjellet", desc = "Hver drage har sin egen eier i guilden.",
+    ["guild:family:dragon"] = { name = "Dragegrotta", desc = "Hver drage blir tatt vare på i guilden.",
         flavor = "Hver eneste drage har fått sitt eget hjem i {guild}! Ha brannslukkeren klar. {name}" },
-    ["guild:family:bird"] = { name = "Fuglefjellet", desc = "Hver fugl har sin egen eier i guilden.",
+    ["guild:family:bird"] = { name = "Fuglefjellet", desc = "Hver fugl blir tatt vare på i guilden.",
         flavor = "Hver eneste fugl har fått sitt eget hjem i {guild}! {name}" },
-    ["guild:family:pirate"] = { name = "Piratskuta", desc = "Hvert piratdyr har sin egen eier i guilden.",
+    ["guild:family:pirate"] = { name = "Den Sorte Dame", desc = "Hvert piratdyr blir tatt vare på i guilden.",
         flavor = "Hvert eneste piratdyr har fått sitt eget hjem i {guild}! Hiv og hoi! {name}" },
 }

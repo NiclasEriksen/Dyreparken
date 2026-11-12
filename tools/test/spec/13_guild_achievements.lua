@@ -216,7 +216,7 @@ return function(test, H)
         w:Run(20)
         for _, c in ipairs({ ola, kari }) do
             ok(c.ns.Achievements:Got("guild:family:farm"), c.name)
-            ok(c:Printed("Dyreparken: Dyreparken fikk [Bondegården]!", true))
+            ok(c:Printed("Dyreparken: Dyreparken fikk [KuToppen]!", true))
         end
         -- A family without counting pets here (owls) is never earned.
         no(ola.ns.Achievements:Got("guild:family:owl"))
