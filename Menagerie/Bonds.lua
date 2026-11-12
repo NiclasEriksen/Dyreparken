@@ -85,22 +85,31 @@ function Bonds:TellUnlocks(key, level)
     local name = ns.Registry:NameOf(key)
     if like and level >= C.MINOR_LIKE_LEVEL and not told[key].like then
         told[key].like = true
-        ns.Print("|cffd9b3ff" .. ns.T("unlock.like", { pet = name, what = P.NOUN[like] }) .. "|r")
+        local line = ns.T("unlock.like", { pet = name, what = P.NOUN[like] })
+        ns.Print("|cffd9b3ff" .. line .. "|r")
+        ns.Bus:Fire("PET_SAID", key, "major", line)
     end
     if dislike and level >= C.MINOR_DISLIKE_LEVEL and not told[key].dislike then
         told[key].dislike = true
-        ns.Print("|cffd9b3ff" .. ns.T("unlock.dislike", { pet = name }) .. "|r")
+        local line = ns.T("unlock.dislike", { pet = name })
+        ns.Print("|cffd9b3ff" .. line .. "|r")
+        ns.Bus:Fire("PET_SAID", key, "major", line)
     end
 end
 
 -- What Bond.lua has to say (it prints nothing itself).
 ns.Bus:On("BOND_LEVEL", function(key, level, name)
-    ns.Print(ns.T("bond.levelup", { pet = ns.Registry:NameOf(key), n = level, level = name }))
+    local line = ns.T("bond.levelup", { pet = ns.Registry:NameOf(key), n = level, level = name })
+    ns.Print(line)
+    ns.Bus:Fire("PET_SAID", key, "major", line)
     if key == ns.Registry:MyPet() then Bonds:TellNameUnlock() end
     if ns.Personality:Known(key) then Bonds:TellUnlocks(key, level) end
 end)
 ns.Bus:On("BOND_FULL", function(key) ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end)
-ns.Bus:On("BOND_LINE", function(_, text) if ns.Settings:On("chatLines") then ns.PrintGold(text) end end)
+ns.Bus:On("BOND_LINE", function(key, text, kind)
+    if ns.Settings:On("chatLines") then ns.PrintGold(text) end
+    ns.Bus:Fire("PET_SAID", key, kind or "like", text)
+end)
 
 -- The park's birthday (2026-11-10): the day of the guild's first adoption we
 -- know of (the oldest claim: a bond with a pet you haven't adopted isn't an
@@ -192,7 +201,9 @@ function Bonds:Patted(text, sender)
     local now = GetTime()
     if patted[sender] and now - patted[sender] < self.PAT_AGAIN then return end
     patted[sender] = now
-    ns.Print("|cffd9b3ff" .. ns.T("pat.thanks", { pet = ns.Registry:NameOf(key), who = sender }) .. "|r")
+    local line = ns.T("pat.thanks", { pet = ns.Registry:NameOf(key), who = sender })
+    ns.Print("|cffd9b3ff" .. line .. "|r")
+    ns.Bus:Fire("PET_SAID", key, "like", line)
     if ns.Fx then ns.Fx:Burst({ DEFAULT_CHAT_FRAME, "TOPRIGHT", -24, -8 }, "heart", { n = 4, color = ns.Fx.PINK, size = 0.7 }) end
 end
 

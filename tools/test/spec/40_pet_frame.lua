@@ -414,4 +414,55 @@ return function(test, H)
         eq(scene.scripts.OnUpdate, nil)
         PF.Refresh = Refresh
     end)
+
+    test("the pet speaks: a bubble over it by kind, the frame at full, a lesser line never cuts a greater one short", function()
+        local w, ola, PF = Setup(14)
+        local S = ola.ns.DB.global.settings
+        S.petFrameFade = true; PF:Fade()
+        local f = ola.env.DyreparkenPetFrame
+        eq(f:GetAlpha(), 0.25, "faded, idle")
+        local Bus = ola.ns.Bus
+        Bus:Fire("PET_SAID", "s:46", "like", "Not the pet out.")
+        eq(f.bubble, nil, "another pet's line: nothing")
+        Bus:Fire("PET_SAID", "s:5159", "dislike", "Pandaen liker ikke det.")
+        local b = f.bubble
+        ok(b:IsShown())
+        ok(b.anim:IsPlaying())
+        eq(f:GetAlpha(), 1, "at full while it speaks")
+        eq(b.icon.tex, ola.ns.Decor.MEDIA .. "rain")
+        eq(b.tex.tex, ola.ns.Decor.MEDIA .. "thought", "a dislike: a thought bubble")
+        -- A major one takes over; a remark meanwhile doesn't.
+        Bus:Fire("PET_SAID", "s:5159", "major", "Level 60!")
+        eq(b.icon.tex, ola.ns.Decor.MEDIA .. "star")
+        Bus:Fire("PET_SAID", "s:5159", "say", "Hm.")
+        eq(b.icon.tex, ola.ns.Decor.MEDIA .. "star", "a remark waits")
+        ok(b.icon:IsShown()); eq(b.tex.tex, ola.ns.Decor.MEDIA .. "shout", "still the shout, not the remark's bubble")
+        -- Under the mouse: the last line said.
+        f.click.scripts.OnEnter(f.click)
+        H.match(table.concat(ola.env.GameTooltip.lines, " / "), "Hm%.")
+        f.click.scripts.OnLeave(f.click)
+        -- Done: the fade returns, and the next remark gets its own bubble.
+        w:Run(PF.SAY_FOR + 0.5)
+        eq(f:GetAlpha(), 0.25, "faded again")
+        b.anim:Finish()
+        no(b:IsShown())
+        Bus:Fire("PET_SAID", "s:5159", "say", "Hm.")
+        ok(b:IsShown()); no(b.icon:IsShown())
+        eq(b.tex.tex, ola.ns.Decor.MEDIA .. "speech", "a remark: the speech bubble with its dots")
+    end)
+
+    test("what makes it speak: a liked moment, a level, an egg, a dislike; all through PET_SAID", function()
+        local w, ola, PF = Setup(14)
+        local kinds = {}
+        ola.ns.Bus:On("PET_SAID", function(key, kind) kinds[#kinds + 1] = kind end)
+        ola.ns.Bus:Fire("BOND_LINE", "s:5159", "Pandaen elsker urter!", "like")
+        ola.ns.Bus:Fire("BOND_LINE", "s:5159", "Ønsket gikk i oppfyllelse!", "major")
+        ola.ns.Bus:Fire("BOND_LEVEL", "s:5159", 3, "Venn")
+        local Q = ola.ns.Quirks
+        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
+        Q:Say("Pandaen gjesper.", "test", "egg", nil, nil, "s:5159")
+        Q:Say("Pandaen grøsser.", "test", "dislike", nil, nil, "s:5159")
+        w:Run(1)
+        eq(table.concat(kinds, " "), "like major major say dislike")
+    end)
 end

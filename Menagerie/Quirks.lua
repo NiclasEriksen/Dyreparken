@@ -79,7 +79,7 @@ end
 -- day, a dislike found) is saved only when it's said: a /reload in the
 -- delay used to spend it unsaid (code review 2026-11-10). said(): saves
 -- that, and what follows the line.
-function Quirks:Say(text, why, kind, said, delay)
+function Quirks:Say(text, why, kind, said, delay, key)
     pending.line = true
     local span = self.DELAY[delay] or self.DELAY[kind] -- (tests set DELAY to dislike and egg only)
     local wait = span[1] + self.random() * (span[2] - span[1])
@@ -89,6 +89,8 @@ function Quirks:Say(text, why, kind, said, delay)
         ns.DB.char.quirkAt = ns.Now()
         -- (Settings: chatLines off hides the line only; what it found still counts)
         if ns.Settings:On("chatLines") then ns.Print("|cffd9b3ff" .. text .. "|r") end
+        -- (the pet frame: a dislike its own way, an egg a plain remark; PetFrame.lua)
+        if key then ns.Bus:Fire("PET_SAID", key, kind == "dislike" and "dislike" or "say", text) end
         if said then said() end
     end)
 end
@@ -121,7 +123,7 @@ function Quirks:Dislike(key, id, minor)
             ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")
         end
         if ns.JournalUI then ns.JournalUI:Refresh() end
-    end, self.DISLIKE_DELAY[id])
+    end, self.DISLIKE_DELAY[id], key)
 end
 
 ------------------------------------------------------------------------------
@@ -407,7 +409,7 @@ function Quirks:Egg(on, key, extra, seen)
                     ns.DB.char.eggs[e.id] = got
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
                     ns.Story:Mine(key, "egg", text, e.id) -- (its story keeps the line, once per egg)
-                end, e.delay or (e.on == "day" and "day" or nil))
+                end, e.delay or (e.on == "day" and "day" or nil), key)
                 any = true
             end
         end

@@ -211,6 +211,16 @@ Decor.KINDS = {
     flock = { tex = "dot", path = "drift", x = "pet", y = { 60, 200 }, add = true, size = { 8, 12 }, dur = { 5, 7 } },
     drop = { tex = "drop", path = "fall", dist = { 220, 280 }, size = { 8, 12 }, dur = { 2.5, 3.5 } },
     butterfly = { tex = "butterfly", path = "drift", flap = 0.35, sway = 20, size = { 14, 20 }, dur = { 7, 10 } },
+    -- 2026-11-12: the families that had only motes or another's (cats, plants, murlocs), the new traits'
+    -- own (Skøyer, Røverdyr, Solelsker, Ordensdyr), and the pet frame's dislike (rain).
+    yarn = { tex = "yarn", path = "drift", spin = 12, size = { 12, 18 }, dur = { 7, 10 } },
+    petal = { tex = "petal", path = "fall", sway = 24, tilt = 40, size = { 10, 16 }, dur = { 7, 10 } },
+    shell = { tex = "shell", path = "twinkle", y = { 20, 90 }, grow = 1, size = { 12, 18 }, dur = { 3, 5 } },
+    banana = { tex = "banana", path = "fall", sway = 12, spin = 3, size = { 14, 20 }, dur = { 5, 7 } },
+    mask = { tex = "mask", path = "drift", tilt = 15, size = { 18, 24 }, dur = { 6, 9 } },
+    sun = { tex = "sun", path = "twinkle", y = { 230, 300 }, spin = 20, add = true, size = { 18, 26 }, dur = { 4, 6 } },
+    badge = { tex = "badge", path = "twinkle", spin = 10, size = { 12, 18 }, dur = { 2.5, 4 } },
+    rain = { tex = "rain", path = "rise", sway = 6, size = { 14, 18 }, dur = { 2.5, 3.5 } },
 }
 
 -- Particles per trait: { kind, how many, color, alpha }. "when" limits it to
@@ -247,12 +257,12 @@ Decor.TRAITS = {
     friluftsdyr = { kind = "butterfly", n = 2, color = { 1, 0.75, 0.4 } },
     -- 2026-11-12
     sjorover = { kind = "coin", n = 3, color = { 1, 0.85, 0.3 } },
-    skoyer = { kind = "confetti", n = 4, color = { 1, 0.9, 0.4 } },
-    roverdyr = { kind = "mist", n = 1, color = { 0.35, 0.35, 0.4 }, alpha = 0.6 },
-    ordensdyr = { kind = "star", n = 2, color = { 0.55, 0.7, 1 } },
+    skoyer = { kind = "banana", n = 3, color = { 1, 0.9, 0.35 } },
+    roverdyr = { kind = "mask", n = 2, color = { 0.3, 0.3, 0.35 } },
+    ordensdyr = { kind = "badge", n = 2, color = { 1, 0.85, 0.4 } },
     venneflokk = { kind = "clover", n = 3, color = { 0.5, 0.85, 0.45 } },
     vinterpels = { kind = "snow", n = 4, color = { 0.9, 0.95, 1 } },
-    solelsker = { kind = "mote", n = 4, color = { 1, 0.85, 0.45 } },
+    solelsker = { kind = "sun", n = 1, color = { 1, 0.85, 0.4 } },
     tivolidyr = { kind = "lights", n = 6, color = "rainbow", when = function(t) return ns.Holidays:Has(t, "darkmoon") end },
     balkos = { kind = "ember", n = 4, color = { 1, 0.6, 0.25 } },
     skybaren = { kind = "feather", n = 3, color = { 0.95, 0.95, 1 } },
@@ -266,7 +276,7 @@ Decor.TRAITS = {
 Decor.FAMILY = {
     bird = { kind = "feather", n = 3, color = { 0.95, 0.95, 1 } },
     owl = { kind = "feather", n = 3, color = { 0.75, 0.65, 0.55 } },
-    cat = { kind = "mote", n = 6, color = { 1, 0.85, 0.55 } },
+    cat = { kind = "yarn", n = 2, color = { 0.95, 0.55, 0.6 } }, -- (2026-11-12: a ball of yarn; motes before)
     farm = { kind = "grain", n = 3, color = { 0.95, 0.8, 0.4 } },
     rabbit = { kind = "clover", n = 3, color = { 0.5, 0.85, 0.45 } },
     frog = { kind = "firefly", n = 5, color = { 0.75, 1, 0.4 } },
@@ -277,14 +287,14 @@ Decor.FAMILY = {
     bug = { kind = "firefly", n = 5, color = { 1, 0.9, 0.35 } },
     rodent = { kind = "seed", n = 3, color = { 0.8, 0.65, 0.45 } },
     wolf = { kind = "mist", n = 3, color = { 0.8, 0.85, 0.95 }, alpha = 0.35 },
-    plant = { kind = "mote", n = 6, color = { 0.85, 1, 0.45 } },
+    plant = { kind = "petal", n = 4, color = { 1, 0.75, 0.85 } }, -- (2026-11-12: petals; motes before)
     festive = { kind = "lights", n = 6, color = "rainbow" },
     demon = { kind = "ember", n = 6, color = { 0.5, 1, 0.2 } },
     ooze = { kind = "bubble", n = 4, color = { 0.55, 1, 0.35 } },
     spirit = { kind = "wisp", n = 4, color = { 0.7, 0.75, 1 } },
     bear = { kind = "leaf", n = 3, color = { 0.55, 0.75, 0.35 } }, -- (2026-11-10: bamboo for the panda, the forest)
     reptile = { kind = "bubble", n = 3, color = { 0.6, 0.8, 0.55 } }, -- (2026-11-10: the swamp)
-    murloc = { kind = "bubble", n = 4, color = { 0.5, 0.85, 0.95 } }, -- (2026-11-10: the coast)
+    murloc = { kind = "shell", n = 3, color = { 1, 0.85, 0.75 } }, -- (2026-11-12: shells on the coast; bubbles before)
     default = { kind = "mote", n = 5, color = { 1, 0.9, 0.7 } },
 }
 Decor.FAMILY_ALPHA = 0.7 -- the ambience stays behind the traits

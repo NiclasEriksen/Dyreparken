@@ -326,9 +326,9 @@ return function(test, H)
         local card = ola:SelectPet(40) -- a Bombay: a cat, nobody's
         local d = card.decor
         local parts = Parts(d)
-        eq(#parts, N(D, D.FAMILY.cat.n), "a cat's motes, with no bond at all (thinned)")
-        eq(parts[1].icon.tex, D.MEDIA .. "dot")
-        eq(parts[1].icon.blend, "ADD", "motes are light")
+        eq(#parts, N(D, D.FAMILY.cat.n), "a cat's yarn, with no bond at all (thinned)")
+        eq(parts[1].icon.tex, D.MEDIA .. "yarn", "a ball of yarn (2026-11-12)")
+        eq(parts[1].icon.blend, "BLEND", "yarn isn't light")
         eq(parts[1].icon.vertexColor[4], D.FAMILY_ALPHA, "softer than the traits")
         ok(parts[1].anim:IsPlaying())
         card = ola:SelectPet(5159) -- the panda: a bear (2026-11-10)

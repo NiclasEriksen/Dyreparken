@@ -1,4 +1,5 @@
-"""Draws the pet card's particle textures (Media/Particles/*.tga): python3 tools/draw_particles.py
+"""Draws the pet card's particle textures (Media/Particles/*.tga): python3 tools/draw_particles.py [sheet.png]
+[--only name,name] (only those: the other files are left as they are)
 
 White shapes with soft alpha edges, so the addon can tint them (SetVertexColor) and animate them. Drawn at
 4x and scaled down for smooth edges. Written as uncompressed 32-bit TGA, bottom-left origin: the plainest
@@ -425,12 +426,170 @@ def crown():
     return m
 
 
+# 2026-11-12: the pet frame's bubbles (PetFrame: PET_SAID) and a few the families and new traits lacked.
+def speechblank():
+    """The speech bubble with room inside: an icon goes there (a like)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    (x0, y1), (x1, y0) = P(-0.85, -0.3), P(0.85, 0.7)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=BIG * 0.16, fill=255)
+    poly(d, [(-0.5, -0.25), (-0.15, -0.25), (-0.62, -0.75)])
+    return m
+
+
+def thought():
+    """A thought bubble: puffs, and two little ones trailing down-left (a dislike: grumbling)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    for cx, cy, r in ((-0.48, 0.22, 0.32), (-0.14, 0.48, 0.34), (0.28, 0.46, 0.33), (0.56, 0.18, 0.3),
+                      (0.3, -0.06, 0.3), (-0.12, -0.06, 0.32), (0.0, 0.2, 0.42)):
+        ellipse(d, cx, cy, r, r)
+    ellipse(d, -0.56, -0.42, 0.13, 0.13)
+    ellipse(d, -0.78, -0.7, 0.08, 0.08)
+    return m
+
+
+def shout():
+    """A spiky shout, as in a comic, with a spike down-left: something big (a level, a feat)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    pts, n = [], 16
+    for i in range(n * 2):
+        a = math.pi / 2 + i * math.pi / n
+        r = (0.9 if i % 2 == 0 else 0.66) * (1.0 if i % 4 else 0.94)
+        pts.append((0.06 + r * math.cos(a) * 0.95, 0.14 + r * math.sin(a) * 0.82))
+    poly(d, pts)
+    poly(d, [(-0.4, -0.3), (-0.12, -0.36), (-0.8, -0.9)])
+    return m
+
+
+def rain():
+    """A small rain cloud: a dislike's icon and its burst."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    for cx, cy, r in ((-0.4, 0.25, 0.28), (0.02, 0.45, 0.36), (0.42, 0.28, 0.27)):
+        ellipse(d, cx, cy, r, r)
+    (x0, y1), (x1, y0) = P(-0.68, 0.02), P(0.68, 0.32)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=BIG * 0.07, fill=255)
+    for x in (-0.38, 0.02, 0.42):
+        poly(d, rot([(-0.05, 0), (0.05, 0), (0.05, -0.3), (-0.05, -0.3)], -0.35, x, -0.18))
+    return m
+
+
+def yarn():
+    """A ball of yarn with a loose end: the cats' ambience. Darker strands wound round it."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    ellipse(d, 0, 0.05, 0.66, 0.66)
+    c = P(0, 0.05)
+    for k, (rx, ry, a) in enumerate(((0.62, 0.3, 20), (0.62, 0.36, -35), (0.5, 0.62, 70), (0.3, 0.6, -10))):
+        band = Image.new("L", (BIG, BIG), 0); bd = ImageDraw.Draw(band)
+        w, h = rx * BIG / 2, ry * BIG / 2
+        bd.ellipse([c[0] - w, c[1] - h, c[0] + w, c[1] + h], outline=255, width=int(BIG * 0.022))
+        band = band.rotate(a, center=c, resample=Image.BICUBIC)
+        m = ImageChops.subtract(m, band.point(lambda v: int(v * 0.5)))
+    d = ImageDraw.Draw(m)
+    for i in range(41):
+        t = i / 40
+        ellipse(d, 0.52 + 0.36 * t, -0.42 - 0.3 * math.sin(t * 3.2), 0.045, 0.045)
+    return m
+
+
+def petal():
+    """A flower petal, turning as it falls: the plants' ambience."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    pts = []
+    for i in range(200):
+        t = i / 200 * 2 * math.pi
+        x = 0.42 * math.sin(t) * (1 - 0.35 * math.cos(t))
+        y = 0.82 * math.cos(t)
+        pts.append((x, y))
+    poly(d, rot(pts, 0.5))
+    poly(d, rot([(-0.02, -0.6), (0.02, -0.6), (0.02, 0.3), (-0.02, 0.3)], 0.5), fill=150)
+    return m
+
+
+def shell():
+    """A scallop shell, ribbed: the murlocs' coast."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    def edge(a):  # the fan's edge at angle a, from its hinge
+        return 1 / math.sqrt((math.cos(a) / 0.85) ** 2 + (math.sin(a) / 1.3) ** 2)
+    pts = [(0, -0.6)]
+    for i in range(61):
+        a = math.pi * (0.12 + 0.76 * i / 60)
+        pts.append((edge(a) * math.cos(a), -0.6 + edge(a) * math.sin(a)))
+    poly(d, pts)
+    for k in range(7):
+        a = math.pi * (0.2 + 0.6 * k / 6)
+        r = edge(a) * 0.9
+        poly(d, [(0.03 * math.sin(a), -0.6 - 0.03 * math.cos(a)), (-0.03 * math.sin(a), -0.6 + 0.03 * math.cos(a)),
+                 (r * math.cos(a), -0.6 + r * math.sin(a))], fill=120)
+    poly(d, [(-0.28, -0.6), (0.28, -0.6), (0.2, -0.82), (-0.2, -0.82)])
+    return m
+
+
+def banana():
+    """A banana (Skøyer: Julius, Dyreparken's chimpanzee): plump in the middle, a stalk at one end."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    outer, inner = [], []
+    for i in range(81):
+        t = i / 80
+        a = math.pi * (1.12 + 0.76 * t)
+        fat = math.sin(math.pi * t) ** 0.8
+        outer.append((0.86 * math.cos(a), 0.62 + 0.86 * math.sin(a)))
+        r = 0.86 - 0.08 - 0.34 * fat
+        inner.append((r * math.cos(a), 0.62 + r * math.sin(a) + 0.1 * fat))
+    poly(d, rot(outer + inner[::-1], 0.25))
+    a = math.pi * 1.88
+    x, y = rot([(0.8 * math.cos(a), 0.62 + 0.8 * math.sin(a))], 0.25)[0]
+    poly(d, rot([(-0.06, 0), (0.06, 0), (0.05, 0.2), (-0.05, 0.2)], 0.9, x, y))
+    ellipse(d, *rot([(0.86 * math.cos(math.pi * 1.12), 0.62 + 0.86 * math.sin(math.pi * 1.12))], 0.25)[0], 0.05, 0.05, 90)
+    return m
+
+
+def mask():
+    """A robber's eye mask (Røverdyr: Kasper, Jesper og Jonatan)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    (x0, y1), (x1, y0) = P(-0.82, -0.26), P(0.82, 0.26)
+    d.rounded_rectangle([x0, y0, x1, y1], radius=BIG * 0.12, fill=255)
+    poly(d, [(-0.12, 0.26), (0.12, 0.26), (0, 0.12)], fill=0)   # the dip over the nose
+    poly(d, [(-0.08, -0.26), (0.08, -0.26), (0, -0.1)], fill=0)
+    ellipse(d, -0.42, 0.0, 0.2, 0.12, 0)
+    ellipse(d, 0.42, 0.0, 0.2, 0.12, 0)
+    poly(d, [(0.8, 0.05), (0.98, 0.3), (0.98, 0.12)])            # the ties
+    poly(d, [(0.8, -0.05), (0.98, -0.28), (0.98, -0.1)])
+    return m
+
+
+def sun():
+    """A sun: a disc and eight rays (Solelsker)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    ellipse(d, 0, 0, 0.42, 0.42)
+    for k in range(8):
+        a = k * math.pi / 4
+        poly(d, rot([(-0.1, 0.55), (0.1, 0.55), (0, 0.92)], a))
+    return m
+
+
+def badge():
+    """A sheriff's star, balls on its points (Ordensdyr: Politimester Bastian)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    pts = []
+    for i in range(12):
+        r = 0.78 if i % 2 == 0 else 0.42
+        a = math.pi / 2 + i * math.pi / 6
+        pts.append((r * math.cos(a), r * math.sin(a)))
+    poly(d, pts)
+    for i in range(6):
+        a = math.pi / 2 + i * math.pi / 3
+        ellipse(d, 0.84 * math.cos(a), 0.84 * math.sin(a), 0.1, 0.1)
+    ellipse(d, 0, 0, 0.22, 0.22, 120)
+    return m
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
           "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays,
           "feather": feather, "ember": ember, "gear": gear, "wisp": wisp, "coin": coin, "grain": grain,
           "seed": seed, "clover": clover, "zee": zee, "speech": speech, "crumb": crumb, "cloud": cloud,
           "pebble": pebble, "chevron": chevron, "bolt": bolt, "halo": halo, "sword": sword, "drop": drop,
-          "butterfly": butterfly, "mist": mist, "house": house, "cake": cake, "crown": crown}
+          "butterfly": butterfly, "mist": mist, "house": house, "cake": cake, "crown": crown,
+          "speechblank": speechblank, "thought": thought, "shout": shout, "rain": rain, "yarn": yarn, "petal": petal,
+          "shell": shell, "banana": banana, "mask": mask, "sun": sun, "badge": badge}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 
@@ -446,10 +605,12 @@ def write_tga(path, mask):
         f.write(header + b"".join(rows))
 
 
-def main():
+def main(only=None):
+    """only: the names to draw (--only a,b); the rest of the files are left as they are."""
     os.makedirs(OUT, exist_ok=True)
-    sheet = Image.new("RGBA", (SIZE * len(SHAPES), SIZE), (40, 32, 26, 255))
-    for i, (name, fn) in enumerate(SHAPES.items()):
+    shapes = [(n, f) for n, f in SHAPES.items() if not only or n in only]
+    sheet = Image.new("RGBA", (SIZE * len(shapes), SIZE), (40, 32, 26, 255))
+    for i, (name, fn) in enumerate(shapes):
         big = fn().filter(ImageFilter.GaussianBlur(SS * SOFTER.get(name, 0.6)))
         size = BIGGER.get(name, SIZE)
         write_tga(os.path.join(OUT, name + ".tga"), big.resize((size, size), Image.LANCZOS))
@@ -461,6 +622,12 @@ def main():
 
 if __name__ == "__main__":
     import sys
-    s = main()
-    if len(sys.argv) > 1:
-        s.save(sys.argv[1])
+    args = sys.argv[1:]
+    only = None
+    if "--only" in args:
+        i = args.index("--only")
+        only = set(args[i + 1].split(","))
+        del args[i:i + 2]
+    s = main(only)
+    if args:
+        s.save(args[0])

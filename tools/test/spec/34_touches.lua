@@ -141,9 +141,9 @@ return function(test, H)
         w:Run(5)
         local now = ola.ns.Now()
         ola.ns.DB:Guild().life["s:46"] = { ["Kari Berg"] = { p = 600, f = now - 100 * 86400, t = now } }
-        eq(Fx:HeartColor(46, "Kari Berg"), ola.ns.Scenes.SILVER, "level 4: silver")
+        eq(Fx:HeartColor(46, "Kari Berg"), Fx.ROSE, "level 4: a deeper rose (its own: the card's silver read as white, 2026-11-12)")
         ola.ns.DB:Guild().life["s:46"]["Kari Berg"].p = 1500
-        eq(Fx:HeartColor(46, "Kari Berg"), ola.ns.Scenes.GOLD)
+        eq(Fx:HeartColor(46, "Kari Berg"), Fx.GOLD)
         eq(Fx:HeartColor(46, "Per Hansen"), Fx.PINK, "someone else's kitten")
     end)
 

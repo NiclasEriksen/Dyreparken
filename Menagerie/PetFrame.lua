@@ -142,6 +142,10 @@ function PF:Build()
         if PF.editing or not PF.key then return end
         GameTooltip:SetOwner(b, "ANCHOR_TOP")
         GameTooltip:SetText(ns.Registry:NameOf(PF.key), 1, 0.82, 0)
+        -- What it said last, a while (PF:Said): easy to miss in chat.
+        if PF.said and GetTime() - PF.saidAt < PF.SAY_TIP_FOR then
+            GameTooltip:AddLine(PF.said, 0.85, 0.7, 1, true)
+        end
         GameTooltip:AddLine(L["petframe.tip"], 1, 1, 1, true)
         GameTooltip:Show()
     end)
@@ -439,6 +443,83 @@ function PF:NextChange()
     end)
 end
 
+------------------------------------------------------------------------------
+-- The pet speaks (2026-11-12, the user: "react when the pet is outputting something to chat ... an
+-- animated speech bubble for a few seconds"): every line a pet says in chat comes with PET_SAID (key,
+-- kind, text): Bonds' lines (liked moments, rewards, levels, unlocks, a pat), Quirks' (eggs, dislikes).
+-- Over the pet that's out: a bubble, its look by kind, popping up and fading after SAY_FOR seconds; the
+-- frame at full meanwhile (Active). Noticeable, not noisy: one bubble at a time, a lesser line never cuts
+-- a greater one short, a small burst only for the kinds that have one (none at "no particles"), and
+-- the line itself under the mouse.
+-- Each kind its own bubble (drawn 2026-11-12, tools/draw_particles.py), so it reads at a glance:
+--   say      a remark (an egg)        a white speech bubble with its dots
+--   like     something it loved       a pink speech bubble, a heart in it; two hearts rise
+--   dislike  something it didn't      a grey-blue thought bubble, a rain cloud in it; a rain cloud drifts up
+--   major    a level, a feat, a wish  a gold shout, a star in it; sparks burst
+------------------------------------------------------------------------------
+PF.SAY_FOR = 4
+PF.SAY_AT = { 38, 104 } -- right of the middle, over the head, in the card's view (the Zzz: 22, 66)
+PF.SAY_KINDS = {
+    say = { rank = 1, bubble = "speech", color = { 1, 1, 1 } },
+    like = { rank = 2, bubble = "speechblank", color = { 1, 0.62, 0.75 }, icon = "heart", burst = "heart", n = 2 },
+    dislike = { rank = 2, bubble = "thought", color = { 0.62, 0.68, 0.82 }, icon = "rain", burst = "rain", n = 1 },
+    major = { rank = 3, bubble = "shout", color = { 1, 0.84, 0.35 }, icon = "star", burst = "spark", n = 5, size = 1.2 },
+}
+PF.SAY_TIP_FOR = 300 -- seconds the last line shows in the frame's tooltip
+
+function PF:Bubble()
+    local f = self.frame
+    if f.bubble then return f.bubble end
+    local b = CreateFrame("Frame", nil, f)
+    b:SetSize(40, 34)
+    b:SetFrameLevel(self.scene:GetFrameLevel() + 3)
+    b:Hide()
+    b.tex = b:CreateTexture(nil, "ARTWORK")
+    b.tex:SetAllPoints()
+    b.icon = b:CreateTexture(nil, "OVERLAY")
+    b.icon:SetSize(14, 14)
+    b.icon:SetPoint("CENTER", b, "CENTER", 1, 4)
+    b.icon:SetVertexColor(0.3, 0.22, 0.25, 0.9) -- (dark on the bubble's light color)
+    -- Pops up, rises a little, holds, fades: one group, steps in order (Anim.lua's rules).
+    local g = ns.Anim.OneShot(b)
+    g.pop = ns.Anim.Scale(g, 0.3, 1, 0.25, 1, "OUT")
+    g.show = ns.Anim.Fade(g, 0, 1, 0.2, 1)
+    g.rise = g:CreateAnimation("Translation"); g.rise:SetOffset(0, 6); g.rise:SetOrder(2); g.rise:SetSmoothing("OUT")
+    g.fade = ns.Anim.Fade(g, 1, 0, 0.5, 3)
+    b.anim = g
+    f.bubble = b
+    return b
+end
+
+function PF:Said(key, kind, text)
+    local f = self.frame
+    if not (f and f:IsShown() and key and key == self.key) then return end
+    local k = self.SAY_KINDS[kind] or self.SAY_KINDS.say
+    self.said, self.saidAt = text, GetTime()
+    local now = GetTime()
+    if self.bubbleUntil and now < self.bubbleUntil and k.rank < self.bubbleRank then return end -- (a lesser one waits its turn: not at all)
+    self.bubbleUntil, self.bubbleRank = now + self.SAY_FOR, k.rank
+    self:Active(self.SAY_FOR)
+    local b = self:Bubble()
+    b:ClearAllPoints()
+    b:SetPoint("BOTTOM", self.scene, "BOTTOM", self.SAY_AT[1], self.SAY_AT[2])
+    b.tex:SetTexture(ns.Decor.MEDIA .. k.bubble)
+    b.tex:SetVertexColor(k.color[1], k.color[2], k.color[3], 0.95)
+    local size = k.size or 1
+    b:SetSize(40 * size, 34 * size)
+    b.icon:SetShown(k.icon ~= nil)
+    if k.icon then b.icon:SetTexture(ns.Decor.MEDIA .. k.icon) end
+    b.anim:Stop()
+    b.anim.rise:SetDuration(self.SAY_FOR - 0.95) -- (the pop and the fade take the rest)
+    b:Show()
+    b.anim:Play()
+    if k.burst and ns.Settings:Get("cardParticles") ~= "none" then
+        local s = f:GetScale() -- (the burst lives on UIParent: sized with the frame, as the Zzz)
+        ns.Fx:Burst({ self.scene, "BOTTOM", self.SAY_AT[1] * s, (self.SAY_AT[2] + 16) * s }, k.burst,
+            { n = k.n, color = k.color, size = 0.6 * s, spread = 16 * s, rise = 30 * s })
+    end
+end
+
 -- A new level with this pet: its cheer, and stars.
 function PF:LevelUp(key)
     if not (self.frame and self.frame:IsShown() and key == self.key) then return end
@@ -561,6 +642,7 @@ ns.Start("settled", function()
     -- The bar follows the bond; a new name, the name.
     ns.Bus:On("BOND", function(key) if PF.frame and key == PF.key then PF:Bond(true) end end)
     ns.Bus:On("BOND_LEVEL", function(key) PF:LevelUp(key) end)
+    ns.Bus:On("PET_SAID", function(key, kind, text) PF:Said(key, kind, text) end)
     -- Its day full: it sits (Moves:Rest), as on the card.
     ns.Bus:On("BOND_FULL", function(key) if PF.frame and PF.frame:IsShown() and key == PF.key then PF:Refresh() end end)
     ns.Bus:On("REGISTRY", function() if PF.frame and PF.key then PF.frame.name:SetText(ns.Registry:NameOf(PF.key)) end end)
