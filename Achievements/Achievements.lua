@@ -51,11 +51,17 @@ ns.Achievements = Ach
 
 local DAY = 86400
 local NOTICE_MAX = 20 -- ids per ACH_EARNED; more than any real batch
--- Guild records we store at most. Ids from newer versions are kept (and
--- relayed), so this leaves room for many; past it, new ids are refused.
--- The cap is on the store, not per message: a per-message cut-off depends
--- on table order, so clients would keep different sets and never agree.
-local GUILD_MAX = 128
+-- Guild records of ids we don't know (a newer version's, or junk) we store
+-- at most. Ours are always stored: there are only as many as Defs.lua has.
+-- Until 2026-11-12 one cap of 128 covered every record, first come first
+-- kept, so one forged ACH of junk ids shut out every guild achievement still
+-- to come, for good (B12). Past the cap the GREATEST ids go (byte order):
+-- which ones are kept then depends only on which ids exist, not on the
+-- order they arrived in, so clients still agree (a per-message cut-off or
+-- first come depends on table order). Honest stores are far below it, so
+-- older clients (one cap of 128) keep the same records.
+local GUILD_UNKNOWN_MAX = 64
+Ach.GUILD_UNKNOWN_MAX = GUILD_UNKNOWN_MAX
 local GUILD_DEBOUNCE = 5
 
 local defsById = {}
@@ -398,21 +404,51 @@ local function ValidGuildRecord(id, rec)
 end
 Ach.ValidGuildRecord = ValidGuildRecord
 
+-- How many stored records have ids we don't know, and the greatest of them.
+local function Unknown(ach)
+    local n, top = 0, nil
+    for id in pairs(ach) do
+        if not defsById[id] then
+            n = n + 1
+            if not top or id > top then top = id end
+        end
+    end
+    return n, top
+end
+
+-- Room for a record with this id we don't have yet: ours always; another
+-- if there's room, or by pushing out the greatest unknown id if it's below
+-- it (GUILD_UNKNOWN_MAX). Returns false when it stays out.
+local function MakeRoom(ach, id)
+    if defsById[id] then return true end
+    local n, top = Unknown(ach)
+    if n < GUILD_UNKNOWN_MAX then return true end
+    if id > top then return false end
+    ach[top] = nil
+    return true
+end
+
+-- The same over a stored list (migration 12): the GUILD_UNKNOWN_MAX lowest unknown ids stay.
+function Ach.TrimGuild(ach)
+    local n, top = Unknown(ach)
+    while n > GUILD_UNKNOWN_MAX do
+        ach[top] = nil
+        n, top = Unknown(ach)
+    end
+end
+
 -- Merge guild records from a peer (ACH or SYNC). Returns true if anything
 -- changed. Records new to us that aren't quiet get one line.
 function Ach:MergeGuild(list)
     local g = ns.DB:Guild()
     if not g or type(list) ~= "table" then return false end
     local changed, behind, appeared = false, false, {}
-    local stored = 0
-    for _ in pairs(g.ach) do stored = stored + 1 end
     for id, rec in pairs(list) do
-        if ValidGuildRecord(id, rec) and (g.ach[id] or stored < GUILD_MAX) then
+        if ValidGuildRecord(id, rec) and (g.ach[id] or MakeRoom(g.ach, id)) then
             outgoing[id] = nil -- someone said it for us
             local cur = g.ach[id]
             if not cur then
                 g.ach[id] = { at = rec.at, ann = rec.ann, q = rec.q }
-                stored = stored + 1
                 changed = true
                 if defsById[id] and not rec.q then appeared[#appeared + 1] = id end
             else

@@ -170,7 +170,7 @@ return function(test, H)
         w:Run(1)
         local rec = kari.ns.DB:Guild().ach["guild:future:thing"]
         eq(rec.at, E + 3); eq(rec.ann, E + 4)
-        -- The store holds at most 128 records, however they arrive; known ones still update.
+        -- Unknown ids: at most GUILD_UNKNOWN_MAX are kept, however they arrive; known ones still update.
         for batch = 0, 2 do
             local many = {}
             for i = 1, 60 do many["guild:n" .. (batch * 60 + i)] = { at = E + 5 } end
@@ -179,7 +179,7 @@ return function(test, H)
         w:Run(1)
         local n = 0
         for _ in pairs(kari.ns.DB:Guild().ach) do n = n + 1 end
-        eq(n, 128)
+        eq(n, A.GUILD_UNKNOWN_MAX)
         w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = E + 2 } } })
         w:Run(1)
         eq(kari.ns.DB:Guild().ach["guild:future:thing"].at, E + 2)
@@ -227,5 +227,61 @@ return function(test, H)
                 ok(t and t.name and t.desc and t.flavor, d.id)
             end
         end
+    end)
+
+    test("forged junk ids can't shut out the guild's achievements, and every client keeps the same ones (B12)", function()
+        local w, cs = World()
+        local ola, kari = cs["Ola Nord"], cs["Kari Berg"]
+        local p, E = ola.ns.PROTOCOL, ola.ns.Config.BOND_EPOCH
+        local MAX = ola.ns.Achievements.GUILD_UNKNOWN_MAX
+        -- Low ids (they sort before ours), more than the cap, in batches: the others hear them in one
+        -- order, Kari in the other.
+        local batches = {}
+        for b = 1, 4 do
+            local a = {}
+            for i = 1, 50 do a[("guild:%04d"):format((b - 1) * 50 + i)] = { at = E + 5 } end
+            batches[b] = a
+        end
+        w.drop = function(m, r) return r.name == "Kari Berg" end
+        for b = 1, 4 do w:InjectMessage("Mallory Mal", { k = "ACH", p = p, a = batches[b] }); w:Run(0.2) end
+        w.drop = function(m, r) return r.name ~= "Kari Berg" end
+        for b = 4, 1, -1 do w:InjectMessage("Mallory Mal", { k = "ACH", p = p, a = batches[b] }); w:Run(0.2) end
+        w.drop = nil
+        local function Ids(c)
+            local ids = {}
+            for id in pairs(c.ns.DB:Guild().ach) do ids[#ids + 1] = id end
+            table.sort(ids)
+            return ids
+        end
+        eq(#Ids(ola), MAX); eq(table.concat(Ids(ola), " "), table.concat(Ids(kari), " "), "the same set")
+        eq(Ids(ola)[MAX], ("guild:%04d"):format(MAX), "the lowest ids")
+        -- An id we know still gets in from a peer (it sorts above the junk), and the guild's own
+        -- achievement for everyone.
+        w:InjectMessage("Mallory Mal", { k = "ACH", p = p, a = { ["guild:family:owl"] = { at = E + 5 } } })
+        w:Run(0.2)
+        ok(ola.ns.DB:Guild().ach["guild:family:owl"], "known: past the cap")
+        for _, c in pairs(cs) do c.ns.DB:Guild().ach["guild:family:owl"] = nil end
+        AdoptAll(w, cs)
+        for name, c in pairs(cs) do
+            ok(c.ns.Achievements:Got("guild:family:cat"), name)
+            ok(c:Printed(LINE, true), name)
+        end
+        H.assertConverged(w)
+    end)
+
+    test("migration 12 keeps the lowest unknown guild ids within the cap; ours stay", function()
+        local w = H.World()
+        local c = Fix(w:AddClient("Ola Nord", { login = false }))
+        local E = 1790000000 - 100
+        local ach = { ["guild:family:cat"] = { at = E } }
+        for i = 1, 127 do ach[("guild:%04d"):format(i)] = { at = E } end
+        c.saved.DyreparkenDB = { schema = 11, guilds = { Dyreparken = { claims = {}, lapses = {}, names = {},
+            life = {}, ach = ach } } }
+        c:Login()
+        local g = c.env.DyreparkenDB.guilds.Dyreparken
+        local n, MAX = 0, c.ns.Achievements.GUILD_UNKNOWN_MAX
+        for _ in pairs(g.ach) do n = n + 1 end
+        eq(n, MAX + 1)
+        ok(g.ach["guild:family:cat"]); ok(g.ach[("guild:%04d"):format(MAX)]); no(g.ach[("guild:%04d"):format(MAX + 1)])
     end)
 end

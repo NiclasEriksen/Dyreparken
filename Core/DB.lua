@@ -17,7 +17,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 11
+local SCHEMA = 12
 local CHAR_SCHEMA = 2
 DB.SCHEMA, DB.CHAR_SCHEMA = SCHEMA, CHAR_SCHEMA
 
@@ -231,6 +231,14 @@ local MIGRATIONS = {
                     if not valid(id, rec) then g.ach[id] = nil end
                 end
             end
+        end
+    end,
+    -- 12 (2026-11-12, B12): guild achievements with ids this version doesn't
+    -- know are capped (Achievements GUILD_UNKNOWN_MAX, the lowest ids kept), as
+    -- merges keep them from now on: junk stored under the old cap goes.
+    [12] = function(db)
+        for _, g in pairs(db.guilds or {}) do
+            if type(g.ach) == "table" then ns.Achievements.TrimGuild(g.ach) end
         end
     end,
 }
