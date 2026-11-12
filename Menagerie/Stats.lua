@@ -165,6 +165,11 @@ function Stats:Update(card, key)
     row:Show()
 end
 
+ns.Card.Register{ id = "stats", still = true, -- (chips, no animation)
+    build = function(card, c) Stats:Build(card, c) end,
+    update = function(card, key) Stats:Update(card, key) end, -- (after the decor: under the ribbon when there is one)
+}
+
 ns.Start("login", function()
     ns.Bus:On("ACTIVITY", function(id, n, key) Stats:OnActivity(id, n, key) end)
 end)

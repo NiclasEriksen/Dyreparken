@@ -24,7 +24,7 @@ Decor.MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 --     (FAMILY_ART).
 -- Moving parts are animation groups: the client plays them, no OnUpdate.
 -- They run only while the card shows something; Apply(card, nil) and the
--- card's OnHide stop them all. A pool of particles is made once.
+-- card hiding or one of our pages over it (Card.lua: Stop) stop them all. A pool of particles is made once.
 --
 -- A particle is three layers, each with at most one group playing, since
 -- two groups moving one region fight frame by frame instead of adding up
@@ -464,7 +464,6 @@ function Decor:Build(card, c, panel)
     d.ribbonText:SetPoint("CENTER", d.ribbon, "CENTER", 0, 2)
     d.ribbonText:Hide()
     for i = 1, POOL do d.parts[i] = NewParticle(c) end
-    c:HookScript("OnHide", function() Decor:Stop(card) end)
 end
 
 function Decor:Stop(card)
@@ -730,3 +729,9 @@ function Decor:Apply(card, key, level, color)
         end
     end
 end
+
+ns.Card.Register{ id = "decor",
+    build = function(card, c) Decor:Build(card, c, card.panel) end,
+    update = function(card, key, ctx) Decor:Apply(card, key, ctx.level, ctx.tint) end,
+    stop = function(card) Decor:Stop(card) end,
+}

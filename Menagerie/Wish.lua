@@ -164,4 +164,9 @@ function Wish:Update(card, key)
     f:Show()
 end
 
+ns.Card.Register{ id = "wish", still = true, -- (a line of text)
+    build = function(card, c) Wish:Build(card, c) end,
+    update = function(card, key) Wish:Update(card, key) end,
+}
+
 ns.Start("login", function() Wish:Init() end)

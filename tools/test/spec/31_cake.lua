@@ -33,8 +33,9 @@ return function(test, H)
         no(cake:IsShown())
         ola:SelectPet(46)
         ok(cake:IsShown())
-        cake:Hide()
+        ola.env.PetJournalPetCard:Hide() -- (the journal closing hides the card)
         for _, t in ipairs(cake.flames) do no(t.flicker:IsPlaying()) end
+        ola.env.PetJournalPetCard:Show()
         -- The next day: no cake.
         w:SkipDays(1)
         ola:SelectPet(5159)

@@ -15,7 +15,7 @@ local _, ns = ...
 -- What it adds, in parts:
 --  * the list (JournalList.lua): markers, bond rings, nicknames, tooltips
 --  * the pet card (here): the scene, the name and home, the personality, the
---    guild's boxes above it, and the widgets drawn for the pet (WIDGETS)
+--    guild's boxes above it, and the widgets drawn for the pet (Card.lua: one registration each)
 --  * the card's buttons and popups (CardActions.lua): Adopter / Gi slipp, Kallenavn
 --  * the achievements tab and page (Achievements/Page.lua)
 --
@@ -103,26 +103,13 @@ local function UpdateGuildBoxes()
     SizeTodayBox()
 end
 
--- The card's widgets, in drawing order: each draws itself for the pet (or
--- clears itself, key nil). ctx: the family's tint and the bond level shown.
--- A new widget is a Build in BuildCard and a line here.
-local WIDGETS = {
-    function(key, ctx) ns.Decor:Apply(card, key, ctx.level, ctx.tint) end,
-    function(key) ns.Stats:Update(card, key) end, -- (after the decorations: under the ribbon when there is one)
-    function(key) ns.Wish:Update(card, key) end,  -- (under the chips)
-    function(key, ctx) ns.BondTrack:Update(card, key, ns.Scenes.Bright(ctx.tint, 1.7)) end,
-    function(key) ns.OutBadge:Update(card, key) end, -- "Med deg": is this the pet kept out?
-    function(key) ns.Cake:Update(card, key) end, -- a cake on its milestone day
-    function(key) ns.Crown:Update(card, key) end, -- the pet of the day's crown (after the cake: beside it)
-    function(key) ns.Story:Update(card, key) end, -- the story's button, and its panel follows the card
-    function(key) ns.Moves:Update(card, key) end, -- the pet's pose: asleep at night, a Latsabb sitting...
-}
-
+-- The card's widgets (Card.lua): each draws itself for the pet (or clears itself, key nil).
+-- ctx: the bond level shown; "scenes", first, adds the family's tint.
 local function DrawWidgets(key)
     card.key = key -- (the hover tooltips and clicks follow it)
-    local ctx = { tint = ns.Scenes:Paint(card, key) or ns.Scenes.TINT.default } -- (the picture, the light)
+    local ctx = {}
     if key then ctx.level = select(2, ns.Bond:Shown(key)) end -- your bond with it, or its carer's
-    for _, draw in ipairs(WIDGETS) do draw(key, ctx) end
+    ns.Card:Update(card, key, ctx)
     SizeTodayBox()
 end
 
@@ -143,7 +130,6 @@ local function UpdateCard()
         card.personality:SetText("")
         card.likes:SetText("")
         DrawWidgets(nil)
-        ns.CardActions:Update(card, nil)
         return
     end
     local key = ns.Pets:KeyOfSpecies(sid)
@@ -190,7 +176,6 @@ local function UpdateCard()
     end
     DrawWidgets(key)
     ns.Sync:AskBonds(key) -- others' bonds with it (not in the full sync)
-    ns.CardActions:Update(card, key)
 end
 
 -- A species' card in the journal. First Blizzard's own PetJournal_SelectSpecies:
@@ -256,55 +241,11 @@ local function InfoBox(label, width, icon)
     return box
 end
 
-local function BuildCard()
-    local c = PetJournalPetCard
-    if not c or card.status then return end
-    -- The scene behind the model (Scenes.lua), under everything else.
-    -- The backdrop, in layers (Scenes.lua): dungeon art where the family has
-    -- one, a gradient tinted by family, dark edges, and a floor shadow under
-    -- the model. Nothing is stretched past its size: the tint and edges are
-    -- drawn, not pictures.
-    card.scene = c:CreateTexture(nil, "BACKGROUND", nil, 1)
-    card.scene:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
-    card.scene:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
-    card.scene:SetAlpha(0.8)
-    card.scene:Hide()
-    card.tint = c:CreateTexture(nil, "BACKGROUND", nil, 2)
-    card.tint:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
-    card.tint:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
-    card.tint:SetColorTexture(1, 1, 1, 1)
-    card.tint:Hide()
-    -- The light of the hour over the scene (Scenes.SKY).
-    card.sky = c:CreateTexture(nil, "BACKGROUND", nil, 3)
-    card.sky:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
-    card.sky:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
-    card.sky:SetColorTexture(1, 1, 1, 1)
-    card.sky:Hide()
-    card.edges = {}
-    for i, side in ipairs({ "TOP", "LEFT", "RIGHT" }) do
-        local t = c:CreateTexture(nil, "BACKGROUND", nil, 3)
-        t:SetColorTexture(1, 1, 1, 1)
-        if side == "TOP" then
-            t:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4); t:SetPoint("TOPRIGHT", c, "TOPRIGHT", -4, -4)
-            t:SetHeight(70)
-        else
-            t:SetPoint("TOP" .. side, c, "TOP" .. side, side == "LEFT" and 4 or -4, -4)
-            t:SetPoint("BOTTOM" .. side, c, "BOTTOM" .. side, side == "LEFT" and 4 or -4, 4)
-            t:SetWidth(70)
-        end
-        t.side = side
-        card.edges[i] = t
-    end
-    card.floor = c:CreateTexture(nil, "BORDER")
-    card.floor:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
-    card.floor:SetVertexColor(0, 0, 0, 0.45)
-    card.floor:SetSize(200, 36)
-    card.floor:Hide()
-
-    -- The panel: a dark strip along the bottom. It sits below the model's
-    -- frame level, so Blizzard's rotate buttons stay on top, in the gap
-    -- between our left column (name, home) and right column (the bond).
-    -- The guild line runs along its bottom edge.
+-- The panel: a dark strip along the bottom. It sits below the model's
+-- frame level, so Blizzard's rotate buttons stay on top, in the gap
+-- between our left column (name, home) and right column (the bond).
+-- The guild line runs along its bottom edge.
+local function BuildPanel(c)
     local panel = CreateFrame("Frame", nil, c)
     panel:SetPoint("BOTTOMLEFT", c, "BOTTOMLEFT", 4, 4)
     panel:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
@@ -319,17 +260,12 @@ local function BuildCard()
     panel.edge:SetColorTexture(1, 0.82, 0, 0.35)
     card.panel = panel
     card.floor:SetPoint("CENTER", panel, "TOP", 0, MODEL_LIFT + 48) -- under the pet's feet (seen 2026-11-08)
-    ns.Decor:Build(card, c, panel)
-    ns.Stats:Build(card, c)
-    ns.Wish:Build(card, c)
-    ns.OutBadge:Build(card, c)
-    ns.Cake:Build(card, c)
-    ns.Crown:Build(card, c)
-    ns.Story:Build(card, c)
-    c:HookScript("OnHide", function() ns.Moves:Stop() end) -- (the pet's pose starts over next time)
+end
 
-    -- The rows: full width but for the medallion's corner; a long one ends in "...", and hovering
-    -- it tells all.
+-- The rows: full width but for the medallion's corner; a long one ends in "...", and hovering
+-- it tells all.
+local function BuildRows()
+    local panel = card.panel
     local function Line(font, y, right)
         local fs = panel:CreateFontString(nil, "OVERLAY", font)
         fs:SetPoint("TOPLEFT", panel, "TOPLEFT", 12, y)
@@ -406,13 +342,13 @@ local function BuildCard()
         end
         GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
     end)
+end
 
-    -- The bond: the medallion and the level's name on the name row, the strip under the home (BondTrack.lua).
-    ns.BondTrack:Build(card, c, panel)
-
-    -- Blizzard's turn buttons sit where our rows go: move them to just above
-    -- the panel, so the panel's text runs the full width. (Plain buttons;
-    -- moving them taints nothing.) Seen in the middle of the panel, 2026-11-08.
+-- Blizzard's turn buttons sit where our rows go: move them to just above
+-- the panel, so the panel's text runs the full width. (Plain buttons;
+-- moving them taints nothing.) Seen in the middle of the panel, 2026-11-08.
+local function BuildRotate(c)
+    local panel = card.panel
     local left, right = RotateButtons(c)
     if left then
         left:ClearAllPoints()
@@ -445,9 +381,21 @@ local function BuildCard()
         info:HookScript("OnShow", function(self) self:Hide() end)
         card.titleHidden = true
     end
-    ns.Cuddle:Build(card, c, panel) -- (after the model is found: it listens for clicks on it)
+end
 
-    ns.CardActions:Build(card, c)
+-- JournalUI's own parts of the card, and the pet's pose (Moves.lua).
+ns.Card.Register{ id = "panel", still = true, build = function(_, c) BuildPanel(c) end }
+ns.Card.Register{ id = "rows", still = true, build = function() BuildRows() end } -- (UpdateCard fills them)
+ns.Card.Register{ id = "rotate", still = true, build = function(_, c) BuildRotate(c) end }
+ns.Card.Register{ id = "moves",
+    update = function(_, key) ns.Moves:Update(card, key) end, -- asleep at night, a Latsabb sitting...
+    stop = function() ns.Moves:Stop() end, -- (the pet's pose starts over next time)
+}
+
+local function BuildCard()
+    local c = PetJournalPetCard
+    if not c or card.status then return end
+    ns.Card:Build(card, c)
 
     -- The guild's numbers: boxes like Blizzard's "Total Pets", on its row.
     -- "Guilden x av y": y = every companion in Forever's journal
@@ -509,12 +457,7 @@ local function OnJournalLoaded()
     ns.Bus:On("REGISTRY", function() JournalUI:Refresh() end)
     ns.Bus:On("SIDEPAGE", function(open)
         if open then
-            ns.Decor:Stop(card)
-            ns.BondTrack:Pause(card)
-            ns.Cake:Update(card, nil)
-            ns.Crown:Update(card, nil)
-            ns.OutBadge:Update(card, nil)
-            ns.Moves:Stop()
+            ns.Card:Pause(card) -- (every widget's pause or stop: Card.lua)
         else
             JournalUI:Refresh()
         end

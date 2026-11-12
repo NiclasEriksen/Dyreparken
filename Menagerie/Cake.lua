@@ -75,8 +75,6 @@ function Cake:Build(card, c)
     f:SetScript("OnEnter", Tip)
     f:SetScript("OnLeave", ns.HideTip)
     f:SetScript("OnClick", function() Cake:Congratulate(card) end)
-    -- The journal closing: no flames in the dark (shown again, the card redraws them).
-    f:SetScript("OnHide", function(self) for _, t in ipairs(self.flames) do t.flicker:Stop() end end)
     f:Hide()
     card.cake = f
 end
@@ -98,3 +96,13 @@ function Cake:Update(card, key)
     end
     f:SetShown(m ~= nil)
 end
+
+ns.Card.Register{ id = "cake",
+    build = function(card, c) Cake:Build(card, c) end,
+    update = function(card, key) Cake:Update(card, key) end,
+    pause = function(card) Cake:Update(card, nil) end, -- (over the model's level: it'd show through our page)
+    -- The journal closing: no flames in the dark (shown again, the card redraws them).
+    stop = function(card)
+        for _, t in ipairs(card.cake and card.cake.flames or {}) do t.flicker:Stop() end
+    end,
+}

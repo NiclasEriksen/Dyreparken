@@ -41,6 +41,7 @@ Menagerie\Registry.lua
 Menagerie\Sync.lua
 Menagerie\Summon.lua
 Menagerie\Report.lua
+Menagerie\Card.lua
 Menagerie\Scenes.lua
 Menagerie\Decor.lua
 Menagerie\BondTrack.lua

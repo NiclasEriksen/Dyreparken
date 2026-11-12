@@ -139,3 +139,8 @@ end
 function CardActions:AskNickname()
     StaticPopup_Show("DYREPARKEN_NICKNAME", ns.Config.NICKNAME_MAX_LEN)
 end
+
+ns.Card.Register{ id = "actions", still = true, -- (buttons; their popups are Blizzard's)
+    build = function(card, c) CardActions:Build(card, c) end,
+    update = function(card, key) CardActions:Update(card, key) end,
+}

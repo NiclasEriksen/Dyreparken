@@ -443,5 +443,9 @@ end
 local Rescan = ns.Debounce(2, function() Story:Scan() end)
 ns.Bus:On("REGISTRY", Rescan)
 ns.Bus:On("BOND", Rescan)
-ns.Bus:On("SIDEPAGE", function(open) if open then Story:Close() end end) -- (our pages cover the card)
+ns.Card.Register{ id = "story",
+    build = function(card, c) Story:Build(card, c) end,
+    update = function(card, key) Story:Update(card, key) end,
+    pause = function() Story:Close() end, -- (our pages cover the card; the window closing closes it: BuildPanel)
+}
 ns.Start("settled", function() Story:Scan() end)

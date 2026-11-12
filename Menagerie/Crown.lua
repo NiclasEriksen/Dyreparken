@@ -43,3 +43,9 @@ function Crown:Update(card, key)
     end
     f:Show()
 end
+
+ns.Card.Register{ id = "crown",
+    build = function(card, c) Crown:Build(card, c) end,
+    update = function(card, key) Crown:Update(card, key) end, -- (after the cake: beside it)
+    pause = function(card) Crown:Update(card, nil) end, -- (over the model's level: it'd show through our page)
+}

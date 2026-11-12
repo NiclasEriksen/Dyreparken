@@ -207,3 +207,49 @@ function Scenes:Paint(card, key)
     end
     return c
 end
+
+-- The backdrop's layers, behind everything else on the card: dungeon art where the family has
+-- one, a gradient tinted by family, the light of the hour, dark edges, and a floor shadow under
+-- the model (placed by the panel, JournalUI). Nothing is stretched past its size: the tint and
+-- edges are drawn, not pictures.
+function Scenes:Build(card, c)
+    local function Layer(sublevel)
+        local t = c:CreateTexture(nil, "BACKGROUND", nil, sublevel)
+        t:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4)
+        t:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", -4, 4)
+        t:Hide()
+        return t
+    end
+    card.scene = Layer(1)
+    card.scene:SetAlpha(0.8)
+    card.tint = Layer(2)
+    card.tint:SetColorTexture(1, 1, 1, 1)
+    card.sky = Layer(3) -- (the light of the hour over the scene: Scenes.SKY)
+    card.sky:SetColorTexture(1, 1, 1, 1)
+    card.edges = {}
+    for i, side in ipairs({ "TOP", "LEFT", "RIGHT" }) do
+        local t = c:CreateTexture(nil, "BACKGROUND", nil, 3)
+        t:SetColorTexture(1, 1, 1, 1)
+        if side == "TOP" then
+            t:SetPoint("TOPLEFT", c, "TOPLEFT", 4, -4); t:SetPoint("TOPRIGHT", c, "TOPRIGHT", -4, -4)
+            t:SetHeight(70)
+        else
+            t:SetPoint("TOP" .. side, c, "TOP" .. side, side == "LEFT" and 4 or -4, -4)
+            t:SetPoint("BOTTOM" .. side, c, "BOTTOM" .. side, side == "LEFT" and 4 or -4, 4)
+            t:SetWidth(70)
+        end
+        t.side = side
+        card.edges[i] = t
+    end
+    card.floor = c:CreateTexture(nil, "BORDER")
+    card.floor:SetTexture("Interface\\CHARACTERFRAME\\TempPortraitAlphaMask")
+    card.floor:SetVertexColor(0, 0, 0, 0.45)
+    card.floor:SetSize(200, 36)
+    card.floor:Hide()
+end
+
+-- First on the card: the widgets after it read the family's tint from ctx.
+ns.Card.Register{ id = "scenes", still = true, -- (textures only)
+    build = function(card, c) Scenes:Build(card, c) end,
+    update = function(card, key, ctx) ctx.tint = Scenes:Paint(card, key) or Scenes.TINT.default end,
+}

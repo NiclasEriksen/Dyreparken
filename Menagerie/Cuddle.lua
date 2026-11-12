@@ -98,7 +98,6 @@ function Cuddle:Build(card, c, panel)
         end)
         d.model = model
     end
-    c:HookScript("OnHide", function() Cuddle:Stop(card) end)
 end
 
 function Cuddle:Stop(card)
@@ -171,3 +170,9 @@ function Cuddle:Pet(card, x, y)
         ns.Activity:Emit("cuddle", 1, "card")
     end
 end
+
+-- (After the model is found, "rotate": it listens for clicks on it. Its bursts end under our pages too.)
+ns.Card.Register{ id = "cuddle",
+    build = function(card, c) Cuddle:Build(card, c, card.panel) end,
+    stop = function(card) Cuddle:Stop(card) end,
+}

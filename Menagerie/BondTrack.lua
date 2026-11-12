@@ -208,11 +208,10 @@ function Track:Build(card, c, panel)
     b:SetScript("OnEnter", function(self) self.text:Show(); BondTip(self, card) end)
     b:SetScript("OnLeave", function(self) self.text:Hide(); Hide(self) end)
     self:BuildCelebration(card, c, panel)
-    c:HookScript("OnHide", function() Track:Pause(card) end)
     b:Hide()
 end
 
--- The track's own pulses stopped (the card hidden or covered); Update starts them again.
+-- The track's own pulses stopped (the card cleared); Update starts them again.
 function Track:Pause(card)
     local b = card.bond
     if not b then return end
@@ -512,7 +511,6 @@ function Track:BuildCelebration(card, c, panel)
     Fade(a, 1, 0, 0.8, 3)
     t.anim = a
     cel.text = t
-    c:HookScript("OnHide", function() Track:StopCelebration(card) end)
 end
 
 function Track:StopCelebration(card)
@@ -548,3 +546,17 @@ function Track:Celebrate(card, key, level)
     ns.Log("Bond", "celebration sound %s", tostring(ns.PlayFirstSound(self.SOUNDS)))
     ns.Log("Bond", "celebrated %s level %d", key, level)
 end
+
+-- The card hidden or covered by one of our pages: its pulses, its gains and a celebration still
+-- playing all end (under a page they played on unseen: B14). Update starts the pulses again.
+function Track:Stop(card)
+    self:Pause(card)
+    self:StopCelebration(card)
+end
+
+ns.Card.Register{ id = "bond",
+    build = function(card, c) Track:Build(card, c, card.panel) end,
+    -- (the family's tint, brightened)
+    update = function(card, key, ctx) Track:Update(card, key, ns.Scenes.Bright(ctx.tint, 1.7)) end,
+    stop = function(card) Track:Stop(card) end,
+}

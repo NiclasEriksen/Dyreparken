@@ -52,7 +52,6 @@ function OutBadge:Build(card, c)
     b.glow:SetPoint("CENTER")
     b.glow:SetSize(SIZE * 1.9, SIZE * 1.9)
     b.glow.pulse = ns.Anim.Pulse(b.glow, 0.35, 0.8, 2.6)
-    c:HookScript("OnHide", function() b.glow.pulse:Stop() end) -- (Update starts it again)
     b.bg = b:CreateTexture(nil, "BORDER")
     b.bg:SetTexture(MEDIA .. "dot")
     b.bg:SetVertexColor(0, 0, 0, 0.75)
@@ -128,3 +127,10 @@ function OutBadge:Update(card, key)
     if on then b.glow.pulse:Play() else b.glow.pulse:Stop() end
     b:Show()
 end
+
+ns.Card.Register{ id = "outbadge",
+    build = function(card, c) OutBadge:Build(card, c) end,
+    update = function(card, key) OutBadge:Update(card, key) end,
+    pause = function(card) OutBadge:Update(card, nil) end, -- (over the model's level: it'd show through our page)
+    stop = function(card) if card.auto then card.auto.glow.pulse:Stop() end end, -- (Update starts it again)
+}

@@ -161,8 +161,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (only answers 0.2.x clients' PET_REQ; /dp rapport is gone),
                    JournalList (the journal's list: markers, bond rings, nicknames, tooltips), CardActions (the card's
-                   Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring; the card's
-                   widgets are one ordered list, WIDGETS: Build + a line there),
+                   Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring),
+                   Card (the card's widgets: one ns.Card.Register{ id, build, update, pause, stop } each, run in
+                   Card.ORDER for build, update, our pages' pause and the card's one OnHide; a widget with nothing
+                   to stop says still = true),
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
                    Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
