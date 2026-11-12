@@ -20,6 +20,9 @@ local _, ns = ...
 -- edited by hand (found by eye with /dp probe anim). Asleep is Dead (6),
 -- held frozen at its end (Play): the sleep ones (99-101) didn't hold, and
 -- PetBattleDead (770) sank some pets into the floor (2026-11-10).
+-- What a pet does is planned in one place, Moves.Plan (step lists, no frames
+-- or timers: test them without playing), and played by a stage (the card, the
+-- pet frame), which only plays plans.
 -- Timers only while the card shows a pet; a new pet, the journal closing or
 -- our pages covering the card cancel them (the sulk turns back then too).
 -- The research probes (/dp probe anim, pos) and the editors' hook are in
@@ -122,13 +125,12 @@ function Moves:For(key, what)
     return id or nil
 end
 
-
 -- Stages (2026-11-11, groundwork for the pet frame: "share the code with the pet journal and be 1:1
 -- in animation / reaction"): everything that poses a pet on a model actor lives in a stage, made by
 -- Moves.NewStage. The journal card is one (Moves.card); the on-screen pet frame will be another, with
 -- its own actor. What's shared: which pets were woken this session (awake), moving with you (motion),
--- and every rule of what a pet does (For, Length, Rest, Steps). The old Moves:Update/Cuddle/... calls
--- are the card's.
+-- and every rule of what a pet does (For, Length, and the planner, Moves.Plan). The old
+-- Moves:Update/Cuddle/... calls are the card's.
 local awake = {} -- pets woken this session (by a click, a cheer): on every stage
 Moves.awake = awake
 Moves.stages = {}
@@ -147,45 +149,6 @@ Moves.RECHECK = 0.3
 -- lay still.
 local NO_BLEND, BLEND = 0, 1 -- Enum.ModelBlendOperation (None, Anim)
 local STAND = 0
-local Steps -- (below)
-
-local function HasTrait(key, id) return ns.Personality:Has(key, id) end
-
--- Playing dead: the egg came up today with this pet, and it hasn't been seen yet.
-local function DeadToday(key)
-    local egg = ns.DB.char.eggs.dodsfall
-    return egg and egg.key == key and egg.day == ns.Today() and not egg.played
-end
-
--- The pose the card's pet takes on its own.
-function Moves:Rest(key, t, noMoments)
-    local o = self.override -- (Dev/MovesProbe.lua: the moves editor stands it, /dp probe anim night)
-    if o and o.rest then return o.rest end
-    if not noMoments and DeadToday(key) and self:For(key, "dead") then return "dead" end
-    if not awake[key] then
-        if ((o and o.night) or ns.Personality.IsNight(t or ns.Now())) and not HasTrait(key, "nattugle") and self:For(key, "sleep") then
-            return "sleep"
-        end
-        -- Moving with you beats sitting (the user, 2026-11-10); sleep at night still wins.
-        if self:MotionId(key) then return "stand" end
-        -- Only a pet that can sit (canSit: the user's box in /dp probe moves, 2026-11-11).
-        local sits = self:For(key, "canSit") and self:For(key, "sit")
-        if HasTrait(key, "latsabb") and sits then return "sit" end
-        -- Content for today: your pet sits once its day's bond is full (2026-11-10).
-        if sits and ns.Pets:IsOwned(key) then
-            local today, max = ns.Bond:Today(key)
-            if today >= max then return "sit" end
-        end
-    end
-    return "stand"
-end
-
--- Your adopted pet's wish came true and you haven't seen it on the card since:
--- a happy hop, once (2026-11-10).
-local function WishJoy(key)
-    local w = ns.DB.char.wish
-    return w and w.done and w.pet == key and w.day == ns.Today() and not w.shown and Moves:For(key, "happy")
-end
 
 ------------------------------------------------------------------------------
 -- Moving with you (2026-11-10, the user's idea): the pet you keep out
@@ -242,7 +205,6 @@ end
 local function ReposeAll() for _, s in ipairs(Moves.stages) do s:Repose() end end
 
 function Moves:JumpAll()
-    if Truthy(IsSwimming and IsSwimming()) or Truthy(UnitOnTaxi("player")) then return end -- (swimming up, not a jump)
     for _, s in ipairs(self.stages) do s:Jump() end
 end
 
@@ -287,33 +249,108 @@ function Moves:FollowAll()
     ns.Events:On("UPDATE_SHAPESHIFT_FORM", Moves, Resync)
 end
 
--- A pose's steps for this pet; the last one is held.
-Steps = function(key, mode)
-    -- Lying down: played (blended) up to sleepAt, then held there. 2026-11-10: blended, Dead
-    -- (6) lies a pet down smoothly but then stands it up; sometimes it doesn't play at all,
-    -- and the held pose still comes.
+------------------------------------------------------------------------------
+-- The planner (2026-11-12, docs/REFACTOR.md): what a pet does, every rule of it in one place, as
+-- plans a stage plays. A plan is a list of steps { id, seconds, pose }, played in turn, the last one
+-- held. pose: held paused (or frozen) that many seconds in; keep: played as picked (the moves
+-- editor's), not put back to rest; on: called as the step plays (a once-a-day moment counts as seen
+-- only when it plays). A plan may also say the stage's mode after it (mode), that the pet is awake
+-- now (wake), and why (for the log). Plans read the game and the saved data, and change nothing: no
+-- frames, no timers, no state (the stage applies mode and wake as it plays one).
+-- from: what a stage shows now, { mode, playing, last } (its `shown`). noMoments: a stage that leaves
+-- the once-a-day moments (the sulk, playing dead, the wish's hop) to the card.
+------------------------------------------------------------------------------
+local Plan = {}
+Moves.Plan = Plan
+Moves.TRY_HOLD = 3 -- seconds a whole tried sleep or sit holds before it gets up
+
+local function For(key, what) return Moves:For(key, what) end
+local function HasTrait(key, id) return ns.Personality:Has(key, id) end
+
+-- The steps given, in order, leaving out the nils and falses (moves the pet doesn't have).
+local function List(...)
+    local steps = {}
+    for i = 1, select("#", ...) do
+        local s = select(i, ...)
+        if s then steps[#steps + 1] = s end
+    end
+    return steps
+end
+
+-- A one-off as a step, played as long as it lasts on this pet (else t); nil without one.
+local function Once(key, id, t)
+    if id then return { id, Moves:Length(key, id, t) } end
+end
+
+-- Playing dead: the egg came up today with this pet, and it hasn't been seen yet.
+local function DeadToday(key)
+    local egg = ns.DB.char.eggs.dodsfall
+    return egg and egg.key == key and egg.day == ns.Today() and not egg.played
+end
+
+-- Your adopted pet's wish came true and you haven't seen it on the card since:
+-- a happy hop, once (2026-11-10).
+local function WishJoy(key)
+    local w = ns.DB.char.wish
+    return w and w.done and w.pet == key and w.day == ns.Today() and not w.shown and For(key, "happy")
+end
+
+-- The pose the pet takes on its own: "sleep", "sit", "dead" or "stand". woken: as if awake.
+function Plan.Rest(key, t, noMoments, woken)
+    local o = Moves.override -- (Dev/MovesProbe.lua: the moves editor stands it, /dp probe anim night)
+    if o and o.rest then return o.rest end
+    if not noMoments and DeadToday(key) and For(key, "dead") then return "dead" end
+    if not (woken or awake[key]) then
+        if ((o and o.night) or ns.Personality.IsNight(t or ns.Now())) and not HasTrait(key, "nattugle") and For(key, "sleep") then
+            return "sleep"
+        end
+        -- Moving with you beats sitting (the user, 2026-11-10); sleep at night still wins.
+        if Moves:MotionId(key) then return "stand" end
+        -- Only a pet that can sit (canSit: the user's box in /dp probe moves, 2026-11-11).
+        local sits = For(key, "canSit") and For(key, "sit")
+        if HasTrait(key, "latsabb") and sits then return "sit" end
+        -- Content for today: your pet sits once its day's bond is full (2026-11-10).
+        if sits and ns.Pets:IsOwned(key) then
+            local today, max = ns.Bond:Today(key)
+            if today >= max then return "sit" end
+        end
+    end
+    return "stand"
+end
+function Moves:Rest(key, t, noMoments) return Plan.Rest(key, t, noMoments) end
+
+-- Into a pose and holding it (the last step is held). fresh: the pet was just put on the stage.
+function Plan.Hold(key, mode, fresh)
     if mode == "sleep" then
-        local id, at = Moves:For(key, "sleep"), Moves:For(key, "sleepAt") or 0
+        local id, at, hold = For(key, "sleep"), For(key, "sleepAt"), For(key, "sleepHold")
+        -- Lying down: played (blended) up to sleepAt, then held there. 2026-11-10: blended, Dead
+        -- (6) lies a pet down smoothly but then stands it up; sometimes it doesn't play at all,
+        -- and the held pose still comes. Paused there, which needs the model loaded first
+        -- (SLEEP_AFTER: a model still loading would stand it up again).
+        if not hold then
+            return { { STAND, Moves.SLEEP_AFTER }, { id, at or 0 }, { id, nil, at or 0 } }
+        end
         -- A pet with a sleep loop of its own (sleepHold) is asleep already when its card opens
-        -- (the user, 2026-11-11): a loop needs no timing, so no wait for the model to load.
-        -- (Sleep starts only as a card opens: once woken, it stays awake.) The others lie down
-        -- and are paused there, which needs the model loaded first (SLEEP_AFTER).
-        local hold = Moves:For(key, "sleepHold")
-        -- (A model still loading would stand it up again: stage:Update waits for it first.)
-        if hold then return { { hold } } end
-        return { { STAND, Moves.SLEEP_AFTER }, { id, at }, { id, nil, at } }
+        -- (the user, 2026-11-11): a loop needs no timing. (Sleep starts only as a card opens: once
+        -- woken, it stays awake.)
+        if not fresh then return { { hold } } end
+        -- ... but not just put on the stage (2026-11-11, the user: asleep on reopening, but "it
+        -- quickly broke when swapping"): its model finishes loading in the engine and stands it up,
+        -- with no call we can see (GetAnimation echoes what was set; IsLoaded said true at once). Set
+        -- twice, the client played it as a one-off and got up. So a new pet stands while its model
+        -- loads, as the lie-down sleepers do (SLEEP_AFTER), then sleeps; the same pet sleeps at once.
+        -- (And now that it stands first, it lies down before the loop, as a pet with a lie-down of its
+        -- own should: 2026-11-11, the user: "lacking the get up / down animations".)
+        return List({ STAND, Moves.SLEEP_AFTER }, id and id ~= hold and { id, at or Moves:Length(key, id, Moves.T.down) },
+            { hold })
     end
     if mode == "sit" then
-        local down = Moves:For(key, "sitDown")
-        local steps = { { STAND, Moves.SIT_AFTER } }
-        if down then steps[#steps + 1] = { down, Moves:Length(key, down, Moves.T.down) } end
-        steps[#steps + 1] = { Moves:For(key, "sit") }
-        return steps
+        return List({ STAND, Moves.SIT_AFTER }, Once(key, For(key, "sitDown"), Moves.T.down), { For(key, "sit") })
     end
     if mode == "dead" then
         -- Lying still for a while: paused just before its fall ends, where it's measured
         -- (2026-11-11: a Death plays 1.4 to 2.7 s, then the pet stood up for the rest of T.dead).
-        local id = Moves:For(key, "dead")
+        local id = For(key, "dead")
         local len = Moves:Length(key, id)
         local pose = len and math.max(0.1, len - 0.05) or nil
         return { { STAND, Moves.SETTLE },
@@ -323,52 +360,189 @@ Steps = function(key, mode)
     -- Walking or running: only once the model has loaded. 2026-11-10: the client scales a
     -- model to its size as it loads, and a walking one is bigger, so a pet shown mid-walk
     -- came out at two thirds of its size (scale 13.4 instead of 19.5) until loaded again.
-    local motion = Moves:MotionId(key)
-    if motion then return { { STAND, Moves.SETTLE }, { motion } } end
+    local walk = Moves:MotionId(key)
+    if walk then return { { STAND, Moves.SETTLE }, { walk } } end
     return { { STAND } }
 end
 
-Moves.TRY_HOLD = 3 -- seconds a whole tried sleep or sit holds before it gets up
+-- A pet put on a stage: its pose (o.mode, else Rest), and first a one-off once the model has
+-- loaded: a level-up's cheer (o.cheer: celebrated as the card opened, before the pet was posed: code
+-- review 2026-11-10), which wakes it, or a wish come true. o.fresh: a new pet on the stage.
+function Plan.Pose(key, o)
+    local mode = o.mode or Plan.Rest(key, nil, o.noMoments)
+    local plan = Plan.Hold(key, mode, o.fresh)
+    local cheer = o.cheer and mode ~= "dead" and For(key, "cheer")
+    local joy = not o.noMoments and not cheer and mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
+    if cheer then
+        mode = Plan.Rest(key, nil, o.noMoments, true)
+        plan = Plan.Hold(key, mode)
+        plan.wake = true
+    end
+    if cheer or joy then
+        table.insert(plan, 1, { cheer or joy, Moves:Length(key, cheer or joy, cheer and Moves.T.cheer or Moves.T.happy),
+            on = joy and function() ns.Wish:Shown() end or nil })
+        table.insert(plan, 1, { STAND, Moves.SETTLE })
+    end
+    plan.mode, plan.why = mode, "pose " .. tostring(mode)
+    return plan
+end
 
--- Steps for one part (the moves editor's ▶): it plays at once and stays (a
--- lie-down paused at its point, a loop looping, a one-off on its last frame).
-local function PartSteps(F, what)
+-- A plan's last step, about to be held: back to rest as things are now (code review 2026-11-10: a
+-- stop during the hop left it walking; after playing dead it never walked). The stage's mode and the
+-- id to hold then; or, for a sitter that stopped moving meanwhile, a plan: it settles again.
+function Plan.Settle(key, mode, id, noMoments)
+    if mode == "dead" and Plan.Rest(key, nil, noMoments) == "stand" then mode = "stand" end
+    if mode == "stand" and Plan.Rest(key, nil, noMoments) == "sit" then
+        local plan = Plan.Hold(key, "sit")
+        plan.mode, plan.why = "sit", "settles again"
+        return "sit", nil, plan
+    end
+    if mode == "stand" then id = Moves:MotionId(key) or STAND end
+    return mode, id
+end
+
+-- After a reaction: its pose, awake now (if it slept or sat). The mode, and the id it holds.
+function Plan.Back(key, noMoments)
+    local mode = Plan.Rest(key, nil, noMoments, true)
+    local hold = Plan.Hold(key, mode)
+    return mode, hold[#hold][1]
+end
+
+-- Sitting already, or sitting down (2026-11-10: clicked in its first seconds, still standing, it
+-- "got up" for 1.4 s before the hop).
+function Plan.Seated(key, playing)
+    return playing == For(key, "sitDown") or playing == For(key, "sit")
+end
+
+-- A one-off, then back to its pose, awake.
+local function Reaction(key, step, why, noMoments)
+    local mode, back = Plan.Back(key, noMoments)
+    local plan = List(step, { back })
+    plan.mode, plan.wake, plan.why = mode, true, why
+    return plan
+end
+
+-- A click on the pet (Cuddle.lua): wakes it up, gets it up, or a happy move (now and then its other
+-- one; no happy move: none at all).
+function Plan.Cuddle(key, from, noMoments)
+    local happy, too = For(key, "happy"), For(key, "happyToo")
+    if happy and too and ns.random() < Moves.HAPPY_TOO_CHANCE then happy = too end
+    local mode, back = Plan.Back(key, noMoments)
+    -- Up first only if it's sitting already (Seated).
+    local up = from.mode == "sit" and Plan.Seated(key, from.playing) and For(key, "sitUp")
+        or from.mode == "sleep" and For(key, "sleepUp")
+    local plan = List(Once(key, up, Moves.T.up), Once(key, happy, Moves.T.happy), { back })
+    plan.mode, plan.wake, plan.why = mode, true, "click"
+    return plan
+end
+
+-- A bond level reached (BondTrack's celebration): its cheer; nil if it has none.
+function Plan.Cheer(key, noMoments)
+    local cheer = For(key, "cheer")
+    if not cheer then return nil end
+    return Reaction(key, Once(key, cheer, Moves.T.cheer), "cheer", noMoments)
+end
+
+-- A one-off reaction played once (Fight.lua: attack, cower); nil if the pet doesn't do it.
+function Plan.Act(key, what, noMoments)
+    local id = For(key, what)
+    if not id then return nil end
+    return Reaction(key, Once(key, id, Moves.T[what] or Moves.T.happy), what, noMoments)
+end
+
+-- Moving changed: a sitting pet gets up and goes with you, and sits again when you stop; a pet
+-- resting standing (its last step held) takes the walk up. A plan; or nil and the id to play at once
+-- in place of what plays (no new plan: the pose's timers run on); or nothing.
+function Plan.Repose(key, from, noMoments)
+    local mode = Plan.Rest(key, nil, noMoments)
+    if from.mode == "sit" and mode == "stand" then -- (sitting, or about to: up and away)
+        local plan = List(Plan.Seated(key, from.playing) and Once(key, For(key, "sitUp"), Moves.T.up), { STAND })
+        plan.mode, plan.why = "stand", "up to go with you"
+        return plan
+    end
+    if from.mode == "stand" and mode == "sit" and from.last then -- (stopped: it settles again)
+        local plan = Plan.Hold(key, "sit")
+        plan.mode, plan.why = "sit", "stopped: sits"
+        return plan
+    end
+    if from.mode ~= "stand" or not from.last then return nil end
+    local id = Moves:MotionId(key) or STAND
+    if from.playing ~= id then return nil, id end
+end
+
+-- Taking off, in the air, landing (none of them: an empty list).
+local function Airborne(key)
+    local start, air = For(key, "jumpStart"), For(key, "jump")
+    local startLen = start and Moves:Length(key, start, Moves.T.jumpStart) or 0
+    return List(start and { start, startLen }, air and { air, math.max(0.1, Moves.JUMP_AIR - startLen) },
+        Once(key, For(key, "jumpEnd"), Moves.T.jumpEnd))
+end
+
+-- You jumped: a pet with you that can jump does too, if it's only standing or walking (not
+-- asleep, sitting, or in the middle of a reaction, a jump included); then as things are (standing,
+-- walking or running). Swimming up isn't a jump, nor a press on a taxi. nil: it doesn't.
+function Plan.Jump(key, from)
+    if Truthy(IsSwimming and IsSwimming()) or Truthy(UnitOnTaxi("player")) then return nil end
+    if not (key and Moves.WithYou(key) and For(key, "canJump")) then return nil end
+    if from.mode ~= "stand" or not from.last then return nil end -- (in the air too: it lands first)
+    local plan = Airborne(key)
+    if #plan == 0 then return nil end
+    plan[#plan + 1] = { STAND }
+    plan.why = "jump"
+    return plan
+end
+
+-- One part (the moves editor's ▶): it plays at once and stays (a lie-down paused at its point, a
+-- loop looping, a one-off on its last frame).
+local function Part(key, what)
     if what == "sleep" then
-        local id, at, hold = F("sleep"), F("sleepAt") or 0, F("sleepHold")
+        local id, at, hold = For(key, "sleep"), For(key, "sleepAt") or 0, For(key, "sleepHold")
         if not id then return nil end
         return { { id, at }, hold and { hold, keep = true } or { id, nil, at } }
     end
-    local id = F(what)
+    local id = For(key, what)
     return id and { { id, keep = true } } or nil
 end
 
 -- The whole reaction in order (the moves editor's "Hele"), ending standing.
-local function WholeSteps(F, reaction, key)
-    local steps = {}
-    local function Add(id, t, pose) if id then steps[#steps + 1] = { id, t, pose } end end
-    local function Len(id, t) return Moves:Length(key, id, t) end
+local function Whole(key, reaction)
+    local plan
     if reaction:find("^sleep") then
-        local id, at, hold = F("sleep"), F("sleepAt") or 0, F("sleepHold")
-        Add(id, at)
-        if hold then Add(hold, Moves.TRY_HOLD) else Add(id, Moves.TRY_HOLD, at) end
-        Add(F("sleepUp"), Len(F("sleepUp"), Moves.T.up))
+        local id, at, hold = For(key, "sleep"), For(key, "sleepAt") or 0, For(key, "sleepHold")
+        plan = List(id and { id, at }, hold and { hold, Moves.TRY_HOLD } or id and { id, Moves.TRY_HOLD, at },
+            Once(key, For(key, "sleepUp"), Moves.T.up))
     elseif reaction:find("^sit") then
-        Add(F("sitDown"), Len(F("sitDown"), Moves.T.down))
-        Add(F("sit"), Moves.TRY_HOLD)
-        Add(F("sitUp"), Len(F("sitUp"), Moves.T.up))
+        local sit = For(key, "sit")
+        plan = List(Once(key, For(key, "sitDown"), Moves.T.down), sit and { sit, Moves.TRY_HOLD },
+            Once(key, For(key, "sitUp"), Moves.T.up))
     elseif reaction:find("^jump") then -- (as when you jump: take off, in the air, land)
-        local start = F("jumpStart")
-        local startLen = start and Len(start, Moves.T.jumpStart) or 0
-        Add(start, startLen)
-        Add(F("jump"), math.max(0.1, Moves.JUMP_AIR - startLen))
-        Add(F("jumpEnd"), Len(F("jumpEnd"), Moves.T.jumpEnd))
+        plan = Airborne(key)
     else
-        Add(F(reaction), reaction == "dead" and Moves.T.dead or Len(F(reaction), Moves.T.cheer))
+        local id = For(key, reaction)
+        plan = List(id and { id, reaction == "dead" and Moves.T.dead or Moves:Length(key, id, Moves.T.cheer) })
     end
-    steps[#steps + 1] = { STAND, keep = true }
-    return steps
+    plan[#plan + 1] = { STAND, keep = true }
+    return plan
 end
 
+-- The moves editor's try: "stand", one part, or (whole) the reaction it belongs to. nil: nothing to play.
+function Plan.Try(key, what, whole)
+    local plan = what == "stand" and { { STAND, keep = true } } or whole and Whole(key, what) or Part(key, what)
+    if not (plan and plan[1]) then return nil end
+    plan.mode, plan.why = "stand", "try " .. tostring(what)
+    return plan
+end
+
+-- Sulking (2026-11-10): the first time you open its card on a day a dislike of its came up
+-- (Quirks: char.sulk), the pet turns its back for a few seconds.
+function Plan.Sulk(key)
+    local s = ns.DB.char.sulk
+    return s and s.key == key and s.day == ns.Today() and not s.shown or false
+end
+
+------------------------------------------------------------------------------
+-- The stage: plays plans on a model actor
+------------------------------------------------------------------------------
 -- A stage: opts.actor() the model actor, opts.scene() its model scene (for the lift's scene id),
 -- opts.anchor() the frame a sulk's cloud bursts from, opts.refresh() redraws around it (a woken
 -- pet's Zzz go).
@@ -382,9 +556,9 @@ function Moves.NewStage(name, opts)
     -- moments = false (the pet frame) leaves them to it (code review 2026-11-11: else the frame
     -- spent them hours later, at its next pose).
     local moments = opts.moments ~= false
-    local function Rest(key) return Moves:Rest(key, nil, not moments) end
+    local function Rest(key) return Plan.Rest(key, nil, not moments) end
 
-    local Play, Lift
+    local Play, Lift, Run
 
     -- 2026-11-10: about one time in three a held pose stood up again by itself
     -- right away, and GetAnimation (it only echoes what was set) can't tell. So
@@ -516,15 +690,10 @@ function Moves.NewStage(name, opts)
             if s.on then s.on() end -- (a once-a-day moment counts as seen only when it plays)
             local id = s[1]
             if shown.last and not s[3] and not s.keep then -- (keep: the moves editor's, played as picked)
-                -- Back to rest after a one-off: as things are now (code review 2026-11-10: a stop
-                -- during the hop left it walking; after playing dead it never walked).
-                if shown.mode == "dead" and Rest(shown.key) == "stand" then shown.mode = "stand" end
-                -- (stopped moving meanwhile, and it's a sitter: it settles again)
-                if shown.mode == "stand" and Rest(shown.key) == "sit" then
-                    shown.mode = "sit"
-                    return stage:Sequence(Steps(shown.key, "sit"), "settles again")
-                end
-                if shown.mode == "stand" then id = Moves:MotionId(shown.key) or Moves.STAND end
+                local mode, again
+                mode, id, again = Plan.Settle(shown.key, shown.mode, id, not moments)
+                if again then return Run(shown.key, again) end
+                shown.mode = mode
             end
             Play(id, nil, s[3])
             if s[2] then C_Timer.After(s[2], function() Step(i + 1) end) end
@@ -532,44 +701,26 @@ function Moves.NewStage(name, opts)
         Step(1)
     end
 
-    -- Moving changed: a sitting pet gets up and goes with you, and sits again when
-    -- you stop; a pet resting standing (its last step held) takes the walk up.
+    -- A plan played: the pet awake now and the stage's mode as it says, then its steps.
+    Run = function(key, plan)
+        if not plan then return end
+        if plan.wake then awake[key] = true end
+        if plan.mode then shown.mode = plan.mode end
+        stage:Sequence(plan, plan.why)
+    end
+
+    -- Moving changed (Plan.Repose).
     function stage:Repose()
         local key = shown.key
         if not key then return end
-        local mode = Rest(key)
-        if shown.mode == "sit" and mode == "stand" then -- (sitting, or about to: up and away)
-            local seated = shown.playing == Moves:For(key, "sitDown") or shown.playing == Moves:For(key, "sit")
-            shown.mode = "stand"
-            local up = Moves:For(key, "sitUp")
-            local steps = (seated and up) and { { up, Moves:Length(key, up, Moves.T.up) } } or {}
-            steps[#steps + 1] = { STAND }
-            return stage:Sequence(steps, "up to go with you")
-        end
-        if shown.mode == "stand" and mode == "sit" and shown.last then -- (stopped: it settles again)
-            shown.mode = "sit"
-            return stage:Sequence(Steps(key, "sit"), "stopped: sits")
-        end
-        if shown.mode ~= "stand" or not shown.last then return end
-        local id = Moves:MotionId(key) or STAND
-        if shown.playing ~= id then Play(id) end
+        local plan, id = Plan.Repose(key, shown, not moments)
+        if plan then return Run(key, plan) end
+        if id then Play(id) end
     end
 
-    -- You jumped: a pet with you that can jump does too, if it's only standing or walking (not
-    -- asleep, sitting, or in the middle of a reaction, a jump included).
+    -- You jumped (Plan.Jump).
     function stage:Jump()
-        local key = shown.key
-        if not (key and Moves.WithYou(key) and Moves:For(key, "canJump")) then return end
-        if shown.mode ~= "stand" or not shown.last then return end -- (in the air too: it lands first)
-        local start, air, land = Moves:For(key, "jumpStart"), Moves:For(key, "jump"), Moves:For(key, "jumpEnd")
-        local steps = {}
-        local startLen = start and Moves:Length(key, start, Moves.T.jumpStart) or 0
-        if start then steps[#steps + 1] = { start, startLen } end
-        if air then steps[#steps + 1] = { air, math.max(0.1, Moves.JUMP_AIR - startLen) } end
-        if land then steps[#steps + 1] = { land, Moves:Length(key, land, Moves.T.jumpEnd) } end
-        if #steps == 0 then return end
-        steps[#steps + 1] = { STAND } -- (then as things are: standing, walking or running)
-        stage:Sequence(steps, "jump")
+        Run(shown.key, Plan.Jump(shown.key, shown))
     end
 
     -- Standing on its shadow (2026-11-10): Blizzard puts each model at a height
@@ -625,13 +776,10 @@ function Moves.NewStage(name, opts)
         Call(b.actor, "SetYaw", b.yaw)
     end
 
-    -- Sulking (2026-11-10): the first time you open its card on a day a dislike
-    -- of its came up (Quirks: char.sulk), the pet turns its back for a few
-    -- seconds, a little cloud over it. ModelSceneActor:SetYaw is unverified on
-    -- Forever: without it, just the cloud. (Moves.SULK: how long.)
+    -- The sulk (Plan.Sulk): its back turned for a few seconds, a little cloud over it.
+    -- ModelSceneActor:SetYaw is unverified on Forever: without it, just the cloud. (Moves.SULK: how long.)
     local function Sulk(key)
-        local s = ns.DB.char.sulk
-        if not (s and s.key == key and s.day == ns.Today() and not s.shown) then return end
+        if not Plan.Sulk(key) then return end
         local token = shown.token
         C_Timer.After(Moves.SETTLE, function()
             if token ~= shown.token or shown.key ~= key then return end
@@ -699,101 +847,50 @@ function Moves.NewStage(name, opts)
                 tostring(Moves:For(key, "sleep")), tostring(Moves:For(key, "sleepAt")), tostring(Moves:For(key, "sleepHold")))
         end
         UnSulk()
-        local newPet = key ~= shown.key
-        shown.key, shown.mode = key, mode
-        local steps = Steps(key, mode)
-        -- A sleep loop on a pet just put on the stage (2026-11-11, the user: asleep on reopening, but
-        -- "it quickly broke when swapping"): its model finishes loading in the engine and stands it up,
-        -- with no call we can see (GetAnimation echoes what was set; IsLoaded said true at once). Set
-        -- twice, the client played it as a one-off and got up. So a new pet stands while its model
-        -- loads, as the lie-down sleepers do (SLEEP_AFTER), then sleeps; the same pet sleeps at once.
-        -- (And now that it stands first, it lies down before the loop, as a pet with a lie-down of its own
-        -- should: 2026-11-11, the user: "lacking the get up / down animations".)
-        if mode == "sleep" and #steps == 1 and newPet then
-            local down = self:For(key, "sleep")
-            if down and down ~= steps[1][1] then
-                table.insert(steps, 1, { down, self:For(key, "sleepAt") or self:Length(key, down, self.T.down) })
-            end
-            table.insert(steps, 1, { STAND, Moves.SLEEP_AFTER })
-        end
-        -- A one-off first, once the model has loaded: a level-up's cheer (celebrated as the card
-        -- opened, before the pet was posed: code review 2026-11-10), or a wish come true.
-        local cheer = shown.cheerFor == key and mode ~= "dead" and self:For(key, "cheer")
-        local joy = moments and not cheer and mode ~= "dead" and mode ~= "sleep" and WishJoy(key)
-        shown.cheerFor = nil
-        if cheer or joy then
-            if cheer then awake[key] = true; mode = Rest(key); shown.mode = mode; steps = Steps(key, mode) end
-            table.insert(steps, 1, { cheer or joy, self:Length(key, cheer or joy, cheer and self.T.cheer or self.T.happy),
-                on = joy and function() ns.Wish:Shown() end or nil })
-            table.insert(steps, 1, { STAND, self.SETTLE })
-        end
-        self:Sequence(steps, "pose " .. tostring(mode))
+        local plan = Plan.Pose(key, { mode = mode, fresh = key ~= shown.key, cheer = shown.cheerFor == key, noMoments = not moments })
+        shown.key, shown.cheerFor = key, nil
+        Run(key, plan)
         Lift(key)     -- at once (2026-11-10: a moment later read as a jump) ...
         LiftSoon(key) -- ... and again if the model, done loading, was put back
         if moments then Sulk(key) end
     end
 
-    -- After a reaction: back to its pose (awake now, if it slept or sat).
-    local function Back(key)
-        awake[key] = true
-        shown.mode = Rest(key)
-        local steps = Steps(key, shown.mode)
-        return steps[#steps][1]
-    end
-
-    -- A click on the pet (Cuddle.lua): wakes it up, gets it up, or a happy move.
+    -- A click on the pet (Cuddle.lua, Plan.Cuddle).
     function stage:Cuddle(key)
         if key ~= shown.key then return end
-        local mode, happy = shown.mode, self:For(key, "happy")
-        local too = self:For(key, "happyToo")
-        if happy and too and ns.random() < Moves.HAPPY_TOO_CHANCE then happy = too end -- (no happy: none at all)
-        local back = Back(key)
-        local steps = {}
-        -- Up first only if it's sitting already (2026-11-10: clicked in its first seconds, still
-        -- standing, it "got up" for 1.4 s before the hop).
-        local seated = shown.playing == self:For(key, "sitDown") or shown.playing == self:For(key, "sit")
-        local up = mode == "sit" and seated and self:For(key, "sitUp")
-            or mode == "sleep" and self:For(key, "sleepUp")
-        if up then steps[#steps + 1] = { up, self:Length(key, up, self.T.up) } end
-        if happy then steps[#steps + 1] = { happy, self:Length(key, happy, self.T.happy) } end
-        steps[#steps + 1] = { back }
-        self:Sequence(steps, "click")
+        local was = shown.mode
+        Run(key, Plan.Cuddle(key, shown, not moments))
         -- Awake now on every stage that shows it (the frame wakes with the card's click).
         for _, s in ipairs(Moves.stages) do if s ~= stage and s.shown.key == key then s:Update(nil, key) end end
         -- Woken up: its Zzz go (Decor reads the pose; the card's refresh leaves the hop playing).
-        if mode == "sleep" and opts.refresh then opts.refresh() end
+        if was == "sleep" and opts.refresh then opts.refresh() end
     end
 
     -- A bond level reached (BondTrack's celebration): its cheer, if it has one.
     function stage:Cheer(key)
         if key ~= shown.key then shown.cheerFor = key; return end -- (posed next: Update plays it)
-        local cheer = self:For(key, "cheer")
-        if not cheer then return end
-        local back = Back(key)
-        self:Sequence({ { cheer, self:Length(key, cheer, self.T.cheer) }, { back } }, "cheer")
+        Run(key, Plan.Cheer(key, not moments))
     end
 
     -- A one-off reaction played once, then back to its pose (Fight.lua: attack, cower). false: the pet
     -- isn't on this stage, or doesn't do it.
     function stage:Act(key, what)
         if key ~= shown.key then return false end
-        local id = self:For(key, what)
-        if not id then return false end
-        self:Sequence({ { id, self:Length(key, id, self.T[what] or self.T.happy) }, { Back(key) } }, what)
+        local plan = Plan.Act(key, what, not moments)
+        if not plan then return false end
+        Run(key, plan)
         return true
     end
 
     -- whole: the whole reaction the part belongs to; else just the part.
     function stage:Try(key, what, whole)
         if key ~= shown.key then return end
-        local F = function(w) return self:For(key, w) end
-        local steps = what == "stand" and { { STAND, keep = true } } or whole and WholeSteps(F, what, key) or PartSteps(F, what)
-        if not steps or not steps[1] then return end
-        shown.mode = "stand"
+        local plan = Plan.Try(key, what, whole)
+        if not plan then return end
         -- Standing first, in the same moment: the client doesn't start over the one it's on.
         Play(STAND)
         ns.Log("Moves", "try %s%s on %s", what, whole and " (whole)" or "", key)
-        self:Sequence(steps, "try " .. tostring(what))
+        Run(key, plan)
     end
 
     -- The journal closing or our pages covering the card: stop, and start over next time.
