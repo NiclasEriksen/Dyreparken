@@ -41,12 +41,21 @@ return function(test, H)
         eq(P:Line(PANDA), "Klengete og Nattugle · liker herbs")
         local cat = { P:Of("s:40") }
         ok(cat[1].fish, "cats like fishing")
+        -- One like from the families, not all (2026-11-12): a bird and a dragon, not pinned, gets the first.
         local dragon = { P:Of("s:84") }
-        ok(dragon[1].boss and dragon[1].taxi and dragon[1].rep, "the dragon's likes")
+        eq(table.concat(dragon[2], " "), "boss", "one of the dragon's and the bird's: the first")
+        P.FAMILY_PICK[84] = "rep"
+        eq(table.concat((select(2, P:Of("s:84"))), " "), "rep", "the pick")
+        P.FAMILY_PICK[84] = "nap"
+        eq(table.concat((select(2, P:Of("s:84"))), " "), "boss", "a pick its families don't give: as if none")
+        P.FAMILY_PICK[84] = nil
         ok(P:Of("s:72").quest, "no family: quests")
         Give(ola, "glupsk", "reiseglad")
         ola:GivePet(84) -- (known: a personality is a surprise until collected)
-        eq(P:Line("s:84"), "Glupsk og Reiseglad · liker boss-kills, flyturer, rep og quests", "a like is listed once")
+        eq(P:Line("s:84"), "Glupsk og Reiseglad · liker boss-kills, quests og flyturer")
+        Give(ola, "eventyrlysten", "reiseglad")
+        eq(P:Line("s:84"), "Eventyrlysten og Reiseglad · liker rep, boss-kills og flyturer",
+            "not pinned: the families' first that the traits don't like already")
         P.BY_FAMILY, P.DEFAULT = {}, {}
         Give(ola, "kosete", "helgedyr")
         P.Known = function() return true end

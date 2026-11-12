@@ -110,6 +110,8 @@ listener. Nobody registers game events of their own.
 ### Personality
 
 - **Likes** come from the pet's family tags (`Data/Companions.lua`): two or three per pet, from a table per tag.
+  Since 2026-11-12 (the user) only **one** of its families' likes, picked by hand per species
+  (`Personality.FAMILY_PICK`), plus its own story's and its traits': a parrot (bird and pirate) had six.
 - **A quirk** per species, chosen from the species id so every client agrees. For example "redd for vann",
   "elsker å fly", "nattmenneske" or "glupsk". It shapes the flavor text, and one quirk can bend a like (a cat
   that's "redd for vann" doesn't like diving).

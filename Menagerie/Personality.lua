@@ -46,6 +46,67 @@ Personality.BY_FAMILY = {
 }
 Personality.DEFAULT = { "quest" } -- a pet with no family we know
 
+-- One like from the families, not all of them (2026-11-12, the user: "a bit crazy that it has 6 while the
+-- prairie dog only has 2"; a parrot is a bird and a pirate, four likes before its traits). The pick per
+-- species, by hand, the one that fits it best, preferring one its traits and story don't already give;
+-- pinned like the traits. A species with one candidate needs no line (a test asks for a line wherever there
+-- are more). The pets adopted that day keep all their family likes (a list: Senegal, Mechanical Squirrel,
+-- Panda Cub), so no adopter's pet changed.
+Personality.FAMILY_PICK = {
+    [39] = { "mine", "skill" },                   -- Mechanical Squirrel (adopted: kept)
+    [51] = { "taxi", "fish", "pvp", "dive" },     -- Senegal (adopted: kept)
+    [5159] = { "fish", "herb" },                  -- Panda Cub (adopted: kept)
+    [47] = "taxi",    -- Cockatiel
+    [49] = "taxi",    -- Hyacinth Macaw
+    [50] = "fish",    -- Green Wing Macaw (Reiseglad flies already)
+    [52] = "herb",    -- Ancona Chicken: pecking in the garden
+    [5004] = "herb",  -- Prairie Chicken
+    [5069] = "herb",  -- Wild Chicken
+    [83] = "mine",    -- Mechanical Chicken (Håndverker crafts already)
+    [85] = "mine",    -- Tiny Walking Bomb: blasting
+    [95] = "fish",    -- Lifelike Toad (Håndverker and Dykker give the rest)
+    [116] = "skill",  -- Tranquil Mechanical Yeti: an engineer's toy
+    [56] = "taxi",    -- Dark Whelpling: whelps fly (Eventyrlysten likes bosses already)
+    [57] = "taxi",    -- Azure Whelpling
+    [58] = "taxi",    -- Crimson Whelpling
+    [59] = "taxi",    -- Emerald Whelpling
+    [87] = "taxi",    -- Sprite Darter Hatchling
+    [1563] = "taxi",  -- Bronze Whelpling
+    [64] = "fish",    -- Wood Frog (Dykker dives already)
+    [65] = "dive",    -- Tree Frog
+    [106] = "dive",   -- Jubling
+    [5005] = "dive",  -- Musical Gustjumper
+    [125] = false,    -- Speedy: none (Dykker dives already; the 4-6 pass, 2026-11-12)
+    [5162] = "fish",  -- Baby Crocolisk (likewise)
+    [5179] = "fish",  -- Azurky
+    [5122] = "fish",  -- Spectral Bear Cub
+    [118] = "quest",  -- Winter Reindeer: Greatfather Winter's errands (it flies by its story)
+    [126] = "herb",   -- Mr. Wiggles: rooting for truffles
+    [5176] = "quest", -- Minimule: a pack mule
+    [128] = "rep",    -- Spirit of Summer: the Midsummer fires of every city
+    [5163] = "taxi",  -- Shen'dorei Wisp: it floats
+    [127] = "mine",   -- Whiskers the Rat: a rat burrows (Røverdyr and Glupsk give the rest)
+    -- (the holidays' pets: their own families' first, else the holiday's quests)
+    [162] = "herb",   -- Sinister Squashling: a squash
+    [119] = "quest",  -- Father Winter's Helper
+    [120] = "quest",  -- Winter's Little Helper
+    [117] = "quest",  -- Tiny Snowman
+    [122] = "quest",  -- Peddlefeet
+    [341] = "quest",  -- Lunar Lantern: the Elders
+    [342] = "quest",  -- Festival Lantern
+}
+
+-- The family likes a species may get: every one its families give, in order.
+function Personality:FamilyLikes(families)
+    local list, seen = {}, {}
+    for _, f in ipairs(families) do
+        for _, act in ipairs(self.BY_FAMILY[f] or {}) do
+            if not seen[act] then seen[act] = true; list[#list + 1] = act end
+        end
+    end
+    return list
+end
+
 -- Species with likes of their own (species id -> activities), from their
 -- story (the data pass, 2026-11-10). Added to the family's.
 Personality.BY_SPECIES = {
@@ -78,6 +139,25 @@ Personality.DISLIKE_BY_FAMILY = {
     snake = { "jump" }, mechanical = { "dive" }, dragon = { "dive" }, pirate = { "hearth" }, bug = { "jump" },
     rodent = { "taxi" }, wolf = { "nap" }, plant = { "hearth" }, festive = { "pvp" }, demon = { "cuddle" },
     ooze = { "jump" }, spirit = { "dive" }, bear = { "boss" }, reptile = { "taxi" }, murloc = { "taxi" },
+}
+
+-- A family dislike a species doesn't have (2026-11-12, the user: likes and dislikes together, the minor
+-- ones counted, 4 to 6 per species; these were over). The parrots and the Ancona Chicken liked PvP or
+-- flying until FAMILY_PICK, which hid the bird's dislike; the holiday pets with a family of their own
+-- don't take the festive one too.
+Personality.NO_DISLIKE = {
+    [47] = { "pvp" },    -- Cockatiel: a pirate's bird
+    [49] = { "pvp" },    -- Hyacinth Macaw
+    [50] = { "pvp" },    -- Green Wing Macaw
+    [52] = { "pvp" },    -- Ancona Chicken
+    [125] = { "pvp" },   -- Speedy
+    [126] = { "pvp" },   -- Mr. Wiggles
+    [127] = { "pvp" },   -- Whiskers the Rat (a Røverdyr)
+    [128] = { "pvp" },   -- Spirit of Summer
+    [5157] = { "boss" }, -- Brown Rabbit (Venneflokk minds PvP already)
+    [5179] = { "taxi" }, -- Azurky
+    [59] = { "dive" },   -- Emerald Whelpling (Latsabb minds jumping already)
+    [83] = { "taxi" },   -- Mechanical Chicken: the machine minds water, not heights
 }
 
 -- The holidays the Festglad pets celebrate ("MMDD" -> name, Locale/nb.lua: holiday.*).
@@ -197,13 +277,27 @@ function Personality:Of(key)
         if act and not likes[act] then likes[act] = true; list[#list + 1] = act end
     end
     local sid = ns.Pets:SpeciesOfKey(key)
+    local traits = self:Traits(key)
     for _, act in ipairs(sid and self.BY_SPECIES[sid] or {}) do Add(act) end
-    local families = ns.Scenes:Families(key)
-    for _, f in ipairs(families) do
-        for _, act in ipairs(self.BY_FAMILY[f] or {}) do Add(act) end
+    -- One of the families' (FAMILY_PICK, if its families still give it; a species not pinned yet: the
+    -- first one not liked already).
+    local candidates = self:FamilyLikes(ns.Scenes:Families(key))
+    local pick = sid and self.FAMILY_PICK[sid]
+    local can = {}
+    for _, act in ipairs(candidates) do can[act] = true end
+    if pick == false then -- (none: the species has enough)
+    elseif type(pick) == "table" then
+        for _, act in ipairs(pick) do if can[act] then Add(act) end end
+    elseif pick and can[pick] then
+        Add(pick)
+    elseif #candidates > 0 then
+        local byTrait = {}
+        for _, t in ipairs(traits) do if t.like then byTrait[t.like] = true end end
+        local fresh = candidates[1]
+        for _, act in ipairs(candidates) do if not (likes[act] or byTrait[act]) then fresh = act; break end end
+        Add(fresh)
     end
     if #list == 0 then for _, act in ipairs(self.DEFAULT) do Add(act) end end
-    local traits = self:Traits(key)
     for _, t in ipairs(traits) do Add(t.like) end
     return likes, list, traits
 end
@@ -283,8 +377,12 @@ function Personality:Dislikes(key, all)
         if act and not likes[act] and not set[act] then set[act] = how or true; list[#list + 1] = act end
     end
     for _, t in ipairs(traits) do Add(t.dislike) end
+    local no = {}
+    for _, act in ipairs(self.NO_DISLIKE[ns.Pets:SpeciesOfKey(key) or 0] or {}) do no[act] = true end
     for _, f in ipairs(ns.Scenes:Families(key)) do
-        for _, act in ipairs(self.DISLIKE_BY_FAMILY[f] or {}) do Add(act) end
+        for _, act in ipairs(self.DISLIKE_BY_FAMILY[f] or {}) do
+            if not no[act] then Add(act) end
+        end
     end
     local _, minor = self:Minor(key)
     if minor and (all or self.YourLevel(key) >= ns.Config.MINOR_DISLIKE_LEVEL) then Add(minor, "minor") end

@@ -91,6 +91,6 @@ ns.UnlockPins = {
     [5183] = { "explore", "chat" }, -- Spawn of Grubthor
     [5200] = { "nap", "skin" }, -- Viridian Lashling
     [5201] = { "nap", "camp" }, -- Frosty Lashling
-    [5202] = { "explore", "skin" }, -- Wilted Lashling
+    [5202] = { "explore", false }, -- Wilted Lashling
     [5203] = { "explore", "mine" }, -- Flowery Lashling
 }

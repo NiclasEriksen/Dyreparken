@@ -97,4 +97,47 @@ return function(test, H)
             [5160] = "kjaelen pratsom", [5161] = "eventyrlysten reiseglad" }
         for sid, ids in pairs(KEPT) do eq(table.concat(P.PINNED[sid], " "), ids, tostring(sid)) end
     end)
+
+    test("one like from the families: every species with a choice has its pick, the adopted kept theirs", function()
+        local w, ola = Setup()
+        local P = ola.ns.Personality
+        local most = 0
+        for sid in pairs(ola.ns.Companions.species) do
+            local key = "s:" .. sid
+            local can = P:FamilyLikes(ola.ns.Scenes:Families(key))
+            local pick = P.FAMILY_PICK[sid]
+            if #can > 1 then ok(pick ~= nil, sid .. ": pick its family like (Personality.FAMILY_PICK)") end
+            local picks = type(pick) == "table" and pick or pick and { pick } or {}
+            for _, act in ipairs(picks) do
+                ok(table.concat(can, " "):find(act, 1, true), sid .. ": " .. act .. " isn't its families'")
+            end
+            local _, list = P:Of(key)
+            if type(pick) ~= "table" then most = math.max(most, #list) end
+        end
+        ok(most <= 4, "at most four likes, but for the adopted that kept theirs")
+        -- (the adopted pets of 2026-11-12 kept all their family likes)
+        eq(table.concat((select(2, P:Of("s:51"))), " "), "taxi fish pvp dive", "Senegal")
+        eq(table.concat((select(2, P:Of("s:39"))), " "), "mine skill dance", "Mechanical Squirrel")
+        eq(table.concat((select(2, P:Of("s:5159"))), " "), "herb fish", "Panda Cub")
+        eq(table.concat((select(2, P:Of("s:47"))), " "), "taxi chat fun", "Cockatiel: six likes before")
+    end)
+
+    test("likes and dislikes together, the minor ones counted, are 4 to 6 for every species", function()
+        local w, ola = Setup()
+        local P = ola.ns.Personality
+        P.YourLevel = function() return 7 end -- (both minors unlocked)
+        -- Rare exceptions (the user): the Senegal, adopted with its four likes, keeps its dislike at level 6.
+        local EXCEPT = { [51] = 7 }
+        for sid in pairs(ola.ns.Companions.species) do
+            local key = "s:" .. sid
+            local _, likes = P:Of(key)
+            local _, dislikes = P:Dislikes(key)
+            local n = #likes + #dislikes + (P:Minor(key) and 1 or 0)
+            ok(n >= 4 and n <= (EXCEPT[sid] or 6), sid .. ": " .. n .. " (Personality.FAMILY_PICK, NO_DISLIKE, Data/Unlocks.lua)")
+        end
+        -- (a family dislike a species is spared; none from its families)
+        no(P:Dislikes("s:47").pvp, "the Cockatiel, a pirate's bird, doesn't mind PvP")
+        ok(P:Dislikes("s:40").dive, "a cat still minds the water")
+        eq(table.concat((select(2, P:Of("s:125"))), " "), "nap dive", "Speedy: no family like")
+    end)
 end

@@ -283,6 +283,15 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   Mechanical Squirrel, adopted on 0.4.4 later that day (checked before 0.5.0's release), and so did the
   family and species like lists (their majors come from those too). From now on the pins hold again. The zone
   traits read GetZoneText (Personality.COLD/WARM/HIGH/CITIES); Forever's names there are unverified.
+- **One like from the families** (2026-11-12, the user: "a bit crazy that it has 6 while the prairie dog only has
+  2"): a species gets one of its families' likes, the one that fits it best, picked by hand in
+  `Personality.FAMILY_PICK` (a test asks for a pick wherever the families give more than one), plus its story's
+  (BY_SPECIES) and its traits'. At most four likes now (was six). The adopted pets kept all theirs (Senegal,
+  Mechanical Squirrel, Panda Cub: a list there; `false`: none). **Likes and dislikes together, the minor ones
+  counted, are 4 to 6 per species** (the user, the same day; a test holds it): over that, a family dislike
+  the species doesn't have (`Personality.NO_DISLIKE`: the parrots don't mind PvP), or a minor dropped (Data/Unlocks.lua
+  `false`: the Wilted Lashling's minor dislike). Rare exceptions are fine (the user): the adopted Senegal has 7, its
+  likes kept and its dislike at level 6 too (the test's EXCEPT). Room is left on purpose for more later.
 - **Minor likes and dislikes** (2026-11-12, the user): your own bond with a pet unlocks one more like at
   level 4 (Config.MINOR_LIKE_LEVEL) and one more dislike at 6, per species (Data/Unlocks.lua). Lesser than the
   major ones: a minor like gives 2 points, at most 10 a day (BOND_MINOR_POINTS/CAP), its line at 30% of its first

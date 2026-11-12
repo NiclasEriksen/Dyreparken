@@ -193,6 +193,7 @@ return function(test, H)
         local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
         ola.ns.Companions = { build = 1, species = { [5159] = { a = true, t = { "frog" } }, [40] = { a = true, t = { "pirate" } } } }
         ola.ns.Personality.PINNED = { [5159] = { "glupsk", "reiseglad" }, [40] = { "glupsk", "reiseglad" } }
+        ola.ns.Personality.FAMILY_PICK = { [5159] = "dive", [40] = "dive" } -- (one like from the families)
         w:Run(40)
         ola:Slash("debug off")
         local P, A = ola.ns.Personality, ola.ns.Activity
