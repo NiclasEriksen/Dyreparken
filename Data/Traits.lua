@@ -7,7 +7,7 @@ local _, ns = ...
 -- tools/pin_traits.lua, which never changes a line that's here. Edit a line by
 -- hand to change a species.
 ns.TraitPins = {
-    [39] = { "handverker", "hoppetass" }, -- Mechanical Squirrel
+    [39] = { "dansefot", "friluftsdyr" }, -- Mechanical Squirrel (adopted on 0.4.4 the day of the rework: kept)
     [40] = { "latsabb", "nattugle" }, -- Bombay
     [41] = { "kjaelen", "ordensdyr" }, -- Cornish Rex
     [42] = { "pratsom", "flokkdyr" }, -- Black Tabby

@@ -92,7 +92,7 @@ return function(test, H)
     test("the adopted pets keep their traits (the rework of 2026-11-12 left them as they were)", function()
         local w, ola = Setup()
         local P = ola.ns.Personality
-        local KEPT = { [42] = "pratsom flokkdyr", [51] = "vannhund flokkdyr", [55] = "steinhard dykker",
+        local KEPT = { [39] = "dansefot friluftsdyr", [42] = "pratsom flokkdyr", [51] = "vannhund flokkdyr", [55] = "steinhard dykker",
             [70] = "helgedyr hjemlengsel", [5075] = "hoppetass steinhard", [5159] = "kosete gronnfinger",
             [5160] = "kjaelen pratsom", [5161] = "eventyrlysten reiseglad" }
         for sid, ids in pairs(KEPT) do eq(table.concat(P.PINNED[sid], " "), ids, tostring(sid)) end
