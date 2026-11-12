@@ -724,9 +724,14 @@ end
 Activity.AURA_NEW = 60 -- seconds: a buff there at the first look that came this recently is new
 local auraLook = { at = nil, has = {}, data = {} } -- (at: the event's updateInfo looked at)
 local function LookAt(updateInfo)
-    if type(updateInfo) == "table" and not updateInfo.isFullUpdate and not updateInfo.addedAuras
-        and not updateInfo.removedAuraInstanceIDs then
-        return false
+    -- Secret on Forever now and then (2026-11-12, in a dungeon: "attempt to perform boolean test on field
+    -- 'isFullUpdate' (a secret boolean)", and every aura source switched off for the session): a change we
+    -- can't read is skipped, not tested.
+    if ns.IsSecret(updateInfo) then return false end
+    if type(updateInfo) == "table" then
+        local full, added, removed = updateInfo.isFullUpdate, updateInfo.addedAuras, updateInfo.removedAuraInstanceIDs
+        if ns.IsSecret(full) or ns.IsSecret(added) or ns.IsSecret(removed) then return false end
+        if not full and not added and not removed then return false end
     end
     -- (Once per event: the client passes each UNIT_AURA its own updateInfo table.)
     if updateInfo == nil or auraLook.at ~= updateInfo then

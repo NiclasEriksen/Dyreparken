@@ -126,4 +126,24 @@ return function(test, H)
         kari:Fire("UNIT_AURA", "player", { addedAuras = { {} } })
         eq(Count(kari, "camp"), 2, "gone and back: again")
     end)
+
+    test("an aura update the client keeps secret is skipped, never tested (the sources stay on)", function()
+        local w, ola = Setup({ "kosete" })
+        local A = ola.ns.Activity
+        ola:Fire("UNIT_AURA", "player", { isFullUpdate = true }); w:Run(1) -- (the first look: nothing there)
+        -- (A secret can't be tested in plain Lua as in the client, where it throws: so count the looks.)
+        local U = ola.env.C_UnitAuras
+        local byName, looks = U.GetAuraDataBySpellName, 0
+        U.GetAuraDataBySpellName = function(...) looks = looks + 1; return byName(...) end
+        ola:Fire("UNIT_AURA", "player", { isFullUpdate = H.SECRET })
+        ola:Fire("UNIT_AURA", "player", { addedAuras = H.SECRET })
+        ola:Fire("UNIT_AURA", "player", H.SECRET)
+        w:Run(1)
+        eq(looks, 0, "2026-11-12: the secret flag was tested, and every aura source switched off")
+        eq(#ola:Log("switched off"), 0)
+        ola.state.auras[NAMES[1229741]] = true
+        ola:Fire("UNIT_AURA", "player", { isFullUpdate = true })
+        w:Run(1)
+        eq((A:Count("camp")), 1, "still counting")
+    end)
 end

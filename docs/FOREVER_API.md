@@ -407,6 +407,10 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
     (`ERR_TALENT_FAILED_UNSPENT_TALENT_POINTS`). `GetNumUnspentTalents()` 0 with every point spent.
     Dual spec strings: "Primary/Secondary Talents - Active".
   - `Enum.PlayerInteractionType.Trainer` is 7; `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` fires with the window's type.
+- **UNIT_AURA's updateInfo can be secret** (2026-11-12, 1.60.1, in a dungeon): "attempt to perform boolean test on field
+  'isFullUpdate' (a secret boolean)". Check `issecretvalue` on the table and its fields before testing them.
+- **The meter in a real fight** (2026-11-12): Meter.lua's read after a boss kill gave "damage: place 5, 1027 against
+  6513" (Arcanist Doan, a five-man): the right session, plain, our place.
 - **The layout cache** (2026-11-12, 1.60.1, from Logs/AccountData.log): a named frame moved with `StartMoving` is
   user-placed, and the client saves its spot itself ("Frame: DyreparkenPetFrame", anchor, x, y), to restore it
   before our code runs. A frame that keeps its own spot calls `SetUserPlaced(false)` after a drag. `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.
