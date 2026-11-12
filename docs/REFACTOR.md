@@ -229,6 +229,10 @@ This is the payoff for "easier to add pets, traits and eggs".
   the roster is known and pruned on a complete roster; with no roster yet they're accepted and pruned later
   (a new member mustn't be lost to a cached roster). That also bounds the stores, which fixes B11/B12.
 
+- **Q5** (2026-11-12): eggs ride on disliked activities too ("why not?"). Done.
+- **Q6**: chatLines is about the random lines; the unlock lines, the pat thanks and /dp klapp print anyway (as they did).
+- **Q9**: left for a discussion at the end.
+
 ## Status
 
 - **Phase 0, done**: B1, B2, B3, B4, B5, B6, B7, the stale docs, the bytecode cache (suite

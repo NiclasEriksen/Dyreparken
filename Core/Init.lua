@@ -142,7 +142,9 @@ function ns.PickLine(prefix, vars)
     return ns.T(list[ns.random(#list)], vars)
 end
 
--- A pet's own line: purple in chat (unless Settings' chatLines is off; `always`: said anyway)
+-- A pet's own line: purple in chat (unless Settings' chatLines is off; `always`: said anyway, for
+-- lines that answer something you did or reached, not the random ones chatLines is about:
+-- the user, 2026-11-12)
 -- and, with a key and a kind, on the pet frame (PET_SAID: "say", "like", "dislike", "major").
 function ns.PetSays(text, key, kind, always)
     if always or ns.Settings:On("chatLines") then ns.Print("|cffd9b3ff" .. text .. "|r") end

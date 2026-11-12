@@ -466,8 +466,11 @@ function Quirks:OnActivity(id, key, extra)
         if #chatTimes > self.CHAT_BURST then table.remove(chatTimes, 1) end
     end
     if not key then return end
+    -- A dislike doesn't stop the eggs (2026-11-12, the user: "why not?"): a wolf that minds naps
+    -- still has its fifth nap's egg. The dislike speaks first; the hour it takes holds back the
+    -- common eggs, not the `always` ones.
     local dislike = ns.Personality:Dislikes(key)[id]
-    if dislike then return self:Dislike(key, id, dislike == "minor") end
+    if dislike then self:Dislike(key, id, dislike == "minor") end
     self:Egg(id, key, extra)
 end
 

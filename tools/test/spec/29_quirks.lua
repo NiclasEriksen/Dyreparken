@@ -22,6 +22,17 @@ return function(test, H)
     end
     local function Dive(c) c:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath") end
 
+    test("a dislike doesn't stop the eggs: a wolf that minds naps still has its fifth nap's", function()
+        local w, ola = Setup()
+        ola:Companions{ [40] = { a = true, t = { "wolf" } } }
+        ok(ola.ns.Personality:Dislikes(CAT).nap, "a wolf minds naps")
+        ola:Dice(0.5) -- (the dislike's 35% says no; the nap egg has no chance of its own)
+        for _ = 1, 4 do ola.ns.Activity:Emit("nap") end
+        no(ola:Said("lurer på om dere"), "not before the fifth")
+        ola.ns.Activity:Emit("nap")
+        ok(ola:Said("Bombay Cat lurer på om dere har tenkt å bli her for godt."))
+    end)
+
     test("dislikes: from families and traits, never something the pet likes", function()
         local w, ola = Setup()
         local P = ola.ns.Personality
