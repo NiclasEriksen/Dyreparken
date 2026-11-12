@@ -15,7 +15,8 @@ local _, ns = ...
 --   bond    level     reach this bond level with your companion (Menagerie/Bond.lua) (char).
 --                     Ids loyal:N are from when it counted days; ids are permanent.
 --   nick              have given your companion a nickname          (char)
---   dislikes          have found out everything your companion dislikes (Quirks.lua) (char)
+--   dislikes          have found out everything your companion dislikes (Quirks.lua), and its minor like
+--                     and dislike (Personality: bond levels 4 and 6; since 2026-11-12, char migration 2) (char)
 --   eggs      n       have found n different easter eggs (Quirks.lua, char.eggs)        (char)
 --   wishstreak n      today's wish come true n days in a row (Wish.lua, char.wishes.best) (char)
 --   wishes    n       n wishes come true in all, a day each (char.wishes.n)            (char)

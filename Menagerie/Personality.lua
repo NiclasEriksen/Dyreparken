@@ -131,7 +131,33 @@ Personality.TRAITS = {
     { id = "einstoing", against = "flokkdyr", dislike = "chat", when = function(ctx) return not ctx.group end },
     { id = "huleboer", against = "friluftsdyr", when = function(ctx) return ctx.instance end },
     { id = "friluftsdyr", against = "huleboer", when = function(ctx) return not ctx.instance end },
+    -- 2026-11-12 (the user, for 0.5): from Dyreparken in Kristiansand (Kaptein Sabeltann, Julius, Kardemomme
+    -- by, Hakkebakkeskogen, the Nordic wilds and the savanna, the rides), Forever, and the likes no trait had.
+    { id = "sjorover", like = "gold" },                       -- Kaptein Sabeltann: gold!
+    { id = "skoyer", like = "fun" },                          -- Julius: silly emotes
+    { id = "roverdyr", against = "ordensdyr", like = "sneak" }, -- Kasper, Jesper og Jonatan
+    { id = "ordensdyr", against = "roverdyr", dislike = "pvp", when = function(ctx) return ctx.city end }, -- Politimester Bastian
+    { id = "venneflokk", like = "meet", dislike = "pvp" },    -- Hakkebakkeskogen: all animals are friends
+    { id = "vinterpels", against = "solelsker", when = function(ctx) return Personality.COLD[ctx.zone] end },
+    { id = "solelsker", against = "vinterpels", when = function(ctx) return Personality.WARM[ctx.zone] end },
+    { id = "tivolidyr", day = function(t) return ns.Holidays:Has(t, "darkmoon") and 2 or 1 end, dayX = 2,
+        dayFlavor = function(name) return ns.T("trait.tivolidyr.dayflavor", { pet = name }) end },
+    { id = "balkos", like = "camp" },
+    { id = "skybaren", when = function(ctx) return Personality.HIGH[ctx.zone] end }, -- the Skyborne, Zephras Isle
+    { id = "jeger", like = "skin" },
+    { id = "handverker", like = "skill" },
+    { id = "diplomat", like = "rep" },
 }
+
+-- Where the zone traits feel at home: GetZoneText's names (enUS; Classic's, and Forever's own: Zephras
+-- Isle and Mount Hyjal from Forever's news, unverified in the client; a name that never comes only means
+-- no moment).
+local function Set(list) local t = {} for _, v in ipairs(list) do t[v] = true end return t end
+Personality.COLD = Set({ "Winterspring", "Dun Morogh", "Alterac Mountains", "Alterac Valley", "Ironforge" })
+Personality.WARM = Set({ "Tanaris", "The Barrens", "Durotar", "Desolace", "Silithus", "Badlands", "Searing Gorge",
+    "Burning Steppes", "Thousand Needles", "Stranglethorn Vale", "Un'Goro Crater", "Orgrimmar" })
+Personality.HIGH = Set({ "Zephras Isle", "Mount Hyjal", "Thunder Bluff", "Teldrassil", "Darnassus" })
+Personality.CITIES = Set({ "Stormwind City", "Ironforge", "Darnassus", "Orgrimmar", "Thunder Bluff", "Undercity" })
 local byId = {}
 for _, t in ipairs(Personality.TRAITS) do
     byId[t.id] = t
@@ -248,27 +274,74 @@ function Personality:LikedWords(key)
     return words
 end
 
--- What it dislikes: { activity = true } and the ordered list. Never a like.
-function Personality:Dislikes(key)
+-- What it dislikes: { activity = true, or "minor" }, and the ordered list. Never a like. The minor one
+-- once your bond has unlocked it (all: unlocked or not, for the achievement that counts them all).
+function Personality:Dislikes(key, all)
     local likes, _, traits = self:Of(key)
     local set, list = {}, {}
-    local function Add(act)
-        if act and not likes[act] and not set[act] then set[act] = true; list[#list + 1] = act end
+    local function Add(act, how)
+        if act and not likes[act] and not set[act] then set[act] = how or true; list[#list + 1] = act end
     end
     for _, t in ipairs(traits) do Add(t.dislike) end
     for _, f in ipairs(ns.Scenes:Families(key)) do
         for _, act in ipairs(self.DISLIKE_BY_FAMILY[f] or {}) do Add(act) end
     end
+    local _, minor = self:Minor(key)
+    if minor and (all or self.YourLevel(key) >= ns.Config.MINOR_DISLIKE_LEVEL) then Add(minor, "minor") end
     return set, list
 end
 
--- The dislikes you've seen happen, as players read them (the rest stay secret).
+-- The dislikes you've seen happen, as players read them (the rest stay secret): the major ones, and
+-- the minor one (once unlocked and seen) apart, to be shown dimmed.
 function Personality:DislikedWords(key)
     local seen = ns.DB.char.dislikes[key] or {}
-    local _, list = self:Dislikes(key)
-    local words = {}
-    for _, act in ipairs(list) do if seen[act] then words[#words + 1] = self.NOUN[act] end end
-    return words
+    local set, list = self:Dislikes(key)
+    local words, minor = {}, {}
+    for _, act in ipairs(list) do
+        if seen[act] then table.insert(set[act] == "minor" and minor or words, self.NOUN[act]) end
+    end
+    return words, minor
+end
+
+------------------------------------------------------------------------------
+-- Minor likes and dislikes (2026-11-12, the user): one more like your bond with the pet unlocks at
+-- MINOR_LIKE_LEVEL (4), one more dislike at MINOR_DISLIKE_LEVEL (6). Lesser than the major ones (the
+-- family's, the species', the traits'): fewer points (BOND_MINOR_POINTS, BOND_MINOR_CAP), flavor a third
+-- as often, dimmed on the card. Your own bond decides (the pet opens up to you); per species, pinned in
+-- Data/Unlocks.lua (tools/pin_unlocks.lua). The dislike stays a secret until it happens, as all do.
+------------------------------------------------------------------------------
+Personality.MINOR_PINS = ns.UnlockPins or {}
+
+-- The species' minor like and dislike, unlocked or not (nil: none, or one that a change since has
+-- made a major like or dislike).
+function Personality:Minor(key)
+    local pin = self.MINOR_PINS[ns.Pets:SpeciesOfKey(key) or 0]
+    if not pin then return nil, nil end
+    local likes = self:Of(key)
+    local like, dislike = pin[1] or nil, pin[2] or nil
+    if like and likes[like] then like = nil end
+    if dislike and (likes[dislike] or dislike == like) then dislike = nil end
+    return like, dislike
+end
+
+-- Your own bond level with it (0: none).
+function Personality.YourLevel(key)
+    local e = key and ns.Registry:Life(key, ns.PlayerKey())
+    return e and ns.Bond:Level(e.p) or 0
+end
+
+-- The minor like, if your bond has unlocked it.
+function Personality:MinorLike(key)
+    local like = self:Minor(key)
+    if like and self.YourLevel(key) >= ns.Config.MINOR_LIKE_LEVEL then return like end
+end
+
+-- The next minor one your bond will unlock: "like" or "dislike" and its level, or nil.
+function Personality:NextUnlock(key)
+    local like, dislike = self:Minor(key)
+    local level, C = self.YourLevel(key), ns.Config
+    if like and level < C.MINOR_LIKE_LEVEL then return "like", C.MINOR_LIKE_LEVEL end
+    if dislike and level < C.MINOR_DISLIKE_LEVEL then return "dislike", C.MINOR_DISLIKE_LEVEL end
 end
 
 -- A pet's personality is a surprise (decided 2026-11-09): shown only once

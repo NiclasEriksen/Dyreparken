@@ -49,6 +49,9 @@ local COLUMN = NAME_RIGHT -- (the name's room, for the font step-down)
 JournalUI.ROW_Y = ROW_Y
 local MODEL_LIFT = 34 -- the model's bottom, above the panel: clear of the turn buttons
 local NAME_FONTS = { "GameFontNormalHuge", "GameFontNormalLarge", "GameFontNormal" } -- the name, biggest first
+-- A minor like or dislike in the likes line (Personality.lua: unlocked by your bond), dimmer than the
+-- line's own color (0.8, 0.76, 0.66): lesser (the user, 2026-11-12).
+local MINOR = "|cff8c8475"
 -- The panel's width once laid out (nil before).
 local function panel_width(c) return c.panel and c.panel:GetWidth() end
 
@@ -166,7 +169,14 @@ local function UpdateCard()
     card.fullName, card.species, card.home = nick or species, species, text -- for the hover
     if ns.Personality:Known(key) then
         card.personality:SetText(ns.Personality:Names(key))
-        local likes, dislikes = ns.Personality:LikedWords(key), ns.Personality:DislikedWords(key)
+        local P = ns.Personality
+        local likes, dislikes = P:LikedWords(key), nil
+        local minorBad
+        dislikes, minorBad = P:DislikedWords(key)
+        -- The minor ones (unlocked by your bond, Personality.lua) in the same line, dimmed: lesser.
+        local minorLike = P:MinorLike(key)
+        if minorLike then likes[#likes + 1] = MINOR .. P.NOUN[minorLike] .. "|r" end
+        for _, w in ipairs(minorBad) do dislikes[#dislikes + 1] = MINOR .. w .. "|r" end
         local parts = {}
         if #likes > 0 then parts[1] = ns.T("card.likes", { list = ns.Join(likes) }) end
         if #dislikes > 0 then parts[#parts + 1] = ns.T("card.dislikes", { list = ns.Join(dislikes) }) end
@@ -362,21 +372,35 @@ local function BuildCard()
             GameTooltip:AddLine(ns.L["personality.unknown.tip"], 1, 1, 1, true)
             return
         end
-        ns.Personality:Describe(GameTooltip, card.key)
-        local words = ns.Personality:LikedWords(card.key)
+        local P = ns.Personality
+        P:Describe(GameTooltip, card.key)
+        local words = P:LikedWords(card.key)
         if #words > 0 then
             GameTooltip:AddLine(ns.T("card.likes.tip", { list = ns.Join(words) }), 0.5, 0.8, 0.5, true)
         end
-        local bad = ns.Personality:DislikedWords(card.key)
+        local minorLike = P:MinorLike(card.key)
+        if minorLike then -- (the minor ones dimmed, as on the card)
+            GameTooltip:AddLine(ns.T("card.likes.minor_tip", { list = P.NOUN[minorLike] }), 0.45, 0.62, 0.45, true)
+        end
+        local bad, minorBad = P:DislikedWords(card.key)
         if #bad > 0 then
             GameTooltip:AddLine(ns.T("card.dislikes.tip", { list = ns.Join(bad) }), 0.85, 0.55, 0.55, true)
         end
+        if #minorBad > 0 then
+            GameTooltip:AddLine(ns.T("card.dislikes.minor_tip", { list = ns.Join(minorBad) }), 0.65, 0.45, 0.45, true)
+        end
         -- Dislikes not found out yet: a hint that there's something (creative review 2026-11-09).
-        local _, all = ns.Personality:Dislikes(card.key)
-        local secret = #all - #bad
+        local _, all = P:Dislikes(card.key)
+        local secret = #all - #bad - #minorBad
         if secret > 0 then
             GameTooltip:AddLine(ns.T(secret == 1 and "card.dislikes.secret_one" or "card.dislikes.secret",
                 { pet = ns.Registry:NameOf(card.key), n = secret }), 0.75, 0.6, 0.6, true)
+        end
+        -- What your bond unlocks next (the minor ones): a small reason to keep going.
+        local what, level = P:NextUnlock(card.key)
+        if what then
+            GameTooltip:AddLine(ns.T("card.unlock." .. what, { level = ns.Bond.LEVELS[level][2],
+                pet = ns.Registry:NameOf(card.key) }), 0.6, 0.6, 0.6, true)
         end
         GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
     end)

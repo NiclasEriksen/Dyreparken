@@ -187,16 +187,22 @@ function Eval.nick(d, ctx)
     local has = (key and namer == ns.PlayerKey()) and 1 or 0
     return has == 1, has, 1
 end
--- Every dislike of your adopted pet found out (2026-11-10): seen happen, its
--- line said (char.dislikes). A pet that dislikes nothing: nothing to judge.
+-- Everything your adopted pet likes and dislikes found out (2026-11-10; the minor ones too since
+-- 2026-11-12, char migration 2): every dislike seen happen (char.dislikes), the minor one counted
+-- whether your bond has unlocked it or not, and the minor like unlocked (bond level 4). A pet with
+-- none of these: nothing to judge.
 function Eval.dislikes()
     local key = ns.Registry:MyPet()
     if not key then return false, 0, 1 end
-    local _, list = ns.Personality:Dislikes(key)
-    if #list == 0 then return nil end
+    local P = ns.Personality
+    local _, list = P:Dislikes(key, true)
+    local like = P:Minor(key)
+    local total = #list + (like and 1 or 0)
+    if total == 0 then return nil end
     local found, have = ns.DB.char.dislikes[key] or {}, 0
     for _, id in ipairs(list) do if found[id] then have = have + 1 end end
-    return have == #list, have, #list
+    if like and P:MinorLike(key) then have = have + 1 end
+    return have == total, have, total
 end
 -- Different easter eggs found (2026-11-10, creative review 2026-11-09).
 function Eval.eggs(d)

@@ -16,7 +16,7 @@ local DB = {}
 ns.DB = DB
 
 local SCHEMA = 11
-local CHAR_SCHEMA = 1
+local CHAR_SCHEMA = 2
 
 local ACCOUNT_DEFAULTS = {
     guilds = {}, -- [guildName] = GUILD_DEFAULTS' shape
@@ -69,6 +69,7 @@ local CHAR_DEFAULTS = {
     dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (Quirks.lua; the card shows these)
     eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Quirks.lua)
     feats = {},                -- [feat id] = { t, before, what, key }: a character's feats, each once (Feats.lua)
+    unlocksTold = {},          -- [petKey] = { like, dislike }: its minor ones told at the level-up (Bonds:TellUnlocks)
     wishes = { n = 0, streak = 0, best = 0 }, -- wishes come true: in all, days in a row (to `last`, a day), the best run (Wish.lua)
     quirkAt = nil,             -- when the last quirk line was shown (at most one an hour)
     cardCuddle = nil,          -- the day a click on the card last counted as a cuddle (Cuddle.lua)
@@ -198,7 +199,14 @@ local MIGRATIONS = {
         end
     end,
 }
-local CHAR_MIGRATIONS = {}
+local CHAR_MIGRATIONS = {
+    -- 2 (2026-11-12, the user): "Kjenner deg ut og inn" (dislikes) now counts the minor like and dislike
+    -- too (Personality: unlocked at bond levels 4 and 6), so it was earned too early: taken back. Its
+    -- seen flag stays, so earning it again is news, not quiet.
+    [2] = function(db)
+        if type(db.ach) == "table" and type(db.ach.got) == "table" then db.ach.got.dislikes = nil end
+    end,
+}
 
 local function ApplyDefaults(t, defaults)
     for k, v in pairs(defaults) do

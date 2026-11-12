@@ -178,6 +178,7 @@ return function(test, H)
     test("every trait's activity has a source, a word, and an effect text", function()
         local w, ola, A = Setup()
         local P = ola.ns.Personality
+        ola.state.spellNames = { [1229741] = "Campfire's Warmth" } -- (Bålkos: the campfire's buff, by its name)
         for _, t in ipairs(P.TRAITS) do
             if t.like then
                 ok(A:Available(t.like), t.id .. ": " .. t.like)

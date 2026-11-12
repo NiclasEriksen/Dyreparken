@@ -134,6 +134,9 @@ Data/PetMoves.lua  which animation each pet uses for each reaction on the card (
                    default and per-species overrides, EDITED BY HAND by the user (found by eye, /dp probe anim)
 Data/AnimLengths.lua GENERATED (luajit tools/anim_lengths.lua, from a /dp probe api lengths run): how long each
                    species' one-off moves play, so the card moves on when one ends (Moves:Length); else Moves.T. Don't edit
+Data/Unlocks.lua   every species' minor like and minor dislike (your bond unlocks them at levels 4 and 6), PINNED
+                   for good like the traits (2026-11-12): luajit tools/pin_unlocks.lua adds new species (from
+                   fitting lists per family and species, never a major like or dislike) and never changes a line
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
                    After regenerating Data/Companions.lua, run `luajit tools/pin_traits.lua`: it adds new species
                    (least-used traits) and never changes an existing line. Change a species by hand only.
@@ -263,6 +266,19 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   **past the day's 75, not counted in it** (the user: "major feats should not count towards the daily limit, they're
   supposed to be huge bonuses"). They stay within the wire's cap (Registry.LifeCap keeps a spare day): no protocol
   change. A trainer visit, a dual-spec switch, a talent reset and the tenth levels 10-50 are eggs only, no points.
+- **New traits and a one-time rework** (2026-11-12, the user, for 0.5): 13 traits (Sjørøver, Skøyer, Røverdyr
+  against Ordensdyr, Venneflokk, Vinterpels against Solelsker, Tivolidyr, Bålkos, Skybåren, Jeger, Håndverker,
+  Diplomat; 38 in all) and four activities for them (gold, fun, sneak, meet). Every species nobody in the guild
+  had adopted was re-pinned by hand in Data/Traits.lua that day; the eight adopted then (Black Tabby, Senegal,
+  Cockroach, Brown Prairie Dog, Excitable Slime, Panda Cub, Zergling, Mini Diablo) kept theirs, and so did the
+  family and species like lists (their majors come from those too). From now on the pins hold again. The zone
+  traits read GetZoneText (Personality.COLD/WARM/HIGH/CITIES); Forever's names there are unverified.
+- **Minor likes and dislikes** (2026-11-12, the user): your own bond with a pet unlocks one more like at
+  level 4 (Config.MINOR_LIKE_LEVEL) and one more dislike at 6, per species (Data/Unlocks.lua). Lesser than the
+  major ones: a minor like gives 2 points, at most 10 a day (BOND_MINOR_POINTS/CAP), its line at 30% of its first
+  times a day; the minor dislike is a secret until it happens (a hint at the level-up), then speaks 15%/5%; both
+  dimmed in the card's likes line, no new row. "Kjenner deg ut og inn" counts them (char migration 2 took it
+  back from those who had it).
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most

@@ -75,10 +75,29 @@ function Bonds:TellNameUnlock()
     end
 end
 
+-- A minor like or dislike your bond just unlocked (Personality: levels 4 and 6), once each per pet
+-- (char.unlocksTold). The like is told; the dislike only that there's something new to find.
+function Bonds:TellUnlocks(key, level)
+    local P, C = ns.Personality, ns.Config
+    local like, dislike = P:Minor(key)
+    local told = ns.DB.char.unlocksTold
+    told[key] = told[key] or {}
+    local name = ns.Registry:NameOf(key)
+    if like and level >= C.MINOR_LIKE_LEVEL and not told[key].like then
+        told[key].like = true
+        ns.Print("|cffd9b3ff" .. ns.T("unlock.like", { pet = name, what = P.NOUN[like] }) .. "|r")
+    end
+    if dislike and level >= C.MINOR_DISLIKE_LEVEL and not told[key].dislike then
+        told[key].dislike = true
+        ns.Print("|cffd9b3ff" .. ns.T("unlock.dislike", { pet = name }) .. "|r")
+    end
+end
+
 -- What Bond.lua has to say (it prints nothing itself).
 ns.Bus:On("BOND_LEVEL", function(key, level, name)
     ns.Print(ns.T("bond.levelup", { pet = ns.Registry:NameOf(key), n = level, level = name }))
     if key == ns.Registry:MyPet() then Bonds:TellNameUnlock() end
+    if ns.Personality:Known(key) then Bonds:TellUnlocks(key, level) end
 end)
 ns.Bus:On("BOND_FULL", function(key) ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end)
 ns.Bus:On("BOND_LINE", function(_, text) if ns.Settings:On("chatLines") then ns.PrintGold(text) end end)

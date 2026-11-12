@@ -245,6 +245,20 @@ Decor.TRAITS = {
     einstoing = { kind = "wisp", n = 1, color = { 0.8, 0.75, 1 } },
     huleboer = { kind = "drop", n = 3, color = { 0.6, 0.75, 0.9 } },
     friluftsdyr = { kind = "butterfly", n = 2, color = { 1, 0.75, 0.4 } },
+    -- 2026-11-12
+    sjorover = { kind = "coin", n = 3, color = { 1, 0.85, 0.3 } },
+    skoyer = { kind = "confetti", n = 4, color = { 1, 0.9, 0.4 } },
+    roverdyr = { kind = "mist", n = 1, color = { 0.35, 0.35, 0.4 }, alpha = 0.6 },
+    ordensdyr = { kind = "star", n = 2, color = { 0.55, 0.7, 1 } },
+    venneflokk = { kind = "clover", n = 3, color = { 0.5, 0.85, 0.45 } },
+    vinterpels = { kind = "snow", n = 4, color = { 0.9, 0.95, 1 } },
+    solelsker = { kind = "mote", n = 4, color = { 1, 0.85, 0.45 } },
+    tivolidyr = { kind = "lights", n = 6, color = "rainbow", when = function(t) return ns.Holidays:Has(t, "darkmoon") end },
+    balkos = { kind = "ember", n = 4, color = { 1, 0.6, 0.25 } },
+    skybaren = { kind = "feather", n = 3, color = { 0.95, 0.95, 1 } },
+    jeger = { kind = "paw", n = 4, color = { 0.55, 0.4, 0.3 } },
+    handverker = { kind = "gear", n = 2, color = { 0.8, 0.75, 0.6 } },
+    diplomat = { kind = "lights", n = 4, color = { 1, 0.85, 0.5 } },
 }
 
 -- Every pet's family (Scenes:Families, the first one; else default) has an

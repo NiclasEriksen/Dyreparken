@@ -72,6 +72,11 @@ Activity.KINDS = {
     { "campwarm", wish = false }, -- sat down at one: Welcoming Campfire, a minute counting down
     { "camp" },                   -- the campfire's buff, after that minute: a wish for any pet (Wish.lua)
     { "rested" },                 -- Well-Rested, a night in a sleeping bag: a wish for cozy pets
+    -- For the traits of 2026-11-12 (the user): Sjørøver, Skøyer, Røverdyr, Venneflokk.
+    { "gold", icons = { ICON .. "INV_Misc_Coin_02", ICON .. "INV_Misc_Coin_01" } }, -- money looted
+    { "fun", icons = { ICON .. "INV_Misc_Toy_10", ICON .. "Spell_Holy_PowerWordShield" } }, -- a silly emote of yours
+    { "sneak", wish = false, icons = { ICON .. "Ability_Stealth" } }, -- into stealth (only some can)
+    { "meet", icons = { ICON .. "INV_Box_PetCarrier_01", ICON .. "INV_Misc_PetBiscuit_01" } }, -- another player's companion, met
     -- A character's big moments (Menagerie/Feats.lua, 2026-11-12, the user).
     { "feat", wish = false },     -- a class quest's reward, riding, level 60 (extra: the feat's id): Feats' points
     { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it
@@ -382,6 +387,9 @@ end
 -- text: the client is enUS. "cuddle" needs the companion out to be named in
 -- it: "/pet" alone ("You need to be petted.") isn't petting it.
 local DANCE = { "danc" }
+-- Silly ones (Skøyer, 2026-11-12): /laugh, /giggle, /joke and /silly, /cheer, /tickle, /flex, /chicken, /train.
+local FUN = { "^you laugh", "^you giggle", "^you tell a joke", "^you cheer", "^you tickle", "^you flex",
+    "cluck, chicken", "choo choo" }
 local CUDDLE = { "^you pet ", "^you hug ", "^you cuddle ", "^you love ", "^you snuggle " }
 local function Matches(text, list)
     for _, pat in ipairs(list) do if text:find(pat) then return true end end
@@ -392,6 +400,7 @@ function Activity.EmoteKind(text)
     if type(text) ~= "string" then return nil end
     local lower = text:lower()
     if Matches(lower, DANCE) then return "dance" end
+    if Matches(lower, FUN) then return "fun" end
     if Matches(lower, CUDDLE) then
         local _, guid = ns.Pets:OutKey()
         local name = guid and ns.Pets:WorldName(guid)
@@ -399,12 +408,41 @@ function Activity.EmoteKind(text)
     end
     return nil
 end
-for _, kind in ipairs({ "dance", "cuddle" }) do
+for _, kind in ipairs({ "dance", "cuddle", "fun" }) do
     Activity:Source({ id = kind, events = { "CHAT_MSG_TEXT_EMOTE" }, filter = function(_, text, ...)
         if not Own((select(11, ...))) then return nil end
         if Activity.EmoteKind(text) == kind then return 1 end
     end })
 end
+
+-- Money looted (Sjørøver, 2026-11-12): CHAT_MSG_MONEY is only ever about you ("You loot 5 Silver", "Your
+-- share of the loot is ..."); the event is in the client (/dp probe api).
+Activity:Source({ id = "gold", events = { "CHAT_MSG_MONEY" }, filter = function() return 1 end })
+
+-- Into stealth (Røverdyr, 2026-11-12): Stealth, Prowl, Shadowmeld. IsStealthed is in the client; no stealth
+-- event was probed, so the player's aura changes (UNIT_AURA, which works) are when to look.
+local stealthed
+Activity:Source({ id = "sneak", events = { "UNIT_AURA" }, unit = "player",
+    available = function() return type(IsStealthed) == "function" end,
+    filter = function()
+        local now = Plain(IsStealthed()) and true or false
+        local was = stealthed
+        stealthed = now
+        if now and was == false then return 1 end
+    end })
+
+-- Another player's companion met (Venneflokk, 2026-11-12): under the mouse (Tooltip's COMPANION_SEEN, out
+-- of combat), each owner's pet once a day.
+local met = {}
+Activity:Source({ id = "meet", hook = function(fire)
+    ns.Bus:On("COMPANION_SEEN", function(species, owner) fire(species, owner) end)
+end, filter = function(_, species, owner)
+    if type(owner) ~= "string" or owner == ns.PlayerKey() then return nil end
+    local id = Today() .. "\31" .. owner .. "\31" .. tostring(species)
+    if met[id] then return nil end
+    met[id] = true
+    return 1, owner
+end })
 
 -- A line of our own in guild chat (only the sender is read, never the text).
 Activity:Source({ id = "chat", events = { "CHAT_MSG_GUILD" }, filter = function(_, _, ...)

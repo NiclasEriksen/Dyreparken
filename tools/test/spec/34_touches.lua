@@ -332,18 +332,44 @@ return function(test, H)
         no(Chip().ring:IsShown(), "for the day")
     end)
 
-    test("Kjenner deg ut og inn: every dislike of your adopted pet found out", function()
-        local w, ola, At, Said = Eggs({ "glupsk", "rampete" }) -- a cat: dislikes the water
-        local A = ola.ns.Achievements
-        local _, list = ola.ns.Personality:Dislikes("s:40")
+    test("Kjenner deg ut og inn: every dislike of your adopted pet found out, and its minor like and dislike", function()
+        local w, ola, At, Said = Eggs({ "glupsk", "kosete" }) -- a cat: dislikes the water
+        local A, P = ola.ns.Achievements, ola.ns.Personality
+        local _, list = P:Dislikes("s:40")
         eq(#list, 1)
+        eq(table.concat({ P:Minor("s:40") }, " "), "hearth pvp", "the Bombay's minor ones (Data/Unlocks.lua)")
         no(A:Got("dislikes"))
         local m = w:Mark()
         ola:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath")
         w:RunTimers()
-        ok(A:Got("dislikes"), "found it")
-        eq(ola.ns.DB.char.sulk.key, "s:40", "and it sulks on its card (Moves)")
-        eq(w:Sent("ACH_EARNED", nil, m), 1, "news")
+        eq(ola.ns.DB.char.sulk.key, "s:40", "it sulks on its card (Moves)")
+        no(A:Got("dislikes"), "the major one only: not yet (2026-11-12)")
+        -- Your bond at level 6: the minor like is known, and the minor dislike can be found.
+        -- (straight into the entry: Bond:Add keeps within the days so far, Registry.LifeCap)
+        ola.ns.Registry:Life("s:40", "Ola Nord").p = ola.ns.Bond.LEVELS[6][1]
+        no(A:Got("dislikes"), "the minor dislike not seen yet")
+        ola.ns.Activity:Emit("pvp", 1)
+        w:RunTimers()
+        ok(A:Got("dislikes"), "found it all")
+        local told = false
+        for i = m + 1, #w.wire do
+            local e = w.wire[i]
+            if e.kind == "ACH_EARNED" and table.concat(e.msg.a or {}, " "):find("dislikes", 1, true) then told = true end
+        end
+        ok(told, "news")
+    end)
+
+    test("Kjenner deg ut og inn earned under the old rule is taken back (char migration 2), as news when earned again", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { login = false })
+        c.saved.DyreparkenCharDB = { schema = 1, ach = { got = { dislikes = { at = 1794000000 }, other = { at = 1 } },
+            seen = { dislikes = true } } }
+        c:Login()
+        local db = c.env.DyreparkenCharDB
+        eq(db.schema, 2)
+        eq(db.ach.got.dislikes, nil)
+        ok(db.ach.got.other, "the others stay")
+        ok(db.ach.seen.dislikes, "seen: earning it again is news")
     end)
 
     test("the park's birthday: a year after the guild's first adoption, a line and confetti on every card", function()

@@ -25,6 +25,7 @@ Holidays.IDS = {
 -- Other calendar events that aren't holidays (Festglad doesn't celebrate them), for eggs.
 Holidays.EVENTS = {
     [301] = "stvfishing",  -- Stranglethorn Fishing Extravaganza (Sundays)
+    [263] = "darkmoon",    -- the Darkmoon Faire (seen in the calendar, 2026-11-11): Tivolidyr's double days
 }
 
 local today -- { day = "YYYYMMDD", word = the holiday's or false, events = { word = true } }

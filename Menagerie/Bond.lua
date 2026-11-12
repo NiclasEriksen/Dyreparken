@@ -237,7 +237,11 @@ function Bond:Watch()
     -- The traits' activities of the pets we'd have out: the adopted one and
     -- the active one (Summon.lua).
     for _, key in ipairs({ ns.Registry:MyPet() or false, ns.Summon:ActiveKey() or false }) do
-        if key then for id in pairs((ns.Personality:Of(key))) do want[id] = true end end
+        if key then
+            for id in pairs((ns.Personality:Of(key))) do want[id] = true end
+            local minor = ns.Personality:MinorLike(key)
+            if minor then want[minor] = true end
+        end
     end
     for id in pairs(watching) do
         if not want[id] then ns.Activity:Drop(id, Bond) end
@@ -252,7 +256,9 @@ end
 -- its guildmates, and whether we're in a dungeon or raid (not a
 -- battleground). Built only for a pet that has such a trait.
 function Bond.Context()
-    local ctx = { t = ns.Now(), group = IsInGroup() == true, guildmates = 0 }
+    local zone = ns.Plain(GetZoneText())
+    local ctx = { t = ns.Now(), group = IsInGroup() == true, guildmates = 0, zone = zone,
+        city = ns.Personality.CITIES[zone] or false }
     local inside, kind = IsInInstance()
     ctx.instance = inside == true and (kind == "party" or kind == "raid")
     if ctx.group then
@@ -358,6 +364,9 @@ function Bond:Reward(kind, key, text)
     return true
 end
 
+Bond.MINOR_FLAVOR = 0.3   -- a minor like's first time in a day: the chance of its line
+Bond.random = math.random -- (tests pin it)
+
 -- Points for an activity done with a pet of ours out (half for one we
 -- haven't adopted: Bond:Rate).
 function Bond:OnActivity(id, n, key)
@@ -379,7 +388,9 @@ function Bond:OnActivity(id, n, key)
     -- every pet bonds over, and this pet's likes. Others watch more (the
     -- debug log, Quirks' dislikes and eggs, another pet's likes); those
     -- mustn't give points.
-    if not likes[id] and not ns.Activity.KIND[id].always then return end
+    -- (and its minor like, once your bond has unlocked it: Personality:MinorLike)
+    local minor = not likes[id] and P:MinorLike(key) == id
+    if not likes[id] and not minor and not ns.Activity.KIND[id].always then return end
     local d = Ledger(key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then
@@ -400,10 +411,19 @@ function Bond:OnActivity(id, n, key)
             end
         end
     end
+    -- A minor like, when no trait's moment gave more: fewer points, and its flavor a third as often
+    -- (its first time in a day, by chance; the user, 2026-11-12).
+    if minor and capKey == id then
+        per, cap = C.BOND_MINOR_POINTS, C.BOND_MINOR_CAP
+        if not d.got[capKey] and Bond.random() < Bond.MINOR_FLAVOR then
+            flavor = P.FLAVOR[id] and ns.Fill(P.FLAVOR[id], { pet = name })
+                or ns.T("bond.liked", { pet = name, activity = P.NOUN[id] })
+        end
+    end
     per, cap = Scaled(per), Scaled(cap)
     local room = math.min(cap - (d.got[capKey] or 0), self:DailyMax(key) - d.total)
     -- Everyday activities (not liked, not a trait's moment) share a small pot too.
-    local other = capKey == id and not likes[id]
+    local other = capKey == id and not likes[id] and not minor
     if other then room = math.min(room, Scaled(C.BOND_OTHER_TOTAL) - (d.got.other or 0)) end
     if room <= 0 then return nil end
     local points = math.min(per * n, room)
@@ -455,6 +475,7 @@ function Bond:Init()
         Bond:Watch()
     end)
     ns.Bus:On("ACTIVE_PET", function() Bond:Watch() end)
+    ns.Bus:On("BOND_LEVEL", function() Bond:Watch() end) -- (a minor like unlocked: Personality)
     -- After the login SYNC: our own entry may have come back from a peer.
     -- Then publish it once: gains that waited for the lazy publish when we
     -- logged out would otherwise wait for the next level (the digest holds

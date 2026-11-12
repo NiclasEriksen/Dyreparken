@@ -16,7 +16,7 @@ return function(test, H)
         local w, ola, kari = Setup()
         local _, _, all = kari:Hover({ species = 46, owner = "Ola Nord" })
         eq(table.concat(all, " / "), "Pus / White Kitten / Ola Nord's Companion / Pet Level 1 Critter"
-            .. " / Dyreparken: har bodd hos Ola Nord i 7 dager · Venn / Fleibede og Hoppetass",
+            .. " / Dyreparken: har bodd hos Ola Nord i 7 dager · Venn / Skøyer og Vinterpels",
             "the nickname takes the title; its traits under the home (an adopted pet's personality is known)")
         local tip = kari.env.GameTooltip
         eq(tip.colors[2][1], 0.7, "the species line is grey")
@@ -69,7 +69,7 @@ return function(test, H)
         local lines = kari:Hover({ species = 46, owner = "Ola Nord" })
         eq(#lines, 2)
         match(lines[1], "^Dyreparken: har bodd hos Ola Nord")
-        eq(lines[2], "Fleibede og Hoppetass", "and its traits")
+        eq(lines[2], "Skøyer og Vinterpels", "and its traits")
     end)
 
     test("nothing for other copies, free pets, non-companions or no owner", function()

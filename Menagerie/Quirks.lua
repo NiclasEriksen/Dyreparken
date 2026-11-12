@@ -30,6 +30,8 @@ ns.Quirks = Quirks
 Quirks.EVERY = 2700          -- seconds between quirk lines (an hour until 2026-11-11: the user, 45 minutes)
 Quirks.DISLIKE_CHANCE = 0.35 -- a dislike not yet found: per time it happens (the cooldown doesn't hold it back)
 Quirks.DISLIKE_AGAIN = 0.15  -- one already found: per time, with the 45 minutes free
+-- A minor dislike (Personality: unlocked by your bond at level 6), a third as often (the user, 2026-11-12).
+Quirks.MINOR_CHANCE, Quirks.MINOR_AGAIN = 0.15, 0.05
 Quirks.random = math.random  -- (tests pin it)
 -- A line comes a while after what caused it, not the instant it happens
 -- (2026-11-10: "scared of flying" the moment you took off read as if it had
@@ -94,7 +96,7 @@ end
 ------------------------------------------------------------------------------
 -- Dislikes
 ------------------------------------------------------------------------------
-function Quirks:Dislike(key, id)
+function Quirks:Dislike(key, id, minor)
     local seen = ns.DB.char.dislikes
     local first = not (seen[key] and seen[key][id])
     -- (found: common, the 45 minutes; not yet: a discovery, only another line on its way holds it)
@@ -103,7 +105,9 @@ function Quirks:Dislike(key, id)
     elseif not self:Ready() then
         return
     end
-    if self.random() >= (first and self.DISLIKE_CHANCE or self.DISLIKE_AGAIN) then return end
+    local chance = minor and (first and self.MINOR_CHANCE or self.MINOR_AGAIN)
+        or (first and self.DISLIKE_CHANCE or self.DISLIKE_AGAIN)
+    if self.random() >= chance then return end
     local name = ns.Registry:NameOf(key)
     local text = Pick("dislike." .. id, { pet = name })
     if not text then return end
@@ -137,8 +141,8 @@ local function HasTrait(key, id)
     return false
 end
 -- Cozy or adventurous (for the campfire eggs), or nil: cozy wins if it's both.
-Quirks.COZY = { "latsabb", "kosete", "hjemlengsel" }
-Quirks.ADVENTUROUS = { "eventyrlysten", "oppdager", "reiseglad", "hoppetass" }
+Quirks.COZY = { "latsabb", "kosete", "hjemlengsel", "balkos" }
+Quirks.ADVENTUROUS = { "eventyrlysten", "oppdager", "reiseglad", "hoppetass", "skybaren" }
 local function Kind(key)
     for _, id in ipairs(Quirks.COZY) do if HasTrait(key, id) then return "cozy" end end
     for _, id in ipairs(Quirks.ADVENTUROUS) do if HasTrait(key, id) then return "adventurous" end end
@@ -425,7 +429,8 @@ function Quirks:OnActivity(id, key, extra)
         if #chatTimes > self.CHAT_BURST then table.remove(chatTimes, 1) end
     end
     if not key then return end
-    if ns.Personality:Dislikes(key)[id] then return self:Dislike(key, id) end
+    local dislike = ns.Personality:Dislikes(key)[id]
+    if dislike then return self:Dislike(key, id, dislike == "minor") end
     self:Egg(id, key, extra)
 end
 
@@ -477,6 +482,7 @@ function Quirks:Init()
     end)
     ns.Bus:On("MY_RECORD", function() Quirks:Watch() end)
     ns.Bus:On("ACTIVE_PET", function() Quirks:Watch() end)
+    ns.Bus:On("BOND_LEVEL", function() Quirks:Watch() end) -- (a minor dislike unlocked: Personality)
     Quirks:Watch()
     -- Again once the login SYNC is in, like Bond: the guild (so our adopted
     -- pet) may not be known at login yet, and our own record can come back
