@@ -285,7 +285,6 @@ This is the payoff for "easier to add pets, traits and eggs".
   engine (`Fx:Emit`, a pool per parent: the card's celebration, cuddle and paw badge on the card's layer,
   Q8); `Scenes.LEVELS`, what each bond level brings. Left: the pet frame's speech bubble (one frame with
   an icon that a higher-ranked line replaces, not a burst); JournalUI's panel edge (one line, not four).
-- **Phase 4b-2, done** (see its own entry above, if any): tooltips as data, Core/UI.lua, Fx:Emit, Scenes.LEVELS, Moves on ns.Timers.
 - **Phase 6, done**: harness.lua split into tools/test/harness/ (base, frames, world, client, ui, assert,
   env/*); c:Visible, c:Labeled, c:Frames, c:Page, c:Eggs; SidePage private reads 83 → 21 (Dev gallery and
   the list's badges left on purpose), the test-only exports removed from Page, ParkPage and Settings;
