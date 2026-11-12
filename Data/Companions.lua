@@ -60,7 +60,7 @@ ns.Companions = {
         [342] = { a = true, t = { "event", "lantern" } }, -- Festival Lantern
         [4180] = { a = true, t = { "rabbit" } }, -- Arctic Hare
         [5004] = { a = true, t = { "bird", "chicken", "farm" } }, -- Prairie Chicken
-        [5005] = { a = false, t = { "frog" } }, -- Musical Gustjumper
+        [5005] = { a = true, t = { "frog" } }, -- Musical Gustjumper
         [5006] = { a = true, t = { "cat" } }, -- Corrupted Kitten
         [5018] = { a = true, t = { "wolf" } }, -- Snowy Wolf Pup
         [5069] = { a = false, t = { "bird", "chicken", "farm" } }, -- Wild Chicken
@@ -69,7 +69,7 @@ ns.Companions = {
         [5121] = { a = true, t = { "wolf" } }, -- Prairie Wolf Pup
         [5135] = { a = true, t = { "rodent" } }, -- Shadowgale Squirrel
         [5136] = { a = true, t = { "bug" } }, -- Weevil K. Neevil
-        [5138] = { a = false, t = { "plant" } }, -- Pachimari
+        [5138] = { a = true, t = { "plant" } }, -- Pachimari
         [5139] = { a = false, t = { "bird" } }, -- Galestrider Chick
         [5151] = { a = true, t = { "bug" } }, -- Plagued Cockroach
         [5152] = { a = true, t = { "bug" } }, -- Undercity Cockroach

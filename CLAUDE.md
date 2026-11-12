@@ -232,10 +232,11 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   per kind (was 5) and 10 in all; a trait's moment at most 10 a day (was 25). Unchanged: the day 10, likes 5 each
   (25 a day), wish 10, playdate 15, and the 75 a day (BOND_DAILY_MAX feeds validation). Likes are what fill a day.
 - **Data pass** (2026-11-10, with the user): every journal pet tagged and its source checked (tools/companions:
-  tags.csv, curation.csv; 73 of 84 count toward achievements since 2026-11-12). Two new families, `bear` (Panda Cub) and
+  tags.csv, curation.csv; 75 of 84 count toward achievements since 2026-11-12). Two new families, `bear` (Panda Cub) and
   `reptile` (Baby Crocolisk, Speedy). The Zergling is a demon. Limited pets count (2026-11-12, the user: "as
-  long as it was never impossible to get"; until then they didn't): the CE pets (Panda Cub, Mini Diablo,
-  Zergling) and Azurky. Pets nobody knows how to get yet don't (Musical Gustjumper, Pachimari, Galestrider Chick,
+  long as it was never impossible to get"; until then they didn't): the store pack pets (Panda Cub, Mini Diablo,
+  Zergling, Pachimari: Skyborne Epic Pack or Warcraft Forever Collection) and Azurky; the Musical Gustjumper is
+  open world (/sing to a frog on Zephras Isle). Pets nobody knows how to get yet don't (Galestrider Chick,
   Shen'dorei Wisp, Minfernal, Spawn of Grubthor, the four Lashlings), nor removed ones, nor the Wild Chicken, whose card shows no model on Forever. Event pets also get a body family.
   Forever is the classic world (Quirks.HOME_ZONES uses classic zone names).
   Any pet can be adopted, whatever its availability; only achievements depend on it. The guild total counts every
