@@ -429,8 +429,16 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   - Events: `DAMAGE_METER_CURRENT_SESSION_UPDATED` (no payload) as a fight starts; then
     `DAMAGE_METER_COMBAT_SESSION_UPDATED` (meter type, session id) about every 2 s in a fight (0 damage, 7 damage
     taken...). Arithmetic or comparisons on the secret values would taint; read after combat instead.
-  - Not seen yet: a group (are sources sorted, are others' names readable after combat?), a boss (does the
-    session's name say so; ENCOUNTER_END vs the end of combat).
+  - **In a group** (2026-11-12, a five-man Scarlet Monastery run, two bosses: Interrogator Vishas, Bloodmage
+    Thalnos): a second after combat every member is a source with their plain name ("First Surname"), class and
+    amounts, and the list is **sorted, highest first**, so our place is our row's index. Only those who did any
+    of a kind are listed (healing: the healer, plus a paladin's 1 point). No separate rows for hunters' pets;
+    whether a pet's damage is in its owner's total is unknown. Interrupts (type 5) counted our one kick.
+  - Session 1 (Current) after a boss kill is that boss fight alone (29 s and 40 s, matching the pulls), so a
+    boss's result is session 1 read after combat. Our boss activity (ENCOUNTER_END, counted after combat) and
+    PLAYER_REGEN_ENABLED logged in the same frame; the read a second later had the boss fight in it.
+  - `DAMAGE_METER_RESET` fired on entering the dungeon, and session ids started again from 1: Overall is per
+    instance there, not per login.
 - **A new flight path is seen** (2026-11-11, build 1.60.1): `ERR_NEWTAXIPATH` matched on UI_INFO_MESSAGE or
   CHAT_MSG_SYSTEM (Activity "newpath"); the user's pet said its line as the flight path was learned.
 - **Range to a group member** (2026-11-11, playdates): `UnitInRange(unit)` (in range, checked) and `UnitIsVisible`

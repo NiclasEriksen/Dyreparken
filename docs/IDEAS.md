@@ -286,7 +286,7 @@ frame is off, and the per-character sections say so. Not changed: the pet frame'
 - Pet frame: Edit Mode's cancel doesn't undo a move; cardMoves/cardParticles changes don't refresh the frame.
 - Moves: a pose can stay "dead" after playing dead ends at night or for a sitting pet.
 
-# The pet reacts to the damage meter (the user, 2026-11-12; shelved, the probe not run yet)
+# The pet reacts to the damage meter (the user, 2026-11-12; shelved, probed)
 
 Forever has Retail 12.0's built-in damage meter and its API, `C_DamageMeter` (in the client: /dp probe api,
 2026-11-11): `GetCombatSessionFromType(sessionType, type)` gives a session's `combatSources` (name, classFilename,
@@ -294,7 +294,11 @@ totalAmount, amountPerSecond, isLocalPlayer, ...), with types DamageDone, Dps, H
 Interrupts, Dispels, DamageTaken, AvoidableDamageTaken, Deaths, EnemyDamageTaken; events
 DAMAGE_METER_COMBAT_SESSION_UPDATED (type, sessionID), DAMAGE_METER_CURRENT_SESSION_UPDATED, DAMAGE_METER_RESET.
 Probed 2026-11-12 (docs/FOREVER_API.md): secret in combat, plain a second after it; the Current session is the
-fight just ended. Still to see: a group (sorting, others' names) and a boss fight.
+fight just ended. A group dungeon run (2026-11-12) settled the rest: sources are sorted highest first with
+plain names after combat, and session 1 after a boss kill is that boss fight alone. So "first place on a boss"
+is: on ENCOUNTER_END with success, wait for PLAYER_REGEN_ENABLED, then (a second later) read session 1's
+DamageDone (party) or HealingDone (raid) and check whether our row (isLocalPlayer) is first. No polling: the
+meter is read once per boss kill. Raids still unseen (bigger groups, wipes before the kill).
 
 The user's rules:
 - Only boss fights (ENCOUNTER_END, a kill).
