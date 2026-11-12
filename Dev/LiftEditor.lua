@@ -149,7 +149,7 @@ function Editor:Open()
     for sid, v in pairs(picks) do
         if math.abs(v - Default(sid)) < 1e-6 then picks[sid] = nil end
     end
-    ns.Moves.liftEditing = true
+    ns.Moves:SetLiftEditing(true)
     -- Start at the pet on the card, if it's one of them.
     local card = ns.JournalUI._card
     local at = 1
@@ -161,7 +161,7 @@ end
 
 function Editor:Close()
     if self.frame then self.frame:Hide() end
-    ns.Moves.liftEditing = nil
+    ns.Moves:SetLiftEditing(false)
     ns.Moves:Relift() -- (the file's lift again)
 end
 

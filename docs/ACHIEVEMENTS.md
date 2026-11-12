@@ -205,7 +205,7 @@ Idea: count boss kills and honorable kills while your companion is out ("Bosskam
 25/100), shown per pet in tooltips and on the park map. Killing blows are out: they'd need the combat log, which
 Midnight's restrictions lock down and which would break the dormancy rule.
 
-Unknowns, probed by `Achievements/Kills.lua` (listens only while `/dp debug on`; `/dp probe kills` shows which
+Unknowns, probed by `Dev/Kills.lua` (listens only while `/dp debug on`; `/dp probe kills` shows which
 events exist): do `ENCOUNTER_END` / `BOSS_KILL` fire for Forever's bosses, and with what; do
 `PLAYER_PVP_KILLS_CHANGED` and `GetPVPSessionStats` track honorable kills; is the summoned companion readable at
 that moment (in combat), or only after combat ends (the probe logs both). Build the feature on the log's answers.

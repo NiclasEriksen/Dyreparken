@@ -532,41 +532,4 @@ function JournalUI:Init()
     end)
 end
 
--- /dp probe card: what Blizzard's pet card is made of on Forever (2026-11-08:
--- to hide its title row, the pet's icon and name at the top, we need its
--- name). Logs the card's children and regions, two levels down: the key
--- they're stored under on their parent, the type, shown, size and anchor.
-function JournalUI:ProbeCard()
-    local c = rawget(_G, "PetJournalPetCard")
-    if not c then return ns.Print("Open the pet journal first.") end
-    local function KeyOf(parent, obj)
-        for k, v in pairs(parent) do if v == obj and type(k) == "string" then return k end end
-        return "-"
-    end
-    local function Describe(obj, parent, depth)
-        local ok, kind = pcall(obj.GetObjectType, obj)
-        local name = obj.GetName and obj:GetName() or nil
-        local w, h
-        if obj.GetSize then w, h = obj:GetSize() end
-        local point, rel, relPoint, x, y = nil, nil, nil, nil, nil
-        if obj.GetPoint then point, rel, relPoint, x, y = obj:GetPoint(1) end
-        local relName = rel and ((rel.GetName and rel:GetName()) or KeyOf(parent, rel)) or "-"
-        local text = obj.GetText and obj:GetText() or nil
-        ns.Log("Probe", "card %s%s key=%s name=%s shown=%s size=%sx%s at=%s %s %s %s,%s%s", ("  "):rep(depth),
-            tostring(ok and kind or "?"), KeyOf(parent, obj), tostring(name), tostring(obj.IsShown and obj:IsShown()),
-            tostring(w and math.floor(w)), tostring(h and math.floor(h)), tostring(point), tostring(relName),
-            tostring(relPoint), tostring(x and math.floor(x)), tostring(y and math.floor(y)),
-            text and (" text=" .. tostring(text)) or "")
-    end
-    local function Walk(frame, depth)
-        for _, r in ipairs({ frame:GetRegions() }) do Describe(r, frame, depth) end
-        for _, child in ipairs({ frame:GetChildren() }) do
-            Describe(child, frame, depth)
-            if depth < 2 then Walk(child, depth + 1) end
-        end
-    end
-    Walk(c, 0)
-    ns.Print("Pet card probed; /reload and send the debug log.")
-end
-
 ns.Start("loaded", function() JournalUI:Init() end)

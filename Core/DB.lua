@@ -32,10 +32,10 @@ local ACCOUNT_DEFAULTS = {
         petFrame = false, petFrameArt = false, -- (the pet frame and its background and border: off unless chosen, PetFrame.lua)
         petFrameCombat = false, petFrameFade = false, petFrameAlpha = 0.25, -- (hidden in combat; faded when nothing happens, to this)
     },
-    scenePicks = {}, -- family -> background path, picked in /dp probe bg (SceneGallery.lua)
-    liftPicks = {},  -- species id -> lift, set in /dp probe lift (LiftEditor.lua); to write into Data/PetMoves.lua
-    movePicks = {},  -- species id -> { reaction = id or false, sleepAt = n }, from /dp probe moves (MovesEditor.lua)
-    decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor (Decor.lua)
+    scenePicks = {}, -- family -> background path, picked in /dp probe bg (Dev/SceneGallery.lua)
+    liftPicks = {},  -- species id -> lift, set in /dp probe lift (Dev/LiftEditor.lua); to write into Data/PetMoves.lua
+    movePicks = {},  -- species id -> { reaction = id or false, sleepAt = n }, from /dp probe moves (Dev/MovesEditor.lua)
+    decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor (Dev/DecorProbe.lua)
 }
 
 -- Each guild's shared data (Menagerie/Registry.lua has the shapes). A new

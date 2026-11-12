@@ -1,118 +1,16 @@
 local _, ns = ...
 
 -- Decorations on the pet card (planned 2026-11-08): more as the bond grows,
--- small touches from the pet's traits. Which art Forever ships for them is
--- unknown, so this first part is a probe: candidate textures and atlases
--- per slot (corner, border, glow, sparkle...), and `/dp probe decor` shows
--- the ones that exist in a gallery, one slot at a time, to pick from
--- (DyreparkenDB.decorPicks, one per slot).
+-- small touches from the pet's traits. Which art Forever ships for them was
+-- unknown, so it began as a probe: `/dp probe decor` and `frames` show the
+-- candidates that exist in a gallery to pick from (Dev/DecorProbe.lua, not
+-- in a release; the picks are written into this file).
 local Decor = {}
 ns.Decor = Decor
 
--- The slots, in the gallery's order.
-Decor.SLOTS = { "corner", "border", "frame", "glow", "sparkle", "star", "heart", "bubble", "confetti", "ribbon", "moon",
-    "leaf", "paw", "note", "snow" }
-
 -- Our own particles (Media/Particles, drawn by tools/draw_particles.py):
--- white with soft edges, to tint and animate. Shown first in their slots.
+-- white with soft edges, to tint and animate.
 Decor.MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
-local OWN = {
-    glow = { "dot" }, sparkle = { "sparkle", "dot" }, star = { "star" }, heart = { "heart" }, bubble = { "bubble" },
-    confetti = { "confetti" }, moon = { "moon" }, leaf = { "leaf" }, paw = { "paw" }, note = { "note" },
-    snow = { "snowflake" },
-}
-
--- File paths found in the first probe (2026-11-08), per slot; the atlases
--- come from DecorCandidates.lua (generated from the retail atlas list).
-local I = "Interface\\"
-local PATHS = {
-    corner = { "AchievementFrame\\UI-Achievement-WoodBorder-Corner", "DialogFrame\\UI-DialogBox-Gold-Corner" },
-    border = { "DialogFrame\\UI-DialogBox-Gold-Border", "Tooltips\\UI-Tooltip-Border",
-        "AchievementFrame\\UI-Achievement-WoodBorder", "AchievementFrame\\UI-Achievement-MetalBorder-Joint",
-        "Buttons\\UI-ActionButton-Border" },
-    frame = { "TargetingFrame\\UI-TargetingFrame-Elite", "TargetingFrame\\UI-TargetingFrame-Rare-Elite",
-        "COMMON\\StreamCircle", "COMMON\\StreamFrame" },
-    glow = { "Spellbook\\UI-GlyphFrame-Glow", "SpellActivationOverlay\\IconAlert", "Buttons\\CheckButtonGlow",
-        "AchievementFrame\\UI-Achievement-Alert-Glow", "QuestFrame\\UI-QuestTitleHighlight", "COMMON\\StreamBackground" },
-    sparkle = { "COMMON\\StreamSpark", "CastingBar\\UI-CastingBar-Spark", "Cooldown\\ping4" },
-    star = { "Cooldown\\star4", "Cooldown\\starburst", "TargetingFrame\\UI-RaidTargetingIcon_1" },
-    heart = { "Icons\\INV_ValentinesCandy", "Icons\\INV_ValentinesCard02" },
-    bubble = { "Icons\\Spell_Frost_SummonWaterElemental" },
-    confetti = { "Icons\\INV_Misc_Bomb_04", "Icons\\INV_Holiday_Christmas_Present_01" },
-    ribbon = { "DialogFrame\\UI-DialogBox-Header", "AchievementFrame\\UI-Achievement-Shields" },
-    moon = { "TargetingFrame\\UI-RaidTargetingIcon_5" },
-    leaf = { "Icons\\INV_Misc_Food_Wheat_01" },
-    paw = {},
-}
--- The first probe's atlases that aren't in the generated lists' first picks.
-local ATLASES = {
-    glow = { "AftLevelup-WhiteIconGlow", "AftLevelup-SoftCloud", "bags-glow-orange", "bags-glow-heirloom",
-        "GarrLanding-CircleGlow", "collections-newglow" },
-    sparkle = { "ArtifactsFX-SpinningGlowys", "ArtifactsFX-Whirls" },
-    star = { "AftLevelup-WhiteStarBurst", "ArtifactsFX-StarBurst", "PetJournal-FavoritesIcon", "Bonus-Objective-Star" },
-    frame = { "UI-HUD-UnitFrame-Target-PortraitOn-Boss-Gold-Winged", "communities-ring-gold", "challenges-medal-gold" },
-    corner = { "UI-Frame-DiamondMetal-CornerTopLeft" },
-    ribbon = { "UI-Frame-Neutral-Ribbon", "GarrMission_RewardsBanner", "honorsystem-prestige-laurel" },
-}
-
--- Every candidate once, with its slot: { path, slot }. A path is a file
--- path or "atlas:<name>". The current picks stay in, wherever they're from.
-function Decor:Candidates()
-    local list, seen = {}, {}
-    local function Add(path, slot)
-        if seen[path] then return end
-        seen[path] = true
-        list[#list + 1] = { path = path, slot = slot }
-    end
-    local generated = ns.DecorCandidates or {}
-    for _, slot in ipairs(self.SLOTS) do
-        local pick = ns.DB.global.decorPicks[slot]
-        if pick then Add(pick, slot) end
-        for _, name in ipairs(OWN[slot] or {}) do Add(self.MEDIA .. name, slot) end
-        for _, p in ipairs(PATHS[slot] or {}) do Add(I .. p, slot) end
-        for _, a in ipairs(ATLASES[slot] or {}) do Add("atlas:" .. a, slot) end
-        for _, a in ipairs(generated[slot] or {}) do Add("atlas:" .. a, slot) end
-    end
-    return list
-end
-
--- Does the client have it?
-function Decor.Exists(path)
-    -- Our own files: always there (and an addon file has no file id).
-    if path:sub(1, #Decor.MEDIA) == Decor.MEDIA then return true end
-    local atlas = path:match("^atlas:(.+)$")
-    if atlas then
-        return C_Texture ~= nil and C_Texture.GetAtlasInfo ~= nil and C_Texture.GetAtlasInfo(atlas) ~= nil
-    end
-    if not GetFileIDFromPath then return true end
-    return GetFileIDFromPath(path) ~= nil
-end
-
--- /dp probe decor
-function Decor:Probe()
-    local have, list = {}, self:Candidates()
-    for i, c in ipairs(list) do
-        local ok = Decor.Exists(c.path)
-        if ok then have[#have + 1] = { n = i, path = c.path, slot = c.slot } end
-        ns.Log("Probe", "decor %d %s %s: %s", i, ok and "YES" or "no", c.slot, c.path)
-    end
-    ns.Print(("%d of %d decoration pictures exist; the gallery shows them."):format(#have, #list))
-    ns.SceneGallery:Show(have, "decor")
-end
-
--- /dp probe frames: a border per family. While the gallery is open the
--- card wears the family whose slot is chosen, and its pick (Decor.show).
-function Decor:ProbeFrames()
-    local have = {}
-    for i, c in ipairs(self:Candidates()) do
-        if c.slot == "border" and Decor.Exists(c.path) then
-            have[#have + 1] = { n = i, path = c.path, slot = c.slot }
-        end
-    end
-    ns.Print(("%d borders exist. Pick one per family; the card shows it while the gallery is open.")
-        :format(#have))
-    ns.SceneGallery:Show(have, "frames")
-end
 
 ------------------------------------------------------------------------------
 -- On the card (2026-11-08). Two sources of decoration, both behind the pet
@@ -375,26 +273,20 @@ Decor.FAMILY_ART = { -- picked in game 2026-11-09
     bug = { border = "services-icon-goldborder" },
 }
 
--- The galleries' preview (2026-11-09): while /dp probe decor or frames is
--- open, Decor.show = { slot, family, art }: the card wears the chosen slot
--- (the art under the mouse, else the pick), dressed at a level where that
--- slot shows; a particle slot shows a few of its particles.
-Decor.show = nil
-Decor.NEED = { border = 2, corner = 3, glow = 4, cornerGold = 5, ribbon = 6 } -- the level a slot first shows at
+-- A particle kind's gallery slot (and back).
 Decor.SLOT_KIND = { sparkle = "spark", star = "star", heart = "heart", bubble = "bubble", confetti = "confetti",
     leaf = "leaf", paw = "paw", note = "note", snow = "snow" }
 local KIND_SLOT = {}
 for slot, kind in pairs(Decor.SLOT_KIND) do KIND_SLOT[kind] = slot end
 
--- The picture for a slot: the preview's, the family's, the slot's, else
--- nil (a particle's own texture). The galleries' picks (DyreparkenDB.
--- decorPicks) count only while a gallery is open: once written into the
--- code, an old pick left in SavedVariables mustn't hide what the code says.
+-- The picture for a slot: the family's, the slot's, else nil (a particle's
+-- own texture). While a gallery or /dp probe level is open, Decor.override
+-- (Dev/DecorProbe.lua; never in a release) answers instead.
 function Decor:Art(slot, family)
-    local s, picks = self.show, ns.DB.global.decorPicks
-    if s and s.art and s.slot == slot and (not s.family or s.family == family) then return s.art end
+    local o = self.override
+    if o then return o.Art(slot, family) end
     local own = family and self.FAMILY_ART[family]
-    return s and family and picks[slot .. "." .. family] or own and own[slot] or s and picks[slot] or self.ART[slot]
+    return own and own[slot] or self.ART[slot]
 end
 
 -- A particle kind's picture.
@@ -685,7 +577,8 @@ end
 function Decor:Specs(key, level, t)
     local list, ctx = {}, nil
     local f = self.Density(level)
-    local demo = self.show and self.SLOT_KIND[self.show.slot] -- the gallery's particle slot
+    local o = self.override
+    local demo = o and o.Demo() -- the gallery's particle slot
     if demo then list[1] = { kind = demo, n = 6, color = { 1, 1, 1 } } end
     -- (no trait particles for a pet whose personality is still a surprise)
     for _, trait in ipairs(ns.Personality:Known(key) and ns.Personality:Traits(key) or {}) do
@@ -734,12 +627,12 @@ function Decor:Apply(card, key, level, color)
     -- The same pet, level, tint and particles as now: leave them playing.
     -- (Every card refresh used to restart them all: guildmates' bond updates
     -- made the hearts and leaves blink out and fade back in.)
-    level = self.preview or level or 0
-    local need = self.show and self.NEED[self.show.slot]
-    if need and level < need then level = need end
+    local o = self.override -- (a gallery's slot, /dp probe level: Dev/DecorProbe.lua)
+    if o then level = o.Level(level) end
+    level = level or 0
     local sig, art, specs
     if key then
-        local family = self.show and self.show.family or ns.Scenes:Families(key)[1] or "default"
+        local family = o and o.Family() or ns.Scenes:Families(key)[1] or "default"
         art = { self:Art("border", family), self:Art(level >= 5 and "cornerGold" or "corner", family), self:Art("glow"), self:Art("ribbon") }
         local parts = { key, level, color and table.concat(color, ",") or "", table.concat(art, ";"),
             tostring(ns.Settings:Get("cardParticles")) }
@@ -836,19 +729,4 @@ function Decor:Apply(card, key, level, color)
             Launch(d.parts[d.used], spec, rng, i, n, d.panel)
         end
     end
-end
-
--- /dp probe level <1-7>: show the card dressed as that bond level, for any
--- pet, until /dp probe level off (development).
-function Decor:Preview(arg)
-    local n = tonumber(arg)
-    if n and n >= 1 and n <= #ns.Bond.LEVELS then
-        self.preview = math.floor(n)
-        ns.Print(("The card shows level %d (%s). /dp probe level off to stop."):format(self.preview,
-            ns.Bond.LEVELS[self.preview][2]))
-    else
-        self.preview = nil
-        ns.Print("The card shows the real level again.")
-    end
-    ns.JournalUI:Refresh()
 end

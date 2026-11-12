@@ -208,35 +208,3 @@ function Page:Attach(petJournal, anchor)
     ns.Bus:On("ACH", function() Page:Refresh() end)
     ns.Bus:On("REGISTRY", function() Page:Refresh() end)
 end
-
--- /dp probe tabs: what the side tabs look like, to match them.
-function Page:Probe()
-    local host = ns.SidePage:Host()
-    if not host then return ns.Print("Open the pet journal first.") end
-    local L = function(...) ns.Log("Probe", ...) end
-    L("host %s %s right=%s level=%s", tostring(host:GetName()), host:GetObjectType(), tostring(host:GetRight()),
-        tostring(host:GetFrameLevel()))
-    for _, key in ipairs({ "NineSlice", "PortraitContainer", "TitleContainer", "CloseButton", "Bg", "TopTileStreaks" }) do
-        local f = rawget(host, key)
-        L("host.%s: %s level=%s", key, tostring(f ~= nil), tostring(f and f.GetFrameLevel and f:GetFrameLevel()))
-    end
-    for i, f in ipairs({ host:GetChildren() }) do
-        L("child %d %s %s shown=%s l=%s r=%s t=%s b=%s w=%s h=%s", i, tostring(f:GetName()), f:GetObjectType(),
-            tostring(f:IsShown()), tostring(f:GetLeft()), tostring(f:GetRight()), tostring(f:GetTop()),
-            tostring(f:GetBottom()), tostring(f:GetWidth()), tostring(f:GetHeight()))
-    end
-    local tabs = ns.SidePage:SideTabs()
-    for i, f in ipairs(tabs) do
-        L("tab %d %s %s l=%s t=%s w=%s h=%s kids=%d", i, tostring(f:GetName()), f:GetObjectType(),
-            tostring(f:GetLeft()), tostring(f:GetTop()), tostring(f:GetWidth()), tostring(f:GetHeight()),
-            select("#", f:GetChildren()))
-        for j, r in ipairs({ f:GetRegions() }) do
-            local tex = r.GetTexture and r:GetTexture()
-            local atlas = r.GetAtlas and r:GetAtlas()
-            L("tab %d region %d %s layer=%s tex=%s atlas=%s w=%s h=%s", i, j, r:GetObjectType(),
-                tostring(r.GetDrawLayer and r:GetDrawLayer()), tostring(tex), tostring(atlas),
-                tostring(r:GetWidth()), tostring(r:GetHeight()))
-        end
-    end
-    ns.Print(("Probed %d side tabs; /reload and send the debug log."):format(#tabs))
-end

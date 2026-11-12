@@ -71,19 +71,6 @@ Scenes.TINT = {
     bear = { 0.42, 0.27, 0.12 }, reptile = { 0.18, 0.36, 0.22 }, murloc = { 0.08, 0.34, 0.4 }, default = { 0.36, 0.26, 0.18 },
 }
 
--- Dungeon backgrounds to look for (not used until seen): the classic
--- dungeons and raids, by the naming that found three (UI-EJ-BACKGROUND-),
--- and the same names as lore backgrounds. /dp probe bg lists the ones found.
-local NAMES = { "RagefireChasm", "Ragefire", "Deadmines", "ShadowfangKeep", "BlackfathomDeeps", "TheStockade",
-    "StormwindStockades", "RazorfenKraul", "RazorfenDowns", "ScarletMonastery", "ScarletHalls", "Uldaman",
-    "ZulFarrak", "Maraudon", "SunkenTemple", "TempleOfAtalHakkar", "BlackrockSpire", "LowerBlackrockSpire",
-    "UpperBlackrockSpire", "DireMaul", "Scholomance", "Stratholme", "MoltenCore", "BlackwingLair", "OnyxiasLair",
-    "ZulGurub", "RuinsofAhnQiraj", "TempleofAhnQiraj", "Naxxramas", "Karazhan", "WailingCaverns", "Gnomeregan",
-    "BlackrockDepths" }
-Scenes.EXTRA = {}
-for _, n in ipairs(NAMES) do Scenes.EXTRA[#Scenes.EXTRA + 1] = EJ .. n end
-for _, n in ipairs(NAMES) do Scenes.EXTRA[#Scenes.EXTRA + 1] = "Interface\\EncounterJournal\\UI-EJ-LOREBG-" .. n end
-
 -- The order families are tried in, for a pet with several tags.
 Scenes.ORDER = { "dragon", "demon", "mechanical", "pirate", "murloc", "owl", "frog", "snake", "reptile", "spirit", "ooze",
     "bear", "wolf", "cat", "bug", "plant", "rabbit", "rodent", "farm", "bird", "festive" }
@@ -95,7 +82,7 @@ end
 
 local found = {} -- family -> path or false (cached)
 local function First(family)
-    -- A pick made in the gallery (SceneGallery.lua) comes first.
+    -- A pick made in the gallery (Dev/SceneGallery.lua) comes first.
     local pick = ns.DB.global.scenePicks[family]
     if pick then return pick end
     if found[family] == nil then
@@ -124,7 +111,8 @@ end
 
 -- The background picture for a pet, or nil (then only the drawn layers).
 function Scenes:For(key)
-    if self.preview then return self.preview end
+    local o = self.override -- (/dp probe bg <n>: Dev/ScenesProbe.lua; never in a release)
+    if o then return o(key) end
     local sid = ns.Pets:SpeciesOfKey(key)
     for _, path in ipairs(sid and self.BY_SPECIES[sid] or {}) do
         if Exists(path) then return path end
@@ -218,53 +206,4 @@ function Scenes:Paint(card, key)
         card.sky:Hide()
     end
     return c
-end
-
--- Every candidate once, numbered, in a stable order.
-function Scenes:Candidates()
-    local list, seen = {}, {}
-    local families = { "default" }
-    for _, f in ipairs(self.ORDER) do families[#families + 1] = f end
-    for _, f in ipairs(families) do
-        for _, path in ipairs(self.BY_FAMILY[f] or {}) do
-            if not seen[path] then
-                seen[path] = true
-                list[#list + 1] = { path = path, family = f }
-            end
-        end
-    end
-    for _, path in ipairs(self.EXTRA) do
-        if not seen[path] then
-            seen[path] = true
-            list[#list + 1] = { path = path, family = "probe" }
-        end
-    end
-    return list
-end
-
--- /dp probe bg: which candidates the client has. /dp probe bg <n>: show
--- candidate n on the card (any pet) until /dp probe bg off.
-function Scenes:Probe(arg)
-    local list = self:Candidates()
-    local n = tonumber(arg)
-    if arg == "off" then
-        self.preview = nil
-        ns.Print("Backgrounds: back to the families.")
-    elseif n then
-        local c = list[n]
-        if not c then return ns.Print(("No background %d (1-%d)."):format(n, #list)) end
-        self.preview = c.path
-        ns.Print(("Background %d on the card: %s (exists: %s). /dp probe bg off to stop."):format(n, c.path,
-            tostring(Exists(c.path))))
-    else
-        local have = {}
-        for i, c in ipairs(list) do
-            local ok = Exists(c.path)
-            if ok then have[#have + 1] = { n = i, path = c.path } end
-            ns.Log("Probe", "bg %d %s %s: %s", i, ok and "YES" or "no", c.family, c.path)
-        end
-        ns.Print(("%d of %d backgrounds exist; the gallery shows them."):format(#have, #list))
-        ns.SceneGallery:Show(have)
-    end
-    ns.JournalUI:Refresh() -- redraw the card
 end

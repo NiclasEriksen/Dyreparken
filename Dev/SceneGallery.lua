@@ -5,7 +5,7 @@ local _, ns = ...
 --   /dp probe bg     backgrounds, one per family (DyreparkenDB.scenePicks):
 --                    a pick shows on the pet card at once.
 --   /dp probe decor  decorations for the card (DyreparkenDB.decorPicks,
---                    Decor.lua): corners, glows, sparkles...
+--                    Dev/DecorProbe.lua): corners, glows, sparkles...
 -- Choose a slot at the top, then click a thumbnail; right-click clears the
 -- slots that use it. The picks are read from SavedVariables and made the
 -- defaults in code.
@@ -19,7 +19,7 @@ local THUMB_W, THUMB_H, GAP, COLS = 168, 96, 8, 4
 local function Card() if ns.JournalUI.Refresh then ns.JournalUI:Refresh() end end
 local function Select(slot)
     local kind, family = slot:match("^(%a+)%.(%a+)$")
-    ns.Decor.show = { slot = kind or slot, family = family }
+    ns.Decor:SetShow({ slot = kind or slot, family = family })
     Card()
 end
 local function Hover(path)
@@ -28,7 +28,7 @@ local function Hover(path)
     Card()
 end
 local function Closed()
-    ns.Decor.show = nil
+    ns.Decor:SetShow(nil)
     Card()
 end
 

@@ -234,13 +234,10 @@ function Track:Update(card, key, color)
         b:Hide()
         return
     end
-    if ns.Decor.preview then -- /dp probe level: that level, its name and its points
-        level = ns.Decor.preview
-        name, from = ns.Bond.LEVELS[level][2], ns.Bond.LEVELS[level][1]
-        nextAt = ns.Bond.LEVELS[level + 1] and ns.Bond.LEVELS[level + 1][1]
-        points = math.max(points, from)
-        if nextAt then points = math.min(points, nextAt - 1) end -- within the level shown
-    end
+    -- /dp probe level (Dev/DecorProbe.lua; never in a release): that level, its name and its points,
+    -- quiet (no gains, no celebration).
+    local quiet
+    if self.override then points, level, name, from, nextAt, quiet = self.override(points, level, name, from, nextAt) end
     local tier = ns.Scenes.Tier(level, color)
     b.label:SetText(name) -- the number is on the medallion
     local _, yourLevel, yourName = ns.Bond:Yours(key)
@@ -258,7 +255,7 @@ function Track:Update(card, key, color)
         fill:SetVertexColor(tier[1], tier[2], tier[3], 1)
     end
     -- Your own pet: what today brought, and whether the day is full.
-    local mine = shownMine and not ns.Decor.preview
+    local mine = shownMine and not quiet
     if mine then self:Gains(card, key, points, from, nextAt or math.max(points, 1)) end
     local today, max = 0, 0
     if mine then today, max = ns.Bond:Today(key) end
@@ -326,7 +323,7 @@ function Track:Update(card, key, color)
     b:Show()
     -- Your own pet, at a level you haven't seen on its card: celebrate, but
     -- only where it can be seen; otherwise it waits for the next real look.
-    if shownMine and not ns.Decor.preview and card.panel:IsVisible() then
+    if shownMine and not quiet and card.panel:IsVisible() then
         local seen = ns.DB.char.bondSeen
         if seen[key] == nil then
             seen[key] = level -- the first look: nothing to celebrate yet
@@ -551,31 +548,4 @@ function Track:Celebrate(card, key, level)
     cel.text:Show(); cel.text.anim:Play()
     ns.Log("Bond", "celebration sound %s", tostring(ns.PlayFirstSound(self.SOUNDS)))
     ns.Log("Bond", "celebrated %s level %d", key, level)
-end
-
--- /dp probe gains [n n ...]: the gains animation on the card's pet as if these
--- were gained since the last look (development; saves nothing).
-function Track:PreviewGains(arg)
-    local card = ns.JournalUI._card
-    if not (card and card.key and card.bond and card.bond:IsShown()) then
-        return ns.Print("Open a pet's card with a bond bar first.")
-    end
-    local list = {}
-    for n in (arg or "5 10 25"):gmatch("%d+") do list[#list + 1] = tonumber(n) end
-    if #list == 0 then list = { 5, 10, 25 } end
-    local points, _, _, from, nextAt = ns.Bond:Shown(card.key)
-    local sum = 0
-    for _, n in ipairs(list) do sum = sum + n end
-    self:Animate(card, points, from, nextAt or math.max(points, 1), points - sum, list)
-    ns.Print(("Gains preview: %s on %s."):format(table.concat(list, ", "), card.key))
-end
-
--- /dp probe celebrate: the celebration on the card as it is (development).
-function Track:Preview()
-    local card = ns.JournalUI._card
-    if not (card and card.key and card.celebration) then
-        return ns.Print("Open the pet card first.")
-    end
-    local _, level = ns.Bond:Shown(card.key)
-    self:Celebrate(card, card.key, ns.Decor.preview or level or 1)
 end

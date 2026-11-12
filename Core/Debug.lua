@@ -46,7 +46,7 @@ function Debug:SetEnabled(on, echo)
     DyreparkenDebugDB.enabled, DyreparkenDebugDB.echo = self.enabled, self.echo
     ns.Log = self.enabled and Write or noop
     ns.Log("Debug", "enabled %s, echo=%s", ns.VERSION, tostring(self.echo))
-    ns.Bus:Fire("DEBUG", self.enabled) -- probes that only listen while logging (Achievements/Kills.lua)
+    ns.Bus:Fire("DEBUG", self.enabled) -- probes that only listen while logging (Dev/Kills.lua)
 end
 
 function Debug:Clear()

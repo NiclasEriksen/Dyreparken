@@ -41,8 +41,6 @@ Menagerie\Sync.lua
 Menagerie\Summon.lua
 Menagerie\Report.lua
 Menagerie\Scenes.lua
-Menagerie\SceneGallery.lua
-Menagerie\DecorCandidates.lua
 Menagerie\Decor.lua
 Menagerie\BondTrack.lua
 Menagerie\Stats.lua
@@ -70,18 +68,34 @@ Menagerie\Voyage.lua
 
 Achievements\Defs.lua
 Achievements\Achievements.lua
-Achievements\Kills.lua
 Achievements\Page.lua
 Menagerie\ParkPage.lua
 Menagerie\PetFrame.lua
 Menagerie\Fight.lua
 Menagerie\Settings.lua
-Menagerie\LiftEditor.lua
-Menagerie\MovesEditor.lua
 
 # Party games
 Games\Framework.lua
 
-Core\ApiProbe.lua
 Core\Commands.lua
+
+# Development only (a git checkout): probes, editors, galleries, /dp probe and
+# /dp debug. The packager strips this block and .pkgmeta leaves Dev/ out, so a
+# release never loads them; each file extends a module above it.
+#@do-not-package@
+Dev\DecorCandidates.lua
+Dev\PetsProbe.lua
+Dev\ScenesProbe.lua
+Dev\DecorProbe.lua
+Dev\BondTrackProbe.lua
+Dev\MovesProbe.lua
+Dev\JournalProbe.lua
+Dev\Kills.lua
+Dev\SceneGallery.lua
+Dev\LiftEditor.lua
+Dev\MovesEditor.lua
+Dev\ApiProbe.lua
+Dev\Commands.lua
+#@end-do-not-package@
+
 Main.lua

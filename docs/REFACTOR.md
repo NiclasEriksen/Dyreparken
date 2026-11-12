@@ -242,6 +242,12 @@ This is the payoff for "easier to add pets, traits and eggs".
   `w:SetDate`, `c:Said` / `c:CountPrinted` / `c:Points`. Skipped as low value: `c:Adopt`, `H.same`, a
   per-client RNG. `c:TipOf` waits for Phase 4's tooltips-as-data. Left on purpose: 19_bond's made-up trait,
   23_decor's trait-cycling override, 13's own companions fixture (its tags differ).
+- **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
+  probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
+  lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client
+  in the harness (`{ release = true }`, 48_release.lua) tours the addon with no Dev files and ns.DEV off.
+  Not done: merging LiftEditor into MovesEditor (little left in common). Unverified: the packager's
+  stripping of the block, until the next real zip.
 
 ## Questions still open
 

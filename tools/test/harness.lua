@@ -78,15 +78,25 @@ local function Source(path)
     return sources[path]
 end
 
-local TOC = { files = {}, meta = {} }
+-- files: every file, as a git checkout loads them; release: without the
+-- #@do-not-package@ blocks, which the packager strips (Dev/).
+local TOC = { files = {}, release = {}, meta = {} }
+local packaged = true
 for line in Source(ADDON .. ".toc"):gmatch("[^\r\n]+") do
     local k, v = line:match("^##%s*([^:]+):%s*(.-)%s*$")
     if k then
         TOC.meta[k] = v
+    elseif line:match("^#@do%-not%-package@") then
+        packaged = false
+    elseif line:match("^#@end%-do%-not%-package@") then
+        packaged = true
     elseif not line:match("^%s*#") and line:match("%S") then
-        TOC.files[#TOC.files + 1] = (line:gsub("\\", "/"))
+        local path = (line:gsub("\\", "/"))
+        TOC.files[#TOC.files + 1] = path
+        if packaged then TOC.release[#TOC.release + 1] = path end
     end
 end
+assert(packaged, "a #@do-not-package@ block without its end")
 H.TOC = TOC
 
 -- Compiled once per path, then loaded from bytecode: every login loads every file, and
@@ -759,7 +769,9 @@ local function SpeciesName(sid) return H.SPECIES[sid] or ("Species " .. tostring
 --   rank (guild rank index: 0 guild master, 1 officer, default 3 member),
 --   oldTemplates (the client lacks the modern frame templates),
 --   fixture (function(ns, c): change the addon's data after its files load, before ADDON_LOADED,
---   at every login; see Client:Fixture)
+--   at every login; see Client:Fixture),
+--   release (true: a packaged release: the TOC without its #@do-not-package@ blocks, so no Dev/
+--   files, and a release's version, so ns.DEV is false)
 function World:AddClient(name, opts)
     opts = opts or {}
     assert(not self.byName[name], "duplicate client " .. name)
@@ -768,7 +780,8 @@ function World:AddClient(name, opts)
         world = self, name = name, first = first, surname = surname,
         wireName = opts.realm and (name .. "-" .. opts.realm) or name,
         guild = opts.guild == nil and self.guildName or (opts.guild or nil),
-        version = opts.version or TOC.meta.Version, protocol = opts.protocol or TOC.meta["X-Protocol"],
+        version = opts.version or (opts.release and "9.9.9") or TOC.meta.Version, release = opts.release,
+        protocol = opts.protocol or TOC.meta["X-Protocol"],
         trial = opts.trial, addons = opts.addons or {}, saved = {}, online = false,
         pets = {}, errors = {}, printed = {},
         state = { stand = 0, auras = {}, instance = "none" },
@@ -859,7 +872,7 @@ function Client:Login()
         __newindex = function(t, k, v) c.newGlobals[k] = true; rawset(t, k, v) end,
     })
     self.env, self.ns = env, {}
-    for _, path in ipairs(TOC.files) do Load(env, path, ADDON, self.ns) end
+    for _, path in ipairs(self.release and TOC.release or TOC.files) do Load(env, path, ADDON, self.ns) end
     -- The bond epoch (no bond is older than the addon) as in the real world:
     -- before any test data. The test clock starts in September 2026.
     self.ns.Config.BOND_EPOCH = self.world.epoch or (1790000000 - 1000 * 86400)

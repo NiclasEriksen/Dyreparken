@@ -1,4 +1,4 @@
--- The research probes (Achievements/Kills.lua): honorable kills, logged
+-- The research probes (Dev/Kills.lua): honorable kills, logged
 -- while the debug log is on; /dp probe kills and life.
 return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match

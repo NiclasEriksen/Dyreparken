@@ -91,7 +91,8 @@ and refuses the push if it fails.
   Co-Authored-By lines left out; the Claude credit is one line at the top), skipping subjects that start with
   `Tests:`, `Tidy-up:`, `Notes:`, `Docs:` or `Developer probe`. So write subjects for players, and start developer-only
   ones with one of those words. `.pkgmeta` has `manual-changelog: CHANGELOG.md`.
-- `.pkgmeta` lists the dev files left out of the zip: tools, docs, CLAUDE.md, README.md, .claude, .luarc.json, .github.
+- `.pkgmeta` lists the dev files left out of the zip: tools, docs, CLAUDE.md, README.md, .claude, .luarc.json, .github,
+  .githooks, Dev (whose TOC lines sit in a `#@do-not-package@` block).
 - Any wire format change bumps `X-Protocol`. Any saved data change adds a migration (see Working rules).
 
 ## Layout
@@ -124,16 +125,7 @@ Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, S
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp; Norwegian
-                   only). Only in a git checkout (ns.DEV): probe [more|tabs|kills|life|world|card|bg|decor|frames|level|
-                   celebrate|anim|ach|pos|lift|moves|gains|api] and debug; a release never logs (Debug:Init turns a saved log off)
-Core/ApiProbe.lua  /dp probe api [section|clear]: what the client really has (globals, C_* namespaces, Enum, events,
-                   widget types and their methods/handlers, templates, global strings, getters' values, the card's
-                   actor, the calendar, a pet model's animations and lengths), read-only, in DyreparkenDebugDB.api; by name only:
-                   holidays (the calendar a year ahead), lengths (every species' moves, DyreparkenDebugDB.animLengths)
-                   and feats (Feats' spell and quest ids as the client has them, Forever's copies among your completed
-                   quests, talent/spec getters; then logs the candidate talent, spec and trainer events this session);
-                   transport (zone, map and world changes, casts and a sample every 5 s, this session: zeppelins and boats);
-                   combat (auto-attack, auto shot, casts, UNIT_COMBAT on you and your target, swing speeds, this session)
+                   only); ns.Commands.Add for Dev/Commands.lua. A release never logs (Debug:Init turns a saved log off)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git; a new companion:
                    tools/companions/add.py, see "Adding a companion" in tools/companions/README.md): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
@@ -159,8 +151,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour; the
-                   card's tier colors: Tier, Bright), SceneGallery (/dp probe bg and decor: thumbnails of every
-                   background that exists; pick one per family, saved in DyreparkenDB.scenePicks), BondTrack (the bond on the card: a medallion with the level, a track of seven stars,
+                   card's tier colors: Tier, Bright), BondTrack (the bond on the card: a medallion with the level, a track of seven stars,
                    a tinted bar with a spark; a celebration once per new level of your own pet, char.bondSeen), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
                    Playdate (in a group with a guildmate whose pet is out: both pets play, once a day each;
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
@@ -178,7 +169,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    give the pet that's out 25 points once per character, by the spell taught (SPELLS_CHANGED) or the
                    quest's id; what was had at the first look isn't new; a trainer visit, a dual-spec switch, a talent
                    reset and the tenth levels are eggs only; read its header), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card; wishes in a row, char.wishes, with achievements at 7 and 30 in a row and 100 in all), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
-                   cheer, a jump with you (every pet: canJump), playing dead the day of the three-deaths egg; which animation per species: Data/PetMoves.lua; and the /dp probe anim research probe), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
+                   cheer, a jump with you (every pet: canJump), playing dead the day of the three-deaths egg; which animation per species: Data/PetMoves.lua), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
                    congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Story (a pet's story: a local
                    timeline of its life in the guild, g.story, found by comparing the registry with what it last saw,
                    plus your moments with it; a book button on the card opens a panel right of the window, newest first), Cuddle (a click on the pet:
@@ -192,8 +183,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    from 5); gallery picks show on the card only while a gallery is open, so write them into the code; animation
                    groups only, timelines in steps (never Alpha delays inside a step), one playing group per region
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
-                   come home instead), stopped when hidden. Also
-                   the art probe /dp probe decor; DecorCandidates.lua is GENERATED from the retail atlas list, dev only),
+                   come home instead), stopped when hidden),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon, a click opens its card on the Pets page (also pets you don't own);
                    loads after Achievements/Page.lua so its tab comes second),
                    PetFrame (the pet that's out on screen, optional and off by default: its own ModelScene with the card's view
@@ -211,8 +201,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    guild announcements)
 Achievements/      Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
-                   /dp ach share; guild ones synced with the registry, ACH), Kills (research probes: honorable kills while debug
-                   is on; /dp probe kills, life and world: companions' nameplates), Page (the achievements SidePage;
+                   /dp ach share; guild ones synced with the registry, ACH), Page (the achievements SidePage;
                    Del per shareable one).
                    Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first). Planned next: bond, temperament and the activity engine,
@@ -225,6 +214,29 @@ Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble,
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
+Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a git checkout uses. Listed in the TOC
+                   between #@do-not-package@ and #@end-do-not-package@ (the packager strips the block; .pkgmeta
+                   leaves Dev/ out), after every module, so each file can extend the one it probes. Shipped code never
+                   calls into Dev/: a dev tool changes the card through an override hook a release leaves nil
+                   (Moves.override, Decor.override, Scenes.override, BondTrack.override). The tests load it all; a
+                   client made with { release = true } loads the release's files only (spec/48_release.lua).
+                   Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
+                   lift|moves|gains|api] and /dp debug, only when ns.DEV); PetsProbe (/dp probe, more, ach);
+                   MovesProbe (/dp probe anim and pos, the editors' Moves.override); DecorProbe (/dp probe decor,
+                   frames, level: Decor.show/preview, Decor.override, BondTrack.override); ScenesProbe (/dp probe bg);
+                   BondTrackProbe (celebrate, gains); JournalProbe (card, tabs); SceneGallery (the galleries of bg,
+                   decor and frames: thumbnails of every candidate that exists; picks in DyreparkenDB.scenePicks,
+                   decorPicks); LiftEditor and MovesEditor (/dp probe lift, moves: picks in DyreparkenDB.liftPicks,
+                   movePicks, to write into Data/PetMoves.lua); DecorCandidates (GENERATED from the retail atlas
+                   list); Kills (research probes: honorable kills while debug is on; /dp probe kills, life and
+                   world: companions' nameplates); ApiProbe (/dp probe api [section|clear]: what the client really has (globals, C_* namespaces, Enum, events,
+                   widget types and their methods/handlers, templates, global strings, getters' values, the card's
+                   actor, the calendar, a pet model's animations and lengths), read-only, in DyreparkenDebugDB.api; by name only:
+                   holidays (the calendar a year ahead), lengths (every species' moves, DyreparkenDebugDB.animLengths)
+                   and feats (Feats' spell and quest ids as the client has them, Forever's copies among your completed
+                   quests, talent/spec getters; then logs the candidate talent, spec and trainer events this session);
+                   transport (zone, map and world changes, casts and a sample every 5 s, this session: zeppelins and boats);
+                   combat (auto-attack, auto shot, casts, UNIT_COMBAT on you and your target, swing speeds, this session))
 Main.lua           bootstrap: runs the start-up phases (loaded, login, settled, hello). Each module declares its own
                    start at the end of its file, ns.Start(phase, fn) (Core/Init.lua); within a phase, TOC order
 tools/check.sh     all offline checks (see Verify)

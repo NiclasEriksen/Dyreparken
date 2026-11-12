@@ -1,7 +1,7 @@
 local _, ns = ...
 
 -- GENERATED from the retail atlas list (Ketho/BlizzardInterfaceResources, AtlasInfo.lua, 2026-11-08) by
--- name, for /dp probe decor (Decor.lua): candidates per slot, best guesses first. Development only:
+-- name, for /dp probe decor (Dev/DecorProbe.lua): candidates per slot, best guesses first. Development only:
 -- drop this file once the decoration picks are final.
 ns.DecorCandidates = {
     corner = {

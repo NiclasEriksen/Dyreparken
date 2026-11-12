@@ -1,4 +1,4 @@
--- /dp probe api (Core/ApiProbe.lua): what the client has, read-only, saved in
+-- /dp probe api (Dev/ApiProbe.lua): what the client has, read-only, saved in
 -- DyreparkenDebugDB.api. Here against the stub client: every section runs
 -- without an error, and what it finds is in the saved table.
 return function(test, H)
