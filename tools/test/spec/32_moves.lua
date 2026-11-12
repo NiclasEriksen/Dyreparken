@@ -976,4 +976,158 @@ return function(test, H)
         eq(ola.ns.Moves:For(PANDA, "canJump"), nil, "the card uses the pick while open")
         E:Close()
     end)
+
+    ------------------------------------------------------------------------------
+    -- The planner (Moves.Plan): what a pet would do, read without playing it. A plan as text: each
+    -- step "id/seconds@pose", ! played as picked (keep), * a moment that counts once it plays (on);
+    -- then "=mode" (the stage's mode after it) and "wake" (awake now).
+    ------------------------------------------------------------------------------
+    local function Show(plan)
+        if not plan then return "nil" end
+        local parts = {}
+        for _, s in ipairs(plan) do
+            parts[#parts + 1] = tostring(s[1]) .. (s[2] and ("/%g"):format(s[2]) or "") .. (s[3] and ("@%g"):format(s[3]) or "")
+                .. (s.keep and "!" or "") .. (s.on and "*" or "")
+        end
+        return table.concat(parts, " ") .. (plan.mode and (" =" .. plan.mode) or "") .. (plan.wake and " wake" or "")
+    end
+    -- Setup's panda with lengths of its own (not the file's), and the planner.
+    local function Planner(hour)
+        local w, ola = Setup(hour)
+        ola.ns.AnimLengths[5159] = { [96] = 1, [98] = 1.1, [101] = 1.3, [756] = 1.5, [754] = 1.25, [1] = 1.5 }
+        return w, ola, ola.ns.Moves.Plan
+    end
+    local STANDING = { mode = "stand", playing = 0, last = true }
+
+    test("planner: the pose a pet takes on its own, and the steps into it", function()
+        local w, ola, P = Planner(14)
+        eq(P.Rest(PANDA), "stand", "by day")
+        eq(Show(P.Hold(PANDA, "stand")), "0")
+        eq(Show(P.Hold(PANDA, "sit")), "0/6 96/1 97", "stands a while, sits down for as long as that lasts, sits")
+        eq(Show(P.Hold(PANDA, "sleep")), "0/0.6 6/1.2 6@1.2", "stands while its model loads, lies down, paused there")
+        eq(Show(P.Hold(PANDA, "dead")), "0/0.6 1/4@1.45* 0", "plays dead, still just before its fall ends; counted as it plays")
+        ola.ns.PetMoves.species[5159].sitDown = false
+        eq(Show(P.Hold(PANDA, "sit")), "0/6 97", "no sit-down of its own: straight to sitting")
+        -- A sleep loop of its own: asleep at once, but a pet just put on the stage stands while its
+        -- model loads, then lies down (unless its loop is its lie-down).
+        ola.ns.PetMoves.species[5159] = { sleepHold = 100 }
+        eq(Show(P.Hold(PANDA, "sleep")), "100")
+        eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 6/1.2 100")
+        ola.ns.PetMoves.species[5159] = { sleep = 100, sleepHold = 100 }
+        eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 100")
+        ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
+        -- Its pose: a Latsabb sits; the day of three deaths it plays dead (not on a stage without
+        -- moments: the pet frame).
+        ola:Traits{ "latsabb" }
+        eq(P.Rest(PANDA), "sit")
+        eq(P.Rest(PANDA, nil, nil, true), "stand", "woken, it doesn't sit again")
+        ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }
+        eq(P.Rest(PANDA), "dead")
+        eq(P.Rest(PANDA, nil, true), "sit")
+        -- At night it sleeps; woken, or a night owl, it doesn't.
+        local _, night, P2 = Planner(23)
+        eq(P2.Rest(PANDA), "sleep")
+        eq(P2.Rest(PANDA, nil, nil, true), "stand")
+        night:Traits{ "nattugle" }
+        eq(P2.Rest(PANDA), "stand")
+        -- A plan changes nothing: no timer, nobody woken.
+        local timers = #w.timers
+        P.Cuddle(PANDA, STANDING); P.Pose(PANDA, { cheer = true }); P.Cheer(PANDA)
+        eq(#w.timers, timers); eq(ola.ns.Moves.awake[PANDA], nil)
+    end)
+
+    test("planner: a pet put on a stage: its pose, after a level-up's cheer or a wish's hop", function()
+        local _, ola, P = Planner(14)
+        eq(Show(P.Pose(PANDA, { fresh = true })), "0 =stand")
+        eq(Show(P.Pose(PANDA, { cheer = true })), "0/0.6 754/1.25 0 =stand wake", "the cheer once the model has loaded")
+        ola.ns.DB.char.wish = { done = true, pet = PANDA, day = ola.ns.Today() }
+        eq(Show(P.Pose(PANDA, {})), "0/0.6 756/1.5* 0 =stand", "its wish came true: a hop, counted once it plays")
+        eq(Show(P.Pose(PANDA, { noMoments = true })), "0 =stand", "the pet frame leaves it to the card")
+        eq(Show(P.Pose(PANDA, { cheer = true })), "0/0.6 754/1.25 0 =stand wake", "the cheer wins")
+        -- At night: the cheer wakes it; asleep, no hop.
+        local _, night, P2 = Planner(23)
+        night.ns.DB.char.wish = { done = true, pet = PANDA, day = night.ns.Today() }
+        eq(Show(P2.Pose(PANDA, { fresh = true })), "0/0.6 6/1.2 6@1.2 =sleep")
+        eq(Show(P2.Pose(PANDA, { fresh = true, cheer = true })), "0/0.6 754/1.25 0 =stand wake")
+        eq(Show(P2.Pose(PANDA, { mode = "stand" })), "0/0.6 756/1.5* 0 =stand", "the mode given")
+        -- Playing dead: no cheer over it.
+        night.ns.DB.char.eggs.dodsfall = { n = 1, day = night.ns.Today(), key = PANDA }
+        eq(Show(P2.Pose(PANDA, { cheer = true })), "0/0.6 1/4@1.45* 0 =dead")
+    end)
+
+    test("planner: a click, a cheer, a fight's move: the move, then its pose, awake", function()
+        local _, ola, P = Planner(14)
+        eq(Show(P.Cuddle(PANDA, STANDING)), "756/1.5 0 =stand wake")
+        eq(Show(P.Cuddle(PANDA, { mode = "sit", playing = 97 })), "98/1.1 756/1.5 0 =stand wake", "sitting: up first")
+        eq(Show(P.Cuddle(PANDA, { mode = "sit", playing = 0 })), "756/1.5 0 =stand wake", "about to sit: the hop at once")
+        ola:Dice(0)
+        eq(Show(P.Cuddle(PANDA, STANDING)), "748/2 0 =stand wake", "now and then its other happy move (unmeasured: T.happy)")
+        ola.ns.PetMoves.species[5159].happy = false
+        eq(Show(P.Cuddle(PANDA, STANDING)), "0 =stand wake", "no happy move: none at all")
+        eq(Show(P.Cheer(PANDA)), "754/1.25 0 =stand wake")
+        eq(Show(P.Act(PANDA, "attack")), "750/1.5 0 =stand wake")
+        ola.ns.PetMoves.species[5159].cheer, ola.ns.PetMoves.species[5159].attack = false, false
+        eq(Show(P.Cheer(PANDA)), "nil"); eq(Show(P.Act(PANDA, "attack")), "nil")
+        -- Asleep: woken by a click, its get-up first if it has one.
+        local _, night, P2 = Planner(23)
+        local asleep = { mode = "sleep", playing = 6, last = true }
+        eq(Show(P2.Cuddle(PANDA, asleep)), "756/1.5 0 =stand wake")
+        night.ns.PetMoves.species[5159].sleepUp = 101
+        eq(Show(P2.Cuddle(PANDA, asleep)), "101/1.3 756/1.5 0 =stand wake")
+    end)
+
+    test("planner: with you, it jumps when you do, gets up to go with you, walks; sits again when you stop", function()
+        local w, ola, P = Planner(14)
+        ola:Slash("adopter panda"); w:Run(5)
+        ola:SelectPet(5159)
+        eq(Show(P.Jump(PANDA, STANDING)), "37/0.3 38/0.4 39/0.4 0", "take off, in the air, land, then as before")
+        eq(Show(P.Jump(PANDA, { mode = "stand", playing = 38, last = false })), "nil", "in the air: it lands first")
+        eq(Show(P.Jump(PANDA, { mode = "sit", playing = 97, last = true })), "nil")
+        eq(Show(P.Jump("s:46", STANDING)), "nil", "not the pet with you")
+        ola:Set("swimming", true)
+        eq(Show(P.Jump(PANDA, STANDING)), "nil", "swimming up")
+        ola:Set("swimming", false)
+        ola.ns.PetMoves.species[5159].jumpStart = false
+        eq(Show(P.Jump(PANDA, STANDING)), "38/0.7 39/0.4 0", "no take-off: in the air the whole time")
+        -- Moving: up and away, or the walk at once.
+        ola:Move()
+        eq(Show(P.Repose(PANDA, { mode = "sit", playing = 97, last = true })), "98/1.1 0 =stand", "up first")
+        eq(Show(P.Repose(PANDA, { mode = "sit", playing = 0 })), "0 =stand", "not down yet: off at once")
+        local plan, id = P.Repose(PANDA, STANDING)
+        eq(plan, nil); eq(id, 4, "standing: the walk, in place of what plays")
+        eq(select(2, P.Repose(PANDA, { mode = "stand", playing = 4, last = true })), nil, "walking already")
+        eq(select(2, P.Repose(PANDA, { mode = "stand", playing = 756, last = false })), nil, "a hop plays on")
+        eq(select(2, P.Settle(PANDA, "stand", 0)), 4, "a hop ends walking")
+        eq(select(2, P.Settle(PANDA, "sleep", 6)), 6, "a pose stays as it is")
+        -- Stopped: standing; a Latsabb sits again; playing dead ends standing, once it's over.
+        ola:Halt(); w:Run(ola.ns.Moves.STOP_AFTER + 0.01)
+        eq(select(2, P.Settle(PANDA, "stand", 4)), 0)
+        eq(P.Settle(PANDA, "dead", 0), "stand")
+        ola:Traits{ "latsabb" }
+        eq(Show(P.Repose(PANDA, STANDING)), "0/6 96/1 97 =sit")
+        local mode, _, again = P.Settle(PANDA, "stand", 0)
+        eq(mode, "sit"); eq(Show(again), "0/6 96/1 97 =sit")
+    end)
+
+    test("planner: the moves editor's tries, a part or the whole reaction, and the sulk", function()
+        local _, ola, P = Planner(14)
+        eq(Show(P.Try(PANDA, "stand")), "0! =stand")
+        eq(Show(P.Try(PANDA, "sleep")), "6/1.2 6@1.2 =stand", "lies down and is paused there")
+        eq(Show(P.Try(PANDA, "sleep", true)), "6/1.2 6/3@1.2 0! =stand", "then holds a while (no get-up of its own)")
+        eq(Show(P.Try(PANDA, "sitDown", true)), "96/1 97/3 98/1.1 0! =stand")
+        eq(Show(P.Try(PANDA, "jump", true)), "37/0.3 38/0.4 39/0.4 0! =stand")
+        eq(Show(P.Try(PANDA, "cheer", true)), "754/1.25 0! =stand")
+        eq(Show(P.Try(PANDA, "dead", true)), "1/4 0! =stand", "playing dead: its fixed time")
+        eq(Show(P.Try(PANDA, "happy")), "756! =stand", "a one-off left on its last frame")
+        eq(Show(P.Try(PANDA, "sleepUp")), "nil", "a part it doesn't have")
+        ola.ns.PetMoves.species[5159] = { sleepHold = 100, sleepUp = 101 }
+        eq(Show(P.Try(PANDA, "sleep")), "6/1.2 100! =stand")
+        eq(Show(P.Try(PANDA, "sleepHold", true)), "6/1.2 100/3 101/1.3 0! =stand")
+        -- The sulk: a dislike today, once.
+        eq(P.Sulk(PANDA), false)
+        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ok(P.Sulk(PANDA)); eq(P.Sulk("s:46"), false)
+        ola.ns.DB.char.sulk.shown = true
+        eq(P.Sulk(PANDA), false)
+    end)
 end
