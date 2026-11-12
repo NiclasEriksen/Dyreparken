@@ -280,12 +280,13 @@ function Track:Update(card, key, color)
     end
     -- The medallion: the ring greyed and tinted below gold, its disc dark in the tier.
     local m = b.medal
-    m.ring:SetDesaturated(level < 5)
-    if level >= 5 then m.ring:SetVertexColor(1, 1, 1, 1) else m.ring:SetVertexColor(tier[1], tier[2], tier[3], 1) end
+    local gold = ns.Scenes.Gold(level)
+    m.ring:SetDesaturated(not gold)
+    if gold then m.ring:SetVertexColor(1, 1, 1, 1) else m.ring:SetVertexColor(tier[1], tier[2], tier[3], 1) end
     m.disc:SetVertexColor(tier[1] * 0.25, tier[2] * 0.25, tier[3] * 0.25, 0.95)
     m.num:SetTextColor(math.min(1, tier[1] * 1.2), math.min(1, tier[2] * 1.2), math.min(1, tier[3] * 1.2))
-    m.glow:SetShown(level >= 5)
-    if level >= 5 then m.glow.pulse:Play() else m.glow.pulse:Stop() end
+    m.glow:SetShown(gold)
+    if gold then m.glow.pulse:Play() else m.glow.pulse:Stop() end
     -- The track.
     for i, p in ipairs(b.pips) do
         if i < level then
@@ -436,6 +437,6 @@ end
 ns.Card.Register{ id = "bond",
     build = function(card, c) Track:Build(card, c, card.panel) end,
     -- (the family's tint, brightened)
-    update = function(card, key, ctx) Track:Update(card, key, ns.Scenes.Bright(ctx.tint, 1.7)) end,
+    update = function(card, key, ctx) Track:Update(card, key, ns.Scenes.Bright(ctx.tint)) end,
     stop = function(card) Track:Stop(card) end,
 }

@@ -145,17 +145,50 @@ function Scenes:Sky(h)
     return sky
 end
 
--- The card's colors by bond level, shared by the border (Decor) and the
--- bond track: the family's own up to 2, silver at 3-4, gold from 5.
-Scenes.GOLD, Scenes.SILVER = { 1, 0.8, 0.25 }, { 0.82, 0.88, 1 }
-function Scenes.Tier(level, family)
-    if level >= 5 then return Scenes.GOLD end
-    if level >= 3 then return Scenes.SILVER end
-    return family or Scenes.GOLD
+-- What a bond level brings to the card, and its palette, in one place (docs/REFACTOR.md, Phase 4):
+-- each level's row holds what it adds or changes; a level has everything of the rows up to it
+-- (Scenes.Reward). Decor draws them, the bond's tooltips and stars name them (Locale
+-- decor.level.N, a line per row), the bond track and the hearts over companions take the tier.
+--   border   2: a border and a wash of the family's color   tier   3: silver, 5: gold
+--   corners  3: corners (wood; gilded filigree with gold)    glow   4: a glow under the pet
+--   sparks   5: sparks flying (n)                            ribbon 6: the level's name on a ribbon
+--   rays     6: light rays (alpha, one turn's seconds)       hearts 7: hearts (n)
+--   shimmer  7: the gold border shimmers
+Scenes.LEVELS = {
+    [2] = { border = true },
+    [3] = { corners = true, tier = "silver" },
+    [4] = { glow = true },
+    [5] = { tier = "gold", sparks = 6 },
+    [6] = { ribbon = true, rays = { 0.8, 70 } },
+    [7] = { hearts = 4, rays = { 1, 40 }, shimmer = true },
+}
+
+-- What level has of a reward: the value of the highest row up to it that names it (nil: none yet).
+function Scenes.Reward(level, what)
+    for n = level or 0, 1, -1 do
+        local row = Scenes.LEVELS[n]
+        if row and row[what] ~= nil then return row[what] end
+    end
+    return nil
 end
 
--- A color made brighter by f (capped at 1), as a new table.
+-- The card's colors by bond level, shared by the border (Decor) and the
+-- bond track: the family's own (brightened by BRIGHT) up to 2, silver at 3-4, gold from 5.
+Scenes.GOLD, Scenes.SILVER = { 1, 0.8, 0.25 }, { 0.82, 0.88, 1 }
+Scenes.GILDED = { 1, 0.85, 0.45 } -- the corners' stone, gilded
+Scenes.BRIGHT = 1.7      -- the family's tint on the border, the wash and the bond track
+Scenes.GLOW_BRIGHT = 2.2 -- and under the pet (the glow, before gold)
+function Scenes.Tier(level, family)
+    local tier = Scenes.Reward(level, "tier")
+    if tier == "gold" then return Scenes.GOLD end
+    if tier == "silver" then return Scenes.SILVER end
+    return family or Scenes.GOLD
+end
+function Scenes.Gold(level) return Scenes.Reward(level, "tier") == "gold" end
+
+-- A color made brighter by f (capped at 1; nil: BRIGHT), as a new table.
 function Scenes.Bright(c, f)
+    f = f or Scenes.BRIGHT
     return { math.min(1, c[1] * f), math.min(1, c[2] * f), math.min(1, c[3] * f) }
 end
 

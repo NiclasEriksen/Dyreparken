@@ -170,19 +170,19 @@ end
 local last = {} -- species .. owner -> when it last burst (GetTime)
 
 -- How loved it is, without a word (2026-11-10): the hearts in its holder's
--- bond tier, pink, a deeper rose from Venn (3), warm gold from 5. Their own
--- colors (2026-11-12, the user: the card's silver made them almost white):
--- edit these to change the hearts alone; the card's tiers are Scenes.SILVER/GOLD.
-Fx.PINK = { 1, 0.45, 0.6 }   -- anyone's companion, or its holder's bond under 3
-Fx.ROSE = { 0.95, 0.2, 0.4 } -- its holder's bond at Venn (3) or 4
-Fx.GOLD = { 1, 0.72, 0.15 }  -- at 5 and up
+-- bond tier (Scenes.LEVELS), pink, a deeper rose at silver (Venn, 3), warm gold
+-- at gold (5). Their own colors (2026-11-12, the user: the card's silver made
+-- them almost white): edit these to change the hearts alone; the card's tiers
+-- are Scenes.SILVER/GOLD.
+Fx.PINK = { 1, 0.45, 0.6 }   -- anyone's companion, or its holder's bond under silver
+Fx.ROSE = { 0.95, 0.2, 0.4 } -- its holder's bond at silver
+Fx.GOLD = { 1, 0.72, 0.15 }  -- at gold
 function Fx:HeartColor(species, owner)
     local key = type(species) == "number" and ns.Pets:KeyOfSpecies(species)
     if not (key and owner and ns.Registry:Holder(key) == owner) then return self.PINK end
     local _, level = ns.Bond:Of(key)
-    if (level or 0) >= 5 then return self.GOLD end
-    if (level or 0) >= 3 then return self.ROSE end
-    return self.PINK
+    local tier = ns.Scenes.Reward(level or 0, "tier")
+    return tier == "gold" and self.GOLD or tier == "silver" and self.ROSE or self.PINK
 end
 
 function Fx:Hovered(species, owner)

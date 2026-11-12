@@ -102,6 +102,25 @@ return function(test, H)
         eq(#Parts(d), 0); eq(Playing(d), 0)
     end)
 
+    test("one table says what each level brings: the card, its words, the bond's medallion and the hearts follow it", function()
+        local w, ola, card, d = Setup()
+        At(w, ola, 9, 21, 12)
+        local S, D, Fx = ola.ns.Scenes, ola.ns.Decor, ola.ns.Fx
+        for n in pairs(S.LEVELS) do eq(D.LEVELS[n], ola.ns.L["decor.level." .. n], "level " .. n .. " has its words") end
+        eq(S.Reward(4, "tier"), "silver"); eq(S.Reward(6, "rays")[2], 70); eq(S.Reward(7, "rays")[2], 40)
+        no(S.Reward(1, "border")); no(S.Reward(nil, "tier"))
+        -- Gold a level early (the table only): the card, the stars' words and the hearts go with it.
+        S.LEVELS[4].tier = "gold"
+        D:Apply(card, PANDA, 4, S.TINT.cat)
+        eq(d.corners.TOPLEFT.vertexColor[1], S.GILDED[1], "gilded corners at 4")
+        no(d.border.desaturated, "the gold border at 4")
+        eq(S.Tier(4), S.GOLD)
+        ola.ns.Pets.KeyOfSpecies = function() return PANDA end
+        ola.ns.Bond.Of = function() return 300, 4 end
+        ola.ns.Registry.Holder = function() return "Kari Berg" end
+        eq(Fx:HeartColor(5159, "Kari Berg"), Fx.GOLD, "the hearts gold at 4 too")
+    end)
+
     test("each kind of particle moves its own way, on a timeline that never shows it standing still", function()
         local w, ola, card, d = Setup("dykker", "nattugle")
         local D = ola.ns.Decor

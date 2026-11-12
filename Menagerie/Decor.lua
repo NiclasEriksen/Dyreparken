@@ -54,7 +54,7 @@ Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
 
 -- What each level adds, for the bond's tooltip ("på level 3: ...").
 Decor.LEVELS = {}
-for n = 2, 7 do Decor.LEVELS[n] = ns.L["decor.level." .. n] end
+for n in pairs(ns.Scenes.LEVELS) do Decor.LEVELS[n] = ns.L["decor.level." .. n] end
 
 
 -- Kinds of particles: the texture, the path, the extra motions, and sizes.
@@ -529,8 +529,9 @@ function Decor:Specs(key, level, t)
     for _, d in ipairs(self.DATES) do
         if not d.season and d.when(t) then list[#list + 1] = Thinned(d.spec, f) end
     end
-    if level >= 5 then list[#list + 1] = { kind = "spark", n = 6, color = GOLD } end
-    if level >= 7 then list[#list + 1] = { kind = "heart", n = 4, color = { 1, 0.4, 0.5 } } end
+    local Reward = ns.Scenes.Reward
+    if Reward(level, "sparks") then list[#list + 1] = { kind = "spark", n = Reward(level, "sparks"), color = GOLD } end
+    if Reward(level, "hearts") then list[#list + 1] = { kind = "heart", n = Reward(level, "hearts"), color = { 1, 0.4, 0.5 } } end
     -- Last: the pool may run out, and the ambience is what can go.
     local family = ns.Scenes:Families(key)[1]
     list[#list + 1] = Thinned(self.FAMILY[family] or self.FAMILY.default, f)
@@ -540,7 +541,7 @@ function Decor:Specs(key, level, t)
     return list
 end
 
-local Bright = ns.Scenes.Bright
+local Bright, Reward, Gold = ns.Scenes.Bright, ns.Scenes.Reward, ns.Scenes.Gold
 
 -- Show the decorations for a pet (nil: none). level: its holder's bond
 -- level (nil when nobody holds it); color: the family's tint.
@@ -556,7 +557,7 @@ function Decor:Apply(card, key, level, color)
     local sig, art, specs
     if key then
         local family = o and o.Family() or ns.Scenes:Families(key)[1] or "default"
-        art = { self:Art("border", family), self:Art(level >= 5 and "cornerGold" or "corner", family), self:Art("glow"), self:Art("ribbon") }
+        art = { self:Art("border", family), self:Art(ns.Scenes.Gold(level) and "cornerGold" or "corner", family), self:Art("glow"), self:Art("ribbon") }
         local parts = { key, level, color and table.concat(color, ",") or "", table.concat(art, ";"),
             tostring(ns.Settings:Get("cardParticles")) }
         -- Once per Apply: the signature and the particles launched must agree (two
@@ -589,13 +590,14 @@ function Decor:Apply(card, key, level, color)
         SetArt(d.ribbon, art[4])
     end
     color = color or GOLD
-    if level >= 2 then
-        local e = ns.Scenes.Tier(level, Bright(color, 1.7)) -- (the border: 2 has the family's own)
-        local wash = level >= 5 and GOLD or Bright(color, 1.7)
+    local gold = Gold(level)
+    if Reward(level, "border") then
+        local e = ns.Scenes.Tier(level, Bright(color)) -- (the border: 2 has the family's own)
+        local wash = gold and GOLD or Bright(color)
         if d.sliced then
             -- The frame is gold: grey it for the family color and silver.
-            d.border:SetDesaturated(level < 5)
-            local tint = level >= 5 and { 1, 1, 1 } or e
+            d.border:SetDesaturated(not gold)
+            local tint = gold and { 1, 1, 1 } or e
             d.border:SetVertexColor(tint[1], tint[2], tint[3], 1)
             d.border:Show()
         end
@@ -603,7 +605,7 @@ function Decor:Apply(card, key, level, color)
             d.edges[i]:SetVertexColor(e[1], e[2], e[3], 0.9)
             d.edges[i]:SetShown(not d.sliced)
             local w = d.wash[i]
-            local strong, clear = { wash[1], wash[2], wash[3], level >= 5 and 0.12 or 0.16 }, { wash[1], wash[2], wash[3], 0 } -- the art shows through
+            local strong, clear = { wash[1], wash[2], wash[3], gold and 0.12 or 0.16 }, { wash[1], wash[2], wash[3], 0 } -- the art shows through
             local function G(o, a, b) ns.Gradient(w, o, a, b, false) end
             if w.side == "TOP" then G("VERTICAL", clear, strong)
             elseif w.side == "BOTTOM" then G("VERTICAL", strong, clear)
@@ -612,32 +614,35 @@ function Decor:Apply(card, key, level, color)
             w:Show()
         end
     end
-    if level >= 3 then
-        local tint = level >= 5 and { 1, 0.85, 0.45 } or SILVER -- stone: gilded from 5
+    if Reward(level, "corners") then
+        local tint = gold and ns.Scenes.GILDED or SILVER -- stone: gilded with gold
         for _, t in pairs(d.corners) do
-            t:SetDesaturated(level < 5)
+            t:SetDesaturated(not gold)
             t:SetVertexColor(tint[1], tint[2], tint[3], 1)
             t:Show()
         end
     end
-    if level >= 4 then
-        local g = level >= 5 and GOLD or Bright(color, 2.2)
+    if Reward(level, "glow") then
+        local g = gold and GOLD or Bright(color, ns.Scenes.GLOW_BRIGHT)
         for _, t in ipairs(d.glows) do
             t:SetVertexColor(g[1], g[2], g[3], 1)
             t:Show()
             t.breathe:Play()
         end
     end
-    if level >= 6 then
+    if Reward(level, "ribbon") then
         d.ribbonText:SetText(ns.Bond.LEVELS[level][2])
         d.ribbon:Show(); d.ribbonText:Show()
+    end
+    local rays = Reward(level, "rays")
+    if rays then
         d.rays:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
-        d.rays:SetAlpha(level >= 7 and 1 or 0.8)
-        d.rays.turn.a:SetDuration(level >= 7 and 40 or 70)
+        d.rays:SetAlpha(rays[1])
+        d.rays.turn.a:SetDuration(rays[2])
         d.rays:Show()
         d.rays.turn:Play()
     end
-    if level >= 7 then d.border.shimmer:Play() end
+    if Reward(level, "shimmer") then d.border.shimmer:Play() end
     -- Particles, up to the pool's size (Settings: all of them, half, or none).
     local amount = ns.Settings:Get("cardParticles")
     if amount == "none" then return end

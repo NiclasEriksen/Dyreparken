@@ -177,7 +177,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;
                    liked activities, and anything done at a trait's moment, give more bond points), Scenes (backgrounds behind the pet on the card, by family, and the light of the hour; the
-                   card's tier colors: Tier, Bright), BondTrack (the bond on the card: a medallion with the level, a track of seven stars,
+                   card's tier colors: Tier, Bright; Scenes.LEVELS: what each bond level brings, read by Decor, the
+                   bond's words and stars, the medallion and Fx's hearts), BondTrack (the bond on the card: a medallion with the level, a track of seven stars,
                    a tinted bar with a spark; a celebration once per new level of your own pet, char.bondSeen), BondBar (the bar the card and the pet frame share:
                    ns.BondBar.New, :Set(points, from, top, tier), :Gains(last, list) grows it and floats the "+N", :Stop), Stats (what you've done with a pet: chips at the top of its card, from the activity counters),
                    Playdate (in a group with a guildmate whose pet is out: both pets play, once a day each;
