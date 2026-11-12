@@ -82,6 +82,9 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 
 ## Missing or renamed APIs
 
+(The test harness's `H.MISSING`, tools/test/harness/base.lua, lists what's missing here and below; 01_core
+checks the stub client lacks it. Add new finds there too.)
+
 - Missing: `GetSpellInfo` (use `C_Spell.GetSpellInfo`, which returns a table), `GetItemInfo` (`C_Item.GetItemInfo`),
   `UnitAura` (`C_UnitAuras`), `GetMerchantItemInfo`, Classic craft/tradeskill APIs, `GetSpecialization`.
 - Registering an unknown event **throws** and aborts the file: `ns.Events:On` pcalls registration.

@@ -457,4 +457,16 @@ return function(test, H)
         no(ola:Visible("Hei på", env.CreateFrame("Frame")), "only under root")
         eq(#ola:Frames(function(x) return x == box end, f), 1)
     end)
+
+    test("the stub client lacks what Forever lacks (H.MISSING, docs/FOREVER_API.md)", function()
+        local w, ola = H.Setup{ settle = "hello" }
+        local env = ola.env
+        for _, k in ipairs(H.MISSING.globals) do eq(rawget(env, k), nil, k) end
+        for _, f in ipairs(H.MISSING.fields) do eq(rawget(env, f[1])[f[2]], nil, f[1] .. "." .. f[2]) end
+        for _, e in ipairs(H.MISSING.events) do
+            no(env.C_EventUtils.IsEventValid(e), e)
+            local ok2 = pcall(env.CreateFrame("Frame").RegisterEvent, env.CreateFrame("Frame"), e)
+            no(ok2, e .. " can't be registered")
+        end
+    end)
 end
