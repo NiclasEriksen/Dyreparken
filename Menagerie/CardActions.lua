@@ -12,6 +12,16 @@ local function Report(_, msg)
     if msg then ns.Print(msg) end
 end
 
+-- The nickname button's tooltip: only while your bond is too young to name it.
+function CardActions.NickLines()
+    local key, r = ns.Registry:MyPet()
+    if not (r and not ns.Registry:CanNickname(r)) then return nil end
+    local lines = { { ns.T("card.nick.locked", { level = ns.Bond.LEVELS[ns.Config.NICKNAME_LEVEL][2],
+        n = ns.Config.NICKNAME_LEVEL }), 1, 1, 1, true } }
+    if ns.Registry:Nickname(key) then lines[2] = { ns.L["card.nick.clearable"], 1, 0.82, 0, true } end
+    return lines
+end
+
 function CardActions:Build(card, c)
     local anchor = PetJournalSummonButton or c
     card.reserve = CreateFrame("Button", nil, PetJournal, "UIPanelButtonTemplate")
@@ -35,17 +45,7 @@ function CardActions:Build(card, c)
     card.nick:SetText(ns.L["card.nick"])
     card.nick:SetMotionScriptsWhileDisabled(true)
     card.nick:SetScript("OnClick", function() CardActions:AskNickname() end)
-    card.nick:SetScript("OnEnter", function(self)
-        local key, r = ns.Registry:MyPet()
-        if r and not ns.Registry:CanNickname(r) then
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:SetText(ns.T("card.nick.locked", { level = ns.Bond.LEVELS[ns.Config.NICKNAME_LEVEL][2],
-                n = ns.Config.NICKNAME_LEVEL }), 1, 1, 1, 1, true)
-            if ns.Registry:Nickname(key) then GameTooltip:AddLine(ns.L["card.nick.clearable"], 1, 0.82, 0, true) end
-            GameTooltip:Show()
-        end
-    end)
-    card.nick:SetScript("OnLeave", ns.HideTip)
+    ns.SetTip(card.nick, "ANCHOR_TOP", function() return CardActions.NickLines() end)
     card.nick:Hide()
 end
 

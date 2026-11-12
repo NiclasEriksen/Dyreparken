@@ -71,22 +71,16 @@ function Stats:RoundToday(key, id)
     return r and r.day == ns.Today() and r.m or nil
 end
 
-local function Tip(self)
-    local card = self.card
-    GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-    local pet = ns.Registry:NameOf(card.key)
-    if self.id == "day" then
-        GameTooltip:SetText(ns.T(self.n == 1 and "stats.days_one" or "stats.days", { n = self.n, pet = pet }), 1, 1, 1)
-    else
-        GameTooltip:SetText(ns.T("stats.tip", { n = self.n, what = ns.Personality.NOUN[self.id], pet = pet }), 1, 1, 1)
-    end
-    local round = Stats:RoundToday(card.key, self.id)
-    if round then GameTooltip:AddLine(ns.T("stats.round", { m = round }), 1, 0.82, 0) end
-    if self.id ~= "day" then
-        local last = self.id == "explore" and ns.DB.char.lastPlace[card.key]
-        if last then GameTooltip:AddLine(ns.T("stats.last_place", { place = last }), 0.8, 0.8, 0.8) end
-    end
-    GameTooltip:Show()
+-- A chip's tooltip: n of activity id with the pet, a round number today, the last place found.
+function Stats.Lines(key, id, n)
+    local pet = ns.Registry:NameOf(key)
+    local lines = { { id == "day" and ns.T(n == 1 and "stats.days_one" or "stats.days", { n = n, pet = pet })
+        or ns.T("stats.tip", { n = n, what = ns.Personality.NOUN[id], pet = pet }), 1, 1, 1 } }
+    local round = Stats:RoundToday(key, id)
+    if round then lines[#lines + 1] = { ns.T("stats.round", { m = round }), 1, 0.82, 0 } end
+    local last = id == "explore" and ns.DB.char.lastPlace[key]
+    if last then lines[#lines + 1] = { ns.T("stats.last_place", { place = last }), 0.8, 0.8, 0.8 } end
+    return lines
 end
 
 function Stats:Build(card, c)
@@ -119,8 +113,7 @@ function Stats:Build(card, c)
         chip.ring:Hide()
         chip.card = card
         chip:EnableMouse(true)
-        chip:SetScript("OnEnter", Tip)
-        chip:SetScript("OnLeave", ns.HideTip)
+        ns.SetTip(chip, "ANCHOR_BOTTOM", function(self) return Stats.Lines(card.key, self.id, self.n) end)
         chip:Hide()
         row.chips[i] = chip
     end

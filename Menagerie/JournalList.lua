@@ -28,27 +28,33 @@ local ownedOf = setmetatable({}, { __mode = "k" })
 
 local Day = ns.Date
 
--- Tooltip lines for a pet key. Used by list buttons and the world tooltip.
-function JournalList:AddTooltipLines(tooltip, key)
+-- A pet's lines in a tooltip, shared by the list's buttons and the park's icons: its home and
+-- bond (or that it needs one: free, the text for that), who named it, its traits by name.
+-- nick: the nickname as a line of its own (the park has it as the title instead).
+function JournalList.PetLines(key, free, nick)
+    local lines = {}
+    local function Add(text, r, g, b) lines[#lines + 1] = { text, r, g, b } end
     local status, owner, r = ns.Registry:Status(key)
-    local nick, namer, namedAt = ns.Registry:Nickname(key)
-    local function Nick()
-        if not nick then return end
-        tooltip:AddLine(ns.T("tip.nick", { nick = nick }), 1, 1, 1)
-        local by = namer == ns.PlayerKey() and ns.L["home.you"] or namer
-        tooltip:AddLine(ns.T("tip.named_by", { who = by, date = Day(namedAt) }), 0.7, 0.7, 0.7)
-    end
-    tooltip:AddLine(" ")
     if status == "free" then
-        tooltip:AddLine(ns.L["tip.free"], 0.5, 0.8, 0.5)
-        Nick()
-        tooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
-        return
+        Add(ns.L[free], 0.5, 0.8, 0.5)
+    else
+        Add(ns.Home(status == "mine" and ns.L["home.you"] or owner, r.at), 1, 0.82, 0)
+        Add(ns.T("tip.bond", { label = ns.Bond:Label(key) }), 1, 1, 1)
     end
-    tooltip:AddLine(ns.Home(status == "mine" and ns.L["home.you"] or owner, r.at), 1, 0.82, 0)
-    tooltip:AddLine(ns.T("tip.bond", { label = ns.Bond:Label(key) }), 1, 1, 1)
-    Nick()
-    tooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
+    local name, namer, namedAt = ns.Registry:Nickname(key)
+    if name then
+        if nick then Add(ns.T("tip.nick", { nick = name }), 1, 1, 1) end
+        Add(ns.T("tip.named_by", { who = namer == ns.PlayerKey() and ns.L["home.you"] or namer, date = Day(namedAt) }),
+            0.7, 0.7, 0.7)
+    end
+    Add(ns.Personality:Line(key), 0.7, 0.7, 0.7)
+    return lines
+end
+
+-- The same under a tooltip someone else started (a list button's, Blizzard's).
+function JournalList:AddTooltipLines(tooltip, key)
+    tooltip:AddLine(" ")
+    ns.AddTipLines(tooltip, self.PetLines(key, "tip.free", true))
 end
 
 local function ButtonSpecies(button, elementData)

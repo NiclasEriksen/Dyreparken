@@ -31,9 +31,7 @@ return function(test, H)
         local card = ola:SelectPet(68)
         eq(card.nickname.text, "Great Horned Owl", "not named: the species, big")
         eq(card.status.plain, "Trenger et hjem")
-        card.nameHit.scripts.OnEnter(card.nameHit)
-        eq(table.concat(ola.env.GameTooltip.lines, " / "), "Great Horned Owl / |cff80cc80Trenger et hjem|r",
-            "no nickname: the species once")
+        eq(ola:TipOf(card.nameHit).text, "Great Horned Owl / |cff80cc80Trenger et hjem|r", "no nickname: the species once")
         no(card.bond:IsShown())
         ola:Slash("adopter panda")
         w:SkipDays(30)
@@ -45,9 +43,7 @@ return function(test, H)
         eq(card.nickname.text, "Pepe")
         eq(card.status.plain, "Panda Cub · Har bodd hos deg i 30 dager")
         -- Hover the name or the home line: everything in full, even if cut short on the card.
-        card.nameHit.scripts.OnEnter(card.nameHit)
-        eq(table.concat(ola.env.GameTooltip.lines, " / "), "Pepe / Panda Cub / |cffffd100Har bodd hos deg i 30 dager|r")
-        card.nameHit.scripts.OnLeave(card.nameHit)
+        eq(ola:TipOf(card.nameHit).text, "Pepe / Panda Cub / |cffffd100Har bodd hos deg i 30 dager|r")
         ok(card.bond:IsShown())
         eq(card.bond.level.text, 3, "the level in the badge")
         eq(card.bond.label.text, "Venn", "the name; the number is on the medallion")
@@ -64,11 +60,8 @@ return function(test, H)
         -- "Dagens dyr": a gold star instead of the label (the name was cut short), the name right after it.
         eq(card.todayBox.label.text, nil); eq(card.today.text, "Pepe")
         match(card.todayBox.icon.tex, "Particles\\star$"); eq(card.today.points[2][2], card.todayBox.icon)
-        card.todayBox.scripts.OnEnter(card.todayBox)
-        eq(ola.env.GameTooltip.lines[1], "Dagens dyr: Pepe, som bor hos Ola Nord.\n|cffa0a0a0Klikk for å se det.|r")
-        card.todayBox.scripts.OnLeave(card.todayBox)
-        card.guildBox.scripts.OnEnter(card.guildBox)
-        eq(ola.env.GameTooltip.lines[1], "Guilden: 1 av 5 dyr har et hjem (20%).")
+        eq(ola:TipOf(card.todayBox)[1], "Dagens dyr: Pepe, som bor hos Ola Nord.\n|cffa0a0a0Klikk for å se det.|r")
+        eq(ola:TipOf(card.guildBox)[1], "Guilden: 1 av 5 dyr har et hjem (20%).")
         -- Laid out: "Dagens dyr" ends at the card's right edge, never past it.
         ola.env.PetJournalPetCard.geo = { l = 300, r = 700, t = 500, b = 0 }
         card.guildBox.geo = { l = 400, r = 540, t = 530, b = 510 }
@@ -483,10 +476,7 @@ return function(test, H)
         w:Run(40)
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
-        local tip = ola.env.GameTooltip
-        local hit = card.personalityHit
-        hit.scripts.OnEnter(hit)
-        local text = table.concat(tip.lines, " / ")
+        local text = ola:TipOf(card.personalityHit).text
         local traits = ola.ns.Personality:Traits("s:5159")
         eq(#traits, 2)
         match(text, "^" .. traits[1].name .. " / ")
@@ -496,30 +486,21 @@ return function(test, H)
         end
         match(text, "Liker: herbs")
         match(text, "vokser båndet raskere%.$")
-        hit.scripts.OnLeave(hit)
-        card.bond.scripts.OnEnter(card.bond)
-        text = table.concat(tip.lines, " / ")
+        text = ola:TipOf(card.bond).text
         match(text, "^Bånd: Bekjent %(level 1%) / %d+ poeng til Kamerat%. / På level 2 får kortet en kant og et hint av farge%. / I dag: %+%d+ av 75 mulige poeng%. / Vokser for hver dag")
-        card.bond.scripts.OnLeave(card.bond)
         -- At the top level.
         local now = w:ServerTime()
         ola.ns.Registry:MergeLife("s:5159", "Ola Nord", { p = 9000, f = now - 200 * 86400, t = now })
         card = ola:SelectPet(5159)
-        card.bond.scripts.OnEnter(card.bond)
-        match(table.concat(tip.lines, " / "), "Høyeste level%.")
+        match(ola:TipOf(card.bond).text, "Høyeste level%.")
         -- A free pet we don't own: nothing to explain on the bond; the personality still tells.
         card = ola:SelectPet(68)
-        tip:ClearLines()
-        card.bond.scripts.OnEnter(card.bond)
-        eq(#tip.lines, 0)
-        card.personalityHit.scripts.OnEnter(card.personalityHit)
-        ok(#tip.lines >= 2)
+        eq(#ola:TipOf(card.bond), 0)
+        ok(#ola:TipOf(card.personalityHit) >= 2)
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil
         ola.env.PetJournal_UpdatePetCard(c)
-        tip:ClearLines()
-        card.personalityHit.scripts.OnEnter(card.personalityHit)
-        eq(#tip.lines, 0, "no pet: no tooltip")
+        eq(#ola:TipOf(card.personalityHit), 0, "no pet: no tooltip")
     end)
 
     test("/dp probe card logs what the pet card is made of", function()

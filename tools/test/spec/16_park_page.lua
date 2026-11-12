@@ -32,10 +32,7 @@ return function(test, H)
     end
 
     local function Tip(c, cell)
-        cell.scripts.OnEnter(cell)
-        local text = table.concat(c.env.GameTooltip.lines, " / ")
-        cell.scripts.OnLeave(cell)
-        return text
+        return c:TipOf(cell).text
     end
 
     test("its tab comes under ours; our two pages take turns", function()
@@ -46,9 +43,7 @@ return function(test, H)
         ok(park:IsShown())
         eq(park.points[1][2], A._tab, "right under the achievements tab")
         eq(park.points[1][5], -2)
-        park.scripts.OnEnter(park)
-        eq(env.GameTooltip.lines[1], "Parken")
-        park.scripts.OnLeave(park)
+        eq(ola:TipOf(park)[1], "Parken")
         park:Click()
         ok(P:IsOpen())
         eq(env.CollectionsJournal.titleFS.text, "Parken")

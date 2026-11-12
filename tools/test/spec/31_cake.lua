@@ -18,16 +18,13 @@ return function(test, H)
         ok(cake:IsShown())
         match(cake.cake.tex, "Particles\\cake$")
         for _, t in ipairs(cake.flames) do ok(t.flicker:IsPlaying(), "the candles flicker") end
-        cake.scripts.OnEnter(cake)
-        eq(ola.env.GameTooltip.lines[1], "Merkedag!")
-        eq(ola.env.GameTooltip.lines[2], "I dag har Panda Cub bodd hos deg i 1 måned!")
-        cake.scripts.OnLeave(cake)
+        local tip = ola:TipOf(cake)
+        eq(tip[1], "Merkedag!")
+        eq(tip[2], "I dag har Panda Cub bodd hos deg i 1 måned!")
         -- Kari's kitten, adopted the same day: the guild's celebration shows too.
         ola:SelectPet(46)
         ok(cake:IsShown())
-        cake.scripts.OnEnter(cake)
-        eq(ola.env.GameTooltip.lines[2], "Kari Berg og White Kitten feirer 1 måned sammen i dag!")
-        cake.scripts.OnLeave(cake)
+        eq(ola:TipOf(cake)[2], "Kari Berg og White Kitten feirer 1 måned sammen i dag!")
         -- Our page over the card: gone (and redrawn when it closes); the journal closing stops the candles.
         ola.ns.Bus:Fire("SIDEPAGE", true)
         no(cake:IsShown())
@@ -58,14 +55,12 @@ return function(test, H)
         local before = #Posts()
         -- Her own: nothing to click.
         local cake = ola:SelectPet(5159).cake
-        cake.scripts.OnEnter(cake)
-        no(table.concat(ola.env.GameTooltip.lines, " / "):find("gratulere"))
+        no(ola:TipOf(cake).text:find("gratulere"))
         cake:Click()
         eq(#Posts(), before)
         -- Kari's: the tooltip says so, and a click posts.
         cake = ola:SelectPet(46).cake
-        cake.scripts.OnEnter(cake)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "Klikk for å gratulere")
+        match(ola:TipOf(cake).text, "Klikk for å gratulere")
         cake:Click()
         eq(Posts()[#Posts()], "Gratulerer med 1 måned sammen, Kari Berg og White Kitten!")
         cake:Click()

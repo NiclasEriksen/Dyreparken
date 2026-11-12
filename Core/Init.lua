@@ -73,19 +73,39 @@ function ns.PlayFirstSound(names)
     return nil
 end
 
+-- Tooltips as data (docs/REFACTOR.md, Phase 4): a module builds its lines with a pure
+-- function, XxxLines(...) -> { { text, r, g, b, wrap }, ... } (nil: no tooltip), and one
+-- place shows them. The first line is the title (SetText), the rest AddLine; a line
+-- without a color takes the tooltip's own.
+function ns.AddTipLines(tip, lines)
+    for _, l in ipairs(lines) do
+        if l[2] then tip:AddLine(l[1], l[2], l[3], l[4], l[5]) else tip:AddLine(l[1]) end
+    end
+end
+
+function ns.ShowTip(owner, anchor, lines)
+    if not lines or not lines[1] then return end
+    GameTooltip:SetOwner(owner, anchor)
+    local l = lines[1]
+    if l[2] then GameTooltip:SetText(l[1], l[2], l[3], l[4], 1, l[5]) else GameTooltip:SetText(l[1]) end
+    for i = 2, #lines do
+        l = lines[i]
+        if l[2] then GameTooltip:AddLine(l[1], l[2], l[3], l[4], l[5]) else GameTooltip:AddLine(l[1]) end
+    end
+    GameTooltip:Show()
+end
+
 -- OnLeave for anything that shows a tooltip.
 function ns.HideTip(self) if GameTooltip:IsOwned(self) then GameTooltip:Hide() end end
 
--- A one-text tooltip on a frame (anchor: "ANCHOR_TOP"...); text is a string
--- or fn(frame) -> string (nil: no tooltip). White, wrapped.
-function ns.SetTip(frame, anchor, text)
+-- A tooltip on a frame (anchor: "ANCHOR_TOP"...). tip: a string (one line, white, wrapped), a
+-- list of lines (above), or fn(frame) -> either (nil: no tooltip), read at each hover.
+function ns.SetTip(frame, anchor, tip)
     frame:SetScript("OnEnter", function(self)
-        local s = text
+        local s = tip
         if type(s) == "function" then s = s(self) end
-        if not s then return end
-        GameTooltip:SetOwner(self, anchor)
-        GameTooltip:SetText(s, 1, 1, 1, 1, true)
-        GameTooltip:Show()
+        if type(s) == "string" then s = { { s, 1, 1, 1, true } } end
+        ns.ShowTip(self, anchor, s)
     end)
     frame:SetScript("OnLeave", ns.HideTip)
 end

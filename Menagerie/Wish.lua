@@ -56,6 +56,24 @@ function Wish:Today()
     return w
 end
 
+-- The wish line's tooltip: what today's wish gives, and the streak.
+function Wish.Lines()
+    local w = Wish:Today()
+    if not w then return nil end
+    local lines = {
+        { ns.L["wish.title"], 1, 0.82, 0 },
+        { ns.T(w.done and "wish.tip.done" or "wish.tip", { pet = ns.Registry:NameOf(w.pet),
+            n = ns.Config.BOND_WISH_POINTS }), 1, 1, 1, true },
+    }
+    local run, counted = Wish:Streak()
+    if counted and run >= 2 then
+        lines[3] = { ns.T("wish.streak.tip", { n = run }), 0.4, 1, 0.4, true }
+    elseif not counted and run >= 1 then
+        lines[3] = { ns.T("wish.streak.keep", { n = run + 1 }), 1, 0.82, 0, true }
+    end
+    return lines
+end
+
 -- The card's happy hop for today's wish come true has played (Moves): once.
 function Wish:Shown()
     local w = ns.DB.char.wish
@@ -116,22 +134,7 @@ function Wish:Build(card, c)
     f.text = f:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     f.text:SetPoint("LEFT", f.icon, "RIGHT", 4, 0)
     f:EnableMouse(true)
-    f:SetScript("OnEnter", function(self)
-        local w = Wish:Today()
-        if not w then return end
-        GameTooltip:SetOwner(self, "ANCHOR_BOTTOM")
-        GameTooltip:SetText(ns.L["wish.title"], 1, 0.82, 0)
-        GameTooltip:AddLine(ns.T(w.done and "wish.tip.done" or "wish.tip", { pet = ns.Registry:NameOf(w.pet),
-            n = ns.Config.BOND_WISH_POINTS }), 1, 1, 1, true)
-        local run, counted = Wish:Streak()
-        if counted and run >= 2 then
-            GameTooltip:AddLine(ns.T("wish.streak.tip", { n = run }), 0.4, 1, 0.4, true)
-        elseif not counted and run >= 1 then
-            GameTooltip:AddLine(ns.T("wish.streak.keep", { n = run + 1 }), 1, 0.82, 0, true)
-        end
-        GameTooltip:Show()
-    end)
-    f:SetScript("OnLeave", ns.HideTip)
+    ns.SetTip(f, "ANCHOR_BOTTOM", function() return Wish.Lines() end)
     f:Hide()
     card.wish = f
 end

@@ -486,10 +486,12 @@ function Personality:Line(key)
 end
 
 -- Both traits explained, for a tooltip: name, what it means, what it does.
-function Personality:Describe(tooltip, key)
+function Personality:TraitLines(key, lines)
+    lines = lines or {}
     for _, t in ipairs(self:Traits(key)) do
-        tooltip:AddLine(t.name, 1, 0.82, 0)
-        tooltip:AddLine(t.desc, 1, 1, 1, true)
-        tooltip:AddLine(self:Effect(t), 0.9, 0.75, 0.3, true)
+        lines[#lines + 1] = { t.name, 1, 0.82, 0 }
+        lines[#lines + 1] = { t.desc, 1, 1, 1, true }
+        lines[#lines + 1] = { self:Effect(t), 0.9, 0.75, 0.3, true }
     end
+    return lines
 end

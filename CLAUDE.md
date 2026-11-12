@@ -64,7 +64,9 @@ and refuses the push if it fails.
   Show/Hide cascade OnShow/OnHide to shown children, like the client.
 - The harness enforces the server's addon message throttle (10 per prefix, +1/s; drops go in `w.throttled`), so a
   test sending more than that at once fails unless `Comm` paces it. `GameTooltip` has per-line font strings
-  (`GameTooltipTextLeftN`), and `c:Hover` returns the whole tooltip as its third value.
+  (`GameTooltipTextLeftN`), and `c:Hover` returns the whole tooltip as its third value. `c:TipOf(frame)` hovers
+  one of our frames and returns its tooltip's lines (`.text`: joined with " / "). Tooltips are data: a module's
+  pure `XxxLines(...)` builds `{ { text, r, g, b, wrap }, ... }` and `ns.SetTip` / `ns.ShowTip` show them.
 - The harness blocks guild chat posts that don't come from `c:Slash` or a `Click` (Forever does; the test then
   fails with `ADDON_ACTION_BLOCKED`). Post to guild chat only from a keypress or click.
 - Stubs must behave like the real client (docs/FOREVER_API.md). Unknown frame methods and unknown events throw

@@ -24,32 +24,28 @@ local function A() return ns.Achievements end
 ------------------------------------------------------------------------------
 -- Rows
 ------------------------------------------------------------------------------
-local function ShowTooltip(r)
-    local it = r.data
+-- A row's tooltip: what it asks, when it was earned or how far along, and its parts.
+function Page.Lines(it)
     local tx = ns.AchTexts[it.id] or {}
-    GameTooltip:SetOwner(r, "ANCHOR_RIGHT")
-    GameTooltip:SetText(A():Name(it.id))
-    if tx.desc then GameTooltip:AddLine(tx.desc, 1, 1, 1, true) end
+    local lines = { { A():Name(it.id) } }
+    local function Add(text, r, g, b, wrap) lines[#lines + 1] = { text, r, g, b, wrap } end
+    if tx.desc then Add(tx.desc, 1, 1, 1, true) end
     if it.got then
-        GameTooltip:AddLine(ns.Fill(T().tip_earned, { date = ns.Date(it.got.at) }), 0.25, 1, 0.25)
-        if type(it.got.ann) == "number" then GameTooltip:AddLine(T().tip_shared, 0.7, 0.7, 0.7) end
+        Add(ns.Fill(T().tip_earned, { date = ns.Date(it.got.at) }), 0.25, 1, 0.25)
+        if type(it.got.ann) == "number" then Add(T().tip_shared, 0.7, 0.7, 0.7) end
     elseif it.need then
-        GameTooltip:AddLine(A():Progress(it.def, it.have, it.need), 0.7, 0.7, 0.7)
+        Add(A():Progress(it.def, it.have, it.need), 0.7, 0.7, 0.7)
     end
     local title, items, more = A():Details(it.def, Page.ctx)
     if items then
-        GameTooltip:AddLine(" ")
-        if title then GameTooltip:AddLine(title, 1, 0.82, 0) end
+        Add(" ")
+        if title then Add(title, 1, 0.82, 0) end
         for _, item in ipairs(items) do
-            if item.done then
-                GameTooltip:AddLine(item.text, 0.25, 1, 0.25)
-            else
-                GameTooltip:AddLine(item.text, 0.6, 0.6, 0.6)
-            end
+            if item.done then Add(item.text, 0.25, 1, 0.25) else Add(item.text, 0.6, 0.6, 0.6) end
         end
-        if more > 0 then GameTooltip:AddLine(ns.Fill(T().tip_more, { n = more }), 0.6, 0.6, 0.6) end
+        if more > 0 then Add(ns.Fill(T().tip_more, { n = more }), 0.6, 0.6, 0.6) end
     end
-    GameTooltip:Show()
+    return lines
 end
 
 
@@ -93,8 +89,7 @@ local function NewRow(id)
     r.desc:SetJustifyH("LEFT")
     r.desc:SetWordWrap(false)
 
-    r:SetScript("OnEnter", ShowTooltip)
-    r:SetScript("OnLeave", ns.HideTip)
+    ns.SetTip(r, "ANCHOR_RIGHT", function(self) return Page.Lines(self.data) end)
     rows[id] = r
     return r
 end

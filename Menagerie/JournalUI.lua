@@ -274,29 +274,23 @@ local function BuildRows()
         fs:SetWordWrap(false)
         return fs
     end
-    -- A hover area over two lines, for the pet on the card.
-    local function HitOver(top, bottom, onEnter)
+    -- A hover area over two lines, for the pet on the card; lines() -> its tooltip.
+    local function HitOver(top, bottom, lines)
         local f = CreateFrame("Frame", nil, panel)
         f:SetPoint("TOPLEFT", top, "TOPLEFT", -2, 2)
         f:SetPoint("BOTTOMRIGHT", bottom, "BOTTOMRIGHT", 2, -2)
         f:EnableMouse(true)
-        f:SetScript("OnEnter", function(self)
-            if not card.key then return end
-            GameTooltip:SetOwner(self, "ANCHOR_TOP")
-            GameTooltip:ClearLines()
-            onEnter()
-            GameTooltip:Show()
-        end)
-        f:SetScript("OnLeave", ns.HideTip)
+        ns.SetTip(f, "ANCHOR_TOP", function() return card.key and lines() end)
         return f
     end
     card.nickname = Line("GameFontNormalHuge", ROW_Y.name, NAME_RIGHT)
     card.status = Line("GameFontHighlightSmall", ROW_Y.status, STATUS_RIGHT)
     -- Hover the name or the home line: both in full.
     card.nameHit = HitOver(card.nickname, card.status, function()
-        GameTooltip:SetText(card.fullName, 1, 0.82, 0)
-        if card.fullName ~= card.species then GameTooltip:AddLine(card.species, 1, 1, 1) end
-        GameTooltip:AddLine(card.home, 1, 1, 1, true)
+        local lines = { { card.fullName, 1, 0.82, 0 } }
+        if card.fullName ~= card.species then lines[2] = { card.species, 1, 1, 1 } end
+        lines[#lines + 1] = { card.home, 1, 1, 1, true }
+        return lines
     end)
     -- Its personality: the traits, then what it likes.
     card.personality = Line("GameFontNormalSmall", ROW_Y.personality, 12)
@@ -304,44 +298,39 @@ local function BuildRows()
     card.likes = Line("GameFontHighlightSmall", ROW_Y.likes, 12)
     card.likes:SetTextColor(0.8, 0.76, 0.66) -- (was the disabled grey: hard to read, creative review 2026-11-09)
     -- Hover the lines: what the traits mean and do, what it likes, and why it matters.
-    card.personalityHit = HitOver(card.personality, card.likes, function()
-        if not ns.Personality:Known(card.key) then
-            GameTooltip:SetText(ns.L["personality.unknown"], 1, 0.82, 0)
-            GameTooltip:AddLine(ns.L["personality.unknown.tip"], 1, 1, 1, true)
-            return
-        end
-        local P = ns.Personality
-        P:Describe(GameTooltip, card.key)
-        local words = P:LikedWords(card.key)
-        if #words > 0 then
-            GameTooltip:AddLine(ns.T("card.likes.tip", { list = ns.Join(words) }), 0.5, 0.8, 0.5, true)
-        end
-        local minorLike = P:MinorLike(card.key)
-        if minorLike then -- (the minor ones dimmed, as on the card)
-            GameTooltip:AddLine(ns.T("card.likes.minor_tip", { list = P.NOUN[minorLike] }), 0.45, 0.62, 0.45, true)
-        end
-        local bad, minorBad = P:DislikedWords(card.key)
-        if #bad > 0 then
-            GameTooltip:AddLine(ns.T("card.dislikes.tip", { list = ns.Join(bad) }), 0.85, 0.55, 0.55, true)
-        end
-        if #minorBad > 0 then
-            GameTooltip:AddLine(ns.T("card.dislikes.minor_tip", { list = ns.Join(minorBad) }), 0.65, 0.45, 0.45, true)
-        end
-        -- Dislikes not found out yet: a hint that there's something (creative review 2026-11-09).
-        local _, all = P:Dislikes(card.key)
-        local secret = #all - #bad - #minorBad
-        if secret > 0 then
-            GameTooltip:AddLine(ns.T(secret == 1 and "card.dislikes.secret_one" or "card.dislikes.secret",
-                { pet = ns.Registry:NameOf(card.key), n = secret }), 0.75, 0.6, 0.6, true)
-        end
-        -- What your bond unlocks next (the minor ones): a small reason to keep going.
-        local what, level = P:NextUnlock(card.key)
-        if what then
-            GameTooltip:AddLine(ns.T("card.unlock." .. what, { level = ns.Bond.LEVELS[level][2],
-                pet = ns.Registry:NameOf(card.key) }), 0.6, 0.6, 0.6, true)
-        end
-        GameTooltip:AddLine(ns.L["card.personality.hint"], 0.7, 0.7, 0.7, true)
-    end)
+    card.personalityHit = HitOver(card.personality, card.likes, function() return JournalUI.PersonalityLines(card.key) end)
+end
+
+-- The personality's tooltip: what the traits mean and do, what it likes and dislikes (the minor
+-- ones dimmed, as on the card; the secret ones a hint), what your bond unlocks next, and why it matters.
+function JournalUI.PersonalityLines(key)
+    local P = ns.Personality
+    if not P:Known(key) then
+        return { { ns.L["personality.unknown"], 1, 0.82, 0 }, { ns.L["personality.unknown.tip"], 1, 1, 1, true } }
+    end
+    local lines = P:TraitLines(key)
+    local function Add(text, r, g, b) lines[#lines + 1] = { text, r, g, b, true } end
+    local words = P:LikedWords(key)
+    if #words > 0 then Add(ns.T("card.likes.tip", { list = ns.Join(words) }), 0.5, 0.8, 0.5) end
+    local minorLike = P:MinorLike(key)
+    if minorLike then Add(ns.T("card.likes.minor_tip", { list = P.NOUN[minorLike] }), 0.45, 0.62, 0.45) end
+    local bad, minorBad = P:DislikedWords(key)
+    if #bad > 0 then Add(ns.T("card.dislikes.tip", { list = ns.Join(bad) }), 0.85, 0.55, 0.55) end
+    if #minorBad > 0 then Add(ns.T("card.dislikes.minor_tip", { list = ns.Join(minorBad) }), 0.65, 0.45, 0.45) end
+    -- Dislikes not found out yet: a hint that there's something (creative review 2026-11-09).
+    local _, all = P:Dislikes(key)
+    local secret = #all - #bad - #minorBad
+    if secret > 0 then
+        Add(ns.T(secret == 1 and "card.dislikes.secret_one" or "card.dislikes.secret",
+            { pet = ns.Registry:NameOf(key), n = secret }), 0.75, 0.6, 0.6)
+    end
+    -- What your bond unlocks next (the minor ones): a small reason to keep going.
+    local what, level = P:NextUnlock(key)
+    if what then
+        Add(ns.T("card.unlock." .. what, { level = ns.Bond.LEVELS[level][2], pet = ns.Registry:NameOf(key) }), 0.6, 0.6, 0.6)
+    end
+    Add(ns.L["card.personality.hint"], 0.7, 0.7, 0.7)
+    return lines
 end
 
 -- Blizzard's turn buttons sit where our rows go: move them to just above

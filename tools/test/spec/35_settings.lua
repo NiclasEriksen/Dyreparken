@@ -52,8 +52,7 @@ return function(test, H)
         ok(lines:GetChecked()); lines:Click()
         eq(ola.ns.DB.global.settings.chatLines, false, "the account's")
         -- The tooltip says what it does, and which are per character.
-        auto.scripts.OnEnter(auto)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "Gjelder bare denne karakteren")
+        match(ola:TipOf(auto).text, "Gjelder bare denne karakteren")
         -- Shown again: as they are now.
         S:Close(); S:Open()
         no(Widget(S, "settings.autosummon").button:GetChecked())

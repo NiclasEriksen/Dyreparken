@@ -172,8 +172,7 @@ return function(test, H)
         ok(card.crown:IsShown())
         match(card.crown.icon.tex, "crown$")
         eq(card.crown.points[1][1], "TOPLEFT", "its own corner without a cake")
-        card.crown.scripts.OnEnter(card.crown)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "Panda Cub er dagens dyr i guilden%.")
+        match(ola:TipOf(card.crown).text, "Panda Cub er dagens dyr i guilden%.")
         for _, s in ipairs(ola.ns.Decor:Specs(PANDA, 1, ola.ns.Now())) do no(s.kind == "halo", "no halo") end
         -- With a cake that day: beside it.
         card.cake:Show()
@@ -212,8 +211,7 @@ return function(test, H)
         for _, chip in ipairs(card.stats.chips) do
             if chip:IsShown() and chip.id == "explore" then
                 found = true
-                chip.scripts.OnEnter(chip)
-                match(table.concat(ola.env.GameTooltip.lines, " / "), "Sist oppdaget sammen: Westfall")
+                match(ola:TipOf(chip).text, "Sist oppdaget sammen: Westfall")
             end
         end
         ok(found, "the chip is there")
@@ -322,8 +320,7 @@ return function(test, H)
         ola:Fire("QUEST_TURNED_IN", 1)
         local chip = Chip()
         ok(chip.ring:IsShown(), "50")
-        chip.scripts.OnEnter(chip)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "Rundt tall i dag: 50!")
+        match(ola:TipOf(chip).text, "Rundt tall i dag: 50!")
         w:SkipDays(1)
         no(Chip().ring:IsShown(), "for the day")
     end)
@@ -405,8 +402,7 @@ return function(test, H)
         local owner, theirs, n = P:BestFriend(PANDA)
         eq(owner, "Kari Berg"); eq(theirs, "s:40"); eq(n, 5)
         local card = ola:SelectPet(5159)
-        card.bond.scripts.OnEnter(card.bond)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "Beste lekevenn: Bombay Cat %(Kari Berg%), 5 lekedater")
+        match(ola:TipOf(card.bond).text, "Beste lekevenn: Bombay Cat %(Kari Berg%), 5 lekedater")
         -- Kari, Per and Liv within ten minutes: a party, once a day.
         P:Heard("Liv Lund", "s:72")
         w:RunTimers()
@@ -459,12 +455,10 @@ return function(test, H)
         local w, ola, At, Said = Eggs({ "glupsk", "rampete" }) -- a cat: dislikes the water
         ola:OpenJournal()
         local card = ola:SelectPet(40)
-        card.personalityHit.scripts.OnEnter(card.personalityHit)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "Det er noe Bombay Cat ikke liker%. Hva kan det være%?")
+        match(ola:TipOf(card.personalityHit).text, "Det er noe Bombay Cat ikke liker%. Hva kan det være%?")
         ola:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath")
         w:RunTimers()
-        card.personalityHit.scripts.OnEnter(card.personalityHit)
-        no(table.concat(ola.env.GameTooltip.lines, " / "):find("Hva kan det være"), "all found: no hint")
+        no(ola:TipOf(card.personalityHit).text:find("Hva kan det være"), "all found: no hint")
         -- Ten different eggs: Påskeegghøne.
         local A = ola.ns.Achievements
         for i = 1, 9 do ola.ns.DB.char.eggs["x" .. i] = { n = 1 } end

@@ -16,15 +16,16 @@ local SIZE = 34
 local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 local FLAMES = { { -0.3, 1.1 }, { 0, 0.9 }, { 0.3, 1.3 } } -- candle x (as in tools/draw_particles.py), flicker period
 
-local function Tip(self)
-    local m = self.milestone
-    if not m then return end
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(ns.L["card.cake.title"], 1, 0.82, 0)
-    GameTooltip:AddLine(m.owner == ns.PlayerKey() and ns.T("milestone.mine", { pet = m.pet, time = m.time })
-        or ns.T("milestone.other", { owner = m.owner, pet = m.pet, time = m.time }), 1, 1, 1, true)
-    if Cake:CanCongratulate(self.card.key, m) then GameTooltip:AddLine(ns.L["card.cake.click"], 0.5, 0.8, 0.5, true) end
-    GameTooltip:Show()
+-- The cake's tooltip: whose milestone, and whether a click congratulates.
+function Cake.Lines(key, m)
+    if not m then return nil end
+    local lines = {
+        { ns.L["card.cake.title"], 1, 0.82, 0 },
+        { m.owner == ns.PlayerKey() and ns.T("milestone.mine", { pet = m.pet, time = m.time })
+            or ns.T("milestone.other", { owner = m.owner, pet = m.pet, time = m.time }), 1, 1, 1, true },
+    }
+    if Cake:CanCongratulate(key, m) then lines[3] = { ns.L["card.cake.click"], 0.5, 0.8, 0.5, true } end
+    return lines
 end
 
 local function Said()
@@ -72,8 +73,7 @@ function Cake:Build(card, c)
         f.flames[i] = t
     end
     f:EnableMouse(true)
-    f:SetScript("OnEnter", Tip)
-    f:SetScript("OnLeave", ns.HideTip)
+    ns.SetTip(f, "ANCHOR_RIGHT", function(self) return Cake.Lines(card.key, self.milestone) end)
     f:SetScript("OnClick", function() Cake:Congratulate(card) end)
     f:Hide()
     card.cake = f

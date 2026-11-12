@@ -141,14 +141,7 @@ function PF:Build()
     click:SetScript("OnEnter", function(b)
         PF.hover = true; PF:ShowBar(); PF:Fade()
         if PF.editing or not PF.key then return end
-        GameTooltip:SetOwner(b, "ANCHOR_TOP")
-        GameTooltip:SetText(ns.Registry:NameOf(PF.key), 1, 0.82, 0)
-        -- What it said last, a while (PF:Said): easy to miss in chat.
-        if PF.said and GetTime() - PF.saidAt < PF.SAY_TIP_FOR then
-            GameTooltip:AddLine(PF.said, 0.85, 0.7, 1, true)
-        end
-        GameTooltip:AddLine(L["petframe.tip"], 1, 1, 1, true)
-        GameTooltip:Show()
+        ns.ShowTip(b, "ANCHOR_TOP", PF:Lines())
     end)
     click:SetScript("OnLeave", function(b) PF.hover = nil; PF:ShowBar(); PF:Fade(); ns.HideTip(b) end)
     f.click = click
@@ -449,6 +442,14 @@ PF.SAY_KINDS = {
     major = { rank = 3, bubble = "shout", color = { 1, 0.84, 0.35 }, icon = "star", burst = "spark", n = 5, size = 1.2 },
 }
 PF.SAY_TIP_FOR = 300 -- seconds the last line shows in the frame's tooltip
+
+-- The frame's tooltip: the pet's name, what it said last a while (easy to miss in chat), the hint.
+function PF:Lines()
+    local lines = { { ns.Registry:NameOf(self.key), 1, 0.82, 0 } }
+    if self.said and GetTime() - self.saidAt < self.SAY_TIP_FOR then lines[2] = { self.said, 0.85, 0.7, 1, true } end
+    lines[#lines + 1] = { L["petframe.tip"], 1, 1, 1, true }
+    return lines
+end
 
 function PF:Bubble()
     local f = self.frame

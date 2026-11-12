@@ -16,28 +16,28 @@ local SIZE = 40
 local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 OutBadge.SOUNDS = { "IG_MAINMENU_OPTION_CHECKBOX_ON", "IG_CHARACTER_INFO_TAB" }
 
-local function Tip(self)
-    local card = self.card
-    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    if self.notOwned then
-        GameTooltip:SetText(ns.L["card.notowned"], 0.8, 0.8, 0.8)
-        GameTooltip:AddLine(ns.T("card.notowned.tip", { pet = card.key and ns.Pets:NameOfKey(card.key) or "" }),
-            1, 1, 1, true)
+-- The badge's tooltip for the pet on the card: on (kept out), or not owned.
+function OutBadge.Lines(key, on, notOwned)
+    if notOwned then
+        return { { ns.L["card.notowned"], 0.8, 0.8, 0.8 },
+            { ns.T("card.notowned.tip", { pet = key and ns.Pets:NameOfKey(key) or "" }), 1, 1, 1, true } }
     elseif ns.Summon:Deferring() then
-        GameTooltip:SetText(ns.L["card.auto.deferred"], 1, 1, 1, 1, true)
-    else
-        local pet = card.key and ns.Registry:NameOf(card.key) or ""
-        GameTooltip:SetText(self.on and ns.T("card.out.on.title", { pet = pet })
-            or ns.T("card.out.off.title", { pet = pet }), 1, 0.82, 0)
-        GameTooltip:AddLine(ns.T("card.auto.tip", { pet = pet }), 1, 1, 1, true)
-        local active = ns.Summon:ActiveKey()
-        if active and active ~= card.key then
-            GameTooltip:AddLine(ns.T("card.auto.now", { pet = ns.Registry:NameOf(active) }), 0.7, 0.7, 0.7, true)
-        end
-        GameTooltip:AddLine(self.on and ns.L["card.out.on.click"] or ns.T("card.out.off.click", { pet = pet }), 0.5, 0.8, 0.5, true)
+        return { { ns.L["card.auto.deferred"], 1, 1, 1, true } }
     end
-    GameTooltip:Show()
+    local pet = key and ns.Registry:NameOf(key) or ""
+    local lines = {
+        { on and ns.T("card.out.on.title", { pet = pet }) or ns.T("card.out.off.title", { pet = pet }), 1, 0.82, 0 },
+        { ns.T("card.auto.tip", { pet = pet }), 1, 1, 1, true },
+    }
+    local active = ns.Summon:ActiveKey()
+    if active and active ~= key then
+        lines[#lines + 1] = { ns.T("card.auto.now", { pet = ns.Registry:NameOf(active) }), 0.7, 0.7, 0.7, true }
+    end
+    lines[#lines + 1] = { on and ns.L["card.out.on.click"] or ns.T("card.out.off.click", { pet = pet }), 0.5, 0.8, 0.5, true }
+    return lines
 end
+
+local function Tip(self) ns.ShowTip(self, "ANCHOR_LEFT", OutBadge.Lines(self.card.key, self.on, self.notOwned)) end
 
 function OutBadge:Build(card, c)
     local b = CreateFrame("Button", nil, c)

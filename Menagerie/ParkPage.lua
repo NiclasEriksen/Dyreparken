@@ -26,7 +26,6 @@ local sp, page, child, records, legend
 local cells = {}
 Park._cells = cells
 
-local Day = ns.Date
 
 
 -- The park's records as lines, from the current holders.
@@ -69,36 +68,21 @@ function Park:Records(now)
     return lines
 end
 
-local function ShowTooltip(cell)
-    local key = cell.key
-    local R = ns.Registry
-    local owner, r = R:Holder(key)
-    local nick, namer, namedAt = R:Nickname(key)
-    -- Below the icon: ANCHOR_RIGHT grew upwards over the page's header from the top rows (UX review 2026-11-11).
-    GameTooltip:SetOwner(cell, "ANCHOR_BOTTOMRIGHT")
-    GameTooltip:SetText(nick or ns.Pets:NameOfKey(key))
-    if nick then GameTooltip:AddLine(ns.Pets:NameOfKey(key), 0.7, 0.7, 0.7) end
-    if owner then
-        local who = owner == ns.PlayerKey() and ns.L["home.you"] or owner
-        GameTooltip:AddLine(ns.Home(who, r.at), 1, 0.82, 0)
-        GameTooltip:AddLine(ns.T("tip.bond", { label = ns.Bond:Label(key) }), 1, 1, 1)
-    else
-        GameTooltip:AddLine(ns.L["park.free"], 0.5, 0.8, 0.5)
-    end
-    if nick then
-        local by = namer == ns.PlayerKey() and ns.L["home.you"] or namer
-        GameTooltip:AddLine(ns.T("tip.named_by", { who = by, date = Day(namedAt) }), 0.7, 0.7, 0.7)
-    end
-    -- The traits by name only (2026-11-11, the user): what they do is on the card's personality tooltip.
-    GameTooltip:AddLine(ns.Personality:Line(key), 0.7, 0.7, 0.7)
+-- An icon's tooltip: the pet's nickname over its species, then the list's lines (JournalList.PetLines),
+-- then whether you could adopt it and what a click does.
+function Park.Lines(key)
+    local nick = ns.Registry:Nickname(key)
+    local lines = { { nick or ns.Pets:NameOfKey(key) } }
+    if nick then lines[2] = { ns.Pets:NameOfKey(key), 0.7, 0.7, 0.7 } end
+    for _, l in ipairs(ns.JournalList.PetLines(key, "park.free")) do lines[#lines + 1] = l end
+    local owner = ns.Registry:Holder(key)
     if owner ~= ns.PlayerKey() and ns.Pets:IsOwned(key) then
-        GameTooltip:AddLine(ns.L[owner and "park.also_yours" or "park.can_adopt"],
-            1, 1, 1)
+        lines[#lines + 1] = { ns.L[owner and "park.also_yours" or "park.can_adopt"], 1, 1, 1 }
     end
     if ns.Pets:SpeciesOfKey(key) then
-        GameTooltip:AddLine(ns.L[Park:CanShow() and "park.click" or "park.click.pets"], 0.6, 0.6, 0.6, true)
+        lines[#lines + 1] = { ns.L[Park:CanShow() and "park.click" or "park.click.pets"], 0.6, 0.6, 0.6, true }
     end
-    GameTooltip:Show()
+    return lines
 end
 
 -- The Pets page is under ours (shown, only covered), so its card can show.
@@ -127,8 +111,8 @@ local function NewCell()
     c.free:SetTexture(READY)
     c.free:SetSize(14, 14)
     c.free:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 2, -2)
-    c:SetScript("OnEnter", ShowTooltip)
-    c:SetScript("OnLeave", ns.HideTip)
+    -- Below the icon: ANCHOR_RIGHT grew upwards over the page's header from the top rows (UX review 2026-11-11).
+    ns.SetTip(c, "ANCHOR_BOTTOMRIGHT", function(self) return Park.Lines(self.key) end)
     c:SetScript("OnClick", function(self) Park:Show(self.key) end)
     cells[#cells + 1] = c
     return c

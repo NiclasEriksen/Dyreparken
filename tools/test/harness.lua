@@ -18,6 +18,7 @@
 --   ola:QuirksNow()                           -- quirk lines at once, no 45 minutes in the way
 --   w:SetDate(2027, 3, 2, 14)                 -- the players' clock (tests run on Europe/Oslo time)
 --   ola:Said(text), ola:CountPrinted(text), ola:Points(key, who)
+--   ola:TipOf(frame)                          -- hover a frame: its tooltip's lines (.text: joined)
 -- Don't replace Personality.Traits or ns.Companions by hand: a reload loses it, and
 -- Personality's own rules (Known, likes) are skipped.
 --
@@ -1140,6 +1141,21 @@ end
 function Client:Zone()
     self:Fire("PLAYER_LEAVING_WORLD")
     self:Fire("PLAYER_ENTERING_WORLD", false, false)
+end
+
+-- A frame's own tooltip: hover it (OnEnter), read GameTooltip, leave (OnLeave). Returns its
+-- lines ({} if it showed none; .text: them joined with " / "), and their colors (by line).
+function Client:TipOf(f)
+    local tip = self.env.GameTooltip
+    tip:SetOwner(nil) -- (nothing left over from an earlier hover)
+    f.scripts.OnEnter(f)
+    local lines, colors = {}, {}
+    if tip.owner == f and tip.shown then
+        for i, l in ipairs(tip.lines) do lines[i], colors[i] = l, tip.colors[i] end
+    end
+    lines.text = table.concat(lines, " / ")
+    if f.scripts.OnLeave then f.scripts.OnLeave(f) end
+    return lines, colors
 end
 
 -- World tooltip -------------------------------------------------------------------

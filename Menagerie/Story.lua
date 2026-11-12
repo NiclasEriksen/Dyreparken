@@ -250,13 +250,11 @@ local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 local ICON = "Interface\\Icons\\INV_Misc_Book_09"
 local SIZE = 30
 
-local function ButtonTip(self)
-    local key = self.card.key
-    if not key then return end
-    GameTooltip:SetOwner(self, "ANCHOR_LEFT")
-    GameTooltip:SetText(ns.T("story.title", { pet = ns.Registry:NameOf(key) }), 1, 0.82, 0)
-    GameTooltip:AddLine(ns.T("story.tip", { n = #(Story:Of(key) or {}) }), 1, 1, 1, true)
-    GameTooltip:Show()
+-- The book button's tooltip.
+function Story.ButtonLines(key)
+    if not key then return nil end
+    return { { ns.T("story.title", { pet = ns.Registry:NameOf(key) }), 1, 0.82, 0 },
+        { ns.T("story.tip", { n = #(Story:Of(key) or {}) }), 1, 1, 1, true } }
 end
 
 function Story:Build(card, c)
@@ -284,8 +282,7 @@ function Story:Build(card, c)
     b.hover:SetVertexColor(1, 0.85, 0.5, 0.5)
     b.hover:SetAllPoints()
     b:SetScript("OnClick", function() Story:Toggle(card.key) end)
-    b:SetScript("OnEnter", ButtonTip)
-    b:SetScript("OnLeave", ns.HideTip)
+    ns.SetTip(b, "ANCHOR_LEFT", function() return Story.ButtonLines(card.key) end)
     b:Hide()
     card.story = b
 end

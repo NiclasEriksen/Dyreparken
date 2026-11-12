@@ -18,13 +18,10 @@ function Crown:Build(card, c)
     f.icon:SetVertexColor(ns.Scenes.GOLD[1], ns.Scenes.GOLD[2], ns.Scenes.GOLD[3], 1)
     f.icon:SetAllPoints()
     f:EnableMouse(true)
-    f:SetScript("OnEnter", function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-        GameTooltip:SetText(ns.L["card.today"], 1, 0.82, 0)
-        GameTooltip:AddLine(ns.T("card.crown.tip", { pet = ns.Registry:NameOf(card.key) }), 1, 1, 1, true)
-        GameTooltip:Show()
-    end)
-    f:SetScript("OnLeave", ns.HideTip)
+    ns.SetTip(f, "ANCHOR_RIGHT", function() return {
+        { ns.L["card.today"], 1, 0.82, 0 },
+        { ns.T("card.crown.tip", { pet = ns.Registry:NameOf(card.key) }), 1, 1, 1, true },
+    } end)
     f:Hide()
     card.crown = f
 end

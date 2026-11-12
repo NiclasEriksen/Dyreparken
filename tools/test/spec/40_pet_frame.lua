@@ -157,9 +157,9 @@ return function(test, H)
         eq(table.concat(shown, " "), "+7")
         ok(bar:IsShown(), "shown while the numbers rise")
         -- Its tooltip: the name, and what a click does.
-        PF.frame.click.scripts.OnEnter(PF.frame.click)
-        eq(ola.env.GameTooltip.lines[1], "Panda Cub")
-        eq(ola.env.GameTooltip.lines[2], ola.ns.L["petframe.tip"])
+        local tip = ola:TipOf(PF.frame.click)
+        eq(tip[1], "Panda Cub")
+        eq(tip[2], ola.ns.L["petframe.tip"])
     end)
 
     test("the bar and level show only under the mouse, and while points rise (a level comes with them)", function()
@@ -438,9 +438,7 @@ return function(test, H)
         eq(b.icon.tex, ola.ns.Decor.MEDIA .. "star", "a remark waits")
         ok(b.icon:IsShown()); eq(b.tex.tex, ola.ns.Decor.MEDIA .. "shout", "still the shout, not the remark's bubble")
         -- Under the mouse: the last line said.
-        f.click.scripts.OnEnter(f.click)
-        H.match(table.concat(ola.env.GameTooltip.lines, " / "), "Hm%.")
-        f.click.scripts.OnLeave(f.click)
+        H.match(ola:TipOf(f.click).text, "Hm%.")
         -- Done: the fade returns, and the next remark gets its own bubble.
         w:Run(PF.SAY_FOR + 0.5)
         eq(f:GetAlpha(), 0.25, "faded again")

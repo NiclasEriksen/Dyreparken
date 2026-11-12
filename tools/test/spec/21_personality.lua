@@ -286,8 +286,7 @@ return function(test, H)
         ola:Traits{ "gronnfinger", "nattugle" }
         local specs = ola.ns.Decor:Specs("s:84", 0, w.t)
         for _, sp in ipairs(specs) do no(sp.kind == "leaf", "no trait particles") end
-        card.personalityHit.scripts.OnEnter(card.personalityHit)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "overraskelse")
+        match(ola:TipOf(card.personalityHit).text, "overraskelse")
         -- Kari adopts it: now the whole guild knows it.
         kari:Slash("adopter chicken")
         w:Run(3)

@@ -67,8 +67,7 @@ return function(test, H)
         match(card.likes.text, "|cff8c8475" .. P.NOUN.pvp .. "|r", "dimmed")
         match(card.likes.text, "|cff8c8475" .. P.NOUN.nap .. "|r", "the minor like too")
         -- The tooltip: the minor ones in their own, dimmer lines.
-        card.personalityHit.scripts.OnEnter(card.personalityHit)
-        local tip = table.concat(ola.env.GameTooltip.lines, " / ")
+        local tip = ola:TipOf(card.personalityHit).text
         match(tip, "Liker også litt: " .. P.NOUN.nap)
         match(tip, "Liker heller ikke: " .. P.NOUN.pvp)
         -- Again later: rarer than a major dislike (0.1 is past MINOR_AGAIN).
@@ -81,10 +80,7 @@ return function(test, H)
     test("the card says what your bond unlocks next, and nothing once it's all unlocked", function()
         local w, ola, P = Setup()
         local card = ola:SelectPet(5159)
-        local function Tip()
-            card.personalityHit.scripts.OnEnter(card.personalityHit)
-            return table.concat(ola.env.GameTooltip.lines, " / ")
-        end
+        local function Tip() return ola:TipOf(card.personalityHit).text end
         match(Tip(), "Når båndet ditt blir " .. ola.ns.Bond.LEVELS[4][2] .. ", lærer du mer om hva")
         ToLevel(w, ola, 4)
         match(Tip(), "Når båndet ditt blir " .. ola.ns.Bond.LEVELS[6][2] .. ", lærer du mer om")

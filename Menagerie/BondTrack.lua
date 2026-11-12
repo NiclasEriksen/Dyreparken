@@ -43,65 +43,58 @@ local function Others(key, skip)
 end
 Track.Others = Others
 
-local function BondTip(self, card)
-    local points, level, name, _, nextAt, mine = ns.Bond:Shown(card.key)
-    if not points then return end
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(ns.T("bond.tip.title", { level = name, n = level }), 1, 0.82, 0)
-    local holder = ns.Registry:Holder(card.key)
-    if not mine then GameTooltip:AddLine(ns.T("bond.tip.whose", { owner = holder }), 1, 1, 1) end
+-- The bond's tooltip lines for a pet (the bar and the medallion); nil without a bond shown.
+function Track.BondLines(key)
+    local points, level, name, _, nextAt, mine = ns.Bond:Shown(key)
+    if not points then return nil end
+    local lines = { { ns.T("bond.tip.title", { level = name, n = level }), 1, 0.82, 0 } }
+    local function Add(text, r, g, b, wrap) lines[#lines + 1] = { text, r, g, b, wrap } end
+    local holder = ns.Registry:Holder(key)
+    if not mine then Add(ns.T("bond.tip.whose", { owner = holder }), 1, 1, 1) end
     if nextAt then
         local nextName = ns.Bond.LEVELS[level + 1][2]
-        GameTooltip:AddLine(ns.T("bond.tip.to_next", { n = nextAt - points, level = nextName }), 1, 1, 1)
+        Add(ns.T("bond.tip.to_next", { n = nextAt - points, level = nextName }), 1, 1, 1)
         local decor = ns.Decor.LEVELS[level + 1]
-        if decor then
-            GameTooltip:AddLine(ns.T("bond.tip.next_decor", { n = level + 1, decor = decor }), 0.5, 0.8, 0.5, true)
-        end
+        if decor then Add(ns.T("bond.tip.next_decor", { n = level + 1, decor = decor }), 0.5, 0.8, 0.5, true) end
     else
-        GameTooltip:AddLine(ns.L["bond.tip.top"], 1, 1, 1)
+        Add(ns.L["bond.tip.top"], 1, 1, 1)
     end
     if mine then
-        local today, max = ns.Bond:Today(card.key)
+        local today, max = ns.Bond:Today(key)
         if today >= max then
-            GameTooltip:AddLine(ns.T("bond.tip.today_full", { max = max }), 0.4, 1, 0.4, true)
+            Add(ns.T("bond.tip.today_full", { max = max }), 0.4, 1, 0.4, true)
         else
-            GameTooltip:AddLine(ns.T("bond.tip.today", { n = today, max = max }), 0.5, 0.8, 1, true)
+            Add(ns.T("bond.tip.today", { n = today, max = max }), 0.5, 0.8, 1, true)
         end
     end
-    local yp, yl, yn = ns.Bond:Yours(card.key)
-    if yp then
-        GameTooltip:AddLine(ns.T("bond.tip.yours", { level = yn, n = yl, p = yp }), 1, 0.6, 0.7, true)
-    end
+    local yp, yl, yn = ns.Bond:Yours(key)
+    if yp then Add(ns.T("bond.tip.yours", { level = yn, n = yl, p = yp }), 1, 0.6, 0.7, true) end
     if mine then -- (your own: who it plays with most)
-        local owner, theirs, n = ns.Playdate:BestFriend(card.key)
+        local owner, theirs, n = ns.Playdate:BestFriend(key)
         if owner then
-            GameTooltip:AddLine(ns.T("play.best", { friend = ns.Registry:NameFor(theirs, owner), owner = owner, n = n }),
-                1, 0.85, 0.5, true)
+            Add(ns.T("play.best", { friend = ns.Registry:NameFor(theirs, owner), owner = owner, n = n }), 1, 0.85, 0.5, true)
         end
     end
-    local others = Others(card.key, not mine and holder or nil)
-    if #others > 0 then
-        GameTooltip:AddLine(ns.T("bond.tip.others", { list = ns.Join(others) }), 0.8, 0.7, 1, true)
-    end
-    GameTooltip:AddLine(ns.L[mine and card.key ~= ns.Registry:MyPet() and "bond.tip.how_other" or "bond.tip.how"],
-        0.7, 0.7, 0.7, true)
-    GameTooltip:Show()
+    local others = Others(key, not mine and holder or nil)
+    if #others > 0 then Add(ns.T("bond.tip.others", { list = ns.Join(others) }), 0.8, 0.7, 1, true) end
+    Add(ns.L[mine and key ~= ns.Registry:MyPet() and "bond.tip.how_other" or "bond.tip.how"], 0.7, 0.7, 0.7, true)
+    return lines
 end
 
--- A star on the track: what level n is and brings, and whether it's reached.
-local function PipTip(self, card)
-    local n = self.n
+-- A star on the track: what level n is and brings, and whether this pet's shown bond has reached it.
+function Track.StarLines(key, n)
     local l = ns.Bond.LEVELS[n]
-    GameTooltip:SetOwner(self, "ANCHOR_TOP")
-    GameTooltip:SetText(ns.T("bond.star.title", { n = n, level = l[2] }), 1, 0.82, 0)
-    GameTooltip:AddLine(n == 1 and ns.L["bond.star.first"] or ns.T("bond.star.from", { n = l[1] }), 1, 1, 1)
+    local lines = {
+        { ns.T("bond.star.title", { n = n, level = l[2] }), 1, 0.82, 0 },
+        { n == 1 and ns.L["bond.star.first"] or ns.T("bond.star.from", { n = l[1] }), 1, 1, 1 },
+    }
     if ns.Decor.LEVELS[n] then
-        GameTooltip:AddLine(ns.T("bond.star.decor", { decor = ns.Decor.LEVELS[n] }), 0.5, 0.8, 0.5, true)
+        lines[#lines + 1] = { ns.T("bond.star.decor", { decor = ns.Decor.LEVELS[n] }), 0.5, 0.8, 0.5, true }
     end
-    if n == ns.Config.NICKNAME_LEVEL then GameTooltip:AddLine(ns.L["bond.star.nick"], 0.5, 0.8, 0.5, true) end
-    local _, level = ns.Bond:Shown(card.key)
-    if level and n <= level then GameTooltip:AddLine(ns.L["bond.star.reached"], 0.4, 1, 0.4) end
-    GameTooltip:Show()
+    if n == ns.Config.NICKNAME_LEVEL then lines[#lines + 1] = { ns.L["bond.star.nick"], 0.5, 0.8, 0.5, true } end
+    local _, level = ns.Bond:Shown(key)
+    if level and n <= level then lines[#lines + 1] = { ns.L["bond.star.reached"], 0.4, 1, 0.4 } end
+    return lines
 end
 
 -- Build it on the card's panel (JournalUI's BuildCard). card.bond is the bar;
@@ -174,8 +167,7 @@ function Track:Build(card, c, panel)
     m.num = m:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     m.num:SetPoint("CENTER", m, "CENTER", 0, 1)
     m:EnableMouse(true)
-    m:SetScript("OnEnter", function(self) BondTip(self, card) end)
-    m:SetScript("OnLeave", Hide)
+    ns.SetTip(m, "ANCHOR_TOP", function() return Track.BondLines(card.key) end)
     b.medal = m
     b.level = m.num -- (the level number, as before)
 
@@ -198,12 +190,11 @@ function Track:Build(card, c, panel)
         p.halo:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
         p.halo.pulse = Pulse(p.halo, 0.3, 1, 1.6)
         p:EnableMouse(true)
-        p:SetScript("OnEnter", function(self) PipTip(self, card) end)
-        p:SetScript("OnLeave", Hide)
+        ns.SetTip(p, "ANCHOR_TOP", function(self) return Track.StarLines(card.key, self.n) end)
         b.pips[i] = p
     end
     b:EnableMouse(true)
-    b:SetScript("OnEnter", function(self) self.text:Show(); BondTip(self, card) end)
+    b:SetScript("OnEnter", function(self) self.text:Show(); ns.ShowTip(self, "ANCHOR_TOP", Track.BondLines(card.key)) end)
     b:SetScript("OnLeave", function(self) self.text:Hide(); Hide(self) end)
     self:BuildCelebration(card, c, panel)
     b:Hide()

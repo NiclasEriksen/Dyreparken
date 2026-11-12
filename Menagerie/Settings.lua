@@ -76,13 +76,14 @@ local function Get(row)
     return Settings:On(row.setting)
 end
 
-local function Tip(self)
-    GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-    GameTooltip:SetText(L[self.row.key], 1, 0.82, 0)
-    GameTooltip:AddLine(L[self.row.key .. ".tip"], 1, 1, 1, true)
-    if self.row.char then GameTooltip:AddLine(L["settings.char"], 0.6, 0.6, 0.6, true) end
-    GameTooltip:Show()
+-- A setting's tooltip: what it does, and whether it's this character's alone.
+function Settings.Lines(row)
+    local lines = { { L[row.key], 1, 0.82, 0 }, { L[row.key .. ".tip"], 1, 1, 1, true } }
+    if row.char then lines[3] = { L["settings.char"], 0.6, 0.6, 0.6, true } end
+    return lines
 end
+
+local function Tip(self) ns.ShowTip(self, "ANCHOR_RIGHT", Settings.Lines(self.row)) end
 
 local function Build(p)
     local f = p.frame

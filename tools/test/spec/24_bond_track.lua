@@ -68,18 +68,10 @@ return function(test, H)
         w:Run(5)
         Points(ola, 300)
         local card = ola:SelectPet(5159)
-        local tip = ola.env.GameTooltip
         local p = card.bond.pips[4]
-        p.scripts.OnEnter(p)
-        eq(table.concat(tip.lines, " / "), "Level 4: God venn / Fra 530 poeng. / Kortet får en glød under dyret.")
-        p.scripts.OnLeave(p)
-        p = card.bond.pips[1]
-        p.scripts.OnEnter(p)
-        eq(table.concat(tip.lines, " / "), "Level 1: Bekjent / Der alle starter. / Nådd!")
-        local m = card.bond.medal
-        m.scripts.OnEnter(m)
-        match(table.concat(tip.lines, " / "), "^Bånd: Venn %(level 3%) / 230 poeng til God venn%.")
-        m.scripts.OnLeave(m)
+        eq(ola:TipOf(p).text, "Level 4: God venn / Fra 530 poeng. / Kortet får en glød under dyret.")
+        eq(ola:TipOf(card.bond.pips[1]).text, "Level 1: Bekjent / Der alle starter. / Nådd!")
+        match(ola:TipOf(card.bond.medal).text, "^Bånd: Venn %(level 3%) / 230 poeng til God venn%.")
     end)
 
     test("your pet's new level is celebrated once, the next time its card shows", function()
@@ -158,9 +150,7 @@ return function(test, H)
         local lo, width = b.today.points[1][4], b.today.size[1]
         ok(math.abs(lo - 128 * 30 / 260) < 1e-6, "from where today began"); ok(math.abs(width - 128 * 10 / 260) < 1e-6)
         eq(b.next.text, "220 poeng til God venn")
-        local tip = ola.env.GameTooltip
-        b.scripts.OnEnter(b)
-        match(table.concat(tip.lines, " / "), "I dag: %+10 av 75 mulige poeng%.")
+        match(ola:TipOf(b).text, "I dag: %+10 av 75 mulige poeng%.")
         -- Herbs (liked, 25 a day), boss-kills, quests: the day's 75 is the limit.
         for _ = 1, 6 do ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366) end -- 25
         ola:Traits{ "eventyrlysten", "reiseglad" }
@@ -180,8 +170,7 @@ return function(test, H)
         match(b.next.text, "ReadyCheck%-Ready:12|t 155 poeng til God venn$", "the goal stays, with a check")
         eq(b.next.color[2], 1, "in green")
         no(b.spark:IsShown(), "the tip rests")
-        b.scripts.OnEnter(b)
-        match(table.concat(tip.lines, " / "), "I dag: fullt %(75 av 75%)%. Kom tilbake i morgen!")
+        match(ola:TipOf(b).text, "I dag: fullt %(75 av 75%)%. Kom tilbake i morgen!")
         -- Someone else's pet: no "today" (it's their day, not ours).
         ola.ns.Bond:Watch() -- (publish: a level-up would; here, the login sync)
         kari:Reload()
@@ -207,8 +196,7 @@ return function(test, H)
         w:SkipDays(5)
         local card = ola:SelectPet(5159)
         local star = card.bond.pips[3]
-        star.scripts.OnEnter(star)
-        match(table.concat(ola.env.GameTooltip.lines, " / "), "/ Du kan gi dyret ditt et kallenavn%.")
+        match(ola:TipOf(star).text, "/ Du kan gi dyret ditt et kallenavn%.")
         no(ola.ns.Registry:CanNickname(select(2, ola.ns.Registry:MyPet())))
         ola.ns.Bond:Add(269)
         ok(not ola:Printed("et kallenavn: /dp navn", true), "one short")

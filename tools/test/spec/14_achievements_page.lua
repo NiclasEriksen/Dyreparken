@@ -28,10 +28,7 @@ return function(test, H)
     end
 
     local function Tooltip(c, row)
-        row.scripts.OnEnter(row)
-        local lines = c.env.GameTooltip.lines
-        row.scripts.OnLeave(row)
-        return table.concat(lines, "\n")
+        return table.concat(c:TipOf(row), "\n")
     end
 
     local function Selected(c, n)
@@ -55,9 +52,7 @@ return function(test, H)
         eq(tab.mask.atlas, "common-sidetab-mask")
         eq(tab.hover.atlas, "common-sidetab-hover")
         no(tab.selected:IsShown())
-        tab.scripts.OnEnter(tab)
-        eq(env.GameTooltip.lines[1], "Prestasjoner")
-        tab.scripts.OnLeave(tab)
+        eq(ola:TipOf(tab)[1], "Prestasjoner")
 
         ok(Selected(ola, 2), "Pets is selected")
         tab:Click()
@@ -173,9 +168,7 @@ return function(test, H)
         ok(ten.share:IsShown())
         eq(cat.share.text, "Del")
         eq(cat.info.points[1][2], cat.share, "the date sits left of Del")
-        cat.share.scripts.OnEnter(cat.share)
-        eq(ola.env.GameTooltip.lines[1], "Del det i guildchatten.")
-        cat.share.scripts.OnLeave(cat.share)
+        eq(ola:TipOf(cat.share)[1], "Del det i guildchatten.")
         cat.share:Click()
         eq(#w.chat, 1, "only that one")
         eq(w.chat[1].text, "Ola Nord har gitt alle kattene et hjem! [Kattevræl]")
