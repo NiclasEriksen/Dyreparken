@@ -77,6 +77,10 @@ Activity.KINDS = {
     { "fun", icons = { ICON .. "INV_Misc_Toy_10", ICON .. "Spell_Holy_PowerWordShield" } }, -- a silly emote of yours
     { "sneak", wish = false, icons = { ICON .. "Ability_Stealth" } }, -- into stealth (only some can)
     { "meet", icons = { ICON .. "INV_Box_PetCarrier_01", ICON .. "INV_Misc_PetBiscuit_01" } }, -- another player's companion, met
+    -- The damage meter after a boss kill in a group (Menagerie/Meter.lua, 2026-11-12): only the eggs watch these.
+    { "dmgtop", wish = false },   -- first in damage
+    { "healtop", wish = false },  -- first in healing (a raid)
+    { "kicktop", wish = false },  -- the most interrupts
     -- A character's big moments (Menagerie/Feats.lua, 2026-11-12, the user).
     { "feat", wish = false },     -- a class quest's reward, riding, level 60 (extra: the feat's id): Feats' points
     { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it

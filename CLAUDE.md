@@ -127,7 +127,8 @@ Core/ApiProbe.lua  /dp probe api [section|clear]: what the client really has (gl
                    actor, the calendar, a pet model's animations and lengths), read-only, in DyreparkenDebugDB.api; by name only:
                    holidays (the calendar a year ahead), lengths (every species' moves, DyreparkenDebugDB.animLengths)
                    and feats (Feats' spell and quest ids as the client has them, Forever's copies among your completed
-                   quests, talent/spec getters; then logs the candidate talent, spec and trainer events this session)
+                   quests, talent/spec getters; then logs the candidate talent, spec and trainer events this session);
+                   transport (zone, map and world changes, casts and a sample every 5 s, this session: zeppelins and boats)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git; a new companion:
                    tools/companions/add.py, see "Adding a companion" in tools/companions/README.md): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
@@ -160,7 +161,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
                    every 45 minutes; read its header), Fx (one-shot particle bursts outside the journal: hearts at the cursor over a
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
-                   lines and level-ups), Feats (a character's big moments, 0.5: a class quest's reward, riding, level 60
+                   lines and level-ups), Meter (0.5: after a boss kill in a group of three or more, with a pet out, the
+                   meter's Current session read once, a second after the boss activity: first in damage, first in healing
+                   in a raid, the most interrupts are eggs-only activities (dmgtop, healtop, kicktop); their eggs
+                   (toppen, helter, sparket) a gold bubble and a cheer, likelier in a raid and far ahead), Feats (a character's big moments, 0.5: a class quest's reward, riding, level 60
                    give the pet that's out 25 points once per character, by the spell taught (SPELLS_CHANGED) or the
                    quest's id; what was had at the first look isn't new; a trainer visit, a dual-spec switch, a talent
                    reset and the tenth levels are eggs only; read its header), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card; wishes in a row, char.wishes, with achievements at 7 and 30 in a row and 100 in all), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a

@@ -286,7 +286,7 @@ frame is off, and the per-character sections say so. Not changed: the pet frame'
 - Pet frame: Edit Mode's cancel doesn't undo a move; cardMoves/cardParticles changes don't refresh the frame.
 - Moves: a pose can stay "dead" after playing dead ends at night or for a sitting pet.
 
-# The pet reacts to the damage meter (the user, 2026-11-12; shelved, probed)
+# The pet reacts to the damage meter (the user, 2026-11-12; built for 0.5: Menagerie/Meter.lua)
 
 Forever has Retail 12.0's built-in damage meter and its API, `C_DamageMeter` (in the client: /dp probe api,
 2026-11-11): `GetCombatSessionFromType(sessionType, type)` gives a session's `combatSources` (name, classFilename,

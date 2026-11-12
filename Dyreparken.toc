@@ -65,6 +65,7 @@ Menagerie\Playdate.lua
 Menagerie\Quirks.lua
 Menagerie\Fx.lua
 Menagerie\Feats.lua
+Menagerie\Meter.lua
 
 Achievements\Defs.lua
 Achievements\Achievements.lua

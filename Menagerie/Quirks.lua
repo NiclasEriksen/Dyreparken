@@ -79,7 +79,7 @@ end
 -- day, a dislike found) is saved only when it's said: a /reload in the
 -- delay used to spend it unsaid (code review 2026-11-10). said(): saves
 -- that, and what follows the line.
-function Quirks:Say(text, why, kind, said, delay, key)
+function Quirks:Say(text, why, kind, said, delay, key, bubble)
     pending.line = true
     local span = self.DELAY[delay] or self.DELAY[kind] -- (tests set DELAY to dislike and egg only)
     local wait = span[1] + self.random() * (span[2] - span[1])
@@ -90,7 +90,7 @@ function Quirks:Say(text, why, kind, said, delay, key)
         -- (Settings: chatLines off hides the line only; what it found still counts)
         if ns.Settings:On("chatLines") then ns.Print("|cffd9b3ff" .. text .. "|r") end
         -- (the pet frame: a dislike its own way, an egg a plain remark; PetFrame.lua)
-        if key then ns.Bus:Fire("PET_SAID", key, kind == "dislike" and "dislike" or "say", text) end
+        if key then ns.Bus:Fire("PET_SAID", key, bubble or (kind == "dislike" and "dislike" or "say"), text) end
         if said then said() end
     end)
 end
@@ -356,6 +356,13 @@ Quirks.EGGS = {
     { id = "trener", on = "train", chance = 0.35, test = function() return {} end },
     { id = "talentbytte", delay = "now", on = "specswap", always = true, chance = 0.5, test = function() return {} end },
     { id = "glemsel", on = "respec", always = true, chance = 0.8, test = function() return {} end },
+    -- The damage meter after a boss kill in a group (Meter.lua, 2026-11-12, the user): first in damage, or in
+    -- healing in a raid; likelier in a raid and well ahead of the next. A gold bubble and a cheer: a big one.
+    { id = "toppen", delay = "now", on = "dmgtop", always = true, bubble = "major", cheer = true,
+        chance = function() return Quirks.MeterChance() end, test = function() return {} end },
+    { id = "helter", delay = "now", on = "healtop", always = true, bubble = "major", cheer = true,
+        chance = function() return Quirks.MeterChance() end, test = function() return {} end },
+    { id = "sparket", delay = "now", on = "kicktop", chance = 0.3, test = function() return {} end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
@@ -376,6 +383,12 @@ local function Families(key)
 end
 
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
+-- The meter's eggs (Meter.lua): a dungeon boss, a raid boss, and more when well ahead of the next.
+Quirks.METER_DUNGEON, Quirks.METER_RAID, Quirks.METER_FAR = 0.35, 0.7, 0.25
+function Quirks.MeterChance()
+    local last = ns.Meter and ns.Meter.last or {}
+    return math.min(1, (last.raid and Quirks.METER_RAID or Quirks.METER_DUNGEON) + (last.far and Quirks.METER_FAR or 0))
+end
 Quirks.CAKE_CHANCE = { [10] = 0.2, [20] = 0.35, [30] = 0.5, [40] = 0.65, [50] = 0.8 }
 
 -- Eggs on moments that aren't activities: "*" eggs don't ride on them.
@@ -409,7 +422,8 @@ function Quirks:Egg(on, key, extra, seen)
                     ns.DB.char.eggs[e.id] = got
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
                     ns.Story:Mine(key, "egg", text, e.id) -- (its story keeps the line, once per egg)
-                end, e.delay or (e.on == "day" and "day" or nil), key)
+                    if e.cheer and ns.Moves then ns.Moves:Cheer(key) end -- (on its card and the pet frame)
+                end, e.delay or (e.on == "day" and "day" or nil), key, e.bubble)
                 any = true
             end
         end
@@ -451,7 +465,8 @@ end
 -- (Not dance: every emote nearby would wake it. The midnight dance comes only
 -- when a Dansefot's like already watches it.)
 Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic", "duelwon", "duellost",
-    "newpath", "fish", "chat", "campnear", "campwarm", "camp", "rested", "train", "specswap", "respec" }
+    "newpath", "fish", "chat", "campnear", "campwarm", "camp", "rested", "train", "specswap", "respec",
+    "dmgtop", "healtop", "kicktop" }
 local watching = {}
 
 function Quirks:Watch()
