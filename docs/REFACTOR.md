@@ -279,6 +279,12 @@ This is the payoff for "easier to add pets, traits and eggs".
   Events:OffAll, REGISTRY carries the pets whose bonds alone changed (JournalUI redraws only those; the
   park ignores bond-only changes). Moves' own token guards are on ns.Timers too (one group per stage, one
   for the motion stop; the actor call trace byte-identical). Left: PetFrame's Zzz chain.
+- **Phase 4b-2, done**: tooltips as data (`XxxLines` builders, `ns.ShowTip`/`ns.SetTip`, one builder
+  for the list's and the park's pet lines, `c:TipOf` in the specs); Core/UI.lua (`ns.MEDIA`/`ns.Icon`,
+  `Edges`, `Gradient`, `RoundBadge`) and `ns.Call`; Decor's Loop/Timeline/Swing in Core/Anim; one burst
+  engine (`Fx:Emit`, a pool per parent: the card's celebration, cuddle and paw badge on the card's layer,
+  Q8); `Scenes.LEVELS`, what each bond level brings. Left: the pet frame's speech bubble (one frame with
+  an icon that a higher-ranked line replaces, not a burst); JournalUI's panel edge (one line, not four).
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
   lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client
