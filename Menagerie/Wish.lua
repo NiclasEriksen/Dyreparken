@@ -25,12 +25,7 @@ end
 -- Wishes beyond its likes (2026-11-11, the user): now and then any pet wishes for time by a
 -- campfire, and a cozy one for a night in a sleeping bag. One day in CAMP_EVERY each, by the date.
 Wish.CAMP_EVERY = 6
-Wish.SLEEPERS = { latsabb = true, kosete = true, hjemlengsel = true, friluftsdyr = true }
-local function Sleeper(key)
-    if not ns.Personality:Known(key) then return false end
-    for _, t in ipairs(ns.Personality:Traits(key)) do if Wish.SLEEPERS[t.id] then return true end end
-    return false
-end
+local function Sleeper(key) return ns.Personality:Tagged(key, "sleeper") end -- (Personality.TRAITS' `is`)
 
 -- What the pet wishes for on a day ("YYYYMMDD").
 function Wish:For(key, day)

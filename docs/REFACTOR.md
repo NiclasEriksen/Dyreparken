@@ -242,6 +242,18 @@ This is the payoff for "easier to add pets, traits and eggs".
   `w:SetDate`, `c:Said` / `c:CountPrinted` / `c:Points`. Skipped as low value: `c:Adopt`, `H.same`, a
   per-client RNG. `c:TipOf` waits for Phase 4's tooltips-as-data. Left on purpose: 19_bond's made-up trait,
   23_decor's trait-cycling override, 13's own companions fixture (its tags differ).
+- **Phase 2, done**: trait tags on the rows (`is`, `place`) and `Personality:Has/Tagged` replace nine lists
+  in Fight, Wish, Quirks, Bond and three copies of HasTrait; eggs carry their own `traits`/`families`
+  (ByNature reads the egg), `on` is checked at load, `Quirks.WATCH` is built from the eggs; `ns.PetSays`,
+  `ns.Variants`/`ns.PickLine`, `Activity:WantOnly`; Voyage wants its own cast filter. 49_content.lua walks
+  traits, eggs, lines, activities, dislikes and families. **Found by it**: six minor dislikes (camp, dance,
+  fish, fun, mine, skin; 36 species) had no lines, so they could never be found, nor "Kjenner deg ut og
+  inn" completed for those pets; lines drafted (for the user to review), and 25_locale now counts minor
+  dislikes. Decided against, with reasons: Data/Families.lua (the content spec catches a missing family row
+  instead, with less churn); memoizing Personality (it runs per activity and per card refresh, not per
+  frame; a cache would go stale under tests that edit the tables); moving Feats.LIST, GATHER_IDS and the
+  zone lists into Data/ (no bug it prevents). Q5, Q6, Q9 still open: behavior kept (PetSays' `always`
+  marks Q6's lines).
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
   lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client

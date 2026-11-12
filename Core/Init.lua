@@ -122,6 +122,33 @@ function ns.SpellName(id)
     return ns.Plain(C_Spell.GetSpellName(id))
 end
 
+-- Every variant of a line: prefix.1, prefix.2, ... (Locale/nb.lua), as keys; {} for none.
+-- Kept once found (the strings don't change while playing).
+local variants = {}
+function ns.Variants(prefix)
+    local list = variants[prefix]
+    if not list then
+        list = {}
+        while strings[prefix .. "." .. (#list + 1)] do list[#list + 1] = prefix .. "." .. (#list + 1) end
+        variants[prefix] = list
+    end
+    return list
+end
+
+-- One variant of a line at random (ns.random), filled; nil when it has none.
+function ns.PickLine(prefix, vars)
+    local list = ns.Variants(prefix)
+    if #list == 0 then return nil end
+    return ns.T(list[ns.random(#list)], vars)
+end
+
+-- A pet's own line: purple in chat (unless Settings' chatLines is off; `always`: said anyway)
+-- and, with a key and a kind, on the pet frame (PET_SAID: "say", "like", "dislike", "major").
+function ns.PetSays(text, key, kind, always)
+    if always or ns.Settings:On("chatLines") then ns.Print("|cffd9b3ff" .. text .. "|r") end
+    if key and kind then ns.Bus:Fire("PET_SAID", key, kind, text) end
+end
+
 -- Start-up: each module says in its own file when it starts
 -- (ns.Start(phase, fn)); Main.lua runs the phases. Within a phase, modules
 -- start in load order (the TOC), so a module starts after the ones it uses.

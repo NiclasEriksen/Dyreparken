@@ -149,11 +149,7 @@ local NO_BLEND, BLEND = 0, 1 -- Enum.ModelBlendOperation (None, Anim)
 local STAND = 0
 local Steps -- (below)
 
-local function HasTrait(key, id)
-    if not ns.Personality:Known(key) then return false end
-    for _, t in ipairs(ns.Personality:Traits(key)) do if t.id == id then return true end end
-    return false
-end
+local function HasTrait(key, id) return ns.Personality:Has(key, id) end
 
 -- Playing dead: the egg came up today with this pet, and it hasn't been seen yet.
 local function DeadToday(key)

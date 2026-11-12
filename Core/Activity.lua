@@ -256,6 +256,18 @@ function Activity:Drop(id, owner)
     Update()
 end
 
+-- Exactly these activities for this owner (a set: id -> true): the rest it wanted are dropped.
+function Activity:WantOnly(owner, set)
+    for id, owners in pairs(wanted) do
+        if owners[owner] and not set[id] then owners[owner] = nil end
+    end
+    for id in pairs(set) do
+        wanted[id] = wanted[id] or {}
+        wanted[id][owner] = true
+    end
+    Update()
+end
+
 -- Can this client produce the activity at all?
 function Activity:Available(id)
     local src = sources[id]

@@ -80,6 +80,18 @@ and refuses the push if it fails.
   are always undone, including after a reload. Don't let tests get in the way of reshaping game code. Tighten
   this once the games protocol settles.
 
+## Adding content
+
+`tools/test/spec/49_content.lua` walks all of it, so new content needs no test of its own unless it brings new logic.
+- **A trait**: a row in `Personality.TRAITS` (what other modules ask of it goes on the row: `is = { tags }`,
+  `place`), its `trait.<id>.*` lines, its particles in `Decor.TRAITS`. Never a list of trait ids in another
+  module: ask `Personality:Has(key, id)` / `:Tagged(key, tag)`.
+- **An egg**: a row in `Quirks.EGGS` and its `egg.<id>.N` lines. Lines by nature: `traits` / `families` on the egg
+  and `egg.<id>.<trait|family>.N`. Its activity is watched for it (Quirks.WATCH is built from the eggs). Ids are permanent.
+- **An activity**: a row in `Activity.KINDS`, a source, `activity.<id>`; `dislike.<id>.N` if anything can dislike it.
+- **A family**: in `Scenes.ORDER` and a row in each table the content spec names.
+- Lines: `ns.PickLine(prefix, vars)`; a pet's own line: `ns.PetSays(text, key, kind)`.
+
 ## Releasing
 
 - Push a tag `vX.Y.Z` (release), `vX.Y.Z-betaN` or `vX.Y.Z-alphaN`. `.github/workflows/release.yml` runs the checks,

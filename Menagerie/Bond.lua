@@ -229,7 +229,6 @@ Bond.ACTIVITIES = {}
 for _, k in ipairs(ns.Activity.KINDS) do
     if k.always then Bond.ACTIVITIES[#Bond.ACTIVITIES + 1] = k.id end
 end
-local watching = {}
 
 function Bond:Watch()
     local want = {}
@@ -243,13 +242,7 @@ function Bond:Watch()
             if minor then want[minor] = true end
         end
     end
-    for id in pairs(watching) do
-        if not want[id] then ns.Activity:Drop(id, Bond) end
-    end
-    for id in pairs(want) do
-        if not watching[id] then ns.Activity:Want(id, Bond) end
-    end
-    watching = want
+    ns.Activity:WantOnly(Bond, want)
 end
 
 -- What the "when" traits read (Personality.lua): the time, the group and
@@ -453,27 +446,21 @@ Bond.PLACE_CHANCE = {
     rabbit = 0.35, murloc = 0.35, bear = 0.35, frog = 0.3, bug = 0.3, mechanical = 0.3, demon = 0.3, festive = 0.3,
     farm = 0.25, cat = 0.25, reptile = 0.25, snake = 0.2, ooze = 0.2, plant = 0.2,
 }
-Bond.PLACE_TRAITS = { oppdager = 2, eventyrlysten = 1.3, friluftsdyr = 1.3, skybaren = 1.3, latsabb = 0.6, hjemlengsel = 0.5 }
 Bond.PLACE_MAX = 0.9
 Bond.PLACE_OWN = 0.5 -- the chance a family's own line is picked (when it has some), else a general one
 
 function Bond:PlaceChance(key)
     local family = ns.Scenes:Families(key)[1]
     local p = self.PLACE_CHANCE[family] or self.PLACE_CHANCE.DEFAULT
-    for _, t in ipairs(ns.Personality:Traits(key)) do p = p * (self.PLACE_TRAITS[t.id] or 1) end
+    for _, t in ipairs(ns.Personality:Traits(key)) do p = p * (t.place or 1) end -- (Personality.TRAITS' `place`)
     return math.min(p, self.PLACE_MAX)
 end
 
 -- Its line: a family's own now and then (first.place.<family>.N), else a general one (first.place.N).
-local function Variants(prefix)
-    local list = {}
-    while ns.Strings[prefix .. "." .. (#list + 1)] do list[#list + 1] = prefix .. "." .. (#list + 1) end
-    return list
-end
 function Bond:PlaceLine(key, place)
     local family = ns.Scenes:Families(key)[1]
-    local own = family and Variants("first.place." .. family) or {}
-    local list = (#own > 0 and ns.random() < self.PLACE_OWN) and own or Variants("first.place")
+    local own = family and ns.Variants("first.place." .. family) or {}
+    local list = (#own > 0 and ns.random() < self.PLACE_OWN) and own or ns.Variants("first.place")
     return ns.T(list[ns.random(#list)], { pet = ns.Registry:NameOf(key), place = place })
 end
 

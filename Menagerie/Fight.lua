@@ -26,21 +26,14 @@ Fight.SWING = 2.5            -- seconds: a swing when the weapon's speed can't b
 Fight.SWING_SHARE = 0.8      -- a hit counts as a swing this share of a swing after the last
 Fight.PHYSICAL = 1           -- UNIT_COMBAT's school mask: white damage
 
--- By traits (a fighter trait wins over the others): they attack more; the timid cower; a Latsabb watches.
-Fight.FIGHTERS = { eventyrlysten = true, rampete = true, steinhard = true, sjorover = true, roverdyr = true,
-    jeger = true, ambisios = true, trofast = true }
-Fight.TIMID = { kosete = true, kjaelen = true, hjemlengsel = true, venneflokk = true }
-Fight.WATCHERS = { latsabb = true }
-
--- "fighter", "timid", "watch" or "normal".
+-- By traits (Personality.TRAITS' `is`; a fighter trait wins over the others): they attack more;
+-- the timid cower; a watcher (a Latsabb) watches. "fighter", "timid", "watch" or "normal".
 function Fight.Nature(key)
-    local timid, watch
-    for _, t in ipairs(ns.Personality:Traits(key)) do
-        if Fight.FIGHTERS[t.id] then return "fighter" end
-        timid = timid or Fight.TIMID[t.id]
-        watch = watch or Fight.WATCHERS[t.id]
-    end
-    return timid and "timid" or watch and "watch" or "normal"
+    local P = ns.Personality
+    if P:Tagged(key, "fighter") then return "fighter" end
+    if P:Tagged(key, "timid") then return "timid" end
+    if P:Tagged(key, "watcher") then return "watch" end
+    return "normal"
 end
 
 local frame -- (in a fight only)

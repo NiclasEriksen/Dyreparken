@@ -47,23 +47,7 @@ Quirks.CHAT_BURST, Quirks.CHAT_SPAN = 5, 120
 
 local T = ns.T
 
--- Every variant of a line: prefix.1, prefix.2, ...
-local variants = {}
-local function Variants(prefix)
-    local list = variants[prefix]
-    if not list then
-        list = {}
-        while ns.Strings[prefix .. "." .. (#list + 1)] do list[#list + 1] = prefix .. "." .. (#list + 1) end
-        variants[prefix] = list
-    end
-    return list
-end
-
-local function Pick(prefix, vars)
-    local list = Variants(prefix)
-    if #list == 0 then return nil end
-    return T(list[ns.random(#list)], vars)
-end
+local Pick = ns.PickLine
 
 -- A line decided and not yet said: nothing else is decided meanwhile.
 local pending = { eggs = {} }
@@ -86,10 +70,9 @@ function Quirks:Say(text, why, kind, said, delay, key, bubble)
     C_Timer.After(wait, function()
         pending.line = nil
         ns.DB.char.quirkAt = ns.Now()
-        -- (Settings: chatLines off hides the line only; what it found still counts)
-        if ns.Settings:On("chatLines") then ns.Print("|cffd9b3ff" .. text .. "|r") end
-        -- (the pet frame: a dislike its own way, an egg a plain remark; PetFrame.lua)
-        if key then ns.Bus:Fire("PET_SAID", key, bubble or (kind == "dislike" and "dislike" or "say"), text) end
+        -- (chatLines off hides the line only, what it found still counts; on the pet frame a dislike
+        -- its own way, an egg a plain remark)
+        ns.PetSays(text, key, bubble or (kind == "dislike" and "dislike" or "say"))
         if said then said() end
     end)
 end
@@ -118,9 +101,7 @@ function Quirks:Dislike(key, id, minor)
         ns.DB.char.sulk = { key = key, day = ns.Today() } -- (Moves: its back turned on the card, once)
         if not first then return end
         ns.Bus:Fire("DISLIKE_FOUND", key, id)
-        if ns.Settings:On("chatLines") then
-            ns.Print("|cffd9b3ff" .. T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }) .. "|r")
-        end
+        ns.PetSays(T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }))
         if ns.JournalUI then ns.JournalUI:Refresh() end
     end, self.DISLIKE_DELAY[id], key)
 end
@@ -128,25 +109,24 @@ end
 ------------------------------------------------------------------------------
 -- Easter eggs: { id, on = activity (or "seen": a companion under the mouse),
 -- chance (default 1), test = fn(ctx) -> vars or nil }. ctx: key, name (the
--- pet's), id, extra, t, family (set), today (the activity's count today).
+-- pet's), id, extra, t, family (set), today (the activity's count today), egg.
 -- `always`: not held back by the hour (rare by nature, and a day late is lost).
+-- `traits`, `families`: an egg that speaks by the pet's nature (Quirks.ByNature),
+-- in this order, first match wins. `watch = false`: its activity isn't watched for it
+-- (the rest are: Quirks.WATCH is built from the eggs). `on` must be an activity in
+-- Activity.KINDS, a moment (MOMENTS) or "*": checked at load.
+-- Egg ids are permanent: char.eggs, a pet's story and the eggs:N achievements count them.
 ------------------------------------------------------------------------------
 local function On(md) return function(ctx) return date("%m%d", ctx.t) == md and {} end end
 local function Game(word) return function(ctx) return ns.Holidays:On(ctx.t) == word and {} end end
 
 local MILESTONES = { [200] = true, [500] = true, [1000] = true }
 
-local function HasTrait(key, id)
-    if not ns.Personality:Known(key) then return false end
-    for _, t in ipairs(ns.Personality:Traits(key)) do if t.id == id then return true end end
-    return false
-end
--- Cozy or adventurous (for the campfire eggs), or nil: cozy wins if it's both.
-Quirks.COZY = { "latsabb", "kosete", "hjemlengsel", "balkos" }
-Quirks.ADVENTUROUS = { "eventyrlysten", "oppdager", "reiseglad", "hoppetass", "skybaren" }
+local function HasTrait(key, id) return ns.Personality:Has(key, id) end
+-- Cozy or adventurous (for the campfire eggs; Personality.TRAITS' `is`), or nil: cozy wins if it's both.
 local function Kind(key)
-    for _, id in ipairs(Quirks.COZY) do if HasTrait(key, id) then return "cozy" end end
-    for _, id in ipairs(Quirks.ADVENTUROUS) do if HasTrait(key, id) then return "adventurous" end end
+    if ns.Personality:Tagged(key, "cozy") then return "cozy" end
+    if ns.Personality:Tagged(key, "adventurous") then return "adventurous" end
 end
 local function Weekday(t) return tonumber(date("%w", t)) end -- 0 = Sunday
 local function Hour(t) return tonumber(date("%H", t)) end
@@ -239,7 +219,7 @@ Quirks.EGGS = {
         return HasTrait(ctx.key, "hoppetass") and { _key = "egg.hopp.hoppetass" } or {}
     end },
     { id = "lur", on = "nap", test = function(ctx) return ctx.today == 5 and {} end },
-    { id = "midnattsdans", on = "dance", always = true, test = function(ctx) return Hour(ctx.t) == 0 and tonumber(date("%M", ctx.t)) < 30 and {} end },
+    { id = "midnattsdans", on = "dance", always = true, watch = false, test = function(ctx) return Hour(ctx.t) == 0 and tonumber(date("%M", ctx.t)) < 30 and {} end },
     { id = "fredagstaco", on = "*", always = true, chance = 0.5, test = function(ctx)
         return Weekday(ctx.t) == 5 and Hour(ctx.t) >= 17 and (HasTrait(ctx.key, "glupsk") or ctx.family.cat) and {}
     end },
@@ -364,22 +344,26 @@ Quirks.EGGS = {
     { id = "sparket", delay = "now", on = "kicktop", chance = 0.3, test = function() return {} end },
     -- A big fall (2026-11-12, the user: pets react "according to traits"): the first of its traits with a line
     -- of its own (Quirks.FALL_TRAITS), else a worried one; the end of you, its own.
-    { id = "stup", delay = "now", on = "fall", always = true, test = function(ctx)
-        if ctx.extra == "dead" then return { _key = "egg.stup.dod" } end
-        for _, id in ipairs(Quirks.FALL_TRAITS) do
-            if HasTrait(ctx.key, id) then return { _key = "egg.stup." .. id } end
-        end
-        return {}
-    end },
+    { id = "stup", delay = "now", on = "fall", always = true,
+        traits = { "hoppetass", "skybaren", "rampete", "skoyer", "eventyrlysten", "latsabb", "hjemlengsel", "kjaelen",
+            "kosete", "trofast" },
+        test = function(ctx)
+            if ctx.extra == "dead" then return { _key = "egg.stup.dod" } end
+            return Quirks.ByNature(ctx)
+        end },
     -- Zeppelins and boats (Voyage.lua, 2026-11-12, the user): by trait, then family, else a plain one. A pet
     -- afraid of flying is afraid up there too.
-    { id = "luftskip", on = "zeppelin", always = true, chance = 0.6, test = function(ctx)
-        if ns.Personality:Known(ctx.key) and ns.Personality:Dislikes(ctx.key).taxi then return { _key = "egg.luftskip.redd" } end
-        return Quirks.ByNature(ctx, "luftskip", Quirks.ZEPPELIN_TRAITS, Quirks.ZEPPELIN_FAMILIES)
-    end },
-    { id = "seilas", on = "boat", always = true, chance = 0.6, test = function(ctx)
-        return Quirks.ByNature(ctx, "seilas", Quirks.BOAT_TRAITS, Quirks.BOAT_FAMILIES)
-    end },
+    { id = "luftskip", on = "zeppelin", always = true, chance = 0.6,
+        traits = { "skybaren", "reiseglad", "eventyrlysten", "hjemlengsel", "latsabb" },
+        families = { "bird", "owl", "dragon", "mechanical" },
+        test = function(ctx)
+            if ns.Personality:Known(ctx.key) and ns.Personality:Dislikes(ctx.key).taxi then return { _key = "egg.luftskip.redd" } end
+            return Quirks.ByNature(ctx)
+        end },
+    { id = "seilas", on = "boat", always = true, chance = 0.6,
+        traits = { "sjorover", "vannhund", "dykker", "hjemlengsel", "eventyrlysten" },
+        families = { "pirate", "cat", "frog", "murloc", "reptile", "bird" },
+        test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
@@ -387,11 +371,19 @@ Quirks.EGGS = {
         return n > 0 and n % 100 == 0 and { n = n }
     end },
 }
-local eggsOn = {} -- activity -> its eggs
+-- Eggs on moments that aren't activities: "*" eggs don't ride on them.
+local MOMENTS = { seen = true, name = true, party = true }
+
+local eggsOn, eggById = {}, {} -- activity -> its eggs; id -> egg
 for _, e in ipairs(Quirks.EGGS) do
+    assert(ns.Activity.KIND[e.on] or MOMENTS[e.on] or e.on == "*", "Quirks.EGGS: " .. e.id .. " on " .. tostring(e.on))
+    assert(not eggById[e.id], "Quirks.EGGS: two eggs " .. e.id)
+    for _, t in ipairs(e.traits or {}) do assert(ns.Personality.ById(t), "Quirks.EGGS: " .. e.id .. ": no trait " .. t) end
     eggsOn[e.on] = eggsOn[e.on] or {}
     table.insert(eggsOn[e.on], e)
+    eggById[e.id] = e
 end
+function Quirks.EggById(id) return eggById[id] end
 
 local function Families(key)
     local set = {}
@@ -400,25 +392,20 @@ local function Families(key)
 end
 
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
--- Lines by nature: the first of its traits with its own (egg.<id>.<trait>.N), then its families'
--- (egg.<id>.<family>.N), else the plain ones (egg.<id>.N).
-Quirks.ZEPPELIN_TRAITS = { "skybaren", "reiseglad", "eventyrlysten", "hjemlengsel", "latsabb" }
-Quirks.ZEPPELIN_FAMILIES = { "bird", "owl", "dragon", "mechanical" }
-Quirks.BOAT_TRAITS = { "sjorover", "vannhund", "dykker", "hjemlengsel", "eventyrlysten" }
-Quirks.BOAT_FAMILIES = { "pirate", "cat", "frog", "murloc", "reptile", "bird" }
-function Quirks.ByNature(ctx, id, traits, families)
-    for _, t in ipairs(traits) do
-        if HasTrait(ctx.key, t) and ns.Strings["egg." .. id .. "." .. t .. ".1"] then return { _key = "egg." .. id .. "." .. t } end
+-- Lines by nature, from the egg's own lists (EGGS: traits, families): the first of its
+-- traits the pet has (egg.<id>.<trait>.N), then its families' (egg.<id>.<family>.N), else
+-- the plain ones (egg.<id>.N). A test holds every listed one to its lines.
+function Quirks.ByNature(ctx)
+    local e = ctx.egg
+    for _, t in ipairs(e.traits or {}) do
+        if HasTrait(ctx.key, t) and ns.Strings["egg." .. e.id .. "." .. t .. ".1"] then return { _key = "egg." .. e.id .. "." .. t } end
     end
-    for _, f in ipairs(families) do
-        if ctx.family[f] and ns.Strings["egg." .. id .. "." .. f .. ".1"] then return { _key = "egg." .. id .. "." .. f } end
+    for _, f in ipairs(e.families or {}) do
+        if ctx.family[f] and ns.Strings["egg." .. e.id .. "." .. f .. ".1"] then return { _key = "egg." .. e.id .. "." .. f } end
     end
     return {}
 end
 
--- The traits with a fall of their own to say (Locale egg.stup.<trait>.N), first match wins.
-Quirks.FALL_TRAITS = { "hoppetass", "skybaren", "rampete", "skoyer", "eventyrlysten", "latsabb", "hjemlengsel",
-    "kjaelen", "kosete", "trofast" }
 -- The meter's eggs (Meter.lua): a dungeon boss, a raid boss, and more when well ahead of the next.
 Quirks.METER_DUNGEON, Quirks.METER_RAID, Quirks.METER_FAR = 0.35, 0.7, 0.25
 function Quirks.MeterChance()
@@ -426,9 +413,6 @@ function Quirks.MeterChance()
     return math.min(1, (last.raid and Quirks.METER_RAID or Quirks.METER_DUNGEON) + (last.far and Quirks.METER_FAR or 0))
 end
 Quirks.CAKE_CHANCE = { [10] = 0.2, [20] = 0.35, [30] = 0.5, [40] = 0.65, [50] = 0.8 }
-
--- Eggs on moments that aren't activities: "*" eggs don't ride on them.
-local MOMENTS = { seen = true, name = true, party = true }
 
 function Quirks:Egg(on, key, extra, seen)
     local list = {}
@@ -448,6 +432,7 @@ function Quirks:Egg(on, key, extra, seen)
         local chance = type(e.chance) == "function" and e.chance(ctx) or e.chance
         if (e.always or self:Ready()) and not done
             and (not chance or ns.random() < chance) then
+            ctx.egg = e
             local vars = e.test(ctx)
             local text = vars and Pick(vars._key or ("egg." .. e.id), setmetatable({ pet = ctx.name }, { __index = vars }))
             if text then
@@ -498,12 +483,21 @@ end
 -- Watching: the dislikes of the pets we'd have out (the adopted one and the
 -- active one), and what the eggs read that the bond may not.
 ------------------------------------------------------------------------------
--- (Not dance: every emote nearby would wake it. The midnight dance comes only
--- when a Dansefot's like already watches it.)
-Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic", "duelwon", "duellost",
-    "newpath", "fish", "chat", "campnear", "campwarm", "camp", "rested", "train", "specswap", "respec",
-    "dmgtop", "healtop", "kicktop", "fall", "zeppelin", "boat" }
-local watching = {}
+-- What the eggs read that the bond doesn't always watch: every egg's activity, but the
+-- moments, "*", the bond's `always` ones, and an egg's `watch = false` (not dance: every
+-- emote nearby would wake it; the midnight dance comes only when a Dansefot's like
+-- already watches it).
+Quirks.WATCH = {}
+do
+    local seen = {}
+    for _, e in ipairs(Quirks.EGGS) do
+        local k = ns.Activity.KIND[e.on]
+        if k and not k.always and e.watch ~= false and not seen[e.on] then
+            seen[e.on] = true
+            Quirks.WATCH[#Quirks.WATCH + 1] = e.on
+        end
+    end
+end
 
 function Quirks:Watch()
     local want = {}
@@ -511,13 +505,7 @@ function Quirks:Watch()
     for _, key in ipairs({ ns.Registry:MyPet() or false, ns.Summon:ActiveKey() or false }) do
         if key then for id in pairs((ns.Personality:Dislikes(key))) do want[id] = true end end
     end
-    for id in pairs(watching) do
-        if not want[id] then ns.Activity:Drop(id, Quirks) end
-    end
-    for id in pairs(want) do
-        if not watching[id] then ns.Activity:Want(id, Quirks) end
-    end
-    watching = want
+    ns.Activity:WantOnly(Quirks, want)
 end
 
 function Quirks:Init()

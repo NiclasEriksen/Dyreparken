@@ -40,13 +40,13 @@ return function(test, H)
     test("its traits decide what it says: a Hoppetass is impressed, a Latsabb knew it; a fatal one its own", function()
         local w, ola = Setup({ "latsabb", "hoppetass" })
         Hp(w, ola, 200)
-        ok(ola:Printed("Det hoppet skal det prøve selv", true), "Hoppetass comes first in FALL_TRAITS")
+        ok(ola:Printed("Det hoppet skal det prøve selv", true), "Hoppetass comes first in the egg's traits")
         local w2, kari = Setup({ "latsabb" })
         Hp(w2, kari, 100)
         ok(kari:Printed("tryggest å holde seg på bakken", true))
         local w3, per = Setup({ "hoppetass" })
         Hp(w3, per, 0)
         ok(per:Printed("Det var visst litt for høyt", true), "the end of you: its own line")
-        for _, id in ipairs(ola.ns.Quirks.FALL_TRAITS) do ok(ola.ns.Strings["egg.stup." .. id .. ".1"], id) end
+        for _, id in ipairs(ola.ns.Quirks.EggById("stup").traits) do ok(ola.ns.Strings["egg.stup." .. id .. ".1"], id) end
     end)
 end

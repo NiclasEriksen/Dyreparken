@@ -99,6 +99,10 @@ end
 
 -- Only while something wants the rides (Quirks' eggs, always): the events, on the shared frame.
 function Voyage:Init()
+    -- Our own want of the zeppelin source, for its cast filter: without it a hearthstone's loading
+    -- screen could pass for a ride whenever no egg happened to want "zeppelin". Free: the gathering
+    -- activities (always watched) keep UNIT_SPELLCAST_SUCCEEDED registered anyway.
+    ns.Activity:Want("zeppelin", Voyage)
     ns.Events:On("LOADING_SCREEN_ENABLED", Voyage, function()
         -- (where we leave from: the zone and continent are still ours here, not at PLAYER_LEAVING_WORLD)
         from = Here()

@@ -52,9 +52,8 @@ function Playdate:Count(mine, sender, theirs)
     local total = 0
     for _, m in pairs(all[mine]) do total = total + m end
     if total == 1 then ns.Story:Mine(mine, "first.play", id) end -- (its very first playdate with you)
-    if n == self.INSEPARABLE and ns.Settings:On("chatLines") then
-        ns.Print("|cffd9b3ff" .. ns.T("play.inseparable", { pet = ns.Registry:NameOf(mine),
-            friend = ns.Registry:NameFor(theirs, sender) }) .. "|r")
+    if n == self.INSEPARABLE then
+        ns.PetSays(ns.T("play.inseparable", { pet = ns.Registry:NameOf(mine), friend = ns.Registry:NameFor(theirs, sender) }))
     end
 end
 

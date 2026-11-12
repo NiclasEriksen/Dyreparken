@@ -85,15 +85,12 @@ function Bonds:TellUnlocks(key, level)
     local name = ns.Registry:NameOf(key)
     if like and level >= C.MINOR_LIKE_LEVEL and not told[key].like then
         told[key].like = true
-        local line = ns.T("unlock.like", { pet = name, what = P.NOUN[like] })
-        ns.Print("|cffd9b3ff" .. line .. "|r")
-        ns.Bus:Fire("PET_SAID", key, "major", line)
+        -- (always: said even with chat lines off, as it was; docs/REFACTOR.md Q6)
+        ns.PetSays(ns.T("unlock.like", { pet = name, what = P.NOUN[like] }), key, "major", true)
     end
     if dislike and level >= C.MINOR_DISLIKE_LEVEL and not told[key].dislike then
         told[key].dislike = true
-        local line = ns.T("unlock.dislike", { pet = name })
-        ns.Print("|cffd9b3ff" .. line .. "|r")
-        ns.Bus:Fire("PET_SAID", key, "major", line)
+        ns.PetSays(ns.T("unlock.dislike", { pet = name }), key, "major", true)
     end
 end
 
@@ -201,9 +198,7 @@ function Bonds:Patted(text, sender)
     local now = GetTime()
     if patted[sender] and now - patted[sender] < self.PAT_AGAIN then return end
     patted[sender] = now
-    local line = ns.T("pat.thanks", { pet = ns.Registry:NameOf(key), who = sender })
-    ns.Print("|cffd9b3ff" .. line .. "|r")
-    ns.Bus:Fire("PET_SAID", key, "like", line)
+    ns.PetSays(ns.T("pat.thanks", { pet = ns.Registry:NameOf(key), who = sender }), key, "like", true) -- (Q6)
     if ns.Fx then ns.Fx:Burst({ DEFAULT_CHAT_FRAME, "TOPRIGHT", -24, -8 }, "heart", { n = 4, color = ns.Fx.PINK, size = 0.7 }) end
 end
 
@@ -291,7 +286,7 @@ function Bonds:Pat()
     if not text then return ns.Print(ns.L["pat.nothing"]) end
     SendChatMessage(text, "EMOTE")
     local voice = self:Voice(key, name)
-    if voice then ns.Print("|cffd9b3ff" .. voice .. "|r") end
+    if voice then ns.PetSays(voice, nil, nil, true) end -- (Q6)
 end
 
 ns.Start("login", function() Bonds:Init() end)
