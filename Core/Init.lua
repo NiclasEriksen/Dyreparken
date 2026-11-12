@@ -257,6 +257,7 @@ ns.Bus.EVENTS = {
     MY_NAME = "key, entry: this character named or renamed a pet (Registry)",
     ADOPTED = "key: this character adopted a pet (Registry)",
     ACTIVE_PET = "key: the pet auto-summon keeps out changed (Summon)",
+    PET_OUT = "key: auto-summon found its pet already out (Summon:Check); Activity starts the day's visit if due, before Check goes on",
     COMPANION_SEEN = "speciesID, owner: a companion's tooltip showed in the world (Tooltip)",
     HOLIDAYS = "(none): today's holidays were read from the calendar (Holidays)",
     -- Bonds

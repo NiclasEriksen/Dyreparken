@@ -312,6 +312,9 @@ end
 function Activity:NewDay()
     if self.dayChecked and Today() ~= self.dayChecked then self:CheckDay() end
 end
+-- Our pet came back out on its own (a loading screen, landing), with no summon
+-- call for the hook in Init to see: its day's visit may be due (Summon fires this).
+ns.Bus:On("PET_OUT", function() Activity:NewDay() end)
 
 Activity:Source({ id = "day", events = {} })
 

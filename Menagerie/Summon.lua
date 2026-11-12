@@ -156,7 +156,7 @@ function Summon:Check(reason)
     ns.Log("Summon", "check (%s): out=%s", tostring(reason), tostring(out))
     -- (ours came back on its own, after a loading screen or landing: its day's
     -- visit may be due, with no summon call to say so)
-    if out and ns.Pets:KeyOf(out) == key then swapTo = nil; ns.Activity:NewDay() end
+    if out and ns.Pets:KeyOf(out) == key then swapTo = nil; ns.Bus:Fire("PET_OUT", key) end
     if out and swapTo ~= key then return end
     local guid = ns.Pets:Owned()[key]
     if not guid then return end
