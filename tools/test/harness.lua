@@ -191,13 +191,18 @@ end
 local function noop() end
 for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPoints", "SetAllPoints",
     "SetMotionScriptsWhileDisabled", "SetFrameStrata", "EnableMouse", "SetMovable", "RegisterForDrag",
-    "StartMoving", "StopMovingOrSizing",
+    "StopMovingOrSizing",
     "RegisterForClicks", "SetNormalTexture", "SetHighlightTexture", "SetPushedTexture", "SetJustifyH",
     "SetJustifyV", "SetFontObject", "SetWordWrap" }) do
     Frame[m] = noop
 end
 
 function Frame:SetClampedToScreen(v) self.clamped = v end
+-- Like the client: a named frame moved by StartMoving is user-placed, and the client keeps its spot in
+-- its own layout cache (layout-local.txt) until told otherwise.
+function Frame:StartMoving() self.moving = true; self.userPlaced = true end
+function Frame:SetUserPlaced(v) self.userPlaced = v and true or false end
+function Frame:IsUserPlaced() return self.userPlaced == true end
 function Frame:EnableMouseWheel(v) self.wheel = v end
 function Frame:SetScale(s) self.scale = s end
 function Frame:GetScale() return self.scale or 1 end

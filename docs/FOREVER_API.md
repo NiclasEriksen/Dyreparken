@@ -385,7 +385,10 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   -50** (left, right, top, bottom) on its 386 px: the model's view is its bottom part, 50 px below the edge to 86
   above, so the pet stands low with room above. Ours had none: the pet sat at the top, half out of the frame.
 - **Edit Mode**: `EventRegistry:RegisterCallback("EditMode.Enter"/"EditMode.Exit", fn, owner)` fire for an addon
-  (the same test). `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.
+  (the same test).
+- **The layout cache** (2026-11-12, 1.60.1, from Logs/AccountData.log): a named frame moved with `StartMoving` is
+  user-placed, and the client saves its spot itself ("Frame: DyreparkenPetFrame", anchor, x, y), to restore it
+  before our code runs. A frame that keeps its own spot calls `SetUserPlaced(false)` after a drag. `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.
 - **The year's holidays** (`/dp probe api holidays`, 2026-11-11, Nov 2026 to Oct 2027; event ids, `eventType` 4):
   324 Hallow's End, 141 Feast of Winter Veil (Dec 15 to Jan 2), 327 Lunar Festival (Feb 2-16), 335 Love is in the
   Air (Feb 11-16), 181 Noblegarden (Mar 29-30), 341 Midsummer Fire Festival (Jun 21 to Jul 5), 321 Harvest Festival

@@ -62,6 +62,7 @@ function PF:Build()
     f:SetFrameStrata("LOW")
     f:SetMovable(true)
     f:SetClampedToScreen(true)
+    Call(f, "SetUserPlaced", false) -- (drops a spot the client cached from an earlier drag: OnDragStop)
     f:Hide()
     self.frame = f
 
@@ -131,7 +132,9 @@ function PF:Build()
     click:RegisterForClicks("LeftButtonUp")
     click:SetScript("OnClick", function() if not PF.editing then PF:OpenCard() end end)
     click:SetScript("OnDragStart", function() if PF.editing then f:StartMoving() end end)
-    click:SetScript("OnDragStop", function() f:StopMovingOrSizing(); PF:SavePoint() end)
+    -- Not user-placed (2026-11-12, seen in the client's logs): StartMoving makes a named frame so, and the
+    -- client then keeps its spot in its own layout cache too. Ours is char.petFrame, placed at login.
+    click:SetScript("OnDragStop", function() f:StopMovingOrSizing(); Call(f, "SetUserPlaced", false); PF:SavePoint() end)
     click:SetScript("OnMouseWheel", function(_, delta) if PF.editing then PF:Resize(delta) end end)
     click:EnableMouseWheel(false) -- (a wheel script turns it on: the camera would never zoom over it)
     click:SetScript("OnEnter", function(b)

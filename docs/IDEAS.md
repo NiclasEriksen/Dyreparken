@@ -283,8 +283,7 @@ frame is off, and the per-character sections say so. Not changed: the pet frame'
 - HELLO is handled on any channel (Version.lua); a whisper can trigger a fake "newer version" notice.
 - Holidays: `asking` stays true if CALENDAR_UPDATE_EVENT_LIST never comes; the day is filed under the local date.
 - Comm retries only AddonMessageThrottle; other send failures drop a chunk silently.
-- Pet frame: Edit Mode's cancel doesn't undo a move; a named frame moved with StartMoving may be saved in the
-  layout cache (SetUserPlaced(false)); cardMoves/cardParticles changes don't refresh the frame.
+- Pet frame: Edit Mode's cancel doesn't undo a move; cardMoves/cardParticles changes don't refresh the frame.
 - Moves: a pose can stay "dead" after playing dead ends at night or for a sitting pet.
 
 # The pet reacts to the damage meter (the user, 2026-11-12; shelved, the probe not run yet)
