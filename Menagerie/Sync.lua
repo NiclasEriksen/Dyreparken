@@ -59,6 +59,8 @@ local C = ns.Config
 --   count   counted against Config.SYNC_MAX_ENTRIES (TooBig). Guild achievements never were, and
 --           counting them now would refuse what older peers accept.
 --   registry  a change here is a registry change (Registry:Changed, CheckMine)
+--   keyed   a change here touches only its pet (bonds): Registry:Changed names the pets, so the
+--           card and the list redraw only those (a guildmate's BOND came for every point)
 -- The parts, the digest and what TooBig counts are the wire: tools/test/spec/50_wire.lua pins
 -- them for a fixed world.
 local R = ns.Registry
@@ -83,7 +85,7 @@ Sync.TABLES = {
     { wire = "b", part = 3, nested = true, source = function() return R:AdoptedLife() end, valid = R.ValidBond,
         merge = function(key, carer, e) return R:MergeLife(key, carer, e) end,
         digest = function(key, carer, e) return "b" .. key .. "\31" .. carer .. "\31" .. ns.Bond:Level(e.p) end,
-        count = true, registry = true },
+        count = true, registry = true, keyed = true },
 }
 
 -- Adler-32 of a canonical listing of every store.
@@ -222,7 +224,11 @@ end
 -- Merge what a message carries, by the stores' wire keys ({ r = ..., n = ... });
 -- returns true if the registry changed.
 local function MergeAll(msg)
-    local changed = false
+    local changed, whole, keys = false, false, {}
+    local function Changed(row, key)
+        changed = true
+        if row.keyed then keys[key] = true else whole = true end
+    end
     for _, row in ipairs(Sync.TABLES) do
         local t = msg[row.wire]
         if type(t) == "table" then
@@ -232,19 +238,19 @@ local function MergeAll(msg)
                 for key, byKey in pairs(t) do
                     if type(byKey) == "table" then
                         for author, e in pairs(byKey) do
-                            if row.merge(key, author, e) and row.registry then changed = true end
+                            if row.merge(key, author, e) and row.registry then Changed(row, key) end
                         end
                     end
                 end
             else
                 for key, e in pairs(t) do
-                    if row.merge(key, e) and row.registry then changed = true end
+                    if row.merge(key, e) and row.registry then Changed(row, key) end
                 end
             end
         end
     end
     if changed then
-        ns.Registry:Changed()
+        ns.Registry:Changed(not whole and keys or nil)
         ns.Registry:CheckMine()
     end
     return changed

@@ -206,5 +206,5 @@ function Park:Open() sp:Open() end
 function Park:IsOpen() return sp:IsOpen() end
 function Park:Refresh() sp:Refresh() end
 
-ns.Bus:On("REGISTRY", function() Park:Refresh() end)
-ns.Bus:On("BOND", function() Park:Refresh() end)
+-- (Bonds show only in a cell's tooltip, read as it opens: a change of bonds alone redraws nothing.)
+ns.Bus:On("REGISTRY", function(keys) if not keys then Park:Refresh() end end)

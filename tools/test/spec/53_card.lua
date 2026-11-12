@@ -128,4 +128,47 @@ return function(test, H)
         E:OffAll(b); E:OffAll({}) -- (nothing left; an owner with none)
         for _, f in ipairs(ola.frames) do no(f.events.PET_BATTLE_CLOSE) end
     end)
+
+    -- Every guildmate's BOND redrew the whole list, the open card (its decorations' specs and all)
+    -- and the park, though nothing there shows that pet.
+    test("a guildmate's bond with another pet redraws neither the open card nor the park; with the card's pet, the card", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 }, journal = true }
+        ola:Slash("adopter panda"); w:Run(5)
+        ola:SelectPet(5159)
+        local draws, Paint = 0, ola.ns.Scenes.Paint
+        ola.ns.Scenes.Paint = function(...) draws = draws + 1; return Paint(...) end
+        local now, p = ola.ns.Now(), ola.ns.PROTOCOL
+        local function Bond(pet, points)
+            w:InjectMessage("Kari Berg", { k = "BOND", p = p, pet = pet, e = { p = points, f = now, t = now } })
+            w:Run(1)
+        end
+        Bond("s:40", 5)
+        eq(ola.ns.Registry:Life("s:40", "Kari Berg").p, 5, "merged")
+        eq(draws, 0, "another pet's bond: the card stays")
+        Bond(PANDA, 5)
+        eq(draws, 1, "the card's own pet: redrawn")
+        -- Our own points for another pet: not either.
+        ola.ns.Bond:Add(3, "s:40")
+        eq(draws, 1)
+        -- The list's ring follows the pet that changed.
+        local function Ring(sid)
+            for button, b in pairs(ola.ns.JournalList._badges) do
+                if button.speciesID == sid then return b.level.text end
+            end
+        end
+        eq(Ring(5159), 1)
+        w:SkipDays(1)
+        ola.ns.Bond:Add(100, PANDA)
+        eq(Ring(5159), 2, "its ring")
+        -- The park, open: bonds alone redraw nothing there; an adoption does.
+        local Park, records = ola.ns.ParkPage, 0
+        local Records = Park.Records
+        Park.Records = function(...) records = records + 1; return Records(...) end
+        Park:Open()
+        records = 0
+        Bond("s:40", 9)
+        eq(records, 0, "bonds alone: the park stays")
+        kari:Slash("adopter bombay"); w:Run(2)
+        ok(records >= 1, "an adoption: redrawn")
+    end)
 end

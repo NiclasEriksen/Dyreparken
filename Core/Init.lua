@@ -268,7 +268,7 @@ ns.Bus.EVENTS = {
     ACTIVITY = "id, n, key, mine, extra: an activity counted; key the pet out (or nil), mine whether it's yours adopted (Activity)",
     SIDEPAGE = "open: one of our Collections pages opened (true) or closed (false) (SidePage)",
     -- The registry and the pet that's out
-    REGISTRY = "(none): the guild registry changed, ours or a peer's (Registry)",
+    REGISTRY = "keys: the guild registry changed, ours or a peer's; keys { [petKey] = true } if only those pets' bonds did, else nil (Registry)",
     MY_RECORD = "me, record: this character's adoption record was written (Registry)",
     MY_NAME = "key, entry: this character named or renamed a pet (Registry)",
     ADOPTED = "key: this character adopted a pet (Registry)",

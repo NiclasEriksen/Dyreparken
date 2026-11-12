@@ -368,9 +368,11 @@ local function Fresh()
     if dirty or select(2, G()) ~= builtFor then Rebuild() end
 end
 
-function Registry:Changed()
+-- keys: { [petKey] = true } when only those pets' bonds changed (Sync: a guildmate's BOND), so
+-- what shows other pets needn't be redrawn; nil when anything may have (who holds what, names).
+function Registry:Changed(keys)
     dirty = true
-    ns.Bus:Fire("REGISTRY")
+    ns.Bus:Fire("REGISTRY", keys)
 end
 
 -- owner, record for a pet key, or nil if free.

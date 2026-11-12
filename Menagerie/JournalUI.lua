@@ -428,9 +428,16 @@ end
 ------------------------------------------------------------------------------
 -- Wiring
 ------------------------------------------------------------------------------
-function JournalUI:Refresh()
+-- keys: { [petKey] = true } when only those pets' bonds changed (a guildmate's BOND, our own
+-- points): their rings in the list, and the card only if it shows one of them. Else all of it.
+function JournalUI:Refresh(keys)
     if not (PetJournal and PetJournal:IsVisible()) then return end
     if ns.SidePage:AnyOpen() then return end -- under our page: refreshed when it closes
+    if keys then
+        ns.JournalList:Refresh(keys)
+        if card.key and keys[card.key] then UpdateCard() end
+        return
+    end
     UpdateGuildBoxes()
     ns.JournalList:Refresh()
     UpdateCard()
@@ -454,7 +461,7 @@ local function OnJournalLoaded()
         ns.Achievements:Check("journal", "account")
         JournalUI:Refresh()
     end)
-    ns.Bus:On("REGISTRY", function() JournalUI:Refresh() end)
+    ns.Bus:On("REGISTRY", function(keys) JournalUI:Refresh(keys) end)
     ns.Bus:On("SIDEPAGE", function(open)
         if open then
             ns.Card:Pause(card) -- (every widget's pause or stop: Card.lua)
@@ -462,7 +469,7 @@ local function OnJournalLoaded()
             JournalUI:Refresh()
         end
     end)
-    ns.Bus:On("BOND", function() JournalUI:Refresh() end)
+    ns.Bus:On("BOND", function(key) JournalUI:Refresh({ [key] = true }) end)
 end
 
 function JournalUI:Init()

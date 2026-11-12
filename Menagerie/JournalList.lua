@@ -169,10 +169,17 @@ function JournalList.InitButton(button, elementData)
     UpdateBadge(button, ListContext())
 end
 
-function JournalList:Refresh()
+-- keys: only these pets' bonds changed (their rings), else all of it.
+function JournalList:Refresh(keys)
     local box = PetJournal and PetJournal.ScrollBox
     if box and box.ForEachFrame then
         local ctx = ListContext() -- (the same for every button)
-        box:ForEachFrame(function(button) UpdateMarker(button); UpdateBadge(button, ctx) end)
+        box:ForEachFrame(function(button)
+            if not keys then
+                UpdateMarker(button); UpdateBadge(button, ctx)
+            elseif speciesOf[button] and keys[ns.Pets:KeyOfSpecies(speciesOf[button])] then
+                UpdateBadge(button, ctx)
+            end
+        end)
     end
 end
