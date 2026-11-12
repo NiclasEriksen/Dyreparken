@@ -29,6 +29,11 @@ local _, ns = ...
 --               screen: our own model scene with the pet that's out, as the journal card builds it.
 --               Left-click: its happy move; right-click: close. Logs each step, and whether Edit Mode
 --               tells us when it opens and closes (EventRegistry "EditMode.Enter"/"EditMode.Exit").
+--   meter       (2026-11-12, the user: could the pet react to the built-in damage meter, a first place in
+--               damage or healing?) C_DamageMeter now (every session, damage/healing/interrupts: secret or
+--               not, the sources, your place), saved; and from then on, this session, every DAMAGE_METER_*
+--               event and each combat's end logged with the same read ("meter ..." lines in the log).
+--               Retail's docs: the data is SecretWhenInCombat; out of combat it should read.
 local Api = {}
 ns.ApiProbe = Api
 
@@ -765,6 +770,101 @@ function S.petframe(out)
 end
 
 ------------------------------------------------------------------------------
+-- The built-in damage meter (C_DamageMeter, Retail 12.0's).
+------------------------------------------------------------------------------
+Api.METER_TYPES = { 0, 2, 5 } -- DamageDone, HealingDone, Interrupts (Enum.DamageMeterType)
+Api.METER_SESSIONS = { 0, 1, 2 } -- Overall, Current, Expired (Enum.DamageMeterSessionType)
+
+-- One session of one kind, as text: secret or not, how many sources, the top few, and our place.
+function Api.MeterRead(sessionType, kind)
+    local DM = rawget(_G, "C_DamageMeter")
+    if not (DM and DM.GetCombatSessionFromType) then return "no C_DamageMeter" end
+    local ok, s = pcall(DM.GetCombatSessionFromType, sessionType, kind)
+    if not ok then return "error: " .. tostring(s) end
+    if s == nil then return "nil" end
+    if ns.IsSecret(s) then return "<secret session>" end
+    local sources = s.combatSources
+    if ns.IsSecret(sources) then return "sources <secret>" end
+    if type(sources) ~= "table" then return "total " .. Show(s.totalAmount) .. ", no sources" end
+    local parts, mine, open = {}, nil, true
+    for i, src in ipairs(sources) do
+        local total = src.totalAmount
+        if ns.IsSecret(total) then open = false end
+        if src.isLocalPlayer == true then mine = i end
+        if i <= 5 then
+            parts[#parts + 1] = ("%d %s (%s%s) %s, %s/s"):format(i, Show(src.name), Show(src.classFilename),
+                src.isLocalPlayer == true and ", you" or "", Show(total), Show(src.amountPerSecond))
+        end
+    end
+    -- Our place: the list's order, if it's sorted (checked only on plain numbers).
+    local sorted = open
+    if open then
+        for i = 2, #sources do
+            local a, b = sources[i - 1].totalAmount, sources[i].totalAmount
+            if type(a) == "number" and type(b) == "number" and a < b then sorted = false end
+        end
+    end
+    return ("%d sources, total %s, max %s, duration %s; you %s%s; %s"):format(#sources, Show(s.totalAmount),
+        Show(s.maxAmount), Show(s.durationSeconds), mine and ("#" .. mine) or "not in it",
+        open and (sorted and " (sorted)" or " (NOT sorted)") or " (amounts secret)", table.concat(parts, "; "))
+end
+
+-- Every session and kind, one line each.
+function Api.MeterAll(why)
+    local inCombat = ns.Plain(InCombatLockdown()) and "in combat" or "out of combat"
+    for _, st in ipairs(Api.METER_SESSIONS) do
+        for _, kind in ipairs(Api.METER_TYPES) do
+            ns.Log("Api", "meter %s (%s) session %d type %d: %s", why, inCombat, st, kind, Api.MeterRead(st, kind))
+        end
+    end
+end
+
+function S.meter(out)
+    local DM = rawget(_G, "C_DamageMeter")
+    if not DM then return "no C_DamageMeter" end
+    out.available = Try(DM.IsDamageMeterAvailable)
+    out.sessions = Try(DM.GetAvailableCombatSessions)
+    local okA, list = pcall(DM.GetAvailableCombatSessions)
+    if okA and type(list) == "table" and list[1] then
+        local first = list[#list]
+        out.lastSession = Show(first)
+        out.fromID = Try(function() return DM.GetCombatSessionFromID(first.sessionID, 0) end)
+        out.durationOfID = Try(DM.GetSessionDurationSeconds, first.sessionID)
+    end
+    out.durationCurrent = Try(DM.GetSessionDurationSeconds, 1)
+    out.reads = {}
+    for _, st in ipairs(Api.METER_SESSIONS) do
+        for _, kind in ipairs(Api.METER_TYPES) do
+            out.reads[("session %d type %d"):format(st, kind)] = Api.MeterRead(st, kind)
+        end
+    end
+    -- From now on, this session: each meter event and each combat's end, read the same way.
+    if not Api.meterWatch then
+        local f = CreateFrame("Frame")
+        Api.meterWatch = f
+        for _, e in ipairs({ "DAMAGE_METER_COMBAT_SESSION_UPDATED", "DAMAGE_METER_CURRENT_SESSION_UPDATED",
+            "DAMAGE_METER_RESET", "PLAYER_REGEN_ENABLED" }) do
+            local ok = pcall(f.RegisterEvent, f, e)
+            out["event " .. e] = ok and "registered" or "refused"
+        end
+        local last = {}
+        f:SetScript("OnEvent", function(_, event, a, b)
+            -- (the updates come often in a fight: one line per event kind every 2 s)
+            local now = GetTime()
+            if event ~= "PLAYER_REGEN_ENABLED" and last[event] and now - last[event] < 2 then return end
+            last[event] = now
+            ns.Log("Api", "meter event %s %s %s", event, Show(a), Show(b))
+            if event == "PLAYER_REGEN_ENABLED" then
+                C_Timer.After(1, function() Api.MeterAll("after combat") end)
+            elseif event == "DAMAGE_METER_COMBAT_SESSION_UPDATED" then
+                ns.Log("Api", "meter session %s type %s now: %s", Show(b), Show(a), Api.MeterRead(1, ns.Plain(a) or 0))
+            end
+        end)
+    end
+    return ("available %s; %d reads; watching this session"):format(out.available, 9)
+end
+
+------------------------------------------------------------------------------
 Api.ORDER = { "globals", "namespaces", "enum", "events", "widgets", "templates", "strings", "values", "card",
     "calendar", "model" }
 
@@ -780,7 +880,7 @@ function Api:Run(arg)
     local list = arg and { arg } or self.ORDER
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths, petframe, meter)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out)

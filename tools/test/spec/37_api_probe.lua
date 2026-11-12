@@ -213,4 +213,35 @@ return function(test, H)
         ola:Slash("probe api petframe")
         eq(ola.env.DyreparkenDebugDB.api.petframe.created, "made one")
     end)
+
+    test("meter: C_DamageMeter's sessions read (secret or not, your place), then watched after each fight", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local secret = false
+        local function Session(kind)
+            if secret then return { combatSources = H.SECRET } end
+            return { totalAmount = 300, maxAmount = 200, durationSeconds = 30, combatSources = {
+                { name = "Kari Berg", classFilename = "MAGE", totalAmount = 200, amountPerSecond = 6.6, isLocalPlayer = false },
+                { name = "Ola", classFilename = "WARRIOR", totalAmount = 100, amountPerSecond = 3.3, isLocalPlayer = true },
+            } }
+        end
+        rawset(ola.env, "C_DamageMeter", {
+            IsDamageMeterAvailable = function() return true end,
+            GetAvailableCombatSessions = function() return { { sessionID = 4, name = "Hogger" } } end,
+            GetCombatSessionFromID = function() return Session(0) end,
+            GetSessionDurationSeconds = function() return 30 end,
+            GetCombatSessionFromType = function(_, kind) return Session(kind) end,
+        })
+        ola:Slash("probe api meter")
+        local db = ola.env.DyreparkenDebugDB.api.meter
+        eq(db.available, "true")
+        match(db.reads["session 1 type 0"], "^2 sources, total 300, max 200, duration 30; you #2 %(sorted%); 1 \"Kari Berg\" %(\"MAGE\"%) 200")
+        -- A fight's end: read again a second later; in a fight the data is secret.
+        ola:EnterCombat(); secret = true
+        ola:LeaveCombat() -- (still secret: the test says so, to see it logged)
+        w:Run(1.1)
+        ok(ola:Log("meter after combat %(out of combat%) session 1 type 0: sources <secret>")[1])
+        secret = false
+        rawset(ola.env, "C_DamageMeter", nil)
+        eq(ola.ns.ApiProbe.MeterRead(1, 0), "no C_DamageMeter")
+    end)
 end
