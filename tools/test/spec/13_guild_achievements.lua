@@ -179,7 +179,7 @@ return function(test, H)
         w:Run(1)
         local n = 0
         for _ in pairs(kari.ns.DB:Guild().ach) do n = n + 1 end
-        eq(n, A.GUILD_UNKNOWN_MAX)
+        eq(n, kari.ns.Wire.LIMITS.GUILD_UNKNOWN_MAX)
         w:InjectMessage("Per Hansen", { k = "ACH", p = p, a = { ["guild:future:thing"] = { at = E + 2 } } })
         w:Run(1)
         eq(kari.ns.DB:Guild().ach["guild:future:thing"].at, E + 2)
@@ -233,7 +233,7 @@ return function(test, H)
         local w, cs = World()
         local ola, kari = cs["Ola Nord"], cs["Kari Berg"]
         local p, E = ola.ns.PROTOCOL, ola.ns.Config.BOND_EPOCH
-        local MAX = ola.ns.Achievements.GUILD_UNKNOWN_MAX
+        local MAX = ola.ns.Wire.LIMITS.GUILD_UNKNOWN_MAX
         -- Low ids (they sort before ours), more than the cap, in batches: the others hear them in one
         -- order, Kari in the other.
         local batches = {}
@@ -279,7 +279,7 @@ return function(test, H)
             life = {}, ach = ach } } }
         c:Login()
         local g = c.env.DyreparkenDB.guilds.Dyreparken
-        local n, MAX = 0, c.ns.Achievements.GUILD_UNKNOWN_MAX
+        local n, MAX = 0, c.ns.Wire.LIMITS.GUILD_UNKNOWN_MAX
         for _ in pairs(g.ach) do n = n + 1 end
         eq(n, MAX + 1)
         ok(g.ach["guild:family:cat"]); ok(g.ach[("guild:%04d"):format(MAX)]); no(g.ach[("guild:%04d"):format(MAX + 1)])

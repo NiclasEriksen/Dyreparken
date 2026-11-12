@@ -52,7 +52,8 @@ ns.Achievements = Ach
 local DAY = 86400
 local NOTICE_MAX = 20 -- ids per ACH_EARNED; more than any real batch
 -- Guild records of ids we don't know (a newer version's, or junk) we store
--- at most. Ours are always stored: there are only as many as Defs.lua has.
+-- at most Wire.LIMITS.GUILD_UNKNOWN_MAX. Ours are always stored: there are only as many
+-- as Defs.lua has.
 -- Until 2026-11-12 one cap of 128 covered every record, first come first
 -- kept, so one forged ACH of junk ids shut out every guild achievement still
 -- to come, for good (B12). Past the cap the GREATEST ids go (byte order):
@@ -60,8 +61,7 @@ local NOTICE_MAX = 20 -- ids per ACH_EARNED; more than any real batch
 -- order they arrived in, so clients still agree (a per-message cut-off or
 -- first come depends on table order). Honest stores are far below it, so
 -- older clients (one cap of 128) keep the same records.
-local GUILD_UNKNOWN_MAX = 64
-Ach.GUILD_UNKNOWN_MAX = GUILD_UNKNOWN_MAX
+local LIMITS = ns.Wire.LIMITS
 local GUILD_DEBOUNCE = 5
 
 local defsById = {}
@@ -397,9 +397,9 @@ end
 -- before the addon (BOND_EPOCH), and no share before the earning (code review
 -- 2026-11-11, migration 11; no protocol bump: only forgeries fail these).
 local function ValidGuildRecord(id, rec)
-    return type(id) == "string" and #id <= 64 and id:find("^guild:[%w:_]+$") ~= nil
-        and type(rec) == "table" and ns.SaneTime(rec.at) and rec.at >= ns.Config.BOND_EPOCH
-        and (rec.ann == nil or (ns.SaneTime(rec.ann) and rec.ann >= rec.at))
+    return ns.Wire.AchId(id)
+        and type(rec) == "table" and ns.Wire.Since(rec.at)
+        and (rec.ann == nil or (ns.Wire.Time(rec.ann) and rec.ann >= rec.at))
         and (rec.q == nil or rec.q == true)
 end
 Ach.ValidGuildRecord = ValidGuildRecord
@@ -422,7 +422,7 @@ end
 local function MakeRoom(ach, id)
     if defsById[id] then return true end
     local n, top = Unknown(ach)
-    if n < GUILD_UNKNOWN_MAX then return true end
+    if n < LIMITS.GUILD_UNKNOWN_MAX then return true end
     if id > top then return false end
     ach[top] = nil
     return true
@@ -431,7 +431,7 @@ end
 -- The same over a stored list (migration 12): the GUILD_UNKNOWN_MAX lowest unknown ids stay.
 function Ach.TrimGuild(ach)
     local n, top = Unknown(ach)
-    while n > GUILD_UNKNOWN_MAX do
+    while n > LIMITS.GUILD_UNKNOWN_MAX do
         ach[top] = nil
         n, top = Unknown(ach)
     end
@@ -588,7 +588,6 @@ local function Heard(sender, id)
 end
 
 local function OnEarned(msg, sender, channel)
-    if type(msg.a) ~= "table" then return end
     local ids = {}
     for i = 1, math.min(#msg.a, NOTICE_MAX) do
         local id = msg.a[i]
@@ -729,7 +728,7 @@ end
 Ach.CheckCharSoon = ns.Debounce(0, function(_, reason) Ach:Check(reason, "char") end)
 
 function Ach:Init()
-    ns.Comm:Register("ACH_EARNED", OnEarned, "GUILD")
+    ns.Comm:Register("ACH_EARNED", OnEarned, "GUILD", { a = "table" })
     self:WatchActivities()
     -- A batch of pets can arrive at once; one check covers them all.
     local checkLearned = ns.Debounce(1, function() Ach:Check("NEW_PET_ADDED", "account") end)
@@ -756,7 +755,7 @@ function Ach:Init()
         local _, behind = Ach:MergeGuild(msg.a)
         -- Nobody else would correct them: their ACH "said it for us".
         if behind then ns.Sync:Nudge() end
-    end, "GUILD")
+    end, "GUILD", { a = "table" })
     -- The registry changes in bursts (a SYNC merges many records): check
     -- the guild ones once it settles.
     ns.Bus:On("REGISTRY", ns.Debounce(GUILD_DEBOUNCE, function() Ach:Check("REGISTRY", "guild") end))

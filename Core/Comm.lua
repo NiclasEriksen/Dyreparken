@@ -23,11 +23,14 @@ local _, ns = ...
 -- Size: a message over MAX_PARTS chunks is dropped by every receiver, so
 -- it isn't sent at all (logged); SYNC goes in parts (Sync.lua).
 --
--- Handlers: ns.Comm:Register(kind, fn(msg, sender, channel), from); several
+-- Handlers: ns.Comm:Register(kind, fn(msg, sender, channel), from, fields); several
 -- modules may listen to the same kind (HELLO: Version and Sync). from:
 -- "GUILD" or "GROUP" (party or raid): a message of that kind arriving on any
 -- other channel never reaches fn. Only HELLO gets through with another
 -- protocol (versions can be compared); its handlers check msg.p themselves.
+-- fields: { name = check } with a check named in Wire.CHECKS ("key",
+-- "table", "version"): a message whose field fails it is dropped (and
+-- logged) before fn runs, so handlers needn't check shapes by hand.
 --
 -- Notes (Forever 1.60.1):
 --  * Trial/Veteran accounts cannot send addon messages at all.
@@ -44,12 +47,13 @@ local CHUNK = 254 -- 255 minus the header byte
 
 local BURST = 8           -- of the server's 10, leaving room for slack
 local REFILL = 1          -- per second, like the server
-local MAX_PARTS = 64      -- chunks per incoming message (16 KB); more is junk
--- What an incoming message may unpack to. 16 KB of deflated text is at most
--- ~150 KB of real data; a crafted 16 KB stream unpacks to 8 MB (code review
--- 2026-11-09: seconds of work, then a table of millions to read). Past this
--- it isn't read, and its sender is ignored for the session (Comm.ignored).
-Comm.MAX_RAW = 512 * 1024
+-- What peers accept (Wire.LIMITS): MAX_PARTS chunks per incoming message
+-- (16 KB), and MAX_RAW bytes it may unpack to. 16 KB of deflated text is at
+-- most ~150 KB of real data; a crafted 16 KB stream unpacks to 8 MB (code
+-- review 2026-11-09: seconds of work, then a table of millions to read).
+-- Past MAX_RAW it isn't read, and its sender is ignored for the session
+-- (Comm.ignored).
+local LIMITS = ns.Wire.LIMITS
 Comm.ignored = {}
 
 local handlers = {}
@@ -111,13 +115,28 @@ end
 function Comm:Backlog() return last - first + 1 end
 
 local FROM = { GUILD = { GUILD = true }, GROUP = { PARTY = true, RAID = true } }
-function Comm:Register(kind, fn, from)
+-- What each registration accepts, for the protocol snapshot (52_protocol):
+-- Comm.registered[i] = { kind, from, fields }.
+Comm.registered = {}
+function Comm:Register(kind, fn, from, fields)
     local list = handlers[kind]
     if not list then list = {}; handlers[kind] = list end
     local only = from and assert(FROM[from], "Comm:Register: from is GUILD or GROUP")
-    list[#list + 1] = only and function(msg, sender, channel)
-        if only[channel] then return fn(msg, sender, channel) end
-    end or fn
+    local checks = ns.Wire.CHECKS
+    for name, check in pairs(fields or {}) do
+        assert(checks[check], "Comm:Register: no field check " .. tostring(check) .. " for " .. kind .. "." .. name)
+    end
+    Comm.registered[#Comm.registered + 1] = { kind = kind, from = from, fields = fields }
+    list[#list + 1] = function(msg, sender, channel)
+        if only and not only[channel] then return end
+        for name, check in pairs(fields or {}) do
+            if not checks[check](msg[name]) then
+                ns.Log("Comm", "dropped %s from %s: %s isn't a %s", kind, sender, name, check)
+                return
+            end
+        end
+        return fn(msg, sender, channel)
+    end
 end
 
 local function Encode(msg)
@@ -131,7 +150,7 @@ local function Decode(data)
     if not c then return nil end
     local s = LibDeflate:DecompressDeflate(c)
     if not s then return nil end
-    if #s > Comm.MAX_RAW then return nil, true end
+    if #s > LIMITS.MAX_RAW then return nil, true end
     local ok, msg = LibSerialize:Deserialize(s)
     if ok and type(msg) == "table" then return msg end
 end
@@ -149,9 +168,9 @@ function Comm:Send(kind, msg, channel, target)
     msg.k, msg.p = kind, ns.PROTOCOL
     local data = Encode(msg)
     local n = #data
-    if n > CHUNK * MAX_PARTS then
+    if n > CHUNK * LIMITS.MAX_PARTS then
         -- Every receiver would drop it: don't spend the channel on it.
-        ns.Log("Comm", "not sent: %s is too big (%d bytes, over %d chunks)", kind, n, MAX_PARTS)
+        ns.Log("Comm", "not sent: %s is too big (%d bytes, over %d chunks)", kind, n, LIMITS.MAX_PARTS)
         return false
     end
     if n <= CHUNK then
@@ -174,7 +193,7 @@ local function Dispatch(data, sender, channel)
     local msg, bomb = Decode(data)
     if bomb then
         Comm.ignored[sender] = true
-        ns.Log("Comm", "a message from %s unpacked past %d bytes: ignoring them this session", sender, Comm.MAX_RAW)
+        ns.Log("Comm", "a message from %s unpacked past %d bytes: ignoring them this session", sender, LIMITS.MAX_RAW)
         return
     end
     if not msg or type(msg.k) ~= "string" then
@@ -213,7 +232,7 @@ local function OnAddonMessage(_, _, prefix, text, channel, sender)
     elseif head == "M" or head == "L" then
         local parts = partial[key]
         if not parts then return end
-        if #parts >= MAX_PARTS then
+        if #parts >= LIMITS.MAX_PARTS then
             partial[key] = nil
             ns.Log("Comm", "dropped an oversized message from %s", sender)
             return

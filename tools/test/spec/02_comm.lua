@@ -112,6 +112,43 @@ return function(test, H)
         match(errs[1], "handler BOOM failed")
     end)
 
+    test("a handler's field spec drops a malformed message before it runs, and says so", function()
+        local w = H.World()
+        local a, b = w:AddClient("Ola Nord"), w:AddClient("Kari Berg")
+        local got = {}
+        b.ns.Comm:Register("TEST", function(msg) got[#got + 1] = msg.pet end, "GUILD", { pet = "key", e = "table" })
+        for _, m in ipairs({ { pet = "s:46", e = {} }, { pet = { 1 }, e = {} }, { pet = "n:|cffx", e = {} },
+            { pet = "s:40", e = "x" }, { e = {} } }) do
+            a.ns.Comm:Send("TEST", m, "GUILD")
+        end
+        w:Run(3)
+        eq(table.concat(got, " "), "s:46")
+        eq(#b:Log("dropped TEST from Ola Nord: pet isn't a key"), 3)
+        eq(#b:Log("dropped TEST from Ola Nord: e isn't a table"), 1)
+        -- A check that doesn't exist is a mistake at load, not a silent pass.
+        no(pcall(b.ns.Comm.Register, b.ns.Comm, "TEST", function() end, "GUILD", { pet = "petkey" }))
+        -- The registry's handlers use them: a NICK for a pet key that isn't one never reaches the merge.
+        w:InjectMessage("Per Hansen", { k = "NICK", p = b.ns.PROTOCOL, pet = "junk", e = { n = "X", at = w:ServerTime() } })
+        w:Run(1)
+        eq(#b:Log("dropped NICK from Per Hansen: pet isn't a key"), 1)
+    end)
+
+    test("one nickname check for a typed name and a name from the wire (Wire.Nick)", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        local R, max = c.ns.Registry, c.ns.Config.NICKNAME_MAX_LEN
+        local stray = "a" .. ("\128"):rep(100) -- one "character" by lead bytes, 101 bytes
+        no(R:ValidNickname(stray), "typed: the byte cap too (it had none before)")
+        no(R.ValidEntry({ n = stray, at = w:ServerTime() }), "from the wire")
+        for _, n in ipairs({ "", ("x"):rep(max + 1), "a|b", "a\nb" }) do
+            eq(R:ValidNickname(n), false, n)
+            eq(R.ValidEntry({ n = n, at = w:ServerTime() }), false, n)
+        end
+        eq(select(2, R:ValidNickname(("x"):rep(max + 1))), c.ns.T("nick.too_long", { n = max }))
+        eq(select(2, R:ValidNickname("  Øyvind  ")), "Øyvind")
+        ok(R.ValidEntry({ n = "Øyvind", at = w:ServerTime() }))
+    end)
+
     test("sending to the guild without a guild does nothing", function()
         local w = H.World()
         local c = w:AddClient("Ola Nord", { guild = false })
@@ -211,7 +248,7 @@ return function(test, H)
         local w = H.World()
         local me = w:AddClient("Ola Nord")
         w:Run(15)
-        me.ns.Comm.MAX_RAW = 2000 -- (the real limit is 512 KB; the payload compresses to almost nothing)
+        me.ns.Wire.LIMITS.MAX_RAW = 2000 -- (the real limit is 512 KB; the payload compresses to almost nothing)
         local seen = 0
         me.ns.Comm:Register("TEST", function() seen = seen + 1 end)
         w:InjectMessage("Per Hansen", { k = "TEST", p = me.ns.PROTOCOL, junk = string.rep("a", 5000) })

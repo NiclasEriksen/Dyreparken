@@ -125,8 +125,8 @@ end
 
 function Playdate:Init()
     ns.Comm:Register("PLAY", function(msg, sender)
-        if ns.Registry.ValidKey(msg.pet) then Playdate:Heard(sender, msg.pet) end
-    end, "GROUP")
+        Playdate:Heard(sender, msg.pet)
+    end, "GROUP", { pet = "key" })
     ns.Events:On("GROUP_ROSTER_UPDATE", Playdate, function() Playdate:Soon() end)
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Playdate:Soon() end)
 end

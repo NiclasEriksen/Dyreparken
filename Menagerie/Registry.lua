@@ -49,7 +49,6 @@ local Registry = {}
 ns.Registry = Registry
 
 local Config = ns.Config
-local DAY = 86400
 
 local holders, dirty = {}, true -- holders[petKey] = owner (cache)
 local builtFor -- the guild the cache was built for: joining another one (or none) rebuilds it
@@ -61,22 +60,20 @@ end
 ------------------------------------------------------------------------------
 -- Validation and merge
 ------------------------------------------------------------------------------
--- A pet key as Pets.lua makes them: "s:<species id>", or "n:<name>" for a
--- pet without a species id. No "|": a name key can reach the chat (the
--- playdate line), where it would be an escape code (code review 2026-11-09).
-local function ValidKey(key)
-    return type(key) == "string" and #key <= 64 and (key:find("^s:%d+$") ~= nil or key:find("^n:[^|]+$") ~= nil)
-end
+-- The primitive checks (keys, names, times, a nickname, a bond's cap) are
+-- Core/Wire.lua's, with every limit peers enforce; here they make up the
+-- checks on a store's entries.
+local Wire = ns.Wire
+local ValidKey, After = Wire.Key, Wire.Since
 Registry.ValidKey = ValidKey
+Registry.LifeCap = Wire.LifeCap
 
--- Nothing in the registry is older than the addon (BOND_EPOCH), and a claim
--- comes before its record's write: a claim backdated to the dawn of time won
--- every pet it named (code review 2026-11-10). Honest data passes the old and
--- the new rules alike, so this came without a protocol bump (decided
--- 2026-11-10, like the per-member caps); migration 10 drops stored entries
--- outside them.
-local function After(t) return ns.SaneTime(t) and t >= Config.BOND_EPOCH end
-
+-- Nothing in the registry is older than the addon (BOND_EPOCH, Wire.Since),
+-- and a claim comes before its record's write: a claim backdated to the dawn
+-- of time won every pet it named (code review 2026-11-10). Honest data passes
+-- the old and the new rules alike, so this came without a protocol bump
+-- (decided 2026-11-10, like the per-member caps); migration 10 drops stored
+-- entries outside them.
 local function ValidRecord(r)
     if type(r) ~= "table" or not After(r.ts) or not After(r.at) or r.at > r.ts then return false end
     if r.k ~= nil and not ValidKey(r.k) then return false end
@@ -89,42 +86,25 @@ local function Copy(r)
     return { k = r.k, at = r.at, ts = r.ts }
 end
 
--- The byte cap: Utf8Len counts only lead bytes, so a string of stray
--- continuation bytes would pass as short.
-local function ValidName(n)
-    return type(n) == "string" and n ~= "" and #n <= 4 * Config.NICKNAME_MAX_LEN
-        and ns.Utf8Len(n) <= Config.NICKNAME_MAX_LEN and not n:find("[|\n\r]")
-end
-
 local function ValidEntry(e)
     return type(e) == "table" and After(e.at)
-        and (e.n == nil or ValidName(e.n)) and (e.x == nil or e.x == true)
+        and (e.n == nil or Wire.Nick(e.n) == nil) and (e.x == nil or e.x == true)
 end
 Registry.ValidEntry = ValidEntry
 
--- The most points a bond can hold at time t, begun at f: BOND_DAILY_MAX a
--- day, with a day to spare (the daily limit follows the calendar, this
--- follows 24-hour steps from f: without the spare day, points earned early
--- on a calendar day could be clamped away). Bond:Add and the migration use it
--- too, so every copy agrees. Changing BOND_DAILY_MAX or this changes what
--- peers accept: bump X-Protocol.
-function Registry.LifeCap(f, t)
-    return (math.floor((t - f) / DAY) + 2) * Config.BOND_DAILY_MAX
-end
-
 local function ValidLife(e)
-    if type(e) ~= "table" or not ns.SaneTime(e.f) or not ns.SaneTime(e.t) or e.t < e.f then return false end
+    if type(e) ~= "table" or not Wire.Time(e.f) or not Wire.Time(e.t) or e.t < e.f then return false end
     if e.f < Config.BOND_EPOCH then return false end -- older than the addon: forged
     local p = e.p
     if type(p) ~= "number" or p ~= p or p < 0 then return false end
-    return p <= Registry.LifeCap(e.f, e.t)
+    return p <= Wire.LifeCap(e.f, e.t)
 end
 Registry.ValidLife = ValidLife
 
 -- A whole entry as it sits in its store, author and keys included: what a
 -- merge checks before taking a peer's copy, and WriteOwn before keeping our
 -- own (Sync.TABLES names them per store).
-local SaneName = ns.SaneName
+local SaneName = Wire.Name
 function Registry.ValidClaim(owner, r) return SaneName(owner) and ValidRecord(r) end
 function Registry.ValidLapseOf(owner, t) return SaneName(owner) and After(t) end
 function Registry.ValidNaming(key, namer, e) return ValidKey(key) and SaneName(namer) and ValidEntry(e) end
@@ -469,15 +449,12 @@ function Registry:CanNickname(r)
 end
 
 -- ok, cleaned nickname (or error message)
+-- The check peers run on a name (Wire.Nick), on what was typed, trimmed.
+local WHY = { empty = "nick.empty", too_long = "nick.too_long", bad_chars = "nick.bad_chars" }
 function Registry:ValidNickname(nick)
-    if type(nick) ~= "string" then return false, ns.L["nick.empty"] end
-    nick = strtrim(nick)
-    local len = ns.Utf8Len(nick)
-    if len == 0 then return false, ns.L["nick.empty"] end
-    if len > Config.NICKNAME_MAX_LEN then
-        return false, ns.T("nick.too_long", { n = Config.NICKNAME_MAX_LEN })
-    end
-    if nick:find("[|\n\r]") then return false, ns.L["nick.bad_chars"] end
+    if type(nick) == "string" then nick = strtrim(nick) end
+    local why = ns.Wire.Nick(nick)
+    if why then return false, ns.T(WHY[why], { n = Config.NICKNAME_MAX_LEN }) end
     return true, nick
 end
 

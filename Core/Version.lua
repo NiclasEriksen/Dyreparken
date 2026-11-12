@@ -10,13 +10,8 @@ local _, ns = ...
 local Version = { seen = {} } -- seen[player] = version
 ns.Version = Version
 
--- A version from the wire, as the packager makes them ("0.2.1", "0.2.1-beta2",
--- "dev"). Anything else is junk, and may not reach the chat: a "|" there
--- is an escape code (icons, links), and a table would throw on printing
--- (code review 2026-11-09).
-local function Sane(v)
-    return type(v) == "string" and #v <= 32 and v:find("^[%w%.%-]+$") ~= nil
-end
+-- A version from the wire (Wire.Version): junk never reaches the chat.
+local Sane = ns.Wire.Version
 Version.Sane = Sane
 
 local function NoteVersion(sender, version)
@@ -36,7 +31,7 @@ function Version:Init()
     ns.Comm:Register("HELLO", function(msg, sender) NoteVersion(sender, msg.v) end)
     ns.Comm:Register("VER", function(msg, sender)
         NoteVersion(sender, msg.v)
-    end)
+    end, nil, { v = "version" })
     -- Answer on the channel the request came from. (Whispers would be
     -- quieter, but whisper targets with surnames are unverified on Forever.)
     -- Everyone hearing everyone's version is useful anyway: NoteVersion.

@@ -17,6 +17,7 @@ Libs\LibDeflate\LibDeflate.lua
 
 # Core: load order matters, each file only uses what is above it
 Core\Init.lua
+Core\Wire.lua
 Locale\nb.lua
 Core\Debug.lua
 Core\Events.lua

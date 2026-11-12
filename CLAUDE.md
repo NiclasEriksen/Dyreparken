@@ -118,15 +118,20 @@ Core/Init.lua      ns, Config tunables, Bus (internal events, each declared in B
                    phases (ns.Start, ns.RunPhase): use these,
                    don't write them again
                    ns.L / ns.T / ns.Fill: the strings (below)
+Core/Wire.lua      what peers accept, in one place: Wire.LIMITS (key, name, version and id lengths, MAX_PARTS, MAX_RAW,
+                   the bond cap, unknown guild achievement ids) and the primitive checks (Time, Since, Name, Key, Version,
+                   Nick, AchId, LifeCap, and CHECKS for Comm's field specs). A change here (or to a Config value that feeds
+                   validation) bumps X-Protocol; tools/test/spec/52_protocol.lua fails until it does
 Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" = "Flyttet inn hos {who} i dag"),
                    grouped by area; named {placeholders}; the achievement texts (ns.AchTexts) at its end. Loads right
-                   after Init. Code never holds player text: add a key here and use ns.L[key] / ns.T(key, vars).
+                   after Init and Wire. Code never holds player text: add a key here and use ns.L[key] / ns.T(key, vars).
                    Developer output (/dp probe, /dp debug, the log) stays English in the code.
 Core/Debug.lua     ns.Log(module, fmt, ...) → SavedVariables ring buffer; no-op when off
 Core/Events.lua    single event frame, On/Off, OutOfCombat queue
 Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() registry
-Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (not ChatThrottleLib), Register(kind, fn, from)
-                   ("GUILD"/"GROUP": other channels never reach fn), MayReply (requests anyone can send: once per channel every 5 s)
+Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (not ChatThrottleLib), Register(kind, fn, from, fields)
+                   ("GUILD"/"GROUP": other channels never reach fn; fields: { name = Wire.CHECKS name }, a malformed
+                   message is dropped before fn), MayReply (requests anyone can send: once per channel every 5 s)
 Core/Version.lua   HELLO on login, one-time outdated notice; still answers VER_REQ from 0.2.x clients
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
 Core/Activity.lua  the activity engine: game events -> activities, every one declared once in Activity.KINDS (always
@@ -346,7 +351,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   X-Protocol bump and, for stored data, a migration that brings old entries within it (see migration 8).
   Exception (decided 2026-11-09): the per-member caps on stored names and bonds (Config.NAMES_PER_MEMBER,
   LIFE_PER_MEMBER, migration 9) came without a bump: they only bite under a flood, so mixed versions still agree in
-  a normal guild. Incoming messages that unpack past Comm.MAX_RAW are dropped and their sender ignored for the session.
+  a normal guild. Incoming messages that unpack past Wire.LIMITS.MAX_RAW are dropped and their sender ignored for the session.
   Likewise without a bump (code review 2026-11-10, migration 10): claims, lapses and names must be on or after
   Config.BOND_EPOCH, a claim no later than its record's write, and no wire time more than Config.CLOCK_SLACK (5 min)
   ahead; only forgeries fail these.

@@ -234,7 +234,7 @@ local MIGRATIONS = {
         end
     end,
     -- 12 (2026-11-12, B12): guild achievements with ids this version doesn't
-    -- know are capped (Achievements GUILD_UNKNOWN_MAX, the lowest ids kept), as
+    -- know are capped (Wire.LIMITS.GUILD_UNKNOWN_MAX, the lowest ids kept), as
     -- merges keep them from now on: junk stored under the old cap goes.
     [12] = function(db)
         for _, g in pairs(db.guilds or {}) do

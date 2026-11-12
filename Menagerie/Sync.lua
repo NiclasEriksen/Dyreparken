@@ -5,7 +5,7 @@ local _, ns = ...
 -- Messages (all on GUILD):
 --   HELLO  { v, d }        login announcement (Version.lua) with our digest
 --   SYNC   { r, l, n, b, a, d, i, of } full state, in parts (i of of), each
---                          well under what receivers accept (Comm MAX_PARTS):
+--                          well under what receivers accept (Wire.LIMITS.MAX_PARTS):
 --                          1: r[owner] = record, l[owner] = lapse,
 --                             a[id] = guild achievement (Achievements.lua)
 --                          2: n[petKey][namer] = naming entry (Registry.lua)
@@ -303,32 +303,29 @@ function Sync:Init()
     ns.Comm:Register("UPD", function(msg, sender, channel)
         -- A record is written the moment it's sent: its ts against our clock shows how far
         -- apart the two clocks are (the debug log: Config.CLOCK_SLACK assumes one clock).
-        if type(msg.r) == "table" and type(msg.r.ts) == "number" then
+        if type(msg.r.ts) == "number" then
             ns.Log("Sync", "clock: %s's record is %+d s from ours", tostring(sender), msg.r.ts - ns.Now())
         end
         -- Only the owner writes their record. Relayed copies come via SYNC.
         MergeAll({ r = { [sender] = msg.r } })
-    end, "GUILD")
+    end, "GUILD", { r = "table" })
     ns.Comm:Register("NICK", function(msg, sender, channel)
-        if type(msg.pet) ~= "string" then return end
         -- Only the namer writes their entry, like UPD.
         MergeAll({ n = { [msg.pet] = { [sender] = msg.e } } })
-    end, "GUILD")
+    end, "GUILD", { pet = "key", e = "table" })
     ns.Comm:Register("BOND", function(msg, sender, channel)
-        if type(msg.pet) ~= "string" then return end
         MergeAll({ b = { [msg.pet] = { [sender] = msg.e } } })
-    end, "GUILD")
+    end, "GUILD", { pet = "key", e = "table" })
     ns.Comm:Register("BOND_REQ", function(msg, sender, channel)
-        if not ns.Registry.ValidKey(msg.pet) then return end
         local e = ns.Registry:Life(msg.pet, ns.PlayerKey())
         if not e or ns.Comm:Backlog() > BOND_BACKLOG then return end
         if ns.Comm:MayReply("BOND:" .. msg.pet, channel) and AnswerBudget(sender) then
             ns.Comm:Send("BOND", { pet = msg.pet, e = e }, "GUILD")
         end
-    end, "GUILD")
+    end, "GUILD", { pet = "key" })
     ns.Comm:Register("LAPSE", function(msg, _, channel)
         MergeAll({ l = msg.l })
-    end, "GUILD")
+    end, "GUILD", { l = "table" })
 
     -- Our own edits go out right away.
     ns.Bus:On("MY_RECORD", function(_, r)
