@@ -161,7 +161,9 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
                    every 45 minutes; read its header), Fx (one-shot particle bursts outside the journal: hearts at the cursor over a
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
-                   lines and level-ups), Meter (0.5: after a boss kill in a group of three or more, with a pet out, the
+                   lines and level-ups), Voyage (zeppelins and boats: a loading screen between two zones a route joins,
+                   ROUTES, not after a hearthstone or portal; a zeppelin counts as flying too; eggs luftskip, seilas
+                   by trait and family), Meter (0.5: after a boss kill in a group of three or more, with a pet out, the
                    meter's Current session read once, a second after the boss activity: first in damage, first in healing
                    in a raid, the most interrupts are eggs-only activities (dmgtop, healtop, kicktop); their eggs
                    (toppen, helter, sparket) a gold bubble and a cheer, likelier in a raid and far ahead), Feats (a character's big moments, 0.5: a class quest's reward, riding, level 60
@@ -278,6 +280,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   Diplomat; 38 in all) and four activities for them (gold, fun, sneak, meet). Every species nobody in the guild
   had adopted was re-pinned by hand in Data/Traits.lua that day; the eight adopted then (Black Tabby, Senegal,
   Cockroach, Brown Prairie Dog, Excitable Slime, Panda Cub, Zergling, Mini Diablo) kept theirs, and so did the
+  Mechanical Squirrel, adopted on 0.4.4 later that day (checked before 0.5.0's release), and so did the
   family and species like lists (their majors come from those too). From now on the pins hold again. The zone
   traits read GetZoneText (Personality.COLD/WARM/HIGH/CITIES); Forever's names there are unverified.
 - **Minor likes and dislikes** (2026-11-12, the user): your own bond with a pet unlocks one more like at

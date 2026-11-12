@@ -411,6 +411,19 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   'isFullUpdate' (a secret boolean)". Check `issecretvalue` on the table and its fields before testing them.
 - **The meter in a real fight** (2026-11-12): Meter.lua's read after a boss kill gave "damage: place 5, 1027 against
   6513" (Arcanist Doan, a five-man): the right session, plain, our place.
+- **A zeppelin ride** (2026-11-12, 1.60.1, `/dp probe api transport`, Grom'gol to Durotar): no transport API, but
+  stepping aboard fired `NEW_WMO_CHUNK`; aboard, the position moved with `GetUnitSpeed` 0; halfway
+  `LOADING_SCREEN_ENABLED` (known; the zone and map still ours), `PLAYER_LEAVING_WORLD` (map already gone),
+  `PLAYER_ENTERING_WORLD (false, false)` with the map on the other continent (1415 Eastern Kingdoms to 1414
+  Kalimdor; `GetMapInfo` parents, mapType 2) but `GetZoneText` still the old zone, then `LOADING_SCREEN_DISABLED` and
+  `ZONE_CHANGED_NEW_AREA` with the new zone ("Durotar", subzone "Bladefist Bay"). Grom'gol's tower subzone is
+  "Grom'gol Base Camp". Menagerie/Voyage.lua is built on this.
+- **A boat ride** (2026-11-12, Forever's new route, Steamwheedle Port in Tanaris to Powderfuse Port in Riverglades):
+  the same as the zeppelin (loading screen at sea, `PLAYER_ENTERING_WORLD` with the map already in Eastern
+  Kingdoms and the zone still "Tanaris", then `ZONE_CHANGED_NEW_AREA` "Riverglades", map 2548, "Eastwind Shore").
+  Forever's 14 routes (wowforever.be, from the 1.60.1 game files): new are Steamwheedle Port to Powderfuse Port,
+  Stormwind Harbor to Auberdine, Menethil to Southshore to Auberdine, and Zephras Isle's zeppelins (Valanaar to
+  Dalaran and to Skywatcher Plateau); their zone names other than Riverglades are unverified.
 - **The layout cache** (2026-11-12, 1.60.1, from Logs/AccountData.log): a named frame moved with `StartMoving` is
   user-placed, and the client saves its spot itself ("Frame: DyreparkenPetFrame", anchor, x, y), to restore it
   before our code runs. A frame that keeps its own spot calls `SetUserPlaced(false)` after a drag. `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.

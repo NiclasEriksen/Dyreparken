@@ -81,7 +81,9 @@ Activity.KINDS = {
     { "dmgtop", wish = false },   -- first in damage
     { "healtop", wish = false },  -- first in healing (a raid)
     { "kicktop", wish = false },  -- the most interrupts
-    { "fall", wish = false },     -- a big fall (most of your health at once, out of combat): only the eggs watch it
+    { "fall", wish = false },
+    { "zeppelin", wish = false }, -- a zeppelin ride (Menagerie/Voyage.lua; it counts as flying, "taxi", too): eggs only
+    { "boat", wish = false },     -- a boat ride (Menagerie/Voyage.lua): eggs only     -- a big fall (most of your health at once, out of combat): only the eggs watch it
     -- A character's big moments (Menagerie/Feats.lua, 2026-11-12, the user).
     { "feat", wish = false },     -- a class quest's reward, riding, level 60 (extra: the feat's id): Feats' points
     { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it

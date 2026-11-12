@@ -372,6 +372,15 @@ Quirks.EGGS = {
         end
         return {}
     end },
+    -- Zeppelins and boats (Voyage.lua, 2026-11-12, the user): by trait, then family, else a plain one. A pet
+    -- afraid of flying is afraid up there too.
+    { id = "luftskip", on = "zeppelin", always = true, chance = 0.6, test = function(ctx)
+        if ns.Personality:Known(ctx.key) and ns.Personality:Dislikes(ctx.key).taxi then return { _key = "egg.luftskip.redd" } end
+        return Quirks.ByNature(ctx, "luftskip", Quirks.ZEPPELIN_TRAITS, Quirks.ZEPPELIN_FAMILIES)
+    end },
+    { id = "seilas", on = "boat", always = true, chance = 0.6, test = function(ctx)
+        return Quirks.ByNature(ctx, "seilas", Quirks.BOAT_TRAITS, Quirks.BOAT_FAMILIES)
+    end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
@@ -392,6 +401,22 @@ local function Families(key)
 end
 
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
+-- Lines by nature: the first of its traits with its own (egg.<id>.<trait>.N), then its families'
+-- (egg.<id>.<family>.N), else the plain ones (egg.<id>.N).
+Quirks.ZEPPELIN_TRAITS = { "skybaren", "reiseglad", "eventyrlysten", "hjemlengsel", "latsabb" }
+Quirks.ZEPPELIN_FAMILIES = { "bird", "owl", "dragon", "mechanical" }
+Quirks.BOAT_TRAITS = { "sjorover", "vannhund", "dykker", "hjemlengsel", "eventyrlysten" }
+Quirks.BOAT_FAMILIES = { "pirate", "cat", "frog", "murloc", "reptile", "bird" }
+function Quirks.ByNature(ctx, id, traits, families)
+    for _, t in ipairs(traits) do
+        if HasTrait(ctx.key, t) and ns.Strings["egg." .. id .. "." .. t .. ".1"] then return { _key = "egg." .. id .. "." .. t } end
+    end
+    for _, f in ipairs(families) do
+        if ctx.family[f] and ns.Strings["egg." .. id .. "." .. f .. ".1"] then return { _key = "egg." .. id .. "." .. f } end
+    end
+    return {}
+end
+
 -- The traits with a fall of their own to say (Locale egg.stup.<trait>.N), first match wins.
 Quirks.FALL_TRAITS = { "hoppetass", "skybaren", "rampete", "skoyer", "eventyrlysten", "latsabb", "hjemlengsel",
     "kjaelen", "kosete", "trofast" }
@@ -478,7 +503,7 @@ end
 -- when a Dansefot's like already watches it.)
 Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic", "duelwon", "duellost",
     "newpath", "fish", "chat", "campnear", "campwarm", "camp", "rested", "train", "specswap", "respec",
-    "dmgtop", "healtop", "kicktop", "fall" }
+    "dmgtop", "healtop", "kicktop", "fall", "zeppelin", "boat" }
 local watching = {}
 
 function Quirks:Watch()

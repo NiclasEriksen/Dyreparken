@@ -49,7 +49,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
     NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED
     PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING CHAT_MSG_EMOTE PLAYER_CONTROL_GAINED
-    CHAT_MSG_MONEY UNIT_HEALTH SPELLS_CHANGED ACTIVE_TALENT_GROUP_CHANGED TRAIT_CONFIG_UPDATED PLAYER_INTERACTION_MANAGER_FRAME_SHOW CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE PET_BATTLE_OPENING_START PET_BATTLE_CLOSE]]):gmatch("%S+") do
+    CHAT_MSG_MONEY LOADING_SCREEN_ENABLED UNIT_HEALTH SPELLS_CHANGED ACTIVE_TALENT_GROUP_CHANGED TRAIT_CONFIG_UPDATED PLAYER_INTERACTION_MANAGER_FRAME_SHOW CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE PET_BATTLE_OPENING_START PET_BATTLE_CLOSE]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1424,7 +1424,11 @@ function Client:BuildEnv()
     -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
     env.C_Map = {
         GetBestMapForUnit = function(u) assert(u == "player"); return S.map or 1429 end,
-        GetMapInfo = function(id) return { mapID = id, name = (S.mapNames or {})[id] or ("Map " .. id) } end,
+        -- (S.mapTree: id -> { parent, mapType }, as the client's parents: a zone (3) in a continent (2))
+        GetMapInfo = function(id)
+            local t = (S.mapTree or {})[id] or {}
+            return { mapID = id, name = (S.mapNames or {})[id] or ("Map " .. id), parentMapID = t[1], mapType = t[2] }
+        end,
     }
     -- Emotes and jumps: what the player pressed (hooked by the addon).
     env.DoEmote = function(token, target) S.lastEmote = token end
