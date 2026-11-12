@@ -30,12 +30,7 @@ local _, ns = ...
 local Moves = {}
 ns.Moves = Moves
 
--- A method call that may not exist (a missing method, or our harness's
--- strict frames, throw on the lookup itself): ok, results.
-local function Call(obj, method, ...)
-    local args = { ... }
-    return pcall(function() return obj[method](obj, unpack(args)) end)
-end
+local Call = ns.Call -- (Init.lua: a method that may not exist)
 
 -- The card's model actor, and how it was found. The scene is
 -- PetJournalPetCard.modelScene (docs/FOREVER_API.md); the actor by

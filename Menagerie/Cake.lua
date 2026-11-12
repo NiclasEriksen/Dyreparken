@@ -13,7 +13,6 @@ local Cake = {}
 ns.Cake = Cake
 
 local SIZE = 34
-local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 local FLAMES = { { -0.3, 1.1 }, { 0, 0.9 }, { 0.3, 1.3 } } -- candle x (as in tools/draw_particles.py), flicker period
 
 -- The cake's tooltip: whose milestone, and whether a click congratulates.
@@ -58,13 +57,13 @@ function Cake:Build(card, c)
     f:SetPoint("TOPLEFT", c, "TOPLEFT", 16, -14)
     f:SetFrameLevel(c:GetFrameLevel() + 30) -- over the model and the decor's corners, like the paw badge
     f.cake = f:CreateTexture(nil, "ARTWORK")
-    f.cake:SetTexture(MEDIA .. "cake")
+    f.cake:SetTexture(ns.Icon("cake"))
     f.cake:SetVertexColor(1, 0.8, 0.85, 1)
     f.cake:SetAllPoints()
     f.flames = {}
     for i, fl in ipairs(FLAMES) do
         local t = f:CreateTexture(nil, "OVERLAY")
-        t:SetTexture(MEDIA .. "ember")
+        t:SetTexture(ns.Icon("ember"))
         t:SetBlendMode("ADD")
         t:SetVertexColor(1, 0.7, 0.25, 1)
         t:SetSize(9, 12)

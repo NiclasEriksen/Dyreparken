@@ -116,7 +116,8 @@ Dyreparken.toc     load order (each file only uses files above it)
 Libs/              LibStub, LibSerialize, LibDeflate. Don't edit. (ChatThrottleLib went 2026-11-12: unused since
                    Comm paces its own outbox, and it hooked every addon's sends.)
 Core/Init.lua      ns, Config tunables, Bus (internal events, each declared in Bus.EVENTS: the harness checks), helpers (Now = GetServerTime, Plain/IsSecret, Today/Date,
-                   Join, Gold/PrintGold, SpellName, GroupChannel, Debounce, SetTip/HideTip, PlayFirstSound), the start-up
+                   Join, Gold/PrintGold, SpellName, GroupChannel, Debounce, SetTip/ShowTip/HideTip (tooltips as
+                   data: lines from a pure XxxLines builder), Call (a method that may not exist), PlayFirstSound), the start-up
                    phases (ns.Start, ns.RunPhase): use these,
                    don't write them again
                    ns.L / ns.T / ns.Fill: the strings (below)
@@ -140,7 +141,9 @@ Core/Activity.lua  the activity engine: game events -> activities, every one dec
                    watched or not, wishable, chip icons; its words in Locale by id), counted per
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
                    (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
-Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, Scale): no BOUNCE loops, one group per region
+Core/UI.lua        the UI kit: MEDIA/Icon(name) (our particle textures), Edges, Gradient, RoundBadge (disc, ring, icon)
+Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, Scale; Decor's Loop,
+                   Timeline, Swing/SetSwing): no BOUNCE loops, one group per region
 Core/Timers.lua    ns.Timers(): a group of cancellable timers (After, Every, Cancel bumps a generation): use it instead of
                    a hand-written token guard around C_Timer.After
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs

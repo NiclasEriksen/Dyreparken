@@ -20,7 +20,6 @@ ns.Fx = Fx
 
 Fx.POOL = 24
 Fx.AGAIN = 4 -- seconds before the same companion bursts again
-local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 
 local layer, pool, nextOne
 local function Layer()
@@ -68,7 +67,7 @@ function Fx:Burst(anchor, kind, o)
     local c = o.color or { 1, 1, 1 }
     for i = 1, n do
         local p = Take()
-        p.icon:SetTexture(MEDIA .. k.tex)
+        p.icon:SetTexture(ns.Icon(k.tex))
         p.icon:SetBlendMode(k.add and "ADD" or "BLEND")
         p.icon:SetVertexColor(c[1], c[2], c[3], o.alpha or 1)
         local s = math.random(k.size[1], k.size[2]) * size

@@ -13,7 +13,6 @@ local OutBadge = {}
 ns.OutBadge = OutBadge
 
 local SIZE = 40
-local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 OutBadge.SOUNDS = { "IG_MAINMENU_OPTION_CHECKBOX_ON", "IG_CHARACTER_INFO_TAB" }
 
 -- The badge's tooltip for the pet on the card: on (kept out), or not owned.
@@ -40,36 +39,24 @@ end
 local function Tip(self) ns.ShowTip(self, "ANCHOR_LEFT", OutBadge.Lines(self.card.key, self.on, self.notOwned)) end
 
 function OutBadge:Build(card, c)
-    local b = CreateFrame("Button", nil, c)
+    local b = ns.RoundBadge(c, SIZE, { disc = 4, ring = true, icon = ns.Icon("paw"), iconSize = 0.55 })
+    b.paw = b.icon
     b.card = card
-    b:SetSize(SIZE, SIZE)
     b:SetPoint("TOPRIGHT", c, "TOPRIGHT", -14, -12)
     b:SetFrameLevel(c:GetFrameLevel() + 30) -- over the model and the decor's corners
     b.glow = b:CreateTexture(nil, "BACKGROUND")
-    b.glow:SetTexture(MEDIA .. "dot")
+    b.glow:SetTexture(ns.Icon("dot"))
     b.glow:SetBlendMode("ADD")
     b.glow:SetVertexColor(1, 0.75, 0.3, 1)
     b.glow:SetPoint("CENTER")
     b.glow:SetSize(SIZE * 1.9, SIZE * 1.9)
     b.glow.pulse = ns.Anim.Pulse(b.glow, 0.35, 0.8, 2.6)
-    b.bg = b:CreateTexture(nil, "BORDER")
-    b.bg:SetTexture(MEDIA .. "dot")
-    b.bg:SetVertexColor(0, 0, 0, 0.75)
-    b.bg:SetPoint("CENTER")
-    b.bg:SetSize(SIZE - 4, SIZE - 4)
-    b.ring = b:CreateTexture(nil, "ARTWORK")
-    b.ring:SetAtlas("communities-ring-gold")
-    b.ring:SetAllPoints()
-    b.paw = b:CreateTexture(nil, "OVERLAY")
-    b.paw:SetTexture(MEDIA .. "paw")
-    b.paw:SetPoint("CENTER")
-    b.paw:SetSize(SIZE * 0.55, SIZE * 0.55)
     b.label = b:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     b.label:SetPoint("TOP", b, "BOTTOM", 0, -1)
     b.label:SetShadowOffset(1, -1)
     -- A burst when a pet comes along: a ring growing out of the badge.
     b.burst = b:CreateTexture(nil, "OVERLAY")
-    b.burst:SetTexture(MEDIA .. "ring")
+    b.burst:SetTexture(ns.Icon("ring"))
     b.burst:SetBlendMode("ADD")
     b.burst:SetVertexColor(1, 0.85, 0.4, 1)
     b.burst:SetPoint("CENTER")

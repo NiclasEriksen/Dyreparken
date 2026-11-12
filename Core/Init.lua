@@ -73,6 +73,15 @@ function ns.PlayFirstSound(names)
     return nil
 end
 
+-- A method call that may not exist on this client (or on the harness's strict frames, where the
+-- lookup itself throws): ok, its results; false if obj or the method is missing or it errors.
+function ns.Call(obj, method, ...)
+    if not obj then return false end
+    local ok, fn = pcall(function() return obj[method] end)
+    if not (ok and type(fn) == "function") then return false end
+    return pcall(fn, obj, ...)
+end
+
 -- Tooltips as data (docs/REFACTOR.md, Phase 4): a module builds its lines with a pure
 -- function, XxxLines(...) -> { { text, r, g, b, wrap }, ... } (nil: no tooltip), and one
 -- place shows them. The first line is the title (SetText), the rest AddLine; a line

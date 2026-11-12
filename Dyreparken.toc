@@ -23,6 +23,7 @@ Core\Debug.lua
 Core\Events.lua
 Core\Anim.lua
 Core\Timers.lua
+Core\UI.lua
 Core\DB.lua
 Core\Comm.lua
 Core\Version.lua

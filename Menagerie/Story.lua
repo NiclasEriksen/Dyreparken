@@ -246,7 +246,6 @@ end
 ------------------------------------------------------------------------------
 -- The card's button and the panel
 ------------------------------------------------------------------------------
-local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 local ICON = "Interface\\Icons\\INV_Misc_Book_09"
 local SIZE = 30
 
@@ -258,29 +257,11 @@ function Story.ButtonLines(key)
 end
 
 function Story:Build(card, c)
-    local b = CreateFrame("Button", nil, c)
+    local b = ns.RoundBadge(c, SIZE, { disc = 2, ring = true, ringOver = true, icon = ICON, iconSize = 0.62,
+        texCoord = { 0.08, 0.92, 0.08, 0.92 }, hover = { 1, 0.85, 0.5, 0.5 } })
     b.card = card
-    b:SetSize(SIZE, SIZE)
     b:SetPoint("TOPRIGHT", c, "TOPRIGHT", -19, -70) -- (under the "Med deg" badge and its label)
     b:SetFrameLevel(c:GetFrameLevel() + 30)
-    b.bg = b:CreateTexture(nil, "BORDER")
-    b.bg:SetTexture(MEDIA .. "dot")
-    b.bg:SetVertexColor(0, 0, 0, 0.75)
-    b.bg:SetPoint("CENTER")
-    b.bg:SetSize(SIZE - 2, SIZE - 2)
-    b.icon = b:CreateTexture(nil, "ARTWORK")
-    b.icon:SetTexture(ICON)
-    b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    b.icon:SetPoint("CENTER")
-    b.icon:SetSize(SIZE * 0.62, SIZE * 0.62)
-    b.ring = b:CreateTexture(nil, "OVERLAY")
-    b.ring:SetAtlas("communities-ring-gold")
-    b.ring:SetAllPoints()
-    b.hover = b:CreateTexture(nil, "HIGHLIGHT")
-    b.hover:SetTexture(MEDIA .. "dot")
-    b.hover:SetBlendMode("ADD")
-    b.hover:SetVertexColor(1, 0.85, 0.5, 0.5)
-    b.hover:SetAllPoints()
     b:SetScript("OnClick", function() Story:Toggle(card.key) end)
     ns.SetTip(b, "ANCHOR_LEFT", function() return Story.ButtonLines(card.key) end)
     b:Hide()

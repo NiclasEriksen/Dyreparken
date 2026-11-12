@@ -121,7 +121,7 @@ function Track:Build(card, c, panel)
     b.today:SetVertexColor(1, 1, 0.8, 0.35)
     b.today:Hide()
     b.spark = b:CreateTexture(nil, "OVERLAY")
-    b.spark:SetTexture(ns.Decor.MEDIA .. "sparkle")
+    b.spark:SetTexture(ns.Icon("sparkle"))
     b.spark:SetBlendMode("ADD")
     b.spark:SetSize(20, 20)
     b.spark:SetPoint("CENTER", b:GetStatusBarTexture(), "RIGHT", 0, 0)
@@ -151,7 +151,7 @@ function Track:Build(card, c, panel)
     m:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, 18)
     m:SetFrameLevel(panel:GetFrameLevel() + 3)
     m.glow = m:CreateTexture(nil, "BACKGROUND")
-    m.glow:SetTexture(ns.Decor.MEDIA .. "dot")
+    m.glow:SetTexture(ns.Icon("dot"))
     m.glow:SetBlendMode("ADD")
     m.glow:SetPoint("CENTER")
     m.glow:SetSize(110, 110)
@@ -180,10 +180,10 @@ function Track:Build(card, c, panel)
         p:SetPoint("TOPLEFT", panel, "TOPLEFT", STRIP_X + (i - 1) * (PIP + PIP_GAP), y)
         p.n = i
         p.star = p:CreateTexture(nil, "ARTWORK")
-        p.star:SetTexture(ns.Decor.MEDIA .. "star")
+        p.star:SetTexture(ns.Icon("star"))
         p.star:SetAllPoints()
         p.halo = p:CreateTexture(nil, "BACKGROUND")
-        p.halo:SetTexture(ns.Decor.MEDIA .. "dot")
+        p.halo:SetTexture(ns.Icon("dot"))
         p.halo:SetBlendMode("ADD")
         p.halo:SetPoint("CENTER")
         p.halo:SetSize(PIP * 2.6, PIP * 2.6)
@@ -230,7 +230,7 @@ function Track:Update(card, key, color)
     b.label:SetText(name) -- the number is on the medallion
     local _, yourLevel, yourName = ns.Bond:Yours(key)
     b.yours:SetText(yourLevel and ns.T("bond.yours", { level = yourName, n = yourLevel,
-        icon = "|TInterface\\AddOns\\Dyreparken\\Media\\Particles\\heart:10|t" }) or "")
+        icon = "|T" .. ns.Icon("heart") .. ":10|t" }) or "")
     b.level:SetText(level)
     -- The bar: from the tier's dark to its bright (the top level: full), a spark at the tip.
     b:Set(points, from, nextAt or math.max(points, 1), tier)
@@ -353,7 +353,7 @@ function Track:BuildCelebration(card, c, panel)
     card.celebration = cel
     -- A flash of the light rays, turning as it fades.
     cel.flash = c:CreateTexture(nil, "BORDER", nil, 7)
-    cel.flash:SetTexture(ns.Decor.MEDIA .. "rays")
+    cel.flash:SetTexture(ns.Icon("rays"))
     cel.flash:SetBlendMode("ADD")
     cel.flash:SetSize(560, 560)
     cel.flash:SetPoint("CENTER", panel, "TOP", 0, 140)
@@ -423,7 +423,7 @@ function Track:Celebrate(card, key, level)
     cel.flash:Show(); cel.flash.anim:Play()
     for i, p in ipairs(cel.parts) do
         local heart = i % 3 == 0
-        p.icon:SetTexture(ns.Decor.MEDIA .. (heart and "heart" or "sparkle"))
+        p.icon:SetTexture(ns.Icon(heart and "heart" or "sparkle"))
         if heart then p.icon:SetVertexColor(1, 0.45, 0.55, 1) else p.icon:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1) end
         local angle = (i - 1) / BURST * 2 * math.pi
         local dist = 110 + (i % 4) * 22

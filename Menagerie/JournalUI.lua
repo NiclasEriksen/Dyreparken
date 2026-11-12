@@ -397,7 +397,7 @@ local function BuildCard()
         card.guildBox:SetPoint("BOTTOMLEFT", c, "TOPLEFT", 160, 8)
     end
     card.todayBox = InfoBox(ns.L["card.today"], 140,
-        { "Interface\\AddOns\\Dyreparken\\Media\\Particles\\star", 1, 0.82, 0.3 })
+        { ns.Icon("star"), 1, 0.82, 0.3 })
     card.todayBox:SetPoint("LEFT", card.guildBox, "RIGHT", BOX_GAP, 0)
     card.todayBox:SetScript("OnMouseUp", function() JournalUI:ShowPetOfTheDay() end)
     card.counter, card.today = card.guildBox.value, card.todayBox.value

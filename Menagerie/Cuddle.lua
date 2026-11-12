@@ -40,7 +40,7 @@ local function Piece(c, level, size, texture)
     p:Hide()
     p.icon = p:CreateTexture(nil, "ARTWORK")
     p.icon:SetAllPoints()
-    p.icon:SetTexture(ns.Decor.MEDIA .. texture)
+    p.icon:SetTexture(ns.Icon(texture))
     return p
 end
 
@@ -69,7 +69,7 @@ function Cuddle:Build(card, c, panel)
     end
     -- A warm glow flaring under the pet, behind it.
     d.glow = c:CreateTexture(nil, "BORDER", nil, 4)
-    d.glow:SetTexture(ns.Decor.MEDIA .. "dot")
+    d.glow:SetTexture(ns.Icon("dot"))
     d.glow:SetBlendMode("ADD")
     d.glow:SetVertexColor(1, 0.75, 0.5, 1)
     d.glow:SetSize(260, 120)
@@ -150,10 +150,10 @@ function Cuddle:Pet(card, x, y)
     local tex, color = Own(key)
     for i, p in ipairs(d.hearts) do
         if i % 2 == 0 then
-            p.icon:SetTexture(ns.Decor.MEDIA .. tex)
+            p.icon:SetTexture(ns.Icon(tex))
             p.icon:SetVertexColor(color[1], color[2], color[3], 0.9)
         else
-            p.icon:SetTexture(ns.Decor.MEDIA .. "heart")
+            p.icon:SetTexture(ns.Icon("heart"))
             p.icon:SetVertexColor(1, 0.5, 0.6, 0.85)
         end
         Place(p)

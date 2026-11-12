@@ -42,7 +42,7 @@ local function Numbers(b)
         f:SetSize(60, 24)
         f:Hide()
         f.halo = f:CreateTexture(nil, "BACKGROUND")
-        f.halo:SetTexture(ns.Decor.MEDIA .. "dot")
+        f.halo:SetTexture(ns.Icon("dot"))
         f.halo:SetPoint("CENTER")
         f.halo:SetSize(64, 34)
         f.halo:SetVertexColor(0, 0, 0, 0.75)
@@ -91,10 +91,8 @@ function Bar:Set(points, from, top, tier)
     end
     self:SetValue(value)
     local fill = self:GetStatusBarTexture()
-    if fill and CreateColor then
-        fill:SetGradient("HORIZONTAL", CreateColor(tier[1] * 0.55, tier[2] * 0.55, tier[3] * 0.55, 1),
-            CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
-    else
+    if not (fill and ns.Gradient(fill, "HORIZONTAL", { tier[1] * 0.55, tier[2] * 0.55, tier[3] * 0.55, 1 },
+        { math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1 }, false)) then
         self:SetStatusBarColor(tier[1], tier[2], tier[3])
     end
 end

@@ -45,12 +45,7 @@ local L = ns.L
 -- One group each: a new one cancels the last (the last timer decides).
 local cameraT, activeT, peekT, changeT = ns.Timers(), ns.Timers(), ns.Timers(), ns.Timers()
 
-local function Call(obj, method, ...)
-    if not obj then return false end
-    local ok, fn = pcall(function() return obj[method] end)
-    if not (ok and type(fn) == "function") then return false end
-    return pcall(fn, obj, ...)
-end
+local Call = ns.Call
 
 function PF:Enabled() return ns.Settings:Get("petFrame") == true end
 
@@ -93,12 +88,12 @@ function PF:Build()
     bar.bg:SetAllPoints()
     bar.bg:SetColorTexture(0.12, 0.1, 0.08, 0.85)
     bar.medal = bar:CreateTexture(nil, "ARTWORK")
-    bar.medal:SetTexture(ns.Decor.MEDIA .. "dot")
+    bar.medal:SetTexture(ns.Icon("dot"))
     bar.medal:SetSize(26, 26)
     bar.medal:SetPoint("CENTER", bar, "LEFT", -19, 0) -- (clear of the bar)
     bar.medal:SetVertexColor(0.08, 0.06, 0.04, 1)
     bar.ring = bar:CreateTexture(nil, "OVERLAY")
-    bar.ring:SetTexture(ns.Decor.MEDIA .. "ring")
+    bar.ring:SetTexture(ns.Icon("ring"))
     bar.ring:SetSize(24, 24)
     bar.ring:SetPoint("CENTER", bar.medal, "CENTER")
     bar.level = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
@@ -113,13 +108,7 @@ function PF:Build()
     edit.wash = edit:CreateTexture(nil, "BACKGROUND")
     edit.wash:SetAllPoints()
     edit.wash:SetColorTexture(0.2, 0.5, 1, 0.35)
-    for _, side in ipairs({ { "TOPLEFT", "TOPRIGHT", nil, 2 }, { "BOTTOMLEFT", "BOTTOMRIGHT", nil, 2 },
-        { "TOPLEFT", "BOTTOMLEFT", 2, nil }, { "TOPRIGHT", "BOTTOMRIGHT", 2, nil } }) do
-        local t = edit:CreateTexture(nil, "BORDER")
-        t:SetColorTexture(0.45, 0.75, 1, 1)
-        t:SetPoint(side[1]); t:SetPoint(side[2])
-        if side[3] then t:SetWidth(side[3]) else t:SetHeight(side[4]) end
-    end
+    ns.Edges(edit, 2, { 0.45, 0.75, 1, 1 })
     edit.label = edit:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     edit.label:SetPoint("TOP", edit, "TOP", 0, -8)
     edit.label:SetWidth(self.W - 16)
@@ -487,12 +476,12 @@ function PF:Said(key, kind, text)
     local b = self:Bubble()
     b:ClearAllPoints()
     b:SetPoint("BOTTOM", self.scene, "BOTTOM", self.SAY_AT[1], self.SAY_AT[2])
-    b.tex:SetTexture(ns.Decor.MEDIA .. k.bubble)
+    b.tex:SetTexture(ns.Icon(k.bubble))
     b.tex:SetVertexColor(k.color[1], k.color[2], k.color[3], 0.95)
     local size = k.size or 1
     b:SetSize(40 * size, 34 * size)
     b.icon:SetShown(k.icon ~= nil)
-    if k.icon then b.icon:SetTexture(ns.Decor.MEDIA .. k.icon) end
+    if k.icon then b.icon:SetTexture(ns.Icon(k.icon)) end
     b.anim:Stop()
     b.anim.rise:SetDuration(self.SAY_FOR - 0.95) -- (the pop and the fade take the rest)
     b:Show()

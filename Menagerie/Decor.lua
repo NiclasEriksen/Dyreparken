@@ -10,7 +10,7 @@ ns.Decor = Decor
 
 -- Our own particles (Media/Particles, drawn by tools/draw_particles.py):
 -- white with soft edges, to tint and animate.
-Decor.MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
+Decor.MEDIA = ns.MEDIA -- (Core/UI.lua; the probes read it here)
 
 ------------------------------------------------------------------------------
 -- On the card (2026-11-08). Two sources of decoration, both behind the pet
@@ -38,7 +38,7 @@ Decor.MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 -- Back-and-forth motions are never BOUNCE loops: those blinked where they
 -- turned (hearts, notes, leaves, while REPEAT spins were smooth). They're
 -- REPEAT loops of steps that end where they began: out, back past the
--- middle, home (Swing below).
+-- middle, home (Anim.Swing, Core/Anim.lua).
 ------------------------------------------------------------------------------
 local POOL = 32 -- a family, two traits, the date and the bond at once
 local GOLD, SILVER = ns.Scenes.GOLD, ns.Scenes.SILVER
@@ -49,7 +49,7 @@ Decor.ART = { -- the picks from the gallery (2026-11-08, second round)
     corner = "Interface\\AchievementFrame\\UI-Achievement-WoodBorder-Corner",
     cornerGold = "parchmentpopup-filigree",
     ribbon = "UI-Frame-Neutral-Ribbon",
-    glow = Decor.MEDIA .. "dot",
+    glow = ns.Icon("dot"),
 }
 
 -- What each level adds, for the bond's tooltip ("på level 3: ...").
@@ -292,7 +292,7 @@ end
 -- A particle kind's picture.
 function Decor:PartArt(kind)
     local slot = KIND_SLOT[kind]
-    return slot and self:Art(slot) or self.MEDIA .. self.KINDS[kind].tex
+    return slot and self:Art(slot) or ns.Icon(self.KINDS[kind].tex)
 end
 
 -- A stable little random per pet, so its particles keep their places.
@@ -305,63 +305,7 @@ local function Rng(seed)
     end
 end
 
--- A looping group with one animation of a kind, origin in the middle.
-local function Loop(t, kind, looping)
-    local g = t:CreateAnimationGroup()
-    g:SetLooping(looping)
-    local a = g:CreateAnimation(kind)
-    if a.SetOrigin and kind ~= "Translation" and kind ~= "Alpha" then a:SetOrigin("CENTER", 0, 0) end
-    a:SetSmoothing("IN_OUT")
-    g.a = g.a or a
-    return g, a
-end
-
-local function Timeline(holder, grow)
-    local g = holder:CreateAnimationGroup()
-    g:SetLooping("REPEAT")
-    g.hold = g:CreateAnimation("Alpha"); g.hold:SetFromAlpha(0); g.hold:SetToAlpha(0); g.hold:SetOrder(1)
-    g.moveA = g:CreateAnimation("Translation"); g.moveA:SetOrder(2)
-    g.fadeIn = g:CreateAnimation("Alpha"); g.fadeIn:SetFromAlpha(0); g.fadeIn:SetToAlpha(1); g.fadeIn:SetOrder(2)
-    g.moveB = g:CreateAnimation("Translation"); g.moveB:SetOrder(3)
-    g.fadeOut = g:CreateAnimation("Alpha"); g.fadeOut:SetFromAlpha(1); g.fadeOut:SetToAlpha(0); g.fadeOut:SetOrder(3)
-    if grow then g.grow = g:CreateAnimation("Scale"); g.grow:SetOrder(3); g.grow:SetOrigin("CENTER", 0, 0) end
-    return g
-end
-
--- A back-and-forth motion as a REPEAT loop of steps (see the header):
--- Translation and Rotation swing out, across and home like a pendulum;
--- Scale beats (up, back down, rest). Steps are relative, so they add up to
--- nothing over a loop and it never jumps.
-local function Swing(region, kind)
-    local g = region:CreateAnimationGroup()
-    g:SetLooping("REPEAT")
-    g.kind = kind
-    g.steps = {}
-    for i = 1, 3 do
-        local a = g:CreateAnimation(kind == "Scale" and (i == 3 and "Translation" or "Scale") or kind)
-        a:SetOrder(i)
-        if a.SetOrigin and kind ~= "Translation" and not (kind == "Scale" and i == 3) then a:SetOrigin("CENTER", 0, 0) end
-        g.steps[i] = a
-    end
-    return g
-end
-
--- Set a swing's size (pixels, degrees, or a scale factor) and one loop's length.
-local function SetSwing(g, amount, period, across)
-    local a1, a2, a3 = g.steps[1], g.steps[2], g.steps[3]
-    if g.kind == "Scale" then -- a beat: up quickly, down, then a rest (a still step)
-        local y = across and 1 or amount -- across: the width only
-        a1:SetScale(amount, y); a1:SetDuration(period * 0.3); a1:SetSmoothing("OUT")
-        a2:SetScale(1 / amount, 1 / y); a2:SetDuration(period * 0.4); a2:SetSmoothing("IN_OUT")
-        a3:SetOffset(0, 0); a3:SetDuration(period * 0.3)
-        return
-    end
-    -- A pendulum: fastest through the middle, still at the ends.
-    local set = g.kind == "Rotation" and function(a, v) a:SetDegrees(v) end or function(a, v) a:SetOffset(v, 0) end
-    set(a1, amount); a1:SetDuration(period / 4); a1:SetSmoothing("OUT")
-    set(a2, -2 * amount); a2:SetDuration(period / 2); a2:SetSmoothing("IN_OUT")
-    set(a3, amount); a3:SetDuration(period / 4); a3:SetSmoothing("IN")
-end
+local Loop, Timeline, Swing, SetSwing = ns.Anim.Loop, ns.Anim.Timeline, ns.Anim.Swing, ns.Anim.SetSwing
 Decor.SetSwing = SetSwing
 
 local Pulse = ns.Anim.Pulse
@@ -402,29 +346,9 @@ function Decor:Build(card, c, panel)
     end
     d.border:Hide()
     d.border.shimmer = Pulse(d.border, 0.55, 1, 3.2) -- 7: it glows
-    d.edges, d.wash = {}, {}
-    for i, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
-        local t = c:CreateTexture(nil, "BORDER", nil, 2)
-        t:SetColorTexture(1, 1, 1, 1)
-        local w = c:CreateTexture(nil, "BACKGROUND", nil, 4)
-        w:SetColorTexture(1, 1, 1, 1)
-        if side == "TOP" or side == "BOTTOM" then
-            local y = side == "TOP" and -4 or 4
-            t:SetPoint(side .. "LEFT", c, side .. "LEFT", 4, y); t:SetPoint(side .. "RIGHT", c, side .. "RIGHT", -4, y)
-            t:SetHeight(3)
-            w:SetPoint(side .. "LEFT", c, side .. "LEFT", 4, y); w:SetPoint(side .. "RIGHT", c, side .. "RIGHT", -4, y)
-            w:SetHeight(60)
-        else
-            local x = side == "LEFT" and 4 or -4
-            t:SetPoint("TOP" .. side, c, "TOP" .. side, x, -4); t:SetPoint("BOTTOM" .. side, c, "BOTTOM" .. side, x, 4)
-            t:SetWidth(3)
-            w:SetPoint("TOP" .. side, c, "TOP" .. side, x, -4); w:SetPoint("BOTTOM" .. side, c, "BOTTOM" .. side, x, 4)
-            w:SetWidth(60)
-        end
-        w.side = side
-        t:Hide(); w:Hide()
-        d.edges[i], d.wash[i] = t, w
-    end
+    d.edges = ns.Edges(c, 3, nil, { layer = "BORDER", sub = 2, inset = 4 })
+    d.wash = ns.Edges(c, 60, nil, { layer = "BACKGROUND", sub = 4, inset = 4 })
+    for i = 1, 4 do d.edges[i]:Hide(); d.wash[i]:Hide() end
     -- 3+: corners (the picked piece is a top left; the rest mirror it).
     d.corners = {}
     for _, point in ipairs({ "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT", "BOTTOMRIGHT" }) do
@@ -448,7 +372,7 @@ function Decor:Build(card, c, panel)
     -- 6+: light rays behind the pet, turning slowly.
     -- Over the glow, not under it: under, the glow drowned them (seen 2026-11-08).
     d.rays = c:CreateTexture(nil, "BORDER", nil, 3)
-    d.rays:SetTexture(self.MEDIA .. "rays")
+    d.rays:SetTexture(ns.Icon("rays"))
     d.rays:SetBlendMode("ADD")
     d.rays:SetSize(600, 600)
     d.rays:SetPoint("CENTER", panel, "TOP", 0, 150)
@@ -680,9 +604,7 @@ function Decor:Apply(card, key, level, color)
             d.edges[i]:SetShown(not d.sliced)
             local w = d.wash[i]
             local strong, clear = { wash[1], wash[2], wash[3], level >= 5 and 0.12 or 0.16 }, { wash[1], wash[2], wash[3], 0 } -- the art shows through
-            local function G(o, a, b)
-                if w.SetGradient and CreateColor then w:SetGradient(o, CreateColor(unpack(a)), CreateColor(unpack(b))) end
-            end
+            local function G(o, a, b) ns.Gradient(w, o, a, b, false) end
             if w.side == "TOP" then G("VERTICAL", clear, strong)
             elseif w.side == "BOTTOM" then G("VERTICAL", strong, clear)
             elseif w.side == "LEFT" then G("HORIZONTAL", strong, clear)

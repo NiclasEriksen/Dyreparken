@@ -218,7 +218,7 @@ end
 local sp = ns.SidePage:New({
     id = "Settings",
     title = L["settings.title"],
-    icon = ns.Decor.MEDIA .. "gear",
+    icon = ns.Icon("gear"),
     tab = false, -- (the cog opens it)
     build = Build,
     refresh = Redraw,
@@ -233,21 +233,11 @@ function Settings:Refresh() sp:Refresh() end
 -- The cog: in the title bar, left of the close button; only on the pet journal's page.
 function Settings:AttachCog(petJournal)
     local host = petJournal:GetParent() or petJournal
-    local cog = CreateFrame("Button", nil, host)
-    cog:SetSize(18, 18)
+    local cog = ns.RoundBadge(host, 18, { icon = ns.Icon("gear"), color = { 0.9, 0.78, 0.5, 1 }, hover = { 1, 0.85, 0.5, 0.6 } })
     local close = rawget(host, "CloseButton")
     if close then cog:SetPoint("RIGHT", close, "LEFT", -2, 0)
     else cog:SetPoint("TOPRIGHT", host, "TOPRIGHT", -28, -3) end
     cog:SetFrameLevel(host:GetFrameLevel() + 520) -- (over our pages, like the close button)
-    cog.icon = cog:CreateTexture(nil, "ARTWORK")
-    cog.icon:SetTexture(ns.Decor.MEDIA .. "gear")
-    cog.icon:SetVertexColor(0.9, 0.78, 0.5, 1)
-    cog.icon:SetAllPoints()
-    cog.hover = cog:CreateTexture(nil, "HIGHLIGHT")
-    cog.hover:SetTexture(ns.Decor.MEDIA .. "dot")
-    cog.hover:SetBlendMode("ADD")
-    cog.hover:SetVertexColor(1, 0.85, 0.5, 0.6)
-    cog.hover:SetAllPoints()
     cog:SetScript("OnClick", function()
         if sp:IsOpen() then sp:Close() else sp:Open() end
     end)

@@ -124,13 +124,7 @@ function Scenes:For(key)
     return First("default")
 end
 
-local function Gradient(t, orientation, a, b)
-    if t.SetGradient and CreateColor then
-        t:SetGradient(orientation, CreateColor(unpack(a)), CreateColor(unpack(b)))
-    else
-        t:SetVertexColor(b[1], b[2], b[3], (a[4] + b[4]) / 2)
-    end
-end
+local Gradient = ns.Gradient
 
 -- The light over the card by the player's clock: { from hour, name, color
 -- at the top, alpha at the top } (it fades out toward the panel). Day has

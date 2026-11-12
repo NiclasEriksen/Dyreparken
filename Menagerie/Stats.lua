@@ -103,13 +103,7 @@ function Stats:Build(card, c)
         -- around the square icon looked wrong).
         chip.ring = CreateFrame("Frame", nil, chip)
         chip.ring:SetAllPoints()
-        for _, side in ipairs({ { "TOPLEFT", "TOPRIGHT", nil, 1 }, { "BOTTOMLEFT", "BOTTOMRIGHT", nil, 1 },
-            { "TOPLEFT", "BOTTOMLEFT", 1, nil }, { "TOPRIGHT", "BOTTOMRIGHT", 1, nil } }) do
-            local t = chip.ring:CreateTexture(nil, "OVERLAY")
-            t:SetColorTexture(1, 0.82, 0.3, 0.9)
-            t:SetPoint(side[1]); t:SetPoint(side[2])
-            if side[3] then t:SetWidth(side[3]) else t:SetHeight(side[4]) end
-        end
+        ns.Edges(chip.ring, 1, { 1, 0.82, 0.3, 0.9 }, { layer = "OVERLAY" })
         chip.ring:Hide()
         chip.card = card
         chip:EnableMouse(true)

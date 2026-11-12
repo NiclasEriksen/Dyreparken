@@ -144,7 +144,7 @@ function Wish:Update(card, key)
     if not f then return end
     local w = key and self:Today()
     if not w or w.pet ~= key then f:Hide(); return end
-    f.icon:SetTexture(ns.Stats.Icon(w.id) or (ns.Decor.MEDIA .. "heart")) -- (the first that exists)
+    f.icon:SetTexture(ns.Stats.Icon(w.id) or ns.Icon("heart")) -- (the first that exists)
     if w.done then
         local run = self:Streak()
         f.text:SetText(run >= 2 and ns.T("wish.done.streak", { n = run }) or ns.L["wish.done"])

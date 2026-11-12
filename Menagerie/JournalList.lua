@@ -12,11 +12,10 @@ ns.JournalList = JournalList
 -- the raid star, padlock and tick didn't fit the card's style): a heart for
 -- yours, a paw for someone else's, a little house for one that needs a home
 -- (a green ring until 2026-11-09: it looked like the bond level's ring next to it).
-local MEDIA = "Interface\\AddOns\\Dyreparken\\Media\\Particles\\"
 local MARKERS = {
-    mine = { MEDIA .. "heart", 1, 0.45, 0.55 },
-    taken = { MEDIA .. "paw", 0.65, 0.65, 0.65 },
-    free = { MEDIA .. "house", 0.45, 0.9, 0.45 },
+    mine = { ns.Icon("heart"), 1, 0.45, 0.55 },
+    taken = { ns.Icon("paw"), 0.65, 0.65, 0.65 },
+    free = { ns.Icon("house"), 0.45, 0.9, 0.45 },
 }
 
 local markers = setmetatable({}, { __mode = "k" }) -- button -> texture
@@ -104,7 +103,7 @@ local function UpdateBadge(button, ctx)
         -- The pet kept out (OutBadge): a small gold paw on its icon.
         local icon = rawget(button, "icon")
         b.out = button:CreateTexture(nil, "OVERLAY", nil, 7)
-        b.out:SetTexture(MEDIA .. "paw")
+        b.out:SetTexture(ns.Icon("paw"))
         b.out:SetVertexColor(1, 0.82, 0.3, 1)
         b.out:SetSize(16, 16)
         if type(icon) == "table" and icon.GetObjectType then
