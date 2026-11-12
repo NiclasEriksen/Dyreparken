@@ -239,6 +239,48 @@ function Registry:MergeLapse(owner, t)
     return true
 end
 
+-- Our own entries, the stores only we write our part of. One path for every
+-- such write (2026-11-12; until then claims, names and bonds each had their
+-- own, and bonds skipped the per-member cap):
+--   stamp  the field copies merge by; it grows by `step` at least, so two
+--          edits in the same second still order (bonds merge by points first,
+--          so their time only mustn't go back)
+--   valid  the very check peers run on our copy (a merge's): an entry they'd
+--          refuse would keep us apart from them for good, so it's an error here
+--   cap    the per-member cap peers keep (Trim), so our store matches theirs
+--   (then MY_RECORD or MY_NAME tells Sync to send it; bonds go out lazily: Bond.lua publishes them)
+--   changed  it can change who holds or what a pet is called (Registry:Changed)
+local OWN = {
+    claims = { stamp = "ts", step = 1, valid = function(_, me, r) return Registry.ValidClaim(me, r) end,
+        changed = true },
+    names = { nested = true, stamp = "at", step = 1, valid = Registry.ValidNaming, cap = "NAMES_PER_MEMBER",
+        changed = true },
+    life = { nested = true, stamp = "t", step = 0, valid = Registry.ValidBond, cap = "LIFE_PER_MEMBER" },
+}
+
+-- Write our own entry: store "claims" (key: unused, the record is ours),
+-- "names" or "life" (key: the pet). Returns the entry as stored.
+function Registry:WriteOwn(store, key, e)
+    local spec = assert(OWN[store], "WriteOwn: not a store of our own")
+    local g, me = G(), ns.PlayerKey()
+    local t = g[store]
+    local prev
+    if spec.nested then prev = t[key] and t[key][me] else prev = t[me] end
+    e[spec.stamp] = math.max(ns.Now(), (prev and prev[spec.stamp] or 0) + spec.step)
+    assert(spec.valid(key, me, e), "WriteOwn: peers would refuse this entry")
+    if spec.nested then
+        t[key] = t[key] or {}
+        t[key][me] = e
+        Trim(t, me, spec.stamp, Config[spec.cap], key)
+    else
+        t[me] = e
+    end
+    if spec.changed then self:Changed() end
+    if store == "claims" then ns.Bus:Fire("MY_RECORD", me, e)
+    elseif store == "names" then ns.Bus:Fire("MY_NAME", key, e) end
+    return e
+end
+
 ------------------------------------------------------------------------------
 -- Derivation
 ------------------------------------------------------------------------------
@@ -417,17 +459,7 @@ function Registry:Nickname(key)
 end
 
 -- This character's naming entry for a pet; MY_NAME sends it (Sync).
-local function WriteName(key, e)
-    local g = G()
-    local me = ns.PlayerKey()
-    local prev = g.names[key] and g.names[key][me]
-    -- at must grow even if two edits land in the same second.
-    e.at = math.max(ns.Now(), (prev and prev.at or 0) + 1)
-    g.names[key] = g.names[key] or {}
-    g.names[key][me] = e
-    Registry:Changed()
-    ns.Bus:Fire("MY_NAME", key, e)
-end
+local function WriteName(key, e) return Registry:WriteOwn("names", key, e) end
 
 -- May the holder of r name the pet? Once their bond reaches NICKNAME_LEVEL.
 function Registry:CanNickname(r)
@@ -452,17 +484,7 @@ end
 ------------------------------------------------------------------------------
 -- Actions by this character. Each returns ok, message.
 ------------------------------------------------------------------------------
-local function Write(r)
-    local g = G()
-    local me = ns.PlayerKey()
-    -- ts must grow even if two edits land in the same second.
-    local prev = g.claims[me]
-    r.ts = math.max(ns.Now(), (prev and prev.ts or 0) + 1)
-    g.claims[me] = r
-    Registry:Changed()
-    ns.Bus:Fire("MY_RECORD", me, r)
-    return r
-end
+local function Write(r) return Registry:WriteOwn("claims", nil, r) end
 
 function Registry:Claim(key)
     local g = G()

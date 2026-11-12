@@ -147,8 +147,7 @@ function Bond:Add(points, key)
     -- Within what the wire accepts (Registry.LifeCap), so every copy merges;
     -- never below what we had (a copy that was valid stays ours).
     local p = math.max(before, math.min(before + points, ns.Registry.LifeCap(f, now)))
-    g.life[key] = g.life[key] or {}
-    g.life[key][me] = { p = p, f = f, t = math.max(now, e and e.t or 0) }
+    ns.Registry:WriteOwn("life", key, { p = p, f = f })
     local oldLevel = self:Level(before)
     local level, name = self:Level(p)
     ns.Log("Bond", "%s +%d -> %d (level %d)", key, points, p, level)

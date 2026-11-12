@@ -11,6 +11,8 @@ return function(test, H)
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
         local t = os.date("*t", ola.ns.Now())
         t.month, t.day, t.hour, t.min, t.isdst = month, day, hour, 0, nil
+        -- (forward: a clock going back would date our own bond before it began, which peers refuse)
+        if os.time(t) < ola.ns.Now() then t.year = t.year + 1 end
         w:Skip(os.time(t) - ola.ns.Now())
         return w, ola
     end

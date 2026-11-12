@@ -237,15 +237,38 @@ return function(test, H)
         w:Run(5)
         local now = w:ServerTime()
         local g = ola.ns.DB:Guild()
-        -- An entry above what Add would allow now (as alpha4 could leave): kept, not lowered.
-        g.life[PANDA] = { ["Ola Nord"] = { p = 200, f = now - 600, t = now } }
+        -- An entry at the cap (WriteOwn refuses one past it: migration 8 clamped what alpha4 left): kept.
+        g.life[PANDA] = { ["Ola Nord"] = { p = 150, f = now - 600, t = now } }
         ola.ns.Bond:Add(5)
-        eq(ola.ns.Registry:Life(PANDA, "Ola Nord").p, 200)
+        eq(ola.ns.Registry:Life(PANDA, "Ola Nord").p, 150)
         eq(ola.ns.Bond:Room(), 0)
         -- At the cap, a granted activity adds nothing to today's tally.
         local before = ola.ns.Bond:Today()
         ola:Fire("QUEST_TURNED_IN", 1)
         eq(ola.ns.Bond:Today(), before)
+    end)
+
+    test("our own entries go one way (WriteOwn): within the caps peers keep, never one they'd refuse", function()
+        local w, ola = Guild({ { "Ola Nord", { 5159 } } })
+        local R, C = ola.ns.Registry, ola.ns.Config
+        -- Bonds kept no per-member cap of their own before (Bond:Add wrote g.life itself).
+        C.LIFE_PER_MEMBER = 3
+        for i = 1, 5 do
+            ola.ns.Bond:Add(1, "s:" .. (2000 + i))
+            w:Skip(10)
+        end
+        local mine = {}
+        for key, byKey in pairs(ola.ns.DB:Guild().life) do if byKey["Ola Nord"] then mine[#mine + 1] = key end end
+        table.sort(mine)
+        eq(table.concat(mine, " "), "s:2003 s:2004 s:2005", "the newest three")
+        -- The stamp grows within a second; an entry peers would refuse is an error, not kept.
+        local a = R:WriteOwn("names", PANDA, { n = "En" })
+        local b = R:WriteOwn("names", PANDA, { n = "To" })
+        eq(b.at, a.at + 1)
+        local okay, err = pcall(R.WriteOwn, R, "names", PANDA, { n = ("x"):rep(C.NICKNAME_MAX_LEN + 1) })
+        ok(not okay and err:find("peers would refuse"), tostring(err))
+        eq(ola.ns.DB:Guild().names[PANDA]["Ola Nord"].n, "To")
+        no(pcall(R.WriteOwn, R, "lapses", "Ola Nord", 1), "not a store of our own")
     end)
 
     test("bond gains wait for the lazy publish per pet, and go out at login", function()
