@@ -25,7 +25,7 @@ DB.SCHEMA, DB.CHAR_SCHEMA = SCHEMA, CHAR_SCHEMA
 -- line here, under the module that owns it: [Owner] is the one file that
 -- writes the key itself (others read it, or ask the owner: Bonds:SetAnnounce,
 -- Wish:Shown, Quirks:EggPlayed ...). Keys with a nil default are listed too, so
--- the list is the whole saved shape: tools/test/spec/47_saved.lua reads this
+-- the list is the whole saved shape: tools/test/spec/50_saved.lua reads this
 -- file and fails for a key used but not listed, or written by another file.
 local ACCOUNT_DEFAULTS = {
     -- [DB]
