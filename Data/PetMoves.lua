@@ -96,6 +96,7 @@ ns.PetMoves = {
         [162] = { lift = 0.6, sleep = 1 },  -- Sinister Squashling
         [341] = { sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Lunar Lantern
         [342] = { sleep = 99, sleepHold = 100, sleepUp = 101 },  -- Festival Lantern
+        [1563] = { lift = 0.4, sleep = 1 },  -- Bronze Whelpling: as the other whelplings (it stood off the card, the user 2026-11-12)
         [5004] = { sleep = 1 },  -- Prairie Chicken
         [5005] = { lift = -0.1 },  -- Musical Gustjumper
         [5006] = { lift = -0.05, sleep = 99, sleepAt = 1.4, sleepHold = 100, sleepUp = 101, happy = 758 },  -- Corrupted Kitten
