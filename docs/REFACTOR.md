@@ -258,6 +258,17 @@ This is the payoff for "easier to add pets, traits and eggs".
   frame; a cache would go stale under tests that edit the tables); moving Feats.LIST, GATHER_IDS and the
   zone lists into Data/ (no bug it prevents). Q5, Q6, Q9 still open: behavior kept (PetSays' `always`
   marks Q6's lines).
+- **Phase 3, done except Q4** (two halves, merged): every saved key declared under its owner (50_saved),
+  ns.Bus.EVENTS checked by the harness, JournalUI:Card(), PET_OUT, the story panel on SidePage's host;
+  B10 (a roster that doesn't list you, or would free more than a third of the adopted pets, frees none),
+  B12 (unknown guild achievement ids capped at 64, lowest kept; migration 12), Sync.TABLES (wire pinned
+  first in 51_wire), Registry:WriteOwn (bonds now keep LIFE_PER_MEMBER), Core/Wire.lua with every limit and
+  check, Comm:Register field specs, the protocol fingerprint (52_protocol), tunables in Config.
+  **Q4 not done**: dropping non-members' data can't be done without old and new clients' digests
+  disagreeing (a SYNC round per login in a mixed guild) unless X-Protocol is bumped; B11 stays open.
+  Options for the user: A bump now; B/C partial caps without a bump; D fold it into the next bump.
+  Open: B10 refuses an honest mass removal (over a third at once) for good; should new message kinds
+  alone need a bump (the fingerprint says yes)?
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
   lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client

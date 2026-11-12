@@ -453,7 +453,7 @@ L["dislike.cuddle.1"] = "{pet} tåler kos, men bare så vidt."
 L["dislike.cuddle.2"] = "{pet} later som ingenting skjedde."
 -- (2026-11-12: minor dislikes in Data/Unlocks.lua had none of these, so they could never be found; drafts)
 L["dislike.camp.1"] = "{pet} holder seg et godt stykke unna bålet."
-L["dislike.camp.2"] = "{pet} nyser av røyken og ser bebreidende på deg."
+L["dislike.camp.2"] = "{pet} hoster av røyken og ser dømmende på deg."
 L["dislike.dance.1"] = "{pet} ser flau ut over dansingen din."
 L["dislike.dance.2"] = "{pet} later som det ikke kjenner deg mens du danser."
 L["dislike.fish.1"] = "{pet} rynker på nesen av fiskelukta."
