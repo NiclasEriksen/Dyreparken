@@ -303,7 +303,7 @@ local ROW_GAP = 10
 -- Past the side tabs when they're laid out; else about their width (Forever's, seen 2026-11-10).
 Story.TABS_W = 62
 local function Place(f)
-    local host = CollectionsJournal
+    local host = ns.SidePage:Host()
     local right, edge = ns.SidePage:TabsRight(), host:GetRight()
     local x = (right and edge) and (right - edge) or Story.TABS_W
     f:ClearAllPoints()
@@ -315,7 +315,7 @@ end
 -- match): Blizzard's ButtonFrameTemplate without its portrait, the content in an
 -- inset. Without the template (older clients), a plain frame of our own.
 function Story:BuildPanel()
-    local host = CollectionsJournal
+    local host = ns.SidePage:Host()
     local template = ns.SidePage.Template("ButtonFrameTemplate")
     -- On UIParent, not the window: as the window's child, the side tab scan
     -- (SidePage:TabsRight) took its buttons for tabs, and it crept right with
@@ -421,7 +421,8 @@ function Story:Redraw()
 end
 
 function Story:Show(key)
-    if not key then return end
+    -- (the window our pages live in: known once the journal has loaded, as the card's button needs too)
+    if not (key and ns.SidePage:Host()) then return end
     if not self.panel then self:BuildPanel() end
     self.panel.key = key
     Place(self.panel) -- (each time: the tabs may have moved since)

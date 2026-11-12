@@ -15,6 +15,18 @@ return function(test, H)
         return list
     end
 
+    test("the panel stands beside the window SidePage knows; before the journal has loaded, nothing opens", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda")
+        w:Run(5)
+        no(ola.ns.SidePage:Host(), "the journal isn't loaded")
+        ola.ns.Story:Show(PANDA)
+        no(ola.ns.Story.panel, "no panel without its window")
+        ola:OpenJournal()
+        ola.ns.Story:Show(PANDA)
+        eq(ola.ns.Story.panel.points[1][2], ola.ns.SidePage:Host())
+    end)
+
     test("the button shows on a pet with a story; it opens the panel beside the window, newest first", function()
         local w, ola = H.Setup{ ola = { 5159, 40 }, journal = true }
         ola.ns.Bonds.PetOfTheDay = function() end -- (here and below, but in the last: the pet of the day)
