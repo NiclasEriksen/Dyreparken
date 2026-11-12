@@ -316,4 +316,20 @@ return function(test, H)
         rawset(ola.env, "C_DamageMeter", nil)
         eq(ola.ns.ApiProbe.MeterRead(1, 0), "no C_DamageMeter")
     end)
+
+    test("transport: where you are, logged at every zone and world change, each cast, and every few seconds", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola.state.zone = "Durotar"
+        ola:Slash("probe api transport")
+        match(ola:Printed("api probe transport", true), 'watching this session.*zone "Durotar"')
+        ola.state.zone = "Tirisfal Glades"
+        ola:Fire("ZONE_CHANGED_NEW_AREA")
+        match(ola:Log("transport ZONE_CHANGED_NEW_AREA")[1], 'zone "Tirisfal Glades"')
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "x", 8690)
+        ok(ola:Log("transport cast 8690")[1])
+        w:Run(11)
+        eq(#ola:Log("transport sample"), 2)
+        ola:Slash("probe api transport")
+        match(ola:Printed("api probe transport", true), "watching already")
+    end)
 end

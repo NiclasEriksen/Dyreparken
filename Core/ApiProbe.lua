@@ -1040,6 +1040,64 @@ function S.feats(out)
 end
 
 ------------------------------------------------------------------------------
+-- transport (2026-11-12, by name only: zeppelins and boats, for the pets that love or fear them). The client
+-- has no API for being on a transport, so this watches what a ride looks like from the inside: every zone,
+-- subzone and world change (with the map, its continent, the instance, a flight path or not), the spells
+-- you cast (a hearthstone or a portal is no ride), and while it's on, a sample every SAMPLE seconds (zone,
+-- position, speed: on a ship you move without moving). All to the debug log ("transport ..."), this
+-- session. Ride a zeppelin or a boat with it on, then /reload.
+Api.TRANSPORT_EVENTS = { "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "PLAYER_ENTERING_WORLD",
+    "PLAYER_LEAVING_WORLD", "LOADING_SCREEN_ENABLED", "LOADING_SCREEN_DISABLED", "NEW_WMO_CHUNK",
+    "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED" }
+Api.TRANSPORT_SAMPLE = 5
+function Api.Where()
+    local function P(fn, ...) local ok, v = pcall(fn, ...); return ok and ns.Plain(v) or nil end
+    local map = C_Map and P(C_Map.GetBestMapForUnit, "player")
+    local chain, id = {}, map
+    for _ = 1, 6 do
+        local info = id and C_Map and P(C_Map.GetMapInfo, id)
+        if type(info) ~= "table" then break end
+        chain[#chain + 1] = ("%s:%s(%s)"):format(tostring(info.mapID), tostring(info.name), tostring(info.mapType))
+        id = info.parentMapID
+    end
+    local x, y
+    local okP, pos = pcall(function() return map and C_Map.GetPlayerMapPosition(map, "player") end)
+    if okP and pos and pos.GetXY then x, y = pos:GetXY() end
+    local inst = { pcall(GetInstanceInfo) }
+    return ("zone %q sub %q real %q mini %q | map %s | at %s,%s | speed %s | taxi %s flying %s mounted %s swim %s "
+        .. "indoors %s | instance %s %s"):format(
+        tostring(P(GetZoneText)), tostring(P(GetSubZoneText)), tostring(P(GetRealZoneText)), tostring(P(GetMinimapZoneText)),
+        table.concat(chain, " < "), x and ("%.3f"):format(x) or "?", y and ("%.3f"):format(y) or "?",
+        tostring(P(GetUnitSpeed, "player")), tostring(P(UnitOnTaxi, "player")), tostring(P(IsFlying)), tostring(P(IsMounted)),
+        tostring(P(IsSwimming)), tostring(P(IsIndoors)), tostring(inst[2]), tostring(inst[3]))
+end
+function S.transport(out)
+    out.now = Api.Where()
+    if Api.transportWatch then return "watching already: " .. out.now end
+    local f = CreateFrame("Frame")
+    Api.transportWatch = f
+    local refused = {}
+    for _, e in ipairs(Api.TRANSPORT_EVENTS) do
+        if not pcall(f.RegisterEvent, f, e) then refused[#refused + 1] = e end
+    end
+    pcall(f.RegisterUnitEvent, f, "UNIT_SPELLCAST_SUCCEEDED", "player")
+    out.refused = refused
+    f:SetScript("OnEvent", function(_, event, a, b, c)
+        if event == "UNIT_SPELLCAST_SUCCEEDED" then
+            local id = ns.Plain(c)
+            return ns.Log("Api", "transport cast %s %s", tostring(id), tostring(ns.SpellName(id)))
+        end
+        ns.Log("Api", "transport %s (%s, %s) %s", event, Show(a), Show(b), Api.Where())
+    end)
+    local function Sample()
+        ns.Log("Api", "transport sample %s", Api.Where())
+        C_Timer.After(Api.TRANSPORT_SAMPLE, Sample)
+    end
+    C_Timer.After(Api.TRANSPORT_SAMPLE, Sample)
+    return ("watching this session (events refused: %s): %s"):format(#refused > 0 and table.concat(refused, " ") or "none", out.now)
+end
+
+------------------------------------------------------------------------------
 Api.ORDER = { "globals", "namespaces", "enum", "events", "widgets", "templates", "strings", "values", "card",
     "calendar", "model" }
 
@@ -1058,7 +1116,7 @@ function Api:Run(arg)
     rest = rest ~= "" and rest or nil
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, species)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, transport)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out, rest)
