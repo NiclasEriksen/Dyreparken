@@ -285,6 +285,14 @@ This is the payoff for "easier to add pets, traits and eggs".
   engine (`Fx:Emit`, a pool per parent: the card's celebration, cuddle and paw badge on the card's layer,
   Q8); `Scenes.LEVELS`, what each bond level brings. Left: the pet frame's speech bubble (one frame with
   an icon that a higher-ranked line replaces, not a burst); JournalUI's panel edge (one line, not four).
+- **Phase 4b-2, done** (see its own entry above, if any): tooltips as data, Core/UI.lua, Fx:Emit, Scenes.LEVELS, Moves on ns.Timers.
+- **Phase 6, done**: harness.lua split into tools/test/harness/ (base, frames, world, client, ui, assert,
+  env/*); c:Visible, c:Labeled, c:Frames, c:Page, c:Eggs; SidePage private reads 83 → 21 (Dev gallery and
+  the list's badges left on purpose), the test-only exports removed from Page, ParkPage and Settings;
+  H.MISSING mirrors FOREVER_API.md's missing APIs and a test holds the stubs to it.
+- **Open after the plan**: Q9 (pin_unlocks' parrot/chicken/whelp rows), Q4 at the next protocol bump,
+  Q11 (UnitStandState stub), the combat taint (MountJournal:SetShown, 2026-11-12 22:19; waiting for a
+  taint log or Blizzard's exported source).
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
   lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client

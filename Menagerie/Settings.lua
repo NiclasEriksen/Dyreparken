@@ -223,7 +223,6 @@ local sp = ns.SidePage:New({
     build = Build,
     refresh = Redraw,
 })
-Settings._sp = sp
 
 function Settings:Open() sp:Open() end
 function Settings:Close() sp:Close() end

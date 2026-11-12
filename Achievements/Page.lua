@@ -16,7 +16,6 @@ local ICON = "Interface\\Icons\\Achievement_General" -- (unverified) on Forever
 
 local sp, page, child -- the SidePage, its frame, the scroll child
 local rows, headers = {}, {} -- id -> row, cat -> font string
-Page._rows, Page._headers = rows, headers
 
 local function T() return ns.AchTexts.generic end
 local function A() return ns.Achievements end
@@ -185,7 +184,6 @@ local function Build(p)
     page = p.frame
     page.summary = ns.SidePage:CounterBox(p, T().page_count)
     child = ns.SidePage:ScrollInset(p)
-    Page._page = page
 end
 
 sp = ns.SidePage:New({ id = "Achievements", title = T().page_title, icon = ICON, build = Build, refresh = Redraw })
@@ -199,7 +197,6 @@ function Page:Layout() ns.SidePage:Layout() end
 -- Called once by JournalUI when Blizzard_Collections loads.
 function Page:Attach(petJournal, anchor)
     ns.SidePage:Attach(petJournal, anchor)
-    Page._tab, Page._button = sp.tab, sp.button
     ns.Bus:On("ACH", function() Page:Refresh() end)
     ns.Bus:On("REGISTRY", function() Page:Refresh() end)
 end

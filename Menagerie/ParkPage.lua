@@ -24,7 +24,6 @@ local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
 local sp, page, child, records, legend
 local cells = {}
-Park._cells = cells
 
 
 
@@ -174,7 +173,6 @@ local function Build(p)
     legend = child:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     legend:SetTextColor(0.8, 0.76, 0.66) -- (the disabled grey was hard to read, UX review 2026-11-11)
     legend:SetText(ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) }))
-    Park._page, Park._records, Park._legend = page, records, legend
 end
 
 sp = ns.SidePage:New({
@@ -184,7 +182,6 @@ sp = ns.SidePage:New({
     build = Build,
     refresh = Redraw,
 })
-Park._sp = sp
 
 function Park:Open() sp:Open() end
 function Park:IsOpen() return sp:IsOpen() end
