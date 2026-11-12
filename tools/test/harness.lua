@@ -78,8 +78,15 @@ for line in Source(ADDON .. ".toc"):gmatch("[^\r\n]+") do
 end
 H.TOC = TOC
 
+-- Compiled once per path, then loaded from bytecode: every login loads every file, and
+-- compiling them again was most of the suite's time. The line info survives, so coverage
+-- and error messages are the same.
+local compiled = {}
 local function Load(env, path, ...)
-    local chunk = assert(loadstring(Source(path), "@" .. path))
+    if not compiled[path] then
+        compiled[path] = string.dump(assert(loadstring(Source(path), "@" .. path)))
+    end
+    local chunk = assert(loadstring(compiled[path], "@" .. path))
     setfenv(chunk, env)
     return chunk(...)
 end
@@ -888,6 +895,28 @@ function Client:Reload()
     self:Logout()
     self.lastSeen = nil
     return self:Login()
+end
+
+-- Checked after every test (run.lua), for every client: what no test should ever see.
+-- Globals the addon may write, and ones it may read that the stubs lack (it checks for them).
+H.ALLOWED_GLOBALS = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true,
+    SLASH_DYREPARKEN1 = true, SLASH_DYREPARKEN2 = true, LibStub = true }
+H.OPTIONAL_GLOBALS = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true, -- first login
+    GetAddOnMetadata = true, ScrollUtil = true, SendAddonMessage = true,
+    RegisterAddonMessagePrefix = true, io = true --[[ LibDeflate's command line mode ]] }
+function H.Invariants(c)
+    local out = {}
+    for k in pairs(c.newGlobals or {}) do
+        if not H.ALLOWED_GLOBALS[k] then out[#out + 1] = "wrote a stray global: " .. tostring(k) end
+    end
+    -- (Reads of missing globals only in 01_core's tour: many tests take a stub away on purpose.)
+    if not c.allowRawText then
+        for _, line in ipairs(c.printed) do
+            local hole = line:match("{%a+}")
+            if hole then out[#out + 1] = "printed an unfilled " .. hole .. ": " .. line end
+        end
+    end
+    return out
 end
 
 -- Chat lines the addon printed for this client (color codes stripped).

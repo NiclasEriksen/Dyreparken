@@ -11,9 +11,22 @@
 --
 -- Specs live in tools/test/spec/*.lua and return function(test, H).
 -- After each test the runner fails it if any client logged a Lua error,
--- a failed comm handler, or a tooltip error (see harness Client.errors).
--- Set `c.errors = {}` in a test that provokes errors on purpose.
+-- a failed comm handler, or a tooltip error (see harness Client.errors), or broke
+-- one of H.Invariants (a stray global, a printed line with an unfilled {placeholder}).
+-- A test that provokes errors on purpose takes them with c:TakeErrors().
 package.path = "tools/test/?.lua;" .. package.path
+
+-- The players' clock (2026-11-12, the user): the clients' os.date/os.time are the host's, and
+-- days, hours and holidays fall differently elsewhere (10 tests failed in Anchorage). The
+-- runner sets TZ for itself and its shards.
+if os.getenv("TZ") ~= "Europe/Oslo" then
+    local q = {}
+    for i, a in ipairs(arg) do q[i] = "'" .. a:gsub("'", "'\\''") .. "'" end
+    local ok, how, code = os.execute("TZ=Europe/Oslo luajit tools/test/run.lua " .. table.concat(q, " "))
+    -- luajit (5.1 semantics) returns the raw status; 5.2-style returns true/false, "exit", code.
+    if type(ok) == "number" then os.exit(ok == 0 and 0 or 1) end
+    os.exit((ok and code == 0) and 0 or 1)
+end
 
 local args = { filter = nil, coverage = false, missed = {}, min = {}, verbose = false }
 for _, a in ipairs(arg) do
@@ -177,6 +190,7 @@ for _, t in ipairs(parallel and {} or tests) do
             for _, c in ipairs(w.clients) do
                 if c.online then c.seenLog = c.seenLog or {}; c:CollectLogErrors() end
                 for _, e in ipairs(c.errors) do problems[#problems + 1] = c.name .. ": " .. e end
+                for _, e in ipairs(H.Invariants(c)) do problems[#problems + 1] = c.name .. ": " .. e end
             end
         end
         if ok and #problems > 0 then ok, err = false, "errors in clients:\n    " .. table.concat(problems, "\n    ") end
