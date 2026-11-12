@@ -81,9 +81,9 @@ Activity.KINDS = {
     { "dmgtop", wish = false },   -- first in damage
     { "healtop", wish = false },  -- first in healing (a raid)
     { "kicktop", wish = false },  -- the most interrupts
-    { "fall", wish = false },
+    { "fall", wish = false },     -- a big fall (most of your health at once, out of combat): only the eggs watch it
     { "zeppelin", wish = false }, -- a zeppelin ride (Menagerie/Voyage.lua; it counts as flying, "taxi", too): eggs only
-    { "boat", wish = false },     -- a boat ride (Menagerie/Voyage.lua): eggs only     -- a big fall (most of your health at once, out of combat): only the eggs watch it
+    { "boat", wish = false },     -- a boat ride (Menagerie/Voyage.lua): eggs only
     -- A character's big moments (Menagerie/Feats.lua, 2026-11-12, the user).
     { "feat", wish = false },     -- a class quest's reward, riding, level 60 (extra: the feat's id): Feats' points
     { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it
@@ -143,6 +143,8 @@ end
 
 -- Count n of an activity and tell the listeners. Out of combat only.
 function Activity:Emit(id, n, extra)
+    -- An undeclared id would reach every listener without its KIND row (Bond reads it).
+    assert(self.KIND[id], "Activity:Emit: declare " .. tostring(id) .. " in Activity.KINDS")
     if ns.InCombat() then
         return ns.Events:OutOfCombat(function() Activity:Emit(id, n, extra) end)
     end

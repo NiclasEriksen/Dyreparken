@@ -31,7 +31,7 @@ quirks. When you learn something new about the client, add it there with the dat
 - The game can't run from here. For in-game checks, ask the user to `/reload` and run `/dp debug on`, then
   `/dp probe` or the feature. Then read the log at
   `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
-  `serverTime  GetTime  module  message`, ring buffer of 2000; `head` is the newest index).
+  `serverTime  GetTime  module  message`, ring buffer of `Config.DEBUG_RING_SIZE` (8000); `head` is the newest index).
   Lua errors appear in-game (BugSack, if installed) or in `../../../Logs/`.
 
 ## Testing

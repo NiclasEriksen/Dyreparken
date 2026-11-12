@@ -45,7 +45,7 @@ function CardActions:Build(card, c)
             GameTooltip:Show()
         end
     end)
-    card.nick:SetScript("OnLeave", function() GameTooltip:Hide() end)
+    card.nick:SetScript("OnLeave", ns.HideTip)
     card.nick:Hide()
 end
 

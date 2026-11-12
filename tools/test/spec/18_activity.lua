@@ -47,6 +47,16 @@ return function(test, H)
         no(Listening(c, "CHAT_MSG_TEXT_EMOTE"))
     end)
 
+    test("an undeclared activity fails loudly, before any listener sees it", function()
+        local w, c = H.Setup{ ola = { 5159 }, settle = "hello" }
+        local heard = 0
+        c.ns.Bus:On("ACTIVITY", function() heard = heard + 1 end)
+        local fine, err = pcall(c.ns.Activity.Emit, c.ns.Activity, "nosuchthing")
+        no(fine)
+        match(tostring(err), "declare nosuchthing")
+        eq(heard, 0)
+    end)
+
     test("a boss kill in combat counts once combat ends, with the pet that was out", function()
         local w, c, A = Setup()
         A:Want("boss", ME)

@@ -737,13 +737,16 @@ function Decor:Apply(card, key, level, color)
     level = self.preview or level or 0
     local need = self.show and self.NEED[self.show.slot]
     if need and level < need then level = need end
-    local sig, art
+    local sig, art, specs
     if key then
         local family = self.show and self.show.family or ns.Scenes:Families(key)[1] or "default"
         art = { self:Art("border", family), self:Art(level >= 5 and "cornerGold" or "corner", family), self:Art("glow"), self:Art("ribbon") }
         local parts = { key, level, color and table.concat(color, ",") or "", table.concat(art, ";"),
             tostring(ns.Settings:Get("cardParticles")) }
-        for _, spec in ipairs(self:Specs(key, level, ns.Now())) do
+        -- Once per Apply: the signature and the particles launched must agree (two
+        -- reads of the clock could fall on either side of midnight or a trait's moment).
+        specs = self:Specs(key, level, ns.Now())
+        for _, spec in ipairs(specs) do
             parts[#parts + 1] = spec.kind .. spec.n .. self:PartArt(spec.kind)
         end
         sig = table.concat(parts, ";")
@@ -825,7 +828,7 @@ function Decor:Apply(card, key, level, color)
     local amount = ns.Settings:Get("cardParticles")
     if amount == "none" then return end
     local rng = Rng((ns.Pets:SpeciesOfKey(key) or 1) * 7919 + level)
-    for _, spec in ipairs(self:Specs(key, level, ns.Now())) do
+    for _, spec in ipairs(specs) do
         local n = amount == "few" and math.max(1, math.ceil(spec.n / 2)) or spec.n
         for i = 1, n do
             if d.used >= POOL then break end

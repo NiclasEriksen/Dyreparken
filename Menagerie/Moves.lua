@@ -353,6 +353,8 @@ Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
 -- the Zergling and Mini Diablo were framed small and low and stayed so
 -- (2026-11-10): the card's camera seems to fit the model as it loads.
 Moves.SETTLE = 0.6
+-- A sulking pet keeps its back turned this long (seconds).
+Moves.SULK = 3
 -- Standing this long on a new card before it lies down to sleep (2026-11-10): paused 0.8 s
 -- into lying down 0.6 s after the model was set, every pet got up and froze standing, while
 -- the same on a card open a while lay still. The model seems to load (and its animation
@@ -921,8 +923,7 @@ function Moves.NewStage(name, opts)
     -- Sulking (2026-11-10): the first time you open its card on a day a dislike
     -- of its came up (Quirks: char.sulk), the pet turns its back for a few
     -- seconds, a little cloud over it. ModelSceneActor:SetYaw is unverified on
-    -- Forever: without it, just the cloud.
-    Moves.SULK = 3
+    -- Forever: without it, just the cloud. (Moves.SULK: how long.)
     local function Sulk(key)
         local s = ns.DB.char.sulk
         if not (s and s.key == key and s.day == ns.Today() and not s.shown) then return end

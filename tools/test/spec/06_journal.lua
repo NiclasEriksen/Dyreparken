@@ -333,4 +333,21 @@ return function(test, H)
         ola.env.StaticPopupDialogs.DYREPARKEN_ADOPT.OnAccept({}, nil)
         eq(ola.ns.Registry:MyPet(), "s:46")
     end)
+    test("no OnLeave closes a tooltip another frame owns", function()
+        local w, ola = Setup()
+        ola:SelectPet(5159)
+        ola:OpenJournal()
+        local tip, other = ola.env.GameTooltip, {}
+        local swept = 0
+        for _, f in ipairs(ola.frames) do
+            local leave = f.scripts and f.scripts.OnLeave
+            if leave then
+                tip:SetOwner(other); tip:Show()
+                pcall(leave, f)
+                ok(tip.shown and tip.owner == other, "OnLeave of " .. tostring(f.frameName or f.type) .. " hid it")
+                swept = swept + 1
+            end
+        end
+        ok(swept > 10, "swept " .. swept)
+    end)
 end

@@ -4,7 +4,7 @@ local _, ns = ...
 --
 --   A feat (Feats.LIST): a major class quest's reward (a stance, a demon, a form, a totem, an epic
 --   mount...), learning to ride, and level 60. BOND_FEAT_POINTS (25) once per character, only with a
---   pet out (the user: "only with a pet out"), within the day's 75; a line in chat and a moment in
+--   pet out (the user: "only with a pet out"), past the day's 75, not counted in it (Bond.REWARDS.feat.beyond); a line in chat and a moment in
 --   the pet's story. Done without a pet out, it's done: no reward later.
 --   Flavor only (Quirks' eggs, no points; the user): a trainer visit, a dual-spec switch, a talent
 --   reset, and the levels 10 to 50 (egg.kake, likelier the higher the level).
