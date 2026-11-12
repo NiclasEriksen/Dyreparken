@@ -102,7 +102,7 @@ return function(test, H)
         ola.ns.Cuddle:Stop(card)
         eq(Fx:Playing(c, "cuddle"), 0)
         eq(Fx:Playing(c, "celebration"), 16, "the celebration plays on")
-        ola.ns.ParkPage._sp:Open()
+        ola.ns.ParkPage:Open()
         eq(Fx:Playing(c), 0)
     end)
 end

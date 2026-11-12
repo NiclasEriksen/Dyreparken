@@ -10,24 +10,23 @@ return function(test, H)
         w:Run(5)
         return w, ola, ola.ns.Settings
     end
-    local function Widget(S, key)
-        for _, wd in ipairs(S._sp.widgets) do if wd.row.key == key then return wd end end
-    end
+    -- A setting's control on the open page, by the label the player reads (Locale's text for key).
+    local function Box(c, key) return c:Page("Innstillinger"):Labeled(c.ns.L[key]) end
 
     test("the cog opens the page and closes it; no side tab of its own; it shows on the pet page only", function()
         local w, ola, S = Setup()
         local cog = S.cog
         ok(cog and cog:IsShown())
-        no(S._sp.tab, "no side tab")
+        local page = ola:Page("Innstillinger")
+        no(page.tab, "no side tab")
         cog:Click()
         ok(S:IsOpen()); ok(ola.ns.SidePage:AnyOpen(), "it covers the card like our other pages")
         eq(ola.env.CollectionsJournal:GetTitleText().text, "Innstillinger", "its title in the window's")
         cog:Click()
         no(S:IsOpen())
         cog:Click()
-        S._sp.back:Click()
+        page:Labeled("Tilbake"):Click()
         no(S:IsOpen(), "Tilbake: back to the pets")
-        eq(S._sp.back.text, "Tilbake")
         ola.env.PetJournal:Hide()
         no(cog:IsShown(), "another page of the window: no cog")
         ola.env.PetJournal:Show()
@@ -37,26 +36,26 @@ return function(test, H)
     test("the boxes show the settings and change them; the older ones stay per character", function()
         local w, ola, S = Setup()
         S:Open()
-        local auto = Widget(S, "settings.autosummon").button
+        local auto = Box(ola, "settings.autosummon")
         ok(auto:GetChecked())
         auto:Click()
         eq(ola.ns.DB.char.autoSummon, false, "auto-summon off")
-        local mute = Widget(S, "settings.mute").button
+        local mute = Box(ola, "settings.mute")
         ok(mute:GetChecked()); mute:Click()
         eq(ola.ns.DB.char.muteSummonSound, false)
-        Widget(S, "settings.announce").button:Click()
+        Box(ola, "settings.announce"):Click()
         eq(ola.ns.DB.char.announce, false)
-        Widget(S, "settings.achnotify").button:Click()
+        Box(ola, "settings.achnotify"):Click()
         eq(ola.ns.DB.char.achNotify, false)
-        local lines = Widget(S, "settings.chatlines").button
+        local lines = Box(ola, "settings.chatlines")
         ok(lines:GetChecked()); lines:Click()
         eq(ola.ns.DB.global.settings.chatLines, false, "the account's")
         -- The tooltip says what it does, and which are per character.
         match(ola:TipOf(auto).text, "Gjelder bare denne karakteren")
         -- Shown again: as they are now.
         S:Close(); S:Open()
-        no(Widget(S, "settings.autosummon").button:GetChecked())
-        no(Widget(S, "settings.chatlines").button:GetChecked())
+        no(Box(ola, "settings.autosummon"):GetChecked())
+        no(Box(ola, "settings.chatlines"):GetChecked())
     end)
 
     test("card particles: all, fewer or none", function()
@@ -70,8 +69,9 @@ return function(test, H)
         local all = Shown()
         ok(all > 2)
         S:Open()
-        local choices = Widget(S, "settings.particles").buttons
-        eq(choices[1].choice, "all"); ok(choices[1]:GetChecked())
+        local choices = { Box(ola, "settings.particles.all"), Box(ola, "settings.particles.few"),
+            Box(ola, "settings.particles.none") }
+        ok(choices[1]:GetChecked())
         choices[3]:Click()
         ok(choices[3]:GetChecked()); no(choices[1]:GetChecked(), "one at a time")
         S:Close()
@@ -115,7 +115,7 @@ return function(test, H)
         ola.ns.Activity:Emit("herb")
         w:RunTimers()
         no(ola:Printed("13:37", true), "no egg line")
-        ok(ola.ns.DB.char.eggs.leet, "but the egg was found: it counts")
+        ok(ola:Eggs("leet") > 0, "but the egg was found: it counts")
         no(ola:Printed("koste seg", true), "no bond line")
         -- No hearts over companions.
         ola.ns.DB.global.settings.worldHearts = false
@@ -128,16 +128,17 @@ return function(test, H)
     test("the frame's art waits for the frame: greyed while it's off; the per-character sections say so", function()
         local w, ola, S = Setup()
         S:Open()
-        local art = Widget(S, "settings.petframeart").button
+        local art = Box(ola, "settings.petframeart")
         no(art:IsEnabled(), "the frame is off: nothing to frame")
-        eq(art.label.color[1], 0.5)
-        Widget(S, "settings.petframe").button:Click()
+        local label = ola:Page("Innstillinger"):Text(ola.ns.L["settings.petframeart"], true)
+        eq(label.color[1], 0.5)
+        Box(ola, "settings.petframe"):Click()
         ok(art:IsEnabled())
-        eq(art.label.color[1], 1)
+        eq(label.color[1], 1)
         local notes = 0
         for _, row in ipairs(S.ROWS) do if row.char and row.head then notes = notes + 1 end end
         eq(notes, 2, "Dyret ditt and Guilden")
         -- The particles are radio buttons.
-        eq(Widget(S, "settings.particles").buttons[1].template, "UIRadioButtonTemplate")
+        eq(Box(ola, "settings.particles.all").template, "UIRadioButtonTemplate")
     end)
 end

@@ -19,6 +19,13 @@
 --   w:SetDate(2027, 3, 2, 14)                 -- the players' clock (tests run on Europe/Oslo time)
 --   ola:Said(text), ola:CountPrinted(text), ola:Points(key, who)
 --   ola:TipOf(frame)                          -- hover a frame: its tooltip's lines (.text: joined)
+--   ola:Eggs(id)                              -- how often an easter egg was found (0: never)
+-- Reading the screen as a player does (not a module's private fields):
+--   ola:Visible(text, root, exact)            -- a shown font string or button holding text, and its frame
+--   ola:Labeled(text, root)                   -- the control a label names (a check box, a button)
+--   ola:Frames(pred, root)                    -- shown frames that pass pred
+--   local page = ola:Page("Parken"):Open()    -- a side page by its title: .tab, .button, .frame,
+--   page:Text(t), page:Row(name), page:Labeled(t), page:Frames(pred)  -- ... looking only inside it
 -- Don't replace Personality.Traits or ns.Companions by hand: a reload loses it, and
 -- Personality's own rules (Known, likes) are skipped.
 --

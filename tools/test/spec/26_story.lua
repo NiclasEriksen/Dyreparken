@@ -150,11 +150,11 @@ return function(test, H)
         -- Seven in a row: Ønskeuke.
         for _ = 1, 6 do w:SkipDays(1); Herb() end
         eq(s.streak, 7)
-        ok(ola.ns.DB.char.ach.got["wish:7"], "seven days in a row")
-        no(ola.ns.DB.char.ach.got["wish:30"])
+        ok(ola.ns.Achievements:Got("wish:7"), "seven days in a row")
+        no(ola.ns.Achievements:Got("wish:30"))
         s.n = 99
         w:SkipDays(1); Herb()
-        ok(ola.ns.DB.char.ach.got["wish:100"], "a hundred in all")
+        ok(ola.ns.Achievements:Got("wish:100"), "a hundred in all")
     end)
 
     test("today's wish pays once a day per pet, even after letting it go and adopting it again", function()

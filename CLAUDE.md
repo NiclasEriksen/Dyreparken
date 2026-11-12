@@ -76,6 +76,9 @@ and refuses the push if it fails.
 - Pin a test's world with the harness, never by replacing addon functions: `c:Traits{...}`, `c:Companions(...)`,
   `c:Fixture(fn)` (all survive `c:Reload()`), `c:Dice(roll, pick)` for every chance (the addon rolls only through
   `ns.random`), `c:QuirksNow()`, `w:SetDate(y, m, d, h)`. Tests run on Europe/Oslo time whatever the host's (run.lua).
+- Read the UI as a player does, not through a module's private fields: `c:Visible(text)` (shown text, its parents
+  shown too), `c:Labeled(text)` (the check box or button a label names), `c:Frames(pred, root)`, and
+  `c:Page(title)` for our side pages (`.tab`, `.button`, `.frame`, `:Open()`, `:Row(name)`, `:Text(t)`).
 - After every test the runner also fails it for a stray global or a printed `{placeholder}` (`H.Invariants`).
 - Before relying on a new test, make sure it can fail: break the code it covers once and watch it go red.
 - **Games (`Games/`) are the exception, for now.** That part is meant to stay dynamic and change shape quickly,

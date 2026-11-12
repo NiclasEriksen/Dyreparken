@@ -19,13 +19,14 @@ return function(test, H)
         return H.Setup{ ola = opts, kari = { 41 }, each = Fix, settle = "hello" }
     end
 
-    -- Open the journal (Forever's: 4 side tabs) and our page.
+    -- Open the journal (Forever's: 4 side tabs) and our page, as a player does: the page's view
+    -- (harness c:Page).
     local function Open(c, o)
         c:OpenJournal(o or { sideTabs = 4 })
-        local P = c.ns.AchPage
-        if P._tab:IsShown() then P._tab:Click() else P._button:Click() end
-        return P
+        return c:Page("Prestasjoner"):Open()
     end
+    -- An achievement's row on the open page, by the name it shows.
+    local function Row(page, id) return page:Row(page.client.ns.Achievements:Name(id)) end
 
     local function Tooltip(c, row)
         return table.concat(c:TipOf(row), "\n")
@@ -39,11 +40,11 @@ return function(test, H)
     test("a side tab like Blizzard's: the page covers theirs, their tabs go back", function()
         local w, ola = Setup({ 40 })
         ola:OpenJournal({ sideTabs = 4 })
-        local env, P = ola.env, ola.ns.AchPage
-        local tab = P._tab
+        local env, P, page = ola.env, ola.ns.AchPage, ola:Page("Prestasjoner")
+        local tab = page.tab
         ok(tab:IsShown())
-        no(P._button:IsShown(), "no fallback button")
-        no(P._page, "nothing built before the first click")
+        no(page.button:IsShown(), "no fallback button")
+        no(rawget(env, "DyreparkenAchievementsPage"), "nothing built before the first click")
         eq(tab.points[1][2], env.CollectionsJournalTab4, "under the last tab")
         eq(tab.points[1][5], -2, "the same spacing")
         eq(tab.size[1], 55); eq(tab.size[2], 55)
@@ -60,17 +61,17 @@ return function(test, H)
         ok(tab.selected:IsShown())
         no(Selected(ola, 2), "Blizzard's highlight is hidden while we're up")
         eq(env.CollectionsJournal.titleFS.text, "Prestasjoner")
-        ok(P._page.level > env.CollectionsJournal:GetFrameLevel() + 100, "above every page")
+        ok(page.frame.level > env.CollectionsJournal:GetFrameLevel() + 100, "above every page")
         ok(env.PetJournal:IsShown(), "their page isn't hidden, only covered")
         local CJ = env.CollectionsJournal
-        ok(CJ.NineSlice.level > P._page.level, "the border stays on top")
+        ok(CJ.NineSlice.level > page.frame.level, "the border stays on top")
         eq(CJ.PortraitContainer.level, CJ.NineSlice.level + 1, "so do the portrait, the title, the close button")
         eq(CJ.TitleContainer.level, CJ.NineSlice.level + 2, "in their own order")
         eq(CJ.CloseButton.level, CJ.NineSlice.level + 2)
         local portrait = CJ.PortraitContainer.portrait
         eq(portrait.tex, "Interface\\Icons\\Achievement_General", "our icon in the portrait")
-        eq(P._page.bg.tex, 2002, "the window's own background")
-        ok(P._page.bg.horizTile and P._page.bg.vertTile)
+        eq(page.frame.bg.tex, 2002, "the window's own background")
+        ok(page.frame.bg.horizTile and page.frame.bg.vertTile)
         tab:Click()
         ok(P:IsOpen(), "pressing it again stays, like their tabs")
 
@@ -100,7 +101,7 @@ return function(test, H)
         tab:Click()
         ok(P:IsOpen())
         ola:CloseJournal()
-        no(P._page:IsShown(), "closing the window leaves the page")
+        no(page.frame:IsShown(), "closing the window leaves the page")
         ok(Selected(ola, 1), "their highlight is back")
         eq(env.CollectionsJournal.titleFS.text, "Mounts")
         env.CollectionsJournal:Show()
@@ -119,26 +120,23 @@ return function(test, H)
     test("rows: grouped, the date when earned, a bar until then", function()
         local w, ola = Setup({ 40, 41, 42, 46, 7 })
         local P = Open(ola)
-        local rows, heads = P._rows, P._headers
-        local cat = rows["family:cat"]
+        local cat = Row(P, "family:cat")
         ok(cat:IsShown())
         eq(cat.name.text, "Kattevræl")
         eq(cat.desc.text, "Ha alle kattene.")
         ok(cat.info:IsShown()); no(cat.bar:IsShown())
         match(cat.info.text, "^%d%d%.%d%d%.%d%d%d%d$", "earned: the date")
         eq(cat.icon.desaturated, false)
-        local ten = rows["count:10"]
+        local ten = Row(P, "count:10")
         no(ten.info:IsShown()); ok(ten.bar:IsShown())
         eq(ten.bar.value, 5); eq(ten.bar.max, 10)
         eq(ten.bar.text.text, "5/10")
         eq(ten.icon.desaturated, true, "unearned rows are dimmed")
-        eq(rows["loyal:30"].bar.text.text, "0/270 poeng")
-        no(rows["count:25"], "25 > 15 counting pets: no row")
-        no(rows["family:dragon"], "no dragons in this list")
-        for _, c in ipairs({ "collection", "family", "loyalty", "guild" }) do ok(heads[c]:IsShown(), c) end
-        eq(heads.collection.text, "Samlingen")
-        eq(heads.guild.text, "Guilden")
-        match(P._page.summary.text, "^1/%d+$")
+        eq(Row(P, "loyal:30").bar.text.text, "0/270 poeng")
+        no(Row(P, "count:25"), "25 > 15 counting pets: no row")
+        no(Row(P, "family:dragon"), "no dragons in this list")
+        for _, head in ipairs({ "Samlingen", "Familier", "Lojalitet", "Guilden" }) do ok(P:Text(head, true), head) end
+        match(P.frame.summary.text, "^1/%d+$")
         no(cat.share:IsShown(), "quiet on the first run: nothing to share")
         eq(cat.info.points[1][2], cat, "no Del: at the right edge")
     end)
@@ -146,24 +144,23 @@ return function(test, H)
     test("without side tabs: a button opens the page", function()
         local w, ola = Setup({ 40 })
         ola:OpenJournal()
-        local P = ola.ns.AchPage
-        ok(P._button:IsShown())
-        no(P._tab:IsShown())
-        eq(P._button.text, "Prestasjoner")
-        P._button:Click()
-        ok(P:IsOpen())
+        local page = ola:Page("Prestasjoner")
+        ok(page.button:IsShown(), "the button reads Prestasjoner")
+        no(page.tab:IsShown())
+        page.button:Click()
+        ok(ola.ns.AchPage:IsOpen())
         ola:CloseJournal()
-        no(P._page:IsShown())
+        no(page.frame:IsShown())
     end)
 
     test("Del shares that one achievement in guild chat, then goes away", function()
         local w, ola = Setup({ 40, 41, 42, 7, 84, 68, 72, 90, 2001 })
         local P = Open(ola)
-        no(P._rows["family:cat"].share:IsShown())
+        no(Row(P, "family:cat").share:IsShown())
         ola:GivePet(46); ola:Fire("NEW_PET_ADDED", ola:GuidOf(46))
         w:Run(2)
         -- The page was open: it refreshed by itself.
-        local cat, ten = P._rows["family:cat"], P._rows["count:10"]
+        local cat, ten = Row(P, "family:cat"), Row(P, "count:10")
         ok(cat.share:IsShown(), "new: Del")
         ok(ten.share:IsShown())
         eq(cat.share.text, "Del")
@@ -180,16 +177,16 @@ return function(test, H)
     test("tooltips: what it takes, and the missing pets", function()
         local w, ola = Setup({ 40, 41 })
         local P = Open(ola)
-        local tip = Tooltip(ola, P._rows["family:cat"])
+        local tip = Tooltip(ola, Row(P, "family:cat"))
         match(tip, "^Kattevræl\nHa alle kattene%.\n2/4\n \nMangler:\nBlack Tabby Cat\nWhite Kitten$")
         -- "All of them": 13 missing, 12 shown.
-        match(Tooltip(ola, P._rows["count:all"]), "%.%.%. og 1 til$")
+        match(Tooltip(ola, Row(P, "count:all")), "%.%.%. og 1 til$")
         -- A count tier lists nothing.
-        eq(Tooltip(ola, P._rows["count:10"]), "Ti små indianere\nHa 10 dyr.\n2/10")
+        eq(Tooltip(ola, Row(P, "count:10")), "Ti små indianere\nHa 10 dyr.\n2/10")
         -- Earned: the date, no list.
         ola:GivePet(42); ola:GivePet(46)
         ola.ns.Achievements:Check("test")
-        match(Tooltip(ola, P._rows["family:cat"]), "^Kattevræl\nHa alle kattene%.\nFått %d%d%.%d%d%.%d%d%d%d$")
+        match(Tooltip(ola, Row(P, "family:cat")), "^Kattevræl\nHa alle kattene%.\nFått %d%d%.%d%d%.%d%d%d%d$")
     end)
 
     test("guild rows: who cares for what, follows the registry; Del for officers only", function()
@@ -203,12 +200,12 @@ return function(test, H)
         w:Run(20)
         local ola, kari = cs["Ola Nord"], cs["Kari Berg"]
         local P = Open(ola)
-        local row = P._rows["guild:family:cat"]
+        local row = Row(P, "guild:family:cat")
         eq(row.bar.text.text, "3/4")
         local tip = Tooltip(ola, row)
         match(tip, "Bombay Cat: Ola Nord")
         match(tip, "White Kitten: trenger et hjem")
-        match(Tooltip(ola, P._rows["guild:all"]), "Trenger et hjem:\n")
+        match(Tooltip(ola, Row(P, "guild:all")), "Trenger et hjem:\n")
         -- Liv adopts the last cat: the guild has every cat.
         cs["Liv Lund"]:Slash("adopter White Kitten")
         w:Run(20)
@@ -216,7 +213,7 @@ return function(test, H)
         ok(row.info:IsShown(), "earned while the page was open")
         ok(row.share:IsShown(), "officer: Del")
         local KP = Open(kari)
-        no(KP._rows["guild:family:cat"].share:IsShown(), "member: no Del")
+        no(Row(KP, "guild:family:cat").share:IsShown(), "member: no Del")
         row.share:Click()
         eq(#w.chat, 1)
         match(w.chat[1].text, "%[Kattehuset%]$")
@@ -225,9 +222,9 @@ return function(test, H)
     test("not in a guild: no guild rows", function()
         local w, ola = Setup({ 40 }, { guild = false })
         local P = Open(ola)
-        no(P._rows["guild:family:cat"])
-        no(P._headers.guild)
-        ok(P._headers.family:IsShown())
+        no(Row(P, "guild:family:cat"))
+        no(P:Text("Guilden", true), "no guild heading")
+        ok(P:Text("Familier", true))
     end)
 
     test("/dp probe tabs logs the tabs; finding them skips what isn't one", function()
@@ -252,7 +249,7 @@ return function(test, H)
         -- One tab only: the usual 2 px gap.
         local w2, liv = Setup({ 40 })
         liv:OpenJournal({ sideTabs = 1 })
-        eq(liv.ns.AchPage._tab.points[1][5], -2)
+        eq(liv:Page("Prestasjoner").tab.points[1][5], -2)
     end)
 
     test("icons: the first candidate the client has", function()
@@ -272,7 +269,7 @@ return function(test, H)
         eq(A:Icon({ id = "t:path", icon = "Interface\\Foo\\Bar" }), "Interface\\Foo\\Bar", "full paths stay")
         eq(A:Icon({ id = "t:bad", icon = { true } }), A.NO_ICON)
         local P = Open(ola)
-        eq(P._rows["count:10"].icon.tex, "Interface\\Icons\\INV_Misc_PetBiscuit_01")
+        eq(Row(P, "count:10").icon.tex, "Interface\\Icons\\INV_Misc_PetBiscuit_01")
         -- A client without GetFileIDFromPath takes the first.
         local kari = Fix(w:AddClient("Kari Berg", { pets = { 40 }, patch = function(env) env.GetFileIDFromPath = nil end }))
         w:Settle("hello")
@@ -286,8 +283,7 @@ return function(test, H)
             w:Settle("hello")
             c:OpenJournal({ sideTabs = 2 })
             setup(c.env.CollectionsJournal, c.env)
-            c.ns.AchPage._tab:Click()
-            return c.ns.AchPage._page.bg
+            return c:Page("Prestasjoner"):Open().frame.bg
         end
         eq(BgWith(function(cj) cj.Bg:SetAtlas("UI-Frame-Bg") end).atlas, "UI-Frame-Bg")
         eq(BgWith(function(cj, env)
@@ -303,7 +299,7 @@ return function(test, H)
         local cj = c.env.CollectionsJournal
         cj.PortraitContainer.portrait = nil
         cj.NineSlice, cj.TitleContainer, cj.CloseButton = nil, nil, nil
-        c.ns.AchPage._tab:Click()
+        c:Page("Prestasjoner").tab:Click()
         ok(c.ns.AchPage:IsOpen())
         c:ClickTab(2)
     end)

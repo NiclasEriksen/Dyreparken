@@ -25,10 +25,16 @@ return function(test, H)
         return w, unpack(cs)
     end
 
-    local function Cell(c, sid)
-        for _, cell in ipairs(c.ns.ParkPage._cells) do
-            if cell.key == "s:" .. sid and cell:IsShown() then return cell end
+    -- The park's icons as the player sees them: shown on the page, each with a species' journal
+    -- icon (the harness's GetPetInfoBySpeciesID gives species sid the icon 1000 + sid).
+    local function SpeciesOf(f)
+        for _, t in ipairs(f.textures) do
+            if t.shown and type(t.tex) == "number" and H.SPECIES[t.tex - 1000] then return t.tex - 1000 end
         end
+    end
+    local function Cells(c) return c:Page("Parken"):Frames(SpeciesOf) end
+    local function Cell(c, sid)
+        for _, cell in ipairs(Cells(c)) do if SpeciesOf(cell) == sid then return cell end end
     end
 
     local function Tip(c, cell)
@@ -39,9 +45,9 @@ return function(test, H)
         local w, ola = Setup()
         ola:OpenJournal({ sideTabs = 4 })
         local env, A, P = ola.env, ola.ns.AchPage, ola.ns.ParkPage
-        local park = P._sp.tab
+        local park, achTab = ola:Page("Parken").tab, ola:Page("Prestasjoner").tab
         ok(park:IsShown())
-        eq(park.points[1][2], A._tab, "right under the achievements tab")
+        eq(park.points[1][2], achTab, "right under the achievements tab")
         eq(park.points[1][5], -2)
         eq(ola:TipOf(park)[1], "Parken")
         park:Click()
@@ -49,7 +55,7 @@ return function(test, H)
         eq(env.CollectionsJournal.titleFS.text, "Parken")
         ok(park.selected:IsShown())
         -- Over to the achievements: the park closes.
-        A._tab:Click()
+        achTab:Click()
         ok(A:IsOpen()); no(P:IsOpen())
         no(park.selected:IsShown())
         eq(env.CollectionsJournal.titleFS.text, "Prestasjoner")
@@ -66,11 +72,10 @@ return function(test, H)
     test("without side tabs, two buttons left of Auto-summon", function()
         local w, ola = Setup()
         ola:OpenJournal({ sideTabs = 0 })
-        local A, P = ola.ns.AchPage, ola.ns.ParkPage
-        local b = P._sp.button
-        ok(b:IsShown()); ok(A._button:IsShown())
-        eq(b.text, "Parken")
-        eq(b.points[1][2], A._button, "left of the achievements button")
+        local P = ola.ns.ParkPage
+        local b, achButton = ola:Page("Parken").button, ola:Page("Prestasjoner").button
+        ok(b:IsShown(), "the button reads Parken"); ok(achButton:IsShown())
+        eq(b.points[1][2], achButton, "left of the achievements button")
         b:Click()
         ok(P:IsOpen())
     end)
@@ -81,12 +86,9 @@ return function(test, H)
         kari:Slash("adopter")
         w:Run(5)
         ola:OpenJournal({ sideTabs = 4 })
-        local P = ola.ns.ParkPage
-        P._sp.tab:Click()
-        eq(P._page.summary.text, "2/7")
-        local n = 0
-        for _, c in ipairs(P._cells) do if c:IsShown() then n = n + 1 end end
-        eq(n, 7, "every journal companion")
+        local page = ola:Page("Parken"):Open()
+        eq(page.frame.summary.text, "2/7")
+        eq(#Cells(ola), 7, "every journal companion")
         local panda, kitty, tabby, rabbit = Cell(ola, 5159), Cell(ola, 41), Cell(ola, 42), Cell(ola, 72)
         no(panda.icon.desaturated); ok(panda.mine:IsShown(), "yours")
         no(kitty.icon.desaturated); no(kitty.mine:IsShown())
@@ -94,8 +96,7 @@ return function(test, H)
         no(tabby.free:IsShown(), "Ola doesn't own it")
         ok(rabbit.free:IsShown(), "free, and Ola owns it: he could adopt it")
         -- Sorted by name; laid out in rows.
-        local first = P._cells[1]
-        eq(first.key, "s:42", "Black Tabby Cat first")
+        eq(SpeciesOf(Cells(ola)[1]), 42, "Black Tabby Cat first")
         match(Tip(ola, kitty), "^Cornish Rex Cat / Flyttet inn hos Kari Berg i dag / Bånd: Bekjent %(level 1%) / %S+ og %S+ · liker [^/]* / Klikk for å se kortet%.$", "the traits by name; no effect paragraphs")
         match(Tip(ola, rabbit), "Trenger et hjem / .* / Du har dette dyret, og kan adoptere det%.")
         match(Tip(ola, panda), "Flyttet inn hos deg i dag")
@@ -104,7 +105,7 @@ return function(test, H)
         per:Slash("adopter")
         w:Run(5)
         no(Cell(ola, 42).icon.desaturated)
-        eq(P._page.summary.text, "3/7")
+        eq(page.frame.summary.text, "3/7")
         -- Nicknames lead the tooltip.
         w:SkipDays(7)
         w:Befriend()
@@ -117,7 +118,7 @@ return function(test, H)
         match(Tip(ola, Cell(ola, 40)), "Du har dette dyret, og kan adoptere det")
         kari:GivePet(40)
         kari:OpenJournal({ sideTabs = 4 })
-        kari.ns.ParkPage._sp.tab:Click()
+        kari:Page("Parken"):Open()
         match(Tip(kari, Cell(kari, 5159)), "^Pepe / Panda Cub / Har bodd hos Ola Nord")
         no(Tip(kari, Cell(kari, 5159)):find("Du har", 1, true))
     end)
@@ -157,19 +158,18 @@ return function(test, H)
         match(P:Records()[2], "katter %(2")
         -- Shown on the page.
         ola:OpenJournal({ sideTabs = 4 })
-        P._sp.tab:Click()
-        match(P._records.text, "Lengste vennskap")
-        match(P._legend.text, "Du kan adoptere det")
+        local page = ola:Page("Parken"):Open()
+        ok(page:Text("Lengste vennskap"))
+        ok(page:Text("Du kan adoptere det"))
     end)
 
     test("no companion data: an empty map, no errors", function()
         local w, ola = Setup()
         ola.ns.Companions = nil
         ola:OpenJournal({ sideTabs = 4 })
-        local P = ola.ns.ParkPage
-        P._sp.tab:Click()
-        eq(P._page.summary.text, "0/0")
-        eq(#P._cells, 0)
+        local page = ola:Page("Parken"):Open()
+        eq(page.frame.summary.text, "0/0")
+        eq(#Cells(ola), 0)
     end)
 
     test("most popular family: only our families count; a tie goes by name", function()
@@ -191,8 +191,8 @@ return function(test, H)
         kari:Slash("adopter cornish")
         w:Run(10)
         ola:OpenJournal({ sideTabs = 4 })
-        local P = ola.ns.ParkPage
-        P._sp.tab:Click()
+        local P, park = ola.ns.ParkPage, ola:Page("Parken")
+        park.tab:Click()
         ok(P:IsOpen())
         local cell = Cell(ola, 41)
         match(Tip(ola, cell), "Klikk for å se kortet%.")
@@ -206,14 +206,14 @@ return function(test, H)
         match(card.status.text, "Kari Berg")
         -- From another page (Mounts here) we can't switch tabs ourselves: a hint, and nothing happens.
         ola:ClickTab(1)
-        P._sp.tab:Click()
+        park.tab:Click()
         ok(P:IsOpen())
         match(Tip(ola, Cell(ola, 72)), "Åpne Pets%-fanen")
         Cell(ola, 72):Click()
         ok(P:IsOpen()); eq(ola.shownSpecies, 41)
         -- In combat, nothing either.
         ola:ClickTab(2)
-        P._sp.tab:Click()
+        park.tab:Click()
         ola.state.combat = true
         Cell(ola, 72):Click()
         ok(P:IsOpen())

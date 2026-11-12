@@ -321,8 +321,7 @@ return function(test, H)
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
         eq(ola.ns.DB.char.bondSeen[PANDA], 1)
-        local park = ola.ns.ParkPage._sp
-        park:Open()
+        ola.ns.ParkPage:Open()
         ok(ola.ns.SidePage:AnyOpen())
         local playing = 0
         for _, p in ipairs(card.decor.parts) do if p.anim:IsPlaying() then playing = playing + 1 end end
@@ -335,7 +334,7 @@ return function(test, H)
         eq(#(ola.sounds or {}), 0)
         eq(ola.ns.DB.char.bondSeen[PANDA], 1)
         -- Back on the card: now it's celebrated.
-        park:Close()
+        ola.ns.SidePage:CloseAll()
         eq(ola.ns.DB.char.bondSeen[PANDA], 2)
         ok(card.celebration.flash:IsShown())
         eq(#ola.sounds, 1)

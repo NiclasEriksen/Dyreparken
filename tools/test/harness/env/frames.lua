@@ -42,6 +42,16 @@ return function(c, env, S)
                 return self.actor
             end
         end
+        -- Our side pages (Core/SidePage.lua names them Dyreparken<Id>Page): which one shows under
+        -- which window title, so c:Page(title) finds a page by what the player reads.
+        if name and name:match("^Dyreparken%w+Page$") then
+            function f:Show()
+                local cj = rawget(env, "CollectionsJournal")
+                local title = cj and cj.titleFS and cj.titleFS.text
+                if title then c.sidePages[title] = self end
+                return Frame.Show(self)
+            end
+        end
         if name then rawset(env, name, f) end
         return f
     end

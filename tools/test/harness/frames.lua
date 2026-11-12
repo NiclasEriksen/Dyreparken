@@ -309,18 +309,19 @@ function Region:GetStringHeight()
     return self.text and (n + 1) * 14 or 0
 end
 
+-- Regions know their frame (.owner, for the harness: c:Visible respects its shown state).
 function Frame:CreateTexture()
-    local t = setmetatable({ shown = true }, Region)
+    local t = setmetatable({ shown = true, owner = self }, Region)
     self.textures[#self.textures + 1] = t
     return t
 end
 function Frame:CreateMaskTexture()
-    local t = setmetatable({ shown = true, ftype = "MaskTexture" }, Region)
+    local t = setmetatable({ shown = true, ftype = "MaskTexture", owner = self }, Region)
     self.textures[#self.textures + 1] = t
     return t
 end
 function Frame:CreateFontString(_, _, template)
-    local t = setmetatable({ shown = true, ftype = "FontString", font = template }, Region)
+    local t = setmetatable({ shown = true, ftype = "FontString", font = template, owner = self }, Region)
     self.fontStrings[#self.fontStrings + 1] = t
     return t
 end

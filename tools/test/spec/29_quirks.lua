@@ -174,7 +174,7 @@ return function(test, H)
         ok(ola:Said("Bombay Cat har fått sløyfe i rødt, hvitt og blått. Hipp hurra!"))
         A:Emit("day"); A:Emit("day")
         eq(ola:CountPrinted("sløyfe"), 1, "once a day")
-        eq(ola.ns.DB.char.eggs.mai17.n, 1)
+        eq(ola:Eggs("mai17"), 1)
         -- Not for a pet you haven't adopted.
         no(Q.EGGS[7].test({ key = "s:5159", t = ola.ns.Now() }))
         -- Friday the 13th.
@@ -274,55 +274,53 @@ return function(test, H)
 
     test("the pet is amazed: a 100 of 100 (yours, /roll or loot), an epic you looted", function()
         local w, ola, Q = Setup()
-        local function Eggs(id) local e = ola.ns.DB.char.eggs[id]; return e and e.n or 0 end
         local function Roll(text) ola:Fire("CHAT_MSG_SYSTEM", text); w:Run(1) end
         Roll("Ola Nord rolls 100 (1-1000)"); Roll("Kari Berg rolls 100 (1-100)"); Roll("Ola Nord rolls 99 (1-100)")
-        eq(Eggs("hundre"), 0, "not 1-100, not yours, not a 100")
+        eq(ola:Eggs("hundre"), 0, "not 1-100, not yours, not a 100")
         Roll("Ola Nord rolls 100 (1-100)")
-        eq(Eggs("hundre"), 1)
+        eq(ola:Eggs("hundre"), 1)
         Roll("Ola Nord rolls 100 (1-100)")
-        eq(Eggs("hundre"), 1, "once a day")
+        eq(ola:Eggs("hundre"), 1, "once a day")
         w:SkipDays(1)
         ola:Fire("CHAT_MSG_LOOT", "Disenchant Roll - 100 for [Linen Cloth] by Ola Nord"); w:Run(1)
-        eq(Eggs("hundre"), 2, "a loot roll, no history link")
+        eq(ola:Eggs("hundre"), 2, "a loot roll, no history link")
         -- Loot: epic or better, yours, looted (not pushed to you).
         local function Loot(text) ola:Fire("CHAT_MSG_LOOT", text); w:Run(1) end
         local EPIC_LINK = "|cffa335ee|Hitem:19019::::::::60:::::|h[Thunderfury]|h|r"
         Loot("You receive loot: |cff0070dd|Hitem:1::::::::60:::::|h[Blue Thing]|h|r")
         Loot("You receive item: " .. EPIC_LINK)
         Loot("Kari Berg receives loot: " .. EPIC_LINK)
-        eq(Eggs("lilla"), 0, "a rare, a reward pushed to you, someone else's")
+        eq(ola:Eggs("lilla"), 0, "a rare, a reward pushed to you, someone else's")
         Loot("You receive loot: " .. EPIC_LINK)
-        eq(Eggs("lilla"), 1, "an epic, at once (no 45 minutes needed)")
+        eq(ola:Eggs("lilla"), 1, "an epic, at once (no 45 minutes needed)")
         w:SkipDays(1)
         Loot("You receive loot: |cffff8000|Hitem:2::::::::60:::::|h[Orange]|h|rx2.")
-        eq(Eggs("lilla"), 2, "a legendary, in a stack")
+        eq(ola:Eggs("lilla"), 2, "a legendary, in a stack")
     end)
 
     test("a duel won or lost (yours), a new flight path, fishing in Stranglethorn on the contest's day", function()
         local w, ola, Q = Setup()
-        local function Eggs(id) local e = ola.ns.DB.char.eggs[id]; return e and e.n or 0 end
         local function Sys(text) ola:Fire("CHAT_MSG_SYSTEM", text); w:Run(1) end
         Sys("Kari Berg has defeated Per Hansen in a duel")
-        eq(Eggs("duellvinner") + Eggs("duelltaper"), 0, "not yours")
+        eq(ola:Eggs("duellvinner") + ola:Eggs("duelltaper"), 0, "not yours")
         Sys("Ola Nord has defeated Kari Berg in a duel")
-        eq(Eggs("duellvinner"), 1)
+        eq(ola:Eggs("duellvinner"), 1)
         ok(ola:Said("Bombay Cat") and ola:Printed("Kari Berg", true), "who it was against")
         Sys("Ola Nord has fled from Kari Berg in a duel")
-        eq(Eggs("duelltaper"), 1, "fleeing is losing")
+        eq(ola:Eggs("duelltaper"), 1, "fleeing is losing")
         w:SkipDays(1)
         Sys("Kari Berg has fled from Ola Nord in a duel")
-        eq(Eggs("duellvinner"), 2, "they fled: you won")
+        eq(ola:Eggs("duellvinner"), 2, "they fled: you won")
         -- A new flight path: this cat neither likes nor dislikes flying, so it doesn't care.
         local function Path() ola:Fire("UI_INFO_MESSAGE", 0, "New flight path discovered!"); w:Run(4) end
         Path()
-        eq(Eggs("nyrute"), 0, "doesn't care")
+        eq(ola:Eggs("nyrute"), 0, "doesn't care")
         -- Dislikes flying: shivers.
         local P = ola.ns.Personality
         local dislikes = P.Dislikes
         P.Dislikes = function() return { taxi = true }, { "taxi" } end
         Path()
-        eq(Eggs("nyrute"), 1)
+        eq(ola:Eggs("nyrute"), 1)
         ok(ola:Said("Bombay Cat skjelver ved tanken"), "a shiver")
         P.Dislikes = dislikes
         -- Likes flying (Reiseglad): thrilled.
@@ -333,21 +331,20 @@ return function(test, H)
 
     test("a lot of guild chat at once: a pet that isn't a Pratsom comments, now and then", function()
         local w, ola, Q = Setup()
-        local function Eggs(id) local e = ola.ns.DB.char.eggs[id]; return e and e.n or 0 end
         local function Say(n, gap)
             for _ = 1, n do ola:Fire("CHAT_MSG_GUILD", "hei", "Ola Nord", "", "", "", "", 0, 0, "", 0, 1, ola.env.UnitGUID("player")); w:Run(gap or 5) end
         end
         Say(5, 40)
-        eq(Eggs("skravle"), 0, "five lines over three minutes: not a lot")
+        eq(ola:Eggs("skravle"), 0, "five lines over three minutes: not a lot")
         Say(5)
-        eq(Eggs("skravle"), 1, "five in half a minute")
+        eq(ola:Eggs("skravle"), 1, "five in half a minute")
         ola:Dice(0.9)
         w:SkipDays(1); Say(5)
-        eq(Eggs("skravle"), 1, "by chance only")
+        eq(ola:Eggs("skravle"), 1, "by chance only")
         -- A Pratsom just likes it.
         local w2, kari = Setup({ "pratsom", "glupsk" })
         for _ = 1, 6 do kari:Fire("CHAT_MSG_GUILD", "hei", "Ola Nord", "", "", "", "", 0, 0, "", 0, 1, kari.env.UnitGUID("player")); w2:Run(5) end
-        eq(kari.ns.DB.char.eggs.skravle, nil)
+        eq(kari:Eggs("skravle"), 0)
     end)
 
     test("how long a line waits depends on the line: a roll's at once, a holiday's soon after, a flight's dislike later", function()
@@ -365,13 +362,12 @@ return function(test, H)
 
     test("the fishing contest: a pet that likes fishing looks forward to it, and gets a bonus fishing in Stranglethorn", function()
         local w, ola, Q = Setup({ "vannhund", "glupsk" })
-        local function Eggs(id) local e = ola.ns.DB.char.eggs[id]; return e and e.n or 0 end
         local B = ola.ns.Bond
         -- The contest is on tomorrow; the calendar answers after the day's visit (past midnight).
         w:SkipDays(1)
         ola.state.holidays = { [ola.ns.Today()] = { 301 } }
         ola.ns.Activity:Emit("day"); w:Run(2)
-        eq(Eggs("fiskedag"), 1, "once the calendar answered: the day's eggs again")
+        eq(ola:Eggs("fiskedag"), 1, "once the calendar answered: the day's eggs again")
         ok(ola:Said("fiskekonkurransen i Stranglethorn i dag"))
         eq(ola.ns.Personality.Holiday(w:ServerTime()), nil, "not a holiday")
         -- Fishing: in Elwynn nothing more, in Stranglethorn the bonus, once.
@@ -395,7 +391,7 @@ return function(test, H)
         w2:SkipDays(1)
         kari.state.holidays = { [kari.ns.Today()] = { 301 } }
         kari.ns.Activity:Emit("day"); w2:Run(2)
-        eq(kari.ns.DB.char.eggs.fiskedag, nil)
+        eq(kari:Eggs("fiskedag"), 0)
         kari.state.zone = "Stranglethorn Vale"
         kari.ns.Activity:Emit("fish"); w2:Run(1)
         no(kari:Printed("jubler over at du fisket", true))
@@ -426,11 +422,11 @@ return function(test, H)
         w:Skip(Q.EVERY + 1)
         ola:Dice(0.3) -- (above the countdown's 25%, below the warmth's 60%)
         A:Emit("campwarm"); w:RunTimers()
-        eq(ola.ns.DB.char.eggs.baalvarm, nil, "the countdown: 25%")
+        eq(ola:Eggs("baalvarm"), 0, "the countdown: 25%")
         A:Emit("camp"); w:RunTimers()
-        ok(ola.ns.DB.char.eggs.baal, "the warmth gets its turn")
+        ok(ola:Eggs("baal") > 0, "the warmth gets its turn")
         A:Emit("rested"); w:RunTimers()
-        eq(ola.ns.DB.char.eggs.sovepose, nil, "the same fire: no second line")
+        eq(ola:Eggs("sovepose"), 0, "the same fire: no second line")
         ola:Dice(0)
         -- The trophy: a boss new to the pet half the time, one it has seen fall 15%.
         w:Skip(Q.EVERY + 1)

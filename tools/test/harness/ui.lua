@@ -301,3 +301,101 @@ function Client:PopupAccept(text, viaEnter)
     self.popup = nil
     return shown, frame
 end
+
+-- What's on screen ------------------------------------------------------------------
+-- Read the UI as a player does, not through a module's private fields. Shown means the
+-- region or frame and every parent are shown (IsVisible); `root` keeps to one frame and
+-- what's under it.
+local function Under(f, root)
+    while f do
+        if f == root then return true end
+        f = f.parent
+    end
+    return false
+end
+local function Plain(x) return type(x) == "string" and P.StripColors(x) or nil end
+
+-- Visible frames (under root) that pass `pred`, oldest first.
+function Client:Frames(pred, root)
+    local out = {}
+    for _, f in ipairs(self.frames) do
+        if f:IsVisible() and (not root or Under(f, root)) and (not pred or pred(f)) then out[#out + 1] = f end
+    end
+    return out
+end
+
+-- Text on screen holding `text` (plain: no patterns, no color codes): a shown font string, or a
+-- button's own text. Returns the font string (or the button) and the frame it's on; nil if none.
+-- exact: the whole text, not a part of it.
+function Client:Visible(text, root, exact)
+    local function Has(s)
+        s = Plain(s)
+        if not s then return false end
+        if exact then return s == text end
+        return s:find(text, 1, true) ~= nil
+    end
+    for _, f in ipairs(self:Frames(nil, root)) do
+        if Has(f.text) then return f, f end
+        for _, fs in ipairs(f.fontStrings) do
+            if fs.shown and Has(fs.text) then return fs, f end
+        end
+    end
+end
+
+-- The control a label names: a button with exactly that text on it, or the frame a shown font
+-- string reading exactly `text` is anchored to (a check box left of its label), else the frame
+-- the label is on.
+function Client:Labeled(text, root)
+    local fs, f = self:Visible(text, root, true)
+    if not fs or fs == f then return f end
+    local to = fs.points and fs.points[1] and fs.points[1][2]
+    if type(to) == "table" and getmetatable(to) == getmetatable(f) then return to end
+    return f
+end
+
+-- One of our side pages of the Collections window (Core/SidePage.lua), found by its title as the
+-- player finds it: page.tab (our side tab whose tooltip reads the title; nil without one),
+-- page.button (the fallback button with the title on it, left of Auto-summon), page.frame (the
+-- page, once it has shown under that window title). page:Open() presses the tab or the button;
+-- page:IsOpen(); page:Text(text) (shown text in it), page:Row(text) (the frame a label reading
+-- exactly `text` is on: an achievement's row), page:Labeled(text), page:Frames(pred) look inside it.
+local PageView = {}
+PageView.__index = function(view, k)
+    local c = rawget(view, "client")
+    if k == "frame" then
+        return c.sidePages[view.title]
+    elseif k == "tab" then
+        local cj = rawget(c.env, "CollectionsJournal")
+        for _, f in ipairs(c.frames) do
+            if cj and f.parent == cj and f.type == "Button" and f.scripts.OnEnter then
+                for _, t in ipairs(f.textures) do
+                    if t.atlas == "common-sidetab" and c:TipOf(f)[1] == view.title then return f end
+                end
+            end
+        end
+        return nil
+    elseif k == "button" then
+        for _, f in ipairs(c.frames) do
+            if f.type == "Button" and f.template == "UIPanelButtonTemplate" and f.text == view.title
+                and f.parent and f.parent.frameName == "PetJournal" then
+                return f
+            end
+        end
+        return nil
+    end
+    return PageView[k]
+end
+function PageView:IsOpen() local f = self.frame; return f ~= nil and f:IsVisible() end
+function PageView:Open()
+    local tab = self.tab
+    if tab and tab:IsVisible() then tab:Click() else assert(self.button, "no tab or button for " .. self.title):Click() end
+    assert(self:IsOpen(), self.title .. " didn't open")
+    return self
+end
+local function Inside(view) return (assert(view.frame, view.title .. " hasn't shown yet")) end
+function PageView:Frames(pred) return self.client:Frames(pred, Inside(self)) end
+function PageView:Text(text, exact) return (self.client:Visible(text, Inside(self), exact)) end
+function PageView:Row(text) return (select(2, self.client:Visible(text, Inside(self), true))) end
+function PageView:Labeled(text) return self.client:Labeled(text, Inside(self)) end
+
+function Client:Page(title) return setmetatable({ client = self, title = title }, PageView) end

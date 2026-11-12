@@ -59,9 +59,7 @@ return function(test, H)
         -- The pet frame, on from the settings page.
         local S = ns.Settings
         S.cog:Click()
-        for _, wd in ipairs(S._sp.widgets) do
-            if wd.row.key == "settings.petframe" then wd.button:Click() end
-        end
+        c:Page("Innstillinger"):Labeled(ns.L["settings.petframe"]):Click()
         ok(ns.Settings:On("petFrame"), "the pet frame is on")
         S.cog:Click()
         w:Run(60)

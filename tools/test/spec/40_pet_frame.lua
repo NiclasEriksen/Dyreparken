@@ -364,8 +364,7 @@ return function(test, H)
         local Set = ola.ns.Settings
         ola:OpenJournal()
         Set:Open()
-        local slider
-        for _, wd in ipairs(Set._sp.widgets) do if wd.slider then slider = wd.slider end end
+        local slider = ola:Page("Innstillinger"):Frames(function(f) return f.type == "Slider" end)[1]
         ok(slider, "a slider")
         eq(slider:GetValue(), 0.5)
         eq(slider.pct.text, "50%")

@@ -103,7 +103,7 @@ end
 function Client:Login()
     assert(not self.online, self.name .. " is already online")
     self.online = true
-    self.frames, self.tooltipCalls, self.units = {}, {}, {}
+    self.frames, self.tooltipCalls, self.units, self.sidePages = {}, {}, {}, {}
     self.prefixes, self.missingGlobals, self.newGlobals = {}, {}, {}
     self.loaded = { [ADDON] = true }
     for _, a in ipairs(self.addons) do self.loaded[a] = true end
@@ -294,6 +294,12 @@ function Client:CountPrinted(text)
     local n = 0
     for _, l in ipairs(self.printed) do if l:find(text, 1, true) then n = n + 1 end end
     return n
+end
+-- How many times this character has found an easter egg (Quirks: char.eggs; 0 for never).
+-- An egg counts once its line is said (a line can wait a moment: c:Said runs the timers).
+function Client:Eggs(id)
+    local e = self.ns.DB.char.eggs[id]
+    return e and e.n or 0
 end
 -- A carer's bond points with a pet (default: this client's own), 0 for none.
 function Client:Points(key, who)

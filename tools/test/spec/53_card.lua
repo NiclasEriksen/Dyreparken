@@ -36,7 +36,7 @@ return function(test, H)
         ola.ns.Cuddle:Pet(card, 500, 500)
         ok(d.ripple.anim:IsPlaying(), "a cuddle")
         ok(d.hearts[1].anim:IsPlaying())
-        ola.ns.ParkPage._sp:Open()
+        ola.ns.ParkPage:Open()
         no(cel.flash.anim:IsPlaying(), "the celebration stops under the page")
         no(cel.text:IsShown())
         for _, p in ipairs(cel.parts) do no(p.anim:IsPlaying()) end
