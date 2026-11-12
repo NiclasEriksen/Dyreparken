@@ -81,6 +81,7 @@ Activity.KINDS = {
     { "dmgtop", wish = false },   -- first in damage
     { "healtop", wish = false },  -- first in healing (a raid)
     { "kicktop", wish = false },  -- the most interrupts
+    { "fall", wish = false },     -- a big fall (most of your health at once, out of combat): only the eggs watch it
     -- A character's big moments (Menagerie/Feats.lua, 2026-11-12, the user).
     { "feat", wish = false },     -- a class quest's reward, riding, level 60 (extra: the feat's id): Feats' points
     { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it
@@ -418,6 +419,23 @@ for _, kind in ipairs({ "dance", "cuddle", "fun" }) do
         if Activity.EmoteKind(text) == kind then return 1 end
     end })
 end
+
+-- A big fall (2026-11-12, the user: "taking a lot of fall damage should be an event"): no event says so, but out
+-- of combat, FALL_SHARE of your health or more gone in one change is a fall (nothing else hits that hard
+-- outside a fight). UNIT_HEALTH for the player only, while the eggs watch it; a value we can't read (secret
+-- in combat) is skipped. extra: "dead" when it was the end of you.
+Activity.FALL_SHARE = 0.7
+local lastHealth
+Activity:Source({ id = "fall", events = { "UNIT_HEALTH" }, unit = "player",
+    start = function() lastHealth = nil end,
+    filter = function()
+        local hp, max = Plain(UnitHealth("player")), Plain(UnitHealthMax("player"))
+        if type(hp) ~= "number" or type(max) ~= "number" or max <= 0 then lastHealth = nil; return nil end
+        local before = lastHealth
+        lastHealth = hp
+        if not before or InCombatLockdown() then return nil end
+        if before - hp >= max * Activity.FALL_SHARE then return 1, hp <= 0 and "dead" or nil end
+    end })
 
 -- Money looted (Sjørøver, 2026-11-12): CHAT_MSG_MONEY is only ever about you ("You loot 5 Silver", "Your
 -- share of the loot is ..."); the event is in the client (/dp probe api).

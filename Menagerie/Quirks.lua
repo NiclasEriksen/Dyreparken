@@ -363,6 +363,15 @@ Quirks.EGGS = {
     { id = "helter", delay = "now", on = "healtop", always = true, bubble = "major", cheer = true,
         chance = function() return Quirks.MeterChance() end, test = function() return {} end },
     { id = "sparket", delay = "now", on = "kicktop", chance = 0.3, test = function() return {} end },
+    -- A big fall (2026-11-12, the user: pets react "according to traits"): the first of its traits with a line
+    -- of its own (Quirks.FALL_TRAITS), else a worried one; the end of you, its own.
+    { id = "stup", delay = "now", on = "fall", always = true, test = function(ctx)
+        if ctx.extra == "dead" then return { _key = "egg.stup.dod" } end
+        for _, id in ipairs(Quirks.FALL_TRAITS) do
+            if HasTrait(ctx.key, id) then return { _key = "egg.stup." .. id } end
+        end
+        return {}
+    end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
@@ -383,6 +392,9 @@ local function Families(key)
 end
 
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
+-- The traits with a fall of their own to say (Locale egg.stup.<trait>.N), first match wins.
+Quirks.FALL_TRAITS = { "hoppetass", "skybaren", "rampete", "skoyer", "eventyrlysten", "latsabb", "hjemlengsel",
+    "kjaelen", "kosete", "trofast" }
 -- The meter's eggs (Meter.lua): a dungeon boss, a raid boss, and more when well ahead of the next.
 Quirks.METER_DUNGEON, Quirks.METER_RAID, Quirks.METER_FAR = 0.35, 0.7, 0.25
 function Quirks.MeterChance()
@@ -466,7 +478,7 @@ end
 -- when a Dansefot's like already watches it.)
 Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic", "duelwon", "duellost",
     "newpath", "fish", "chat", "campnear", "campwarm", "camp", "rested", "train", "specswap", "respec",
-    "dmgtop", "healtop", "kicktop" }
+    "dmgtop", "healtop", "kicktop", "fall" }
 local watching = {}
 
 function Quirks:Watch()
