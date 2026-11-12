@@ -255,7 +255,8 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most
-  one quirk line every 45 minutes (an hour until 2026-11-11); easter eggs (holidays, adoption anniversaries, meeting its own kind, midnight...) at most
+  one quirk line every 45 minutes (an hour until 2026-11-11) for the common ones; rare ones (`always`: holidays, milestones,
+  a roll, a duel, the clock's eggs) and a dislike's first time aren't held back (three tiers, 2026-11-12, from the log); easter eggs (holidays, adoption anniversaries, meeting its own kind, midnight...) at most
   once a day each, counted in char.eggs. Lines: Locale dislike.<activity>.N and egg.<id>.N. No player birthdays
   (we don't know them).
 - **A personality is a surprise** (2026-11-09): traits, likes and trait particles show only for a pet you've

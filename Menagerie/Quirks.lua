@@ -13,13 +13,23 @@ local _, ns = ...
 -- anniversary of the adoption, meeting its own kind, midnight. Each at most
 -- once a day; they're counted (char.eggs) for an achievement some day.
 --
+-- Three tiers (2026-11-12, the user, from the log: 79% of what could speak was held back, and the
+-- midnight egg's ten minutes lost to a campfire line):
+--   rare       never held back by the 45 minutes: `always` eggs (holidays, milestones, a roll, a duel,
+--              a new flight path) and the clock's (midnight, 13:37, the early morning, Friday taco,
+--              Saturday sweets, Monday): once a day each, and their window is the rarity.
+--   discovery  a dislike's first time (DISLIKE_CHANCE): finding it is a goal with an achievement.
+--   common     the 45 minutes: a known dislike again (DISLIKE_AGAIN), the campfire (its stages are one
+--              fire, so one line; the countdown less likely, so the warmth after it gets its turn), the
+--              boss trophy (more likely for a boss new to the pet), wings, the cat and the fish, the chatter.
 -- Lines: Locale/nb.lua, dislike.<activity>.N and egg.<id>.N (one is picked).
 -- The activities they need are watched like the bond's (Activity:Want).
 local Quirks = {}
 ns.Quirks = Quirks
 
 Quirks.EVERY = 2700          -- seconds between quirk lines (an hour until 2026-11-11: the user, 45 minutes)
-Quirks.DISLIKE_CHANCE = 0.35 -- per disliked activity (with the hour free)
+Quirks.DISLIKE_CHANCE = 0.35 -- a dislike not yet found: per time it happens (the cooldown doesn't hold it back)
+Quirks.DISLIKE_AGAIN = 0.15  -- one already found: per time, with the 45 minutes free
 Quirks.random = math.random  -- (tests pin it)
 -- A line comes a while after what caused it, not the instant it happens
 -- (2026-11-10: "scared of flying" the moment you took off read as if it had
@@ -85,12 +95,18 @@ end
 -- Dislikes
 ------------------------------------------------------------------------------
 function Quirks:Dislike(key, id)
-    if not self:Ready() or self.random() >= self.DISLIKE_CHANCE then return end
+    local seen = ns.DB.char.dislikes
+    local first = not (seen[key] and seen[key][id])
+    -- (found: common, the 45 minutes; not yet: a discovery, only another line on its way holds it)
+    if first then
+        if pending.line then return end
+    elseif not self:Ready() then
+        return
+    end
+    if self.random() >= (first and self.DISLIKE_CHANCE or self.DISLIKE_AGAIN) then return end
     local name = ns.Registry:NameOf(key)
     local text = Pick("dislike." .. id, { pet = name })
     if not text then return end
-    local seen = ns.DB.char.dislikes
-    local first = not (seen[key] and seen[key][id])
     self:Say(text, ("dislike %s %s"):format(key, id), "dislike", function()
         seen[key] = seen[key] or {}
         seen[key][id] = true
@@ -207,8 +223,8 @@ Quirks.EGGS = {
         local yesterday = time({ year = d.year, month = d.month, day = d.day - 1, hour = 12 })
         return date("*t", noon).isdst ~= date("*t", yesterday).isdst and {}
     end },
-    { id = "mandag", on = "day", test = function(ctx) return Weekday(ctx.t) == 1 and HasTrait(ctx.key, "helgedyr") and {} end },
-    { id = "morgen", on = "day", test = function(ctx)
+    { id = "mandag", on = "day", always = true, test = function(ctx) return Weekday(ctx.t) == 1 and HasTrait(ctx.key, "helgedyr") and {} end },
+    { id = "morgen", on = "day", always = true, test = function(ctx)
         local h = Hour(ctx.t)
         if h < 5 or h >= 7 then return nil end -- (before five it's still night: midnight's own)
         return HasTrait(ctx.key, "nattugle") and { _key = "egg.morgen.nattugle" } or {}
@@ -218,13 +234,13 @@ Quirks.EGGS = {
         return HasTrait(ctx.key, "hoppetass") and { _key = "egg.hopp.hoppetass" } or {}
     end },
     { id = "lur", on = "nap", test = function(ctx) return ctx.today == 5 and {} end },
-    { id = "midnattsdans", on = "dance", test = function(ctx) return Hour(ctx.t) == 0 and tonumber(date("%M", ctx.t)) < 30 and {} end },
-    { id = "fredagstaco", on = "*", chance = 0.5, test = function(ctx)
+    { id = "midnattsdans", on = "dance", always = true, test = function(ctx) return Hour(ctx.t) == 0 and tonumber(date("%M", ctx.t)) < 30 and {} end },
+    { id = "fredagstaco", on = "*", always = true, chance = 0.5, test = function(ctx)
         return Weekday(ctx.t) == 5 and Hour(ctx.t) >= 17 and (HasTrait(ctx.key, "glupsk") or ctx.family.cat) and {}
     end },
-    { id = "lordagsgodt", on = "*", chance = 0.5,
+    { id = "lordagsgodt", on = "*", always = true, chance = 0.5,
         test = function(ctx) return Weekday(ctx.t) == 6 and HasTrait(ctx.key, "helgedyr") and {} end },
-    { id = "leet", on = "*", test = function(ctx) return date("%H%M", ctx.t) == "1337" and {} end },
+    { id = "leet", on = "*", always = true, test = function(ctx) return date("%H%M", ctx.t) == "1337" and {} end },
     -- Named: your own first name, or a name another pet in the park has.
     { id = "navnebror", on = "name", always = true, test = function(ctx)
         return ns.Lower(ctx.extra) == ns.Lower(ns.PlayerKey():match("^(%S+)")) and {}
@@ -248,7 +264,7 @@ Quirks.EGGS = {
     { id = "fullfest", on = "party", always = true, test = function(ctx)
         return { n = ctx.extra, _key = HasTrait(ctx.key, "flokkdyr") and "egg.fullfest.flokkdyr" or nil }
     end },
-    { id = "midnatt", on = "*", chance = 0.5,
+    { id = "midnatt", on = "*", always = true, chance = 0.5,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
     { id = "speil", delay = "now", on = "seen", test = function(ctx)
         return ns.Pets:SpeciesOfKey(ctx.key) == ctx.seen and { owner = ctx.extra }
@@ -289,7 +305,8 @@ Quirks.EGGS = {
     -- restless; a fire passed by only now and then catches a cozy pet's eye.
     { id = "baalnaer", on = "campnear", chance = 0.03, test = function(ctx)
         return Kind(ctx.key) == "cozy" and {} end },
-    { id = "baalvarm", on = "campwarm", chance = 0.5, test = function(ctx)
+    -- (the countdown less likely, 2026-11-12: at 50% it came first and won, and the warmth never spoke)
+    { id = "baalvarm", on = "campwarm", chance = 0.25, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.baalvarm.eventyr" }) end },
     { id = "baal", on = "camp", chance = 0.6, test = function(ctx)
@@ -309,7 +326,13 @@ Quirks.EGGS = {
     { id = "kattefisk", delay = "now", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
     { id = "vinger", on = "taxi", chance = 0.3,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
-    { id = "trofe", on = "boss", chance = 0.15, test = function(ctx)
+    -- More likely for a boss this pet hasn't seen fall (Bond:First notes those; either may hear it first).
+    { id = "trofe", on = "boss", chance = function(ctx)
+        local seen = ns.DB.char.firsts[ctx.key]
+        local new = not (seen and seen[ctx.extra]) or (ns.Bond.justFirst == ctx.key .. "\31" .. tostring(ctx.extra)
+            and ns.Now() - (ns.Bond.justFirstAt or 0) <= 1) -- (this very kill)
+        return new and Quirks.TROPHY_NEW or Quirks.TROPHY
+    end, test = function(ctx)
         return type(ctx.extra) == "string" and ctx.extra ~= "" and ctx.extra ~= "?" and { boss = ctx.extra }
     end },
     { id = "dodsfall", on = "revive", test = function(ctx) return ctx.today >= 3 and {} end },
@@ -336,6 +359,8 @@ local function Families(key)
     return set
 end
 
+Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
+
 -- Eggs on moments that aren't activities: "*" eggs don't ride on them.
 local MOMENTS = { seen = true, name = true, party = true }
 
@@ -354,8 +379,9 @@ function Quirks:Egg(on, key, extra, seen)
     for _, e in ipairs(list) do
         local had = ns.DB.char.eggs[e.id]
         local done = (had and had.day == today) or pending.eggs[e.id] == today
+        local chance = type(e.chance) == "function" and e.chance(ctx) or e.chance
         if (e.always or self:Ready()) and not done
-            and (not e.chance or self.random() < e.chance) then
+            and (not chance or self.random() < chance) then
             local vars = e.test(ctx)
             local text = vars and Pick(vars._key or ("egg." .. e.id), setmetatable({ pet = ctx.name }, { __index = vars }))
             if text then

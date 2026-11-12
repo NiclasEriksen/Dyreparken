@@ -398,4 +398,45 @@ return function(test, H)
         kari.ns.Activity:Emit("fish"); w2:Run(1)
         no(kari:Printed("jubler over at du fisket", true))
     end)
+
+    test("tiers: a dislike's discovery and the clock's eggs aren't held back; a known dislike, the fire and the trophy are", function()
+        local w, ola, Q = Setup({ "latsabb", "glupsk" }) -- (a cozy cat: the fire's lines)
+        local A = ola.ns.Activity
+        -- Something else just spoke: the 45 minutes run.
+        ola.ns.DB.char.quirkAt = ola.ns.Now()
+        Dive(ola)
+        ok(Said(ola, "Nå vet du det: Bombay Cat liker ikke dykking."), "a discovery comes anyway")
+        -- Known now: held back by the 45 minutes, and only now and then after them.
+        w:Run(61); Dive(ola)
+        eq(Count(ola, "Bombay Cat rister"), 1, "known, and the 45 minutes run")
+        w:Skip(Q.EVERY + 1)
+        Q.random = function(n) return n and 1 or 0.2 end -- (above 15%, below 35%)
+        w:Run(61); Dive(ola)
+        eq(Count(ola, "Bombay Cat rister"), 1, "a known dislike again: 15%")
+        Q.random = function(n) return n and 1 or 0 end
+        -- Midnight within the 45 minutes: rare, it comes.
+        ola.ns.DB.char.quirkAt = ola.ns.Now()
+        w:Skip(os.time({ year = 2027, month = 3, day = 3, hour = 0, min = 5 }) - w:ServerTime())
+        ola.ns.DB.char.quirkAt = ola.ns.Now()
+        A:Emit("herb")
+        ok(Said(ola, "Bombay Cat gjesper. Det er midnatt, vet du."), "the clock's egg: not held back")
+        -- The fire: its stages are one fire, one line (the 45 minutes); the countdown only now and then.
+        w:Skip(Q.EVERY + 1)
+        Q.random = function(n) return n and 1 or 0.3 end -- (above the countdown's 25%, below the warmth's 60%)
+        A:Emit("campwarm"); w:RunTimers()
+        eq(ola.ns.DB.char.eggs.baalvarm, nil, "the countdown: 25%")
+        A:Emit("camp"); w:RunTimers()
+        ok(ola.ns.DB.char.eggs.baal, "the warmth gets its turn")
+        A:Emit("rested"); w:RunTimers()
+        eq(ola.ns.DB.char.eggs.sovepose, nil, "the same fire: no second line")
+        Q.random = function(n) return n and 1 or 0 end
+        -- The trophy: a boss new to the pet half the time, one it has seen fall 15%.
+        w:Skip(Q.EVERY + 1)
+        Q.random = function(n) return n and 1 or 0.3 end
+        A:Emit("boss", 1, "Hogger")
+        ok(Said(ola, "Bombay Cat tok med seg en liten bit av Hogger som minne."), "new to it: 0.3 < 50%")
+        w:SkipDays(1); w:Skip(Q.EVERY + 1)
+        A:Emit("boss", 1, "Hogger")
+        eq(Count(ola, "bit av Hogger"), 1, "seen it fall before: 0.3 > 15%")
+    end)
 end

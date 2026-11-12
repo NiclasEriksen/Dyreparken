@@ -424,6 +424,7 @@ function Bond:First(id, key, extra)
         firsts[key] = firsts[key] or {}
         if firsts[key][extra] then return end
         firsts[key][extra] = true
+        Bond.justFirst, Bond.justFirstAt = key .. "\31" .. extra, ns.Now() -- (Quirks' trophy: a boss new to this pet, whoever hears it first)
         text = ns.T("first.boss", { pet = ns.Registry:NameOf(key), boss = extra })
         if Count(firsts[key]) == 1 then ns.Story:Mine(key, "first.boss", extra) end -- (its very first)
     elseif id == "explore" and type(extra) == "string" then
