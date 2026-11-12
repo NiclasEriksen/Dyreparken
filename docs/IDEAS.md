@@ -297,8 +297,8 @@ Forever has Retail 12.0's built-in damage meter and its API, `C_DamageMeter` (in
 totalAmount, amountPerSecond, isLocalPlayer, ...), with types DamageDone, Dps, HealingDone, Hps, Absorbs,
 Interrupts, Dispels, DamageTaken, AvoidableDamageTaken, Deaths, EnemyDamageTaken; events
 DAMAGE_METER_COMBAT_SESSION_UPDATED (type, sessionID), DAMAGE_METER_CURRENT_SESSION_UPDATED, DAMAGE_METER_RESET.
-Retail's docs mark the data SecretWhenInCombat: read it after the fight (PLAYER_REGEN_ENABLED / ENCOUNTER_END).
-`/dp probe api meter` (2026-11-12) checks what Forever gives and when.
+Probed 2026-11-12 (docs/FOREVER_API.md): secret in combat, plain a second after it; the Current session is the
+fight just ended. Still to see: a group (sorting, others' names) and a boss fight.
 
 The user's rules:
 - Only boss fights (ENCOUNTER_END, a kill).

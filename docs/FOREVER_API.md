@@ -393,6 +393,20 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   1840-1842 Call to Arms (battlegrounds). No Children's Week, Brewfest or Pilgrim's Bounty. Used by Menagerie/Holidays.lua.
 - **The card's model never says it has loaded**: a hook on the actor's `OnModelLoaded` (the mixin's method) logged
   nothing over a whole session of cards, so SETTLE and SLEEP_AFTER stay guesses (2026-11-11).
+- **The built-in damage meter, `C_DamageMeter`** (2026-11-12, build 1.60.1, `/dp probe api meter`, solo fights):
+  - Readable **out of combat** in plain numbers: a second after PLAYER_REGEN_ENABLED every session read fine
+    (names, totalAmount, amountPerSecond, maxAmount, durationSeconds). **In combat** the amounts, names and the
+    duration are secret; `classFilename` and `isLocalPlayer` stay readable (Retail's NeverSecret), so which row is
+    ours is known even then.
+  - Sessions: type 1 (Current) is the last fight, kept after it ends until the next starts; 0 (Overall) adds them
+    up; 2 (Expired) was empty. Each fight gets a new session id (5, 6, ...); `GetAvailableCombatSessions()` lists
+    them with a name (the mob's: "Wildplains Huntress") and a duration. `GetSessionDurationSeconds` takes a
+    session TYPE, not an id.
+  - Events: `DAMAGE_METER_CURRENT_SESSION_UPDATED` (no payload) as a fight starts; then
+    `DAMAGE_METER_COMBAT_SESSION_UPDATED` (meter type, session id) about every 2 s in a fight (0 damage, 7 damage
+    taken...). Arithmetic or comparisons on the secret values would taint; read after combat instead.
+  - Not seen yet: a group (are sources sorted, are others' names readable after combat?), a boss (does the
+    session's name say so; ENCOUNTER_END vs the end of combat).
 - **A new flight path is seen** (2026-11-11, build 1.60.1): `ERR_NEWTAXIPATH` matched on UI_INFO_MESSAGE or
   CHAT_MSG_SYSTEM (Activity "newpath"); the user's pet said its line as the flight path was learned.
 - **Range to a group member** (2026-11-11, playdates): `UnitInRange(unit)` (in range, checked) and `UnitIsVisible`
