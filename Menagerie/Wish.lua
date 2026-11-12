@@ -56,6 +56,12 @@ function Wish:Today()
     return w
 end
 
+-- The card's happy hop for today's wish come true has played (Moves): once.
+function Wish:Shown()
+    local w = ns.DB.char.wish
+    if w then w.shown = true end
+end
+
 function Wish:OnActivity(id, key)
     local w = self:Today()
     if not w or w.done or w.pet ~= key or w.id ~= id then return end

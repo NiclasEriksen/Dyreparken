@@ -626,8 +626,10 @@ function Ach:Share(only)
     if n == 0 then ns.Print(T().none_to_share) else ns.Bus:Fire("ACH") end
 end
 
-function Ach:SetNotify(on)
+-- quiet: from the settings page, whose checkbox already shows it.
+function Ach:SetNotify(on, quiet)
     ns.DB.char.achNotify = on
+    if quiet then return end
     ns.Print(on and T().notify_on or T().notify_off)
 end
 

@@ -127,6 +127,14 @@ end
 -- Add points to our bond with a pet (the one we hold, by default). Returns
 -- the new points.
 Bond.GAINS_KEPT = 8
+-- The gains not yet shown on a pet's card, handed over once (BondTrack: the rising numbers).
+function Bond:TakeGains(key)
+    local all = ns.DB.char.bondGains
+    local list = all[key]
+    all[key] = nil
+    return list
+end
+
 function Bond:Add(points, key)
     key = key or ns.Registry:MyPet()
     if not key or points <= 0 then return nil end

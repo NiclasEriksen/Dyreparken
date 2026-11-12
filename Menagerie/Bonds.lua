@@ -275,8 +275,10 @@ function Bonds:Announce(kind, key)
     SendChatMessage(text, "GUILD")
 end
 
-function Bonds:SetAnnounce(on)
+-- quiet: from the settings page, whose checkbox already shows it.
+function Bonds:SetAnnounce(on, quiet)
     ns.DB.char.announce = on
+    if quiet then return end
     ns.Print(ns.L[on and "announce.on" or "announce.off"])
 end
 

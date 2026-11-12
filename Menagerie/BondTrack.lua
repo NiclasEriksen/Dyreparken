@@ -396,11 +396,10 @@ function Track:Gains(card, key, points, from, top)
     local b = card.bond
     if key ~= b.gainKey then self:StopGains(card); b.gainKey = key end
     if not card.panel:IsVisible() then return end -- (seen next time)
-    local look, gains = ns.DB.char.bondLook, ns.DB.char.bondGains
+    local look = ns.DB.char.bondLook
     local last = look[key]
     look[key] = points
-    local list = gains[key]
-    gains[key] = nil
+    local list = ns.Bond:TakeGains(key)
     if not last or points <= last then -- (the first look, or nothing new)
         -- A refresh while the bar grows (Blizzard updates the card as it opens): it keeps growing.
         if b.growTo == points and b.growAt then b:SetValue(b.growAt) end

@@ -360,7 +360,7 @@ return function(test, H)
             seen = { dislikes = true } } }
         c:Login()
         local db = c.env.DyreparkenCharDB
-        eq(db.schema, 2)
+        eq(db.schema, c.ns.DB.CHAR_SCHEMA)
         eq(db.ach.got.dislikes, nil)
         ok(db.ach.got.other, "the others stay")
         ok(db.ach.seen.dislikes, "seen: earning it again is news")

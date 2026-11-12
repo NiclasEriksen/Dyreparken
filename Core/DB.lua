@@ -21,21 +21,33 @@ local SCHEMA = 11
 local CHAR_SCHEMA = 2
 DB.SCHEMA, DB.CHAR_SCHEMA = SCHEMA, CHAR_SCHEMA
 
+-- Every key a module keeps in the account's or the character's table has a
+-- line here, under the module that owns it: [Owner] is the one file that
+-- writes the key itself (others read it, or ask the owner: Bonds:SetAnnounce,
+-- Wish:Shown, Quirks:EggPlayed ...). Keys with a nil default are listed too, so
+-- the list is the whole saved shape: tools/test/spec/47_saved.lua reads this
+-- file and fails for a key used but not listed, or written by another file.
 local ACCOUNT_DEFAULTS = {
-    guilds = {}, -- [guildName] = GUILD_DEFAULTS' shape
-
-    games = { history = {} },
-    ach = { got = {}, seen = {} }, -- account-scope achievements (Achievements.lua)
-    achHeard = {}, -- ["sender\31id"] = when: others' achievements already told (Achievements: OnEarned)
-    settings = { -- the account's settings (Menagerie/Settings.lua)
+    -- [DB]
+    guilds = {}, -- [guildName] = GUILD_DEFAULTS' shape (DB:Guild)
+    -- [Framework]
+    games = { history = {} }, -- games played; the UI changes to undo (stash)
+    -- [Achievements]
+    ach = { got = {}, seen = {} }, -- account-scope achievements
+    achHeard = {}, -- ["sender\31id"] = when: others' achievements already told (OnEarned)
+    -- [Settings]
+    settings = { -- the account's settings
         chatLines = true, worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,
         petFrame = false, petFrameArt = false, -- (the pet frame and its background and border: off unless chosen, PetFrame.lua)
         petFrameCombat = false, petFrameFade = false, petFrameAlpha = 0.25, -- (hidden in combat; faded when nothing happens, to this)
     },
-    scenePicks = {}, -- family -> background path, picked in /dp probe bg (Dev/SceneGallery.lua)
-    liftPicks = {},  -- species id -> lift, set in /dp probe lift (Dev/LiftEditor.lua); to write into Data/PetMoves.lua
-    movePicks = {},  -- species id -> { reaction = id or false, sleepAt = n }, from /dp probe moves (Dev/MovesEditor.lua)
-    decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor (Dev/DecorProbe.lua)
+    -- [SceneGallery] (developer galleries, through their picks tables; Scenes and Decor read them)
+    scenePicks = {}, -- family -> background path, picked in /dp probe bg
+    decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor
+    -- [LiftEditor]
+    liftPicks = {},  -- species id -> lift, set in /dp probe lift; to write into Data/PetMoves.lua
+    -- [MovesEditor]
+    movePicks = {},  -- species id -> { reaction = id or false, sleepAt = n }, from /dp probe moves
 }
 
 -- Each guild's shared data (Menagerie/Registry.lua has the shapes). A new
@@ -52,34 +64,54 @@ local GUILD_DEFAULTS = {
 }
 
 local CHAR_DEFAULTS = {
-    autoSummon = true,   -- may be overridden at runtime if AutoCompanion is loaded
-    activePet = nil,     -- the pet auto-summon keeps out ("Med deg" on its card); nil: the adopted one
-    muteSummonSound = true, -- the clank when a companion is summoned (Summon:QuietSummon)
-    achNotify = true,          -- tell other addon users when I earn an achievement
-    announce = true,           -- post adoptions and nicknames to guild chat (Bonds:Announce)
-    activity = {},             -- activity counters (Core/Activity.lua)
+    -- [Summon]
+    autoSummon = true,         -- may be overridden at runtime if AutoCompanion is loaded (SetEnabled)
+    activePet = nil,           -- the pet auto-summon keeps out ("Med deg" on its card); nil: the adopted one
+    muteSummonSound = true,    -- the clank when a companion is summoned (QuietSummon; SetMuteSound)
+    -- [Achievements]
+    achNotify = true,          -- tell other addon users when I earn an achievement (SetNotify)
+    ach = { got = {}, seen = {} }, -- character-scope achievements
+    -- [Bonds]
+    announce = true,           -- post adoptions and nicknames to guild chat (Announce; SetAnnounce)
+    nameLines = nil,           -- { day, n }: name lines posted to guild chat today (Announce)
+    unlocksTold = {},          -- [petKey] = { like, dislike }: its minor ones told at the level-up (TellUnlocks)
+    toldNameUnlock = nil,      -- the adoption (its record's `at`) whose nickname unlock was told (TellNameUnlock)
+    bondDay = nil,             -- the day the login's milestone and pet-of-the-day lines last showed
+    -- [Activity]
+    activity = {},             -- activity counters
     places = {},               -- [petKey] = { [zone] = true }: where each companion has been ("explore")
-    chipRounds = {},           -- [petKey] = { [activity] = { m, day } }: a chip's round number reached (Stats)
-    playmates = {},            -- [petKey] = { ["owner\31theirKey"] = playdates }: best friends (Playdate)
-    congratulated = nil,       -- { day, pets = { [petKey] = true } }: cakes clicked today (Cake: once a day per pet)
-    sulk = nil,                -- { key, day, shown }: a dislike came up today (Moves: the pet turns its back, once)
-    named = nil,               -- { day, at = { [petKey] = when } }: today's first new name per pet (Registry: once a day)
-    nameLines = nil,           -- { day, n }: name lines posted to guild chat today (Bonds:Announce)
-    bondGains = {},            -- [petKey] = { gains not yet shown on its card } (Bond:Add; BondTrack shows them)
-    bondLook = {},             -- [petKey] = the bond points its card last showed (BondTrack: the bar grows from there)
     lastPlace = {},            -- [petKey] = the newest place it discovered with you (Stats: the explore chip)
-    firsts = {},               -- [petKey] = { [boss name] = true }: bosses it has seen fall with you (Bond:First)
-    dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (Quirks.lua; the card shows these)
-    eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Quirks.lua)
-    feats = {},                -- [feat id] = { t, before, what, key }: a character's feats, each once (Feats.lua)
-    unlocksTold = {},          -- [petKey] = { like, dislike }: its minor ones told at the level-up (Bonds:TellUnlocks)
-    wishes = { n = 0, streak = 0, best = 0 }, -- wishes come true: in all, days in a row (to `last`, a day), the best run (Wish.lua)
-    quirkAt = nil,             -- when the last quirk line was shown (at most one an hour)
-    cardCuddle = nil,          -- the day a click on the card last counted as a cuddle (Cuddle.lua)
-    bondSeen = {},             -- [petKey] = the bond level last shown on its card (BondTrack: celebrate once)
-    petFrame = nil,            -- { point, relativePoint, x, y, scale }: where the pet frame stands, how big (PetFrame.lua, Edit Mode)
-    ach = { got = {}, seen = {} }, -- character-scope achievements (Achievements.lua)
-    warnedVersion = nil, -- newest version we've already told the player about
+    -- [Stats]
+    chipRounds = {},           -- [petKey] = { [activity] = { m, day } }: a chip's round number reached
+    -- [Playdate]
+    playmates = {},            -- [petKey] = { ["owner\31theirKey"] = playdates }: best friends
+    -- [Cake]
+    congratulated = nil,       -- { day, pets = { [petKey] = true } }: cakes clicked today (once a day per pet)
+    -- [Quirks]
+    sulk = nil,                -- { key, day, shown }: a dislike came up today (Moves turns the pet's back once: SulkShown)
+    dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (the card shows these)
+    eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Moves plays dead once: EggPlayed)
+    quirkAt = nil,             -- when the last quirk line was shown (at most one every 45 minutes)
+    -- [Registry]
+    named = nil,               -- { day, at = { [petKey] = when } }: today's first new name per pet (once a day)
+    -- [Bond]
+    bondToday = nil,           -- { day, pets = { [petKey] = { got = { [cap] = n }, total } } }: today's points (Ledger)
+    bondGains = {},            -- [petKey] = { gains not yet shown on its card } (Add; BondTrack: TakeGains)
+    firsts = {},               -- [petKey] = { [boss name] = true }: bosses it has seen fall with you (First)
+    -- [BondTrack]
+    bondLook = {},             -- [petKey] = the bond points its card last showed (the bar grows from there)
+    bondSeen = {},             -- [petKey] = the bond level last shown on its card (celebrate once)
+    -- [Feats]
+    feats = {},                -- [feat id] = { t, before, what, key }: a character's feats, each once
+    -- [Wish]
+    wish = nil,                -- { day, pet, id, done, shown }: today's wish (Today; the card's hop: Shown)
+    wishes = { n = 0, streak = 0, best = 0 }, -- wishes come true: in all, days in a row (to `last`, a day), the best run
+    -- [Cuddle]
+    cardCuddle = nil,          -- the day a click on the card last counted as a cuddle
+    -- [PetFrame]
+    petFrame = nil,            -- { point, relativePoint, x, y, scale }: where the pet frame stands, how big (Edit Mode)
+    -- [Version]
+    warnedVersion = nil,       -- newest version we've already told the player about
 }
 
 local MIGRATIONS = {

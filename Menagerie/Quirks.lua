@@ -80,6 +80,18 @@ end
 ------------------------------------------------------------------------------
 -- Dislikes
 ------------------------------------------------------------------------------
+-- The card turned the pet's back for today's sulk (Moves): once a day, so not again.
+function Quirks:SulkShown(key)
+    local s = ns.DB.char.sulk
+    if s and s.key == key then s.shown = true end
+end
+
+-- The card played today's egg (Moves: playing dead for dodsfall): not again until it comes up anew.
+function Quirks:EggPlayed(id)
+    local e = ns.DB.char.eggs[id]
+    if e then e.played = true end
+end
+
 function Quirks:Dislike(key, id, minor)
     local seen = ns.DB.char.dislikes
     local first = not (seen[key] and seen[key][id])

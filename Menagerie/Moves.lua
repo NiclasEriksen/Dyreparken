@@ -317,7 +317,7 @@ Steps = function(key, mode)
         local len = Moves:Length(key, id)
         local pose = len and math.max(0.1, len - 0.05) or nil
         return { { STAND, Moves.SETTLE },
-            { id, math.max(Moves.T.dead, (len or 0) + 1), pose, on = function() ns.DB.char.eggs.dodsfall.played = true end },
+            { id, math.max(Moves.T.dead, (len or 0) + 1), pose, on = function() ns.Quirks:EggPlayed("dodsfall") end },
             { STAND } }
     end
     -- Walking or running: only once the model has loaded. 2026-11-10: the client scales a
@@ -635,7 +635,7 @@ function Moves.NewStage(name, opts)
         local token = shown.token
         C_Timer.After(Moves.SETTLE, function()
             if token ~= shown.token or shown.key ~= key then return end
-            s.shown = true
+            ns.Quirks:SulkShown(key)
             local anchor = opts.anchor()
             if anchor and ns.Fx then
                 ns.Fx:Burst({ anchor, "CENTER", 0, 60 }, "cloud", { n = 2, color = { 0.8, 0.8, 0.85 }, alpha = 0.7, size = 0.6, rise = 30 })
@@ -724,7 +724,7 @@ function Moves.NewStage(name, opts)
         if cheer or joy then
             if cheer then awake[key] = true; mode = Rest(key); shown.mode = mode; steps = Steps(key, mode) end
             table.insert(steps, 1, { cheer or joy, self:Length(key, cheer or joy, cheer and self.T.cheer or self.T.happy),
-                on = joy and function() ns.DB.char.wish.shown = true end or nil })
+                on = joy and function() ns.Wish:Shown() end or nil })
             table.insert(steps, 1, { STAND, self.SETTLE })
         end
         self:Sequence(steps, "pose " .. tostring(mode))
