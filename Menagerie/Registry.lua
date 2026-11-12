@@ -121,6 +121,15 @@ local function ValidLife(e)
 end
 Registry.ValidLife = ValidLife
 
+-- A whole entry as it sits in its store, author and keys included: what a
+-- merge checks before taking a peer's copy, and WriteOwn before keeping our
+-- own (Sync.TABLES names them per store).
+local SaneName = ns.SaneName
+function Registry.ValidClaim(owner, r) return SaneName(owner) and ValidRecord(r) end
+function Registry.ValidLapseOf(owner, t) return SaneName(owner) and After(t) end
+function Registry.ValidNaming(key, namer, e) return ValidKey(key) and SaneName(namer) and ValidEntry(e) end
+function Registry.ValidBond(key, carer, e) return ValidKey(key) and SaneName(carer) and ValidLife(e) end
+
 -- Returns true when our data changed.
 -- At most `max` entries by one author in t[key][author] (code review
 -- 2026-11-09): one member sending names or bonds under made-up pet keys
@@ -160,7 +169,7 @@ end
 
 function Registry:MergeLife(key, carer, e)
     local g = G()
-    if not g or not ValidKey(key) or not ns.SaneName(carer) or not ValidLife(e) then
+    if not g or not Registry.ValidBond(key, carer, e) then
         return false
     end
     local byKey = g.life[key]
@@ -199,7 +208,7 @@ end
 -- Returns true when our data changed.
 function Registry:MergeName(key, namer, e)
     local g = G()
-    if not g or not ValidKey(key) or not ns.SaneName(namer) or not ValidEntry(e) then
+    if not g or not Registry.ValidNaming(key, namer, e) then
         return false
     end
     local byKey = g.names[key]
@@ -213,7 +222,7 @@ end
 -- Returns true when our data changed.
 function Registry:MergeRecord(owner, r)
     local g = G()
-    if not g or not ns.SaneName(owner) or not ValidRecord(r) then return false end
+    if not g or not Registry.ValidClaim(owner, r) then return false end
     local cur = g.claims[owner]
     if cur and cur.ts >= r.ts then return false end
     g.claims[owner] = Copy(r)
@@ -223,7 +232,7 @@ end
 
 function Registry:MergeLapse(owner, t)
     local g = G()
-    if not g or not ns.SaneName(owner) or not After(t) then return false end
+    if not g or not Registry.ValidLapseOf(owner, t) then return false end
     if (g.lapses[owner] or 0) >= t then return false end
     g.lapses[owner] = t
     dirty = true

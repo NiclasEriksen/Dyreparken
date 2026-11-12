@@ -44,24 +44,60 @@ local lastSent -- GetTime() of our last SYNC
 -- bug, or a peer that refuses what we keep).
 local SYNC_GAP = 30
 
--- Adler-32 of a canonical listing of the registry.
-function Sync:Digest()
-    local claims, lapses, names = ns.Registry:All()
-    local life = ns.Registry:AdoptedLife()
-    local parts = {}
+-- Every store the sync carries, one row each. Digest, SendFull, TooBig and
+-- MergeAll only loop over this (until 2026-11-12 each listed the stores by
+-- hand, about seven places a store, and guild achievements came in through
+-- hooks of their own). A row:
+--   wire    its key in a SYNC part (and in UPD/NICK/BOND/LAPSE, as MergeAll takes them)
+--   part    the SYNC part it rides in (the header above): changing it changes the wire
+--   nested  t[key][author] = entry (else t[author] = entry)
+--   source  fn() -> what we send and digest (of bonds, the holders' only: Registry:AdoptedLife)
+--   valid   fn(key[, author], entry): the check a merge runs on a peer's copy (and WriteOwn on ours)
+--   merge   fn(key[, author], entry) -> changed; it checks `valid` itself (the merges are public),
+--           or mergeAll fn(t) -> changed, for a store that merges a whole table at once
+--   digest  fn(key[, author], entry) -> its line in the digest; the first letter keeps stores apart
+--   count   counted against Config.SYNC_MAX_ENTRIES (TooBig). Guild achievements never were, and
+--           counting them now would refuse what older peers accept.
+--   registry  a change here is a registry change (Registry:Changed, CheckMine)
+-- The parts, the digest and what TooBig counts are the wire: tools/test/spec/50_wire.lua pins
+-- them for a fixed world.
+local R = ns.Registry
+Sync.TABLES = {
+    { wire = "r", part = 1, source = function() return (R:All()) end, valid = R.ValidClaim,
+        merge = function(owner, r) return R:MergeRecord(owner, r) end,
+        digest = function(owner, r) return "c" .. owner .. "\31" .. r.ts end, count = true, registry = true },
+    { wire = "l", part = 1, source = function() return (select(2, R:All())) end, valid = R.ValidLapseOf,
+        merge = function(owner, t) return R:MergeLapse(owner, t) end,
+        digest = function(owner, t) return "l" .. owner .. "\31" .. t end, count = true, registry = true },
+    -- (Achievements.lua loads after this file: its functions are looked up when called.)
+    { wire = "a", part = 1, source = function() return ns.Achievements:GuildRecords() end,
+        valid = function(id, rec) return ns.Achievements.ValidGuildRecord(id, rec) end,
+        mergeAll = function(t) return (ns.Achievements:MergeGuild(t)) end,
+        digest = function(id, rec) return "a" .. id .. "\31" .. rec.at .. "\31" .. tostring(rec.ann or "-") end },
+    { wire = "n", part = 2, nested = true, source = function() return (select(3, R:All())) end, valid = R.ValidNaming,
+        merge = function(key, namer, e) return R:MergeName(key, namer, e) end,
+        digest = function(key, namer, e) return "n" .. key .. "\31" .. namer .. "\31" .. e.at end,
+        count = true, registry = true },
     -- Bonds by level, not points: points go out lazily (Bond.lua), and peers
     -- shouldn't SYNC over a few points. A level change goes out at once.
-    for key, byKey in pairs(life) do
-        for carer, e in pairs(byKey) do
-            parts[#parts + 1] = "b" .. key .. "\31" .. carer .. "\31" .. ns.Bond:Level(e.p)
+    { wire = "b", part = 3, nested = true, source = function() return R:AdoptedLife() end, valid = R.ValidBond,
+        merge = function(key, carer, e) return R:MergeLife(key, carer, e) end,
+        digest = function(key, carer, e) return "b" .. key .. "\31" .. carer .. "\31" .. ns.Bond:Level(e.p) end,
+        count = true, registry = true },
+}
+
+-- Adler-32 of a canonical listing of every store.
+function Sync:Digest()
+    local parts = {}
+    for _, row in ipairs(Sync.TABLES) do
+        for k, v in pairs(row.source()) do
+            if row.nested then
+                for author, e in pairs(v) do parts[#parts + 1] = row.digest(k, author, e) end
+            else
+                parts[#parts + 1] = row.digest(k, v)
+            end
         end
     end
-    for owner, r in pairs(claims) do parts[#parts + 1] = "c" .. owner .. "\31" .. r.ts end
-    for owner, t in pairs(lapses) do parts[#parts + 1] = "l" .. owner .. "\31" .. t end
-    for key, byKey in pairs(names) do
-        for namer, e in pairs(byKey) do parts[#parts + 1] = "n" .. key .. "\31" .. namer .. "\31" .. e.at end
-    end
-    ns.Achievements:DigestParts(parts)
     if #parts == 0 then return 0 end
     table.sort(parts)
     return LibDeflate:Adler32(table.concat(parts, "\30"))
@@ -71,13 +107,11 @@ local function SendFull()
     pending = nil
     if not IsInGuild() then return end
     lastSent = GetTime()
-    local claims, lapses, names = ns.Registry:All()
-    local life = ns.Registry:AdoptedLife() -- the holders' bonds only (Registry.lua)
-    local parts = {
-        { r = claims, l = lapses, a = ns.Achievements:GuildRecords() },
-        { n = names },
-        { b = life },
-    }
+    local parts = {}
+    for _, row in ipairs(Sync.TABLES) do
+        parts[row.part] = parts[row.part] or {}
+        parts[row.part][row.wire] = row.source()
+    end
     for i, msg in ipairs(parts) do
         msg.i, msg.of = i, #parts
         if i == #parts then msg.d = Sync:Digest() end
@@ -181,38 +215,34 @@ end
 -- saved data (and every SYNC after it). Refused whole.
 local function TooBig(msg)
     local max = ns.Config.SYNC_MAX_ENTRIES
-    return Count(msg.r) > max or Count(msg.l) > max or Count(msg.n, true) > max or Count(msg.b, true) > max
+    for _, row in ipairs(Sync.TABLES) do
+        if row.count and Count(msg[row.wire], row.nested) > max then return true end
+    end
+    return false
 end
 
--- Merge a batch; returns true if anything changed.
-local function MergeAll(r, l, n, b)
+-- Merge what a message carries, by the stores' wire keys ({ r = ..., n = ... });
+-- returns true if the registry changed.
+local function MergeAll(msg)
     local changed = false
-    if type(b) == "table" then
-        for key, byKey in pairs(b) do
-            if type(byKey) == "table" then
-                for carer, e in pairs(byKey) do
-                    if ns.Registry:MergeLife(key, carer, e) then changed = true end
+    for _, row in ipairs(Sync.TABLES) do
+        local t = msg[row.wire]
+        if type(t) == "table" then
+            if row.mergeAll then
+                row.mergeAll(t)
+            elseif row.nested then
+                for key, byKey in pairs(t) do
+                    if type(byKey) == "table" then
+                        for author, e in pairs(byKey) do
+                            if row.merge(key, author, e) and row.registry then changed = true end
+                        end
+                    end
+                end
+            else
+                for key, e in pairs(t) do
+                    if row.merge(key, e) and row.registry then changed = true end
                 end
             end
-        end
-    end
-    if type(n) == "table" then
-        for key, byKey in pairs(n) do
-            if type(byKey) == "table" then
-                for namer, e in pairs(byKey) do
-                    if ns.Registry:MergeName(key, namer, e) then changed = true end
-                end
-            end
-        end
-    end
-    if type(r) == "table" then
-        for owner, rec in pairs(r) do
-            if ns.Registry:MergeRecord(owner, rec) then changed = true end
-        end
-    end
-    if type(l) == "table" then
-        for owner, t in pairs(l) do
-            if ns.Registry:MergeLapse(owner, t) then changed = true end
         end
     end
     if changed then
@@ -235,8 +265,7 @@ function Sync:Init()
             ns.Log("Sync", "refused a SYNC from %s: too many entries", tostring(sender))
             return
         end
-        MergeAll(msg.r, msg.l, msg.n, msg.b)
-        ns.Achievements:MergeGuild(msg.a)
+        MergeAll(msg)
         local i, of = tonumber(msg.i), tonumber(msg.of)
         local mine = Sync:Digest()
         if i and of and i < of then
@@ -278,16 +307,16 @@ function Sync:Init()
             ns.Log("Sync", "clock: %s's record is %+d s from ours", tostring(sender), msg.r.ts - ns.Now())
         end
         -- Only the owner writes their record. Relayed copies come via SYNC.
-        MergeAll({ [sender] = msg.r }, nil)
+        MergeAll({ r = { [sender] = msg.r } })
     end, "GUILD")
     ns.Comm:Register("NICK", function(msg, sender, channel)
         if type(msg.pet) ~= "string" then return end
         -- Only the namer writes their entry, like UPD.
-        MergeAll(nil, nil, { [msg.pet] = { [sender] = msg.e } })
+        MergeAll({ n = { [msg.pet] = { [sender] = msg.e } } })
     end, "GUILD")
     ns.Comm:Register("BOND", function(msg, sender, channel)
         if type(msg.pet) ~= "string" then return end
-        MergeAll(nil, nil, nil, { [msg.pet] = { [sender] = msg.e } })
+        MergeAll({ b = { [msg.pet] = { [sender] = msg.e } } })
     end, "GUILD")
     ns.Comm:Register("BOND_REQ", function(msg, sender, channel)
         if not ns.Registry.ValidKey(msg.pet) then return end
@@ -298,7 +327,7 @@ function Sync:Init()
         end
     end, "GUILD")
     ns.Comm:Register("LAPSE", function(msg, _, channel)
-        MergeAll(nil, msg.l)
+        MergeAll({ l = msg.l })
     end, "GUILD")
 
     -- Our own edits go out right away.

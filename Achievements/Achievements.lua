@@ -36,7 +36,7 @@ local _, ns = ...
 -- client looking for the first time (a fresh install): nobody prints a line
 -- for it, but officers can still share it. It only affects that first print,
 -- so it isn't merged or part of the digest.
--- They ride on the registry sync (digest, SYNC) plus ACH { a = { [id] = rec } }
+-- They ride on the registry sync (a row in Sync.TABLES) plus ACH { a = { [id] = rec } }
 -- for news. A client that finds a new one prints one line, then waits 2-8 s
 -- before broadcasting and stays quiet if someone else's ACH arrives first,
 -- so a whole online guild doesn't send it at once. Only an officer or the GM
@@ -465,16 +465,10 @@ function Ach:MergeGuild(list)
     return changed, behind
 end
 
--- For the sync: every guild record (including ids from newer versions).
+-- For the sync (its row in Sync.TABLES): every guild record (including ids from newer versions).
 function Ach:GuildRecords()
     local g = ns.DB:Guild()
     return g and g.ach or {}
-end
-
-function Ach:DigestParts(parts)
-    for id, rec in pairs(self:GuildRecords()) do
-        parts[#parts + 1] = "a" .. id .. "\31" .. rec.at .. "\31" .. tostring(rec.ann or "-")
-    end
 end
 
 local summarized -- the "you already have N" line, once per session
