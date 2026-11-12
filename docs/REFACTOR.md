@@ -271,6 +271,9 @@ This is the payoff for "easier to add pets, traits and eggs".
   B10 follow-up (the user: "hell yeah"): a batch held back as too big goes once a roster on a later day
   still misses the same owners (g.rosterHeld). New message kinds alone need no bump (the user: OK);
   52_protocol lets them through.
+- **Phase 4a, done**: Moves.Plan (Rest, Hold, Pose, Settle, Cuddle, Cheer, Jump, Try, Sulk...) builds every
+  step list, pure; the stages only play plans. A trace of every actor call over the whole suite was
+  byte-identical before and after. Planner tests in 32_moves check plans without timers.
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
   lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client
