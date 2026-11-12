@@ -247,7 +247,12 @@ function Registry:WriteOwn(store, key, e)
     local prev
     if spec.nested then prev = t[key] and t[key][me] else prev = t[me] end
     e[spec.stamp] = math.max(ns.Now(), (prev and prev[spec.stamp] or 0) + spec.step)
-    assert(spec.valid(key, me, e), "WriteOwn: peers would refuse this entry")
+    -- An entry peers would refuse is our bug. The tests fail on it (ns.STRICT, the harness); in the
+    -- game it's logged and kept as before, never a Lua error in the middle of adopting a pet (2026-11-12).
+    if not spec.valid(key, me, e) then
+        if ns.STRICT then error("WriteOwn: peers would refuse this " .. store .. " entry", 2) end
+        ns.Log("Registry", "WriteOwn: peers would refuse our %s entry for %s; kept", store, tostring(key))
+    end
     if spec.nested then
         t[key] = t[key] or {}
         t[key][me] = e

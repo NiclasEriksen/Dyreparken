@@ -6,7 +6,7 @@ local _, ns = ...
 -- flaring under the pet; a soft sound. No
 -- text (a speech bubble read badly, the user decided). Once a day it's a
 -- cuddle for the bond too (the activity "cuddle", as /pet would be), when
--- the card shows your adopted pet and it's out.
+-- the card shows a pet of yours that's out (any pet, adopted or not: the user, 2026-11-12).
 local Cuddle = {}
 ns.Cuddle = Cuddle
 
@@ -164,7 +164,7 @@ function Cuddle:Pet(card, x, y)
     d.glow:Show(); d.glow.anim:Play()
     ns.PlayFirstSound(self.SOUNDS)
     ns.Moves:Cuddle(key) -- (wakes it, or a happy hop)
-    -- Once a day, a cuddle for the bond: your adopted pet, out with you.
+    -- Once a day, a cuddle for the bond: the pet that's out with you, any of yours.
     local today = ns.Today()
     if ns.Pets:OutKey() == key and ns.DB.char.cardCuddle ~= today then
         ns.DB.char.cardCuddle = today

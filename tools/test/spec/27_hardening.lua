@@ -269,6 +269,12 @@ return function(test, H)
         ok(not okay and err:find("peers would refuse"), tostring(err))
         eq(ola.ns.DB:Guild().names[PANDA]["Ola Nord"].n, "To")
         no(pcall(R.WriteOwn, R, "lapses", "Ola Nord", 1), "not a store of our own")
+        -- In the game (no ns.STRICT): logged and kept, as before WriteOwn, never a Lua error mid-adoption.
+        ola.ns.STRICT = nil
+        local long = ("y"):rep(C.NICKNAME_MAX_LEN + 1)
+        ok(pcall(R.WriteOwn, R, "names", PANDA, { n = long }))
+        eq(ola.ns.DB:Guild().names[PANDA]["Ola Nord"].n, long)
+        eq(#ola:Log("WriteOwn: peers would refuse our names entry"), 1)
     end)
 
     test("bond gains wait for the lazy publish per pet, and go out at login", function()

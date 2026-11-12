@@ -874,7 +874,10 @@ function Client:Login()
     self.env, self.ns = env, {}
     for _, path in ipairs(self.release and TOC.release or TOC.files) do
         Load(env, path, ADDON, self.ns)
-        if path == "Core/Init.lua" then self:CheckBus() end -- (before any module listens)
+        if path == "Core/Init.lua" then
+            self:CheckBus() -- (before any module listens)
+            self.ns.STRICT = true -- (our own bugs throw here; in the game they're logged: Registry:WriteOwn)
+        end
     end
     -- The Config as it ships, before the test values below (52_protocol fingerprints it).
     self.shippedConfig = CopyTable(self.ns.Config)
