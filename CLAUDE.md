@@ -232,7 +232,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   per kind (was 5) and 10 in all; a trait's moment at most 10 a day (was 25). Unchanged: the day 10, likes 5 each
   (25 a day), wish 10, playdate 15, and the 75 a day (BOND_DAILY_MAX feeds validation). Likes are what fill a day.
 - **Data pass** (2026-11-10, with the user): every journal pet tagged and its source checked (tools/companions:
-  tags.csv, curation.csv; 75 of 84 count toward achievements since 2026-11-12). Two new families, `bear` (Panda Cub) and
+  tags.csv, curation.csv; 76 of 87 count toward achievements since 2026-11-12; three species hidden from the journal added by hand: Spectral Bear Cub (Legacy Track, counts), Bronze Whelpling and Mini Uber Diablo (source unknown)). Two new families, `bear` (Panda Cub) and
   `reptile` (Baby Crocolisk, Speedy). The Zergling is a demon. Limited pets count (2026-11-12, the user: "as
   long as it was never impossible to get"; until then they didn't): the store pack pets (Panda Cub, Mini Diablo,
   Zergling, Pachimari: Skyborne Epic Pack or Warcraft Forever Collection) and Azurky; the Musical Gustjumper is
