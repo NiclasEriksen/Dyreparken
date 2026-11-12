@@ -240,6 +240,39 @@ ns.Config = {
 ------------------------------------------------------------------------------
 local listeners = {}
 ns.Bus = {}
+-- Every event, with what it carries. The test harness fails a test that fires
+-- or listens to one not listed here (a typo would otherwise just never
+-- arrive); the addon itself doesn't check, so it costs nothing in the game.
+ns.Bus.EVENTS = {
+    -- Core
+    DEBUG = "on: the debug log was turned on or off (Debug)",
+    ROSTER = "(none): the guild roster snapshot was refreshed (Guild)",
+    COMM_INCOMING = "sender, channel: an addon message of ours arrived and was decoded (Comm)",
+    PROTOCOL_MISMATCH = "sender, theirProtocol, msg: a message from another X-Protocol (Comm)",
+    ACTIVITY = "id, n, key, mine, extra: an activity counted; key the pet out (or nil), mine whether it's yours adopted (Activity)",
+    SIDEPAGE = "open: one of our Collections pages opened (true) or closed (false) (SidePage)",
+    -- The registry and the pet that's out
+    REGISTRY = "(none): the guild registry changed, ours or a peer's (Registry)",
+    MY_RECORD = "me, record: this character's adoption record was written (Registry)",
+    MY_NAME = "key, entry: this character named or renamed a pet (Registry)",
+    ADOPTED = "key: this character adopted a pet (Registry)",
+    ACTIVE_PET = "key: the pet auto-summon keeps out changed (Summon)",
+    COMPANION_SEEN = "speciesID, owner: a companion's tooltip showed in the world (Tooltip)",
+    HOLIDAYS = "(none): today's holidays were read from the calendar (Holidays)",
+    -- Bonds
+    BOND = "key: a pet's bond points changed (Bond:Add)",
+    MY_BOND = "key, entry: this character's bond entry to publish to the guild (Bond)",
+    BOND_LEVEL = "key, level, levelName: a bond of yours reached a new level (Bond)",
+    BOND_FULL = "key: a pet's day is full (Bond)",
+    BOND_LINE = "key, text, kind: a bond reward's line to show (Bond: a like, a wish, a first, a playdate ...)",
+    PET_SAID = "key, bubble, text: a pet's line, for the pet frame's bubble (say, dislike, like, major, or an egg's own)",
+    WISH_DONE = "(none): a wish came true, counted for the day (Wish)",
+    FEAT = "featID, key: a feat's reward went to the pet out (Feats); nothing listens yet",
+    -- Quirks and achievements
+    DISLIKE_FOUND = "key, activity: a dislike happened for the first time (Quirks)",
+    EGG_FOUND = "eggID: an easter egg found for the first time (Quirks)",
+    ACH = "(none): achievements changed: earned, seen or shared (Achievements)",
+}
 function ns.Bus:On(event, fn)
     local list = listeners[event]
     if not list then list = {}; listeners[event] = list end

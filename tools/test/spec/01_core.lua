@@ -116,6 +116,7 @@ return function(test, H)
         local w = H.World()
         local c = w:AddClient("Ola Nord")
         local got = 0
+        c.ns.Bus.EVENTS.T, c.ns.Bus.EVENTS.NOBODY = "a: a test's", "(none): nobody listens"
         c.ns.Bus:On("T", function() error("boom") end)
         c.ns.Bus:On("T", function(a) got = a end)
         c.ns.Bus:Fire("T", 7)
@@ -124,6 +125,38 @@ return function(test, H)
         local errs = c:TakeErrors()
         eq(#errs, 1)
         match(errs[1], "boom")
+    end)
+
+    test("bus events are declared: an undeclared one fails the test (the harness checks, the addon doesn't)", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        c.ns.Bus:On("BOND_LEVLE", function() end)
+        c.ns.Bus:Fire("REGISTRYY")
+        local errs = c:TakeErrors()
+        eq(#errs, 2)
+        match(errs[1], "Bus:On%(BOND_LEVLE%): not declared")
+        match(errs[2], "Bus:Fire%(REGISTRYY%): not declared")
+    end)
+
+    test("bus events: each declared one is fired in the code, and each one listened to is declared", function()
+        local fired, heard = {}, {}
+        for _, path in ipairs(H.TOC.files) do
+            if not path:find("^Libs/") then
+                local f = assert(io.open(path, "rb"))
+                local src = f:read("*a")
+                f:close()
+                for e in src:gmatch('Bus:Fire%("([%u_]+)"') do fired[e] = true end
+                for e in src:gmatch('Bus:On%("([%u_]+)"') do heard[e] = true end
+            end
+        end
+        local w = H.World()
+        local events = w:AddClient("Ola Nord").ns.Bus.EVENTS
+        local stale, unheard = {}, {}
+        for e in pairs(events) do if not fired[e] then stale[#stale + 1] = e end end
+        for e in pairs(heard) do if not fired[e] then unheard[#unheard + 1] = e end end
+        eq(table.concat(stale, " "), "", "declared but never fired")
+        eq(table.concat(unheard, " "), "", "listened to but never fired")
+        for e in pairs(fired) do ok(events[e], e .. " is declared") end
     end)
 
     test("events: unknown events are refused, the frame only listens while needed", function()

@@ -872,7 +872,10 @@ function Client:Login()
         __newindex = function(t, k, v) c.newGlobals[k] = true; rawset(t, k, v) end,
     })
     self.env, self.ns = env, {}
-    for _, path in ipairs(self.release and TOC.release or TOC.files) do Load(env, path, ADDON, self.ns) end
+    for _, path in ipairs(self.release and TOC.release or TOC.files) do
+        Load(env, path, ADDON, self.ns)
+        if path == "Core/Init.lua" then self:CheckBus() end -- (before any module listens)
+    end
     -- The bond epoch (no bond is older than the addon) as in the real world:
     -- before any test data. The test clock starts in September 2026.
     self.ns.Config.BOND_EPOCH = self.world.epoch or (1790000000 - 1000 * 86400)
@@ -883,6 +886,21 @@ function Client:Login()
     self:Fire("PLAYER_LOGIN")
     self:Fire("PLAYER_ENTERING_WORLD", true, false)
     return self
+end
+
+-- The Bus's events are declared (ns.Bus.EVENTS, Core/Init.lua): firing or
+-- listening to another is an error the test fails on (a typo would otherwise
+-- just never arrive). Here, not in the addon, so the game doesn't pay for it.
+function Client:CheckBus()
+    local bus, c = self.ns.Bus, self
+    local on, fire = bus.On, bus.Fire
+    local function Check(how, event)
+        if not bus.EVENTS[event] then
+            c.errors[#c.errors + 1] = ("Bus:%s(%s): not declared in ns.Bus.EVENTS (Core/Init.lua)"):format(how, tostring(event))
+        end
+    end
+    function bus:On(event, fn) Check("On", event); return on(self, event, fn) end
+    function bus:Fire(event, ...) Check("Fire", event); return fire(self, event, ...) end
 end
 
 -- Comm handler failures and tooltip errors are only logged (pcall'd), so the
