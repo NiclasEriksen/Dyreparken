@@ -243,12 +243,28 @@ end
 
 -- Look at the roster and record lapses for owners who left or went quiet.
 -- Returns the lapses it added, so Sync can share them.
+--
+-- A lapse is for good and goes guild-wide, so one client's odd roster read
+-- (a name format with a realm suffix we don't strip, say) would free every
+-- pet it can't match (B10, refactoring review 2026-11-12). So a roster is
+-- trusted only if it lists us (a name format we can't match misses us too),
+-- and a batch is held back whole when it would lapse more than
+-- Config.ROSTER_LAPSE_SHARE of the adoptions at once (Config.ROSTER_LAPSE_FLOOR
+-- always may: a small guild losing one of three members is no oddity). The
+-- batch isn't cut down to fit: a partial read would still free some pets
+-- wrongly, and no piece of it is more trustworthy than the rest.
 function Registry:CheckRoster()
     local g = G()
     if not g then return nil end
-    local added
+    local me = ns.PlayerKey()
+    if not ns.Guild:IsMember(me) then
+        if ns.Guild.at > 0 then ns.Log("Registry", "roster doesn't list %s: no lapses from it", tostring(me)) end
+        return nil
+    end
+    local batch, active = {}, 0
     for owner, r in pairs(g.claims) do
         if r.k and Active(g, owner, r) then
+            active = active + 1
             local member = ns.Guild:IsMember(owner)
             local days = ns.Guild:DaysOffline(owner)
             -- Days offline only from a roster the server just sent (a cached one can be from
@@ -257,13 +273,22 @@ function Registry:CheckRoster()
             local away = days and days >= Config.INACTIVE_RELEASE_DAYS and not ns.Guild.stale
                 and ns.Now() - r.ts >= Config.INACTIVE_RELEASE_DAYS * 86400
             if member == false or away then
-                local t = ns.Now()
-                if self:MergeLapse(owner, t) then
-                    added = added or {}
-                    added[owner] = t
-                    ns.Log("Registry", "lapse %s (%s)", owner, member == false and "left guild" or (days .. " days offline"))
-                end
+                batch[#batch + 1] = { owner, member == false and "left guild" or (days .. " days offline") }
             end
+        end
+    end
+    local most = math.max(Config.ROSTER_LAPSE_FLOOR, math.floor(active * Config.ROSTER_LAPSE_SHARE))
+    if #batch > most then
+        ns.Log("Registry", "roster would lapse %d of %d adoptions at once (at most %d): none lapsed", #batch, active, most)
+        return nil
+    end
+    local added
+    for _, b in ipairs(batch) do
+        local t = ns.Now()
+        if self:MergeLapse(b[1], t) then
+            added = added or {}
+            added[b[1]] = t
+            ns.Log("Registry", "lapse %s (%s)", b[1], b[2])
         end
     end
     return added

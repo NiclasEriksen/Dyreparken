@@ -230,6 +230,75 @@ return function(test, H)
         eq(R:Holder("s:40"), "Liv Lund", "Liv's row was not read")
     end)
 
+    test("a roster that doesn't list us lapses nobody (B10: a name format we can't match)", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        w:AddMember("Per Hansen", 45)
+        w:Run(12)
+        local R = c.ns.Registry
+        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 }) -- not in the guild
+        R:MergeRecord("Per Hansen", { k = "s:40", at = T0 - 40 * 86400, ts = T0 - 40 * 86400 })
+        -- Every name comes back with a suffix we don't know as a realm: complete, but nobody matches.
+        local info = c.env.GetGuildRosterInfo
+        c.env.GetGuildRosterInfo = function(i)
+            local name, a, b, rank, d, e, f, g, online = info(i)
+            if name then return name .. "-Ukjent", a, b, rank, d, e, f, g, online end
+        end
+        c.ns.Guild:Refresh(true)
+        w:Run(1)
+        ok(c.ns.Guild.complete)
+        eq(R:Holder("s:46"), "Kari Berg")
+        eq(R:Holder("s:40"), "Per Hansen")
+        eq(w:Sent("LAPSE", "Ola Nord"), 0)
+        eq(#c:Log("roster doesn't list Ola Nord"), 1)
+        -- Read right again: the lapses go.
+        c.env.GetGuildRosterInfo = info
+        c.ns.Guild:Refresh(true)
+        w:Run(1)
+        eq(R:Holder("s:46"), nil)
+        eq(R:Holder("s:40"), nil)
+    end)
+
+    test("a roster that would free too many pets at once frees none", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        local C = c.ns.Config
+        local names = {}
+        for i = 1, 12 do
+            names[i] = ("Medlem%02d Etternavn"):format(i)
+            w:AddMember(names[i], 0)
+        end
+        w:Run(12)
+        local R = c.ns.Registry
+        for i = 1, 12 do R:MergeRecord(names[i], { k = "s:" .. (1000 + i), at = T0 + i, ts = T0 + i }) end
+        eq(math.max(C.ROSTER_LAPSE_FLOOR, math.floor(12 * C.ROSTER_LAPSE_SHARE)), 4, "(the test's premise)")
+        -- Five leave between two reads: more than a third of the adoptions.
+        for i = 1, 5 do w:RemoveMember(names[i]) end
+        c.ns.Guild:Refresh(true)
+        w:Run(1)
+        for i = 1, 5 do eq(R:Holder("s:" .. (1000 + i)), names[i], "held back") end
+        eq(w:Sent("LAPSE", "Ola Nord"), 0)
+        eq(#c:Log("roster would lapse 5 of 12 adoptions at once %(at most 4%): none lapsed"), 1)
+        -- One comes back: four at once is within the share, and they go.
+        w:AddMember(names[1], 0)
+        c.ns.Guild:Refresh(true)
+        w:Run(1)
+        eq(R:Holder("s:1001"), names[1])
+        for i = 2, 5 do eq(R:Holder("s:" .. (1000 + i)), nil, names[i]) end
+        eq(w:Sent("LAPSE", "Ola Nord"), 1)
+        -- A small guild: the floor lets one of two go.
+        local w2 = H.World()
+        local d = w2:AddClient("Ola Nord")
+        w2:AddMember("Per Hansen", 0)
+        w2:Run(12)
+        d.ns.Registry:MergeRecord("Per Hansen", { k = "s:40", at = T0 + 1, ts = T0 + 1 })
+        d.ns.Registry:MergeRecord("Ola Nord", { k = "s:46", at = T0 + 1, ts = T0 + 1 })
+        w2:RemoveMember("Per Hansen")
+        d.ns.Guild:Refresh(true)
+        w2:Run(1)
+        eq(d.ns.Registry:Holder("s:40"), nil)
+    end)
+
     test("own claim lost or lapsed: withdrawn with a notice", function()
         local w, c, R = One()
         R:Claim(PANDA)

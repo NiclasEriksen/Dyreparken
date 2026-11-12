@@ -201,6 +201,8 @@ end
 -- Tunables. Keep them here so they're easy to find and change.
 ns.Config = {
     INACTIVE_RELEASE_DAYS = 30,   -- reservation released after this long unseen
+    ROSTER_LAPSE_SHARE = 1 / 3,   -- one roster read lapsing more than this share of adoptions at once is held back (Registry:CheckRoster) ...
+    ROSTER_LAPSE_FLOOR = 3,       -- ... unless it's at most this many
     NICKNAME_LEVEL = 3,           -- the bond level (Venn) at which a pet's carer may name it (Bond.lua)
     NICKNAME_MAX_LEN = 20,        -- characters (UTF-8 aware, see ns.Utf8Len)
     NICKNAME_FIX = 600,           -- seconds after the day's first new name when changes are free (a typo); then tomorrow
