@@ -246,4 +246,14 @@ return function(test, H)
         w:Run(1)
         ok(kari:Printed("Dyreparken: Per Hansen fikk [Ugleredet]!", true))
     end)
+
+    test("the real data: limited pets count toward achievements (never impossible to get), unknown ones don't", function()
+        local _, ola = H.Setup{ ola = {} }
+        local sp = ola.ns.Companions.species
+        for _, sid in ipairs({ 5159, 5160, 5161, 5179 }) do ok(sp[sid].a, "limited " .. sid .. ": counts (2026-11-12)") end
+        for _, sid in ipairs({ 5138, 5069, 5200 }) do no(sp[sid].a, "unknown " .. sid .. ": doesn't") end
+        local n = 0
+        for _, e in pairs(sp) do if e.a then n = n + 1 end end
+        eq(n, 73)
+    end)
 end

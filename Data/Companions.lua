@@ -4,7 +4,7 @@ local _, ns = ...
 -- change tags.csv / curation.csv and regenerate (see tools/companions/README.md).
 --
 -- Every companion species in Forever's pet journal: build 70790, export of 2026-11-06.
---   a = counts toward achievements (curation availability yes or event)
+--   a = counts toward achievements (curation availability yes, event or limited)
 --   t = our tags: the families
 ns.Companions = {
     build = 70790,
@@ -78,16 +78,16 @@ ns.Companions = {
         [5155] = { a = true, t = { "rodent" } }, -- Red Ground Squirrel
         [5157] = { a = true, t = { "rabbit" } }, -- Brown Rabbit
         [5158] = { a = true, t = { "bird", "owl" } }, -- Eagle Owl
-        [5159] = { a = false, t = { "bear" } }, -- Panda Cub
-        [5160] = { a = false, t = { "demon" } }, -- Zergling
-        [5161] = { a = false, t = { "demon" } }, -- Mini Diablo
+        [5159] = { a = true, t = { "bear" } }, -- Panda Cub
+        [5160] = { a = true, t = { "demon" } }, -- Zergling
+        [5161] = { a = true, t = { "demon" } }, -- Mini Diablo
         [5162] = { a = true, t = { "reptile" } }, -- Baby Crocolisk
         [5163] = { a = false, t = { "spirit" } }, -- Shen'dorei Wisp
         [5167] = { a = true, t = { "bird" } }, -- Condor Hatchling
         [5172] = { a = true, t = { "bird" } }, -- Tallstrider Hatchling
         [5174] = { a = false, t = { "demon" } }, -- Minfernal
         [5176] = { a = true, t = { "farm" } }, -- Minimule
-        [5179] = { a = false, t = { "murloc" } }, -- Azurky
+        [5179] = { a = true, t = { "murloc" } }, -- Azurky
         [5183] = { a = false, t = { "snake" } }, -- Spawn of Grubthor
         [5200] = { a = false, t = { "plant" } }, -- Viridian Lashling
         [5201] = { a = false, t = { "plant" } }, -- Frosty Lashling
