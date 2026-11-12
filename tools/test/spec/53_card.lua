@@ -76,15 +76,39 @@ return function(test, H)
         ok(hit)
     end)
 
-    test("a stale growth can't land on the bar once another pet's is drawn", function()
+    test("the bond bar: a stale growth can't land once other points are drawn; Stop ends it all", function()
         local w, ola = H.Setup{ ola = { 5159 }, journal = true }
         local card = ola:SelectPet(5159)
-        local T, b = ola.ns.BondTrack, card.bond
-        T:Animate(card, 50, 0, 100, 10, { 40 })
-        w:Run(T.GROW.delay + 0.1) -- (growing)
-        b:SetValue(80) -- another pet's bar, with nothing to grow
-        T:Animate(card, 80, 0, 100, 80, {})
+        local BB, b = ola.ns.BondBar, card.bond
+        local gold = ola.ns.Scenes.GOLD
+        b:Set(50, 0, 100, gold)
+        b:Gains(10, { 40 })
+        eq(b:GetValue(), 10, "from where it was")
+        w:Run(BB.GROW.delay + 0.1) -- (growing)
+        ok(b:GetValue() > 10 and b:GetValue() < 50)
+        b:Set(80, 0, 100, gold) -- another pet's points, nothing to grow
         w:Run(3)
-        eq(b:GetValue(), 80, "the last pet's growth stopped")
+        eq(b:GetValue(), 80, "the last growth stopped")
+        -- A refresh to the same points while it grows: it keeps growing.
+        b:Set(90, 0, 100, gold)
+        b:Gains(80, { 10 })
+        w:Run(BB.GROW.delay + 0.1)
+        local at = b:GetValue()
+        b:Set(90, 0, 100, gold)
+        eq(b:GetValue(), at, "still growing")
+        w:Run(3)
+        eq(b:GetValue(), 90)
+        -- Stop: the value where it was going, no numbers.
+        b:Set(95, 0, 100, gold); b:Gains(90, { 5 })
+        w:Run(BB.GROW.delay + 0.01)
+        ok(b.numbers[1]:IsShown())
+        b:Stop()
+        eq(b:GetValue(), 95)
+        for _, f in ipairs(b.numbers) do no(f:IsShown()) end
+        w:Run(3)
+        for _, f in ipairs(b.numbers) do no(f:IsShown(), "and none later") end
+        -- The top level: full.
+        b:Set(3000, 2250, 2250, gold)
+        eq(b:GetValue(), 2250)
     end)
 end

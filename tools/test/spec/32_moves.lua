@@ -635,7 +635,7 @@ return function(test, H)
         local card = ola:SelectPet(5159)
         local look = ola.ns.DB.char.bondLook[PANDA]
         ola:Slash("probe gains 3 7")
-        w:Run(ola.ns.BondTrack.GROW.delay + ola.ns.BondTrack.NUMBER_EVERY + 0.01)
+        w:Run(ola.ns.BondBar.GROW.delay + ola.ns.BondBar.NUMBER_EVERY + 0.01)
         local shown = {}
         for _, f in ipairs(card.bond.numbers) do if f:IsShown() then shown[#shown + 1] = f.text.text end end
         eq(table.concat(shown, " "), "+3 +7")

@@ -14,10 +14,10 @@ function Track:PreviewGains(arg)
     local list = {}
     for n in (arg or "5 10 25"):gmatch("%d+") do list[#list + 1] = tonumber(n) end
     if #list == 0 then list = { 5, 10, 25 } end
-    local points, _, _, from, nextAt = ns.Bond:Shown(card.key)
+    local points = ns.Bond:Shown(card.key)
     local sum = 0
     for _, n in ipairs(list) do sum = sum + n end
-    self:Animate(card, points, from, nextAt or math.max(points, 1), points - sum, list)
+    card.bond:Gains(points - sum, list) -- (the bar was Set to these points when the card drew it)
     ns.Print(("Gains preview: %s on %s."):format(table.concat(list, ", "), card.key))
 end
 

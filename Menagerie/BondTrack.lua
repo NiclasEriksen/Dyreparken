@@ -15,7 +15,6 @@ local _, ns = ...
 local Track = {}
 ns.BondTrack = Track
 
-local WHITE = "Interface\\Buttons\\WHITE8X8"
 local DISC = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local RING = "communities-ring-gold"
 local GOLD = ns.Scenes.GOLD
@@ -108,14 +107,13 @@ end
 -- Build it on the card's panel (JournalUI's BuildCard). card.bond is the bar;
 -- everything else hangs on it, so showing or hiding the bar does all.
 function Track:Build(card, c, panel)
-    local b = CreateFrame("StatusBar", nil, panel)
+    local b = ns.BondBar.New(panel) -- (the fill, its growth and the rising numbers: BondBar.lua)
     card.bond = b
     -- On the card's full-width sheet (JournalUI ROW_Y, 2026-11-11): the level's name on the name row,
     -- left of the medallion; under the home, one strip: the stars, the bar, what's next.
     local y = ns.JournalUI.ROW_Y.strip
     b:SetSize(BAR_W, 13)
     b:SetPoint("TOPLEFT", panel, "TOPLEFT", STRIP_X + #ns.Bond.LEVELS * (PIP + PIP_GAP) + 4, y - 1)
-    b:SetStatusBarTexture(WHITE)
     b.bg = b:CreateTexture(nil, "BACKGROUND", nil, 1)
     b.bg:SetAllPoints()
     b.bg:SetColorTexture(0, 0, 0, 0.6)
@@ -243,19 +241,11 @@ function Track:Update(card, key, color)
     b.yours:SetText(yourLevel and ns.T("bond.yours", { level = yourName, n = yourLevel,
         icon = "|TInterface\\AddOns\\Dyreparken\\Media\\Particles\\heart:10|t" }) or "")
     b.level:SetText(level)
-    -- The bar: from the tier's dark to its bright, a spark at the tip.
-    b:SetMinMaxValues(from, nextAt or math.max(points, 1))
-    b:SetValue(nextAt and points or math.max(points, 1)) -- the top level: full
-    local fill = b:GetStatusBarTexture()
-    if CreateColor then
-        fill:SetGradient("HORIZONTAL", CreateColor(tier[1] * 0.55, tier[2] * 0.55, tier[3] * 0.55, 1),
-            CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
-    else
-        fill:SetVertexColor(tier[1], tier[2], tier[3], 1)
-    end
+    -- The bar: from the tier's dark to its bright (the top level: full), a spark at the tip.
+    b:Set(points, from, nextAt or math.max(points, 1), tier)
     -- Your own pet: what today brought, and whether the day is full.
     local mine = shownMine and not quiet
-    if mine then self:Gains(card, key, points, from, nextAt or math.max(points, 1)) end
+    if mine then self:Gains(card, key, points) end
     local today, max = 0, 0
     if mine then today, max = ns.Bond:Today(key) end
     local full = mine and today >= max
@@ -337,119 +327,27 @@ end
 -- Gains since you last looked (2026-11-10, the user: "feedback from loyalty
 -- gains"): opening your own pet's card, its bar grows from what the card
 -- showed last time (char.bondLook) to now, and each gain since (Bond:Add,
--- char.bondGains) floats up from the bar as "+N", one after another. Gains
--- while the card is open show the same way. Only where it can be seen; timers
--- and one-shot groups only, stopped when the card hides or another pet shows.
+-- char.bondGains) floats up from the bar as "+N", one after another
+-- (BondBar.lua). Gains while the card is open show the same way. Only where
+-- it can be seen; stopped when the card hides or another pet shows.
 ------------------------------------------------------------------------------
-Track.GROW = { delay = 0.4, steps = 14, every = 0.06 } -- the bar's growth: after the model, in steps
-Track.NUMBER_EVERY = 0.45 -- seconds between the numbers
--- How a number shows: in, rising, then out. 2026-11-11, the user: "hard to see. They're blending with the
--- text underneath and they're gone too soon": longer (about 3 s, was 2), outlined, on a dark halo, and
--- drawn above the window (DIALOG), so nothing on the card covers them.
-Track.NUMBER = { fadeIn = 0.2, rise = 2.2, fadeOut = 0.8, height = 40 }
-local NUMBERS = 6
-
-local function Numbers(b)
-    if b.numbers then return b.numbers end
-    b.numbers = {}
-    local holder = CreateFrame("Frame", nil, b)
-    holder:SetAllPoints() -- (a child: drawn over the bar)
-    holder:SetFrameStrata("DIALOG") -- (and over everything on the card)
-    local N = Track.NUMBER
-    for i = 1, NUMBERS do
-        local f = CreateFrame("Frame", nil, holder)
-        f:SetSize(60, 24)
-        f:Hide()
-        f.halo = f:CreateTexture(nil, "BACKGROUND")
-        f.halo:SetTexture(ns.Decor.MEDIA .. "dot")
-        f.halo:SetPoint("CENTER")
-        f.halo:SetSize(64, 34)
-        f.halo:SetVertexColor(0, 0, 0, 0.75)
-        f.text = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-        f.text:SetPoint("CENTER")
-        local path, size = f.text:GetFont()
-        if path then f.text:SetFont(path, (size or 16) + 2, "OUTLINE") end
-        f.text:SetShadowColor(0, 0, 0, 1)
-        f.text:SetShadowOffset(1, -1)
-        f.text:SetTextColor(GOLD[1], GOLD[2], GOLD[3])
-        local a = ns.Anim.OneShot(f)
-        ns.Anim.Fade(a, 0, 1, N.fadeIn, 1)
-        a.rise = a:CreateAnimation("Translation"); a.rise:SetOffset(0, N.height); a.rise:SetDuration(N.rise)
-        a.rise:SetSmoothing("OUT"); a.rise:SetOrder(2)
-        ns.Anim.Fade(a, 1, 0, N.fadeOut, 3)
-        f.anim = a
-        b.numbers[i] = f
-    end
-    return b.numbers
-end
-
--- The bar's growth and numbers: one group of timers, cancelled whenever they stop.
-local function Timers(b)
-    b.gainTimers = b.gainTimers or ns.Timers()
-    return b.gainTimers
-end
-
 function Track:StopGains(card)
-    local b = card.bond
-    if not b then return end
-    Timers(b):Cancel()
-    if b.growTo then b:SetValue(b.growTo); b.growTo, b.growAt = nil, nil end
-    for _, f in ipairs(b.numbers or {}) do f.anim:Stop(); f:Hide() end
+    if card.bond then card.bond:Stop() end
 end
 
-function Track:Gains(card, key, points, from, top)
+function Track:Gains(card, key, points)
     local b = card.bond
-    if key ~= b.gainKey then self:StopGains(card); b.gainKey = key end
+    if key ~= b.gainKey then b:Stop(); b.gainKey = key end
     if not card.panel:IsVisible() then return end -- (seen next time)
     local look = ns.DB.char.bondLook
     local last = look[key]
     look[key] = points
     local list = ns.Bond:TakeGains(key)
-    if not last or points <= last then -- (the first look, or nothing new)
-        -- A refresh while the bar grows (Blizzard updates the card as it opens): it keeps growing.
-        if b.growTo == points and b.growAt then b:SetValue(b.growAt) end
-        return
-    end
+    if not last or points <= last then return end -- (the first look, or nothing new)
     local total = 0
     for _, n in ipairs(list or {}) do total = total + n end
     if total ~= points - last then list = { points - last } end -- (a crash, a sync: just the sum)
-    self:Animate(card, points, from, top, last, list)
-end
-
--- The bar growing from `last` to `points` (within the level: from..top) and
--- the numbers in `list` rising from its tip. (/dp probe gains plays it too.)
-function Track:Animate(card, points, from, top, last, list)
-    local b = card.bond
-    local t = Timers(b)
-    t:Cancel() -- (an earlier growth ends here)
-    -- The bar: from where it was (within this level) to now, in steps.
-    local start = math.max(from, last)
-    if start < points then
-        local g = self.GROW
-        b.growTo, b.growAt = points, start
-        b:SetValue(start)
-        t:After(g.delay, function()
-            t:Every(g.every, g.steps, function(i)
-                b.growAt = start + (points - start) * i / g.steps
-                b:SetValue(b.growAt)
-                if i == g.steps then b.growTo, b.growAt = nil, nil end
-            end)
-        end)
-    end
-    -- The numbers, rising from the bar's tip, one after another.
-    local pool = Numbers(b)
-    local width = b:GetWidth() or 120
-    local x = width * math.max(0, math.min(1, (points - from) / math.max(1, top - from)))
-    for i, n in ipairs(list) do
-        if i > #pool then break end
-        t:After(self.GROW.delay + (i - 1) * self.NUMBER_EVERY, function()
-            local f = pool[i]
-            f.text:SetText("+" .. n)
-            f:ClearAllPoints()
-            f:SetPoint("BOTTOM", b, "BOTTOMLEFT", x + ((i % 2 == 0) and 10 or -10), 6)
-            f:Show(); f.anim:Play()
-        end)
-    end
+    b:Gains(last, list)
 end
 
 ------------------------------------------------------------------------------

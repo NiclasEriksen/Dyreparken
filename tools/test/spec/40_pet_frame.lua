@@ -151,7 +151,7 @@ return function(test, H)
         local w, ola, PF = Setup(14)
         local bar = PF.frame.bar
         ola.ns.Bond:Add(7, PANDA)
-        w:Run(ola.ns.BondTrack.GROW.delay + 0.01)
+        w:Run(ola.ns.BondBar.GROW.delay + 0.01)
         local shown = {}
         for _, n in ipairs(bar.numbers or {}) do if n:IsShown() then shown[#shown + 1] = n.text.text end end
         eq(table.concat(shown, " "), "+7")
@@ -192,7 +192,7 @@ return function(test, H)
         local w, ola, PF = Setup(14)
         local bar = PF.frame.bar
         ola.ns.Bond:Add(50, PANDA)
-        w:Run(ola.ns.BondTrack.GROW.delay + 0.1) -- (growing, a number rising)
+        w:Run(ola.ns.BondBar.GROW.delay + 0.1) -- (growing, a number rising)
         ola:Summon(46); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.35)
         w:Run(3)
         local p, level, _, _, nextAt = ola.ns.Bond:Own("s:46")

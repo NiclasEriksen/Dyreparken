@@ -523,11 +523,11 @@ return function(test, H)
         ola:OpenJournal()
         card = ola:SelectPet(5159)
         eq(b.value, before, "the bar starts where it was")
-        w:Run(ola.ns.BondTrack.GROW.delay + 0.01)
+        w:Run(ola.ns.BondBar.GROW.delay + 0.01)
         local shown = {}
         for _, f in ipairs(b.numbers) do if f:IsShown() then shown[#shown + 1] = f.text.text end end
         eq(shown[1], "+5")
-        w:Run(ola.ns.BondTrack.NUMBER_EVERY)
+        w:Run(ola.ns.BondBar.NUMBER_EVERY)
         shown = {}
         for _, f in ipairs(b.numbers) do if f:IsShown() then shown[#shown + 1] = f.text.text end end
         eq(table.concat(shown, " "), "+5 +10", "one after another")

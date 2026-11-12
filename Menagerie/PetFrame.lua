@@ -81,10 +81,10 @@ function PF:Build()
     f.name:SetShadowColor(0, 0, 0, 1)
     f.name:SetShadowOffset(1, -1)
 
-    local bar = CreateFrame("StatusBar", nil, f)
+    -- (the fill, its growth and the rising numbers: BondBar.lua, as on the card)
+    local bar = ns.BondBar.New(f, { texture = "Interface\\TargetingFrame\\UI-StatusBar" })
     bar:SetSize(self.W - 76, 9)
     bar:SetPoint("TOP", f.name, "BOTTOM", 14, -9)
-    bar:SetStatusBarTexture("Interface\\TargetingFrame\\UI-StatusBar")
     bar.edge = bar:CreateTexture(nil, "BACKGROUND", nil, -2)
     bar.edge:SetPoint("TOPLEFT", bar, "TOPLEFT", -1, 1)
     bar.edge:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 1, -1)
@@ -104,7 +104,6 @@ function PF:Build()
     bar.level = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     bar.level:SetPoint("CENTER", bar.medal, "CENTER", 0, 0)
     f.bar = bar
-    self.track = { bond = bar } -- (BondTrack:Animate's rising numbers, on this bar)
 
     -- Edit Mode's highlight, like Blizzard's own frames there: a blue wash, a bright edge, a label.
     -- (2026-11-11, the user: a faint wash alone wasn't seen.)
@@ -303,26 +302,15 @@ function PF:Bond(animate)
     local bar, key = self.frame.bar, self.key
     local points, level, _, from, nextAt = ns.Bond:Own(key)
     if not points then self.points = nil; bar:Hide(); return end
-    local top = nextAt or math.max(points, 1)
-    bar:SetMinMaxValues(from, top)
-    bar:SetValue(nextAt and points or top)
     local tier = ns.Scenes.Tier(level)
-    -- As the card's bar: from the tier's dark to its bright.
-    local fill = bar:GetStatusBarTexture()
-    if fill and CreateColor then
-        fill:SetGradient("HORIZONTAL", CreateColor(tier[1] * 0.55, tier[2] * 0.55, tier[3] * 0.55, 1),
-            CreateColor(math.min(1, tier[1] * 1.15), math.min(1, tier[2] * 1.15), math.min(1, tier[3] * 1.15), 1))
-    else
-        bar:SetStatusBarColor(tier[1], tier[2], tier[3])
-    end
+    bar:Set(points, from, nextAt or math.max(points, 1), tier) -- (a rise to these points goes on)
     bar.ring:SetVertexColor(tier[1], tier[2], tier[3], 1)
     bar.level:SetText(level)
     local last = self.points
     self.points = points
     if animate and last and points > last then
-        local T = ns.BondTrack
-        self:Peek(T.GROW.delay + T.NUMBER.fadeIn + T.NUMBER.rise + T.NUMBER.fadeOut + self.PEEK_HOLD)
-        T:Animate(self.track, points, from, top, last, { points - last })
+        self:Peek(ns.BondBar.GainsFor() + self.PEEK_HOLD)
+        bar:Gains(last, { points - last })
     end
     self:ShowBar()
 end
@@ -385,7 +373,7 @@ function PF:Refresh()
         if self.key then self:Active() end -- (another pet out: seen at full a moment)
         -- The last pet's rise, and the peek it kept up, end here: else its growth's timers set
         -- its points on this pet's bar, and the check below would leave that bar to them.
-        ns.BondTrack:StopGains(self.track)
+        f.bar:Stop()
         peekT:Cancel(); self.peek = nil
         self.key, self.points = key, nil
         self.stage:Update(f, nil) -- (the last pet's pose ends)
@@ -395,7 +383,7 @@ function PF:Refresh()
     if self.combat and not self.editing then return f:Hide() end -- (Settings: petFrameCombat)
     f:Show()
     self:Fade()
-    if not f.bar.growTo then self:Bond(false) end -- (its rise is still on: left to it)
+    self:Bond(false) -- (a rise still on goes on: BondBar's Set)
     self.stage:Update(f, key)
     self:Sleepy()
     self:NextChange()
