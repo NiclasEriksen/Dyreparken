@@ -876,6 +876,8 @@ function Client:Login()
         Load(env, path, ADDON, self.ns)
         if path == "Core/Init.lua" then self:CheckBus() end -- (before any module listens)
     end
+    -- The Config as it ships, before the test values below (52_protocol fingerprints it).
+    self.shippedConfig = CopyTable(self.ns.Config)
     -- The bond epoch (no bond is older than the addon) as in the real world:
     -- before any test data. The test clock starts in September 2026.
     self.ns.Config.BOND_EPOCH = self.world.epoch or (1790000000 - 1000 * 86400)

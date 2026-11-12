@@ -20,7 +20,7 @@ quirks. When you learn something new about the client, add it there with the dat
   with `GetPetInfoBySpeciesID` / `GetOwnedPetIDs` instead. The test harness throws if the addon calls a setter.
 - Treat every addon message as untrusted input.
 - Keep backwards compatibility from 0.1.0 on. Until then, breaking changes are fine. Saved data changes go
-  through `MIGRATIONS` in `Core/DB.lua`. Wire changes bump `X-Protocol` in the TOC.
+  through `MIGRATIONS` in `Core/DB.lua`. Wire changes bump `X-Protocol` in the TOC (`52_protocol.lua` fails until they do).
 - Comments explain *why* (game quirks, decisions), not what.
 
 ## Verify
