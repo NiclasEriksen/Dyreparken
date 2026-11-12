@@ -289,3 +289,20 @@ frame is off, and the per-character sections say so. Not changed: the pet frame'
 - Pet frame: Edit Mode's cancel doesn't undo a move; a named frame moved with StartMoving may be saved in the
   layout cache (SetUserPlaced(false)); cardMoves/cardParticles changes don't refresh the frame.
 - Moves: a pose can stay "dead" after playing dead ends at night or for a sitting pet.
+
+# The pet reacts to the damage meter (the user, 2026-11-12; waiting for the probe)
+
+Forever has Retail 12.0's built-in damage meter and its API, `C_DamageMeter` (in the client: /dp probe api,
+2026-11-11): `GetCombatSessionFromType(sessionType, type)` gives a session's `combatSources` (name, classFilename,
+totalAmount, amountPerSecond, isLocalPlayer, ...), with types DamageDone, Dps, HealingDone, Hps, Absorbs,
+Interrupts, Dispels, DamageTaken, AvoidableDamageTaken, Deaths, EnemyDamageTaken; events
+DAMAGE_METER_COMBAT_SESSION_UPDATED (type, sessionID), DAMAGE_METER_CURRENT_SESSION_UPDATED, DAMAGE_METER_RESET.
+Retail's docs mark the data SecretWhenInCombat: read it after the fight (PLAYER_REGEN_ENABLED / ENCOUNTER_END).
+`/dp probe api meter` (2026-11-12) checks what Forever gives and when.
+
+The user's rules:
+- Only boss fights (ENCOUNTER_END, a kill).
+- Damage counts in a party (dungeons); healing only in a raid (in a five-man the one healer is always first).
+  To confirm: does damage also count in raids?
+- A reaction to a good result (first place in damage or healing; maybe interrupts, dispels, no deaths), more
+  likely after a raid boss kill and a very good result.
