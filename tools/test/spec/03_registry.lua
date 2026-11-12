@@ -286,6 +286,22 @@ return function(test, H)
         eq(R:Holder("s:1001"), names[1])
         for i = 2, 5 do eq(R:Holder("s:" .. (1000 + i)), nil, names[i]) end
         eq(w:Sent("LAPSE", "Ola Nord"), 1)
+        -- A real wave: six leave; held back today, and a roster the next day that still misses them frees them.
+        local others = {}
+        for i = 6, 12 do others[#others + 1] = names[i] end
+        for i = 6, 11 do w:RemoveMember(names[i]) end
+        c.ns.Guild:Refresh(true)
+        w:Run(1)
+        for i = 6, 11 do eq(R:Holder("s:" .. (1000 + i)), names[i], "held back the first day") end
+        c.ns.Guild:Refresh(true) -- (the same day again: still held)
+        w:Run(1)
+        eq(R:Holder("s:1006"), names[6])
+        c:Reload() -- (remembered across a login)
+        w:SkipDays(1)
+        c.ns.Guild:Refresh(true)
+        w:Run(1)
+        for i = 6, 11 do eq(c.ns.Registry:Holder("s:" .. (1000 + i)), nil, names[i] .. " goes the second day") end
+        eq(#c:Log("confirmed on a second day: 6 lapse"), 1)
         -- A small guild: the floor lets one of two go.
         local w2 = H.World()
         local d = w2:AddClient("Ola Nord")

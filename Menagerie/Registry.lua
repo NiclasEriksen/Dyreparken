@@ -310,9 +310,25 @@ function Registry:CheckRoster()
     end
     local most = math.max(Config.ROSTER_LAPSE_FLOOR, math.floor(active * Config.ROSTER_LAPSE_SHARE))
     if #batch > most then
-        ns.Log("Registry", "roster would lapse %d of %d adoptions at once (at most %d): none lapsed", #batch, active, most)
-        return nil
+        -- Too many at once: one odd read, or a real wave of departures. Held back; a roster on a
+        -- later day that still misses the same owners confirms it (the user, 2026-11-12: "hell
+        -- yeah"), and those go, however many. Remembered per guild, across logins.
+        local today, held = ns.Today(), g.rosterHeld
+        if not (held and held.day ~= today) then
+            if not held then
+                local owners = {}
+                for _, b in ipairs(batch) do owners[b[1]] = true end
+                g.rosterHeld = { day = today, owners = owners }
+            end
+            ns.Log("Registry", "roster would lapse %d of %d adoptions at once (at most %d): none lapsed", #batch, active, most)
+            return nil
+        end
+        local confirmed = {}
+        for _, b in ipairs(batch) do if held.owners[b[1]] then confirmed[#confirmed + 1] = b end end
+        ns.Log("Registry", "roster batch of %d confirmed on a second day: %d lapse", #batch, #confirmed)
+        batch = confirmed
     end
+    g.rosterHeld = nil
     local added
     for _, b in ipairs(batch) do
         local t = ns.Now()
