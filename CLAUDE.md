@@ -48,7 +48,8 @@ and refuses the push if it fails.
   guild roster, group, and an addon-message network. The network can lose messages (`w.drop`), take forged
   input (`w:InjectMessage`), and records every decoded message in `w.wire` (`w:Sent(kind)`). Clients log in
   and out with their SavedVariables kept (`c:Reload()`). There are helpers for the journal, tooltips, popups
-  and player state. Read its header first.
+  and player state. Read its header first: it's the entry point, and its parts live in `tools/test/harness/`
+  (base, frames, world, client, ui, assert; the stub client API in `env/*.lua`, one file per area).
 - The usual world is one line: `local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }` (Ola Nord, Kari Berg
   if given, logged in and settled; `each`, `settle`, `journal`). Wait for the login by name, not by a number:
   `w:Settle("hello" | "bond" | "day")` (12, 20, 40 s: past the HELLO round, Bond's seed, the first day's visit).
@@ -71,7 +72,7 @@ and refuses the push if it fails.
   fails with `ADDON_ACTION_BLOCKED`). Post to guild chat only from a keypress or click.
 - Stubs must behave like the real client (docs/FOREVER_API.md). Unknown frame methods and unknown events throw
   on purpose, and reads of globals the stubs lack are reported (`01_core.lua`). When the addon starts using
-  a new API, stub it realistically in `Client:BuildEnv`.
+  a new API, stub it realistically in the right `tools/test/harness/env/*.lua` (Client:BuildEnv runs them).
 - Pin a test's world with the harness, never by replacing addon functions: `c:Traits{...}`, `c:Companions(...)`,
   `c:Fixture(fn)` (all survive `c:Reload()`), `c:Dice(roll, pick)` for every chance (the addon rolls only through
   `ns.random`), `c:QuirksNow()`, `w:SetDate(y, m, d, h)`. Tests run on Europe/Oslo time whatever the host's (run.lua).
@@ -268,7 +269,9 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
 Main.lua           bootstrap: runs the start-up phases (loaded, login, settled, hello). Each module declares its own
                    start at the end of its file, ns.Start(phase, fn) (Core/Init.lua); within a phase, TOC order
 tools/check.sh     all offline checks (see Verify)
-tools/test/        harness.lua (simulated clients + network), run.lua (runner, coverage), spec/*.lua
+tools/test/        harness.lua (the entry point: simulated clients + network; its parts in harness/: base, frames,
+                   world, client, ui, assert, and env/*.lua, the stub client API by area), run.lua (runner,
+                   coverage), spec/*.lua
 ```
 
 ## Decisions (2026-11-06)

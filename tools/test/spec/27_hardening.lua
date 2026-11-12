@@ -18,7 +18,7 @@ return function(test, H)
         local w = H.World()
         local c = w:AddClient("Ola Nord", { login = false })
         local now = w:ServerTime()
-        local epoch = 1790000000 - 1000 * DAY -- (the harness sets this, tools/test/harness.lua)
+        local epoch = 1790000000 - 1000 * DAY -- (the harness sets this, tools/test/harness/client.lua)
         c.saved.DyreparkenDB = { schema = 7, guilds = { Dyreparken = {
             claims = {}, lapses = {}, names = { ["junk"] = { ["Ola Nord"] = { n = "X", at = now } } },
             life = {
@@ -578,7 +578,7 @@ return function(test, H)
         local ola = w:AddClient("Ola Nord", { pets = { 5159 }, login = false })
         local kari = w:AddClient("Kari Berg", { pets = { 46 } })
         local now = w:ServerTime()
-        local epoch = 1790000000 - 1000 * DAY -- (the harness's, tools/test/harness.lua)
+        local epoch = 1790000000 - 1000 * DAY -- (the harness's, tools/test/harness/client.lua)
         ola.saved.DyreparkenDB = { schema = 10, guilds = { Dyreparken = {
             claims = {}, lapses = {}, names = {}, life = {}, achSeen = {},
             ach = {

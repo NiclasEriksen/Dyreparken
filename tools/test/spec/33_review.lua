@@ -326,7 +326,7 @@ return function(test, H)
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 5159 }, login = false })
         local now = w:ServerTime()
-        local epoch = 1790000000 - 1000 * DAY -- (the harness's, tools/test/harness.lua)
+        local epoch = 1790000000 - 1000 * DAY -- (the harness's, tools/test/harness/client.lua)
         ola.saved.DyreparkenDB = { schema = 9, guilds = { Dyreparken = {
             claims = {
                 ["Kari Berg"] = { k = "s:46", at = now - DAY, ts = now - DAY },   -- fine
