@@ -289,7 +289,11 @@ This is the payoff for "easier to add pets, traits and eggs".
   env/*); c:Visible, c:Labeled, c:Frames, c:Page, c:Eggs; SidePage private reads 83 → 21 (Dev gallery and
   the list's badges left on purpose), the test-only exports removed from Page, ParkPage and Settings;
   H.MISSING mirrors FOREVER_API.md's missing APIs and a test holds the stubs to it.
-- **Open after the plan**: Q9 (pin_unlocks' parrot/chicken/whelp rows), Q4 at the next protocol bump,
+- **Q9, done** (2026-11-13, the user: "making them real"): pin_unlocks reads a species' own tags first, so a
+  sub-family row (parrot, chicken, whelp) goes before its broad family's, for species added from now on.
+- **Q4 timing** (2026-11-13): the bump goes in with the release itself, not before (no desync from the guild
+  until it ships).
+- **Open after the plan**: Q4 at the release with the protocol bump,
   Q11 (UnitStandState stub), the combat taint (MountJournal:SetShown, 2026-11-12 22:19; waiting for a
   taint log or Blizzard's exported source).
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the

@@ -7,7 +7,7 @@
 -- line by hand.
 --
 -- A new species gets the first fitting activity from its own list (SPECIES), else its families' (FAMILY,
--- in the order Scenes reads them), picked among those by a hash of its id, never one of its major likes
+-- in the order Scenes reads them, a sub-family such as parrot before its bird), picked among those by a hash of its id, never one of its major likes
 -- or dislikes, and the dislike never its minor like. The addon is booted in the test harness to read
 -- each species' families and majors exactly as the game does.
 package.path = "tools/test/?.lua;" .. package.path
@@ -111,7 +111,20 @@ for sid in pairs(ns.Companions.species) do
         local likeLists, dislikeLists = {}, {}
         if own then likeLists[1], dislikeLists[1] = own[1], own[2] end
         -- (each family's list in turn: its first family with a fit decides, an owl's before a bird's)
+        -- A tag the addon folds into a broader family (Scenes.ALIAS: parrot -> bird, chicken -> farm,
+        -- whelp -> dragon) has its own, more specific row here: it goes first, before the broad one's
+        -- (the user, 2026-11-13: "making them real"; until then those rows never ran).
+        local sub = {}
+        local data = ns.Companions.species[sid]
+        for _, tag in ipairs(type(data) == "table" and data.t or {}) do
+            local broad = ns.Scenes.ALIAS[tag]
+            if broad and FAMILY[tag] then sub[broad] = sub[broad] or {}; table.insert(sub[broad], tag) end
+        end
         for _, f in ipairs(ns.Scenes:Families(key)) do
+            for _, tag in ipairs(sub[f] or {}) do
+                likeLists[#likeLists + 1] = FAMILY[tag][1] or {}
+                dislikeLists[#dislikeLists + 1] = FAMILY[tag][2] or {}
+            end
             likeLists[#likeLists + 1] = (FAMILY[f] or {})[1] or {}
             dislikeLists[#dislikeLists + 1] = (FAMILY[f] or {})[2] or {}
         end
