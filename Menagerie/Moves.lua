@@ -160,7 +160,8 @@ local STAND = 0
 -- only while that pet's card shows. PLAYER_STARTED/STOPPED_MOVING and
 -- GetUnitSpeed are unverified on Forever: without them it simply stands.
 ------------------------------------------------------------------------------
-local motion = { on = false, moving = false, token = 0 }
+local motion = { on = false, moving = false }
+local motionTimers = ns.Timers() -- (a stop's wait: taken back by a start, or by turning off)
 Moves.STOP_AFTER = 0.3 -- a stop this short isn't one (tapped keys would twitch it)
 -- A jump with you (2026-11-11, the user): the pet's JumpStart, its Jump held for the rest of the time
 -- you're in the air (about JUMP_AIR from the key), then JumpEnd. No event says you landed, and no polling.
@@ -213,7 +214,8 @@ function Moves:FollowAll()
     local want = false
     for _, s in ipairs(self.stages) do if Moves.WithYou(s.want) then want = true end end
     if want == motion.on then return end
-    motion.on, motion.token = want, motion.token + 1
+    motion.on = want
+    motionTimers:Cancel()
     if not want then
         motion.moving = false
         for _, e in ipairs(MOTION_EVENTS) do ns.Events:Off(e, Moves) end
@@ -222,14 +224,13 @@ function Moves:FollowAll()
     motion.moving = Moves.Moving() or false
     ReposeAll()
     ns.Events:On("PLAYER_STARTED_MOVING", Moves, function()
-        motion.token = motion.token + 1
+        motionTimers:Cancel()
         if not motion.moving then motion.moving = true; ReposeAll() end
     end)
     ns.Events:On("PLAYER_STOPPED_MOVING", Moves, function()
-        motion.token = motion.token + 1
-        local mine = motion.token
-        C_Timer.After(Moves.STOP_AFTER, function()
-            if mine == motion.token and motion.moving then motion.moving = false; ReposeAll() end
+        motionTimers:Cancel()
+        motionTimers:After(Moves.STOP_AFTER, function()
+            if motion.moving then motion.moving = false; ReposeAll() end
         end)
     end)
     -- Mounting, landing, a flight's end: how fast we really go now. (2026-11-10: landed from a
@@ -547,7 +548,9 @@ end
 -- opts.anchor() the frame a sulk's cloud bursts from, opts.refresh() redraws around it (a woken
 -- pet's Zzz go).
 function Moves.NewStage(name, opts)
-    local shown = { token = 0, reposed = 0 } -- what this stage shows: its pet, its pose
+    local shown = { reposed = 0 } -- what this stage shows: its pet, its pose
+    -- Its timers, all cancelled when a new plan starts or the stage stops showing a pet.
+    local timers = ns.Timers()
 
     local stage = setmetatable({ name = name, shown = shown }, { __index = Moves })
 
@@ -571,14 +574,14 @@ function Moves.NewStage(name, opts)
         if what ~= "SetAnimation" then shown.modelAt = GetTime() end
         shown.touched = true -- (a refresh may put our pose back now: Update)
         if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
-            local key, token = shown.key, shown.token
-            C_Timer.After(Moves.SETTLE, function() if token == shown.token and shown.key == key then Lift(key) end end)
+            local key = shown.key
+            timers:After(Moves.SETTLE, function() if shown.key == key then Lift(key) end end)
         end
         if not shown.pose or shown.reposed >= Moves.REPOSE then return end
         shown.reposed = shown.reposed + 1
-        local token, id, pose = shown.token, shown.playing, shown.pose
-        C_Timer.After(what == "SetAnimation" and 0 or Moves.SETTLE, function()
-            if token == shown.token and shown.playing == id and shown.pose == pose then Play(id, true, pose) end
+        local id, pose = shown.playing, shown.pose
+        timers:After(what == "SetAnimation" and 0 or Moves.SETTLE, function()
+            if shown.playing == id and shown.pose == pose then Play(id, true, pose) end
         end)
     end
     local function Watch(actor)
@@ -620,15 +623,14 @@ function Moves.NewStage(name, opts)
             own = false
             shown.since, playingFor = GetTime(), 0
         end
-        local token = shown.token
         local function Pause()
-            if token ~= shown.token or shown.playing ~= id or shown.pose ~= pose then return end
+            if shown.playing ~= id or shown.pose ~= pose then return end
             local ok = Call(actor, "SetPaused", true)
             shown.paused = ok or nil
             ns.Log("Moves", "%s %s: %d paused %.2f s in: %s", name, tostring(shown.key), id, pose, ok and "ok" or "failed")
         end
         local wait = pose - playingFor
-        if wait <= 0.02 then Pause() else C_Timer.After(wait, Pause) end
+        if wait <= 0.02 then Pause() else timers:After(wait, Pause) end
     end
 
     Play = function(id, again, pose)
@@ -655,9 +657,8 @@ function Moves.NewStage(name, opts)
         own = false
         ns.Log("Moves", "%s %s: play %d%s%s%s", name, tostring(shown.key), id, pose and (" at %.2f"):format(pose) or "",
             again and " (again)" or "", ok and "" or " REFUSED")
-        local token = shown.token
-        C_Timer.After(Moves.RECHECK, function()
-            if token ~= shown.token or shown.playing ~= id then return end
+        timers:After(Moves.RECHECK, function()
+            if shown.playing ~= id then return end
             local now = Actor()
             local got, at = Call(now or actor, "GetAnimation")
             local reset = now ~= actor or (got and at ~= id)
@@ -679,11 +680,9 @@ function Moves.NewStage(name, opts)
             ns.Log("Moves", "%s %s: %s [%s] mode %s", name, tostring(shown.key), why or "steps", table.concat(parts, " > "),
                 tostring(shown.mode))
         end
-        shown.token = shown.token + 1
+        timers:Cancel()
         shown.reposed = 0
-        local mine = shown.token
         local function Step(i)
-            if mine ~= shown.token then return end
             local s = steps[i]
             if not s then return end
             shown.last = i == #steps -- (a refresh puts back only the step that stays)
@@ -696,7 +695,7 @@ function Moves.NewStage(name, opts)
                 shown.mode = mode
             end
             Play(id, nil, s[3])
-            if s[2] then C_Timer.After(s[2], function() Step(i + 1) end) end
+            if s[2] then timers:After(s[2], function() Step(i + 1) end) end
         end
         Step(1)
     end
@@ -756,9 +755,8 @@ function Moves.NewStage(name, opts)
         ns.Log("Moves", "%s at %.2f (%s at %.2f%s)", key, target, scene, base, lift and ("%+.2f"):format(lift) or "")
     end
     local function LiftSoon(key)
-        local token = shown.token
-        C_Timer.After(Moves.SETTLE, function()
-            if token == shown.token and shown.key == key then Lift(key) end
+        timers:After(Moves.SETTLE, function()
+            if shown.key == key then Lift(key) end
         end)
     end
     stage.Lift = Lift
@@ -780,9 +778,8 @@ function Moves.NewStage(name, opts)
     -- ModelSceneActor:SetYaw is unverified on Forever: without it, just the cloud. (Moves.SULK: how long.)
     local function Sulk(key)
         if not Plan.Sulk(key) then return end
-        local token = shown.token
-        C_Timer.After(Moves.SETTLE, function()
-            if token ~= shown.token or shown.key ~= key then return end
+        timers:After(Moves.SETTLE, function()
+            if shown.key ~= key then return end
             ns.Quirks:SulkShown(key)
             local anchor = opts.anchor()
             if anchor and ns.Fx then
@@ -817,7 +814,7 @@ function Moves.NewStage(name, opts)
             if actor then Unpause(actor) end -- (a paused actor would stay so for Blizzard's next pet)
             -- (nothing held either: a model loading on a closed card isn't posed again)
             shown.key, shown.mode, shown.playing, shown.pose, shown.last = nil, nil, nil, nil, nil
-            shown.token = shown.token + 1
+            timers:Cancel()
             return
         end
         local mode = Rest(key)
