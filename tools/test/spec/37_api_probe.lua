@@ -130,12 +130,12 @@ return function(test, H)
         local saved = ola.env.DyreparkenDebugDB.animLengths
         local n = 0
         for _ in pairs(saved) do n = n + 1 end
-        eq(n, 84, "every species")
+        eq(n, 87, "every species")
         eq(saved[5159][0], 2, "Stand, to tell a missing one by")
         eq(saved[5159][756], 1.2)
         eq(saved[40][99], "none", "the cats' lie-down: no end")
         ok(made[1].hidden, "hidden when done")
-        match(ola:Printed("api probe", true), "lengths done, 84 species")
+        match(ola:Printed("api probe", true), "lengths done, 87 species")
     end)
 
     test("holidays: the calendar stepped through a year, each holiday once with its days, and put back", function()

@@ -58,15 +58,18 @@ ns.Companions = {
         [162] = { a = true, t = { "event", "plant" } }, -- Sinister Squashling
         [341] = { a = true, t = { "event", "lantern" } }, -- Lunar Lantern
         [342] = { a = true, t = { "event", "lantern" } }, -- Festival Lantern
+        [1563] = { a = false, t = { "dragon" } }, -- Bronze Whelpling
         [4180] = { a = true, t = { "rabbit" } }, -- Arctic Hare
         [5004] = { a = true, t = { "bird", "chicken", "farm" } }, -- Prairie Chicken
         [5005] = { a = true, t = { "frog" } }, -- Musical Gustjumper
         [5006] = { a = true, t = { "cat" } }, -- Corrupted Kitten
+        [5008] = { a = false, t = { "demon" } }, -- Mini Uber Diablo
         [5018] = { a = true, t = { "wolf" } }, -- Snowy Wolf Pup
         [5069] = { a = false, t = { "bird", "chicken", "farm" } }, -- Wild Chicken
         [5075] = { a = true, t = { "ooze" } }, -- Excitable Slime
         [5094] = { a = true, t = { "snake" } }, -- Bitter Baitling
         [5121] = { a = true, t = { "wolf" } }, -- Prairie Wolf Pup
+        [5122] = { a = true, t = { "bear" } }, -- Spectral Bear Cub
         [5135] = { a = true, t = { "rodent" } }, -- Shadowgale Squirrel
         [5136] = { a = true, t = { "bug" } }, -- Weevil K. Neevil
         [5138] = { a = true, t = { "plant" } }, -- Pachimari

@@ -255,6 +255,7 @@ return function(test, H)
         local n = 0
         for _, e in pairs(sp) do if e.a then n = n + 1 end end
         ok(sp[5005].a, "the Musical Gustjumper: /sing to a frog on Zephras Isle")
-        eq(n, 75)
+        ok(sp[5122].a, "the Spectral Bear Cub: the Legacy Track"); no(sp[1563].a); no(sp[5008].a)
+        eq(n, 76)
     end)
 end
