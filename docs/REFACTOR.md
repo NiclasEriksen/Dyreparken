@@ -231,10 +231,17 @@ This is the payoff for "easier to add pets, traits and eggs".
 
 ## Status
 
-- **Phase 0, done (uncommitted)**: B1, B2, B3, B4, B5, B6, B7, the stale docs, the bytecode cache (suite
+- **Phase 0, done**: B1, B2, B3, B4, B5, B6, B7, the stale docs, the bytecode cache (suite
   4 s → 2 s), H.Invariants after every test (stray globals, unfilled placeholders), the migration-gap test.
   Left for later: B8 (Phase 1's random seam), B13 (Q11), B14 (Phase 4's widget registry), the coverage ratchet
   (Q10), `--slow`.
+- **Phase 1, done**: `ns.random`, the one seam for every chance (Quirks/Bond/Moves/Fight had their own; fixes
+  B8; Sync's jitter and Fx's scatter stay on math.random), `c:Dice`, `c:QuirksNow` (removed the test-only
+  DELAY fallback in Quirks:Say), `c:Traits` / `c:Companions` / `c:Fixture` (survive reloads; replaced 30+
+  hand overrides of Personality.Traits, PINNED and ns.Companions; both checked load-bearing), `H.COMPANIONS`,
+  `w:SetDate`, `c:Said` / `c:CountPrinted` / `c:Points`. Skipped as low value: `c:Adopt`, `H.same`, a
+  per-client RNG. `c:TipOf` waits for Phase 4's tooltips-as-data. Left on purpose: 19_bond's made-up trait,
+  23_decor's trait-cycling override, 13's own companions fixture (its tags differ).
 
 ## Questions still open
 

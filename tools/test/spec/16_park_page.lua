@@ -18,7 +18,7 @@ return function(test, H)
         local cs = {}
         for _, m in ipairs({ { "Ola Nord", { 5159, 40, 72 } }, { "Kari Berg", { 41 } }, { "Per Hansen", { 42 } } }) do
             local c = w:AddClient(m[1], { pets = m[2] })
-            c.ns.Companions = Fixture()
+            c:Companions(Fixture().species)
             cs[#cs + 1] = c
         end
         w:Run(20)

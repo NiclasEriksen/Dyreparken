@@ -5,14 +5,14 @@ return function(test, H)
     local PANDA = "s:5159"
 
     -- Ola with the panda on the card at a given hour (the player's clock).
-    local function Setup(hour, traits)
+    local function Setup(hour)
         local w, ola = H.Setup{ ola = { 5159, 46, 5160, 5161 }, journal = true }
-        ola.ns.Personality.Traits = function() return traits or { ola.ns.Personality.ById("glupsk") } end
+        ola:Traits{ "glupsk" }
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true } -- (the panda lies down, is paused there, and sits, whatever the file says)
         ola.ns.PetMoves.default.sleepAt = 1.2 -- (the timings here, whatever the file says)
         ola.ns.Moves.SLEEP_AFTER = 0.6
-        ola.ns.Moves.random = function() return 1 end -- (a click: its happy move, not now-and-then)
-        w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = hour }) - w:ServerTime())
+        ola:Dice(1) -- (a click: its happy move, not now-and-then)
+        w:SetDate(2027, 3, 2, hour)
         return w, ola, ola.petActor
     end
 
@@ -149,7 +149,7 @@ return function(test, H)
         eq(actor.anim, 0, "still awake when you come back to it")
         -- A night owl doesn't sleep at night.
         local w2, kari, actor2 = Setup(23)
-        kari.ns.Personality.Traits = function() return { kari.ns.Personality.ById("nattugle") } end
+        kari:Traits{ "nattugle" }
         kari:SelectPet(5159)
         eq(actor2.anim, 0)
     end)
@@ -175,7 +175,7 @@ return function(test, H)
 
     test("a Latsabb sits down after a while; a click gets it up", function()
         local w, ola, actor = Setup(14)
-        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("latsabb") } end
+        ola:Traits{ "latsabb" }
         ola:SelectPet(5159)
         eq(actor.anim, 0)
         w:Run(6.1)
@@ -225,7 +225,7 @@ return function(test, H)
 
     test("closing the journal or opening our pages stops it; the next look starts over", function()
         local w, ola, actor = Setup(14)
-        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("latsabb") } end
+        ola:Traits{ "latsabb" }
         ola:SelectPet(5159)
         ola.ns.Bus:Fire("SIDEPAGE", true)
         w:Run(8)
@@ -442,8 +442,8 @@ return function(test, H)
         eq(actor.anim, 6)
         ola:Move(); ola:Mount()
         eq(actor.anim, 6, "still asleep")
-        w, ola, actor = Setup(14, nil)
-        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("latsabb") } end
+        w, ola, actor = Setup(14)
+        ola:Traits{ "latsabb" }
         ola:Slash("adopter panda")
         w:Run(5)
         ola:SelectPet(5159)
@@ -654,8 +654,8 @@ return function(test, H)
     end)
 
     test("a click before a Latsabb has sat down: the hop at once, no getting up first", function()
-        local w, ola, actor = Setup(14, nil)
-        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("latsabb") } end
+        local w, ola, actor = Setup(14)
+        ola:Traits{ "latsabb" }
         ola:SelectPet(5159)
         w:Run(1)
         eq(actor.anim, 0, "still standing")
@@ -832,8 +832,8 @@ return function(test, H)
     end)
 
     test("a pet that can't sit (canSit false) never sits, not even a Latsabb", function()
-        local w, ola, actor = Setup(14, nil)
-        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("latsabb") } end
+        local w, ola, actor = Setup(14)
+        ola:Traits{ "latsabb" }
         ola.ns.PetMoves.species[5159] = { canSit = false }
         ola:SelectPet(5159)
         w:Run(ola.ns.Moves.SIT_AFTER + 3)
@@ -892,7 +892,7 @@ return function(test, H)
         ola:SelectPet(5159)
         w:Run(1)
         local roll = 0.9
-        ola.ns.Moves.random = function() return roll end
+        ola.ns.random = function() return roll end
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 756, "mostly its happy move")
         w:Run(3)

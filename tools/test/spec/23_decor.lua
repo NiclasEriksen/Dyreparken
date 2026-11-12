@@ -15,11 +15,7 @@ return function(test, H)
         local w, ola = H.Setup{ ola = { 5159, 40 }, settle = "bond", journal = true, each = function(c)
             c.ns.Decor.FAMILY, c.ns.Decor.FAMILY_ART = {}, {}
             c.ns.Bonds.PetOfTheDay = function() return nil end -- (its halo has a test of its own: 34_touches.lua)
-            c.ns.Personality.Traits = function()
-                local list = {}
-                for _, id in ipairs(ids) do list[#list + 1] = c.ns.Personality.ById(id) end
-                return list
-            end
+            c:Traits(ids)
         end }
         local card = ola:SelectPet(5159)
         return w, ola, card, card.decor
@@ -126,7 +122,7 @@ return function(test, H)
         ok(parts[1].sway:IsPlaying(), "and wobble"); no(parts[1].spin:IsPlaying())
         -- Leaves sway and rock on the way down; hearts beat; confetti spins.
         local function Kind(trait, kind)
-            ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById(trait) } end
+            ola:Traits{ trait }
             D:Apply(card, PANDA, 1)
             local p = Parts(d)[1]
             eq(p.icon.tex, D.MEDIA .. D.KINDS[kind].tex)
@@ -156,7 +152,7 @@ return function(test, H)
             "in many colors")
         -- Sparks fly out from the pet, quickly, shrinking.
         At(w, ola, 9, 21, 12)
-        ola.ns.Personality.Traits = function() return {} end
+        ola:Traits{}
         D:Apply(card, PANDA, 5)
         local spark = Parts(d)[1]
         eq(spark.icon.tex, D.MEDIA .. "sparkle")
@@ -168,7 +164,7 @@ return function(test, H)
         eq(star.anim.moveA.offset[1], 0); eq(star.anim.moveA.offset[2], 0)
         eq(star.anim.grow.scaleTo[1], 1.6)
         -- Not on a holiday any more: no confetti. December: snow for everyone.
-        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("festglad") } end
+        ola:Traits{ "festglad" }
         At(w, ola, 3, 18, 12) -- (March: no season's particles)
         D:Apply(card, PANDA, 1)
         eq(#Parts(d), 0, "not a holiday")
@@ -319,7 +315,7 @@ return function(test, H)
 
     test("every pet has its family's ambience, always, soft, and last in the pool", function()
         local w, ola = H.Setup{ ola = { 5159, 40 }, settle = "bond", journal = true, each = function(c)
-            c.ns.Personality.Traits = function() return {} end
+            c:Traits{}
         end }
         local D = ola.ns.Decor
         At(w, ola, 9, 21, 12)
@@ -344,7 +340,7 @@ return function(test, H)
         end
         -- When the pool runs out, it's the ambience that goes.
         D.TRAITS.kosete = { kind = "heart", n = 60, color = { 1, 0, 0 } } -- (42 at level 1: still past the pool)
-        ola.ns.Personality.Traits = function() return { ola.ns.Personality.ById("kosete") } end
+        ola:Traits{ "kosete" }
         D:Apply(card, PANDA, 1)
         eq(#Parts(d), #d.parts)
         for _, p in ipairs(Parts(d)) do eq(p.icon.tex, D.MEDIA .. "heart") end
@@ -371,7 +367,7 @@ return function(test, H)
         local card = ola:SelectPet(5159)
         local d = card.decor
         local function With(id)
-            P.Traits = function() return { P.ById(id) } end
+            ola:Traits{ id }
             D:Apply(card, PANDA, 1)
             return Parts(d)
         end
@@ -395,7 +391,7 @@ return function(test, H)
         local D, P = ola.ns.Decor, ola.ns.Personality
         At(w, ola, 9, 21, 12)
         local function With(id)
-            P.Traits = function() return { P.ById(id) } end
+            ola:Traits{ id }
             D:Apply(card, PANDA, 1)
             return Parts(d)[1]
         end
@@ -421,7 +417,7 @@ return function(test, H)
         ok(speech.anim == speech.plain, "a bubble keeps its size: only the beat")
         D.FAMILY = { default = D.FAMILY.default }
         D.FAMILY.default = { kind = "ember", n = 2, color = { 1, 0.5, 0 } }
-        P.Traits = function() return {} end
+        ola:Traits{}
         D:Apply(card, PANDA, 1)
         local ember = Parts(d)[1]
         eq(ember.icon.blend, "ADD"); ok(ember.throb:IsPlaying(), "it flickers")
@@ -455,7 +451,7 @@ return function(test, H)
     test("the Zzz show only over a pet that sleeps: none with the card's moves off", function()
         local w, ola = H.Setup{ ola = { 5159, 40 }, journal = true }
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
-        w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 23 }) - w:ServerTime())
+        w:SetDate(2027, 3, 2, 23)
         local function Zzz(card)
             local n = 0
             for _, p in ipairs(card.decor.parts) do

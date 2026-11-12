@@ -10,14 +10,11 @@ return function(test, H)
         local w, ola = H.Setup{ ola = { 40 } }
         ola.state.spellNames = NAMES
         ola.state.auras = {}
-        local P = ola.ns.Personality
-        local traits = {}
-        for _, id in ipairs(ids or {}) do traits[#traits + 1] = P.ById(id) end
-        P.Traits = function() return traits end
+        ola:Traits(ids or {})
         ola:Slash("adopter bombay"); w:Run(5)
         local Q = ola.ns.Quirks
-        Q.random = function(n) return n and 1 or 0 end
-        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
+        ola:Dice(0)
+        ola:QuirksNow()
         return w, ola, Q
     end
     local function Buff(ola, name, on)
@@ -58,9 +55,7 @@ return function(test, H)
         local w, ola = Setup({ "glupsk" })
         local W, P = ola.ns.Wish, ola.ns.Personality
         local function Days(ids)
-            local traits = {}
-            for _, id in ipairs(ids) do traits[#traits + 1] = P.ById(id) end
-            P.Traits = function() return traits end
+            ola:Traits(ids)
             local seen = {}
             for d = 1, 120 do
                 local day = os.date("%Y%m%d", w:ServerTime() + d * 86400)

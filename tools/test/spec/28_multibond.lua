@@ -16,13 +16,10 @@ return function(test, H)
         w:Run(2)
         for _, c in ipairs({ ola, kari }) do -- (no wish or first bonuses, or Klengete days, mixed in)
             c:NoBonuses()
-            c.ns.Personality.Traits = function()
-                return { c.ns.Personality.ById("glupsk"), c.ns.Personality.ById("reiseglad") }
-            end
+            c:Traits{ "glupsk", "reiseglad" }
         end
         return w, ola, kari
     end
-    local function P(c, key, who) local e = c.ns.Registry:Life(key, who or c.name); return e and e.p or 0 end
 
     test("a pet you haven't adopted bonds too: half the points, its own day and limit", function()
         local w, ola = Setup()
@@ -30,15 +27,15 @@ return function(test, H)
         eq(B:Rate(PANDA), 1); eq(B:Rate(KITTEN), 0.5)
         eq(B:DailyMax(PANDA), 75); eq(B:DailyMax(KITTEN), 37)
         ola.ns.Activity:CheckDay()
-        eq(P(ola, PANDA), 10, "the adopted one: a full day")
+        eq(ola:Points(PANDA), 10, "the adopted one: a full day")
         ola:Summon(46)
         ola.ns.Activity:CheckDay()
-        eq(P(ola, KITTEN), 5, "the kitten: half a day")
+        eq(ola:Points(KITTEN), 5, "the kitten: half a day")
         ola:Fire("QUEST_TURNED_IN", 1) -- quests: liked (Glupsk), 5 -> 3 at half
-        eq(P(ola, KITTEN), 8, "a liked activity: 3 (half of 5, rounded up)")
+        eq(ola:Points(KITTEN), 8, "a liked activity: 3 (half of 5, rounded up)")
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1) -- not liked: 1 stays 1
-        eq(P(ola, KITTEN), 9)
-        eq(P(ola, PANDA), 10, "the panda isn't out")
+        eq(ola:Points(KITTEN), 9)
+        eq(ola:Points(PANDA), 10, "the panda isn't out")
         -- Its own caps: quests up to 13 a day (half of 25, rounded up).
         for i = 1, 20 do ola:Fire("QUEST_TURNED_IN", i) end
         eq(select(1, B:Today(KITTEN)), 5 + 13 + 1, "the day, quests to their cap, one boss")
@@ -66,7 +63,7 @@ return function(test, H)
         local kc = kari:SelectPet(46)
         no(kc.bond:IsShown(), "not her pet, nobody holds it, nothing known yet")
         w:Run(3)
-        eq(P(kari, KITTEN, "Ola Nord"), 120, "asked for, and Ola answered")
+        eq(kari:Points(KITTEN, "Ola Nord"), 120, "asked for, and Ola answered")
         kc = kari:SelectPet(46)
         kc.bond.scripts.OnEnter(kc.bond)
         -- (no holder: the card shows nothing of its own, but the asked-for bond is stored)
@@ -136,7 +133,7 @@ return function(test, H)
         ola.ns.Bond:Add(30, KITTEN) -- a new bond: out at once, on its own
         w:Run(2)
         eq(w:Sent("BOND", "Ola Nord", m), 1)
-        eq(P(kari, KITTEN, "Ola Nord"), 30)
+        eq(kari:Points(KITTEN, "Ola Nord"), 30)
         local adopted = ola.ns.Registry:AdoptedLife()
         no(adopted[KITTEN], "not in the sync's bonds")
         -- The digest doesn't move with it, so nobody SYNCs over it.
@@ -152,7 +149,7 @@ return function(test, H)
         nina:OpenJournal()
         nina:SelectPet(46)
         w:Run(3)
-        eq(P(nina, KITTEN, "Ola Nord"), 150, "when she looks at it")
+        eq(nina:Points(KITTEN, "Ola Nord"), 150, "when she looks at it")
     end)
 
     test("asking about a pet: once a session, not while flicking through, answers rate-limited", function()
@@ -197,13 +194,13 @@ return function(test, H)
         eq(ola.ns.Pets:KeyOf(ola.summoned), KITTEN, "the kitten, not the adopted panda")
         -- Its day out counts for it, at half.
         ola.ns.Activity:CheckDay()
-        eq(P(ola, KITTEN), 5)
+        eq(ola:Points(KITTEN), 5)
     end)
 
     test("firsts together: a boss this pet hasn't seen fall, a place it hasn't seen; a few lines a day", function()
         local w, ola = Setup()
         ola.ns.Bond.First = ola.realFirst -- (the real one, for this test)
-        local function Pts() return P(ola, PANDA) end
+        local function Pts() return ola:Points(PANDA) end
         local start = Pts()
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
         eq(Pts() - start, 1 + 5, "a boss (1, not liked) and the first time it saw Hogger fall (5)")
@@ -217,13 +214,13 @@ return function(test, H)
         -- A new place: now and then a moment (2026-11-12), here pinned to come, in the family's own words
         -- (the panda is a bear).
         local B = ola.ns.Bond
-        B.random = function() return 0 end
+        ola:Dice(0)
         ola.state.map, ola.state.zone = 1454, "Orgrimmar"
         ola:Fire("ZONE_CHANGED_NEW_AREA")
         w:Run(6)
         ok(ola:Printed("Panda Cub rusler gjennom Orgrimmar på jakt etter noe godt å spise.", true))
         -- Not this time: the first's points all the same, without a line (the user, 2026-11-12).
-        B.random = function() return 0.99 end
+        ola:Dice(0.99)
         start = Pts()
         ola.state.map, ola.state.zone = 1453, "Stormwind City"
         ola:Fire("ZONE_CHANGED_NEW_AREA")
@@ -233,27 +230,26 @@ return function(test, H)
         -- The chance: the family's, times the traits'.
         eq(B:PlaceChance(PANDA), B.PLACE_CHANCE.bear * 1)
         local P2 = ola.ns.Personality
-        local traits = P2.Traits
-        P2.Traits = function() return { P2.ById("oppdager"), P2.ById("latsabb") } end
+        ola:Traits{ "oppdager", "latsabb" }
         eq(B:PlaceChance(PANDA), B.PLACE_CHANCE.bear * 2 * 0.6)
-        P2.Traits = function() return { P2.ById("oppdager"), P2.ById("eventyrlysten") } end
+        ola:Traits{ "oppdager", "eventyrlysten" }
         eq(B:PlaceChance(PANDA), math.min(B.PLACE_MAX, B.PLACE_CHANCE.bear * 2 * 1.3))
-        P2.Traits = traits
-        B.random = function() return 0 end
+        ola:Traits{ "glupsk", "reiseglad" }
+        ola:Dice(0)
         -- At most three lines a day per pet; the points go on.
         for i = 1, 4 do ola:Fire("ENCOUNTER_END", 10 + i, "Boss " .. i, 1, 5, 1) end
         ok(ola:Printed("Boss 1", true)); no(ola:Printed("Boss 2", true), "two firsts already today")
         -- Another pet sees Hogger fall for the first time too: its own firsts, at half.
         ola:Summon(46)
-        start = P(ola, KITTEN)
+        start = ola:Points(KITTEN)
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
-        eq(P(ola, KITTEN) - start, 1 + 3)
+        eq(ola:Points(KITTEN) - start, 1 + 3)
     end)
 
     test("balance (2026-11-10): firsts give at most 15 a day, everyday activities 3 each and 10 in all", function()
         local w, ola = Setup()
         ola.ns.Bond.First = ola.realFirst
-        local function Pts() return P(ola, PANDA) end
+        local function Pts() return ola:Points(PANDA) end
         local start = Pts()
         for i = 1, 6 do ola:Fire("ENCOUNTER_END", 20 + i, "Boss " .. i, 1, 5, 1) end
         -- Six new bosses: 6 everyday boss points (capped at 3) and six firsts (capped at 15).
@@ -280,22 +276,22 @@ return function(test, H)
         w:Run(5)
         eq(w:Sent("PLAY", "Ola Nord", m), 1)
         eq(w:Sent("PLAY", "Kari Berg", m), 1, "Kari answered")
-        eq(P(ola, PANDA), 15, "the adopted panda: the full playdate")
-        eq(P(kari, KARI), 8, "Kari's pet, not adopted: half (rounded up)")
+        eq(ola:Points(PANDA), 15, "the adopted panda: the full playdate")
+        eq(kari:Points(KARI), 8, "Kari's pet, not adopted: half (rounded up)")
         ok(ola:Printed("Panda Cub lekte med", true))
         ok(kari:Printed("lekte med Panda Cub %(Ola Nord%)"))
         -- Again today: no more points, and no ping-pong.
         w:Run(700)
         ola:Fire("GROUP_ROSTER_UPDATE"); kari:Fire("GROUP_ROSTER_UPDATE")
         w:Run(5)
-        eq(P(ola, PANDA), 15); eq(P(kari, KARI), 8)
+        eq(ola:Points(PANDA), 15); eq(kari:Points(KARI), 8)
         ok(w:Sent("PLAY", nil, m) <= 4)
         -- Another of Ola's pets has its own playdate.
         ola:Summon(46)
         w:Run(61)
         kari.ns.Playdate:Announce(true)
         w:Run(3)
-        eq(P(ola, KITTEN), 8)
+        eq(ola:Points(KITTEN), 8)
     end)
 
     test("playdates: only with a guildmate near you, not one far away in the same group", function()
@@ -306,15 +302,15 @@ return function(test, H)
         w:SetGroup({ "Ola Nord", "Kari Berg" })
         ola:Fire("GROUP_ROSTER_UPDATE"); kari:Fire("GROUP_ROSTER_UPDATE")
         w:Run(5)
-        eq(P(ola, PANDA), 0, "far away: no playdate")
-        eq(P(kari, "s:40"), 0, "for either")
+        eq(ola:Points(PANDA), 0, "far away: no playdate")
+        eq(kari:Points("s:40"), 0, "for either")
         ok(ola:Log("playdate range: Kari Berg %(party1%) in range false")[1])
         -- Together again (an announcement after a summon): it happens.
         w.apart = nil
         w:Run(601)
         kari:Summon(40); kari.ns.Playdate:Soon()
         w:Run(5)
-        eq(P(ola, PANDA), 15, "close by: the playdate")
+        eq(ola:Points(PANDA), 15, "close by: the playdate")
     end)
 
     test("playdates: not without a pet out, not with strangers, not from junk or the guild channel", function()
@@ -323,14 +319,14 @@ return function(test, H)
         w:SetGroup({ "Ola Nord", "Kari Berg", "Per Uten" })
         ola:Fire("GROUP_ROSTER_UPDATE")
         w:Run(5)
-        eq(P(kari, "s:40"), 0, "Kari has no pet out")
+        eq(kari:Points("s:40"), 0, "Kari has no pet out")
         local m = w:Mark()
         w:InjectMessage("Per Uten", { k = "PLAY", p = ola.ns.PROTOCOL, pet = "s:40" }, "PARTY")
         w:InjectMessage("Kari Berg", { k = "PLAY", p = ola.ns.PROTOCOL, pet = "s:40" }, "GUILD")
         w:InjectMessage("Kari Berg", { k = "PLAY", p = ola.ns.PROTOCOL, pet = "junk" }, "PARTY")
         w:InjectMessage("Kari Berg", { k = "PLAY", p = ola.ns.PROTOCOL, pet = { 1 } }, "PARTY")
         w:Run(3)
-        eq(P(ola, PANDA), 0)
+        eq(ola:Points(PANDA), 0)
         eq(w:Sent("PLAY", "Ola Nord", m), 0)
         -- Out of the group: nothing is sent.
         w:SetGroup(nil)
@@ -351,12 +347,12 @@ return function(test, H)
         ola.ns.Print = function(...) printed = printed + 1; return print(...) end
         ok(B:Reward("play", PANDA, "Pepe lekte!"))
         eq(heard[1], PANDA .. " Pepe lekte!"); eq(printed, 1, "Bonds printed the line once")
-        eq(P(ola, PANDA), 15)
+        eq(ola:Points(PANDA), 15)
         eq(B:Reward("play", PANDA, "again"), false, "once a day")
-        eq(#heard, 1); eq(P(ola, PANDA), 15)
+        eq(#heard, 1); eq(ola:Points(PANDA), 15)
         -- A new kind of reward is a row.
         B.REWARDS.cake = { points = "BOND_WISH_POINTS" }
         ok(B:Reward("cake", PANDA, "Kake!")); ok(B:Reward("cake", PANDA, "Mer kake!"))
-        eq(P(ola, PANDA), 35)
+        eq(ola:Points(PANDA), 35)
     end)
 end

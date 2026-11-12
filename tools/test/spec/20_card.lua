@@ -20,7 +20,7 @@ return function(test, H)
 
     local function Setup()
         return H.Setup{ ola = { 5159, 40 }, each = function(c)
-            c.ns.Companions = Fixture()
+            c:Companions(Fixture().species)
             c.ns.Decor.FAMILY_ART = {} -- the rules, not today's picks
         end, settle = "bond", journal = true }
     end
@@ -37,7 +37,7 @@ return function(test, H)
         no(card.bond:IsShown())
         ola:Slash("adopter panda")
         w:SkipDays(30)
-        ola:Reload(); ola.ns.Companions = Fixture()
+        ola:Reload()
         w:Run(25)
         ola:Slash("navn Pepe")
         ola:OpenJournal()
@@ -114,7 +114,7 @@ return function(test, H)
         -- A client without the first cat scene uses the next; with none at all, Blizzard's stays.
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })
-        kari.ns.Companions = Fixture()
+        kari:Companions(Fixture().species)
         kari.ns.Scenes.BY_FAMILY, kari.ns.Scenes.BY_SPECIES = Lists(), {}
         local missing = { [BY.cat[1]] = true }
         for _, p in ipairs(BY.default) do missing[p] = true end
@@ -380,7 +380,7 @@ return function(test, H)
         eq(ola:SelectPet(68).scene.tex, pick.path)
         eq(#ola:Log("bg pick owl = "), 1)
         -- Kept after a reload.
-        ola:Reload(); ola.ns.Companions = Fixture()
+        ola:Reload()
         ola.ns.Scenes.BY_FAMILY = Lists()
         w:Run(20)
         ola:OpenJournal()

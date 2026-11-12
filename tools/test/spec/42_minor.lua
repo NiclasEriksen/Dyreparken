@@ -9,9 +9,9 @@ return function(test, H)
         local w, ola = H.Setup{ ola = { 5159 }, journal = true }
         ola:Slash("adopter panda"); w:Run(5)
         local Q = ola.ns.Quirks
-        Q.random = function(n) return n and 1 or 0 end
-        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 }, now = { 0, 0 }, day = { 0, 0 } }
-        ola.ns.Bond.random = function() return 0 end -- (the minor like's flavor comes up)
+        ola:Dice(0)
+        ola:QuirksNow()
+        ola:Dice(0) -- (the minor like's flavor comes up)
         return w, ola, ola.ns.Personality
     end
     -- Your bond, just under a level, then over it by a real gain (so the level-up fires).
@@ -58,7 +58,7 @@ return function(test, H)
         local card = ola:SelectPet(5159)
         no(card.likes.text:find("PvP", 1, true) or card.likes.text:find("pvp", 1, true), "secret")
         -- It happens; the minor chance (pinned to come up) speaks.
-        ola.ns.Quirks.random = function(n) return n and 1 or 0.1 end -- (under 0.15: the minor dislike's first time)
+        ola:Dice(0.1) -- (under 0.15: the minor dislike's first time)
         ola.ns.Activity:Emit("pvp", 1); w:RunTimers()
         ok(ola.ns.DB.char.dislikes[PANDA].pvp, "found")
         local major, minor = P:DislikedWords(PANDA)

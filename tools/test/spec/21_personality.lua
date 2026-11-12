@@ -12,7 +12,7 @@ return function(test, H)
     end
 
     local function Setup()
-        local w, ola = H.Setup{ ola = { 5159, 40 }, each = function(c) c.ns.Companions = Fixture() end }
+        local w, ola = H.Setup{ ola = { 5159, 40 }, each = function(c) c:Companions(Fixture().species) end }
         -- The half day the panda earned out at login, before any adoption: forgotten,
         -- these tests count from the adoption (any pet of yours bonds, 2026-11-09).
         ola:ForgetBonds()
@@ -22,14 +22,7 @@ return function(test, H)
     local function Herb(c) c:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 2366) end
 
     -- Give a client's pets these traits (by id), whatever the species.
-    local function Give(c, ...)
-        local ids = { ... }
-        c.ns.Personality.Traits = function()
-            local list = {}
-            for _, id in ipairs(ids) do list[#list + 1] = c.ns.Personality.ById(id) end
-            return list
-        end
-    end
+    local function Give(c, ...) c:Traits{ ... } end
 
     test("likes come from the species, the families and the traits", function()
         local w, ola, P = Setup()
@@ -143,27 +136,26 @@ return function(test, H)
         Give(ola, "flokkdyr", "huleboer")
         ola:Slash("adopter panda")
         w:Run(40)
-        local function Points() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
         local function Quest() ola:Fire("QUEST_TURNED_IN", 1) end
         ola.ns.Bond.First = function() end -- (no first-kill bonus mixed in: 28_multibond.lua tests firsts)
-        local start = Points()
+        local start = ola:Points(PANDA)
         Quest()
-        eq(Points(), start + 1, "solo, outdoors: just a quest")
+        eq(ola:Points(PANDA), start + 1, "solo, outdoors: just a quest")
         w:SetGroup({ "Ola Nord", "Per Ukjent" })
         Quest()
-        eq(Points(), start + 2, "a group, but nobody from the guild (we don't count)")
+        eq(ola:Points(PANDA), start + 2, "a group, but nobody from the guild (we don't count)")
         -- In a group with a guildmate: Flokkdyr.
         w:SetGroup({ "Ola Nord", "Kari Berg" })
         Quest()
-        eq(Points(), start + 7)
+        eq(ola:Points(PANDA), start + 7)
         ok(ola:Printed("Panda Cub koste seg i flokken!", true))
         for _ = 1, 3 do Quest() end
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
-        eq(Points(), start + 14, "one cap for the trait (10), whatever the activity; then the everyday 1s")
+        eq(ola:Points(PANDA), start + 14, "one cap for the trait (10), whatever the activity; then the everyday 1s")
         -- Then in a dungeon: Huleboer has its own cap.
         ola.state.instance = "party"
         Quest()
-        eq(Points(), start + 19)
+        eq(ola:Points(PANDA), start + 19)
         local lines = 0
         for _, l in ipairs(ola.printed) do if l:find("Panda Cub", 1, true) and l:find("!", 1, true) then lines = lines + 1 end end
         eq(lines, 1, "still one line a day")
@@ -171,14 +163,14 @@ return function(test, H)
         ola.state.instance = "pvp"
         w:SetGroup({ "Ola Nord", "Per Ukjent" })
         Quest()
-        eq(Points(), start + 19, "no guildmate, no dungeon: an everyday quest, and those are spent for today")
+        eq(ola:Points(PANDA), start + 19, "no guildmate, no dungeon: an everyday quest, and those are spent for today")
         -- A group we can't read gives no bonus, and no error.
         ola.env.UnitName = function(u) if u ~= "player" then error("secret") end return "Ola", "Nord" end
         w:SetGroup({ "Ola Nord", "Kari Berg" })
         ola.state.instance = "none"
         ola.ns.DB.char.bondToday.pets[PANDA].got["trait:flokkdyr"] = 0 -- (room for its bonus again)
         ola.ns.Activity:Emit("mine")
-        eq(Points(), start + 20, "an everyday 1, not Flokkdyr's 5")
+        eq(ola:Points(PANDA), start + 20, "an everyday 1, not Flokkdyr's 5")
     end)
 
     test("Nattugle, Einstøing and Friluftsdyr read the clock, the group and the world", function()
@@ -238,29 +230,28 @@ return function(test, H)
         ola:Slash("adopter panda")
         w:Run(40)
         ola.ns.Wish.OnActivity = function() end -- (no wish today: just the likes, 26_story.lua tests wishes)
-        local function Points() return ola.ns.Registry:Life(PANDA, "Ola Nord").p end
         ola.ns.Activity:CheckDay()
-        eq(Points(), 20, "Klengete: a day counts double")
+        eq(ola:Points(PANDA), 20, "Klengete: a day counts double")
         Herb(ola)
-        eq(Points(), 25, "a liked activity: 5")
+        eq(ola:Points(PANDA), 25, "a liked activity: 5")
         ok(ola:Printed("Panda Cub koste seg med herbs!", true))
         for _ = 1, 10 do Herb(ola) end
-        eq(Points(), 45, "at most 25 a day from herbs")
+        eq(ola:Points(PANDA), 45, "at most 25 a day from herbs")
         ola:Fire("QUEST_TURNED_IN", 1)
-        eq(Points(), 46, "anything else: 1")
+        eq(ola:Points(PANDA), 46, "anything else: 1")
         for _ = 1, 10 do ola:Fire("QUEST_TURNED_IN", 1) end
-        eq(Points(), 48, "at most 3 a day")
+        eq(ola:Points(PANDA), 48, "at most 3 a day")
         local lines = 0
         for _, l in ipairs(ola.printed) do if l:find("koste seg", 1, true) then lines = lines + 1 end end
         eq(lines, 1, "one line a day")
         -- A new day.
         w:SkipDays(1)
         Herb(ola)
-        eq(Points(), 73, "the new day's visit with the first thing done (20), and the herb (5)")
+        eq(ola:Points(PANDA), 73, "the new day's visit with the first thing done (20), and the herb (5)")
         -- Not with another companion out.
         ola:Summon(40)
         Herb(ola)
-        eq(Points(), 73)
+        eq(ola:Points(PANDA), 73)
     end)
 
     test("the card and tooltips tell its personality", function()
@@ -292,7 +283,7 @@ return function(test, H)
         ola:OpenJournal()
         local card = ola:SelectPet(84)
         eq(card.personality.text, "Ukjent personlighet"); eq(card.likes.text, "")
-        P.Traits = function() return { P.ById("gronnfinger"), P.ById("nattugle") } end
+        ola:Traits{ "gronnfinger", "nattugle" }
         local specs = ola.ns.Decor:Specs("s:84", 0, w.t)
         for _, sp in ipairs(specs) do no(sp.kind == "leaf", "no trait particles") end
         card.personalityHit.scripts.OnEnter(card.personalityHit)

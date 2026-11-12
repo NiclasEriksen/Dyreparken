@@ -5,19 +5,7 @@ return function(test, H)
 
     -- A small, known companion list instead of the generated one.
     local CATS = { 40, 41, 42, 46 }
-    local function Fixture()
-        local species = {
-            [40] = { a = true, t = { "cat" } }, [41] = { a = true, t = { "cat" } },
-            [42] = { a = true, t = { "cat" } }, [46] = { a = true, t = { "cat" } },
-            [7] = { a = true, t = { "farm", "bird" } }, [84] = { a = true, t = { "farm", "bird" } },
-            [68] = { a = true, t = { "owl", "bird" } }, [72] = { a = true, t = { "rabbit" } },
-            [90] = { a = true, t = { "bird", "pirate" } },
-            [5159] = { a = false }, -- promo: in the total, not in achievements
-        }
-        for sid = 2001, 2006 do species[sid] = { a = true } end -- filler: 15 counting pets
-        return { build = 1, species = species }
-    end
-    local function Fix(c) c.ns.Companions = Fixture(); return c end
+    local function Fix(c) c:Companions(H.COMPANIONS); return c end
 
     local function Pets(list, extra)
         local t = {}
@@ -49,7 +37,7 @@ return function(test, H)
         eq(w:Sent("ACH_EARNED"), 0)
         no(kari:Printed("fikk"))
         -- Reloading doesn't bring it up again.
-        ola:Reload(); Fix(ola)
+        ola:Reload()
         ola:ClearPrinted()
         w:Run(12)
         no(ola:Printed("allerede"))
@@ -91,7 +79,7 @@ return function(test, H)
         local w, ola = Setup({ 40, 41 })
         ola:Logout()
         ola:GivePet(42); ola:GivePet(46)
-        ola:Login(); Fix(ola)
+        ola:Login()
         w:Settle("hello")
         local g = Got(ola, "family:cat")
         ok(g)
@@ -204,7 +192,7 @@ return function(test, H)
         no(Got(ola, "loyal:30"))
         w:SkipDays(30)
         local m = w:Mark()
-        ola:Reload(); Fix(ola)
+        ola:Reload()
         w:Settle("hello")
         no(Got(ola, "loyal:30"), "the bond is seeded a little after login")
         w:Run(10)

@@ -32,8 +32,6 @@ Fight.FIGHTERS = { eventyrlysten = true, rampete = true, steinhard = true, sjoro
 Fight.TIMID = { kosete = true, kjaelen = true, hjemlengsel = true, venneflokk = true }
 Fight.WATCHERS = { latsabb = true }
 
-Fight.random = math.random
-
 -- "fighter", "timid", "watch" or "normal".
 function Fight.Nature(key)
     local timid, watch
@@ -85,7 +83,7 @@ function Fight:Moment(extra, why)
     local how = IsInGroup() and "group" or "solo"
     if lastMove and now - lastMove < self.GAP[how] then return end
     local p = (nature == "fighter" and self.FIGHTER_CHANCE or self.CHANCE)[how] + (extra or 0)
-    if self.random() >= p then return end
+    if ns.random() >= p then return end
     local what = nature == "timid" and "cower" or "attack"
     if ns.PetFrame.stage:Act(key, what) then
         lastMove = now

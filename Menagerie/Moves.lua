@@ -361,7 +361,6 @@ Moves.SULK = 3
 -- start) later than our clock says.
 Moves.SLEEP_AFTER = 2
 Moves.HAPPY_TOO_CHANCE = 1 / 3 -- a click plays happyToo instead of happy this often
-Moves.random = math.random -- (tests pin it)
 Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4, attack = 1.5, cower = 1.5 } -- how long each one-off plays
 
 -- How long a one-off plays on this pet: as measured (Data/AnimLengths.lua, /dp probe lengths), else
@@ -1040,7 +1039,7 @@ function Moves.NewStage(name, opts)
         if key ~= shown.key then return end
         local mode, happy = shown.mode, self:For(key, "happy")
         local too = self:For(key, "happyToo")
-        if happy and too and Moves.random() < Moves.HAPPY_TOO_CHANCE then happy = too end -- (no happy: none at all)
+        if happy and too and ns.random() < Moves.HAPPY_TOO_CHANCE then happy = too end -- (no happy: none at all)
         local back = Back(key)
         local steps = {}
         -- Up first only if it's sitting already (2026-11-10: clicked in its first seconds, still

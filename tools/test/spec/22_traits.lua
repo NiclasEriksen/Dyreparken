@@ -156,13 +156,12 @@ return function(test, H)
         ok(A:IsListening("QUEST_TURNED_IN"))
         no(A:IsListening("CHAT_MSG_TEXT_EMOTE"), "nobody here likes dancing")
         no(A:IsListening("MIRROR_TIMER_START"))
-        P.PINNED[5159] = { "dansefot", "kjaelen" }
+        ola:Traits({ "dansefot", "kjaelen" }, 5159)
         ola.ns.Bond:Watch()
         ok(A:IsListening("CHAT_MSG_TEXT_EMOTE"))
-        local function Points() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
-        local start = Points()
+        local start = ola:Points(PANDA)
         Chat(ola, "CHAT_MSG_TEXT_EMOTE", "You dance with Panda Cub.", ola.env.UnitGUID("player"))
-        eq(Points(), start + 5)
+        eq(ola:Points(PANDA), start + 5)
         ok(ola:Printed("Panda Cub danset med deg!", true))
         eq(P:Line(PANDA), "Dansefot og Kosete · liker herbs, fisking, dansing og kos")
         eq(P:Effect(P.ById("kjaelen")), "/pet, /hug eller /cuddle på dyret gir 5 båndpoeng (opptil 25 om dagen), mot 1 ellers.")
@@ -191,8 +190,8 @@ return function(test, H)
     test("frogs and pirate pets like diving: watched for them, liked points, and a chip on the card", function()
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
-        ola.ns.Companions = { build = 1, species = { [5159] = { a = true, t = { "frog" } }, [40] = { a = true, t = { "pirate" } } } }
-        ola.ns.Personality.PINNED = { [5159] = { "glupsk", "reiseglad" }, [40] = { "glupsk", "reiseglad" } }
+        ola:Companions{ [5159] = { a = true, t = { "frog" } }, [40] = { a = true, t = { "pirate" } } }
+        ola:Traits({ "glupsk", "reiseglad" }, 5159); ola:Traits({ "glupsk", "reiseglad" }, 40)
         ola.ns.Personality.FAMILY_PICK = { [5159] = "dive", [40] = "dive" } -- (one like from the families)
         w:Run(40)
         ola:Slash("debug off")

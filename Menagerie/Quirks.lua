@@ -32,7 +32,6 @@ Quirks.DISLIKE_CHANCE = 0.35 -- a dislike not yet found: per time it happens (th
 Quirks.DISLIKE_AGAIN = 0.15  -- one already found: per time, with the 45 minutes free
 -- A minor dislike (Personality: unlocked by your bond at level 6), a third as often (the user, 2026-11-12).
 Quirks.MINOR_CHANCE, Quirks.MINOR_AGAIN = 0.15, 0.05
-Quirks.random = math.random  -- (tests pin it)
 -- A line comes a while after what caused it, not the instant it happens
 -- (2026-11-10: "scared of flying" the moment you took off read as if it had
 -- flown for ages). Seconds, picked at random within; a dislike takes longer
@@ -63,7 +62,7 @@ end
 local function Pick(prefix, vars)
     local list = Variants(prefix)
     if #list == 0 then return nil end
-    return T(list[Quirks.random(#list)], vars)
+    return T(list[ns.random(#list)], vars)
 end
 
 -- A line decided and not yet said: nothing else is decided meanwhile.
@@ -81,8 +80,8 @@ end
 -- that, and what follows the line.
 function Quirks:Say(text, why, kind, said, delay, key, bubble)
     pending.line = true
-    local span = self.DELAY[delay] or self.DELAY[kind] -- (tests set DELAY to dislike and egg only)
-    local wait = span[1] + self.random() * (span[2] - span[1])
+    local span = self.DELAY[delay or kind]
+    local wait = span[1] + ns.random() * (span[2] - span[1])
     ns.Log("Quirks", "%s, in %d s", why, wait)
     C_Timer.After(wait, function()
         pending.line = nil
@@ -109,7 +108,7 @@ function Quirks:Dislike(key, id, minor)
     end
     local chance = minor and (first and self.MINOR_CHANCE or self.MINOR_AGAIN)
         or (first and self.DISLIKE_CHANCE or self.DISLIKE_AGAIN)
-    if self.random() >= chance then return end
+    if ns.random() >= chance then return end
     local name = ns.Registry:NameOf(key)
     local text = Pick("dislike." .. id, { pet = name })
     if not text then return end
@@ -448,7 +447,7 @@ function Quirks:Egg(on, key, extra, seen)
         local done = (had and had.day == today) or pending.eggs[e.id] == today
         local chance = type(e.chance) == "function" and e.chance(ctx) or e.chance
         if (e.always or self:Ready()) and not done
-            and (not chance or self.random() < chance) then
+            and (not chance or ns.random() < chance) then
             local vars = e.test(ctx)
             local text = vars and Pick(vars._key or ("egg." .. e.id), setmetatable({ pet = ctx.name }, { __index = vars }))
             if text then

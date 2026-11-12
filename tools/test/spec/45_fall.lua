@@ -6,13 +6,10 @@ return function(test, H)
     local function Setup(traits)
         local w, ola = H.Setup{ ola = { 5159 } }
         ola:Slash("adopter panda"); w:Run(5)
-        local P = ola.ns.Personality
-        local list = {}
-        for _, id in ipairs(traits or {}) do list[#list + 1] = P.ById(id) end
-        P.Traits = function() return list end
+        ola:Traits(traits or {})
         local Q = ola.ns.Quirks
-        Q.random = function(n) return n and 1 or 0 end
-        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 }, now = { 0, 0 }, day = { 0, 0 } }
+        ola:Dice(0)
+        ola:QuirksNow()
         ola.state.health, ola.state.healthMax = 1000, 1000
         ola:Fire("UNIT_HEALTH", "player") -- (the first look)
         return w, ola

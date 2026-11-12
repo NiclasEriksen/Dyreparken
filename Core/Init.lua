@@ -40,6 +40,11 @@ ns.L = setmetatable({}, {
     end,
 })
 
+-- Every chance the addon rolls (a line's variant, an egg's odds, a move) goes through
+-- ns.random, math.random's signature: one seam for the tests to pin (c:Dice).
+-- Timing jitter (Sync, Achievements) and cosmetic scatter (Fx) use math.random.
+ns.random = math.random
+
 -- A value the client may hand us as a secret (docs/FOREVER_API.md): nil
 -- then, so nothing compares, indexes or prints it.
 function ns.Plain(v)

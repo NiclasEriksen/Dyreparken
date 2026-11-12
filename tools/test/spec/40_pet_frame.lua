@@ -14,7 +14,7 @@ return function(test, H)
         ola:Slash("adopter panda"); w:Run(5)
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true } -- (the panda pauses)
         ola.ns.Moves.SLEEP_AFTER = 0.6
-        w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = hour or 14 }) - w:ServerTime())
+        w:SetDate(2027, 3, 2, hour or 14)
         local PF = ola.ns.PetFrame
         if on ~= false then ola.ns.DB.global.settings.petFrame = true; PF:Apply() end
         return w, ola, PF
@@ -459,7 +459,7 @@ return function(test, H)
         ola.ns.Bus:Fire("BOND_LINE", "s:5159", "Ønsket gikk i oppfyllelse!", "major")
         ola.ns.Bus:Fire("BOND_LEVEL", "s:5159", 3, "Venn")
         local Q = ola.ns.Quirks
-        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
+        ola:QuirksNow()
         Q:Say("Pandaen gjesper.", "test", "egg", nil, nil, "s:5159")
         Q:Say("Pandaen grøsser.", "test", "dislike", nil, nil, "s:5159")
         w:Run(1)

@@ -7,8 +7,7 @@ return function(test, H)
     local function Setup()
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
-        ola.ns.Companions = { build = 1, species = { [40] = { a = true, t = { "cat" } },
-            [5159] = { a = true, t = { "dragon" } } } }
+        ola:Companions{ [40] = { a = true, t = { "cat" } }, [5159] = { a = true, t = { "dragon" } } }
         w:Settle("hello")
         return w, ola, ola.ns.Fx
     end

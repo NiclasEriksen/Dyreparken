@@ -86,7 +86,7 @@ return function(test, H)
     test("the pet's moves off: it stands, even at night, and a click doesn't hop; the lift still applies", function()
         local w, ola, S = Setup()
         ola.ns.PetMoves.species[5159] = { lift = 0.2 }
-        w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 23 }) - w:ServerTime())
+        w:SetDate(2027, 3, 2, 23)
         local actor = ola.petActor
         ola.ns.DB.global.settings.cardMoves = false
         ola:SelectPet(5159)
@@ -109,9 +109,9 @@ return function(test, H)
         no(card.celebration.text:IsShown(), "no celebration")
         -- No easter eggs or bond lines in the chat.
         ola.ns.DB.global.settings.chatLines = false
-        ola.ns.Quirks.random = function(n) return n and 1 or 0 end
-        ola.ns.Quirks.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
-        w:Skip(os.time({ year = 2027, month = 3, day = 9, hour = 13, min = 37 }) - w:ServerTime())
+        ola:Dice(0)
+        ola:QuirksNow()
+        w:SetDate(2027, 3, 9, 13, 37)
         ola:ClearPrinted()
         ola.ns.Activity:Emit("herb")
         w:RunTimers()

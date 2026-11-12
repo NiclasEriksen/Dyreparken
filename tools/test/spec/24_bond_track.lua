@@ -142,9 +142,7 @@ return function(test, H)
         ola:Slash("adopter panda")
         w:Run(5)
         Points(ola, 300)
-        ola.ns.Personality.Traits = function() -- plain: a day is 10, herbs are liked (the panda's own)
-            return { ola.ns.Personality.ById("glupsk"), ola.ns.Personality.ById("reiseglad") }
-        end
+        ola:Traits{ "glupsk", "reiseglad" } -- plain: a day is 10, herbs are liked (the panda's own)
         ola:NoBonuses() -- (just the activities)
         local card = ola:SelectPet(5159)
         local b = card.bond
@@ -165,13 +163,9 @@ return function(test, H)
         match(table.concat(tip.lines, " / "), "I dag: %+10 av 75 mulige poeng%.")
         -- Herbs (liked, 25 a day), boss-kills, quests: the day's 75 is the limit.
         for _ = 1, 6 do ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366) end -- 25
-        ola.ns.Personality.Traits = function()
-            return { ola.ns.Personality.ById("eventyrlysten"), ola.ns.Personality.ById("reiseglad") }
-        end
+        ola:Traits{ "eventyrlysten", "reiseglad" }
         for _ = 1, 6 do ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1) end -- 25 (boss, liked now)
-        ola.ns.Personality.Traits = function()
-            return { ola.ns.Personality.ById("glupsk"), ola.ns.Personality.ById("steinhard") }
-        end
+        ola:Traits{ "glupsk", "steinhard" }
         eq(Earned(), 360)
         ok(not ola:Printed("fullt for i dag", true))
         for _ = 1, 6 do ola:Fire("QUEST_TURNED_IN", 1) end -- quests (liked now): 15 of 25 fit

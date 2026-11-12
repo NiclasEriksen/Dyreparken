@@ -15,7 +15,7 @@ return function(test, H)
         for sid = 2001, 2006 do species[sid] = { a = true } end
         return { build = 1, species = species }
     end
-    local function Fix(c) c.ns.Companions = Fixture(); return c end
+    local function Fix(c) c:Companions(Fixture().species); return c end
 
     -- name -> the cat they own; Ola is an officer, Per the guild master.
     local MEMBERS = {
@@ -98,14 +98,14 @@ return function(test, H)
         local w, cs = World({ ["Siv Dahl"] = true })
         AdoptAll(w, cs)
         local siv = w:AddClient("Siv Dahl", { pets = { 5159 }, login = false })
-        siv:Login(); Fix(siv)
+        siv:Login()
         w:Run(30)
         H.assertConverged(w)
         ok(siv.ns.Achievements:Got("guild:family:cat"))
         local n = 0
         for _, line in ipairs(siv.printed) do if line == LINE then n = n + 1 end end
         eq(n, 1, "once")
-        siv:Reload(); Fix(siv)
+        siv:Reload()
         siv:ClearPrinted()
         w:Run(30)
         no(siv:Printed(LINE, true), "not again after a reload")
@@ -135,7 +135,7 @@ return function(test, H)
         AdoptAll(w, cs)
         w.drop = nil
         -- A login sends HELLO; digests differ where messages were lost.
-        cs["Kari Berg"]:Reload(); Fix(cs["Kari Berg"])
+        cs["Kari Berg"]:Reload()
         w:Run(120)
         H.assertConverged(w)
         for name, c in pairs(cs) do ok(c.ns.Achievements:Got("guild:family:cat"), name) end

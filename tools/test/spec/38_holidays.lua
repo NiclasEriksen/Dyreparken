@@ -30,7 +30,7 @@ return function(test, H)
         no(Egg(ola, "winterveil").test({ t = w:ServerTime() }))
         ok(ola.ns.Strings["egg.hallowsend.1"] and ola.ns.Strings["egg.hallowsend.2"])
         -- Our own holiday on the same day wins.
-        w:Skip(os.time({ year = 2027, month = 12, day = 24, hour = 12 }) - w:ServerTime())
+        w:SetDate(2027, 12, 24, 12)
         ola.state.holidays[ola.ns.Today()] = { 141 }
         P.Holiday(w:ServerTime()); w:Run(1.1)
         eq(P.Holiday(w:ServerTime()), "julaften")

@@ -9,15 +9,12 @@ return function(test, H)
     local function Setup(traits, roll)
         local w, ola = H.Setup{ ola = { 5159 } }
         ola:Slash("adopter panda"); w:Run(5)
-        local P = ola.ns.Personality
-        local list = {}
-        for _, id in ipairs(traits or {}) do list[#list + 1] = P.ById(id) end
-        P.Traits = function() return list end
-        w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 14 }) - w:ServerTime())
+        ola:Traits(traits or {})
+        w:SetDate(2027, 3, 2, 14)
         ola.ns.DB.global.settings.petFrame = true
         ola.ns.PetFrame:Apply()
         local F = ola.ns.Fight
-        F.random = function() return roll or 0 end
+        ola.ns.random = function() return roll or 0 end
         return w, ola, F, ola.ns.PetFrame.actor
     end
     local function Hit(ola, school, flag) ola:Fire("UNIT_COMBAT", "target", "WOUND", flag or "", H.SECRET, school or 1) end

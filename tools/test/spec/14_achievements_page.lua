@@ -11,19 +11,7 @@ return function(test, H)
 
 
     -- Same small list as 12_achievements: 4 cats, 15 counting pets.
-    local function Fixture()
-        local species = {
-            [40] = { a = true, t = { "cat" } }, [41] = { a = true, t = { "cat" } },
-            [42] = { a = true, t = { "cat" } }, [46] = { a = true, t = { "cat" } },
-            [7] = { a = true, t = { "farm", "bird" } }, [84] = { a = true, t = { "farm", "bird" } },
-            [68] = { a = true, t = { "owl", "bird" } }, [72] = { a = true, t = { "rabbit" } },
-            [90] = { a = true, t = { "bird", "pirate" } },
-            [5159] = { a = false },
-        }
-        for sid = 2001, 2006 do species[sid] = { a = true } end
-        return { build = 1, species = species }
-    end
-    local function Fix(c) c.ns.Companions = Fixture(); return c end
+    local function Fix(c) c:Companions(H.COMPANIONS); return c end
 
     local function Setup(pets, opts)
         opts = opts or {}

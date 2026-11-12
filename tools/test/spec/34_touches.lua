@@ -7,12 +7,7 @@ return function(test, H)
     -- Ola with the panda (Glupsk) on the card, at a date and hour (the player's clock).
     local function Card(month, day, hour, traits)
         local w, ola = H.Setup{ ola = { 5159, 40 }, journal = true }
-        local P = ola.ns.Personality
-        P.Traits = function()
-            local list = {}
-            for _, id in ipairs(traits or { "glupsk" }) do list[#list + 1] = P.ById(id) end
-            return list
-        end
+        ola:Traits(traits or { "glupsk" })
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
         local t = os.date("*t", ola.ns.Now())
         t.month, t.day, t.hour, t.min, t.isdst = month, day, hour, 0, nil
@@ -117,8 +112,8 @@ return function(test, H)
     local function Cat()
         local w, ola, kari = H.Setup{ ola = { 40, 5159 }, kari = { 46, 5159 }, journal = true }
         ola:Summon(40)
-        ola.ns.Quirks.random = function(n) return n and 1 or 0 end
-        ola.ns.Quirks.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
+        ola:Dice(0)
+        ola:QuirksNow()
         return w, ola, kari
     end
 
@@ -226,20 +221,19 @@ return function(test, H)
     local function Eggs(traits)
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 40 } })
-        ola.ns.Companions = { build = 1, species = { [40] = { a = true, t = { "cat" } } } }
-        ola.ns.Personality.PINNED = { [40] = traits or { "glupsk", "rampete" } }
+        ola:Companions{ [40] = { a = true, t = { "cat" } } }
+        ola:Traits(traits or { "glupsk", "rampete" }, 40)
         w:Settle("hello")
         ola:Slash("debug off")
         ola:Slash("adopter bombay")
         w:Run(40)
         local Q = ola.ns.Quirks
-        Q.random = function(n) return n and 1 or 0 end
-        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
+        ola:Dice(0)
+        ola:QuirksNow()
         local function At(y, m, d, h, min)
-            w:Skip(os.time({ year = y, month = m, day = d, hour = h, min = min or 0 }) - w:ServerTime())
+            w:SetDate(y, m, d, h, min or 0)
             ola.ns.DB.char.quirkAt = nil
         end
-        local function Said(text) w:RunTimers(); return ola:Printed(text, true) end
         return w, ola, At, Said
     end
 
@@ -249,7 +243,7 @@ return function(test, H)
         eq(ola.ns.Quirks.Easter(2026), "0405"); eq(ola.ns.Quirks.Easter(2027), "0328"); eq(ola.ns.Quirks.Easter(2028), "0416")
         At(2027, 3, 28, 12)
         ola.ns.Activity:Emit("day")
-        ok(Said("påske"), "Easter")
+        ok(ola:Said("påske"), "Easter")
         -- The clocks: a day whose DST differs from the day before (none in a time zone without it).
         local t = os.time({ year = 2027, month = 1, day = 1, hour = 12 })
         for _ = 1, 365 do
@@ -259,7 +253,7 @@ return function(test, H)
         if os.date("*t", t).isdst ~= os.date("*t", t - 86400).isdst then
             w:Skip(t - w:ServerTime())
             ola.ns.Activity:Emit("day")
-            ok(Said("Klokka ble stilt i natt"))
+            ok(ola:Said("Klokka ble stilt i natt"))
         end
     end)
 
@@ -267,36 +261,36 @@ return function(test, H)
         local w, ola, At, Said = Eggs({ "glupsk", "rampete" })
         At(2027, 3, 5, 18) -- a Friday evening
         ola.ns.Activity:Emit("herb")
-        ok(Said("lukter taco"))
+        ok(ola:Said("lukter taco"))
         At(2027, 3, 9, 13, 37)
         ola.ns.Activity:Emit("herb")
-        ok(Said("13:37"))
+        ok(ola:Said("13:37"))
         w, ola, At, Said = Eggs({ "helgedyr", "rampete" })
         At(2027, 3, 6, 15) -- Saturday
         ola.ns.Activity:Emit("herb")
-        ok(Said("lørdagsgodt"))
+        ok(ola:Said("lørdagsgodt"))
         At(2027, 3, 8, 12) -- Monday
         ola.ns.Activity:Emit("day")
-        ok(Said("Det er mandag"))
+        ok(ola:Said("Det er mandag"))
     end)
 
     test("a hundred jumps, a long nap, an early morning (a Nattugle's own line)", function()
         local w, ola, At, Said = Eggs({ "hoppetass", "nattugle" })
         At(2027, 3, 9, 6)
         ola.ns.Activity:Emit("day")
-        ok(Said("har ikke lagt seg ennå"), "a Nattugle at six")
+        ok(ola:Said("har ikke lagt seg ennå"), "a Nattugle at six")
         ola.ns.DB.char.activity.jump = { total = 9, mine = 9, today = 9, day = ola.ns.Today(), pets = {} }
         ola.ns.Activity:Emit("jump")
-        ok(Said("vil ha mer"), "a Hoppetass: a hundred jumps and more")
+        ok(ola:Said("vil ha mer"), "a Hoppetass: a hundred jumps and more")
         ola.ns.DB.char.quirkAt = nil
         ola.ns.DB.char.activity.nap = { total = 4, mine = 4, today = 4, day = ola.ns.Today(), pets = {} }
         ola.ns.Activity:Emit("nap")
-        ok(Said("tenkt å bli her for godt"))
+        ok(ola:Said("tenkt å bli her for godt"))
     end)
 
     test("named after you, or after another pet in the park", function()
         local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
-        ola.ns.Quirks.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
+        ola:QuirksNow()
         ola:Slash("adopter panda"); kari:Slash("adopter bombay")
         w:Run(5)
         local now = ola.ns.Now()
@@ -397,7 +391,7 @@ return function(test, H)
         w:Run(1)
         ola:Slash("adopter panda")
         w:Run(5)
-        ola.ns.Quirks.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 } }
+        ola:QuirksNow()
         local P = ola.ns.Playdate
         P.Near = function() return true end -- (no group here; range has its own test, 28_multibond)
         for day = 1, 5 do
@@ -428,9 +422,9 @@ return function(test, H)
         ok(ola:Printed("Bombay Cat er glad for å være hjemme!", true), "no bind location: the plain line")
         -- A cat, the first time in Winterspring.
         ola.ns.Activity:Emit("explore", 1, "Winterspring")
-        ok(Said("Bombay Cat føler seg hjemme i Winterspring!"))
+        ok(ola:Said("Bombay Cat føler seg hjemme i Winterspring!"))
         ola.ns.Activity:Emit("explore", 1, "Westfall")
-        no(Said("hjemme i Westfall"), "not a cat's place")
+        no(ola:Said("hjemme i Westfall"), "not a cat's place")
     end)
 
     test("a guildmate's /dp klapp on your pet: hearts and a line, at most once every few minutes", function()

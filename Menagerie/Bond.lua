@@ -369,7 +369,6 @@ function Bond:Reward(kind, key, text)
 end
 
 Bond.MINOR_FLAVOR = 0.3   -- a minor like's first time in a day: the chance of its line
-Bond.random = math.random -- (tests pin it)
 
 -- Points for an activity done with a pet of ours out (half for one we
 -- haven't adopted: Bond:Rate).
@@ -419,7 +418,7 @@ function Bond:OnActivity(id, n, key)
     -- (its first time in a day, by chance; the user, 2026-11-12).
     if minor and capKey == id then
         per, cap = C.BOND_MINOR_POINTS, C.BOND_MINOR_CAP
-        if not d.got[capKey] and Bond.random() < Bond.MINOR_FLAVOR then
+        if not d.got[capKey] and ns.random() < Bond.MINOR_FLAVOR then
             flavor = P.FLAVOR[id] and ns.Fill(P.FLAVOR[id], { pet = name })
                 or ns.T("bond.liked", { pet = name, activity = P.NOUN[id] })
         end
@@ -474,8 +473,8 @@ end
 function Bond:PlaceLine(key, place)
     local family = ns.Scenes:Families(key)[1]
     local own = family and Variants("first.place." .. family) or {}
-    local list = (#own > 0 and Bond.random() < self.PLACE_OWN) and own or Variants("first.place")
-    return ns.T(list[math.random(#list)], { pet = ns.Registry:NameOf(key), place = place })
+    local list = (#own > 0 and ns.random() < self.PLACE_OWN) and own or Variants("first.place")
+    return ns.T(list[ns.random(#list)], { pet = ns.Registry:NameOf(key), place = place })
 end
 
 function Bond:First(id, key, extra)
@@ -494,7 +493,7 @@ function Bond:First(id, key, extra)
         -- Its line only now and then (2026-11-12, the user: every new place read like an achievement, as if
         -- the pet should see them all; "we could still award exploration points, just not output it to chat
         -- every time"): by chance, likelier for a curious family and trait. The points come either way.
-        text = Bond.random() < self:PlaceChance(key) and self:PlaceLine(key, extra) or false
+        text = ns.random() < self:PlaceChance(key) and self:PlaceLine(key, extra) or false
     else
         return
     end

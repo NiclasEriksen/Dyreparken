@@ -10,6 +10,17 @@
 --   ola:Slash("claim panda")
 --   assert(kari.ns.Registry:Holder("s:5159") == "Ola Nord")
 --
+-- Pinning a test's world (each holds across c:Reload()):
+--   ola:Traits{ "latsabb", "glupsk" }        -- every species' traits (ola:Traits(ids, sid): one species)
+--   ola:Companions(H.COMPANIONS)              -- the journal's species and tags (Data/Companions.lua)
+--   ola:Fixture(function(ns, c) ... end)      -- any other data change, after load, before ADDON_LOADED
+--   ola:Dice(roll, pick)                      -- every chance (ns.random): 0 = yes, the first line
+--   ola:QuirksNow()                           -- quirk lines at once, no 45 minutes in the way
+--   w:SetDate(2027, 3, 2, 14)                 -- the players' clock (tests run on Europe/Oslo time)
+--   ola:Said(text), ola:CountPrinted(text), ola:Points(key, who)
+-- Don't replace Personality.Traits or ns.Companions by hand: a reload loses it, and
+-- Personality's own rules (Known, likes) are skipped.
+--
 -- Each client gets its own global environment (setfenv), so its addon
 -- files, libraries, SavedVariables and frames are separate. `c.ns` is the
 -- addon namespace, `c.env` its globals. The stubs follow the real client as
@@ -517,6 +528,13 @@ function World:ServerTime() return self.server + math.floor(self.t) end
 -- Jump ahead without simulating (days of being away). GetTime keeps going
 -- slowly; only the server clock jumps, which is what the addon compares.
 function World:Skip(seconds) self.server = self.server + seconds end
+-- Move the clock forward to a date and time on the players' clock (Europe/Oslo, run.lua).
+function World:SetDate(year, month, day, hour, min)
+    local t = os.time({ year = year, month = month, day = day, hour = hour or 12, min = min or 0 })
+    assert(t >= self:ServerTime(), "SetDate only moves forward")
+    self:Skip(t - self:ServerTime())
+end
+
 function World:SkipDays(days) self:Skip(days * 86400) end
 
 -- Bring every online client's adopted pet up to the bond level that allows a
@@ -739,7 +757,9 @@ local function SpeciesName(sid) return H.SPECIES[sid] or ("Species " .. tostring
 --   login (false: create offline), debug (false: debug log off),
 --   patch (function(env, c): change the stub API before the addon loads),
 --   rank (guild rank index: 0 guild master, 1 officer, default 3 member),
---   oldTemplates (the client lacks the modern frame templates)
+--   oldTemplates (the client lacks the modern frame templates),
+--   fixture (function(ns, c): change the addon's data after its files load, before ADDON_LOADED,
+--   at every login; see Client:Fixture)
 function World:AddClient(name, opts)
     opts = opts or {}
     assert(not self.byName[name], "duplicate client " .. name)
@@ -753,6 +773,7 @@ function World:AddClient(name, opts)
         pets = {}, errors = {}, printed = {},
         state = { stand = 0, auras = {}, instance = "none" },
         idx = #self.clients + 1, patch = opts.patch, rank = opts.rank or 3, oldTemplates = opts.oldTemplates,
+        fixtures = { opts.fixture },
     }, Client)
     if opts.debug ~= false then c.saved.DyreparkenDebugDB = { enabled = true } end
     for _, sid in ipairs(opts.pets or { 5159 }) do c:GivePet(sid) end
@@ -844,6 +865,7 @@ function Client:Login()
     self.ns.Config.BOND_EPOCH = self.world.epoch or (1790000000 - 1000 * 86400)
     -- Bonds shipped as the world starts: its adoptions are new (a test moves it to have them seeded).
     self.ns.Config.BONDS_SHIPPED = self.world.bondsShipped or 1790000000
+    for _, fn in ipairs(self.fixtures) do fn(self.ns, self) end
     self:Fire("ADDON_LOADED", ADDON)
     self:Fire("PLAYER_LOGIN")
     self:Fire("PLAYER_ENTERING_WORLD", true, false)
@@ -917,6 +939,95 @@ function H.Invariants(c)
         end
     end
     return out
+end
+
+-- A change to the addon's data that holds for this client from now on, across reloads:
+-- run now (when online) and at every login, after the addon's files load and before
+-- ADDON_LOADED. For data, not behavior: stub APIs with opts.patch.
+function Client:Fixture(fn)
+    self.fixtures[#self.fixtures + 1] = fn
+    if self.online then fn(self.ns, self) end
+end
+
+local function Copy(t)
+    if type(t) ~= "table" then return t end
+    local out = {}
+    for k, v in pairs(t) do out[Copy(k)] = Copy(v) end
+    return out
+end
+
+-- The journal's species (Data/Companions.lua) replaced by these: { [sid] = { a = counts, t = tags } }
+-- (a fresh copy at each login). H.COMPANIONS is the usual set.
+function Client:Companions(species)
+    self:Fixture(function(ns) ns.Companions = { build = 1, species = Copy(species) } end)
+end
+H.COMPANIONS = {
+    [40] = { a = true, t = { "cat" } }, [41] = { a = true, t = { "cat" } },
+    [42] = { a = true, t = { "cat" } }, [46] = { a = true, t = { "cat" } },
+    [7] = { a = true, t = { "farm", "bird" } }, [84] = { a = true, t = { "farm", "bird" } },
+    [68] = { a = true, t = { "owl", "bird" } }, [72] = { a = true, t = { "rabbit" } },
+    [90] = { a = true, t = { "bird", "pirate" } },
+    [5159] = { a = false }, -- promo: in the total, not in achievements
+    [2001] = { a = true }, [2002] = { a = true }, [2003] = { a = true }, -- filler: 15 counting pets
+    [2004] = { a = true }, [2005] = { a = true }, [2006] = { a = true },
+}
+
+-- Pin a species' traits (ids, at most two) instead of Data/Traits.lua's; sid nil: every
+-- species. Personality's own rules still run (Known, likes from the traits...).
+-- c:Traits(nil) puts the real pins back.
+function Client:Traits(ids, sid)
+    if not self.traitFn then
+        self.traitFn = function(ns, c)
+            local real, pins = ns.TraitPins or {}, c.traitPins
+            if not pins then ns.Personality.PINNED = real; return end
+            local out = setmetatable({}, { __index = function(_, k) return pins.all or real[k] end })
+            for k, v in pairs(pins) do if k ~= "all" then out[k] = v end end
+            ns.Personality.PINNED = out
+        end
+        self.fixtures[#self.fixtures + 1] = self.traitFn
+    end
+    if ids == nil then
+        self.traitPins = nil
+    else
+        self.traitPins = self.traitPins or {}
+        self.traitPins[sid or "all"] = ids
+    end
+    if self.online then self.traitFn(self.ns, self) end
+end
+
+-- Chat lines said by now: the pending timers run first (a quirk line waits a moment).
+function Client:Said(text) self.world:RunTimers(); return self:Printed(text, true) end
+-- How many printed lines hold this text (plain), the pending timers run first.
+function Client:CountPrinted(text)
+    self.world:RunTimers()
+    local n = 0
+    for _, l in ipairs(self.printed) do if l:find(text, 1, true) then n = n + 1 end end
+    return n
+end
+-- A carer's bond points with a pet (default: this client's own), 0 for none.
+function Client:Points(key, who)
+    local e = self.ns.Registry:Life(key, who or self.name)
+    return e and e.p or 0
+end
+
+-- Pin every chance the addon rolls (ns.random, Core/Init.lua): a roll without arguments
+-- gives `roll` (default 0: every chance comes up), a pick from n gives the `pick`th (default 1,
+-- kept within n: the first line). Call again to change them mid-test.
+function Client:Dice(roll, pick)
+    roll, pick = roll or 0, pick or 1
+    self.ns.random = function(a, b)
+        if not a then return roll end
+        local lo, hi = b and a or 1, b or a
+        return math.max(lo, math.min(hi, lo + pick - 1))
+    end
+end
+
+-- Quirk lines at once: every delay tier (read from the real table, so a new one is
+-- covered) at zero, and no line said yet in the last 45 minutes.
+function Client:QuirksNow()
+    local Q = self.ns.Quirks
+    for k in pairs(Q.DELAY) do Q.DELAY[k] = { 0, 0 } end
+    self.ns.DB.char.quirkAt = nil
 end
 
 -- Chat lines the addon printed for this client (color codes stripped).

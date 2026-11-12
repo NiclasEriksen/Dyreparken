@@ -70,6 +70,10 @@ and refuses the push if it fails.
 - Stubs must behave like the real client (docs/FOREVER_API.md). Unknown frame methods and unknown events throw
   on purpose, and reads of globals the stubs lack are reported (`01_core.lua`). When the addon starts using
   a new API, stub it realistically in `Client:BuildEnv`.
+- Pin a test's world with the harness, never by replacing addon functions: `c:Traits{...}`, `c:Companions(...)`,
+  `c:Fixture(fn)` (all survive `c:Reload()`), `c:Dice(roll, pick)` for every chance (the addon rolls only through
+  `ns.random`), `c:QuirksNow()`, `w:SetDate(y, m, d, h)`. Tests run on Europe/Oslo time whatever the host's (run.lua).
+- After every test the runner also fails it for a stray global or a printed `{placeholder}` (`H.Invariants`).
 - Before relying on a new test, make sure it can fail: break the code it covers once and watch it go red.
 - **Games (`Games/`) are the exception, for now.** That part is meant to stay dynamic and change shape quickly,
   so it has no coverage floor and only light tests (`10_games.lua`). They pin what must never break: UI changes

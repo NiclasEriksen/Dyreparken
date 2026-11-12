@@ -18,8 +18,8 @@ return function(test, H)
         end }
         ola:Slash("adopter panda"); w:Run(5)
         local Q = ola.ns.Quirks
-        Q.random = function(n) return n and 1 or 0 end -- (every chance comes up, the first line)
-        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 }, now = { 0, 0 }, day = { 0, 0 } }
+        ola:Dice(0) -- (every chance comes up, the first line)
+        ola:QuirksNow()
         return w, ola, ola.ns.Feats
     end
     local function Learn(w, ola, id)
@@ -141,7 +141,7 @@ return function(test, H)
         local Q = ola.ns.Quirks
         eq(Q.CAKE_CHANCE[10] < Q.CAKE_CHANCE[50], true)
         -- A chance that doesn't come up at 10, and does at 50.
-        Q.random = function(n) return n and 1 or 0.3 end
+        ola:Dice(0.3)
         ola:Fire("PLAYER_LEVEL_UP", 10); w:Run(1)
         eq(ola.ns.DB.char.eggs.kake, nil, "20% at level 10: not this time")
         ola:Fire("PLAYER_LEVEL_UP", 50); w:Run(1)

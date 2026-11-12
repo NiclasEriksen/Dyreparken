@@ -24,8 +24,8 @@ return function(test, H)
         for i = 2, members or 5 do names[i] = "Member " .. i end
         w:SetGroup(names)
         local Q = ola.ns.Quirks
-        Q.random = function(n) return n and 1 or 0 end -- (every chance comes up)
-        Q.DELAY = { dislike = { 0, 0 }, egg = { 0, 0 }, now = { 0, 0 }, day = { 0, 0 } }
+        ola:Dice(0) -- (every chance comes up)
+        ola:QuirksNow()
         return w, ola, meter
     end
     local function Kill(w, ola, boss)

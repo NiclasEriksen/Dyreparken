@@ -67,7 +67,7 @@ return function(test, H)
 
     test("a guildmate's BOND message doesn't start the pet's hop over", function()
         local w, ola = H.Setup{ ola = { 5159 }, journal = true }
-        w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 14 }) - w:ServerTime())
+        w:SetDate(2027, 3, 2, 14)
         ola:SelectPet(5159)
         local actor = ola.petActor
         ola.ns.Cuddle:Pet(ola:Card())
@@ -84,7 +84,7 @@ return function(test, H)
     test("a closed card holds no pose: a model loading there isn't laid down again", function()
         local w, ola = H.Setup{ ola = { 5159 }, journal = true }
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
-        w:Skip(os.time({ year = 2027, month = 3, day = 2, hour = 23 }) - w:ServerTime())
+        w:SetDate(2027, 3, 2, 23)
         ola:SelectPet(5159)
         local actor = ola.petActor
         w:Run(ola.ns.Moves.SLEEP_AFTER + 1.21)
@@ -132,23 +132,23 @@ return function(test, H)
     local function Quirky()
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 40 } })
-        ola.ns.Companions = { build = 1, species = { [40] = { a = true, t = { "cat" } } } }
-        ola.ns.Personality.PINNED = { [40] = { "glupsk", "rampete" } }
+        ola:Companions{ [40] = { a = true, t = { "cat" } } }
+        ola:Traits({ "glupsk", "rampete" }, 40)
         w:Settle("hello")
         ola:Slash("debug off")
         ola:Slash("adopter bombay")
         w:Run(40)
-        ola.ns.Quirks.random = function(n) return n and 1 or 0 end
+        ola:Dice(0)
         return w, ola
     end
 
     test("a /reload before an easter egg's line is said spends nothing: it comes again", function()
         local w, ola = Quirky()
-        w:Skip(os.time({ year = 2027, month = 12, day = 24, hour = 12 }) - w:ServerTime())
+        w:SetDate(2027, 12, 24, 12)
         ola.ns.Activity:Emit("day")
         eq(ola.ns.DB.char.eggs.jul, nil, "decided, not said yet")
         ola:Reload()
-        ola.ns.Quirks.random = function(n) return n and 1 or 0 end
+        ola:Dice(0)
         ola.ns.Activity:Emit("day")
         w:Run(25)
         ok(ola:Printed("jul", true) or ola:Printed("Jul", true), "said this time")
@@ -269,7 +269,7 @@ return function(test, H)
             local species = { [40] = { a = true, t = { "cat" } }, [41] = { a = true, t = { "cat" } },
                 [42] = { a = true, t = { "cat" } }, [46] = { a = true, t = { "cat" } }, [5159] = { a = false } }
             for sid = 2001, 2011 do species[sid] = { a = true } end
-            c.ns.Companions = { build = 1, species = species }
+            c:Companions(species)
             return c
         end
         local w, ola = H.Setup{ ola = { pets = { 40, 41, 42 } }, kari = {}, each = Fix, settle = "hello" }
