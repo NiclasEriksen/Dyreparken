@@ -214,11 +214,32 @@ return function(test, H)
         -- A wipe isn't a kill, and a boss without a name isn't a first.
         ola:Fire("ENCOUNTER_END", 2, "Van Cleef", 1, 5, 0)
         ok(not ola:Printed("Van Cleef", true))
-        -- A new place: its name in the line.
+        -- A new place: now and then a moment (2026-11-12), here pinned to come, in the family's own words
+        -- (the panda is a bear).
+        local B = ola.ns.Bond
+        B.random = function() return 0 end
         ola.state.map, ola.state.zone = 1454, "Orgrimmar"
         ola:Fire("ZONE_CHANGED_NEW_AREA")
         w:Run(6)
-        ok(ola:Printed("Panda Cub så Orgrimmar for første gang!", true))
+        ok(ola:Printed("Panda Cub rusler gjennom Orgrimmar på jakt etter noe godt å spise.", true))
+        -- Not this time: the first's points all the same, without a line (the user, 2026-11-12).
+        B.random = function() return 0.99 end
+        start = Pts()
+        ola.state.map, ola.state.zone = 1453, "Stormwind City"
+        ola:Fire("ZONE_CHANGED_NEW_AREA")
+        w:Run(6)
+        no(ola:Printed("Stormwind City", true))
+        eq(Pts() - start, 1 + 5, "the place's everyday point and the first's 5, quietly")
+        -- The chance: the family's, times the traits'.
+        eq(B:PlaceChance(PANDA), B.PLACE_CHANCE.bear * 1)
+        local P2 = ola.ns.Personality
+        local traits = P2.Traits
+        P2.Traits = function() return { P2.ById("oppdager"), P2.ById("latsabb") } end
+        eq(B:PlaceChance(PANDA), B.PLACE_CHANCE.bear * 2 * 0.6)
+        P2.Traits = function() return { P2.ById("oppdager"), P2.ById("eventyrlysten") } end
+        eq(B:PlaceChance(PANDA), math.min(B.PLACE_MAX, B.PLACE_CHANCE.bear * 2 * 1.3))
+        P2.Traits = traits
+        B.random = function() return 0 end
         -- At most three lines a day per pet; the points go on.
         for i = 1, 4 do ola:Fire("ENCOUNTER_END", 10 + i, "Boss " .. i, 1, 5, 1) end
         ok(ola:Printed("Boss 1", true)); no(ola:Printed("Boss 2", true), "two firsts already today")

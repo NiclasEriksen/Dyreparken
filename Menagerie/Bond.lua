@@ -309,13 +309,14 @@ end
 local function Flavor(d, key, text)
     if d.flavor or not text then return end
     d.flavor = true
-    ns.Bus:Fire("BOND_LINE", key, text)
+    ns.Bus:Fire("BOND_LINE", key, text, "like")
 end
 
 -- The rewards beyond activities, each a line and points (Config names: read
 -- when given, so a tunable change applies at once). once: at most one a day
 -- per pet. lines: at most that many lines a day per pet (the points go on).
 -- cap: at most that many points a day per pet from it (the lines go on).
+-- kind: how the pet frame shows its line (PET_SAID, Bonds.lua: "like" unless said; "major" for the big ones).
 -- beyond: past the day's limit (BOND_DAILY_MAX), and not counted in it: a feat (2026-11-12, the user:
 -- "major feats should not count towards the daily limit, they're supposed to be huge bonuses"; one on a
 -- full day was lost for good). Still within the wire's cap (Bond:Add, Registry.LifeCap: the days so far
@@ -324,11 +325,11 @@ end
 Bond.REWARDS = {
     -- today's wish done. once here too: Wish.lua starts a fresh wish when you adopt the
     -- pet again the same day, and it paid twice (code review 2026-11-11).
-    wish = { points = "BOND_WISH_POINTS", once = true },
+    wish = { points = "BOND_WISH_POINTS", once = true, kind = "major" },
     first = { points = "BOND_FIRST_POINTS", lines = "FIRST_LINES", cap = "BOND_FIRST_CAP" }, -- a first together
     play = { points = "BOND_PLAY_POINTS", once = true }, -- a playdate (Playdate.lua)
     contest = { points = "BOND_CONTEST_POINTS", once = true }, -- fishing in the Sunday contest (Bond:Contest)
-    feat = { points = "BOND_FEAT_POINTS", beyond = true }, -- a feat (Feats.lua): once per character already, so not once a day
+    feat = { points = "BOND_FEAT_POINTS", beyond = true, kind = "major" }, -- a feat (Feats.lua): once per character already, so not once a day
 }
 
 -- A pet that likes fishing, out while you fish in Stranglethorn on the fishing contest's day
@@ -342,15 +343,18 @@ function Bond:Contest(key)
 end
 
 -- A reward for a pet: its line, then its points within the day's limit and
--- at the pet's rate. False if a once-a-day one was had today.
+-- at the pet's rate. False if a once-a-day one was had today. text false: the
+-- points without a line (a new place most of the time); not counted in `lines`.
 function Bond:Reward(kind, key, text)
     local def = assert(self.REWARDS[kind], "undeclared reward")
     local d = Ledger(key)
     d.had = d.had or {}
     local n = (d.had[kind] or 0) + 1
     if def.once and n > 1 then return false end
-    d.had[kind] = n
-    if not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text) end
+    if text then
+        d.had[kind] = n
+        if not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text, def.kind or "like") end
+    end
     ns.Log("Bond", "reward %s for %s", kind, key)
     local points = math.ceil(ns.Config[def.points] * self:Rate(key))
     if def.beyond then self:Add(points, key); return true end
@@ -443,6 +447,37 @@ end
 -- boss falls, or sees a given place (Activity: "explore" fires only for a
 -- place new to that pet), it gets BOND_FIRST_POINTS and a line, at most
 -- FIRST_LINES lines a day per pet (the points go on: REWARDS.first).
+-- A new place becomes a moment by chance: the pet's first family's (else DEFAULT), times its traits'.
+Bond.PLACE_CHANCE = {
+    DEFAULT = 0.3,
+    bird = 0.5, owl = 0.45, dragon = 0.45, wolf = 0.45, pirate = 0.45, rodent = 0.4, spirit = 0.4,
+    rabbit = 0.35, murloc = 0.35, bear = 0.35, frog = 0.3, bug = 0.3, mechanical = 0.3, demon = 0.3, festive = 0.3,
+    farm = 0.25, cat = 0.25, reptile = 0.25, snake = 0.2, ooze = 0.2, plant = 0.2,
+}
+Bond.PLACE_TRAITS = { oppdager = 2, eventyrlysten = 1.3, friluftsdyr = 1.3, skybaren = 1.3, latsabb = 0.6, hjemlengsel = 0.5 }
+Bond.PLACE_MAX = 0.9
+Bond.PLACE_OWN = 0.5 -- the chance a family's own line is picked (when it has some), else a general one
+
+function Bond:PlaceChance(key)
+    local family = ns.Scenes:Families(key)[1]
+    local p = self.PLACE_CHANCE[family] or self.PLACE_CHANCE.DEFAULT
+    for _, t in ipairs(ns.Personality:Traits(key)) do p = p * (self.PLACE_TRAITS[t.id] or 1) end
+    return math.min(p, self.PLACE_MAX)
+end
+
+-- Its line: a family's own now and then (first.place.<family>.N), else a general one (first.place.N).
+local function Variants(prefix)
+    local list = {}
+    while ns.Strings[prefix .. "." .. (#list + 1)] do list[#list + 1] = prefix .. "." .. (#list + 1) end
+    return list
+end
+function Bond:PlaceLine(key, place)
+    local family = ns.Scenes:Families(key)[1]
+    local own = family and Variants("first.place." .. family) or {}
+    local list = (#own > 0 and Bond.random() < self.PLACE_OWN) and own or Variants("first.place")
+    return ns.T(list[math.random(#list)], { pet = ns.Registry:NameOf(key), place = place })
+end
+
 function Bond:First(id, key, extra)
     local text
     if id == "boss" and type(extra) == "string" and extra ~= "" and extra ~= "?" then
@@ -454,9 +489,12 @@ function Bond:First(id, key, extra)
         text = ns.T("first.boss", { pet = ns.Registry:NameOf(key), boss = extra })
         if Count(firsts[key]) == 1 then ns.Story:Mine(key, "first.boss", extra) end -- (its very first)
     elseif id == "explore" and type(extra) == "string" then
-        text = ns.T("first.place", { pet = ns.Registry:NameOf(key), place = extra })
         -- Its very first new place: the second it has seen with you (the first is where it came out).
         if Count(ns.DB.char.places[key]) == 2 then ns.Story:Mine(key, "first.place", extra) end
+        -- Its line only now and then (2026-11-12, the user: every new place read like an achievement, as if
+        -- the pet should see them all; "we could still award exploration points, just not output it to chat
+        -- every time"): by chance, likelier for a curious family and trait. The points come either way.
+        text = Bond.random() < self:PlaceChance(key) and self:PlaceLine(key, extra) or false
     else
         return
     end
