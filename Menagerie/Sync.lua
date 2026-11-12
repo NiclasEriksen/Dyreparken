@@ -39,10 +39,10 @@ local LibDeflate = LibStub("LibDeflate")
 local pending -- the scheduled SYNC broadcast, if any
 local lastSent -- GetTime() of our last SYNC
 
--- At most one SYNC of ours per this many seconds. Normally a round or two
+-- At most one SYNC of ours per Config.SYNC_GAP seconds. Normally a round or two
 -- settles everything; this caps the cost if something never settles (a
 -- bug, or a peer that refuses what we keep).
-local SYNC_GAP = 30
+local C = ns.Config
 
 -- Every store the sync carries, one row each. Digest, SendFull, TooBig and
 -- MergeAll only loop over this (until 2026-11-12 each listed the stores by
@@ -119,19 +119,19 @@ local function SendFull()
     end
 end
 
--- However often others' SYNCs hold ours back (below), it goes out this many
--- seconds after it was first scheduled: parts anyone can send, rising and
--- starting over, held it forever (code review 2026-11-11). A real SYNC of a
--- big guild takes well under this; past it, two SYNCs at once only cost traffic.
-local MAX_HOLD = 120
+-- However often others' SYNCs hold ours back (below), it goes out
+-- Config.SYNC_MAX_HOLD seconds after it was first scheduled: parts anyone can
+-- send, rising and starting over, held it forever (code review 2026-11-11). A
+-- real SYNC of a big guild takes well under this; past it, two SYNCs at once
+-- only cost traffic.
 local deadline -- GetTime() by which the pending SYNC goes out
 
 local function Later(delay)
     local token = {}
-    if not pending then deadline = GetTime() + MAX_HOLD end
+    if not pending then deadline = GetTime() + C.SYNC_MAX_HOLD end
     pending = token
     delay = math.max(0, math.min(delay, deadline - GetTime()))
-    if lastSent then delay = math.max(delay, lastSent + SYNC_GAP - GetTime()) end
+    if lastSent then delay = math.max(delay, lastSent + C.SYNC_GAP - GetTime()) end
     C_Timer.After(delay, function()
         if pending == token then SendFull() end
     end)
@@ -146,23 +146,22 @@ end
 -- say it all). Comes back to it if that SYNC never finishes arriving.
 -- Once per SYNC of ours: a chunk that starts and never finishes (anyone can
 -- send one) held it back again every time (code review 2026-11-10).
-local HOLD = 30
+-- (For Config.SYNC_HOLD seconds.)
 local held
 local function Hold()
     if pending and pending ~= held then
-        Later(HOLD)
+        Later(C.SYNC_HOLD)
         held = pending
     end
 end
 
 -- Ask the guild for bonds with a pet (its card is showing): once per pet a
--- session, and not while flicking through pets (one ask per ASK_GAP).
+-- session, and not while flicking through pets (one ask per Config.BOND_ASK_GAP).
 local asked, lastAsk = {}, nil
-local ASK_GAP = 1.5
 function Sync:AskBonds(key)
     if not key or asked[key] or not IsInGuild() then return end
     local now = GetTime()
-    if lastAsk and now - lastAsk < ASK_GAP then return end
+    if lastAsk and now - lastAsk < C.BOND_ASK_GAP then return end
     asked[key], lastAsk = true, now
     ns.Comm:Send("BOND_REQ", { pet = key }, "GUILD")
 end
@@ -182,17 +181,16 @@ local progress = {} -- sender -> the last part (i) of their SYNC on its way
 -- BOND_REQ answers: once per pet every few seconds (Comm:MayReply) let one
 -- member asking about many pets in a loop fill our outbox, a minute and more
 -- ahead of our own UPD (code review 2026-11-11). So each asker gets at most
--- BOND_ANSWERS a minute (a card asks once per pet a session; a bond answered
+-- Config.BOND_ANSWERS a minute (a card asks once per pet a session; a bond answered
 -- late is fine, by design), and none while the outbox already has a queue.
-local BOND_ANSWERS, BOND_WINDOW, BOND_BACKLOG = 10, 60, 2
 local budget = {} -- asker -> { n = answers, at = GetTime() the window began }
 local function AnswerBudget(asker)
     local now, b = GetTime(), budget[asker]
-    if not b or now - b.at >= BOND_WINDOW then
+    if not b or now - b.at >= C.BOND_ANSWER_WINDOW then
         b = { n = 0, at = now }
         budget[asker] = b
     end
-    if b.n >= BOND_ANSWERS then return false end
+    if b.n >= C.BOND_ANSWERS then return false end
     b.n = b.n + 1
     return true
 end
@@ -275,7 +273,7 @@ function Sync:Init()
             -- ours forever (code review 2026-11-11).
             if i > (progress[sender] or 0) then
                 progress[sender] = i
-                if pending then Later(HOLD) end
+                if pending then Later(C.SYNC_HOLD) end
             end
             return
         end
@@ -318,7 +316,7 @@ function Sync:Init()
     end, "GUILD", { pet = "key", e = "table" })
     ns.Comm:Register("BOND_REQ", function(msg, sender, channel)
         local e = ns.Registry:Life(msg.pet, ns.PlayerKey())
-        if not e or ns.Comm:Backlog() > BOND_BACKLOG then return end
+        if not e or ns.Comm:Backlog() > C.BOND_ANSWER_BACKLOG then return end
         if ns.Comm:MayReply("BOND:" .. msg.pet, channel) and AnswerBudget(sender) then
             ns.Comm:Send("BOND", { pet = msg.pet, e = e }, "GUILD")
         end

@@ -233,6 +233,20 @@ ns.Config = {
     SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole
     NAMES_PER_MEMBER = 50,        -- nickname entries kept per namer, and ...
     LIFE_PER_MEMBER = 400,        -- ... bond entries per carer: past that the oldest go (Registry: Trim)
+    -- Sync's timings (Sync.lua says why each is what it is). Local: peers don't need to agree on them.
+    SYNC_GAP = 30,                -- seconds between two SYNCs of ours, at least
+    SYNC_HOLD = 30,               -- seconds ours waits for someone else's SYNC that started arriving
+    SYNC_MAX_HOLD = 120,          -- ... and however often it's held, it goes this long after it was scheduled
+    BOND_ASK_GAP = 1.5,           -- seconds between two BOND_REQs of ours (flicking through cards)
+    BOND_ANSWERS = 10,            -- BOND answers one asker gets from us ...
+    BOND_ANSWER_WINDOW = 60,      -- ... per this many seconds ...
+    BOND_ANSWER_BACKLOG = 2,      -- ... and none while our outbox has more chunks than this
+    COMM_BURST = 8,               -- chunks the outbox sends at once, of the server's 10 (Comm.lua)
+    REPLY_GAP = 5,                -- seconds between two answers to a request anyone can send, per channel
+    ROSTER_INTERVAL = 300,        -- seconds between two roster requests (Guild.lua), unless forced
+    ROSTER_TIMEOUT = 15,          -- seconds to wait for the server's roster before reading the cached one
+    ACH_NOTICE_MAX = 20,          -- achievement ids read from one ACH_EARNED; more than any real batch
+    ACH_HEARD_MAX = 500,          -- others' achievements remembered as told (the oldest go first)
     DEBUG_RING_SIZE = 8000,       -- lines kept in DyreparkenDebugDB (a long play session's worth: 2026-11-11)
     COMM_PREFIX = "Dyreparken",   -- max 16 characters
 }

@@ -3,7 +3,7 @@ local _, ns = ...
 -- Guild roster snapshot, for "has this owner left / gone inactive?".
 --
 -- The roster is requested only when we need it (login, journal opened),
--- at most once per ROSTER_INTERVAL, and we listen to GUILD_ROSTER_UPDATE only
+-- at most once per Config.ROSTER_INTERVAL, and we listen to GUILD_ROSTER_UPDATE only
 -- while waiting for the answer: that event fires a lot in busy guilds.
 --
 -- Guild.members[name] = days offline (0 = online or seen today).
@@ -16,7 +16,6 @@ local _, ns = ...
 local Guild = { members = {}, complete = false, at = 0 }
 ns.Guild = Guild
 
-local ROSTER_INTERVAL = 300 -- seconds
 local waiting
 
 -- stale: the server didn't answer our request, so this is whatever the
@@ -44,7 +43,7 @@ end
 
 function Guild:Refresh(force)
     if not IsInGuild() or waiting then return end
-    if not force and ns.Now() - self.at < ROSTER_INTERVAL then return end
+    if not force and ns.Now() - self.at < ns.Config.ROSTER_INTERVAL then return end
     waiting = true
     ns.Events:On("GUILD_ROSTER_UPDATE", Guild, function()
         ns.Events:Off("GUILD_ROSTER_UPDATE", Guild)
@@ -53,7 +52,7 @@ function Guild:Refresh(force)
     end)
     C_GuildInfo.GuildRoster()
     -- If the server ignores the request (it's throttled), don't wait forever.
-    C_Timer.After(15, function()
+    C_Timer.After(ns.Config.ROSTER_TIMEOUT, function()
         if waiting then
             ns.Events:Off("GUILD_ROSTER_UPDATE", Guild)
             waiting = false

@@ -15,7 +15,7 @@ local _, ns = ...
 -- FIFO here: two messages sent side by side would interleave and spoil each
 -- other.
 --
--- Pacing: the outbox spends from its own bucket of BURST and waits for
+-- Pacing: the outbox spends from its own bucket of Config.COMM_BURST and waits for
 -- refills with one C_Timer, so it's idle when there's nothing to send. If
 -- the server still says "throttled" (another addon on our prefix? never
 -- seen), the chunk stays first in line and waits a second.
@@ -45,7 +45,7 @@ local LibDeflate = LibStub("LibDeflate")
 local PREFIX = ns.Config.COMM_PREFIX
 local CHUNK = 254 -- 255 minus the header byte
 
-local BURST = 8           -- of the server's 10, leaving room for slack
+local BURST = ns.Config.COMM_BURST
 local REFILL = 1          -- per second, like the server
 -- What peers accept (Wire.LIMITS): MAX_PARTS chunks per incoming message
 -- (16 KB), and MAX_RAW bytes it may unpack to. 16 KB of deflated text is at
@@ -98,14 +98,13 @@ local function Queue(text, channel, target, cb, kind)
 end
 
 -- Requests anyone can send (VER_REQ, PET_REQ) are answered at most once per
--- channel every REPLY_GAP seconds: a member sending them in a loop must not
+-- channel every Config.REPLY_GAP seconds: a member sending them in a loop must not
 -- fill everyone's outbox. A second asker within the gap usually heard our
 -- first answer anyway (answers go to the whole channel).
-local REPLY_GAP = 5
 local replied = {} -- kind .. channel -> GetTime()
 function Comm:MayReply(kind, channel)
     local key, now = kind .. "\31" .. tostring(channel), GetTime()
-    if replied[key] and now - replied[key] < REPLY_GAP then return false end
+    if replied[key] and now - replied[key] < ns.Config.REPLY_GAP then return false end
     replied[key] = now
     return true
 end

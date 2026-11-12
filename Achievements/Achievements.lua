@@ -50,7 +50,7 @@ local Ach = {}
 ns.Achievements = Ach
 
 local DAY = 86400
-local NOTICE_MAX = 20 -- ids per ACH_EARNED; more than any real batch
+
 -- Guild records of ids we don't know (a newer version's, or junk) we store
 -- at most Wire.LIMITS.GUILD_UNKNOWN_MAX. Ours are always stored: there are only as many
 -- as Defs.lua has.
@@ -571,8 +571,7 @@ end
 
 -- Others' achievements we've told about, so one isn't told twice: a crash
 -- loses the earner's record of it, and they earn it again (code review
--- 2026-11-10). Each is earned once, so the oldest go past HEARD_MAX.
-local HEARD_MAX = 500
+-- 2026-11-10). Each is earned once, so the oldest go past Config.ACH_HEARD_MAX.
 local function Heard(sender, id)
     local heard = ns.DB.global.achHeard
     local k = sender .. "\31" .. id
@@ -583,13 +582,13 @@ local function Heard(sender, id)
         n = n + 1
         if not at or t < at then oldest, at = key, t end
     end
-    if n > HEARD_MAX then heard[oldest] = nil end
+    if n > ns.Config.ACH_HEARD_MAX then heard[oldest] = nil end
     return false
 end
 
 local function OnEarned(msg, sender, channel)
     local ids = {}
-    for i = 1, math.min(#msg.a, NOTICE_MAX) do
+    for i = 1, math.min(#msg.a, ns.Config.ACH_NOTICE_MAX) do
         local id = msg.a[i]
         -- Unknown ids come from newer versions: skip them, show the rest.
         if type(id) == "string" and defsById[id] and not Heard(sender, id) then ids[#ids + 1] = id end
