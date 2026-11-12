@@ -259,10 +259,7 @@ function Summon:Watch()
     if want == watching then return end
     watching = want
     if not want then
-        for _, e in ipairs({ "PLAYER_ENTERING_WORLD", "PLAYER_REGEN_ENABLED", "PLAYER_MOUNT_DISPLAY_CHANGED",
-            "PLAYER_ALIVE", "PLAYER_UNGHOST", "PLAYER_DEAD" }) do
-            ns.Events:Off(e, Summon)
-        end
+        ns.Events:OffAll(Summon)
         return
     end
     -- After a loading screen the summon can fail: give the world a moment. The game

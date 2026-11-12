@@ -111,4 +111,21 @@ return function(test, H)
         b:Set(3000, 2250, 2250, gold)
         eq(b:GetValue(), 2250)
     end)
+
+    test("Events:OffAll takes every event of one owner off, and only that owner's; the frame lets go of them", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local E, a, b = ola.ns.Events, {}, {}
+        local got = {}
+        E:On("PET_BATTLE_OPENING_START", a, function() got[#got + 1] = "a1" end)
+        E:On("PET_BATTLE_CLOSE", a, function() got[#got + 1] = "a2" end)
+        E:On("PET_BATTLE_CLOSE", b, function() got[#got + 1] = "b" end)
+        E:OffAll(a)
+        ola:Fire("PET_BATTLE_OPENING_START"); ola:Fire("PET_BATTLE_CLOSE")
+        eq(table.concat(got, " "), "b")
+        local held = 0
+        for _, f in ipairs(ola.frames) do if f.events.PET_BATTLE_OPENING_START then held = held + 1 end end
+        eq(held, 0, "nobody listens: unregistered")
+        E:OffAll(b); E:OffAll({}) -- (nothing left; an owner with none)
+        for _, f in ipairs(ola.frames) do no(f.events.PET_BATTLE_CLOSE) end
+    end)
 end

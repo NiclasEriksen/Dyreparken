@@ -136,8 +136,7 @@ function Fight:Watch(on)
         ns.Events:On("PLAYER_REGEN_DISABLED", Fight, function() Fight:Start() end)
         ns.Events:On("PLAYER_REGEN_ENABLED", Fight, function() Fight:Stop() end)
     else
-        ns.Events:Off("PLAYER_REGEN_DISABLED", Fight)
-        ns.Events:Off("PLAYER_REGEN_ENABLED", Fight)
+        ns.Events:OffAll(Fight)
         self:Stop()
     end
 end

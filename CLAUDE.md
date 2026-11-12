@@ -127,7 +127,7 @@ Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" 
                    after Init and Wire. Code never holds player text: add a key here and use ns.L[key] / ns.T(key, vars).
                    Developer output (/dp probe, /dp debug, the log) stays English in the code.
 Core/Debug.lua     ns.Log(module, fmt, ...) → SavedVariables ring buffer; no-op when off
-Core/Events.lua    single event frame, On/Off, OutOfCombat queue
+Core/Events.lua    single event frame, On/Off/OffAll(owner), OutOfCombat queue
 Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() registry
 Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (not ChatThrottleLib), Register(kind, fn, from, fields)
                    ("GUILD"/"GROUP": other channels never reach fn; fields: { name = Wire.CHECKS name }, a malformed

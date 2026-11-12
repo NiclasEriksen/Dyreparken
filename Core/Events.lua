@@ -62,6 +62,15 @@ function Events:Off(event, owner)
     end
 end
 
+-- Every event this owner listens to, off: a module going dormant needn't list them again.
+function Events:OffAll(owner)
+    local events = {}
+    for event, list in pairs(handlers) do
+        if list[owner] ~= nil then events[#events + 1] = event end
+    end
+    for _, event in ipairs(events) do self:Off(event, owner) end
+end
+
 -- Run fn once, now if out of combat, else right after combat ends.
 local afterCombat = {}
 function Events:OutOfCombat(fn)

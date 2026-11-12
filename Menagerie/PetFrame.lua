@@ -581,10 +581,8 @@ function PF:Off()
     if not self.on and not self.frame then return end
     self.on = nil
     if ns.Fight then ns.Fight:Watch(false) end
-    for _, e in ipairs({ "COMPANION_UPDATE", "PLAYER_ENTERING_WORLD", "PET_BATTLE_OPENING_START", "PET_BATTLE_CLOSE" }) do
-        ns.Events:Off(e, PF)
-    end
-    self:Combat()
+    ns.Events:OffAll(PF)
+    self:Combat() -- (its flags: the combat events went with the rest)
     if self.frame then
         self.stage:Update(self.frame, nil)
         self.frame:Hide()
