@@ -151,7 +151,7 @@ return function(test, H)
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil
         ola.env.PetJournal_UpdatePetCard(c)
-        no(ola.ns.JournalUI._card.sky:IsShown())
+        no(ola:Card().sky:IsShown())
     end)
 
     test("/dp probe decor: decoration art that exists, one slot at a time, picked per slot", function()

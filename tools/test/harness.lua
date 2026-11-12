@@ -1373,10 +1373,10 @@ function Client:SelectPet(sid, byPetID)
     self.cardSpecies = sid
     if byPetID then card.speciesID, card.petID = nil, self:GuidOf(sid) else card.speciesID, card.petID = sid, nil end
     self.env.PetJournal_UpdatePetCard(card)
-    return self.ns.JournalUI._card
+    return self.ns.JournalUI:Card()
 end
 
-function Client:Card() return self.ns.JournalUI._card end
+function Client:Card() return self.ns.JournalUI:Card() end
 
 -- The last StaticPopup shown; Accept types `text` into its edit box.
 function Client:PopupAccept(text, viaEnter)

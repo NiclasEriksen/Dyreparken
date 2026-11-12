@@ -25,7 +25,9 @@ local JournalUI = {}
 ns.JournalUI = JournalUI
 
 local card = {}  -- our widgets on the pet card
-JournalUI._card = card -- for tools/smoke.lua
+-- Our widgets on the card, for the modules that draw on it outside its update
+-- (Story, BondTrack's previews, the editors and probes) and the tests.
+function JournalUI:Card() return card end
 
 ------------------------------------------------------------------------------
 -- Pet card

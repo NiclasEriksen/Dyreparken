@@ -163,7 +163,7 @@ end
 
 -- After new entries: the card's button (a first entry shows it) and an open panel.
 function Story:Changed()
-    local card = ns.JournalUI and ns.JournalUI._card
+    local card = ns.JournalUI and ns.JournalUI:Card()
     if card and card.story and card.key then card.story:SetShown(self:Of(card.key) ~= nil) end
     self:Redraw()
 end

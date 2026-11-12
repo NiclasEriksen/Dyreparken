@@ -151,7 +151,7 @@ function Editor:Open()
     end
     ns.Moves:SetLiftEditing(true)
     -- Start at the pet on the card, if it's one of them.
-    local card = ns.JournalUI._card
+    local card = ns.JournalUI:Card()
     local at = 1
     local sid = card and card.key and ns.Pets:SpeciesOfKey(card.key)
     for i, s in ipairs(self.list) do if s == sid then at = i end end

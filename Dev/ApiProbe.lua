@@ -385,7 +385,7 @@ function S.card(out)
         end
         out.actorState = state
     end
-    out.key = ns.JournalUI and ns.JournalUI._card and ns.JournalUI._card.key
+    out.key = ns.JournalUI and ns.JournalUI:Card().key
     return ("card %s, scene %s, actor %s"):format(card and "yes" or "no", scene and "yes" or "no", actor and "yes" or "no")
 end
 
@@ -425,7 +425,7 @@ end
 Api.ANIM_MAX = 1500
 Api.TIME_OUT = 6
 function S.model(out)
-    local key = ns.JournalUI and ns.JournalUI._card and ns.JournalUI._card.key
+    local key = ns.JournalUI and ns.JournalUI:Card().key
     local sid = key and ns.Pets:SpeciesOfKey(key)
     if not sid then return "open a pet's card first" end
     local info = Pack(pcall(C_PetJournal.GetPetInfoBySpeciesID, sid))

@@ -7,7 +7,7 @@ local Track = ns.BondTrack
 -- /dp probe gains [n n ...]: the gains animation on the card's pet as if these
 -- were gained since the last look (development; saves nothing).
 function Track:PreviewGains(arg)
-    local card = ns.JournalUI._card
+    local card = ns.JournalUI:Card()
     if not (card and card.key and card.bond and card.bond:IsShown()) then
         return ns.Print("Open a pet's card with a bond bar first.")
     end
@@ -23,7 +23,7 @@ end
 
 -- /dp probe celebrate: the celebration on the card as it is (development).
 function Track:Preview()
-    local card = ns.JournalUI._card
+    local card = ns.JournalUI:Card()
     if not (card and card.key and card.celebration) then
         return ns.Print("Open the pet card first.")
     end

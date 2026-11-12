@@ -274,7 +274,7 @@ return function(test, H)
         local card = ola:SelectPet(5159)
         eq(card.today.text, ola.ns.Registry:Nickname(pick))
         match(card.today.text, "^Stjerne")
-        eq(ola.ns.JournalUI._card.todayBox.tip, ("Dagens dyr: %s, som bor hos %s.\n|cffa0a0a0Klikk for å se det.|r")
+        eq(ola:Card().todayBox.tip, ("Dagens dyr: %s, som bor hos %s.\n|cffa0a0a0Klikk for å se det.|r")
             :format(card.today.text, owner))
     end)
 end

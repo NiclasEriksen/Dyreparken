@@ -286,7 +286,7 @@ function Editor:Open()
     self.list = List()
     self:Prune()
     ns.Moves:SetEditing(true)
-    local card = ns.JournalUI._card
+    local card = ns.JournalUI:Card()
     local sid = card and card.key and ns.Pets:SpeciesOfKey(card.key)
     local at = 1
     for i, s in ipairs(self.list) do if s == sid then at = i end end
