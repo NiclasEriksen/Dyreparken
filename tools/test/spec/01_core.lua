@@ -275,7 +275,7 @@ return function(test, H)
         } }
         c:Login()
         local db = c.env.DyreparkenDB
-        eq(db.schema, 11)
+        eq(db.schema, c.ns.DB.SCHEMA)
         ok(db.guilds.Dyreparken and db.guilds.Dyreparken.claims and db.guilds.Dyreparken.lapses)
         no(db.guilds.Dyreparken.pets, "old shape dropped")
         ok(db.guilds["Annet Laug"].claims)
@@ -288,9 +288,18 @@ return function(test, H)
         local d = w:AddClient("Kari Berg", { login = false })
         d.saved.DyreparkenDB = { schema = 0, junk = true }
         d:Login()
-        eq(d.env.DyreparkenDB.schema, 11)
-        no(d.env.DyreparkenDB.junk, "unmigratable data is wiped")
-        eq(#d:Log("no migration 0%->1, resetting"), 1)
+        eq(d.env.DyreparkenDB.schema, 0, "a schema with no step stays where it is")
+        eq(d.env.DyreparkenDB.junk, true, "and its data is kept, never wiped")
+        eq(#d:Log("no migration 0%->1, kept as it is"), 1)
+    end)
+
+    test("every schema has its migration step, with no gaps", function()
+        local w, c = H.Setup{ ola = {}, settle = "hello" }
+        local DB = c.ns.DB
+        for n = 2, DB.SCHEMA do ok(type(DB.MIGRATIONS[n]) == "function", "account migration " .. n) end
+        for n = 2, DB.CHAR_SCHEMA do ok(type(DB.CHAR_MIGRATIONS[n]) == "function", "char migration " .. n) end
+        for n in pairs(DB.MIGRATIONS) do ok(n >= 2 and n <= DB.SCHEMA, "no step past SCHEMA: " .. n) end
+        for n in pairs(DB.CHAR_MIGRATIONS) do ok(n >= 2 and n <= DB.CHAR_SCHEMA, "no char step past CHAR_SCHEMA: " .. n) end
     end)
 
     test("reservations and settings survive a reload", function()
@@ -313,13 +322,9 @@ return function(test, H)
         c:Hover({ species = 5159, owner = "Ola Nord" })
         c:Slash("liste")
         w:Run(5)
-        local allowed = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true,
-            SLASH_DYREPARKEN1 = true, SLASH_DYREPARKEN2 = true, LibStub = true }
+        -- (Every test is checked for these after it runs: H.Invariants. Here, a broad tour.)
+        local allowed, optional = H.ALLOWED_GLOBALS, H.OPTIONAL_GLOBALS
         for k in pairs(c.newGlobals) do ok(allowed[k], "unexpected global written: " .. tostring(k)) end
-        -- Optional APIs the addon checks for before using them.
-        local optional = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true, -- first login
-            GetAddOnMetadata = true, ScrollUtil = true, SendAddonMessage = true,
-            RegisterAddonMessagePrefix = true, io = true --[[ LibDeflate's command line mode ]] }
         for k in pairs(c.missingGlobals) do ok(optional[k], "read of a global the stubs lack: " .. tostring(k)) end
     end)
 
@@ -348,6 +353,20 @@ return function(test, H)
             if not hello and l:find("%-> HELLO") then hello = i end
         end
         ok(check and hello and check < hello, "the login check, then HELLO")
+    end)
+
+    test("start-up: one module's error is reported and the rest of its phase still starts", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { pets = { 5159 } })
+        local after
+        c.ns.Start("settled", function() error("boom") end)
+        c.ns.Start("settled", function() after = true end)
+        w:Run(12)
+        ok(after, "the next module started")
+        local errs = c:TakeErrors()
+        eq(#errs, 1)
+        match(tostring(errs[1]), "boom")
+        eq(#c:Log("%-> HELLO"), 1, "and the next phase ran too")
     end)
 
     test("a release has only the players' commands, in Norwegian; a git checkout has the developer ones", function()

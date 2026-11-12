@@ -133,8 +133,14 @@ function ns.Start(phase, fn)
     list[#list + 1] = fn
 end
 
+-- One module's error (a new client build without an API it uses, say) is reported
+-- and the rest of the phase still starts: Sync and Achievements shouldn't stop
+-- for a card decoration.
 function ns.RunPhase(phase)
-    for _, fn in ipairs(starts[phase]) do fn() end
+    for _, fn in ipairs(starts[phase]) do
+        local ok, err = pcall(fn)
+        if not ok then geterrorhandler()(err) end
+    end
 end
 
 -- fn once, delay seconds after the first call of a burst: the calls that

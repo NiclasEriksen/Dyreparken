@@ -11,12 +11,15 @@ local _, ns = ...
 -- Migrations run once, in order, at ADDON_LOADED. Never edit an old
 -- migration after it has shipped.
 --
--- Until 0.1.0 we allow breaking changes: a schema we can't migrate is wiped.
+-- A schema with no migration step is kept as it is, never wiped (it was wiped
+-- until 0.1.0, which would now throw away every guild's registry for one
+-- missing step); the tests check the steps have no gaps.
 local DB = {}
 ns.DB = DB
 
 local SCHEMA = 11
 local CHAR_SCHEMA = 2
+DB.SCHEMA, DB.CHAR_SCHEMA = SCHEMA, CHAR_SCHEMA
 
 local ACCOUNT_DEFAULTS = {
     guilds = {}, -- [guildName] = GUILD_DEFAULTS' shape
@@ -199,6 +202,7 @@ local MIGRATIONS = {
         end
     end,
 }
+DB.MIGRATIONS = MIGRATIONS
 local CHAR_MIGRATIONS = {
     -- 2 (2026-11-12, the user): "Kjenner deg ut og inn" (dislikes) now counts the minor like and dislike
     -- too (Personality: unlocked at bond levels 4 and 6), so it was earned too early: taken back. Its
@@ -218,14 +222,14 @@ local function ApplyDefaults(t, defaults)
     end
 end
 
+DB.CHAR_MIGRATIONS = CHAR_MIGRATIONS
+
 local function Migrate(db, target, migrations, label)
     db.schema = db.schema or target
     while db.schema < target do
         local step = migrations[db.schema + 1]
         if not step then
-            ns.Log("DB", "%s: no migration %d->%d, resetting", label, db.schema, db.schema + 1)
-            wipe(db)
-            db.schema = target
+            ns.Log("DB", "%s: no migration %d->%d, kept as it is", label, db.schema, db.schema + 1)
             break
         end
         step(db)
