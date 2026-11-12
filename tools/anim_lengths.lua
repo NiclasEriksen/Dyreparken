@@ -1,5 +1,7 @@
 -- Writes Data/AnimLengths.lua from a /dp probe api lengths run:
 --   luajit tools/anim_lengths.lua [path to SavedVariables/Dyreparken.lua]
+-- Merged (2026-11-12): the species the run measured are written anew, every other line in the file is kept,
+-- so a run of only the new or changed species (the probe's default) is enough.
 -- (default: the NIKKERN account's). Keeps a species' one-off lengths that differ from its
 -- Stand's (an id the model lacks plays Stand instead, and that length means nothing); those,
 -- and "none" (no end within the probe's time-out: a loop or a held pose), are written as
@@ -16,29 +18,53 @@ for line in io.lines("Data/Companions.lua") do
     if sid then names[tonumber(sid)] = name end
 end
 
-local ids = {}
-for sid in pairs(data) do ids[#ids + 1] = sid end
-table.sort(ids)
-local lines, kept, dropped = {}, 0, 0
-for _, sid in ipairs(ids) do
-    local own = data[sid]
-    local stand = type(own[0]) == "number" and own[0] or nil -- ("none": a Stand that loops without an end)
-    local parts = {}
-    local anims = {}
-    for id, len in pairs(own) do if type(id) == "number" and id ~= 0 then anims[#anims + 1] = id end end
+-- What the file has now: kept for every species this run didn't measure.
+local old = {}
+if io.open("Data/AnimLengths.lua") then
+    local ns = {}
+    assert(loadfile("Data/AnimLengths.lua"))("Dyreparken", ns)
+    old = ns.AnimLengths or {}
+end
+local function Format(t)
+    local anims, parts = {}, {}
+    for id in pairs(t) do anims[#anims + 1] = id end
     table.sort(anims)
     for _, id in ipairs(anims) do
-        local len = own[id]
-        if type(len) == "number" and len > 0.05 and not (stand and math.abs(len - stand) < 0.02) then
-            parts[#parts + 1] = ("[%d] = %.2f"):format(id, len)
-            kept = kept + 1
-        else
-            parts[#parts + 1] = ("[%d] = false"):format(id)
-            dropped = dropped + 1
-        end
+        local len = t[id]
+        parts[#parts + 1] = len and ("[%d] = %.2f"):format(id, len) or ("[%d] = false"):format(id)
     end
-    if #parts > 0 then
-        lines[#lines + 1] = ("    [%d] = { %s },  -- %s"):format(sid, table.concat(parts, ", "), names[sid] or "?")
+    return parts
+end
+
+local ids, seen = {}, {}
+for sid in pairs(data) do ids[#ids + 1] = sid; seen[sid] = true end
+for sid in pairs(old) do if not seen[sid] then ids[#ids + 1] = sid end end
+table.sort(ids)
+local lines, kept, dropped, merged = {}, 0, 0, 0
+for _, sid in ipairs(ids) do
+    local own = data[sid]
+    if not own then -- (not in this run: as the file had it)
+        merged = merged + 1
+        lines[#lines + 1] = ("    [%d] = { %s },  -- %s"):format(sid, table.concat(Format(old[sid]), ", "), names[sid] or "?")
+    else
+        local stand = type(own[0]) == "number" and own[0] or nil -- ("none": a Stand that loops without an end)
+        local parts = {}
+        local anims = {}
+        for id, len in pairs(own) do if type(id) == "number" and id ~= 0 then anims[#anims + 1] = id end end
+        table.sort(anims)
+        for _, id in ipairs(anims) do
+            local len = own[id]
+            if type(len) == "number" and len > 0.05 and not (stand and math.abs(len - stand) < 0.02) then
+                parts[#parts + 1] = ("[%d] = %.2f"):format(id, len)
+                kept = kept + 1
+            else
+                parts[#parts + 1] = ("[%d] = false"):format(id)
+                dropped = dropped + 1
+            end
+        end
+        if #parts > 0 then
+            lines[#lines + 1] = ("    [%d] = { %s },  -- %s"):format(sid, table.concat(parts, ", "), names[sid] or "?")
+        end
     end
 end
 
@@ -53,4 +79,5 @@ f:write([[local _, ns = ...
 ns.AnimLengths = {
 ]] .. table.concat(lines, "\n") .. (#lines > 0 and "\n" or "") .. "}\n")
 f:close()
-print(("Data/AnimLengths.lua: %d species, %d lengths, %d false (none, or Stand's)"):format(#lines, kept, dropped))
+print(("Data/AnimLengths.lua: %d species (%d measured now, %d kept as they were), %d lengths, %d false (none, or Stand's)")
+    :format(#lines, #lines - merged, merged, kept, dropped))

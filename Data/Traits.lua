@@ -57,6 +57,7 @@ ns.TraitPins = {
     [341] = { "festglad", "nattugle" }, -- Lunar Lantern
     [342] = { "festglad", "flokkdyr" }, -- Festival Lantern
     [1563] = { "ambisios", "oppdager" }, -- Bronze Whelpling
+    [1927] = { "jeger", "vinterpels" }, -- White Tiger Cub
     [4180] = { "vinterpels", "einstoing" }, -- Arctic Hare
     [5004] = { "friluftsdyr", "glupsk" }, -- Prairie Chicken
     [5005] = { "dansefot", "skybaren" }, -- Musical Gustjumper

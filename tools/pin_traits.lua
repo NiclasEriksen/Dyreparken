@@ -81,8 +81,10 @@ local out = { [[local _, ns = ...
 
 -- Every species' two personality traits (Menagerie/Personality.lua), pinned:
 -- a species keeps them for good, whatever traits are added later (decided
--- 2026-11-08). New species are added by tools/pin_traits.lua, which never
--- changes a line that's here. Edit a line by hand to change a species.
+-- 2026-11-08). Reworked once, 2026-11-12 (the user), with the new traits, for
+-- every species nobody in the guild had adopted. New species are added by
+-- tools/pin_traits.lua, which never changes a line that's here. Edit a line by
+-- hand to change a species.
 ns.TraitPins = {
 ]] }
 for _, sid in ipairs(ids) do

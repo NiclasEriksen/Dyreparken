@@ -128,7 +128,8 @@ Core/ApiProbe.lua  /dp probe api [section|clear]: what the client really has (gl
                    holidays (the calendar a year ahead), lengths (every species' moves, DyreparkenDebugDB.animLengths)
                    and feats (Feats' spell and quest ids as the client has them, Forever's copies among your completed
                    quests, talent/spec getters; then logs the candidate talent, spec and trainer events this session)
-Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
+Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git; a new companion:
+                   tools/companions/add.py, see "Adding a companion" in tools/companions/README.md): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/PetMoves.lua  which animation each pet uses for each reaction on the card (sleep, sit, happy, cheer, dead): a
                    default and per-species overrides, EDITED BY HAND by the user (found by eye, /dp probe anim)
@@ -204,7 +205,9 @@ Achievements/      Defs (ids, kinds;
                    docs/PET_LIFE.md.
 Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble, confetti, note, paw, leaf, moon, snowflake, ring, rays,
                    and since 2026-11-09 feather, ember, gear, wisp, coin, grain, seed, clover, zee, speech, crumb, cloud,
-                   pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home; cake, Cake.lua):
+                   pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home; cake, Cake.lua;
+                   since 2026-11-12 the pet frame's bubbles speechblank, thought, shout and rain, the families' yarn
+                   (cats), petal (plants), shell (murlocs), and the traits' banana, mask, sun, badge):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history
@@ -241,7 +244,7 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   per kind (was 5) and 10 in all; a trait's moment at most 10 a day (was 25). Unchanged: the day 10, likes 5 each
   (25 a day), wish 10, playdate 15, and the 75 a day (BOND_DAILY_MAX feeds validation). Likes are what fill a day.
 - **Data pass** (2026-11-10, with the user): every journal pet tagged and its source checked (tools/companions:
-  tags.csv, curation.csv; 76 of 87 count toward achievements since 2026-11-12; three species hidden from the journal added by hand: Spectral Bear Cub (Legacy Track, counts), Bronze Whelpling and Mini Uber Diablo (source unknown)). Two new families, `bear` (Panda Cub) and
+  tags.csv, curation.csv; 77 of 88 count toward achievements since 2026-11-12; four species hidden from the journal added by hand: Spectral Bear Cub (Legacy Track, counts), White Tiger Cub (the Black Market, counts; 2026-11-12), Bronze Whelpling and Mini Uber Diablo (source unknown)). Two new families, `bear` (Panda Cub) and
   `reptile` (Baby Crocolisk, Speedy). The Zergling is a demon. Limited pets count (2026-11-12, the user: "as
   long as it was never impossible to get"; until then they didn't): the store pack pets (Panda Cub, Mini Diablo,
   Zergling, Pachimari: Skyborne Epic Pack or Warcraft Forever Collection) and Azurky; the Musical Gustjumper is

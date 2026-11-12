@@ -953,7 +953,8 @@ return function(test, H)
             end
         end
         table.sort(missing)
-        eq(table.concat(missing, ", "), "", "moves without a length: rerun /dp probe api lengths, then tools/anim_lengths.lua")
+        eq(table.concat(missing, ", "), "", "moves without a length: in game /dp probe api lengths (only these), /reload, "
+            .. "then luajit tools/anim_lengths.lua")
     end)
 
     test("/dp probe moves: picks the file has caught up with are dropped when it opens; Jump? per pet", function()

@@ -59,6 +59,7 @@ ns.Companions = {
         [341] = { a = true, t = { "event", "lantern" } }, -- Lunar Lantern
         [342] = { a = true, t = { "event", "lantern" } }, -- Festival Lantern
         [1563] = { a = false, t = { "dragon" } }, -- Bronze Whelpling
+        [1927] = { a = true, t = { "cat" } }, -- White Tiger Cub
         [4180] = { a = true, t = { "rabbit" } }, -- Arctic Hare
         [5004] = { a = true, t = { "bird", "chicken", "farm" } }, -- Prairie Chicken
         [5005] = { a = true, t = { "frog" } }, -- Musical Gustjumper

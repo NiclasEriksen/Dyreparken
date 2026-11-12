@@ -557,11 +557,23 @@ end
 -- time. Each is timed twice (the first may be cut short by the stand it interrupts); the second counts.
 Api.WORKERS, Api.LOAD_WAIT = 6, 2
 Api.PARTS = { "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "sleep", "dead" }
-function S.lengths(out)
+-- arg (2026-11-12, the user: "running the lengths probe for all animals when we add a single new one"):
+-- none: only the species with a move unmeasured (Moves:Unmeasured: a new companion, or a move changed in
+-- Data/PetMoves.lua); "all": every species; species ids: those. Each run saves only what it measured (a
+-- leftover run, older than the file, once overwrote it: 2026-11-12); tools/anim_lengths.lua merges that
+-- into Data/AnimLengths.lua and keeps the rest.
+function S.lengths(out, arg)
     local queue = {}
-    for sid in pairs(ns.Companions.species) do queue[#queue + 1] = sid end
+    if arg == "all" then
+        for sid in pairs(ns.Companions.species) do queue[#queue + 1] = sid end
+    elseif arg then
+        for id in arg:gmatch("%d+") do queue[#queue + 1] = tonumber(id) end
+    else
+        queue = ns.Moves:Unmeasured()
+    end
     table.sort(queue)
     local total = #queue
+    if total == 0 then return "every species is measured: nothing to do (all: every species anew)" end
     local saved = {}
     DyreparkenDebugDB.animLengths = saved
     out.species, out.done = #queue, 0
@@ -1040,13 +1052,16 @@ function Api:Run(arg)
     local db = DyreparkenDebugDB.api or {}
     DyreparkenDebugDB.api = db
     db.at, db.build = date("%Y-%m-%d %H:%M"), Try(GetBuildInfo)
-    local list = arg and { arg } or self.ORDER
+    -- "<section> [its argument]": a section by name may take one (lengths: all, or species ids).
+    local word, rest = (arg or ""):match("^(%S*)%s*(.-)$")
+    local list = word ~= "" and { word } or self.ORDER
+    rest = rest ~= "" and rest or nil
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths, petframe, meter, feats)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, species)") end
         local out = {}
         db[name] = out
-        local ok, summary = pcall(fn, out)
+        local ok, summary = pcall(fn, out, rest)
         summary = ok and summary or ("failed: " .. tostring(summary))
         ns.Log("Api", "%s: %s", name, tostring(summary))
         ns.Print(("api probe %s: %s"):format(name, tostring(summary)))

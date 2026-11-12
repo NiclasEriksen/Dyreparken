@@ -256,6 +256,7 @@ return function(test, H)
         for _, e in pairs(sp) do if e.a then n = n + 1 end end
         ok(sp[5005].a, "the Musical Gustjumper: /sing to a frog on Zephras Isle")
         ok(sp[5122].a, "the Spectral Bear Cub: the Legacy Track"); no(sp[1563].a); no(sp[5008].a)
-        eq(n, 76)
+        ok(sp[1927].a, "the White Tiger Cub: the Black Market (2026-11-12)")
+        ok(n >= 77, "most of them (77 on 2026-11-12; more as companions are added)")
     end)
 end

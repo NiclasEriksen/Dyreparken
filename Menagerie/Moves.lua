@@ -370,6 +370,27 @@ function Moves:Length(key, id, fallback)
     return own and id and own[id] or fallback
 end
 
+-- The species with a one-off move not measured in Data/AnimLengths.lua (a new companion, or a move changed
+-- in Data/PetMoves.lua): what /dp probe api lengths times by default (2026-11-12). A sit move counts only
+-- for a pet that can sit. Sorted ids.
+Moves.MEASURED = { "happy", "happyToo", "cheer", "sleepUp", "sitDown", "sitUp", "dead" }
+function Moves:Unmeasured()
+    local list = {}
+    for sid in pairs(ns.Companions and ns.Companions.species or {}) do
+        local key, own = ns.Pets:KeyOfSpecies(sid), ns.AnimLengths and ns.AnimLengths[sid]
+        for _, what in ipairs(self.MEASURED) do
+            local id = self:For(key, what)
+            if id and id ~= 0 and (what:sub(1, 3) ~= "sit" or self:For(key, "canSit") ~= false)
+                and not (own and own[id] ~= nil) then
+                list[#list + 1] = sid
+                break
+            end
+        end
+    end
+    table.sort(list)
+    return list
+end
+
 -- The animation a pet uses for a reaction (Data/PetMoves.lua, edited by
 -- hand): its species' own, else the default; nil when it doesn't do it.
 function Moves:For(key, what)

@@ -55,6 +55,7 @@ ns.UnlockPins = {
     [341] = { "camp", "dive" }, -- Lunar Lantern
     [342] = { "camp", "dive" }, -- Festival Lantern
     [1563] = { "mine", "fish" }, -- Bronze Whelpling
+    [1927] = { "nap", "chat" }, -- White Tiger Cub
     [4180] = { "meet", "taxi" }, -- Arctic Hare
     [5004] = { "hearth", "boss" }, -- Prairie Chicken
     [5005] = { "chat", "boss" }, -- Musical Gustjumper

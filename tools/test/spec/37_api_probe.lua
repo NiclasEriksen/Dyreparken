@@ -121,21 +121,53 @@ return function(test, H)
         return made
     end
 
-    test("lengths: every species' one-offs timed on a few models at once, saved for tools/anim_lengths.lua", function()
+    test("lengths all: every species' one-offs timed on a few models at once, saved for tools/anim_lengths.lua", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         local made = Models(ola)
-        ola:Slash("probe api lengths")
+        local species = 0
+        for _ in pairs(ola.ns.Companions.species) do species = species + 1 end
+        ola:Slash("probe api lengths all")
         eq(#made, 6, "six at a time")
         w:Run(900)
         local saved = ola.env.DyreparkenDebugDB.animLengths
         local n = 0
         for _ in pairs(saved) do n = n + 1 end
-        eq(n, 87, "every species")
+        eq(n, species, "every species")
         eq(saved[5159][0], 2, "Stand, to tell a missing one by")
         eq(saved[5159][756], 1.2)
         eq(saved[40][99], "none", "the cats' lie-down: no end")
         ok(made[1].hidden, "hidden when done")
-        match(ola:Printed("api probe", true), "lengths done, 87 species")
+        match(ola:Printed("api probe", true), "lengths done, " .. species .. " species")
+    end)
+
+    test("lengths: only the species with a move unmeasured (a new companion), added to the last run; or ids", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        Models(ola)
+        local M = ola.ns.Moves
+        ola.ns.AnimLengths[40] = nil -- (as if the Bombay were new)
+        local missing = M:Unmeasured()
+        ok(#missing >= 1)
+        local has40 = false
+        for _, sid in ipairs(missing) do if sid == 40 then has40 = true end end
+        ok(has40, "the Bombay, unmeasured")
+        ola.env.DyreparkenDebugDB.animLengths = { [5159] = { [0] = 2 } } -- (an earlier run's)
+        ola:Slash("probe api lengths")
+        w:Run(300)
+        local saved = ola.env.DyreparkenDebugDB.animLengths
+        ok(saved[40] and saved[40][0], "measured")
+        eq(saved[5159], nil, "only this run's: an earlier one's would overwrite newer lines in the file")
+        eq(saved[5160], nil, "a measured species left alone")
+        match(ola:Printed("api probe", true), "lengths done, " .. #missing .. " species")
+        -- By id.
+        ola.env.DyreparkenDebugDB.animLengths = nil
+        ola:Slash("probe api lengths 5160 46")
+        w:Run(120)
+        saved = ola.env.DyreparkenDebugDB.animLengths
+        ok(saved[5160] and saved[46]); eq(saved[40], nil)
+        -- Nothing to do.
+        ola.ns.Moves.Unmeasured = function() return {} end
+        ola:Slash("probe api lengths")
+        match(ola:Printed("api probe lengths", true), "nothing to do")
     end)
 
     test("holidays: the calendar stepped through a year, each holiday once with its days, and put back", function()
