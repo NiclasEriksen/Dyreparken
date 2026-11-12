@@ -799,7 +799,7 @@ function Moves.NewStage(name, opts)
         end)
     end
 
-    -- A card widget (JournalUI's WIDGETS): the pet's pose, once per pet shown.
+    -- A card widget (the card's widgets (ns.Card)): the pet's pose, once per pet shown.
     function stage:Update(card, key)
         -- The pet's moves turned off (Settings: cardMoves): it just stands, on its shadow.
         if key and not ns.Settings:On("cardMoves") then

@@ -274,6 +274,10 @@ This is the payoff for "easier to add pets, traits and eggs".
 - **Phase 4a, done**: Moves.Plan (Rest, Hold, Pose, Settle, Cuddle, Cheer, Jump, Try, Sulk...) builds every
   step list, pure; the stages only play plans. A trace of every actor call over the whole suite was
   byte-identical before and after. Planner tests in 32_moves check plans without timers.
+- **Phase 4b-1, done**: ns.Card (one registration per widget: build, update, pause, stop or `still`;
+  one OnHide; fixes B14), ns.Timers (PetFrame, BondTrack), ns.BondBar (card and pet frame, no fake card),
+  Events:OffAll, REGISTRY carries the pets whose bonds alone changed (JournalUI redraws only those; the
+  park ignores bond-only changes). Left: Moves' own timer guards (its own consolidated helper), PetFrame's Zzz chain.
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
   lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client
