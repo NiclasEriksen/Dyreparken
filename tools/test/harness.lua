@@ -49,7 +49,7 @@ for e in ([[ADDON_LOADED PLAYER_LOGIN PLAYER_LOGOUT PLAYER_ENTERING_WORLD PLAYER
     CHAT_MSG_TEXT_EMOTE CHAT_MSG_SKILL CHAT_MSG_COMBAT_FACTION_CHANGE
     NAME_PLATE_UNIT_ADDED NAME_PLATE_UNIT_REMOVED FORBIDDEN_NAME_PLATE_UNIT_ADDED
     PLAYER_STARTED_MOVING PLAYER_STOPPED_MOVING CHAT_MSG_EMOTE PLAYER_CONTROL_GAINED
-    CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE PET_BATTLE_OPENING_START PET_BATTLE_CLOSE]]):gmatch("%S+") do
+    SPELLS_CHANGED ACTIVE_TALENT_GROUP_CHANGED TRAIT_CONFIG_UPDATED PLAYER_INTERACTION_MANAGER_FRAME_SHOW CHAT_MSG_SYSTEM CHAT_MSG_LOOT UI_ERROR_MESSAGE LOOT_OPENED UPDATE_SHAPESHIFT_FORM CALENDAR_UPDATE_EVENT_LIST UI_INFO_MESSAGE PET_BATTLE_OPENING_START PET_BATTLE_CLOSE]]):gmatch("%S+") do
     KNOWN_EVENTS[e] = true
 end
 
@@ -1410,11 +1410,14 @@ function Client:BuildEnv()
     env.LOOT_ROLL_ROLLED_GREED = "|HlootHistory:%d|h[Loot]|h: Greed Roll - %d for %s by %s"
     env.LOOT_ROLL_ROLLED_DE = "Disenchant Roll - %d for %s by %s"
     env.LOOT_ITEM_SELF = "You receive loot: %s"
+    env.LOOT_ITEM_PUSHED_SELF = "You receive item: %s"
     env.LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
     env.ERR_FISH_ESCAPED = "Your fish got away!"
     env.DUEL_WINNER_KNOCKOUT = "%1$s has defeated %2$s in a duel" -- (Forever's, /dp probe api 2026-11-11)
     env.DUEL_WINNER_RETREAT = "%2$s has fled from %1$s in a duel"
     env.ERR_NEWTAXIPATH = "New flight path discovered!"
+    env.ERR_LEARN_SPELL_S = "You have learned a new spell: %s."
+    env.ERR_LEARN_ABILITY_S = "You have learned a new ability: %s."
     env.ERR_FISH_NOT_HOOKED = "No fish are hooked."
     -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
     env.C_Map = {
@@ -1436,6 +1439,35 @@ function Client:BuildEnv()
         return true
     end
     env.C_Spell = { GetSpellName = function(id) return S.spellNames and S.spellNames[id] end }
+    -- Spells the character knows (S.spells: id -> true; c:Learn), talents unspent (S.unspent), quests.
+    env.IsPlayerSpell = function(id) return S.spells ~= nil and S.spells[id] == true end
+    env.IsSpellKnown = function(id) return S.spells ~= nil and S.spells[id] == true end
+    env.GetNumUnspentTalents = function() return S.unspent or 0 end
+    env.C_Item = { GetItemCount = function(id) return S.items and S.items[id] or 0 end } -- (S.items: id -> count in the bags)
+    -- Talents as on Forever (retail's system, Classic trees): S.config the active loadout's id,
+    -- S.talents { [nodeID] = rank } its ranks, in one tree.
+    env.C_ClassTalents = { GetActiveConfigID = function() return S.config end }
+    env.C_Traits = {
+        GetConfigInfo = function(id) return id == S.config and { ID = id, treeIDs = { 1 } } or nil end,
+        GetTreeNodes = function()
+            local nodes = {}
+            for node in pairs(S.talents or {}) do nodes[#nodes + 1] = node end
+            table.sort(nodes)
+            return nodes
+        end,
+        GetNodeInfo = function(_, node) return { ID = node, activeRank = (S.talents or {})[node] or 0 } end,
+    }
+    env.C_QuestLog = {
+        GetTitleForQuestID = function(id) return S.questTitles and S.questTitles[id] end,
+        IsQuestFlaggedCompleted = function(id) return S.questsDone ~= nil and S.questsDone[id] == true end,
+        RequestLoadQuestByID = function(id) S.questsAsked = (S.questsAsked or 0) + 1 end,
+        GetAllCompletedQuestIDs = function()
+            local ids = {}
+            for id in pairs(S.questsDone or {}) do ids[#ids + 1] = id end
+            table.sort(ids)
+            return ids
+        end,
+    }
     -- The calendar (as on Forever, /dp probe api 2026-11-11): its events load a second after
     -- OpenCalendar. S.holidays: "YYYYMMDD" -> { event ids }; S.calendarMonth: the month it shows
     -- ({ month, year }; default this one).
@@ -1653,6 +1685,7 @@ function Client:BuildEnv()
         SendAddonMessageResult = { Success = 0, AddonMessageThrottle = 3, NotInGroup = 5, AddOnMessageLockdown = 11 },
         TooltipDataType = { Unit = 2 },
         UITextureSliceMode = { Stretched = 0, Tiled = 1 },
+        PlayerInteractionType = { Merchant = 5, Trainer = 7 }, -- (Trainer 7 on Forever: /dp probe api feats)
     }
 
     -- Units (companions in the world)

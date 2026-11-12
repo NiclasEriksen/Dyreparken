@@ -63,6 +63,7 @@ Menagerie\Wish.lua
 Menagerie\Playdate.lua
 Menagerie\Quirks.lua
 Menagerie\Fx.lua
+Menagerie\Feats.lua
 
 Achievements\Defs.lua
 Achievements\Achievements.lua

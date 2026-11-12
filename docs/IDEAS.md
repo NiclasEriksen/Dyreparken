@@ -302,3 +302,55 @@ The user's rules:
   Damage counts in dungeons (confirmed 2026-11-12). Shelved for later (the user, 2026-11-12).
 - A reaction to a good result (first place in damage or healing; maybe interrupts, dispels, no deaths), more
   likely after a raid boss kill and a very good result.
+
+# Class milestones, trainers, respecs and dual spec (0.5; the user, 2026-11-12)
+
+**Built 2026-11-12** (Menagerie/Feats.lua, tools/test/spec/41_feats.lua), with the user's additions: level 60 is a
+feat (points and its own egg, egg.maks), the tenth levels 10-50 an egg by a chance that grows (Quirks.CAKE_CHANCE,
+20% to 80%), and learning to ride a feat with a 60% egg (egg.ridning). Verify with `/dp probe api feats` (read-only:
+which spell ids the client names, quest titles, Forever's copies among the character's completed quests; then it
+logs the candidate events this session). The first run (2026-11-12, docs/FOREVER_API.md) confirmed every
+class spell id and both riding systems, and showed retail's talent system: a reset is now ranks taken back in one
+applied change (TRAIT_CONFIG_UPDATED), the trainer its window (interaction type 7). Still unverified: those two in
+action, the learned-spell lines in system chat, and Forever's quest copies (titles are asked for now).
+
+The user's rules: a class milestone (a major class quest's reward) gives **25 bond points**, only with a pet out,
+once per character; a trainer visit, a talent reset and a dual-spec switch are **flavor only** (Quirks lines, no
+points). No probe for now (the user can't reset talents, switch spec or visit a trainer for a while), so everything
+is built on signals the client is known to have, and each part degrades to "never fires" if a guess is wrong.
+
+What's known (the /dp probe api dump of 2026-11-11, and the debug log):
+- Events the client has: `QUEST_TURNED_IN` (questID plain, in use), `SPELLS_CHANGED`, `ACTIVE_TALENT_GROUP_CHANGED`,
+  `PLAYER_SPECIALIZATION_CHANGED`, `PLAYER_INTERACTION_MANAGER_FRAME_SHOW`, `CHAT_MSG_SYSTEM`. `LEARNED_SPELL_IN_TAB`
+  is unknown (retail renamed it). Candidates never probed: `LEARNED_SPELL_IN_SKILL_LINE`, `CHARACTER_POINTS_CHANGED`,
+  `PLAYER_TALENT_UPDATE`, `TRAIT_CONFIG_UPDATED`, `CONFIRM_TALENT_WIPE`.
+- Functions: `IsPlayerSpell`, `IsSpellKnown`, `GetNumUnspentTalents`, `C_QuestLog.IsQuestFlaggedCompleted`,
+  `GetAllCompletedQuestIDs`, `GetTitleForQuestID`. Not there: `UnitCharacterPoints`, `GetTalentInfo`,
+  `GetActiveTalentGroup`, `GetItemCount`.
+- Strings: `ERR_LEARN_SPELL_S` "You have learned a new spell: %s.", `ERR_LEARN_ABILITY_S` "... a new ability: %s.".
+- Quest IDs are Classic's (189, 582, 596... in the log); Forever's new race/class pairings get copies of the class
+  chains with the same names and new IDs (94xxx-98xxx: Dwarf Shaman Call of Earth 94375, Horde Paladin Redemption
+  94441, Skyborne Druid Bear Form 94638), and new chains (Druid Cat Form at 20; Horde Paladin The Moonsilver Blade
+  95126). Talents (web, unofficial sites): Classic trees, respec at the class trainer, dual spec from level 40.
+
+The plan:
+- **Milestones by the spell they teach** (Activity source `milestone`, extra: its id): on `SPELLS_CHANGED`, out of
+  combat, `IsPlayerSpell` over a short list; a spell known at login (the first look) is no milestone, so nothing
+  floods in for a character who did them before installing. This covers every race's copy of a chain without
+  their quest IDs. Classic spell IDs, from memory, to check on Wowhead (a wrong one only never fires):
+  Defensive Stance 71, Berserker Stance 2458; Redemption 7328 (seen on Forever's quest 94441), Summon Charger 23214;
+  Tame Beast 1515; Poisons 2842; Summon Voidwalker 697, Succubus 712, Felhunter 691, Inferno 1122, Ritual of Doom
+  18540, Summon Dreadsteed 23161; Bear Form 5487, Aquatic Form 1066, Cat Form 768 (Forever's quest).
+- **Milestones by quest ID**, for rewards that are items: the four totems (Call of Earth 1518/1521/94375, Fire 1527,
+  Water 220, Air 1531, plus Forever's copies when found), Whirlwind Weapon 1792, The Test of Righteousness 1806,
+  Mage's Wand 1952, The Orb of Soran'ruk 1740, Stave of the Ancients 7636 (Rhok'delar), The Balance of Light and
+  Shadow 7622 (Benediction), The Moonsilver Blade 95126. Forever IDs found later are one line each.
+- **The reward**: a Bond.REWARDS row, 25 points (Config.BOND_MILESTONE_POINTS), within the day's 75, at the pet's
+  rate; char.milestones[id] so each counts once; a line in chat, and a moment in the pet's story.
+- **A trainer visit** (flavor): the learned-spell lines in system chat (`ERR_LEARN_SPELL_S`/`ABILITY_S`), several
+  within a minute as one visit (like reputation's REP_TOGETHER); eggs-only activity `train`. A milestone's own line
+  isn't also a visit.
+- **A dual-spec switch** (flavor): `ACTIVE_TALENT_GROUP_CHANGED`; eggs-only activity `specswap`.
+- **A talent reset** (flavor, least sure): `GetNumUnspentTalents()` read on `SPELLS_CHANGED` and the candidate
+  events above (registered only if the client knows them); unspent points up by 2 or more with no level-up and no
+  spec switch = a reset; eggs-only activity `respec`. To confirm in game (the debug log logs every activity).

@@ -386,6 +386,27 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   above, so the pet stands low with room above. Ours had none: the pet sat at the top, half out of the frame.
 - **Edit Mode**: `EventRegistry:RegisterCallback("EditMode.Enter"/"EditMode.Exit", fn, owner)` fire for an addon
   (the same test).
+- **Feats, talents, trainers** (2026-11-12, 1.60.1, `/dp probe api feats` on a level 36 shaman):
+  - Classic spell IDs are real here: 71 Defensive Stance, 2458 Berserker Stance, 7328 Redemption, 23214 Summon
+    Charger, 1515 Tame Beast, 2842 Poisons, 697/712/691 the warlock demons, 1122 Inferno, 18540 Ritual of Doom, 23161
+    Summon Dreadsteed, 5487 Bear Form, 1066 Aquatic Form, 768 Cat Form. Riding both ways: 33388 Apprentice and 33391
+    Journeyman Riding, and Classic's 824-828, 10861, 10906, 10907, 18995; not 34090, 34091, 90265.
+    `ERR_NO_RIDING_SKILL`: "You can learn riding and obtain a mount from your riding trainer at level 10".
+  - Quest flags: Call of Earth's race copies (1518, 1521, 94375) all read completed for one character. Titles of
+    quests the client hasn't seen are nil until asked for (`C_QuestLog.RequestLoadQuestByID`). Every step of a
+    class chain has the chain's name, and each race has its own steps: a level 36 shaman's completed quests hold 30
+    "Call of Earth/Fire/Water/Air" besides our finals (Classic's 63, 96, 100, 1516-1536, 2983-2986, and Forever's
+    92466-92468, 94373-94374, 96136, 97243). So never match a class quest by its title. The level 60 quests (7647,
+    7636, 7622, 7583, 7631) had no title even after asking: not in the client yet (raids open 9 December).
+  - Events known: `LEARNED_SPELL_IN_SKILL_LINE`, `CHARACTER_POINTS_CHANGED`, `PLAYER_TALENT_UPDATE`,
+    `TRAIT_CONFIG_UPDATED`, `TRAIT_CONFIG_LIST_UPDATED`, `CONFIRM_TALENT_WIPE`, `TALENTS_INVOLUNTARILY_RESET`,
+    `ACTIVE_COMBAT_CONFIG_CHANGED`, `SPEC_INVOLUNTARILY_CHANGED`, `TRAINER_SHOW/CLOSED/UPDATE`; not `LEARNED_SPELL_IN_TAB`.
+  - Talents are retail's system with Classic trees: `C_ClassTalents.GetActiveConfigID()` 672432, one specialization
+    (`GetNumSpecializations` 1, spec group 1), the strings "Reset All Talents", "Left Tree / Right Tree", "You must
+    be in a rest area to change talents", and "You must spend all available talent points to apply changes"
+    (`ERR_TALENT_FAILED_UNSPENT_TALENT_POINTS`). `GetNumUnspentTalents()` 0 with every point spent.
+    Dual spec strings: "Primary/Secondary Talents - Active".
+  - `Enum.PlayerInteractionType.Trainer` is 7; `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` fires with the window's type.
 - **The layout cache** (2026-11-12, 1.60.1, from Logs/AccountData.log): a named frame moved with `StartMoving` is
   user-placed, and the client saves its spot itself ("Frame: DyreparkenPetFrame", anchor, x, y), to restore it
   before our code runs. A frame that keeps its own spot calls `SetUserPlaced(false)` after a drag. `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.

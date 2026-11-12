@@ -865,6 +865,169 @@ function S.meter(out)
 end
 
 ------------------------------------------------------------------------------
+-- feats (2026-11-12, Menagerie/Feats.lua, by name only): what Feats is built on, read without doing
+-- anything to the character (the user can't respec, switch spec or visit a trainer for now):
+--   every feat's spells (the client's name for each id, known or not) and quests (title, done), so
+--   wrong ids show; the character's completed quests whose titles are a feat quest's under another
+--   id (Forever's copies for its new race/class pairings); the talent and spec getters' values;
+--   which candidate events the client knows; global strings about learning, talents and specs.
+-- Then, this session, it watches: each candidate event that fires is logged with its payload and
+-- the unspent talent points, so a respec, a spec switch or a trainer visit some day is caught.
+Api.FEAT_EVENTS = { "SPELLS_CHANGED", "ACTIVE_TALENT_GROUP_CHANGED", "PLAYER_SPECIALIZATION_CHANGED",
+    "LEARNED_SPELL_IN_SKILL_LINE", "LEARNED_SPELL_IN_TAB", "CHARACTER_POINTS_CHANGED", "PLAYER_TALENT_UPDATE",
+    "TRAIT_CONFIG_UPDATED", "TRAIT_CONFIG_LIST_UPDATED", "CONFIRM_TALENT_WIPE", "TALENTS_INVOLUNTARILY_RESET",
+    "ACTIVE_COMBAT_CONFIG_CHANGED", "SPEC_INVOLUNTARILY_CHANGED", "TRAINER_SHOW", "TRAINER_CLOSED",
+    "TRAINER_UPDATE", "PLAYER_INTERACTION_MANAGER_FRAME_SHOW", "SKILL_LINES_CHANGED", "NEW_MOUNT_ADDED" }
+Api.FEAT_STRINGS = { "LEARN", "TALENT", "SPECIALIZ", "RESPEC", "DUAL", "RIDING" }
+Api.QUEST_BATCH, Api.QUEST_EVERY, Api.QUEST_WAIT = 25, 1, 5 -- quest titles asked for: this many a second, then a wait
+function S.feats(out)
+    local F = ns.Feats
+    if not F then return "no Feats" end
+    local QL = rawget(_G, "C_QuestLog") or {}
+    local Title = QL.GetTitleForQuestID
+    local function QuestTitle(id) return Title and ns.Plain(Title(id)) or nil end
+    local spells = {}
+    local unknownSpells, known = 0, 0
+    for _, f in ipairs(F.LIST) do
+        for _, id in ipairs(f.spells or {}) do
+            local name = ns.SpellName(id)
+            if not name then unknownSpells = unknownSpells + 1 end
+            local has = F:Has({ spells = { id } }) and true or false
+            if has then known = known + 1 end
+            spells[#spells + 1] = ("%s %d %s%s"):format(f.id, id, tostring(name or "NO SPELL"), has and " (known)" or "")
+        end
+    end
+    out.spells = spells
+    -- The items (the totems): the client's name for each id, and how many are in the bags.
+    out.items = {}
+    local CI = rawget(_G, "C_Item") or {}
+    for _, f in ipairs(F.LIST) do
+        for _, id in ipairs(f.items or {}) do
+            out.items[#out.items + 1] = ("%s %d %s, in bags %s"):format(f.id, id,
+                CI.GetItemNameByID and Try(CI.GetItemNameByID, id) or "?", CI.GetItemCount and Try(CI.GetItemCount, id) or "?")
+        end
+    end
+    local okC, ids = pcall(QL.GetAllCompletedQuestIDs or function() return nil end)
+    ids = okC and type(ids) == "table" and ids or {}
+    out.completed = #ids
+    -- The quests' titles, and a completed quest with a feat quest's title under an id we don't have
+    -- (Forever's copy). A title the client hasn't seen yet is nil: asked for (RequestLoadQuestByID,
+    -- a few at a time), and read again QUEST_WAIT seconds later (2026-11-12: the first run had none).
+    local function Quests()
+        local quests, titles, copies = {}, {}, {}
+        for _, f in ipairs(F.LIST) do
+            for _, id in ipairs(f.quests or {}) do
+                local title = QuestTitle(id)
+                if title then titles[title] = f.id end
+                local done = QL.IsQuestFlaggedCompleted and Try(QL.IsQuestFlaggedCompleted, id) or "?"
+                quests[#quests + 1] = ("%s %d %s, done %s"):format(f.id, id, tostring(title or "(no title yet)"), done)
+            end
+        end
+        local untitled = 0
+        for _, id in ipairs(ids) do
+            local title = QuestTitle(id)
+            if not title then untitled = untitled + 1 end
+            if title and titles[title] and not F.BY_QUEST[id] then
+                copies[#copies + 1] = ("%d %s (like %s)"):format(id, title, titles[title])
+            end
+        end
+        out.quests, out.copies, out.untitled = quests, copies, untitled
+    end
+    Quests()
+    if QL.RequestLoadQuestByID then
+        local ask = {}
+        for _, f in ipairs(F.LIST) do for _, id in ipairs(f.quests or {}) do ask[#ask + 1] = id end end
+        for _, id in ipairs(ids) do ask[#ask + 1] = id end
+        for i = 1, #ask, Api.QUEST_BATCH do
+            C_Timer.After((i - 1) / Api.QUEST_BATCH * Api.QUEST_EVERY, function()
+                for j = i, math.min(i + Api.QUEST_BATCH - 1, #ask) do pcall(QL.RequestLoadQuestByID, ask[j]) end
+            end)
+        end
+        local wait = math.ceil(#ask / Api.QUEST_BATCH) * Api.QUEST_EVERY + Api.QUEST_WAIT
+        C_Timer.After(wait, function()
+            Quests()
+            local line = ("feats: titles read, %d copies, %d completed quests still untitled"):format(#out.copies, out.untitled)
+            ns.Log("Api", "%s", line)
+            ns.Print("api probe " .. line .. "; /reload to save")
+        end)
+    end
+    -- The talents (retail's system on Forever): the active loadout, its trees, a node's fields.
+    out.talents = {}
+    local okT = pcall(function()
+        local T, config = out.talents, C_ClassTalents.GetActiveConfigID()
+        T.config = Show(config)
+        local info = C_Traits.GetConfigInfo(config)
+        T.info = Show(info)
+        local ranks = F.Ranks()
+        local n, sum = 0, 0
+        for node, r in pairs(ranks or {}) do if node ~= "config" then n, sum = n + 1, sum + r end end
+        T.ranked, T.ranks = n, sum
+        for _, tree in ipairs(info and info.treeIDs or {}) do
+            local nodes = C_Traits.GetTreeNodes(tree) or {}
+            T["tree " .. tostring(tree)] = #nodes .. " nodes"
+            for _, node in ipairs(nodes) do
+                local ni = C_Traits.GetNodeInfo(config, node)
+                if type(ni) == "table" and not T.sampleNode then T.sampleNode = Show(ni) end
+            end
+        end
+    end)
+    if not okT then out.talents.error = "no talent config" end
+    out.feats = {}
+    for id, rec in pairs(ns.DB.char.feats) do out.feats[#out.feats + 1] = id .. " " .. Show(rec) end
+    table.sort(out.feats)
+    out.values = {
+        unspent = Try(GetNumUnspentTalents or error),
+        level = Try(UnitLevel, "player"),
+        activeSpecGroup = Try(function() return C_SpecializationInfo.GetActiveSpecGroup() end),
+        specialization = Try(function() return C_SpecializationInfo.GetSpecialization() end),
+        numSpecs = Try(GetNumSpecializations or error),
+        canTalents = Try(function() return C_SpecializationInfo.CanPlayerUseTalentUI() end),
+        activeConfig = Try(function() return C_ClassTalents.GetActiveConfigID() end),
+        unspentClass = Try(function() return C_ClassTalents.HasUnspentTalentPoints() end),
+        trainerType = Try(function() return Enum.PlayerInteractionType.Trainer end),
+    }
+    out.strings = {}
+    for k, v in pairs(_G) do
+        if type(k) == "string" and type(v) == "string" and #v < 200 then
+            for _, word in ipairs(Api.FEAT_STRINGS) do
+                if k:find(word, 1, true) and (k:find("^ERR_") or k:find("WIPE") or k:find("RESET") or k:find("SWITCH")
+                    or k:find("CHANGE") or k:find("ACTIV")) then
+                    out.strings[#out.strings + 1] = k .. " = " .. v
+                    break
+                end
+            end
+        end
+    end
+    table.sort(out.strings)
+    local refused = {}
+    if not Api.featWatch then
+        local f = CreateFrame("Frame")
+        Api.featWatch = f
+        for _, e in ipairs(Api.FEAT_EVENTS) do
+            if not pcall(f.RegisterEvent, f, e) then refused[#refused + 1] = e end
+        end
+        Api.featRefused = refused
+        local last = {}
+        f:SetScript("OnEvent", function(_, event, ...)
+            -- (SPELLS_CHANGED comes in bursts, with every stance or form: one line every 2 s)
+            local now = GetTime()
+            if last[event] and now - last[event] < 2 then return end
+            last[event] = now
+            local args = {}
+            for i = 1, math.min(select("#", ...), 4) do args[#args + 1] = Show((select(i, ...))) end
+            local ranks, sum = F.Ranks(), 0
+            for node, r in pairs(ranks or {}) do if node ~= "config" then sum = sum + r end end
+            ns.Log("Api", "feat event %s (%s) unspent %s, level %s, config %s, ranks %d", event, table.concat(args, ", "),
+                Try(GetNumUnspentTalents or error), Try(UnitLevel, "player"), tostring(ranks and ranks.config), sum)
+        end)
+    end
+    out.refused = Api.featRefused
+    return ("%d of %d spells known to the client, %d known here; %d quests (%d completed, %d copies); %d strings; events refused: %s; watching this session")
+        :format(#spells - unknownSpells, #spells, known, #out.quests, out.completed, #out.copies, #out.strings,
+            #out.refused > 0 and table.concat(out.refused, " ") or "none")
+end
+
+------------------------------------------------------------------------------
 Api.ORDER = { "globals", "namespaces", "enum", "events", "widgets", "templates", "strings", "values", "card",
     "calendar", "model" }
 
@@ -880,7 +1043,7 @@ function Api:Run(arg)
     local list = arg and { arg } or self.ORDER
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths, petframe, meter)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths, petframe, meter, feats)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out)

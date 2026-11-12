@@ -28,12 +28,12 @@ return function(test, H)
 
     test("idle without consumers; events come and go with Want and Drop", function()
         local w, c, A = Setup()
-        for _, e in ipairs({ "ENCOUNTER_END", "QUEST_TURNED_IN", "PLAYER_PVP_KILLS_CHANGED" }) do
+        for _, e in ipairs({ "ENCOUNTER_END", "CHAT_MSG_TEXT_EMOTE", "PLAYER_PVP_KILLS_CHANGED" }) do
             no(Listening(c, e), e .. " not registered")
         end
         A:Want("boss", ME)
         ok(Listening(c, "ENCOUNTER_END")); ok(A:IsListening("ENCOUNTER_END"))
-        no(Listening(c, "QUEST_TURNED_IN"))
+        no(Listening(c, "CHAT_MSG_TEXT_EMOTE"))
         local other = {}
         A:Want("boss", other)
         A:Drop("boss", ME)
@@ -42,9 +42,9 @@ return function(test, H)
         no(Listening(c, "ENCOUNTER_END"))
         -- The debug log wants everything.
         c:Slash("debug on")
-        ok(Listening(c, "ENCOUNTER_END")); ok(Listening(c, "QUEST_TURNED_IN"))
+        ok(Listening(c, "ENCOUNTER_END")); ok(Listening(c, "CHAT_MSG_TEXT_EMOTE"))
         c:Slash("debug off")
-        no(Listening(c, "QUEST_TURNED_IN"))
+        no(Listening(c, "CHAT_MSG_TEXT_EMOTE"))
     end)
 
     test("a boss kill in combat counts once combat ends, with the pet that was out", function()

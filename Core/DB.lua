@@ -68,6 +68,7 @@ local CHAR_DEFAULTS = {
     firsts = {},               -- [petKey] = { [boss name] = true }: bosses it has seen fall with you (Bond:First)
     dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (Quirks.lua; the card shows these)
     eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Quirks.lua)
+    feats = {},                -- [feat id] = { t, before, what, key }: a character's feats, each once (Feats.lua)
     wishes = { n = 0, streak = 0, best = 0 }, -- wishes come true: in all, days in a row (to `last`, a day), the best run (Wish.lua)
     quirkAt = nil,             -- when the last quirk line was shown (at most one an hour)
     cardCuddle = nil,          -- the day a click on the card last counted as a cuddle (Cuddle.lua)

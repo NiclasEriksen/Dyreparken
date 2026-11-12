@@ -171,6 +171,46 @@ return function(test, H)
         match(ola:Printed("api probe holidays", true), "no C_Calendar.SetAbsMonth")
     end)
 
+    test("feats: every feat's spells and quests as the client has them, Forever's copies, then a watch", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola.state.spellNames = { [697] = "Summon Voidwalker", [71] = "Defensive Stance" }
+        ola.state.spells = { [71] = true }
+        ola.state.questTitles = { [1689] = "The Binding", [99001] = "The Binding", [1503] = "Forged Steel" }
+        ola.state.questsDone = { [1503] = true, [99001] = true }
+        ola:Slash("probe api feats")
+        local out = ola.env.DyreparkenDebugDB.api.feats
+        local spells = table.concat(out.spells, "\n")
+        match(spells, "voidwalker 697 Summon Voidwalker\n")
+        match(spells, "defstance 71 Defensive Stance %(known%)")
+        match(spells, "succubus 712 NO SPELL")
+        match(table.concat(out.quests, "\n"), "defstance 1503 Forged Steel, done true")
+        match(out.items[1], "^earth 5175 .*, in bags 0$")
+        eq(out.copies[1], "99001 The Binding (like voidwalker)", "a completed quest with a feat quest's title")
+        ok(out.values.unspent)
+        match(ola:Printed("api probe feats", true), "1 copies")
+        -- Titles the client hadn't loaded: asked for, a few a second, and read again after.
+        ola.state.questTitles[99002] = nil
+        ola.state.questsDone[99002] = true
+        ola.state.config, ola.state.talents = 100, { [1] = 5, [2] = 2 }
+        ola:Slash("probe api feats")
+        out = ola.env.DyreparkenDebugDB.api.feats
+        eq(out.untitled, 1)
+        eq(out.talents.ranked, 2); eq(out.talents.ranks, 7)
+        ok(out.talents.sampleNode, "a node's fields")
+        ola.state.questTitles[99002] = "The Binding"
+        w:Run(10)
+        eq(ola.state.questsAsked > 37, true, "the feats' quests and the completed ones")
+        eq(#out.copies, 2, "the late title found")
+        match(ola:Printed("titles read", true), "2 copies, 0 completed quests still untitled")
+        -- The watch: a candidate event that fires is logged, with the unspent points.
+        ola.state.unspent = 31
+        ola:Fire("ACTIVE_TALENT_GROUP_CHANGED", 2, 1)
+        match(ola:Log("feat event")[1], "ACTIVE_TALENT_GROUP_CHANGED %(2, 1%) unspent 31")
+        ola:Fire("ACTIVE_TALENT_GROUP_CHANGED", 1, 2)
+        eq(#ola:Log("feat event"), 1, "one line per event kind every 2 s")
+        match(ola:Log("feat event")[1], "config 100, ranks 7")
+    end)
+
     test("petframe: our own scene with the pet that's out, a click plays its happy move, Edit Mode's callbacks", function()
         local _, none = H.Setup{ ola = {} }
         none.ns.Pets.OutKey = function() return nil end -- (no pet out)

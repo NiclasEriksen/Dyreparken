@@ -72,6 +72,11 @@ Activity.KINDS = {
     { "campwarm", wish = false }, -- sat down at one: Welcoming Campfire, a minute counting down
     { "camp" },                   -- the campfire's buff, after that minute: a wish for any pet (Wish.lua)
     { "rested" },                 -- Well-Rested, a night in a sleeping bag: a wish for cozy pets
+    -- A character's big moments (Menagerie/Feats.lua, 2026-11-12, the user).
+    { "feat", wish = false },     -- a class quest's reward, riding, level 60 (extra: the feat's id): Feats' points
+    { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it
+    { "specswap", wish = false }, -- a dual-spec switch: only the eggs watch it
+    { "respec", wish = false },   -- a talent reset: only the eggs watch it
 }
 Activity.KIND = {}
 for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end

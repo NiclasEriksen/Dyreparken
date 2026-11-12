@@ -310,6 +310,10 @@ end
 -- when given, so a tunable change applies at once). once: at most one a day
 -- per pet. lines: at most that many lines a day per pet (the points go on).
 -- cap: at most that many points a day per pet from it (the lines go on).
+-- beyond: past the day's limit (BOND_DAILY_MAX), and not counted in it: a feat (2026-11-12, the user:
+-- "major feats should not count towards the daily limit, they're supposed to be huge bonuses"; one on a
+-- full day was lost for good). Still within the wire's cap (Bond:Add, Registry.LifeCap: the days so far
+-- and a spare one, so at least 75 left even after a full day): no protocol change.
 -- A new one is a row here and a Bond:Reward call where it happens.
 Bond.REWARDS = {
     -- today's wish done. once here too: Wish.lua starts a fresh wish when you adopt the
@@ -318,6 +322,7 @@ Bond.REWARDS = {
     first = { points = "BOND_FIRST_POINTS", lines = "FIRST_LINES", cap = "BOND_FIRST_CAP" }, -- a first together
     play = { points = "BOND_PLAY_POINTS", once = true }, -- a playdate (Playdate.lua)
     contest = { points = "BOND_CONTEST_POINTS", once = true }, -- fishing in the Sunday contest (Bond:Contest)
+    feat = { points = "BOND_FEAT_POINTS", beyond = true }, -- a feat (Feats.lua): once per character already, so not once a day
 }
 
 -- A pet that likes fishing, out while you fish in Stranglethorn on the fishing contest's day
@@ -342,6 +347,7 @@ function Bond:Reward(kind, key, text)
     if not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text) end
     ns.Log("Bond", "reward %s for %s", kind, key)
     local points = math.ceil(ns.Config[def.points] * self:Rate(key))
+    if def.beyond then self:Add(points, key); return true end
     if def.cap then
         local capKey = "reward:" .. kind
         points = math.min(points, math.ceil(ns.Config[def.cap] * self:Rate(key)) - (d.got[capKey] or 0))

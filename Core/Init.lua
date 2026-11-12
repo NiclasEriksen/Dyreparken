@@ -179,6 +179,7 @@ ns.Config = {
     FIRST_LINES = 3,              -- ... lines about firsts in chat, per pet a day (the points don't stop)
     BOND_CONTEST_POINTS = 10,     -- fishing in the Sunday fishing contest, a pet that likes fishing, once a day
     BOND_PLAY_POINTS = 15,        -- a playdate: in a group with a guildmate whose pet is out, once a day per pet
+    BOND_FEAT_POINTS = 25,        -- a feat (Feats.lua): a class quest's reward, riding, level 60; once per character, past the day's limit
     BOND_DAILY_MAX = 75,          -- the most bond points a calendar day can bring (the day + activities); bounds the wire
     BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries
     CLOCK_SLACK = 300,            -- seconds a time from the wire may be ahead of ours (ns.SaneTime)

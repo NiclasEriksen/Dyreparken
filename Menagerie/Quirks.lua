@@ -336,10 +336,20 @@ Quirks.EGGS = {
         return type(ctx.extra) == "string" and ctx.extra ~= "" and ctx.extra ~= "?" and { boss = ctx.extra }
     end },
     { id = "dodsfall", on = "revive", test = function(ctx) return ctx.today >= 3 and {} end },
-    { id = "kake", on = "level", test = function(ctx)
+    -- Every tenth level, likelier the higher it is (the user, 2026-11-12); 60 is a feat (Feats.lua), with its own.
+    { id = "kake", on = "level", always = true, chance = function(ctx)
+        return Quirks.CAKE_CHANCE[tonumber(ctx.extra) or 0] or 0
+    end, test = function(ctx)
         local level = tonumber(ctx.extra)
-        return level and level % 10 == 0 and { level = level }
+        return Quirks.CAKE_CHANCE[level or 0] and { level = level }
     end },
+    -- Feats (Feats.lua: the points and their line are Bond's): riding by a good chance, level 60 always.
+    { id = "ridning", on = "feat", always = true, chance = 0.6, test = function(ctx) return ctx.extra == "riding" and {} end },
+    { id = "maks", on = "feat", always = true, test = function(ctx) return ctx.extra == "level60" and {} end },
+    -- Flavor only (the user, 2026-11-12): a trainer visit, a dual-spec switch, a talent reset.
+    { id = "trener", on = "train", chance = 0.35, test = function() return {} end },
+    { id = "talentbytte", delay = "now", on = "specswap", always = true, chance = 0.5, test = function() return {} end },
+    { id = "glemsel", on = "respec", always = true, chance = 0.8, test = function() return {} end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
@@ -360,6 +370,7 @@ local function Families(key)
 end
 
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
+Quirks.CAKE_CHANCE = { [10] = 0.2, [20] = 0.35, [30] = 0.5, [40] = 0.65, [50] = 0.8 }
 
 -- Eggs on moments that aren't activities: "*" eggs don't ride on them.
 local MOMENTS = { seen = true, name = true, party = true }
@@ -433,7 +444,7 @@ end
 -- (Not dance: every emote nearby would wake it. The midnight dance comes only
 -- when a Dansefot's like already watches it.)
 Quirks.WATCH = { "level", "revive", "jump", "nap", "roll", "fishfail", "hundred", "epic", "duelwon", "duellost",
-    "newpath", "fish", "chat", "campnear", "campwarm", "camp", "rested" }
+    "newpath", "fish", "chat", "campnear", "campwarm", "camp", "rested", "train", "specswap", "respec" }
 local watching = {}
 
 function Quirks:Watch()

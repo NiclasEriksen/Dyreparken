@@ -125,7 +125,9 @@ Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prest
 Core/ApiProbe.lua  /dp probe api [section|clear]: what the client really has (globals, C_* namespaces, Enum, events,
                    widget types and their methods/handlers, templates, global strings, getters' values, the card's
                    actor, the calendar, a pet model's animations and lengths), read-only, in DyreparkenDebugDB.api; by name only:
-                   holidays (the calendar a year ahead) and lengths (every species' moves, DyreparkenDebugDB.animLengths)
+                   holidays (the calendar a year ahead), lengths (every species' moves, DyreparkenDebugDB.animLengths)
+                   and feats (Feats' spell and quest ids as the client has them, Forever's copies among your completed
+                   quests, talent/spec getters; then logs the candidate talent, spec and trainer events this session)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/PetMoves.lua  which animation each pet uses for each reaction on the card (sleep, sit, happy, cheer, dead): a
@@ -154,7 +156,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    PLAY on PARTY/RAID), Quirks (flavor with no effect: dislikes and easter eggs, at most one line
                    every 45 minutes; read its header), Fx (one-shot particle bursts outside the journal: hearts at the cursor over a
                    companion in the world, since companions have no nameplate to draw on; at the chat window for bond
-                   lines and level-ups), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card; wishes in a row, char.wishes, with achievements at 7 and 30 in a row and 100 in all), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
+                   lines and level-ups), Feats (a character's big moments, 0.5: a class quest's reward, riding, level 60
+                   give the pet that's out 25 points once per character, by the spell taught (SPELLS_CHANGED) or the
+                   quest's id; what was had at the first look isn't new; a trainer visit, a dual-spec switch, a talent
+                   reset and the tenth levels are eggs only; read its header), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card; wishes in a row, char.wishes, with achievements at 7 and 30 in a row and 100 in all), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
                    cheer, a jump with you (every pet: canJump), playing dead the day of the three-deaths egg; which animation per species: Data/PetMoves.lua; and the /dp probe anim research probe), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
                    congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Story (a pet's story: a local
                    timeline of its life in the guild, g.story, found by comparing the registry with what it last saw,
@@ -253,6 +258,11 @@ tools/test/        harness.lua (simulated clients + network), run.lua (runner, c
   on the day the calendar has the Stranglethorn Fishing Extravaganza: 10 points once that day (Bond:Contest,
   Config.BOND_CONTEST_POINTS, within the day's 75; no protocol change). A new flight path matters only to a pet
   that likes or dislikes flying.
+- **Feats** (2026-11-12, the user, for 0.5; Menagerie/Feats.lua): a class quest's reward, learning to ride and level
+  60 give the pet that's out 25 points (Config.BOND_FEAT_POINTS), once per character, only with a pet out, and
+  **past the day's 75, not counted in it** (the user: "major feats should not count towards the daily limit, they're
+  supposed to be huge bonuses"). They stay within the wire's cap (Registry.LifeCap keeps a spare day): no protocol
+  change. A trainer visit, a dual-spec switch, a talent reset and the tenth levels 10-50 are eggs only, no points.
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most

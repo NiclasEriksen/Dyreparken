@@ -239,6 +239,7 @@ function Story:Text(key, e, first)
     end
     if k == "ach" then vars.name = ns.Achievements and ns.Achievements:Name(v) or tostring(v); return ns.T("story.ach", vars) end
     if k == "egg" then vars.line = v; return ns.T("story.egg", vars) end
+    if k == "feat" then vars.what = v; return ns.T("story.feat", vars) end
     return k
 end
 
