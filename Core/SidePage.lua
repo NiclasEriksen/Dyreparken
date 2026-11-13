@@ -189,7 +189,9 @@ end
 function Proto:Open()
     if not self.frame then self:Build() end
     if self.frame:IsShown() then return end
-    SidePage:CloseAll()
+    -- Quietly: the card stays covered from one of our pages to the next, and a
+    -- SIDEPAGE false in between would wake it (a celebration spent unseen).
+    SidePage:CloseAll(true)
     -- Blizzard's tab looks unselected while we're up.
     for _, f in ipairs(SidePage:SideTabs()) do
         for _, r in ipairs(SelectedRegions(f)) do
@@ -227,7 +229,8 @@ function Proto:Open()
     ns.Bus:Fire("SIDEPAGE", true)
 end
 
-function Proto:Close()
+-- quiet: another of our pages replaces this one at once (no SIDEPAGE false).
+function Proto:Close(quiet)
     if not (self.frame and self.frame:IsShown()) then return end
     self.frame:Hide()
     if self.tab then self.tab.selected:Hide() end
@@ -252,7 +255,7 @@ function Proto:Close()
     local fs = TitleText()
     if fs and fs:GetText() == self.def.title then fs:SetText(savedTitle) end
     savedTitle = nil
-    ns.Bus:Fire("SIDEPAGE", false)
+    if not quiet then ns.Bus:Fire("SIDEPAGE", false) end
 end
 
 -- Is one of our pages covering the window? (The journal under it stays
@@ -262,8 +265,8 @@ function SidePage:AnyOpen()
     return false
 end
 
-function SidePage:CloseAll()
-    for _, p in ipairs(pages) do p:Close() end
+function SidePage:CloseAll(quiet)
+    for _, p in ipairs(pages) do p:Close(quiet) end
 end
 
 ------------------------------------------------------------------------------
