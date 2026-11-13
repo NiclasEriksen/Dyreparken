@@ -315,6 +315,47 @@ return function(test, H)
         eq(d.ns.Registry:Holder("s:40"), nil)
     end)
 
+    -- Twelve adoptions, one per member: w, c, names.
+    local function Wave()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        local names = {}
+        for i = 1, 12 do
+            names[i] = ("Medlem%02d Etternavn"):format(i)
+            w:AddMember(names[i], 0)
+        end
+        w:Run(12)
+        for i = 1, 12 do c.ns.Registry:MergeRecord(names[i], { k = "s:" .. (1000 + i), at = T0 + i, ts = T0 + i }) end
+        return w, c, names
+    end
+    local function Read(w, c, secs)
+        c.ns.Guild:Refresh(true)
+        w:Run(secs or 1)
+    end
+
+    test("a held roster batch survives reads that can't judge it (stale, partial)", function()
+        local w, c, names = Wave()
+        for i = 1, 6 do w:RemoveMember(names[i]) end
+        Read(w, c)
+        ok(c.ns.DB:Guild().rosterHeld, "held")
+        w:SkipDays(1)
+        -- The server ignores the request: the cached roster, read after the timeout.
+        c.rosterIgnored = true
+        Read(w, c, c.ns.Config.ROSTER_TIMEOUT + 1)
+        ok(c.ns.Guild.stale, "(the test's premise)")
+        ok(c.ns.DB:Guild().rosterHeld, "a stale read keeps it")
+        c.rosterIgnored = false
+        -- Only some rows arrive (us among them).
+        c.rosterPartial = 2
+        Read(w, c)
+        no(c.ns.Guild.complete, "(the test's premise)")
+        ok(c.ns.DB:Guild().rosterHeld, "a partial read keeps it")
+        c.rosterPartial = nil
+        Read(w, c)
+        for i = 1, 6 do eq(c.ns.Registry:Holder("s:" .. (1000 + i)), nil, names[i] .. " goes") end
+        eq(c.ns.DB:Guild().rosterHeld, nil)
+    end)
+
     test("own claim lost or lapsed: withdrawn with a notice", function()
         local w, c, R = One()
         R:Claim(PANDA)

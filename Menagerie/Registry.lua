@@ -313,8 +313,16 @@ function Registry:CheckRoster()
             end
         end
     end
+    -- Only a complete roster the server just sent can judge a held batch: a stale or partial one
+    -- misses nobody (IsMember is nil), so its batch is small or empty and would drop the held
+    -- set, and a real wave of departures would be held again, dated anew, for good (code review
+    -- 2026-11-13). Such a read still lapses what it can see (days offline from a partial read).
+    local judges = ns.Guild.complete and not ns.Guild.stale
     local most = math.max(Config.ROSTER_LAPSE_FLOOR, math.floor(active * Config.ROSTER_LAPSE_SHARE))
-    if #batch > most then
+    if #batch > most and not judges then
+        ns.Log("Registry", "roster would lapse %d of %d adoptions at once (at most %d), from a read that can't judge: none lapsed", #batch, active, most)
+        return nil
+    elseif #batch > most then
         -- Too many at once: one odd read, or a real wave of departures. Held back; a roster on a
         -- later day that still misses the same owners confirms it (the user, 2026-11-12: "hell
         -- yeah"), and those go, however many. Remembered per guild, across logins.
@@ -333,7 +341,7 @@ function Registry:CheckRoster()
         ns.Log("Registry", "roster batch of %d confirmed on a second day: %d lapse", #batch, #confirmed)
         batch = confirmed
     end
-    g.rosterHeld = nil
+    if judges then g.rosterHeld = nil end
     local added
     for _, b in ipairs(batch) do
         local t = ns.Now()
