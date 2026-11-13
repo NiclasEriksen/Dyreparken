@@ -267,7 +267,7 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    holidays (the calendar a year ahead), lengths (every species' moves, DyreparkenDebugDB.animLengths)
                    and feats (Feats' spell and quest ids as the client has them, Forever's copies among your completed
                    quests, talent/spec getters; then logs the candidate talent, spec and trainer events this session);
-                   transport (zone, map and world changes, casts and a sample every 5 s, this session: zeppelins and boats);
+                   transport (zone, map and world changes, casts and a sample every 5 s, this session: zeppelins and boats); legacy (professions and their caps, exploration and legacy achievements, Legacy globals: for wishes a level 60 can no longer do);
                    combat (auto-attack, auto shot, casts, UNIT_COMBAT on you and your target, swing speeds, this session))
 Main.lua           bootstrap: runs the start-up phases (loaded, login, settled, hello). Each module declares its own
                    start at the end of its file, ns.Start(phase, fn) (Core/Init.lua); within a phase, TOC order

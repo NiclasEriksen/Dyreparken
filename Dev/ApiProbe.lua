@@ -29,6 +29,7 @@ local _, ns = ...
 --               screen: our own model scene with the pet that's out, as the journal card builds it.
 --               Left-click: its happy move; right-click: close. Logs each step, and whether Edit Mode
 --               tells us when it opens and closes (EventRegistry "EditMode.Enter"/"EditMode.Exit").
+--   legacy      (2026-11-13) Forever's legacy points: professions, exploration achievements (S.legacy)
 --   meter       (2026-11-12, the user: could the pet react to the built-in damage meter, a first place in
 --               damage or healing?) C_DamageMeter now (every session, damage/healing/interrupts: secret or
 --               not, the sources, your place), saved; and from then on, this session, every DAMAGE_METER_*
@@ -1138,6 +1139,75 @@ function S.combat(out)
 end
 
 ------------------------------------------------------------------------------
+-- legacy (2026-11-13, by name only; the user: Forever's new legacy point system shows exploration "achievement"
+-- progress and professions, for wishes a level 60 can't do any more: a skill-up with every profession at its
+-- cap, a new place with the map explored). Read-only, nothing opened: open the legacy window yourself first
+-- (its micro button) so its code is loaded, then run this. Records the professions (GetProfessionInfo: rank,
+-- max), the achievement categories and, in those whose name speaks of exploring, professions or legacy, each
+-- achievement with its criteria and progress; every global and C_* namespace with "Legacy" in its name (and
+-- what's in it); C_MapExplorationInfo's explored overlays on the map you're on.
+Api.LEGACY_WORDS = { "xplor", "rofession", "egacy", "ilestone", "ourney", "dventur" }
+-- (the values themselves, or nothing when the call is missing or fails: Try's text won't do here)
+local function Raw(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    local r = Pack(pcall(fn, ...))
+    if not r[1] then return nil end
+    return unpack(r, 2, r.n)
+end
+function S.legacy(out)
+    out.professions = {}
+    local profs = { Raw(GetProfessions) }
+    for slot = 1, 6 do
+        local i = profs[slot]
+        if i then
+            local name, _, rank, max, _, _, line = Raw(GetProfessionInfo, i)
+            out.professions[#out.professions + 1] = ("%d: %s %s/%s line %s"):format(slot, tostring(name),
+                tostring(rank), tostring(max), tostring(line))
+        end
+    end
+    out.categories, out.achievements = {}, {}
+    local cats = Raw(GetCategoryList)
+    for _, cat in ipairs(type(cats) == "table" and cats or {}) do
+        local name = Raw(GetCategoryInfo, cat)
+        local n = Raw(GetCategoryNumAchievements, cat)
+        out.categories[#out.categories + 1] = ("%s %s (%s)"):format(tostring(cat), tostring(name), tostring(n))
+        local hit = false
+        for _, w in ipairs(Api.LEGACY_WORDS) do hit = hit or (type(name) == "string" and name:find(w, 1, true) ~= nil) end
+        for i = 1, (hit and type(n) == "number") and math.min(n, 60) or 0 do
+            local id, title, points, done = Raw(GetAchievementInfo, cat, i)
+            local crit = {}
+            for j = 1, math.min(Raw(GetAchievementNumCriteria, id) or 0, 40) do
+                local cname, _, cdone, have, need = Raw(GetAchievementCriteriaInfo, id, j)
+                crit[#crit + 1] = ("%s %s %s/%s"):format(tostring(cname), cdone and "done" or "-", tostring(have), tostring(need))
+            end
+            out.achievements[#out.achievements + 1] = { cat = name, id = id, title = title, points = points,
+                done = done, criteria = crit }
+        end
+    end
+    out.globals, out.namespaces = {}, {}
+    for k, v in pairs(_G) do
+        if type(k) == "string" and k:find("Legacy") then
+            if k:find("^C_") and type(v) == "table" then
+                local fns = {}
+                for f in pairs(v) do fns[#fns + 1] = tostring(f) end
+                table.sort(fns)
+                out.namespaces[k] = fns
+            else
+                out.globals[#out.globals + 1] = k .. " " .. type(v)
+            end
+        end
+    end
+    table.sort(out.globals)
+    local MEI = rawget(_G, "C_MapExplorationInfo")
+    local map = C_Map and Raw(C_Map.GetBestMapForUnit, "player")
+    if MEI and map then
+        local tex = Raw(MEI.GetExploredMapTextures, map)
+        out.explored = ("map %s: %s explored overlays"):format(tostring(map), type(tex) == "table" and #tex or tostring(tex))
+    end
+    return ("%d professions, %d categories, %d achievements read, %d Legacy globals"):format(#out.professions,
+        #out.categories, #out.achievements, #out.globals)
+end
+
 Api.ORDER = { "globals", "namespaces", "enum", "events", "widgets", "templates", "strings", "values", "card",
     "calendar", "model" }
 
@@ -1156,7 +1226,7 @@ function Api:Run(arg)
     rest = rest ~= "" and rest or nil
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, transport, combat)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, transport, combat, legacy)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out, rest)

@@ -340,6 +340,30 @@ return function(test, H)
         match(ola:Printed("api probe combat", true), "watching already")
     end)
 
+    test("legacy: professions with their caps, exploration achievements with progress, Legacy globals", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 }, patch = function(env)
+            env.GetProfessions = function() return 5, 7, nil, 8 end
+            env.GetProfessionInfo = function(i) return ({ [5] = "Mining", [7] = "Herbalism", [8] = "Fishing" })[i], 1,
+                i == 8 and 150 or 300, 300, 0, 0, 180 + i end
+            env.GetCategoryList = function() return { 92, 97 } end
+            env.GetCategoryInfo = function(id) return id == 97 and "Exploration" or "General" end
+            env.GetCategoryNumAchievements = function(id) return id == 97 and 2 or 5 end
+            env.GetAchievementInfo = function(cat, i) return 760 + i, "Explore Zone " .. i, 10, i == 1 end
+            env.GetAchievementNumCriteria = function() return 2 end
+            env.GetAchievementCriteriaInfo = function(id, j) return "Area " .. j, 0, j == 1, j == 1 and 1 or 0, 1 end
+            env.LegacySystemFrame_LoadUI = function() end
+        end })
+        w:Settle("hello")
+        ola:Slash("probe api legacy")
+        match(ola:Printed("api probe legacy", true), "3 professions, 2 categories, 2 achievements read, 1 Legacy globals")
+        local out = ola.env.DyreparkenDebugDB.api.legacy
+        eq(out.professions[3], "4: Fishing 150/300 line 188")
+        eq(out.achievements[1].title, "Explore Zone 1"); eq(out.achievements[1].done, true)
+        eq(out.achievements[2].criteria[1], "Area 1 done 1/1"); eq(out.achievements[2].criteria[2], "Area 2 - 0/1")
+        eq(out.globals[1], "LegacySystemFrame_LoadUI function")
+    end)
+
     test("transport: where you are, logged at every zone and world change, each cast, and every few seconds", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         ola.state.zone = "Durotar"
