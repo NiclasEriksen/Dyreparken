@@ -66,6 +66,31 @@ Moves.SIT_AFTER = 6 -- seconds on the card before a Latsabb sits down
 Moves.SETTLE = 0.6
 -- A sulking pet keeps its back turned this long (seconds).
 Moves.SULK = 3
+-- Turning around (2026-11-13, the user: "it just instantly turns around and then back again (looks
+-- just buggy)"): half a turn walking, eased, this long each way, in this many SetYaw steps (no
+-- OnUpdate: a timer chain, only while it turns). Tune by eye.
+Moves.TURN = 0.6
+Moves.TURN_STEPS = 12
+-- Moods over the pet on the card while it plays them out (Fx:Emit's particles, from a point over its
+-- head), by step.mood; each given how long it lasts. The sulk (2026-11-13, the user: "particles that
+-- match the mood"): a small grey cloud that settles over it and thins as it turns round, two puffs, and
+-- a few drops falling from it now and then.
+Moves.MOOD = {
+    sulk = function(secs)
+        local cloud, list = ns.Icon("cloud"), {}
+        list[1] = { tex = cloud, color = { 0.55, 0.57, 0.62 }, alpha = 0.9, size = { 64, 40 }, x = -6,
+            up = { 0, -8, 0.5, "OUT" }, fadeIn = { 0, 0.9, 0.5 }, drift = { 6, 2, secs - 0.5 }, fadeOut = { 0.9, 0, secs - 0.5 } }
+        list[2] = { tex = cloud, color = { 0.48, 0.5, 0.56 }, alpha = 0.85, size = { 44, 28 }, x = 16, y = 6, delay = 0.15,
+            up = { 0, -6, 0.5, "OUT" }, fadeIn = { 0, 0.85, 0.5 }, drift = { -4, 2, secs - 0.65 }, fadeOut = { 0.85, 0, secs - 0.65 } }
+        local drops = math.max(0, math.floor((secs - 1) / 0.6))
+        for i = 1, drops do
+            list[#list + 1] = { tex = ns.Icon("drop"), color = { 0.6, 0.72, 0.9 }, alpha = 0.8, size = 7,
+                x = ((i % 3) - 1) * 12, y = -12, delay = 0.5 + (i - 1) * 0.6,
+                up = { 0, -10, 0.15 }, fadeIn = { 0, 0.8, 0.15 }, drift = { 0, -30, 0.5 }, fadeOut = { 0.8, 0, 0.5 } }
+        end
+        return list
+    end,
+}
 -- Standing this long on a new card before it lies down to sleep (2026-11-10): paused 0.8 s
 -- into lying down 0.6 s after the model was set, every pet got up and froze standing, while
 -- the same on a card open a while lay still. The model seems to load (and its animation
@@ -374,10 +399,15 @@ function Plan.Pose(key, o)
         plan = Plan.Hold(key, mode)
         plan.wake = true
     end
+    -- First, once the model has loaded: a sulk (it turns its back and round again), then the one-off.
+    local front = o.noMoments and {} or Plan.Sulk(key) or {}
     if cheer or joy then
-        table.insert(plan, 1, { cheer or joy, Moves:Length(key, cheer or joy, cheer and Moves.T.cheer or Moves.T.happy),
-            on = joy and function() ns.Wish:Shown() end or nil })
-        table.insert(plan, 1, { STAND, Moves.SETTLE })
+        front[#front + 1] = { cheer or joy, Moves:Length(key, cheer or joy, cheer and Moves.T.cheer or Moves.T.happy),
+            on = joy and function() ns.Wish:Shown() end or nil }
+    end
+    if #front > 0 then
+        table.insert(front, 1, { STAND, Moves.SETTLE })
+        for i = #front, 1, -1 do table.insert(plan, 1, front[i]) end
     end
     plan.mode, plan.why = mode, "pose " .. tostring(mode)
     return plan
@@ -529,19 +559,32 @@ function Plan.Try(key, what, whole)
     return plan
 end
 
+-- Turning to face `yaw` (radians from where it faced as the turn began: pi its back to you, 0 facing
+-- you again) over Moves.TURN, walking as it goes (a pet without a walk turns standing). The stage turns
+-- the actor (step.yaw).
+function Plan.Turn(key, yaw, on)
+    return { For(key, "walk") or STAND, Moves.TURN, yaw = yaw, on = on }
+end
+
 -- Sulking (2026-11-10): the first time you open its card on a day a dislike of its came up
--- (Quirks: char.sulk), the pet turns its back for a few seconds.
+-- (Quirks: char.sulk), the pet turns its back for a few seconds, a grey cloud over it (mood), and
+-- turns round again (2026-11-13: walking, not at once). The steps, or false; seen once it starts turning.
 function Plan.Sulk(key)
     local s = ns.DB.char.sulk
-    return s and s.key == key and s.day == ns.Today() and not s.shown or false
+    if not (s and s.key == key and s.day == ns.Today() and not s.shown) then return false end
+    return {
+        Plan.Turn(key, math.pi, function() ns.Quirks:SulkShown(key) end),
+        { STAND, Moves.SULK, mood = "sulk" },
+        Plan.Turn(key, 0),
+    }
 end
 
 ------------------------------------------------------------------------------
 -- The stage: plays plans on a model actor
 ------------------------------------------------------------------------------
 -- A stage: opts.actor() the model actor, opts.scene() its model scene (for the lift's scene id),
--- opts.anchor() the frame a sulk's cloud bursts from, opts.refresh() redraws around it (a woken
--- pet's Zzz go).
+-- opts.fx() where a mood's particles go ({ parent, level, anchor }: Fx:Emit's; nil: none), opts.refresh()
+-- redraws around it (a woken pet's Zzz go).
 function Moves.NewStage(name, opts)
     local shown = { reposed = 0 } -- what this stage shows: its pet, its pose
     -- Its timers, all cancelled when a new plan starts or the stage stops showing a pet.
@@ -557,7 +600,7 @@ function Moves.NewStage(name, opts)
     -- opts.rest(key): a pose the stage's own (the pet frame's: asleep while you're AFK), or nil for Plan.Rest's.
     local function Rest(key) return opts.rest and opts.rest(key) or Plan.Rest(key, nil, not moments) end
 
-    local Play, Lift, Run
+    local Play, Lift, Run, Turn, Mood
 
     -- 2026-11-10: about one time in three a held pose stood up again by itself
     -- right away, and GetAnimation (it only echoes what was set) can't tell. So
@@ -691,6 +734,8 @@ function Moves.NewStage(name, opts)
                 shown.mode = mode
             end
             Play(id, nil, s[3])
+            if s.yaw then Turn(s.yaw, s[2]) end
+            if s.mood then Mood(s.mood, (s[2] or 0) + Moves.TURN) end
             if s[2] then timers:After(s[2], function() Step(i + 1) end) end
         end
         Step(1)
@@ -699,6 +744,8 @@ function Moves.NewStage(name, opts)
     -- A plan played: the pet awake now and the stage's mode as it says, then its steps.
     Run = function(key, plan)
         if not plan then return end
+        -- Its back still turned (a click, a cheer, another pose for it): it turns round first.
+        if shown.sulk then table.insert(plan, 1, Plan.Turn(key, 0)) end
         if plan.wake then awake[key] = true end
         if plan.mode then shown.mode = plan.mode end
         stage:Sequence(plan, plan.why)
@@ -762,34 +809,52 @@ function Moves.NewStage(name, opts)
         if shown.key then Lift(shown.key) end
     end
 
-    -- Its back turned again to face you (the sulk's end, another pet, the card closing).
+    -- A mood over the pet (Plan.Sulk's step.mood), on the stage's own layer (Fx), for `secs`.
+    Mood = function(kind, secs)
+        local fx, make = opts.fx and opts.fx(), Moves.MOOD[kind]
+        if not (fx and make and ns.Fx) then return end
+        ns.Fx:Emit({ parent = fx.parent, level = fx.level, tag = "mood", anchor = fx.anchor }, make(secs))
+    end
+    local function StopMood()
+        local fx = opts.fx and opts.fx()
+        if fx and fx.parent and ns.Fx then ns.Fx:Stop(fx.parent, "mood") end
+    end
+
+    -- Turning (step.yaw: Plan.Turn), eased, in Moves.TURN_STEPS steps on the stage's timers. shown.sulk:
+    -- the actor, the yaw it faced first, and how far round it is now; gone once it faces you again.
+    -- ModelSceneActor:SetYaw is unverified on Forever: without GetYaw it only walks on the spot.
+    Turn = function(to, secs)
+        local b = shown.sulk
+        if not b then
+            if to == 0 then return end
+            local actor = Actor()
+            local ok, yaw = Call(actor or {}, "GetYaw")
+            if not (ok and type(yaw) == "number") then return ns.Log("Moves", "%s: no GetYaw, no turn", name) end
+            b = { actor = actor, yaw = yaw, off = 0 }
+            shown.sulk = b
+        end
+        -- By the clock, not by the count: at a low frame rate the steps come late, and the turn still
+        -- ends on time (with fewer steps), before the step after it.
+        local from, start = b.off, GetTime()
+        local function Tick()
+            local t = secs and secs > 0 and math.min(1, (GetTime() - start) / secs) or 1
+            b.off = t >= 1 and to or from + (to - from) * (1 - math.cos(math.pi * t)) / 2 -- (eased in and out)
+            Call(b.actor, "SetYaw", b.yaw + b.off)
+            if t < 1 then return timers:After(secs / math.max(1, Moves.TURN_STEPS), Tick) end
+            if to == 0 and shown.sulk == b then shown.sulk = nil; StopMood() end
+        end
+        ns.Log("Moves", "%s %s: turns to %.2f", name, tostring(shown.key), to)
+        if not secs or secs <= 0 then return Tick() end
+        timers:After(secs / math.max(1, Moves.TURN_STEPS), Tick)
+    end
+
+    -- Facing you again at once (another pet, the card closing), its mood gone.
     local function UnSulk()
+        StopMood()
         local b = shown.sulk
         if not b then return end
         shown.sulk = nil
         Call(b.actor, "SetYaw", b.yaw)
-    end
-
-    -- The sulk (Plan.Sulk): its back turned for a few seconds, a little cloud over it.
-    -- ModelSceneActor:SetYaw is unverified on Forever: without it, just the cloud. (Moves.SULK: how long.)
-    local function Sulk(key)
-        if not Plan.Sulk(key) then return end
-        timers:After(Moves.SETTLE, function()
-            if shown.key ~= key then return end
-            ns.Quirks:SulkShown(key)
-            local anchor = opts.anchor()
-            if anchor and ns.Fx then
-                ns.Fx:Burst({ anchor, "CENTER", 0, 60 }, "cloud", { n = 2, color = { 0.8, 0.8, 0.85 }, alpha = 0.7, size = 0.6, rise = 30 })
-            end
-            local actor = Actor()
-            local ok, yaw = Call(actor or {}, "GetYaw")
-            if not (ok and type(yaw) == "number") then return ns.Log("Moves", "sulk: no GetYaw") end
-            Call(actor, "SetYaw", yaw + math.pi)
-            ns.Log("Moves", "sulk %s: back turned", key)
-            local back = { actor = actor, yaw = yaw }
-            shown.sulk = back
-            C_Timer.After(Moves.SULK, function() if shown.sulk == back then UnSulk() end end)
-        end)
     end
 
     -- A card widget (the card's widgets (ns.Card)): the pet's pose, once per pet shown.
@@ -839,20 +904,21 @@ function Moves.NewStage(name, opts)
                 tostring(ns.Personality.IsNight(ns.Now()) or (o and o.night) or false), tostring(o and o.rest ~= nil or false),
                 tostring(Moves:For(key, "sleep")), tostring(Moves:For(key, "sleepAt")), tostring(Moves:For(key, "sleepHold")))
         end
-        UnSulk()
+        if key ~= shown.key then UnSulk() end -- (the same pet in another pose turns round first: Run)
         local plan = Plan.Pose(key, { mode = mode, fresh = key ~= shown.key, cheer = shown.cheerFor == key, noMoments = not moments })
         shown.key, shown.cheerFor = key, nil
         Run(key, plan)
         Lift(key)     -- at once (2026-11-10: a moment later read as a jump) ...
         LiftSoon(key) -- ... and again if the model, done loading, was put back
-        if moments then Sulk(key) end
     end
 
     -- A click on the pet (Cuddle.lua, Plan.Cuddle).
     function stage:Cuddle(key)
         if key ~= shown.key then return end
         local was = shown.mode
-        Run(key, Plan.Cuddle(key, shown, not moments))
+        -- A click while it sulks: it turns round to you (Run), then its happy move, standing (not as
+        -- from the sleep or sit it will take after the sulk). Forgiven: the sulk is spent anyway.
+        Run(key, Plan.Cuddle(key, shown.sulk and { mode = "stand" } or shown, not moments))
         -- Awake now on every stage that shows it (the frame wakes with the card's click).
         for _, s in ipairs(Moves.stages) do if s ~= stage and s.shown.key == key then s:Update(nil, key) end end
         -- Woken up: its Zzz go (Decor reads the pose; the card's refresh leaves the hop playing).
@@ -899,7 +965,13 @@ end
 Moves.card = Moves.NewStage("card", {
     actor = function() return Moves:Actor() end,
     scene = function() return PetJournalPetCard and rawget(PetJournalPetCard, "modelScene") end,
-    anchor = function() return rawget(_G, "PetJournalPetCard") end,
+    -- The card's own layer, over the pet, under our side pages (the user, 2026-11-12), like Cuddle's.
+    fx = function()
+        local card = ns.JournalUI and ns.JournalUI:Card()
+        local c, panel = rawget(_G, "PetJournalPetCard"), card and card.panel
+        if not (c and panel) then return nil end
+        return { parent = c, level = c:GetFrameLevel() + 20, anchor = { panel, "TOP", 0, 175 } }
+    end,
     refresh = function() if ns.JournalUI then ns.JournalUI:Refresh() end end,
 })
 for _, m in ipairs({ "Update", "Sequence", "Cuddle", "Try", "Stop", "Relift" }) do

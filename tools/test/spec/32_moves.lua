@@ -476,17 +476,82 @@ return function(test, H)
         eq(actor.anim, 0, "not out: stands")
     end)
 
-    test("a dislike today: the first look at its card, it turns its back for a moment", function()
+    test("a dislike today: the first look at its card, it turns its back walking, a cloud over it, and round again", function()
         local w, ola, actor = Setup(14)
+        local M, Fx, c = ola.ns.Moves, ola.ns.Fx, ola.env.PetJournalPetCard
+        local yaws, set = {}, actor.SetYaw
+        function actor:SetYaw(y) yaws[#yaws + 1] = y; set(self, y) end
+        local function Near(a, b) return math.abs(a - b) < 1e-6 end
         ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
         ola:SelectPet(5159)
-        w:Run(ola.ns.Moves.SETTLE + 0.05)
-        ok(math.abs(actor.yaw - math.pi) < 1e-6, "back turned")
-        w:Run(ola.ns.Moves.SULK + 0.1)
-        eq(actor.yaw, 0, "and back")
+        eq(Fx:Playing(c, "mood"), 0, "no cloud before it sulks")
+        w:Run(M.SETTLE + 0.05)
+        eq(actor.anim, 4, "walks as it turns")
+        w:Run(M.TURN / 2)
+        ok(actor.yaw > 0.3 and actor.yaw < math.pi - 0.3, "halfway round, not at once: " .. actor.yaw)
+        w:Run(M.TURN / 2 + 0.05)
+        ok(Near(actor.yaw, math.pi), "its back turned")
+        ok(#yaws >= 4, "in steps (one a tick of the harness's 0.1 s)")
+        for i = 2, #yaws do ok(yaws[i] >= yaws[i - 1], "one way round") end
+        eq(actor.anim, 0, "the walk stopped: it stands, its back to us")
+        ok(Fx:Playing(c, "mood") >= 3, "a cloud over it, on the card's layer, and drops")
+        eq(Fx:Playing(nil, "mood"), 0, "not over everything")
+        w:Run(M.SULK - 0.2)
+        ok(Near(actor.yaw, math.pi), "held")
+        ok(Fx:Playing(c, "mood") >= 1, "the cloud still there")
+        w:Run(0.2 + M.TURN / 2)
+        eq(actor.anim, 4, "walks round again")
+        ok(actor.yaw > 0.05 and actor.yaw < math.pi - 0.05, "on the way back, not at once: " .. actor.yaw)
+        w:Run(M.TURN / 2 + 0.05)
+        ok(Near(actor.yaw, 0), "facing us")
+        eq(actor.anim, 0, "and stands")
+        eq(Fx:Playing(c, "mood"), 0, "the cloud gone with the sulk")
         ola:SelectPet(46); ola:SelectPet(5159)
-        w:Run(1)
-        eq(actor.yaw, 0, "once")
+        local n = #yaws
+        w:Run(3)
+        eq(#yaws, n, "once")
+        eq(actor.yaw, 0)
+    end)
+
+    test("a sulk cut short: another pet mid-turn faces us at once, no timer left; a click turns it round first", function()
+        local w, ola, actor = Setup(14)
+        local M, Fx, c = ola.ns.Moves, ola.ns.Fx, ola.env.PetJournalPetCard
+        local yaws, set = {}, actor.SetYaw
+        function actor:SetYaw(y) yaws[#yaws + 1] = y; set(self, y) end
+        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola:SelectPet(5159)
+        w:Run(M.SETTLE + M.TURN / 2)
+        ok(actor.yaw > 0.3 and actor.yaw < math.pi - 0.3, "mid-turn")
+        ola:SelectPet(46)
+        eq(actor.yaw, 0, "the next pet faces us")
+        local n = #yaws
+        w:Run(M.SULK + 2 * M.TURN + 1)
+        eq(#yaws, n, "no turn left running")
+        eq(actor.yaw, 0, "no drift")
+        eq(Fx:Playing(c, "mood"), 0)
+        -- The card closing mid-sulk: the same.
+        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola:SelectPet(5159)
+        w:Run(M.SETTLE + M.TURN + 0.5)
+        ok(math.abs(actor.yaw - math.pi) < 1e-6)
+        ok(Fx:Playing(c, "mood") >= 1)
+        ola.ns.Moves:Stop()
+        eq(actor.yaw, 0); eq(Fx:Playing(c, "mood"), 0)
+        n = #yaws
+        w:Run(5)
+        eq(#yaws, n)
+        -- A click while its back is turned: it walks round to us first, then its happy move.
+        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola:SelectPet(46); ola:SelectPet(5159)
+        w:Run(M.SETTLE + M.TURN + 0.5)
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.anim, 4, "turns round, walking")
+        w:Run(M.TURN + 0.05)
+        ok(math.abs(actor.yaw) < 1e-6, "facing us")
+        eq(actor.anim, 756, "then the hop")
+        eq(Fx:Playing(c, "mood"), 0, "and the cloud gone")
+        w:Run(M.SULK + 2 * M.TURN)
+        ok(math.abs(actor.yaw) < 1e-6, "no turn after")
     end)
 
     test("/dp probe pos: what the actor and the scene answer; moving and scaling the pet, and back", function()
@@ -558,7 +623,7 @@ return function(test, H)
         ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
         ola:SelectPet(46); ola:SelectPet(5159); w:Run(0.2); ola:SelectPet(46); w:Run(1)
         no(ola.ns.DB.char.sulk.shown, "not seen yet")
-        ola:SelectPet(5159); w:Run(0.65)
+        ola:SelectPet(5159); w:Run(ola.ns.Moves.SETTLE + ola.ns.Moves.TURN + 0.05)
         ok(math.abs(actor.yaw - math.pi) < 1e-6)
         ola:SelectPet(46)
         eq(actor.yaw, 0, "turned back for the next pet")
@@ -1127,6 +1192,16 @@ return function(test, H)
         eq(P.Sulk(PANDA), false)
         ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
         ok(P.Sulk(PANDA)); eq(P.Sulk("s:46"), false)
+        -- Round walking (2026-11-13), its back held, round again walking; and first, as the card opens.
+        local s = P.Sulk(PANDA)
+        eq(#s, 3)
+        eq(s[1][1], 4); eq(s[1].yaw, math.pi); ok(s[1].on, "seen as it turns")
+        eq(s[2][1], 0); eq(s[2][2], ola.ns.Moves.SULK); eq(s[2].mood, "sulk")
+        eq(s[3][1], 4); eq(s[3].yaw, 0); eq(s[3][2], ola.ns.Moves.TURN)
+        eq(Show(P.Pose(PANDA, { fresh = true })), "0/0.6 4/0.6* 0/3 4/0.6 0 =stand")
+        eq(Show(P.Pose(PANDA, { fresh = true, noMoments = true })), "0 =stand", "not on the pet frame")
+        ola.ns.PetMoves.species[5159].walk = false
+        eq(P.Sulk(PANDA)[1][1], 0, "no walk: it turns standing")
         ola.ns.DB.char.sulk.shown = true
         eq(P.Sulk(PANDA), false)
     end)

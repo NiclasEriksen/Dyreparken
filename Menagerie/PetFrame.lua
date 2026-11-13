@@ -3,7 +3,8 @@ local _, ns = ...
 -- The pet frame (2026-11-11, the user): the pet that's out, on screen, with its name and your bond
 -- with it. Optional, off by default (Settings: petFrame), on a transparent background. Only to look
 -- at: it moves 1:1 as on the journal card (its own stage of Moves.lua: asleep at night, sitting,
--- playing dead, walking and running with you, turning its back in a sulk, a cheer at a new level;
+-- playing dead, walking and running with you, a cheer at a new level; the once-a-day moments, a sulk
+-- included, are the card's;
 -- asleep while you're AFK: PF:Afk),
 -- and a click opens the pet journal on its card. Placed in Blizzard's Edit Mode (dragged while
 -- it's open, and sized with the mouse wheel there: the spot and size saved per character,
