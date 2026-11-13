@@ -83,8 +83,20 @@ return function(test, H)
     -- write its selected tab tainted (the key binding then fails in combat: docs/FOREVER_API.md).
     local function Button(ola) return ola.env.DyreparkenPetFrameButton end
 
+    test("the click hints are muted by default (the user, 2026-11-13); the card still waits for Pets", function()
+        local w, ola, PF = Setup(14)
+        ola:ClearPrinted()
+        PF:OpenCard()
+        no(ola:Printed("kortet til", true), "no hint")
+        ok(#ola:Log("hint petframe.%a+_hint %(muted%)") >= 1, "logged as muted")
+        ola:OpenJournal() -- (on the Pets page)
+        w:Run(1)
+        eq(ola:Card().key, "s:5159", "the card still waits for Pets")
+    end)
+
     test("a click opens the window by the micro button, untainted, on Pets: the card; the key binding works in combat after", function()
         local w, ola, PF = Setup(14)
+        ola.ns.Config.CLICK_HINTS = true -- (muted by default since 2026-11-13; the hints themselves tested here)
         local f, b, env = PF.frame, Button(ola), ola.env
         ok(b and b:IsShown(), "the secure button, over the frame")
         ok(b:IsProtected(), "protected")
@@ -161,6 +173,7 @@ return function(test, H)
 
     test("the window opens on another page: a hint, the card when the player opens Pets; open there, the same; Edit Mode drags", function()
         local w, ola, PF = Setup(14)
+        ola.ns.Config.CLICK_HINTS = true -- (muted by default since 2026-11-13; the hints themselves tested here)
         local f, b, env = PF.frame, Button(ola), ola.env
         ola:OpenJournal({ sideTabs = 3 })
         ola:ClickTab(1) -- (the player: Mounts)
@@ -229,6 +242,7 @@ return function(test, H)
     -- In combat attributes can't change: the click does what the micro button does, and the card shows after.
     test("a click in combat: the window opens or closes as by the micro button, nothing blocked, the card after the fight", function()
         local w, ola, PF = Setup(14)
+        ola.ns.Config.CLICK_HINTS = true -- (muted by default since 2026-11-13; the hints themselves tested here)
         local b, env = Button(ola), ola.env
         ola:EnterCombat()
         ola:Press(b); w:Run(0.1)
@@ -286,6 +300,7 @@ return function(test, H)
     -- Without the secure template or the micro button: the frame's own click only remembers the pet.
     test("no micro button: a click never opens or switches the window; a hint, the card when the player opens Pets", function()
         local w, ola, PF = Setup(14, false)
+        ola.ns.Config.CLICK_HINTS = true -- (muted by default since 2026-11-13; the hints themselves tested here)
         local env = ola.env
         rawset(env, "CollectionsMicroButton", nil)
         ola.ns.DB.global.settings.petFrame = true; PF:Apply()

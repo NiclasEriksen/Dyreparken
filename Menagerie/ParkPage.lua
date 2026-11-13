@@ -98,7 +98,7 @@ function Park:Show(key)
     if ns.InCombat() then
         ns.JournalUI:ShowWhenOpen(sid)
         local now = GetTime()
-        if not self.hintAt or now - self.hintAt >= self.HINT_EVERY then
+        if ns.Config.CLICK_HINTS and (not self.hintAt or now - self.hintAt >= self.HINT_EVERY) then
             self.hintAt = now
             ns.Print(ns.T("park.combat_hint", { pet = ns.Registry:NameOf(key) }))
         end

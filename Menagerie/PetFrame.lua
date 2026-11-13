@@ -661,7 +661,11 @@ function PF:Sync()
 end
 
 PF.HINT_EVERY = 10 -- seconds: one hint per burst of clicks
+-- The click hints are muted for now (2026-11-13, the user: "Silence the hint for now"); the card still
+-- waits for the Pets page. ns.Config.CLICK_HINTS turns them back on.
 function PF:Hint(text)
+    ns.Log("PetFrame", "hint %s%s", text, ns.Config.CLICK_HINTS and "" or " (muted)")
+    if not ns.Config.CLICK_HINTS then return end
     local now = GetTime()
     if self.hintAt and now - self.hintAt < self.HINT_EVERY then return end
     self.hintAt = now

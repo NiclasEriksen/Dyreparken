@@ -230,6 +230,7 @@ end
 -- Tunables. Keep them here so they're easy to find and change.
 ns.Config = {
     INACTIVE_RELEASE_DAYS = 30,   -- reservation released after this long unseen
+    CLICK_HINTS = false,          -- the pet frame's and the park's click hints ("the card waits for Pets"): muted (the user, 2026-11-13)
     ROSTER_LAPSE_SHARE = 1 / 3,   -- one roster read lapsing more than this share of adoptions at once is held back (Registry:CheckRoster) ...
     ROSTER_LAPSE_FLOOR = 3,       -- ... unless it's at most this many
     ROSTER_CONFIRM_AFTER = 20 * 3600, -- seconds before a later roster may confirm a held batch: a second day, not just a second date

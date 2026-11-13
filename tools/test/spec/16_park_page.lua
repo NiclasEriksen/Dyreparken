@@ -217,6 +217,7 @@ return function(test, H)
     -- card shows once the fight is over if the Pets page is still up (JournalUI:AfterCombat).
     test("a click in combat: a hint, and the card once the fight is over; with the window closed by then, the next time", function()
         local w, ola = Setup()
+        ola.ns.Config.CLICK_HINTS = true -- (muted by default since 2026-11-13)
         ola:OpenJournal({ sideTabs = 4 })
         local P, park = ola.ns.ParkPage, ola:Page("Parken")
         park.tab:Click()
