@@ -369,6 +369,19 @@ Quirks.EGGS = {
     -- A lot of guild chat at once, for a pet that isn't a Pratsom (it would join in) (the user, 2026-11-11).
     { id = "skravle", delay = "now", on = "chat", chance = 0.4, test = function(ctx)
         return not HasTrait(ctx.key, "pratsom") and Quirks:Chatty() and {} end },
+    -- Gjensynsglede (2026-11-13, the user's: "again only a chance for it to happen"): the day's visit after
+    -- REUNION_DAYS calendar days or more apart (Activity:Apart), by a chance, the pet greets you by its
+    -- nature, with a cheer on its card and the pet frame; a Latsabb barely looks up, so no cheer there.
+    -- `always`: a few days apart is rare by nature, and the visit comes once a day.
+    { id = "gjensyn", on = "day", always = true, traits = { "hjemlengsel", "trofast", "kjaelen", "latsabb" },
+        cheer = function(vars) return vars._key ~= "egg.gjensyn.latsabb" end,
+        test = function(ctx)
+            local days = ns.Activity:Apart(ctx.key)
+            if not (days and days >= Quirks.REUNION_DAYS) or ns.random() >= Quirks.REUNION_CHANCE then return nil end
+            local vars = Quirks.ByNature(ctx)
+            vars.n = days
+            return vars
+        end },
     -- The Sunday fishing contest, for a pet that likes fishing: excited about the day (the bonus for
     -- fishing there is Bond's, Bond:Contest).
     { id = "fiskedag", on = "day", always = true, test = function(ctx)
@@ -458,6 +471,7 @@ local function Families(key)
 end
 
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
+Quirks.REUNION_DAYS, Quirks.REUNION_CHANCE = 3, 0.35 -- (gjensyn: Monday's pet back on Thursday)
 -- Lines by nature, from the egg's own lists (EGGS: traits, families): the first of its
 -- traits the pet has (egg.<id>.<trait>.N), then its families' (egg.<id>.<family>.N), else
 -- the plain ones (egg.<id>.N). A test holds every listed one to its lines.
@@ -504,13 +518,15 @@ function Quirks:Egg(on, key, extra, seen)
             local text = vars and Pick(vars._key or ("egg." .. e.id), setmetatable({ pet = ctx.name }, { __index = vars }))
             if text then
                 pending.eggs[e.id] = today
+                local cheer = e.cheer
+                if type(cheer) == "function" then cheer = cheer(vars) end -- (by the line it says)
                 self:Say(text, ("egg %s %s"):format(e.id, key), "egg", function()
                     local got = ns.DB.char.eggs[e.id] or {}
                     got.n, got.day, got.key, got.played = (got.n or 0) + 1, today, key, nil -- (Moves: playing dead)
                     ns.DB.char.eggs[e.id] = got
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
                     ns.Story:Mine(key, "egg", text, e.id) -- (its story keeps the line, once per egg)
-                    if e.cheer and ns.Moves then ns.Moves:Cheer(key) end -- (on its card and the pet frame)
+                    if cheer and ns.Moves then ns.Moves:Cheer(key) end -- (on its card and the pet frame)
                 end, e.delay or (e.on == "day" and "day" or nil), key, e.bubble)
                 any = true
             end

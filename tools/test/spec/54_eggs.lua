@@ -80,4 +80,31 @@ return function(test, H)
         liv.ns.Activity:Emit("herb"); w4:RunTimers()
         no(liv:Printed("Klokken er ti", true), "neither: nothing")
     end)
+
+    test("gjensyn: back with a pet after three days apart or more, by a chance, it greets you by its nature", function()
+        local function Away(traits, days, roll)
+            local w, ola = Setup("cat", traits)
+            local cheers = 0
+            ola.ns.Moves.Cheer = function() cheers = cheers + 1 end
+            ola.ns.Activity:Emit("herb"); w:RunTimers() -- (the day's visit)
+            w:SkipDays(days)
+            ola:Dice(roll or 0)
+            ola.ns.Activity:Emit("herb"); w:RunTimers()
+            return ola, cheers
+        end
+        local ola, cheers = Away(nil, 2)
+        no(ola:Printed("dager er lenge", true), "two days: not yet")
+        eq(cheers, 0)
+        ola, cheers = Away(nil, 3)
+        ok(ola:Printed("Panda Cub kommer løpende! 3 dager er lenge å være borte.", true))
+        eq(cheers, 1, "a cheer on its card and the pet frame")
+        eq(ola.ns.Activity:Apart(PANDA), nil, "asked once: the calendar's second run doesn't roll again")
+        ola = Away(nil, 5, 0.4)
+        no(ola:Printed("dager er lenge", true), "the dice said no")
+        ola, cheers = Away({ "trofast", "latsabb" }, 4)
+        ok(ola:Printed("har ventet på deg hver eneste dag", true), "its first trait in the egg's list")
+        ola, cheers = Away({ "latsabb", "glupsk" }, 4)
+        ok(ola:Printed("Å, var du borte?", true))
+        eq(cheers, 0, "a Latsabb doesn't jump for it")
+    end)
 end

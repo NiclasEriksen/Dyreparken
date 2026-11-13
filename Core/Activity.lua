@@ -293,6 +293,7 @@ ns.Bus:On("DEBUG", function(on) if ns.DB.char then Activity:SetDebug(on) end end
 -- out, and before any other activity). Every pet of yours has
 -- its own day (2026-11-09; before, only the adopted one).
 ------------------------------------------------------------------------------
+local apart = {} -- key -> the day ("YYYYMMDD") of its visit before today's, until Activity:Apart asks
 function Activity:CheckDay()
     local w = wanted.day
     if not (w and next(w)) then return end
@@ -303,8 +304,22 @@ function Activity:CheckDay()
     c.on = c.on or {}
     local today = Today()
     if c.on[key] == today then return end
+    apart[key] = c.on[key]
     c.on[key] = today
     self:Emit("day", 1, key)
+end
+
+-- Calendar days since the visit before today's with this pet, once (the reunion egg asks at the day's
+-- visit; asking again gives nil, so the calendar's second run of the day eggs doesn't ask anew), or nil
+-- if it has none. This session only: the visit's day was the one thing that knew it.
+function Activity:Apart(key)
+    local before = apart[key]
+    apart[key] = nil
+    if type(before) ~= "string" then return nil end
+    local y, m, d = before:match("^(%d%d%d%d)(%d%d)(%d%d)$")
+    if not y then return nil end
+    local DayNumber = ns.Bonds.DayNumber
+    return DayNumber(ns.Now()) - DayNumber(time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12 }))
 end
 
 -- The day's visit if the date changed since the last check (none yet: the
