@@ -63,9 +63,11 @@ return function(test, H)
         ola:Slash("navn Pepe")
         local R = ola.ns.Registry
         local now = w:ServerTime()
+        for i = 1, 7 do w:AddMember(("Medlem%d Etternavn"):format(i)) end
+        ola.ns.Guild:Refresh(true) -- (only members' adoptions are kept: they're in the roster now)
+        w:Run(1)
         for i = 1, 7 do
             local owner = ("Medlem%d Etternavn"):format(i)
-            w:AddMember(owner)
             R:MergeRecord(owner, { k = "s:" .. (40 + i), at = now - 7 * 86400, ts = now })
         end
         R:Changed()

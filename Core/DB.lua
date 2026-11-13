@@ -242,8 +242,10 @@ local MIGRATIONS = {
             if type(g.ach) == "table" then ns.Achievements.TrimGuild(g.ach) end
         end
     end,
-    -- 13 (2026-11-13, X-Protocol 10): times from the wire are whole seconds: drop what peers
-    -- refuse now, the same on every client. Only forgeries fail these.
+    -- 13 (2026-11-13, X-Protocol 10): times from the wire are whole seconds, and lapses are capped
+    -- (Wire.LIMITS.LAPSES_MAX, the oldest going): drop what peers refuse now, the same on every
+    -- client. Only forgeries fail these. (Members only needs no migration: it depends on the
+    -- roster, so each complete roster prunes, Registry:Prune.)
     [13] = function(db)
         local R, ValidAch = ns.Registry, ns.Achievements.ValidGuildRecord
         for _, g in pairs(db.guilds or {}) do
@@ -266,6 +268,7 @@ local MIGRATIONS = {
                     end
                 end
             end
+            if type(g.lapses) == "table" then R.TrimLapses(g.lapses) end
         end
     end,
 }

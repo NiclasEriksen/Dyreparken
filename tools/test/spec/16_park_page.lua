@@ -14,7 +14,7 @@ return function(test, H)
     end
 
     local function Setup()
-        local w = H.World()
+        local w = H.World({ members = H.FOLK }) -- (only members' adoptions are kept)
         local cs = {}
         for _, m in ipairs({ { "Ola Nord", { 5159, 40, 72 } }, { "Kari Berg", { 41 } }, { "Per Hansen", { 42 } } }) do
             local c = w:AddClient(m[1], { pets = m[2] })
@@ -181,7 +181,6 @@ return function(test, H)
         Adopt("Liv Lund", 84)     -- farm, bird
         Adopt("Siv Dahl", 72)     -- rabbit
         Adopt("Tor Eng", 2001); Adopt("Anne Aas", 2002); Adopt("Bo Berg", 2003)
-        for _, n in ipairs({ "Liv Lund", "Siv Dahl", "Tor Eng", "Anne Aas", "Bo Berg" }) do w:AddMember(n) end
         R:Changed()
         match(ola.ns.ParkPage:Records()[2], "Mest populære familie:|r fugler %(1 har et hjem%)")
     end)

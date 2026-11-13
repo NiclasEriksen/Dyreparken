@@ -45,6 +45,22 @@ local _, ns = ...
 --
 -- Trust: records are relayed by other clients during sync, so they can't be
 -- verified. Fine for one friendly guild; validate shapes, not intent.
+--
+-- MEMBERS ONLY (X-Protocol 10, 2026-11-13, Q4): only guild members' data is
+-- kept. Claims, names and bonds whose author isn't on the last complete
+-- roster (Guild.known, one that lists us) aren't stored: they wait in `held`
+-- (memory, at most Config.HELD_MAX) for the next roster, which takes the
+-- members among them and drops the rest. So a roster read before someone
+-- joined never loses them, and made-up names can't grow anyone's saved data
+-- (B11). An author's own message on the guild channel is let in at once (only
+-- members can send there). Each complete roster prunes the stores the same
+-- way (Prune): every client with the same members keeps the same data, so
+-- digests agree. With no complete roster yet, everything is kept, and pruned
+-- at the first. Our own entries always stay. Not pruned: a claim that still
+-- holds a pet (only a lapse frees one, CheckRoster's guards and all), and
+-- lapses, which are about people who left: a returning member's own client
+-- still has its old claim, and only the lapse stops it taking the pet back.
+-- Lapses have a cap of their own instead (Wire.LIMITS.LAPSES_MAX).
 local Registry = {}
 ns.Registry = Registry
 
@@ -110,6 +126,32 @@ function Registry.ValidLapseOf(owner, t) return SaneName(owner) and After(t) end
 function Registry.ValidNaming(key, namer, e) return ValidKey(key) and SaneName(namer) and ValidEntry(e) end
 function Registry.ValidBond(key, carer, e) return ValidKey(key) and SaneName(carer) and ValidLife(e) end
 
+-- Members only (the header). The roster that judges: the last complete one,
+-- if it lists us (a name format we can't match misses us too: B10).
+local function Roster()
+    local known = ns.Guild.known
+    if known and known[ns.PlayerKey()] then return known end
+end
+
+-- May this author's entry be stored? from: who sent it on the guild channel
+-- (a member, or the server wouldn't have passed it on).
+local function Admit(author, from)
+    if author == from or author == ns.PlayerKey() then return true end
+    local roster = Roster()
+    return not roster or roster[author] ~= nil
+end
+
+-- Entries by someone the roster doesn't list, until the next one judges them.
+local held = {}
+local function Hold(store, key, author, e)
+    if #held < Config.HELD_MAX then
+        held[#held + 1] = { store, key, author, e }
+        ns.Guild:Soon()
+    end
+    return false
+end
+function Registry:Held() return #held end
+
 -- Returns true when our data changed.
 -- At most `max` entries by one author in t[key][author] (code review
 -- 2026-11-09): one member sending names or bonds under made-up pet keys
@@ -147,7 +189,7 @@ function Registry.TrimAll(t, field, max)
     end
 end
 
-function Registry:MergeLife(key, carer, e)
+function Registry:MergeLife(key, carer, e, from)
     local g = G()
     if not g or not Registry.ValidBond(key, carer, e) then
         return false
@@ -155,6 +197,7 @@ function Registry:MergeLife(key, carer, e)
     local byKey = g.life[key]
     local cur = byKey and byKey[carer]
     if cur and (cur.p > e.p or (cur.p == e.p and cur.t >= e.t)) then return false end
+    if not Admit(carer, from) then return Hold("life", key, carer, e) end
     if not byKey then byKey = {}; g.life[key] = byKey end
     byKey[carer] = { p = e.p, f = e.f, t = e.t }
     return Trim(g.life, carer, "t", Config.LIFE_PER_MEMBER, key)
@@ -193,7 +236,7 @@ local function NameLine(e) return (e.n or "") .. "\31" .. (e.x and "x" or "") en
 local function ClaimLine(r) return r.at .. "\31" .. (r.k or "") end
 Registry.NameLine, Registry.ClaimLine = NameLine, ClaimLine
 
-function Registry:MergeName(key, namer, e)
+function Registry:MergeName(key, namer, e, from)
     local g = G()
     if not g or not Registry.ValidNaming(key, namer, e) then
         return false
@@ -201,29 +244,68 @@ function Registry:MergeName(key, namer, e)
     local byKey = g.names[key]
     local cur = byKey and byKey[namer]
     if cur and (cur.at > e.at or (cur.at == e.at and NameLine(cur) >= NameLine(e))) then return false end
+    if not Admit(namer, from) then return Hold("names", key, namer, e) end
     if not byKey then byKey = {}; g.names[key] = byKey end
     byKey[namer] = { n = e.n, at = e.at, x = e.x }
     return Trim(g.names, namer, "at", Config.NAMES_PER_MEMBER, key)
 end
 
 -- Returns true when our data changed.
-function Registry:MergeRecord(owner, r)
+function Registry:MergeRecord(owner, r, from)
     local g = G()
     if not g or not Registry.ValidClaim(owner, r) then return false end
     local cur = g.claims[owner]
     if cur and (cur.ts > r.ts or (cur.ts == r.ts and ClaimLine(cur) >= ClaimLine(r))) then return false end
+    if not Admit(owner, from) then return Hold("claims", owner, owner, r) end
     g.claims[owner] = Copy(r)
     dirty = true
     return true
 end
 
-function Registry:MergeLapse(owner, t)
+-- At most Wire.LIMITS.LAPSES_MAX lapses (X-Protocol 10): they're kept for people who left (the
+-- header), so a relay making up names could otherwise grow them for good. Past the cap the oldest
+-- go (ties: the greater name), the same choice on every client whatever order they came in, as
+-- Trim does. A cap no real guild nears: one lapse per person who ever went with a pet. Returns
+-- false if `added` was the one to go.
+function Registry.TrimLapses(lapses, added)
+    local list = {}
+    for owner, t in pairs(lapses) do list[#list + 1] = owner end
+    local max = ns.Wire.LIMITS.LAPSES_MAX
+    if #list <= max then return true end
+    table.sort(list, function(a, b)
+        if lapses[a] ~= lapses[b] then return lapses[a] > lapses[b] end
+        return a < b
+    end)
+    local kept = true
+    for i = max + 1, #list do
+        lapses[list[i]] = nil
+        if list[i] == added then kept = false end
+    end
+    return kept
+end
+
+-- batch: the caller trims once at the end (MergeLapses).
+function Registry:MergeLapse(owner, t, batch)
     local g = G()
     if not g or not Registry.ValidLapseOf(owner, t) then return false end
     if (g.lapses[owner] or 0) >= t then return false end
+    local new = g.lapses[owner] == nil
     g.lapses[owner] = t
     dirty = true
+    if new and not batch then return Registry.TrimLapses(g.lapses, owner) end
     return true
+end
+
+-- A whole table of lapses (a SYNC's, a LAPSE): merged, then trimmed once.
+function Registry:MergeLapses(t)
+    local g = G()
+    if not g or type(t) ~= "table" then return false end
+    local changed = false
+    for owner, at in pairs(t) do
+        if self:MergeLapse(owner, at, true) then changed = true end
+    end
+    if changed then Registry.TrimLapses(g.lapses) end
+    return changed
 end
 
 -- Our own entries, the stores only we write our part of. One path for every
@@ -376,6 +458,48 @@ function Registry:CheckRoster()
         end
     end
     return added
+end
+
+-- After a complete roster (Sync, after CheckRoster: its lapses come first): drop what
+-- non-members wrote, and let in what waited for this roster (`held`). Only a roster that
+-- judges: complete, just read and listing us. A claim that still holds a pet stays: freeing
+-- it is CheckRoster's (a lapse, with its guards against an odd read); once lapsed it goes
+-- at the next roster. Returns true when the stores changed.
+function Registry:Prune()
+    local g, G_ = G(), ns.Guild
+    local roster = Roster()
+    if not g or not roster or G_.knownAt ~= G_.at then return false end
+    local me, changed, n = ns.PlayerKey(), false, 0
+    for owner, r in pairs(g.claims) do
+        if owner ~= me and not roster[owner] and not Active(g, owner, r) then
+            g.claims[owner], changed, n = nil, true, n + 1
+        end
+    end
+    for _, store in ipairs({ g.names, g.life }) do
+        for key, byKey in pairs(store) do
+            for author in pairs(byKey) do
+                if author ~= me and not roster[author] then byKey[author], changed, n = nil, true, n + 1 end
+            end
+            if not next(byKey) then store[key] = nil end
+        end
+    end
+    local waiting, took = held, 0
+    held = {}
+    for _, h in ipairs(waiting) do
+        local store, key, author, e = h[1], h[2], h[3], h[4]
+        if roster[author] then
+            local merged
+            if store == "claims" then merged = self:MergeRecord(author, e, author)
+            elseif store == "names" then merged = self:MergeName(key, author, e, author)
+            else merged = self:MergeLife(key, author, e, author) end
+            if merged then changed, took = true, took + 1 end
+        end
+    end
+    if n > 0 or #waiting > 0 then
+        ns.Log("Registry", "members only: %d pruned, %d of %d held taken", n, took, #waiting)
+    end
+    if changed then dirty = true end
+    return changed
 end
 
 local function Rebuild()

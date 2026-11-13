@@ -356,7 +356,7 @@ return function(test, H)
     end)
 
     test("a holder below Venn can clear the name the pet came with, not give it a new one", function()
-        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true, world = { members = H.FOLK } }
         ola:Slash("adopter panda")
         w:Run(5)
         local R = ola.ns.Registry

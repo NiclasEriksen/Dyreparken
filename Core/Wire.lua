@@ -28,6 +28,7 @@ Wire.LIMITS = {
     DAY = 86400,                -- a bond's cap counts 24-hour steps (Wire.LifeCap)
     LIFE_SPARE_DAYS = 3,        -- ... plus the day it began and spare ones (2 until X-Protocol 10: a feat's 25 on a
                                 --     full day didn't always fit)
+    LAPSES_MAX = 1000,          -- lapses kept at most, the oldest going first (Registry: TrimLapses; X-Protocol 10)
 }
 local L = Wire.LIMITS
 local Config = ns.Config

@@ -5,7 +5,7 @@ return function(test, H)
     local PANDA, KITTEN, DAY = "s:5159", "s:46", 86400
 
     local function Guild(spec)
-        local w = H.World()
+        local w = H.World({ members = H.FOLK }) -- (only members' data is kept: the names the tests merge)
         local list = {}
         for _, s in ipairs(spec) do
             list[#list + 1] = w:AddClient(s[1], { pets = s[2], login = s.offline ~= true })
@@ -181,15 +181,18 @@ return function(test, H)
         for _, n in ipairs(names) do spec[#spec + 1] = { n, { 5159 } } end
         spec[#spec + 1] = { "Nina Ny", { 46 }, offline = true }
         local w = H.World()
+        -- Plenty of records (released, of members away long), so even the first part is several
+        -- chunks: only the hold on its first chunk ("F") can stop the others. (Members: only
+        -- members' records are kept.)
+        local function Name(j) return ("%08x %08x"):format(j * 2654435761 % 4294967296, j * 40503 % 4294967296) end
+        for j = 1, 400 do w:AddMember(Name(j), 400) end
         local list = {}
         for _, s in ipairs(spec) do list[#list + 1] = w:AddClient(s[1], { pets = s[2], login = s.offline ~= true }) end
         w:Run(40) -- (the logins' day visits, and their bonds, settled)
-        -- Plenty of records (released, of members long gone), so even the first part is several
-        -- chunks: only the hold on its first chunk ("F") can stop the others.
         local now = w:ServerTime()
         for i = 1, 5 do
             for j = 1, 400 do -- names that don't compress away: longer than the outbox's burst of 8 chunks
-                local name = ("%08x %08x"):format(j * 2654435761 % 4294967296, j * 40503 % 4294967296)
+                local name = Name(j)
                 list[i].ns.Registry:MergeRecord(name, { at = now - j, ts = now - j })
             end
         end

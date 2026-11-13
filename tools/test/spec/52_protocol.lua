@@ -62,7 +62,8 @@ store a part=1 nested=false count=false
 store n part=2 nested=true count=true
 store b part=3 nested=true count=true
 ]],
-        -- 10 (2026-11-13, 0.6.0): LIFE_SPARE_DAYS 3, a day's room 75 + the wish's 10, whole-number
+        -- 10 (2026-11-13, 0.6.0): members-only sync (Registry: Admit, Prune; not in the fingerprint,
+        -- it's behavior), LIFE_SPARE_DAYS 3, LAPSES_MAX, a day's room 75 + the wish's 10, whole-number
         -- times, a claim's and a name's digest line carrying what they hold. The digest and day room
         -- lines are new with it.
         [10] = [[
@@ -85,6 +86,7 @@ limit ACH_ID_PATTERN=^guild:[%w:_]+$
 limit DAY=86400
 limit GUILD_UNKNOWN_MAX=64
 limit KEY_LEN=64
+limit LAPSES_MAX=1000
 limit LIFE_SPARE_DAYS=3
 limit MAX_PARTS=64
 limit MAX_RAW=524288

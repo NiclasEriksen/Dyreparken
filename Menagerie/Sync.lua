@@ -53,7 +53,8 @@ local C = ns.Config
 --   nested  t[key][author] = entry (else t[author] = entry)
 --   source  fn() -> what we send and digest (of bonds, the holders' only: Registry:AdoptedLife)
 --   valid   fn(key[, author], entry): the check a merge runs on a peer's copy (and WriteOwn on ours)
---   merge   fn(key[, author], entry) -> changed; it checks `valid` itself (the merges are public),
+--   merge   fn(key[, author], entry, from) -> changed; it checks `valid` itself (the merges are
+--           public), and whether the author is a member (Registry: members only; from: the sender),
 --           or mergeAll fn(t) -> changed, for a store that merges a whole table at once
 --   digest  fn(key[, author], entry) -> its line in the digest; the first letter keeps stores apart
 --   count   counted against Config.SYNC_MAX_ENTRIES (TooBig). Guild achievements never were, and
@@ -68,11 +69,11 @@ Sync.TABLES = {
     -- A claim's digest line carries its pet and date too (X-Protocol 10): with the time of its
     -- write alone, a relayed copy with the same time and another pet was never corrected.
     { wire = "r", part = 1, source = function() return (R:All()) end, valid = R.ValidClaim,
-        merge = function(owner, r) return R:MergeRecord(owner, r) end,
+        merge = function(owner, r, from) return R:MergeRecord(owner, r, from) end,
         digest = function(owner, r) return "c" .. owner .. "\31" .. r.ts .. "\31" .. R.ClaimLine(r) end,
         count = true, registry = true },
     { wire = "l", part = 1, source = function() return (select(2, R:All())) end, valid = R.ValidLapseOf,
-        merge = function(owner, t) return R:MergeLapse(owner, t) end,
+        mergeAll = function(t) return R:MergeLapses(t) end,
         digest = function(owner, t) return "l" .. owner .. "\31" .. t end, count = true, registry = true },
     -- (Achievements.lua loads after this file: its functions are looked up when called.)
     { wire = "a", part = 1, source = function() return ns.Achievements:GuildRecords() end,
@@ -80,13 +81,13 @@ Sync.TABLES = {
         mergeAll = function(t) return (ns.Achievements:MergeGuild(t)) end,
         digest = function(id, rec) return "a" .. id .. "\31" .. rec.at .. "\31" .. tostring(rec.ann or "-") end },
     { wire = "n", part = 2, nested = true, source = function() return (select(3, R:All())) end, valid = R.ValidNaming,
-        merge = function(key, namer, e) return R:MergeName(key, namer, e) end,
+        merge = function(key, namer, e, from) return R:MergeName(key, namer, e, from) end,
         digest = function(key, namer, e) return "n" .. key .. "\31" .. namer .. "\31" .. e.at .. "\31" .. R.NameLine(e) end,
         count = true, registry = true },
     -- Bonds by level, not points: points go out lazily (Bond.lua), and peers
     -- shouldn't SYNC over a few points. A level change goes out at once.
     { wire = "b", part = 3, nested = true, source = function() return R:AdoptedLife() end, valid = R.ValidBond,
-        merge = function(key, carer, e) return R:MergeLife(key, carer, e) end,
+        merge = function(key, carer, e, from) return R:MergeLife(key, carer, e, from) end,
         digest = function(key, carer, e) return "b" .. key .. "\31" .. carer .. "\31" .. ns.Bond:Level(e.p) end,
         count = true, registry = true, keyed = true },
 }
@@ -225,8 +226,8 @@ local function TooBig(msg)
 end
 
 -- Merge what a message carries, by the stores' wire keys ({ r = ..., n = ... });
--- returns true if the registry changed.
-local function MergeAll(msg)
+-- returns true if the registry changed. from: its sender.
+local function MergeAll(msg, from)
     local changed, whole, keys = false, false, {}
     local function Changed(row, key)
         changed = true
@@ -236,18 +237,18 @@ local function MergeAll(msg)
         local t = msg[row.wire]
         if type(t) == "table" then
             if row.mergeAll then
-                row.mergeAll(t)
+                if row.mergeAll(t) and row.registry then Changed(row) end
             elseif row.nested then
                 for key, byKey in pairs(t) do
                     if type(byKey) == "table" then
                         for author, e in pairs(byKey) do
-                            if row.merge(key, author, e) and row.registry then Changed(row, key) end
+                            if row.merge(key, author, e, from) and row.registry then Changed(row, key) end
                         end
                     end
                 end
             else
                 for key, e in pairs(t) do
-                    if row.merge(key, e) and row.registry then Changed(row, key) end
+                    if row.merge(key, e, from) and row.registry then Changed(row, key) end
                 end
             end
         end
@@ -272,7 +273,7 @@ function Sync:Init()
             ns.Log("Sync", "refused a SYNC from %s: too many entries", tostring(sender))
             return
         end
-        MergeAll(msg)
+        MergeAll(msg, sender)
         local i, of = tonumber(msg.i), tonumber(msg.of)
         local mine = Sync:Digest()
         if i and of and i < of then
@@ -291,6 +292,9 @@ function Sync:Init()
         -- HELLO) cancelled the answer a newcomer was waiting for (found 2026-11-11).
         local whole = of and of >= 2 and progress[sender] == of - 1
         progress[sender] = nil
+        -- Still apart: one of our rosters may be older than the other's (someone joined or left
+        -- in between), and what each keeps differs until both have read a newer one.
+        if mine ~= msg.d then ns.Guild:Soon() end
         if mine == msg.d and whole then
             Cancel(sender) -- someone said it for us
         elseif answered[sender] == tostring(msg.d) .. "/" .. mine then
@@ -314,14 +318,14 @@ function Sync:Init()
             ns.Log("Sync", "clock: %s's record is %+d s from ours", tostring(sender), msg.r.ts - ns.Now())
         end
         -- Only the owner writes their record. Relayed copies come via SYNC.
-        MergeAll({ r = { [sender] = msg.r } })
+        MergeAll({ r = { [sender] = msg.r } }, sender)
     end, "GUILD", { r = "table" })
     ns.Comm:Register("NICK", function(msg, sender, channel)
         -- Only the namer writes their entry, like UPD.
-        MergeAll({ n = { [msg.pet] = { [sender] = msg.e } } })
+        MergeAll({ n = { [msg.pet] = { [sender] = msg.e } } }, sender)
     end, "GUILD", { pet = "key", e = "table" })
     ns.Comm:Register("BOND", function(msg, sender, channel)
-        MergeAll({ b = { [msg.pet] = { [sender] = msg.e } } })
+        MergeAll({ b = { [msg.pet] = { [sender] = msg.e } } }, sender)
     end, "GUILD", { pet = "key", e = "table" })
     ns.Comm:Register("BOND_REQ", function(msg, sender, channel)
         local e = ns.Registry:Life(msg.pet, ns.PlayerKey())
@@ -330,8 +334,13 @@ function Sync:Init()
             ns.Comm:Send("BOND", { pet = msg.pet, e = e }, "GUILD")
         end
     end, "GUILD", { pet = "key" })
-    ns.Comm:Register("LAPSE", function(msg, _, channel)
-        MergeAll({ l = msg.l })
+    ns.Comm:Register("LAPSE", function(msg, sender, channel)
+        -- (a SYNC part's cap, so one LAPSE can't fill the lapses' with made-up names)
+        if TooBig({ l = msg.l }) then
+            ns.Log("Sync", "refused a LAPSE from %s: too many entries", tostring(sender))
+            return
+        end
+        MergeAll({ l = msg.l }, sender)
     end, "GUILD", { l = "table" })
 
     -- Our own edits go out right away.
@@ -345,14 +354,18 @@ function Sync:Init()
     ns.Bus:On("MY_NAME", function(key, e)
         ns.Comm:Send("NICK", { pet = key, e = e }, "GUILD")
     end)
-    -- A fresh roster may reveal owners who left or went inactive.
+    -- A fresh roster may reveal owners who left or went inactive, and judges what non-members
+    -- wrote (Registry: members only; after the lapses, so a claim lapsed now goes now).
     ns.Bus:On("ROSTER", function()
         local added = ns.Registry:CheckRoster()
-        if added then
+        if added then ns.Comm:Send("LAPSE", { l = added }, "GUILD") end
+        local pruned = ns.Registry:Prune()
+        if added or pruned then
             ns.Registry:Changed()
-            ns.Comm:Send("LAPSE", { l = added }, "GUILD")
             ns.Registry:CheckMine()
         end
+        -- (a stale or partial read judges nothing: what waits for one asks again)
+        if ns.Registry:Held() > 0 then ns.Guild:Soon() end
     end)
 end
 

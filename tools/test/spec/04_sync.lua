@@ -7,7 +7,7 @@ return function(test, H)
 
     -- A guild of clients, logged in and past the login chatter.
     local function Guild(spec)
-        local w = H.World()
+        local w = H.World({ members = H.FOLK }) -- (only members' data is kept: the names the tests merge)
         local list = {}
         for _, s in ipairs(spec) do
             list[#list + 1] = w:AddClient(s[1], { pets = s[2], login = s.offline ~= true })
@@ -228,6 +228,9 @@ return function(test, H)
     test("a big registry syncs in several chunks", function()
         local w, ola, liv = Guild({ { "Ola Nord", { 5159 } }, { "Liv Lund", { 72 }, offline = true } })
         local R = ola.ns.Registry
+        for i = 1, 150 do w:AddMember(("Medlem%03d Etternavn"):format(i), 0) end
+        ola.ns.Guild:Refresh(true) -- (only members' data is kept: these are)
+        w:Run(1)
         for i = 1, 150 do
             local owner = ("Medlem%03d Etternavn"):format(i)
             R:MergeRecord(owner, { k = "s:" .. (1000 + i), at = T0 + 100 + i, ts = T0 + 200 + i })
@@ -251,6 +254,9 @@ return function(test, H)
     test("a registry too big for the server's burst still reaches a newcomer", function()
         local w, ola, liv = Guild({ { "Ola Nord", { 5159 } }, { "Liv Lund", { 72 }, offline = true } })
         local R = ola.ns.Registry
+        for i = 1, 200 do w:AddMember(("Medlem%03d Etternavn"):format(i), 0) end
+        ola.ns.Guild:Refresh(true) -- (only members' data is kept: these are)
+        w:Run(1)
         for i = 1, 200 do
             local owner = ("Medlem%03d Etternavn"):format(i)
             R:MergeRecord(owner, { k = "s:" .. (1000 + i), at = T0 + 100 + i, ts = T0 + 200 + i })
@@ -276,6 +282,9 @@ return function(test, H)
         for i = 1, 150 do big[Name(i)] = T0 + i * 7 end
         local recs = {}
         for i = 1, 60 do recs[Name(5000 + i)] = { k = "s:" .. (2000 + i), at = T0 + i, ts = T0 + 100 + i } end
+        for owner in pairs(recs) do w:AddMember(owner, 0) end
+        kari.ns.Guild:Refresh(true) -- (only members' records are kept: these are)
+        w:Run(1)
         local before = w.chunks or 0
         ola.ns.Comm:Send("LAPSE", { l = big }, "GUILD")
         ola.ns.Comm:Send("SYNC", { r = recs, l = {}, n = {}, a = {}, d = 0 }, "GUILD")
@@ -315,6 +324,9 @@ return function(test, H)
             if owner == "Rar Kar" then return false end
             return merge(self, owner, r)
         end
+        w:AddMember("Rar Kar", 0)
+        ola.ns.Guild:Refresh(true) -- (a member: only members' records are kept)
+        w:Run(1)
         local now = w:ServerTime()
         ola.ns.Registry:MergeRecord("Rar Kar", { k = KITTEN, at = now, ts = now })
         local m = w:Mark()

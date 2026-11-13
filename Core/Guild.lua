@@ -11,6 +11,11 @@ local _, ns = ...
 -- the guild has. Decisions that hide claims ("left the guild") require
 -- a complete roster, so a half-loaded (or stale) roster can't release anyone.
 --
+-- Guild.known, Guild.knownAt: the members of the last complete roster the
+-- server sent, and when it was read. The sync keeps only members' data
+-- (Registry: Admit, Prune), and a stale or partial read later must not turn
+-- that off.
+--
 -- (unverified on Forever) roster name format and GetGuildRosterLastOnline;
 -- `/dp probe` logs the first rows.
 local Guild = { members = {}, complete = false, at = 0 }
@@ -37,6 +42,7 @@ local function Read(stale)
     end
     Guild.members, Guild.at, Guild.stale = members, ns.Now(), stale or false
     Guild.complete = not stale and total > 0 and read == total
+    if Guild.complete then Guild.known, Guild.knownAt = members, Guild.at end
     ns.Log("Guild", "roster: %d/%d rows", read, total)
     ns.Bus:Fire("ROSTER")
 end
@@ -58,6 +64,20 @@ function Guild:Refresh(force)
             waiting = false
             if GetNumGuildMembers() > 0 then Read(true) end
         end
+    end)
+end
+
+-- A roster read soon, but no sooner than Config.ROSTER_INTERVAL after the
+-- last: for data about someone the last complete roster doesn't list (a new
+-- member, or one who left; Registry holds it until then), and for a SYNC
+-- that leaves us differing (our roster may be the older one). One at a time.
+local soon
+function Guild:Soon()
+    if soon or not IsInGuild() then return end
+    soon = true
+    C_Timer.After(math.max(1, self.at + ns.Config.ROSTER_INTERVAL - ns.Now()), function()
+        soon = false
+        Guild:Refresh(true)
     end)
 end
 

@@ -7,8 +7,9 @@ return function(test, H)
     -- Times after the bond epoch (nothing in the registry is older than the addon): the test clock's start.
     local T0 = 1790000000
 
+    -- (H.FOLK: the guildmates whose data these tests merge; only members' is kept)
     local function One(opts)
-        local w = H.World()
+        local w = H.World({ members = H.FOLK })
         local c = w:AddClient("Ola Nord", opts or { pets = { 5159, 46 } })
         w:Settle("hello")
         return w, c, c.ns.Registry
@@ -199,7 +200,8 @@ return function(test, H)
         w:AddMember("Siv Dahl", 400)
         w:Run(12)
         local R = c.ns.Registry
-        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 }) -- not in the guild
+        -- (Kari's own UPD, from when she was in the guild: she isn't now)
+        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 }, "Kari Berg")
         R:MergeRecord("Per Hansen", { k = "s:40", at = T0 - 40 * 86400, ts = T0 - 40 * 86400 }) -- (and not seen since)
         R:MergeRecord("Liv Lund", { k = "s:41", at = T0 + 100, ts = T0 + 100 })
         R:MergeRecord("Siv Dahl", { at = T0 + 100, ts = T0 + 100 }) -- nothing reserved: nothing to lapse
@@ -227,7 +229,7 @@ return function(test, H)
         w:Run(12)
         c.rosterPartial = 2 -- the server sent only part of the rows
         local R = c.ns.Registry
-        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 })
+        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 }, "Kari Berg")
         R:MergeRecord("Liv Lund", { k = "s:40", at = T0 + 100, ts = T0 + 100 })
         c.ns.Guild:Refresh(true)
         w:Run(1)
@@ -243,7 +245,7 @@ return function(test, H)
         w:AddMember("Per Hansen", 45)
         w:Run(12)
         local R = c.ns.Registry
-        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 }) -- not in the guild
+        R:MergeRecord("Kari Berg", { k = "s:46", at = T0 + 100, ts = T0 + 100 }, "Kari Berg") -- not in the guild
         R:MergeRecord("Per Hansen", { k = "s:40", at = T0 - 40 * 86400, ts = T0 - 40 * 86400 })
         -- Every name comes back with a suffix we don't know as a realm: complete, but nobody matches.
         local info = c.env.GetGuildRosterInfo

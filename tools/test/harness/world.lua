@@ -20,11 +20,17 @@ function H.World(opts)
         guildName = opts.guild or "Dyreparken",
     }, World)
     H.worlds[#H.worlds + 1] = w
+    for _, name in ipairs(opts.members or {}) do w:AddMember(name, 0) end
     return w
 end
 
+-- Guildmates the specs name in data they merge by hand (H.World{ members = H.FOLK }): since
+-- X-Protocol 10 only members' data is kept (Registry: members only), so a peer's claim, name or
+-- bond in a test needs its author in the guild, as in the game.
+H.FOLK = { "Kari Berg", "Per Hansen", "Liv Lund", "Bo Berg", "Anne Aas", "Bjorn Aas", "Siv Dahl", "Tor Eng", "Nina Ny" }
+
 -- The usual world: Ola Nord (and Kari Berg, if given), logged in and
--- settled. o.ola / o.kari: a pets list or the client's opts; o.each(c):
+-- settled. o.world: H.World's opts ({ members = H.FOLK }). o.ola / o.kari: a pets list or the client's opts; o.each(c):
 -- before the login settles (fixtures, stubs); o.settle: a stage (World:Settle,
 -- default "day"); o.journal: Ola opens the pet journal (true, or its opts).
 -- Returns w, ola, kari.

@@ -265,6 +265,7 @@ ns.Config = {
     SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole
     NAMES_PER_MEMBER = 50,        -- nickname entries kept per namer, and ...
     LIFE_PER_MEMBER = 400,        -- ... bond entries per carer: past that the oldest go (Registry: Trim)
+    HELD_MAX = 200,               -- entries by someone the roster doesn't list, waiting in memory for the next roster (Registry: Hold)
     -- Sync's timings (Sync.lua says why each is what it is). Local: peers don't need to agree on them.
     SYNC_GAP = 30,                -- seconds between two SYNCs of ours, at least
     SYNC_HOLD = 30,               -- seconds ours waits for someone else's SYNC that started arriving
