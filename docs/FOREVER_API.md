@@ -499,6 +499,13 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   `PLAYER_REGEN_ENABLED` (`ns.Events:OutOfCombat`). "Interface action failed because of an AddOn" can occur
   without a Lua error.
 - Hook Blizzard UI (`hooksecurefunc`, `HookScript`), never replace it, to avoid taint.
+- (seen 2026-11-13, 1.60.1) **Never open or switch the Collections window from addon code.**
+  `ToggleCollectionsJournal(tab)` (or `CollectionsJournal_SetTab`) called from an insecure click writes
+  `CollectionsJournal`'s selected tab tainted. Later, opening the window with its key binding **in combat** fails:
+  `ADDON_ACTION_BLOCKED ... MountJournal:SetShown()` via `CollectionsJournal_UpdateSelectedTab`. The pet frame's
+  click now shows a card only on a Pets page that's already open, and otherwise waits for the player to open it
+  (PetFrame:OpenCard, JournalUI:ShowWhenOpen). Selecting a species on the open page (`PetJournal_SelectSpecies`)
+  hasn't shown this.
 
 ## Sources
 

@@ -519,19 +519,26 @@ end
 ------------------------------------------------------------------------------
 -- A click: the pet journal, on this pet's card
 ------------------------------------------------------------------------------
--- Onto the Pets page, from wherever the window is (2026-11-11, the user: opening on the last page
--- wasn't what a click on the pet should do). This runs Blizzard's tab switch from our click; opening
--- the window from addon code at all runs it anyway (its OnShow sets the last tab), so the last-page
--- way bought nothing. To confirm in game with a taint log: a toy from the Toy Box after this click.
+-- Only onto a Pets page that's already showing (2026-11-13, the user). Opening the Collections window,
+-- or switching its tab, from addon code writes its selected tab tainted: the next time the player opens
+-- it with the key binding in combat, Blizzard's own tab update is blocked (ADDON_ACTION_BLOCKED,
+-- MountJournal:SetShown() via CollectionsJournal_UpdateSelectedTab; docs/FOREVER_API.md). So with the
+-- Pets page closed the click only remembers the pet and says so once; JournalUI shows its card when
+-- the player next opens the Pets page themselves (JournalUI:ShowWhenOpen).
+PF.HINT_EVERY = 10 -- seconds: one hint per burst of clicks
 function PF:PetsPage() return rawget(_G, "PetJournal") ~= nil and PetJournal:IsVisible() == true end
 
 function PF:OpenCard()
     local sid = self.key and ns.Pets:SpeciesOfKey(self.key)
     if not sid or ns.InCombat() then return end
     if not self:PetsPage() then
-        if type(ToggleCollectionsJournal) ~= "function" then return end
-        ToggleCollectionsJournal(rawget(_G, "COLLECTIONS_JOURNAL_TAB_INDEX_PETS") or 2)
-        if not self:PetsPage() then return end
+        ns.JournalUI:ShowWhenOpen(sid)
+        local now = GetTime()
+        if not self.hintAt or now - self.hintAt >= self.HINT_EVERY then
+            self.hintAt = now
+            ns.Print(ns.T("petframe.open_hint", { pet = ns.Registry:NameOf(self.key) }))
+        end
+        return
     end
     ns.SidePage:CloseAll() -- (our pages would cover the card)
     C_Timer.After(0, function() ns.JournalUI:ShowSpecies(sid) end)

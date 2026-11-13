@@ -78,18 +78,19 @@ return function(test, H)
         eq(PF.actor.anim, 4, "on again: it walks with you")
     end)
 
-    test("a click opens the pet journal on its card; not in combat; in Edit Mode it's dragged instead", function()
+    test("a click with the Pets page open shows its card; not in combat; in Edit Mode it's dragged instead", function()
         local w, ola, PF = Setup(14)
         local f = PF.frame
+        ola:OpenJournal()
         f.click.scripts.OnClick(f.click, "LeftButton")
         w:Run(0.1)
-        eq(ola.toggled, 1, "the Collections window, opened")
-        ok(ola.env.PetJournal:IsVisible())
+        eq(ola.toggled, nil, "the window, never toggled by us")
         eq(ola.env.PetJournalPetCard.speciesID, 5159, "on the panda's card")
         ola.env.CollectionsJournal:Hide()
         ola.state.combat = true
         f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
-        eq(ola.toggled, 1, "not in combat")
+        eq(ola.toggled, nil, "not in combat")
+        no(ola:Printed("kortet til", true), "no hint in combat either")
         ola.state.combat = false
         -- Edit Mode (Blizzard's, by its callbacks): highlighted, dragged, the spot kept; a click doesn't open anything.
         local callbacks = {}
@@ -98,7 +99,7 @@ return function(test, H)
         callbacks["EditMode.Enter"]()
         ok(f.edit:IsShown())
         f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
-        eq(ola.toggled, 1)
+        eq(ola.toggled, nil)
         f.click.scripts.OnDragStart(f.click)
         ok(f:IsUserPlaced(), "the client's StartMoving")
         f:ClearAllPoints(); f:SetPoint("TOPLEFT", ola.env.UIParent, "TOPLEFT", 40, -50)
@@ -127,20 +128,49 @@ return function(test, H)
         eq(ola.env.DyreparkenPetFrame:GetScale(), 0.7)
     end)
 
-    -- From wherever the window is: onto the Pets page, the pet's card (2026-11-11, the user).
-    test("a click opens the Pets page from another page or a closed window, on the pet's card", function()
+    -- Never opening or switching Blizzard's Collections window from our code (2026-11-13, the user): that
+    -- writes its selected tab tainted, and the key binding then fails in combat. With the Pets page not
+    -- showing, a click remembers the pet and says so once; its card shows when the player opens the page.
+    test("a click with the Pets page closed or on another page: never toggled or switched, a hint, the card when the player opens Pets", function()
         local w, ola, PF = Setup(14)
         local f, env = PF.frame, ola.env
         ola:OpenJournal({ sideTabs = 3 })
         ola:ClickTab(1) -- (the player: Mounts)
+        local tabs = 0
+        local setTab = env.CollectionsJournal_SetTab
+        rawset(env, "CollectionsJournal_SetTab", function(...) tabs = tabs + 1; return setTab(...) end)
         f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
-        ok(env.PetJournal:IsVisible(), "open on Mounts: over to Pets")
-        eq(env.PetJournalPetCard.speciesID, 5159)
-        -- Closed on Mounts: opened on Pets.
-        ola:ClickTab(1); ola:CloseJournal()
-        f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
-        ok(env.CollectionsJournal:IsShown()); ok(env.PetJournal:IsVisible())
-        eq(env.PetJournalPetCard.speciesID, 5159)
+        no(env.PetJournal:IsVisible(), "open on Mounts: left there")
+        eq(tabs, 0, "no tab switch from our code")
+        eq(ola.toggled, nil)
+        eq(ola:CountPrinted("Åpne kjæledyrsamlingen, så viser jeg kortet til Panda Cub."), 1, "the hint")
+        -- Closed: still nothing opened; a burst of clicks, one hint.
+        ola:CloseJournal()
+        for _ = 1, 3 do f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.5) end
+        eq(ola.toggled, nil, "never toggled")
+        eq(tabs, 0)
+        no(env.CollectionsJournal:IsShown())
+        eq(ola:CountPrinted("kortet til Panda Cub"), 1, "one hint a burst")
+        -- The player opens it on Pets (their tab click): the card, once.
+        env.PetJournalPetCard.speciesID = nil
+        ola:OpenJournal()
+        ola:ClickTab(2); w:Run(0.1)
+        ok(env.PetJournal:IsVisible())
+        eq(env.PetJournalPetCard.speciesID, 5159, "the pending card")
+        env.PetJournalPetCard.speciesID = 46
+        ola:CloseJournal(); ola:OpenJournal(); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 46, "shown once: not again the next time")
+        -- Opened in combat: it waits for a time out of combat.
+        ola:CloseJournal()
+        f.click.scripts.OnClick(f.click, "LeftButton")
+        ola.state.combat = true
+        ola:OpenJournal(); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 46, "not in combat")
+        ola.state.combat = false
+        ola:CloseJournal(); ola:OpenJournal(); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 5159, "the next time, out of combat")
+        ola:CloseJournal(); w:Run(11); f.click.scripts.OnClick(f.click, "LeftButton")
+        eq(ola:CountPrinted("kortet til Panda Cub"), 2, "a later burst: a hint again")
     end)
 
     test("it follows the pet that's out: dismissed, hidden (but shown in Edit Mode); another pet, its model; a pet battle hides it", function()

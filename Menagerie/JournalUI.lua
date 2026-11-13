@@ -206,6 +206,23 @@ function JournalUI:ShowSpecies(sid)
     return CardSpecies() == sid
 end
 
+-- A card to show when the player next opens the Pets page (the pet frame's click with the page
+-- closed: PetFrame:OpenCard). Session only; the newest click wins.
+function JournalUI:ShowWhenOpen(sid) self.pending = sid end
+
+-- The Pets page just showed (the player opened it): the pending card, out of combat, a frame later
+-- (the journal's own OnShow fills the list first).
+function JournalUI:ShowPending()
+    local sid = self.pending
+    if not sid or ns.InCombat() then return end
+    self.pending = nil
+    C_Timer.After(0, function()
+        if not (PetJournal and PetJournal:IsVisible()) or ns.InCombat() then return end
+        ns.SidePage:CloseAll() -- (our pages would cover the card)
+        JournalUI:ShowSpecies(sid)
+    end)
+end
+
 -- A click on "Dagens dyr".
 function JournalUI:ShowPetOfTheDay()
     local today = ns.Bonds:PetOfTheDay()
@@ -449,6 +466,7 @@ local function OnJournalLoaded()
         ns.Guild:Refresh()
         ns.Achievements:Check("journal", "account")
         JournalUI:Refresh()
+        JournalUI:ShowPending()
     end)
     ns.Bus:On("REGISTRY", function(keys) JournalUI:Refresh(keys) end)
     ns.Bus:On("SIDEPAGE", function(open)

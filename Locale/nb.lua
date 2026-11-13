@@ -716,6 +716,8 @@ L["settings.petframealpha"] = "Synlighet når det er tonet ned"
 L["settings.petframealpha.tip"] = "Hvor synlig dyret er når ingenting skjer."
 L["settings.petframeart.tip"] = "Steinbakgrunn og ramme som på vinduene i spillet. Av: dyret svever fritt på skjermen."
 L["petframe.tip"] = "Klikk for å åpne dyrekortet."
+-- (2026-11-13: a draft, for the user to edit) A click on the pet frame with the Pets page closed.
+L["petframe.open_hint"] = "Åpne kjæledyrsamlingen, så viser jeg kortet til {pet}."
 L["petframe.name"] = "Dyreparken: dyret ditt"
 L["petframe.edit"] = "Dyreparken: dyret ditt\nDra for å flytte, rull for størrelse ({pct}%)"
 L["settings.celebrate.tip"] = "Lys, gnister og en lyd når båndet ditt med dyret når et nytt level."
