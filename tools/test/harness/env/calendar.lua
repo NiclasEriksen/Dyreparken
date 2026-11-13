@@ -5,7 +5,8 @@ return function(c, env, S)
     local w = c.world
     -- The calendar (as on Forever, /dp probe api 2026-11-11): its events load a second after
     -- OpenCalendar. S.holidays: "YYYYMMDD" -> { event ids }; S.calendarMonth: the month it shows
-    -- ({ month, year }; default this one).
+    -- ({ month, year }; default this one). S.calendarSilent: it never says it has loaded
+    -- (no CALENDAR_UPDATE_EVENT_LIST); S.calendarBroken: OpenCalendar throws.
     local function CalendarNow() local d = os.date("*t", w:ServerTime()); return d end
     env.C_DateAndTime = { GetCurrentCalendarTime = function()
         local d = CalendarNow()
@@ -24,6 +25,8 @@ return function(c, env, S)
     env.C_Calendar = {
         OpenCalendar = function()
             c.calendarAsked = (c.calendarAsked or 0) + 1
+            if S.calendarBroken then error("calendar unavailable") end
+            if S.calendarSilent then return end
             w:Timer(c, 1, function() c:Fire("CALENDAR_UPDATE_EVENT_LIST") end)
         end,
         GetMonthInfo = function(offset) local y, m = Shown(offset or 0); return { month = m, year = y } end,

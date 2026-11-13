@@ -28,6 +28,11 @@ Holidays.EVENTS = {
     [263] = "darkmoon",    -- the Darkmoon Faire (seen in the calendar, 2026-11-11): Tivolidyr's double days
 }
 
+-- Seconds to wait for the calendar's answer (about one on Forever, 2026-11-11). Past this, or if
+-- OpenCalendar throws, read what it has: else a calendar that never answered kept us asking, and
+-- listening, all session (code review 2026-11-13).
+Holidays.WAIT = 10
+
 local today -- { day = "YYYYMMDD", word = the holiday's or false, events = { word = true } }
 
 -- The game holiday on the day of t (our word), or nil. Only today's is known: other days,
@@ -53,9 +58,13 @@ function Holidays:Ask()
         today = { day = ns.Today(), word = false, events = {} }
         return
     end
-    self.asking = true
+    local n = (self.asks or 0) + 1
+    self.asks, self.asking = n, true
     ns.Events:On("CALENDAR_UPDATE_EVENT_LIST", Holidays, function() Holidays:Read() end)
-    pcall(C.OpenCalendar)
+    if not pcall(C.OpenCalendar) then return self:Read() end
+    C_Timer.After(self.WAIT, function()
+        if Holidays.asking and Holidays.asks == n then Holidays:Read() end
+    end)
 end
 
 -- Today's events, in the month the calendar has open (the player may have paged it).
