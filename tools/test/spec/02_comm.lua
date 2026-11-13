@@ -173,25 +173,25 @@ return function(test, H)
 
     test("other protocols are ignored, except for their version", function()
         local w = H.World()
-        local new = w:AddClient("Ny Versjon", { protocol = "99", version = "v0.9.0" })
+        local new = w:AddClient("Ny Versjon", { protocol = "99", version = "v0.5.0" })
         local me = w:AddClient("Ola Nord", { version = "v0.1.0" })
         w:Run(15)
         new:Slash("adopter")
         w:Run(15)
         eq(me.ns.Registry:Holder("s:5159"), nil, "UPD from another protocol ignored")
         eq(w:Sent("SYNC", "Ola Nord"), 0, "no SYNC for another protocol's HELLO")
-        ok(me:Printed("En nyere versjon %(v0.9.0%) er ute; du har v0.1.0."))
-        eq(me.ns.Version.seen["Ny Versjon"], "v0.9.0")
+        ok(me:Printed("En nyere versjon %(v0.5.0%) er ute; du har v0.1.0."))
+        eq(me.ns.Version.seen["Ny Versjon"], "v0.5.0")
         -- Told once per version, also after a reload.
         me:ClearPrinted()
         me:Reload()
         new:Reload()
         w:Run(15)
-        no(me:Printed("newer version"), "already warned about v0.9.0")
-        new.version = "v0.9.1"
+        no(me:Printed("newer version"), "already warned about v0.5.0")
+        new.version = "v0.5.1"
         new:Reload()
         w:Run(15)
-        ok(me:Printed("En nyere versjon %(v0.9.1%)"))
+        ok(me:Printed("En nyere versjon %(v0.5.1%)"))
     end)
 
     test("same protocol, newer version: one notice; dev builds never warn", function()
@@ -242,6 +242,34 @@ return function(test, H)
         eq(me.ns.Version.seen["Kari Berg"], nil)
         ok(me.ns.Version.Sane("0.2.1-beta2")); ok(me.ns.Version.Sane("dev")); ok(me.ns.Version.Sane("v0.2.1"))
         no(me.ns.Version.Sane(string.rep("1", 33)))
+    end)
+
+    test("a forged version can't silence update notices (HELLO outside the guild, a far-off version)", function()
+        local w = H.World()
+        local me = w:AddClient("Ola Nord", { version = "v0.5.0" })
+        w:Run(15)
+        local P = me.ns.PROTOCOL
+        -- HELLO goes to the guild only: one by party or whisper isn't a version we heed, on any protocol.
+        w:InjectMessage("Per Hansen", { k = "HELLO", p = P, v = "0.6.0" }, "PARTY")
+        w:InjectMessage("Per Hansen", { k = "HELLO", p = "1", v = "0.6.1" }, "WHISPER", "Ola Nord")
+        w:Run(3)
+        no(me:Printed("En nyere versjon"), "not from outside the guild")
+        eq(me.ns.DB.char.warnedVersion, nil)
+        -- Far ahead of ours: no real release, not remembered (it would hide every real one).
+        for _, v in ipairs({ "999.0", "2.0.0", "0.11.0", "1.6.0" }) do
+            w:InjectMessage("Per Hansen", { k = "HELLO", p = P, v = v }, "GUILD")
+            w:InjectMessage("Per Hansen", { k = "VER", p = P, v = v }, "PARTY")
+        end
+        w:Run(3)
+        no(me:Printed("En nyere versjon"), "implausible")
+        eq(me.ns.DB.char.warnedVersion, nil)
+        -- A real one still tells us.
+        w:InjectMessage("Kari Berg", { k = "HELLO", p = P, v = "0.10.2" }, "GUILD")
+        w:InjectMessage("Liv Lund", { k = "HELLO", p = P, v = "1.5.0" }, "GUILD")
+        w:Run(3)
+        ok(me:Printed("En nyere versjon %(0.10.2%)"))
+        ok(me:Printed("En nyere versjon %(1.5.0%)"))
+        eq(me.ns.DB.char.warnedVersion, "1.5.0")
     end)
 
     test("a message that unpacks too big isn't read, and its sender is ignored for the session", function()

@@ -200,7 +200,7 @@ local function Dispatch(data, sender, channel)
         return
     end
     if msg.p ~= ns.PROTOCOL then
-        ns.Bus:Fire("PROTOCOL_MISMATCH", sender, msg.p, msg)
+        ns.Bus:Fire("PROTOCOL_MISMATCH", sender, msg.p, msg, channel)
         if msg.k ~= "HELLO" then return end -- HELLO is always readable, so versions can be compared
     end
     ns.Log("Comm", "<- %s from %s (%s)", msg.k, sender, channel)

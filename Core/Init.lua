@@ -295,7 +295,7 @@ ns.Bus.EVENTS = {
     DEBUG = "on: the debug log was turned on or off (Debug)",
     ROSTER = "(none): the guild roster snapshot was refreshed (Guild)",
     COMM_INCOMING = "sender, channel: an addon message of ours arrived and was decoded (Comm)",
-    PROTOCOL_MISMATCH = "sender, theirProtocol, msg: a message from another X-Protocol (Comm)",
+    PROTOCOL_MISMATCH = "sender, theirProtocol, msg, channel: a message from another X-Protocol (Comm)",
     ACTIVITY = "id, n, key, mine, extra: an activity counted; key the pet out (or nil), mine whether it's yours adopted (Activity)",
     SIDEPAGE = "open: one of our Collections pages opened (true) or closed (false) (SidePage)",
     -- The registry and the pet that's out

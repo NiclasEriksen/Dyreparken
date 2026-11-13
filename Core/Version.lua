@@ -14,8 +14,30 @@ ns.Version = Version
 local Sane = ns.Wire.Version
 Version.Sane = Sane
 
+-- A version no release could be yet: more than one major ahead of ours, or more than
+-- Version.MINOR_AHEAD minors into ours or the next major. Remembered as warned, a forged
+-- "999.0" would make every real release compare lower and silence the notice for good (code
+-- review 2026-11-13); five minors is months of releases, so a real one isn't missed.
+Version.MINOR_AHEAD = 5
+local function MajorMinor(v)
+    local a, b = tostring(v):match("^v?(%d+)%.(%d+)")
+    return tonumber(a), tonumber(b)
+end
+function Version.Plausible(version)
+    local ma, mi = MajorMinor(version)
+    local oa, oi = MajorMinor(ns.VERSION)
+    if not (ma and oa) then return true end -- "dev" compares equal to everything anyway
+    if ma == oa then return mi <= oi + Version.MINOR_AHEAD end
+    if ma == oa + 1 then return mi <= Version.MINOR_AHEAD end
+    return ma < oa
+end
+
 local function NoteVersion(sender, version)
     if not Sane(version) then return end
+    if not Version.Plausible(version) then
+        ns.Log("Version", "%s says %s: too far ahead of ours, ignored", sender, version)
+        return
+    end
     Version.seen[sender] = version
     if ns.DEV then return end -- a git checkout: nothing to update to
     if ns.CompareVersions(version, ns.VERSION) > 0 then
@@ -28,7 +50,12 @@ local function NoteVersion(sender, version)
 end
 
 function Version:Init()
-    ns.Comm:Register("HELLO", function(msg, sender) NoteVersion(sender, msg.v) end)
+    -- HELLO is only ever sent to the guild (Hello below). One by party or whisper is someone
+    -- else's doing, and isn't heeded. Checked here, not with Register's `from`: that's part of
+    -- the protocol fingerprint (spec 52) and would need an X-Protocol bump.
+    ns.Comm:Register("HELLO", function(msg, sender, channel)
+        if channel == "GUILD" then NoteVersion(sender, msg.v) end
+    end)
     ns.Comm:Register("VER", function(msg, sender)
         NoteVersion(sender, msg.v)
     end, nil, { v = "version" })
@@ -39,7 +66,8 @@ function Version:Init()
         if channel == "WHISPER" or not ns.Comm:MayReply("VER", channel) then return end
         ns.Comm:Send("VER", { v = ns.VERSION }, channel)
     end)
-    ns.Bus:On("PROTOCOL_MISMATCH", function(sender, theirs, msg)
+    ns.Bus:On("PROTOCOL_MISMATCH", function(sender, theirs, msg, channel)
+        if msg.k == "HELLO" and channel ~= "GUILD" then return end
         NoteVersion(sender, msg.v)
     end)
 end
