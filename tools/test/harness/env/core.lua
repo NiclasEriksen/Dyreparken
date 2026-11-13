@@ -14,9 +14,10 @@ return function(c, env, S)
         if type(a) == "table" then t, name = a, b else fn = b end
         local old = rawget(t, name)
         assert(type(old) == "function", "hooksecurefunc: " .. tostring(name) .. " is not a function")
+        -- (The hook is the addon's code: insecure, whoever called the function.)
         rawset(t, name, function(...)
             local r = { old(...) }
-            fn(...)
+            P.Insecure(c, fn, ...)
             return unpack(r)
         end)
     end

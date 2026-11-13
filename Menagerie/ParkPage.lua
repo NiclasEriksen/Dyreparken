@@ -89,10 +89,21 @@ function Park:CanShow()
     return PetJournal ~= nil and PetJournal:IsShown() == true
 end
 
--- A click on an icon: leave the park, show that pet's card.
+-- A click on an icon: leave the park, show that pet's card. In combat it's remembered, with a hint
+-- (one a burst), and shows once the fight is over if the Pets page is still up (JournalUI:AfterCombat).
+Park.HINT_EVERY = 10
 function Park:Show(key)
     local sid = ns.Pets:SpeciesOfKey(key)
-    if not sid or not self:CanShow() or ns.InCombat() then return end
+    if not sid or not self:CanShow() then return end
+    if ns.InCombat() then
+        ns.JournalUI:ShowWhenOpen(sid)
+        local now = GetTime()
+        if not self.hintAt or now - self.hintAt >= self.HINT_EVERY then
+            self.hintAt = now
+            ns.Print(ns.T("park.combat_hint", { pet = ns.Registry:NameOf(key) }))
+        end
+        return
+    end
     ns.SidePage:CloseAll()
     ns.JournalUI:ShowSpecies(sid)
 end

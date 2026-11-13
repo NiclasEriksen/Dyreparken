@@ -91,7 +91,13 @@ end
 -- lists the owned pets plus `o.extra` unowned species.
 -- o.bare: list buttons without .speciesID (fallback via elementData.index)
 -- o.scrollUtil: no PetJournal_InitPetButton, use ScrollUtil callbacks
+-- The player opens it (Blizzard's own code: secure).
 function Client:OpenJournal(o)
+    return P.Secure(self, self.ShowJournal, self, o)
+end
+
+-- Loads Blizzard_Collections (its frames, ADDON_LOADED) the first time; as secure as its caller.
+function Client:LoadCollections(o)
     o = o or {}
     local env = self.env
     if not rawget(env, "PetJournal") then
@@ -116,12 +122,19 @@ function Client:OpenJournal(o)
         CJ.Bg = CJ:CreateTexture(); CJ.Bg:SetTexture(2002)
         local MJ = env.CreateFrame("Frame", "MountJournal", CJ)
         MJ.shown = false
+        -- Protected (its SetShown was blocked in combat, 2026-11-13): so the window is too (its parent).
+        MJ.protected = true
+        self.protectedFrames = self.protectedFrames or {}
+        self.protectedFrames[#self.protectedFrames + 1] = MJ
         local PJ = env.CreateFrame("Frame", "PetJournal", CJ)
         CJ.geo = o.sideTabs and { l = 0, r = 700, t = 600, b = 0 } or nil
         local strip = env.CreateFrame("Frame", nil, CJ)
         strip.geo = o.sideTabs and { l = 700, r = 755, t = 600, b = 0 } or nil
         local tabs = {}
+        -- Blizzard's: called by addon code (insecure), it writes the window's selected tab tainted, and
+        -- the window's next tab update in combat is blocked (c.cjTainted; docs/FOREVER_API.md, 2026-11-13).
         rawset(env, "CollectionsJournal_SetTab", function(cj, n)
+            if (self.secure or 0) == 0 then self.insecureCJ = (self.insecureCJ or 0) + 1; self.cjTainted = true end
             cj.selectedTab = n
             for i, t in ipairs(tabs) do
                 t.sel1:SetShown(i == n); t.sel2:SetShown(i == n)
@@ -138,7 +151,7 @@ function Client:OpenJournal(o)
             t.sel2 = t:CreateTexture(); t.sel2:SetAtlas("common-sidetab-selected")
             t:CreateTexture():SetAtlas("common-sidetab-hover")
             t.geo = { l = 700, r = 755, t = 560 - (i - 1) * 57, b = 505 - (i - 1) * 57 }
-            t:SetScript("OnMouseUp", function() env.CollectionsJournal_SetTab(CJ, i) end)
+            t:SetScript("OnMouseUp", P.SecureFn(function() env.CollectionsJournal_SetTab(CJ, i) end))
             tabs[i] = t
         end
         PJ.shown = false
@@ -197,6 +210,12 @@ function Client:OpenJournal(o)
         self.loaded.Blizzard_Collections = true
         self:Fire("ADDON_LOADED", "Blizzard_Collections")
     end
+end
+
+function Client:ShowJournal(o)
+    o = o or {}
+    local env = self.env
+    self:LoadCollections(o)
     self:ListPets(o)
     env.CollectionsJournal:Show()
     if env.CollectionsJournal.selectedTab == nil and rawget(env, "CollectionsJournalTab2") then
@@ -206,14 +225,27 @@ function Client:OpenJournal(o)
     return self
 end
 
-function Client:CloseJournal() self.env.CollectionsJournal:Hide() end
+function Client:CloseJournal() P.Secure(self, function() self.env.CollectionsJournal:Hide() end) end
 
 -- Press side tab n of the Collections window: mouse down, then up (a click).
 function Client:ClickTab(n)
     local t = self.env["CollectionsJournalTab" .. n]
     for _, s in ipairs({ "OnMouseDown", "OnMouseUp" }) do
-        if t.scripts[s] then Hardware(self, t.scripts[s], t, "LeftButton") end
+        if t.scripts[s] then Hardware(self, P.Secure, self, P.Invoke, self, t.scripts[s], t, "LeftButton") end
     end
+end
+
+-- The player's mouse click on a button: the down and the up, each one it takes (RegisterForClicks).
+function Client:Press(f, button)
+    button = button or "LeftButton"
+    for _, down in ipairs({ true, false }) do
+        if f:IsVisible() and f.mouse ~= false and f:TakesClick(button, down) then f:Click(button, down) end
+    end
+end
+
+-- The Collections window's key binding (Blizzard's: secure).
+function Client:ToggleCollections()
+    return Hardware(self, P.Secure, self, self.env.ToggleCollectionsJournal)
 end
 
 function Client:ListPets(o)

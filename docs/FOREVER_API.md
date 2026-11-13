@@ -523,6 +523,26 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   click now shows a card only on a Pets page that's already open, and otherwise waits for the player to open it
   (PetFrame:OpenCard, JournalUI:ShowWhenOpen). Selecting a species on the open page (`PetJournal_SelectSpecies`)
   hasn't shown this.
+- (2026-11-13, 1.60.1; **assumed, to check in game**) The pet frame opens the window through a secure button
+  instead (Menagerie/PetFrame.lua, its click section): our own `SecureActionButtonTemplate` button, attributes
+  `type` = "click", `clickbutton` = `CollectionsMicroButton`, so the micro button's own OnClick
+  (`ToggleCollectionsJournal()` with no tab: the last page) runs untainted. Verified: the template, its mixin and
+  `CollectionsMicroButton` exist (the client's API dump). Assumed from retail and WoW's secure system, not seen on
+  Forever yet:
+  - each handler the client calls (PreClick, OnClick, PostClick) starts secure, so our PreClick and PostClick don't
+    taint the template's OnClick between them; attributes set by our code out of combat don't taint the action;
+  - the template acts on the down or the up of a click as the `ActionButtonUseKeyDown` cvar says (retail 10.x), so
+    the button registers only that one (else our Pre/PostClick ran twice, or nothing happened);
+  - the micro button opens the window on its last page, and the window's OnShow picks that page before our
+    PostClick runs (the hint for "opened on another page" reads it then);
+  - a protected frame's parent, and any frame a protected frame is anchored to, becomes protected too: so the
+    button is on UIParent, matched to the pet frame's anchor, scale and size out of combat, never its child or
+    anchored to it;
+  - `RegisterStateDriver(button, "visibility", "[combat] hide; show")` hides it in combat (petFrameCombat);
+    a protected frame can't be shown, hidden, moved, sized, or have its attributes or mouse changed in combat by
+    addon code, and isn't made in combat by us (deferred to PLAYER_REGEN_ENABLED).
+  In combat the click toggles the window as the micro button would (Blizzard's code: allowed); the card waits for
+  the end of the fight (JournalUI:AfterCombat, PLAYER_REGEN_ENABLED only while a card waits).
 
 ## Sources
 

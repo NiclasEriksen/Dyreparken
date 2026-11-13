@@ -211,11 +211,32 @@ return function(test, H)
         match(Tip(ola, Cell(ola, 72)), "Åpne Pets%-fanen")
         Cell(ola, 72):Click()
         ok(P:IsOpen()); eq(ola.shownSpecies, 41)
-        -- In combat, nothing either.
-        ola:ClickTab(2)
+    end)
+
+    -- In combat the card can't show (2026-11-13, the user): the click is remembered, with a hint, and the
+    -- card shows once the fight is over if the Pets page is still up (JournalUI:AfterCombat).
+    test("a click in combat: a hint, and the card once the fight is over; with the window closed by then, the next time", function()
+        local w, ola = Setup()
+        ola:OpenJournal({ sideTabs = 4 })
+        local P, park = ola.ns.ParkPage, ola:Page("Parken")
         park.tab:Click()
-        ola.state.combat = true
-        Cell(ola, 72):Click()
-        ok(P:IsOpen())
+        ola:EnterCombat()
+        for _ = 1, 3 do Cell(ola, 72):Click() end
+        ok(P:IsOpen(), "still in the park")
+        eq(ola.selectedSpecies, nil, "no card in combat")
+        eq(ola:CountPrinted("Kortet til " .. ola.ns.Pets:NameOfKey("s:72") .. " kommer når kampen er over."), 1,
+            "a hint, once a burst")
+        ola:LeaveCombat(); w:Run(0.1)
+        no(P:IsOpen(), "back on the Pets page ...")
+        eq(ola.selectedSpecies, 72, "... on its card")
+        -- The window closed before the fight ends: the card when the player opens the Pets page.
+        park.tab:Click()
+        ola:EnterCombat()
+        Cell(ola, 40):Click()
+        ola:CloseJournal()
+        ola:LeaveCombat(); w:Run(0.1)
+        eq(ola.selectedSpecies, 72, "closed: not yet")
+        ola:OpenJournal(); w:Run(0.1)
+        eq(ola.selectedSpecies, 40, "opened: the card")
     end)
 end

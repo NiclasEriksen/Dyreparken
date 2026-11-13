@@ -64,7 +64,9 @@ function Client:GivePet(sid)
     self.pets[#self.pets + 1] = { sid = sid, guid = ("BattlePet-0-%06X%06X"):format(self.idx or 0, sid) }
 end
 
+-- (Event handlers are the addon's code: insecure, even when Blizzard's code fired the event.)
 function Client:Fire(event, ...)
+    if (self.secure or 0) > 0 then return P.Insecure(self, self.Fire, self, event, ...) end
     for _, f in ipairs(self.frames) do
         local units = f.unitFilter and f.unitFilter[event]
         local unitOK = true
@@ -77,6 +79,7 @@ function Client:Fire(event, ...)
 end
 
 function Client:Tick(step)
+    if (self.secure or 0) > 0 then return P.Insecure(self, self.Tick, self, step) end
     for _, f in ipairs(self.frames) do
         if f.shown and f.scripts.OnUpdate then f.scripts.OnUpdate(f, step) end
     end
@@ -356,8 +359,33 @@ end
 -- stealthed, casting, channeling, stand, instance, secretAuras.
 function Client:Set(k, v) self.state[k] = v; return self end
 
-function Client:EnterCombat() self.state.combat = true; self:Fire("PLAYER_REGEN_DISABLED") end
-function Client:LeaveCombat() self.state.combat = false; self:Fire("PLAYER_REGEN_ENABLED") end
+-- Combat: lockdown starts, the secure state drivers ([combat] hide...) apply, then the event.
+function Client:EnterCombat() self.state.combat = true; self:Drive(); self:Fire("PLAYER_REGEN_DISABLED") end
+function Client:LeaveCombat() self.state.combat = false; self:Drive(); self:Fire("PLAYER_REGEN_ENABLED") end
+-- Secure state drivers (RegisterStateDriver(frame, "visibility", "[combat] hide; show")), applied by
+-- Blizzard's code: secure. Conditions known here: combat, nocombat; else the stub throws.
+local CONDITIONS = { combat = function(S) return S.combat == true end, nocombat = function(S) return S.combat ~= true end }
+function Client:DriverState(cond)
+    for clause in cond:gmatch("[^;]+") do
+        local conds, action = clause:match("^%s*%[([^%]]*)%]%s*(%S+)%s*$")
+        if not conds then action = clause:match("^%s*(%S+)%s*$") end
+        local all = true
+        for name in (conds or ""):gmatch("[^,%s]+") do
+            local test = CONDITIONS[name]
+            if not test then error("state driver condition [" .. name .. "] is not stubbed (tools/test/harness/client.lua)", 2) end
+            if not test(self.state) then all = false end
+        end
+        if all then return action end
+    end
+end
+function Client:Drive()
+    for f, d in pairs(self.drivers or {}) do
+        if d.state == "visibility" then
+            local v = self:DriverState(d.cond)
+            P.Secure(self, function() if v == "show" then f:Show() elseif v == "hide" then f:Hide() end end)
+        end
+    end
+end
 function Client:Mount() self.state.mounted = true; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 function Client:Dismount() self.state.mounted = false; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 -- Moving: the client's start and stop events, and GetUnitSpeed.

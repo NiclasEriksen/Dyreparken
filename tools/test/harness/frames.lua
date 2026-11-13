@@ -2,6 +2,17 @@
 -- anchors and sizes recorded, not laid out (f.points, f.size; geometry only with f.geo),
 -- Show/Hide cascading OnShow/OnHide like the client, unknown methods throwing. Also a
 -- model scene's actor (H.NewActor) and hardware events (H.Hardware: clicks, keypresses).
+--
+-- Secure code and protected frames (2026-11-13), as the client has them (docs/FOREVER_API.md, Combat lockdown):
+-- c.secure > 0 while Blizzard's own code runs untainted: entered from the client (the player's click,
+-- c:OpenJournal, a key binding, P.Secure) and kept only through functions marked P.SecureFn (Blizzard's
+-- handlers: the secure template's click, the micro button, the side tabs). Every other script handler,
+-- HookScript and hooksecurefunc hook, event handler and timer is the addon's: it runs insecure (c.secure 0),
+-- even when Blizzard's code set it off. A frame from a Secure* template (or marked f.protected) is protected;
+-- so is every frame that has a protected descendant or that a protected frame is anchored to (IsProtected:
+-- implicitly). In combat, insecure code that shows, hides, moves, sizes, scales, reparents, toggles the
+-- mouse of or sets attributes on a protected frame is blocked: the call does nothing and the client reports
+-- ADDON_ACTION_BLOCKED, which fails the test (c:TakeErrors() for a test that does it on purpose).
 local H, P = ...
 local KNOWN_EVENTS = P.KNOWN_EVENTS
 
@@ -35,6 +46,69 @@ function H.NewActor(client)
     end
     return actor
 end
+-- Blizzard's own functions (secure when the client calls them), and running a handler as its kind does.
+local SECURE = setmetatable({}, { __mode = "k" })
+function P.SecureFn(fn) SECURE[fn] = true; return fn end
+local function Invoke(c, fn, ...)
+    if not c then return fn(...) end
+    local was = c.secure or 0
+    c.secure = SECURE[fn] and was or 0 -- (Blizzard's stays as secure as its caller; the addon's never is)
+    c.depth = (c.depth or 0) + 1
+    local r = { pcall(fn, ...) }
+    c.secure, c.depth = was, c.depth - 1
+    if not r[1] then error(r[2], 0) end
+    return unpack(r, 2, table.maxn(r))
+end
+P.Invoke = Invoke
+-- Runs fn as the client's own, untainted (the player's action through Blizzard's UI).
+function P.Secure(c, fn, ...)
+    local was = c.secure or 0
+    c.secure = was + 1
+    local r = { pcall(fn, ...) }
+    c.secure = was
+    if not r[1] then error(r[2], 0) end
+    return unpack(r, 2, table.maxn(r))
+end
+-- Runs fn as addon code (insecure): event handlers, timers, hooks.
+function P.Insecure(c, fn, ...)
+    local was = c.secure or 0
+    c.secure = 0
+    local r = { pcall(fn, ...) }
+    c.secure = was
+    if not r[1] then error(r[2], 0) end
+    return unpack(r, 2, table.maxn(r))
+end
+
+-- The protected frames of client c: the explicit ones (c.protectedFrames), their ancestors and the
+-- frames they're anchored to, transitively (moving those would move a protected frame).
+local function ProtectedSet(c)
+    local set, queue = {}, {}
+    for _, f in ipairs(c.protectedFrames or {}) do set[f] = "explicit"; queue[#queue + 1] = f end
+    local env = c.env
+    local function Add(x)
+        if type(x) == "string" then x = env and rawget(env, x) end
+        if type(x) == "table" and x.scripts and not set[x] then set[x] = "implicit"; queue[#queue + 1] = x end
+    end
+    local i = 1
+    while queue[i] do
+        local f = queue[i]
+        Add(f.parent)
+        for _, p in ipairs(f.points or {}) do Add(p[2]) end
+        Add(f.allPointsTo)
+        i = i + 1
+    end
+    return set
+end
+-- An insecure call on a protected frame in combat: blocked, reported.
+function P.Blocked(f, method)
+    local c = f.client
+    if not (c and c.state and c.state.combat) or (c.secure or 0) > 0 then return false end
+    if not (c.protectedFrames and c.protectedFrames[1]) or not ProtectedSet(c)[f] then return false end
+    c.errors[#c.errors + 1] = ("ADDON_ACTION_BLOCKED: AddOn 'Dyreparken' tried to call the protected function '%s:%s()'")
+        :format(f.frameName or tostring(f.type), method)
+    return true
+end
+
 local Frame = {}
 Frame.__index = function(self, k)
     local m = Frame[k]
@@ -46,10 +120,10 @@ Frame.__index = function(self, k)
     end
 end
 local function noop() end
-for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPoints", "SetAllPoints",
-    "SetMotionScriptsWhileDisabled", "SetFrameStrata", "EnableMouse", "SetMovable", "RegisterForDrag",
+for _, m in ipairs({ "SetSize", "SetWidth", "SetHeight", "SetPoint", "ClearAllPoints",
+    "SetMotionScriptsWhileDisabled", "SetFrameStrata", "SetMovable", "RegisterForDrag",
     "StopMovingOrSizing",
-    "RegisterForClicks", "SetNormalTexture", "SetHighlightTexture", "SetPushedTexture", "SetJustifyH",
+    "SetNormalTexture", "SetHighlightTexture", "SetPushedTexture", "SetJustifyH",
     "SetJustifyV", "SetFontObject", "SetWordWrap" }) do
     Frame[m] = noop
 end
@@ -61,6 +135,7 @@ function Frame:StartMoving() self.moving = true; self.userPlaced = true end
 function Frame:SetUserPlaced(v) self.userPlaced = v and true or false end
 function Frame:IsUserPlaced() return self.userPlaced == true end
 function Frame:EnableMouseWheel(v) self.wheel = v end
+function Frame:EnableMouse(v) self.mouse = v and true or false end
 function Frame:SetScale(s) self.scale = s end
 function Frame:GetScale() return self.scale or 1 end
 
@@ -81,16 +156,17 @@ function Frame:UnregisterAllEvents() self.events = {} end
 function Frame:IsEventRegistered(e) return self.events[e] == true end
 function Frame:SetScript(k, fn) self.scripts[k] = fn end
 function Frame:GetScript(k) return self.scripts[k] end
+-- (A hook runs as the addon's code; the handler it follows as its own kind.)
 function Frame:HookScript(k, fn)
-    local old = self.scripts[k]
-    self.scripts[k] = old and function(...) old(...); fn(...) end or fn
+    local old, c = self.scripts[k], self.client
+    self.scripts[k] = old and P.SecureFn(function(...) Invoke(c, old, ...); Invoke(c, fn, ...) end) or fn
 end
 -- Like the client: showing or hiding a frame also fires OnShow/OnHide on
 -- its shown descendants, whose visibility changes with it.
 local function Cascade(f, script)
     for _, kid in ipairs(f.client and f.client.frames or {}) do
         if kid.parent == f and kid.shown then
-            if kid.scripts[script] then kid.scripts[script](kid) end
+            if kid.scripts[script] then Invoke(kid.client, kid.scripts[script], kid) end
             Cascade(kid, script)
         end
     end
@@ -99,7 +175,7 @@ function Frame:Show()
     if self.shown then return end
     self.shown = true
     if self:IsVisible() then
-        if self.scripts.OnShow then self.scripts.OnShow(self) end
+        if self.scripts.OnShow then Invoke(self.client, self.scripts.OnShow, self) end
         Cascade(self, "OnShow")
     end
 end
@@ -107,7 +183,7 @@ function Frame:Hide()
     if not self.shown then return end
     local was = self.parent == nil or self.parent:IsVisible()
     self.shown = false
-    if self.scripts.OnHide then self.scripts.OnHide(self) end
+    if self.scripts.OnHide then Invoke(self.client, self.scripts.OnHide, self) end
     if was then Cascade(self, "OnHide") end
 end
 function Frame:IsShown() return self.shown end
@@ -203,11 +279,40 @@ local function Hardware(c, fn, ...)
 end
 H.Hardware = Hardware
 
-function Frame:Click()
+-- A click: PreClick, OnClick, PostClick, each with (button, down), as the client runs them. From a test,
+-- it's the player's (a hardware event, entered secure); from inside a handler, as secure as its caller.
+function Frame:Click(button, down)
     if not self.enabled then return end
+    button, down = button or "LeftButton", down and true or false
     if self.type == "CheckButton" then self.checked = not self.checked end
-    if self.scripts.OnClick then Hardware(self.client, self.scripts.OnClick, self, "LeftButton") end
+    local c, s = self.client, self.scripts
+    local function Run()
+        for _, k in ipairs({ "PreClick", "OnClick", "PostClick" }) do
+            if s[k] then Invoke(c, s[k], self, button, down) end
+        end
+    end
+    if not c then return Run() end
+    if (c.depth or 0) == 0 then return Hardware(c, P.Secure, c, Run) end
+    return Run()
 end
+-- Which clicks a button takes (the client's default: LeftButtonUp), for a real press (c:Press).
+function Frame:RegisterForClicks(...)
+    self.clicks = {}
+    for _, k in ipairs({ ... }) do self.clicks[k] = true end
+end
+function Frame:TakesClick(button, down)
+    local reg = self.clicks or { LeftButtonUp = true }
+    local phase = down and "Down" or "Up"
+    return reg[button .. phase] or reg["Any" .. phase] or false
+end
+-- Attributes: every frame has them (secure templates read theirs).
+function Frame:SetAttribute(k, v) self.attrs = self.attrs or {}; self.attrs[k] = v end
+function Frame:GetAttribute(k) return self.attrs and self.attrs[k] end
+function Frame:IsProtected()
+    local kind = self.client and ProtectedSet(self.client)[self]
+    return kind ~= nil, kind == "explicit"
+end
+function Frame:SetAllPoints(rel) self.allPointsTo = rel end
 
 local Region = {}
 Region.__index = Region
@@ -324,6 +429,17 @@ function Frame:CreateFontString(_, _, template)
     local t = setmetatable({ shown = true, ftype = "FontString", font = template, owner = self }, Region)
     self.fontStrings[#self.fontStrings + 1] = t
     return t
+end
+
+-- What's blocked on a protected frame in combat (from insecure code).
+for _, m in ipairs({ "Show", "Hide", "SetPoint", "ClearAllPoints", "SetAllPoints", "SetSize", "SetWidth", "SetHeight",
+    "SetScale", "SetParent", "EnableMouse", "SetAttribute", "RegisterForClicks", "StartMoving", "SetFrameLevel",
+    "SetFrameStrata" }) do
+    local fn = Frame[m]
+    Frame[m] = function(self, ...)
+        if P.Blocked(self, m) then return end
+        return fn(self, ...)
+    end
 end
 
 P.Frame, P.Region, P.Hardware, P.StripColors = Frame, Region, Hardware, StripColors

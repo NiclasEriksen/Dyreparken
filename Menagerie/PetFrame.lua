@@ -6,7 +6,7 @@ local _, ns = ...
 -- playing dead, walking and running with you, a cheer at a new level; the once-a-day moments, a sulk
 -- included, are the card's;
 -- asleep while you're AFK: PF:Afk),
--- and a click opens the pet journal on its card. Placed in Blizzard's Edit Mode (dragged while
+-- and a click opens the pet journal on its card (through a secure button: PF:Secure). Placed in Blizzard's Edit Mode (dragged while
 -- it's open, and sized with the mouse wheel there: the spot and size saved per character,
 -- char.petFrame; 2026-11-11, the user: "It would be optimal if we could resize it in edit mode").
 --
@@ -132,13 +132,12 @@ function PF:Build()
     click:SetScript("OnDragStop", function() f:StopMovingOrSizing(); Call(f, "SetUserPlaced", false); PF:SavePoint() end)
     click:SetScript("OnMouseWheel", function(_, delta) if PF.editing then PF:Resize(delta) end end)
     click:EnableMouseWheel(false) -- (a wheel script turns it on: the camera would never zoom over it)
-    click:SetScript("OnEnter", function(b)
-        PF.hover = true; PF:ShowBar(); PF:Fade()
-        if PF.editing or not PF.key then return end
-        ns.ShowTip(b, "ANCHOR_TOP", PF:Lines())
-    end)
-    click:SetScript("OnLeave", function(b) PF.hover = nil; PF:ShowBar(); PF:Fade(); ns.HideTip(b) end)
+    click:SetScript("OnEnter", function(b) PF:Enter(b) end)
+    click:SetScript("OnLeave", function(b) PF:Leave(b) end)
     f.click = click
+    -- The secure button over it follows it: shown, hidden, moved, sized (PF:Sync).
+    f:SetScript("OnShow", function() PF:Sync() end)
+    f:SetScript("OnHide", function() PF:Sync() end)
 
     self:Art() -- (and the scene's size: PF:Draw)
     self.stage = ns.Moves.NewStage("frame", {
@@ -152,6 +151,13 @@ function PF:Build()
     self:Place()
     return f
 end
+
+function PF:Enter(b)
+    self.hover = true; self:ShowBar(); self:Fade()
+    if self.editing or not self.key then return end
+    ns.ShowTip(b, "ANCHOR_TOP", self:Lines())
+end
+function PF:Leave(b) self.hover = nil; self:ShowBar(); self:Fade(); ns.HideTip(b) end
 
 -- Frame art (2026-11-11, the user: "toggle background+border, in the same modern client style as
 -- everything else uses"; Settings: petFrameArt, off by default): the rock of Blizzard's windows
@@ -236,11 +242,13 @@ function PF:Place()
     f:ClearAllPoints()
     f:SetPoint(p[1], UIParent, p[2], p[3], p[4])
     f:SetScale(p[5] or 1)
+    self:Sync()
 end
 
 function PF:SavePoint()
     local point, _, rel, x, y = self.frame:GetPoint()
     if point then ns.DB.char.petFrame = { point, rel, x, y, self.frame:GetScale() } end
+    self:Sync()
 end
 
 -- The mouse wheel in Edit Mode: a size step up or down.
@@ -548,27 +556,162 @@ end
 ------------------------------------------------------------------------------
 -- A click: the pet journal, on this pet's card
 ------------------------------------------------------------------------------
--- Only onto a Pets page that's already showing (2026-11-13, the user). Opening the Collections window,
--- or switching its tab, from addon code writes its selected tab tainted: the next time the player opens
--- it with the key binding in combat, Blizzard's own tab update is blocked (ADDON_ACTION_BLOCKED,
--- MountJournal:SetShown() via CollectionsJournal_UpdateSelectedTab; docs/FOREVER_API.md). So with the
--- Pets page closed the click only remembers the pet and says so once; JournalUI shows its card when
--- the player next opens the Pets page themselves (JournalUI:ShowWhenOpen).
-PF.HINT_EVERY = 10 -- seconds: one hint per burst of clicks
+-- Never opening or switching the Collections window from our code (2026-11-13, the user): an insecure
+-- ToggleCollectionsJournal or tab switch writes its selected tab tainted, and the next time the player
+-- opens it with the key binding in combat, Blizzard's own tab update is blocked (ADDON_ACTION_BLOCKED,
+-- MountJournal:SetShown() via CollectionsJournal_UpdateSelectedTab; docs/FOREVER_API.md).
+--
+-- So the click is Blizzard's (2026-11-13, the user's choice): a SecureActionButtonTemplate button of
+-- ours, type "click" on CollectionsMicroButton, so the micro button's own click opens the window,
+-- untainted, on the page it last had. The pet's card waits for the Pets page (JournalUI:ShowWhenOpen):
+-- at once if that's the page it opens on, else a hint. PreClick and PostClick are ours, run apart from
+-- the secure OnClick between them (each handler starts secure). Out of combat, PreClick turns the action
+-- off (type nil: our own frame's attribute) when the window is already open, where a micro button click
+-- would close it: then the card on an open Pets page, as before, or a hint; PostClick turns it on again.
+-- In combat attributes can't change, so a click does what the micro button does (opens or closes the
+-- window: allowed, it's Blizzard's code), and the card shows after the fight (JournalUI:AfterCombat).
+--
+-- The button is a frame of its own on UIParent, laid over the pet frame: anchored to UIParent where the
+-- frame is, never to the frame, and not its child. A parent of a protected frame, or a frame one is
+-- anchored to, is protected too, and the pet frame must stay free to hide in combat, move in Edit Mode
+-- and fade. It's matched to the frame out of combat (PF:Sync: every show, hide and move, and after a
+-- fight). It can't be hidden by us in combat: with petFrameCombat a secure state driver hides it
+-- ([combat] hide), else it would stay over the empty spot and take its clicks. Hidden in Edit Mode, so
+-- drags and the wheel reach the frame's own click layer.
+--
+-- Without the template or the micro button (and until it's made, out of combat), the frame's own click
+-- layer only remembers the pet and gives a hint (PF:OpenCard).
 function PF:PetsPage() return rawget(_G, "PetJournal") ~= nil and PetJournal:IsVisible() == true end
+local function Window()
+    local cj = rawget(_G, "CollectionsJournal")
+    return cj ~= nil and cj:IsShown() == true
+end
 
-function PF:OpenCard()
-    local sid = self.key and ns.Pets:SpeciesOfKey(self.key)
-    if not sid or ns.InCombat() then return end
-    ns.Log("PetFrame", "open card %s: pets page %s", tostring(sid), tostring(self:PetsPage()))
-    if not self:PetsPage() then
-        ns.JournalUI:ShowWhenOpen(sid)
-        local now = GetTime()
-        if not self.hintAt or now - self.hintAt >= self.HINT_EVERY then
-            self.hintAt = now
-            ns.Print(ns.T("petframe.open_hint", { pet = ns.Registry:NameOf(self.key) }))
+-- The secure button: made once, out of combat. nil: not yet; false: this client can't.
+function PF:Secure()
+    if self.button ~= nil then return self.button end
+    local micro = rawget(_G, "CollectionsMicroButton")
+    if not micro then
+        ns.Log("PetFrame", "secure click: no CollectionsMicroButton")
+        self.button = false
+        return false
+    end
+    if ns.InCombat() then return nil end
+    -- (a missing template throws: then the frame's own click layer)
+    local ok, b = pcall(CreateFrame, "Button", "DyreparkenPetFrameButton", UIParent, "SecureActionButtonTemplate")
+    if not ok or not b then
+        ns.Log("PetFrame", "secure click: %s", tostring(b))
+        self.button = false
+        return false
+    end
+    b:Hide()
+    b:SetFrameStrata("LOW")
+    b:SetFrameLevel(self.frame.click:GetFrameLevel() + 1)
+    b:SetAttribute("type", "click")
+    b:SetAttribute("clickbutton", micro)
+    b:SetScript("PreClick", function(btn) PF:PreClick(btn) end)
+    b:SetScript("PostClick", function(btn) PF:PostClick(btn) end)
+    b:SetScript("OnEnter", function(btn) PF:Enter(btn) end)
+    b:SetScript("OnLeave", function(btn) PF:Leave(btn) end)
+    self.button = b
+    return b
+end
+
+-- The secure template acts on the down or the up of a click, as the ActionButtonUseKeyDown cvar says
+-- (retail 10.x; Forever's to check in game). The button takes only that one, so our Pre- and PostClick
+-- run once a click, and an older template that acts on any would still act once.
+local function Clicks()
+    local okV, v = pcall(C_CVar.GetCVar, "ActionButtonUseKeyDown")
+    return okV and v == "0" and "LeftButtonUp" or "LeftButtonDown"
+end
+
+-- The button over the frame, now or after the fight: shown with it (not in Edit Mode), where it is.
+function PF:Sync()
+    local f = self.frame
+    if not f then return end
+    if ns.InCombat() then
+        if not self.syncLater then
+            self.syncLater = true
+            ns.Events:OutOfCombat(function() PF.syncLater = nil; PF:Sync() end)
         end
         return
+    end
+    local b = self:Secure()
+    if not b then return end
+    local undrive = rawget(_G, "UnregisterStateDriver")
+    if not (self.on and f:IsShown() and not self.editing and self.key) then
+        if self.driven then undrive(b, "visibility"); self.driven = nil end
+        b:Hide()
+        return
+    end
+    local point, _, rel, x, y = f:GetPoint(1)
+    b:ClearAllPoints()
+    b:SetScale(f:GetScale())
+    b:SetSize(f:GetSize())
+    if point then b:SetPoint(point, UIParent, rel, x, y) end
+    b:RegisterForClicks(Clicks())
+    local drive = rawget(_G, "RegisterStateDriver")
+    if ns.Settings:Get("petFrameCombat") == true and drive and undrive then
+        drive(b, "visibility", "[combat] hide; show") -- (shows it now: out of combat)
+        self.driven = true
+    else
+        if self.driven then undrive(b, "visibility"); self.driven = nil end
+        b:Show()
+    end
+end
+
+PF.HINT_EVERY = 10 -- seconds: one hint per burst of clicks
+function PF:Hint(text)
+    local now = GetTime()
+    if self.hintAt and now - self.hintAt < self.HINT_EVERY then return end
+    self.hintAt = now
+    ns.Print(ns.T(text, { pet = ns.Registry:NameOf(self.key) }))
+end
+
+-- Before the secure click (ours, insecure).
+function PF:PreClick(b)
+    self.opening = nil
+    local sid = self.key and ns.Pets:SpeciesOfKey(self.key)
+    ns.Log("PetFrame", "secure click: key %s, combat %s, window %s, pets page %s", tostring(self.key),
+        tostring(ns.InCombat()), tostring(Window()), tostring(self:PetsPage()))
+    if ns.InCombat() then
+        -- (the click opens or closes the window, as the micro button would; the card after the fight)
+        if sid then ns.JournalUI:ShowWhenOpen(sid); self:Hint("petframe.combat_hint") end
+        return
+    end
+    if not sid or Window() then
+        b:SetAttribute("type", nil) -- (the window is open: a micro button click would close it)
+        if sid then self:OpenCard() end
+        return
+    end
+    ns.JournalUI:ShowWhenOpen(sid) -- (the window opens on its last page: the card, if that's Pets)
+    self.opening = true
+end
+
+function PF:PostClick(b)
+    if not ns.InCombat() then b:SetAttribute("type", "click") end
+    if not self.opening then return end
+    self.opening = nil
+    if not Window() then
+        self:Hint("petframe.open_hint") -- (it didn't open: the micro button disabled, say)
+    elseif not self:PetsPage() then
+        self:Hint("petframe.tab_hint") -- (opened on another page: the card waits for Pets)
+    end
+end
+
+-- Our own way (the window already open, or no secure button): only onto a Pets page that's showing;
+-- else the pet is remembered for when the player opens it (JournalUI:ShowWhenOpen), with a hint.
+function PF:OpenCard()
+    local sid = self.key and ns.Pets:SpeciesOfKey(self.key)
+    if not sid then return end
+    ns.Log("PetFrame", "open card %s: pets page %s", tostring(sid), tostring(self:PetsPage()))
+    if ns.InCombat() then
+        ns.JournalUI:ShowWhenOpen(sid) -- (shown after the fight, if the Pets page is up then)
+        return self:Hint("petframe.combat_hint")
+    end
+    if not self:PetsPage() then
+        ns.JournalUI:ShowWhenOpen(sid)
+        return self:Hint(Window() and "petframe.tab_hint" or "petframe.open_hint")
     end
     ns.SidePage:CloseAll() -- (our pages would cover the card)
     C_Timer.After(0, function() ns.JournalUI:ShowSpecies(sid) end)
@@ -628,6 +771,7 @@ function PF:Off()
         self.frame.bar:Stop()
         self:Hush()
         self.frame:Hide()
+        self:Sync() -- (the secure button too: now, or after the fight)
     end
     -- Nothing of it runs on (the night's timer is set anew when it's on again: changeAt).
     cameraT:Cancel(); activeT:Cancel(); peekT:Cancel(); changeT:Cancel()
@@ -657,6 +801,7 @@ function PF:EditMode(on)
     if on then f.click:RegisterForDrag("LeftButton"); self:Label() else f.click:RegisterForDrag() end
     self:Refresh()
     self:Fade()
+    self:Sync() -- (hidden while editing: drags and the wheel go to the frame)
 end
 
 -- Blizzard's Edit Mode tells addons when it opens and closes (verified on Forever, 2026-11-11).

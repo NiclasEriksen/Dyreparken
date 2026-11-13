@@ -726,6 +726,9 @@ L["settings.petframeart.tip"] = "Steinbakgrunn og ramme som på vinduene i spill
 L["petframe.tip"] = "Klikk for å åpne dyrekortet."
 -- (2026-11-13: a draft, for the user to edit) A click on the pet frame with the Pets page closed.
 L["petframe.open_hint"] = "Åpne kjæledyrsamlingen, så viser jeg kortet til {pet}."
+-- (2026-11-13: drafts) The window opened (or was open) on another page; a click in combat.
+L["petframe.tab_hint"] = "Bytt til Pets-fanen, så viser jeg kortet til {pet}."
+L["petframe.combat_hint"] = "Kortet til {pet} kommer når kampen er over."
 L["petframe.name"] = "Dyreparken: dyret ditt"
 L["petframe.edit"] = "Dyreparken: dyret ditt\nDra for å flytte, rull for størrelse ({pct}%)"
 L["settings.celebrate.tip"] = "Lys, gnister og en lyd når båndet ditt med dyret når et nytt level."
@@ -860,6 +863,8 @@ L["park.also_yours"] = "Du har også dette dyret."
 L["park.can_adopt"] = "Du har dette dyret, og kan adoptere det."
 L["park.click"] = "Klikk for å se kortet."
 L["park.click.pets"] = "Åpne Pets-fanen, så kan du klikke her for å se kortet."
+-- (2026-11-13: a draft) A click on an icon in combat.
+L["park.combat_hint"] = "Kortet til {pet} kommer når kampen er over."
 L["park.legend"] = "I farger: har et hjem.  Grå: trenger et hjem.  {icon} Du kan adoptere det."
 
 ------------------------------------------------------------------------------

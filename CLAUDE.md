@@ -68,6 +68,15 @@ and refuses the push if it fails.
   (`GameTooltipTextLeftN`), and `c:Hover` returns the whole tooltip as its third value. `c:TipOf(frame)` hovers
   one of our frames and returns its tooltip's lines (`.text`: joined with " / "). Tooltips are data: a module's
   pure `XxxLines(...)` builds `{ { text, r, g, b, wrap }, ... }` and `ns.SetTip` / `ns.ShowTip` show them.
+- Secure code and protected frames (`tools/test/harness/frames.lua`, its header): Blizzard's code runs secure
+  (`c:OpenJournal`, `c:ClickTab`, `c:ToggleCollections` (the key binding), the secure template's click); the addon's
+  handlers, hooks, events and timers never do. A Secure* template's frame is protected, and so are its parents and
+  the frames it's anchored to (`f:IsProtected()`); insecure Show/Hide/SetPoint/SetSize/SetScale/EnableMouse/
+  SetAttribute on one in combat fails the test with ADDON_ACTION_BLOCKED. `c:Press(button)` is a real mouse click
+  (down and up, as the button registered: the secure template acts on the down while ActionButtonUseKeyDown is 1).
+  An insecure ToggleCollectionsJournal or CollectionsJournal_SetTab taints the window (`c.insecureCJ`), and its key
+  binding is then blocked in combat, as seen in game. State drivers (`RegisterStateDriver`, `c.drivers`) apply on
+  `c:EnterCombat()`/`c:LeaveCombat()`.
 - The harness blocks guild chat posts that don't come from `c:Slash` or a `Click` (Forever does; the test then
   fails with `ADDON_ACTION_BLOCKED`). Post to guild chat only from a keypress or click.
 - Stubs must behave like the real client (docs/FOREVER_API.md). Unknown frame methods and unknown events throw
@@ -221,7 +230,13 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    PetFrame (the pet that's out on screen, optional and off by default: its own ModelScene with the card's view
                    insets, a stage of Moves so it moves 1:1 as on the card (and asleep while you're AFK, a rare line as it
                    wakes: Quirks' egg vaken), name and a slim bond bar with the rising numbers;
-                   a click opens its card; placed and sized (mouse wheel) in Blizzard's Edit Mode, char.petFrame),
+                   a click opens its card through a secure button of its own over it (SecureActionButtonTemplate, type
+                   "click" on CollectionsMicroButton: Blizzard opens the window untainted, on its last page; never our
+                   ToggleCollectionsJournal or SetTab; on UIParent, matched to the frame out of combat, never its child or
+                   anchored to it, so the frame stays unprotected; a state driver hides it in combat with petFrameCombat;
+                   hidden in Edit Mode; in combat a click toggles the window and the card waits for the fight's end:
+                   JournalUI:ShowWhenOpen/AfterCombat; read the header of its click section); placed and sized (mouse
+                   wheel) in Blizzard's Edit Mode, char.petFrame),
                    Settings (the settings page: a SidePage with no tab, opened by a cog in the pet journal's title
                    bar; the four older per-character settings plus the account's DyreparkenDB.settings: chatLines (hides the lines only),
                    worldHearts, cardParticles all/few/none, cardMoves, celebrate, and the pet frame's (petFrame, petFrameArt,

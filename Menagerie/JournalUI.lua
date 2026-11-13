@@ -207,17 +207,37 @@ function JournalUI:ShowSpecies(sid)
 end
 
 -- A card to show when the player next opens the Pets page (the pet frame's click with the page
--- closed: PetFrame:OpenCard). Session only; the newest click wins.
-function JournalUI:ShowWhenOpen(sid) self.pending = sid end
+-- closed: PetFrame; a park icon in combat: ParkPage). Session only; the newest click wins. In combat,
+-- also once the fight is over if the Pets page is up then.
+function JournalUI:ShowWhenOpen(sid)
+    self.pending = sid
+    if ns.InCombat() then self:AfterCombat() end
+end
+
+-- The pending card when the fight ends, if the Pets page is up then (PLAYER_REGEN_ENABLED only while a
+-- card waits: Events:OutOfCombat).
+function JournalUI:AfterCombat()
+    if self.waiting then return end
+    self.waiting = true
+    ns.Events:OutOfCombat(function()
+        JournalUI.waiting = nil
+        if PetJournal and PetJournal:IsVisible() then JournalUI:ShowPending() end
+    end)
+end
 
 -- The Pets page just showed (the player opened it): the pending card, out of combat, a frame later
 -- (the journal's own OnShow fills the list first).
 function JournalUI:ShowPending()
     local sid = self.pending
-    if not sid or ns.InCombat() then return end
+    if not sid then return end
+    if ns.InCombat() then return self:AfterCombat() end
     self.pending = nil
     C_Timer.After(0, function()
-        if not (PetJournal and PetJournal:IsVisible()) or ns.InCombat() then return end
+        if not (PetJournal and PetJournal:IsVisible()) then return end
+        if ns.InCombat() then -- (the fight began this very frame)
+            self.pending = self.pending or sid
+            return self:AfterCombat()
+        end
         ns.SidePage:CloseAll() -- (our pages would cover the card)
         JournalUI:ShowSpecies(sid)
     end)

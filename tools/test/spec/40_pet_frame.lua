@@ -78,31 +78,124 @@ return function(test, H)
         eq(PF.actor.anim, 4, "on again: it walks with you")
     end)
 
-    test("a click with the Pets page open shows its card; not in combat; in Edit Mode it's dragged instead", function()
+    -- The click is Blizzard's (2026-11-13, the user): a secure button of ours over the frame, type "click" on
+    -- CollectionsMicroButton, so the window opens untainted; never our ToggleCollectionsJournal or SetTab, which
+    -- write its selected tab tainted (the key binding then fails in combat: docs/FOREVER_API.md).
+    local function Button(ola) return ola.env.DyreparkenPetFrameButton end
+
+    test("a click opens the window by the micro button, untainted, on Pets: the card; the key binding works in combat after", function()
         local w, ola, PF = Setup(14)
-        local f = PF.frame
-        ola:OpenJournal()
-        f.click.scripts.OnClick(f.click, "LeftButton")
-        w:Run(0.1)
-        eq(ola.toggled, nil, "the window, never toggled by us")
-        eq(ola.env.PetJournalPetCard.speciesID, 5159, "on the panda's card")
-        ola.env.CollectionsJournal:Hide()
-        ola.state.combat = true
-        f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
-        eq(ola.toggled, nil, "not in combat")
-        no(ola:Printed("kortet til", true), "no hint in combat either")
-        ola.state.combat = false
-        -- Edit Mode (Blizzard's, by its callbacks): highlighted, dragged, the spot kept; a click doesn't open anything.
+        local f, b, env = PF.frame, Button(ola), ola.env
+        ok(b and b:IsShown(), "the secure button, over the frame")
+        ok(b:IsProtected(), "protected")
+        no(f:IsProtected(), "the pet frame isn't: it hides in combat, moves in Edit Mode")
+        eq(b:GetParent(), env.UIParent, "not the frame's child")
+        local p = b.points[#b.points]
+        eq(p[2], env.UIParent, "anchored where the frame is, not to it")
+        eq(p[1], f.points[1][1]); eq(p[4], f.points[1][4]); eq(p[5], f.points[1][5])
+        eq(b.size[1], f.size[1]); eq(b.size[2], f.size[2])
+        ok(b:TakesClick("LeftButton", true), "the down, as ActionButtonUseKeyDown (1) says ...")
+        no(b:TakesClick("LeftButton", false), "... and only that: one action a click")
+        ola:Press(b); w:Run(0.1)
+        eq(ola.toggled, 1, "the window, by the micro button")
+        eq(ola.insecureCJ, nil, "no insecure ToggleCollectionsJournal or SetTab")
+        ok(env.PetJournal:IsVisible())
+        eq(env.PetJournalPetCard.speciesID, 5159, "on the panda's card")
+        no(ola:Printed("kortet til", true), "no hint")
+        -- Open on Pets already: the card, and the window stays (the action off for that click, then on).
+        env.PetJournalPetCard.speciesID = 46
+        ola:Press(b); w:Run(0.1)
+        eq(ola.toggled, 1, "not toggled shut")
+        ok(env.CollectionsJournal:IsShown())
+        eq(env.PetJournalPetCard.speciesID, 5159)
+        eq(b:GetAttribute("type"), "click", "the action back on")
+        -- The window's key binding in combat later: Blizzard's own, not blocked.
+        ola:CloseJournal()
+        ola:EnterCombat()
+        ola:ToggleCollections()
+        ok(env.CollectionsJournal:IsShown(), "opened in combat by its key binding")
+        eq(#ola:TakeErrors(), 0, "no ADDON_ACTION_BLOCKED")
+        ola:LeaveCombat()
+        -- With ActionButtonUseKeyDown off, the up.
+        ola:CloseJournal()
+        env.C_CVar.SetCVar("ActionButtonUseKeyDown", 0); PF:Sync()
+        ola:Press(b); w:Run(0.1)
+        ok(env.CollectionsJournal:IsShown(), "opened on the up")
+        eq(ola.toggled, 3)
+        -- The micro button disabled (as Blizzard does at times): nothing opens; a hint, the card waits.
+        ola:CloseJournal()
+        env.CollectionsMicroButton:Disable()
+        ola:Press(b); w:Run(0.1)
+        no(env.CollectionsJournal:IsShown())
+        eq(ola:CountPrinted("Åpne kjæledyrsamlingen, så viser jeg kortet til Panda Cub."), 1)
+    end)
+
+    -- The harness catches the old way: our own ToggleCollectionsJournal, then the key binding in combat.
+    test("the harness: an insecure ToggleCollectionsJournal taints the window, and its key binding is blocked in combat", function()
+        local w, ola = Setup(14, false)
+        ola.env.ToggleCollectionsJournal(2) -- (addon code: insecure)
+        ok((ola.insecureCJ or 0) > 0, "counted")
+        ola:CloseJournal()
+        ola:EnterCombat()
+        ola:ToggleCollections()
+        local errors = ola:TakeErrors()
+        eq(#errors, 1)
+        H.match(errors[1], "ADDON_ACTION_BLOCKED.*MountJournal:SetShown")
+        -- Protected frames: an insecure move, show or attribute in combat is blocked; a parent, or a frame one
+        -- is anchored to, is protected too.
+        local env = ola.env
+        local holder = env.CreateFrame("Frame", nil, env.UIParent)
+        local spot = env.CreateFrame("Frame", nil, env.UIParent)
+        ola:LeaveCombat()
+        local s = env.CreateFrame("Button", nil, holder, "SecureActionButtonTemplate")
+        s:SetPoint("CENTER", spot, "CENTER", 0, 0)
+        ok(holder:IsProtected()); ok(spot:IsProtected()); ok(select(2, s:IsProtected()), "explicitly")
+        no(select(2, holder:IsProtected()), "implicitly")
+        ola:EnterCombat()
+        s:SetAttribute("type", nil); spot:Hide(); holder:SetPoint("TOP")
+        eq(#ola:TakeErrors(), 3, "each blocked")
+        eq(s:GetAttribute("type"), nil, "nothing set")
+        ok(spot:IsShown())
+        ola:LeaveCombat()
+    end)
+
+    test("the window opens on another page: a hint, the card when the player opens Pets; open there, the same; Edit Mode drags", function()
+        local w, ola, PF = Setup(14)
+        local f, b, env = PF.frame, Button(ola), ola.env
+        ola:OpenJournal({ sideTabs = 3 })
+        ola:ClickTab(1) -- (the player: Mounts)
+        ola:CloseJournal()
+        ola:ClearPrinted()
+        ola:Press(b); w:Run(0.1)
+        ok(env.CollectionsJournal:IsShown(), "opened ...")
+        no(env.PetJournal:IsVisible(), "... on its last page, Mounts")
+        eq(ola.insecureCJ, nil)
+        eq(ola:CountPrinted("Bytt til Pets-fanen, så viser jeg kortet til Panda Cub."), 1, "the hint")
+        ola:ClickTab(2); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 5159, "the pending card")
+        -- Open on Mounts already: not closed (a micro button click would), a hint, the card on Pets.
+        ola:ClickTab(1)
+        env.PetJournalPetCard.speciesID = 46
+        w:Run(11); ola:Press(b); w:Run(0.1)
+        ok(env.CollectionsJournal:IsShown(), "left open")
+        eq(ola.toggled, 1, "not toggled")
+        eq(ola:CountPrinted("Bytt til Pets-fanen"), 2)
+        ola:ClickTab(2); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 5159)
+        eq(ola.insecureCJ, nil, "never our tab switch")
+        -- Edit Mode (Blizzard's, by its callbacks): the secure button steps aside; the frame's own layer is
+        -- dragged and sized; a click opens nothing; after, the button is where the frame went.
         local callbacks = {}
-        rawset(ola.env, "EventRegistry", { RegisterCallback = function(_, ev, fn) callbacks[ev] = fn end })
+        rawset(env, "EventRegistry", { RegisterCallback = function(_, ev, fn) callbacks[ev] = fn end })
         PF:HookEditMode()
         callbacks["EditMode.Enter"]()
         ok(f.edit:IsShown())
+        no(b:IsShown(), "out of the way while editing")
         f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
-        eq(ola.toggled, nil)
+        eq(ola.toggled, 1)
         f.click.scripts.OnDragStart(f.click)
         ok(f:IsUserPlaced(), "the client's StartMoving")
-        f:ClearAllPoints(); f:SetPoint("TOPLEFT", ola.env.UIParent, "TOPLEFT", 40, -50)
+        f:ClearAllPoints(); f:SetPoint("TOPLEFT", env.UIParent, "TOPLEFT", 40, -50)
         f.click.scripts.OnDragStop(f.click)
         eq(table.concat(ola.ns.DB.char.petFrame, " "), "TOPLEFT TOPLEFT 40 -50 1")
         no(f:IsUserPlaced(), "not in the client's layout cache: the spot is ours (char.petFrame)")
@@ -121,56 +214,109 @@ return function(test, H)
         no(f.click.wheel, "out of Edit Mode: no wheel")
         f.click.scripts.OnMouseWheel(f.click, 1)
         eq(f:GetScale(), 0.7, "(and a stray scroll changes nothing)")
+        ok(b:IsShown(), "back over the frame ...")
+        local p = b.points[#b.points]
+        eq(p[1], "TOPLEFT"); eq(p[2], env.UIParent); eq(p[4], 40); eq(p[5], -50)
+        eq(b:GetScale(), 0.7, "... where it went, as big")
         -- Kept: after a reload it stands there.
         ola:Reload(); w:Run(15)
-        local p = ola.env.DyreparkenPetFrame.points[1]
-        eq(p[1], "TOPLEFT"); eq(p[4], 40); eq(p[5], -50)
+        local p2 = ola.env.DyreparkenPetFrame.points[1]
+        eq(p2[1], "TOPLEFT"); eq(p2[4], 40); eq(p2[5], -50)
         eq(ola.env.DyreparkenPetFrame:GetScale(), 0.7)
+        eq(ola.env.DyreparkenPetFrameButton:GetScale(), 0.7)
     end)
 
-    -- Never opening or switching Blizzard's Collections window from our code (2026-11-13, the user): that
-    -- writes its selected tab tainted, and the key binding then fails in combat. With the Pets page not
-    -- showing, a click remembers the pet and says so once; its card shows when the player opens the page.
-    test("a click with the Pets page closed or on another page: never toggled or switched, a hint, the card when the player opens Pets", function()
+    -- In combat attributes can't change: the click does what the micro button does, and the card shows after.
+    test("a click in combat: the window opens or closes as by the micro button, nothing blocked, the card after the fight", function()
         local w, ola, PF = Setup(14)
-        local f, env = PF.frame, ola.env
+        local b, env = Button(ola), ola.env
+        ola:EnterCombat()
+        ola:Press(b); w:Run(0.1)
+        ok(env.PetJournal:IsVisible(), "opened, by Blizzard's code")
+        eq(env.PetJournalPetCard.speciesID, nil, "no card in combat")
+        eq(ola:CountPrinted("Kortet til Panda Cub kommer når kampen er over."), 1, "a hint")
+        ola:LeaveCombat(); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 5159, "the card, once the fight is over")
+        eq(ola.insecureCJ, nil)
+        -- Open on Pets in combat: a click closes it (the micro button's); the card the next time it opens.
+        env.PetJournalPetCard.speciesID = 46
+        ola:EnterCombat()
+        ola:Press(b); w:Run(0.1)
+        no(env.CollectionsJournal:IsShown(), "closed, as the micro button does")
+        ola:LeaveCombat(); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 46, "closed: no card yet")
+        ola:Press(b); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 5159, "opened: the card")
+        -- The frame's own layer (under the button) in combat: remembered too, nothing opened.
+        ola:CloseJournal()
+        env.PetJournalPetCard.speciesID = 46
+        ola:EnterCombat()
+        PF.frame.click.scripts.OnClick(PF.frame.click, "LeftButton")
+        ola:OpenJournal(); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 46, "not in combat")
+        ola:LeaveCombat(); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 5159, "after it")
+    end)
+
+    test("hidden in combat (petFrameCombat): the secure button hides with it, by a state driver; nothing blocked", function()
+        local w, ola, PF = Setup(14)
+        local f, b = PF.frame, Button(ola)
+        ola.ns.DB.global.settings.petFrameCombat = true; PF:Apply()
+        ok(ola.drivers[b], "a visibility driver")
+        ola:EnterCombat(); w:Run(0.1)
+        no(f:IsShown()); no(b:IsShown(), "no click on the empty spot")
+        ola:LeaveCombat(); w:Run(0.1)
+        ok(f:IsShown()); ok(b:IsShown())
+        -- The option off: no driver; the pet put away in combat: the button goes after the fight.
+        ola.ns.DB.global.settings.petFrameCombat = false; PF:Apply()
+        eq(ola.drivers[b], nil)
+        ola:EnterCombat()
+        ola:Summon(nil); ola:Fire("COMPANION_UPDATE"); w:Run(0.5)
+        no(f:IsShown(), "the frame hides in combat (ours, unprotected)")
+        ok(b:IsShown(), "the button can't, yet")
+        ola:LeaveCombat(); w:Run(0.1)
+        no(b:IsShown(), "after the fight")
+        -- Off in the settings: gone.
+        ola:Summon(5159); ola:Fire("COMPANION_UPDATE"); w:Run(0.5)
+        ok(b:IsShown())
+        ola.ns.DB.global.settings.petFrame = false; PF:Apply()
+        no(b:IsShown())
+    end)
+
+    -- Without the secure template or the micro button: the frame's own click only remembers the pet.
+    test("no micro button: a click never opens or switches the window; a hint, the card when the player opens Pets", function()
+        local w, ola, PF = Setup(14, false)
+        local env = ola.env
+        rawset(env, "CollectionsMicroButton", nil)
+        ola.ns.DB.global.settings.petFrame = true; PF:Apply()
+        eq(env.DyreparkenPetFrameButton, nil, "no secure button")
+        local f = PF.frame
         ola:OpenJournal({ sideTabs = 3 })
-        ola:ClickTab(1) -- (the player: Mounts)
-        local tabs = 0
-        local setTab = env.CollectionsJournal_SetTab
-        rawset(env, "CollectionsJournal_SetTab", function(...) tabs = tabs + 1; return setTab(...) end)
+        ola:ClickTab(1)
         f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
         no(env.PetJournal:IsVisible(), "open on Mounts: left there")
-        eq(tabs, 0, "no tab switch from our code")
-        eq(ola.toggled, nil)
-        eq(ola:CountPrinted("Åpne kjæledyrsamlingen, så viser jeg kortet til Panda Cub."), 1, "the hint")
-        -- Closed: still nothing opened; a burst of clicks, one hint.
+        eq(ola.toggled, nil); eq(ola.insecureCJ, nil)
+        eq(ola:CountPrinted("Bytt til Pets-fanen, så viser jeg kortet til Panda Cub."), 1)
         ola:CloseJournal()
+        w:Run(11)
         for _ = 1, 3 do f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.5) end
         eq(ola.toggled, nil, "never toggled")
-        eq(tabs, 0)
-        no(env.CollectionsJournal:IsShown())
-        eq(ola:CountPrinted("kortet til Panda Cub"), 1, "one hint a burst")
-        -- The player opens it on Pets (their tab click): the card, once.
+        eq(ola:CountPrinted("Åpne kjæledyrsamlingen, så viser jeg kortet til Panda Cub."), 1, "one hint a burst")
         env.PetJournalPetCard.speciesID = nil
         ola:OpenJournal()
         ola:ClickTab(2); w:Run(0.1)
-        ok(env.PetJournal:IsVisible())
         eq(env.PetJournalPetCard.speciesID, 5159, "the pending card")
         env.PetJournalPetCard.speciesID = 46
         ola:CloseJournal(); ola:OpenJournal(); w:Run(0.1)
         eq(env.PetJournalPetCard.speciesID, 46, "shown once: not again the next time")
-        -- Opened in combat: it waits for a time out of combat.
+        -- Opened in combat: it waits for the fight to end.
         ola:CloseJournal()
         f.click.scripts.OnClick(f.click, "LeftButton")
         ola.state.combat = true
         ola:OpenJournal(); w:Run(0.1)
         eq(env.PetJournalPetCard.speciesID, 46, "not in combat")
-        ola.state.combat = false
-        ola:CloseJournal(); ola:OpenJournal(); w:Run(0.1)
-        eq(env.PetJournalPetCard.speciesID, 5159, "the next time, out of combat")
-        ola:CloseJournal(); w:Run(11); f.click.scripts.OnClick(f.click, "LeftButton")
-        eq(ola:CountPrinted("kortet til Panda Cub"), 2, "a later burst: a hint again")
+        ola:LeaveCombat(); w:Run(0.1)
+        eq(env.PetJournalPetCard.speciesID, 5159, "after it, the page still up")
     end)
 
     -- Asleep while you're AFK (2026-11-13, the user): every time, its Zzz too; awake when you're back,
