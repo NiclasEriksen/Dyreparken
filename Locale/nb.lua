@@ -839,6 +839,12 @@ L["feat.totem.water"] = "vanntotemet"
 L["feat.totem.air"] = "lufttotemet"
 L["wish.granted"] = "{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} båndpoeng)"
 L["wish.granted.full"] = "{pet} fikk ønsket sitt oppfylt: {activity}!" -- (a full day: no points left to give)
+-- (2026-11-13: drafts, for the user to edit) A wish come true by itself (Wish:Auto): everything explored and
+-- seen together, or every profession at its cap.
+L["wish.auto.explore"] = "{pet} har sett hver krok av verden sammen med deg, og ønsker seg bare å være med deg i dag. Ønsket er oppfylt! (+{n} båndpoeng)"
+L["wish.auto.explore.full"] = "{pet} har sett hver krok av verden sammen med deg, og ønsker seg bare å være med deg i dag. Ønsket er oppfylt!"
+L["wish.auto.skill"] = "Du har lært alt trenerne kan lære deg nå, og {pet} er stolt av deg. Ønsket er oppfylt! (+{n} båndpoeng)"
+L["wish.auto.skill.full"] = "Du har lært alt trenerne kan lære deg nå, og {pet} er stolt av deg. Ønsket er oppfylt!"
 
 ------------------------------------------------------------------------------
 -- The park (the map page)

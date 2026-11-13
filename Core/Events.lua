@@ -62,6 +62,8 @@ function Events:Off(event, owner)
     end
 end
 
+function Events:Has(event, owner) return handlers[event] ~= nil and handlers[event][owner] ~= nil end
+
 -- Every event this owner listens to, off: a module going dormant needn't list them again.
 function Events:OffAll(owner)
     local events = {}
