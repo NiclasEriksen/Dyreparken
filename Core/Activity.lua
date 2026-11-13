@@ -89,6 +89,7 @@ Activity.KINDS = {
     { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it
     { "specswap", wish = false }, -- a dual-spec switch: only the eggs watch it
     { "respec", wish = false },   -- a talent reset: only the eggs watch it
+    { "wake", wish = false },     -- back from AFK, the pet frame's pet woken (PetFrame.lua emits it): the eggs only
 }
 Activity.KIND = {}
 for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end

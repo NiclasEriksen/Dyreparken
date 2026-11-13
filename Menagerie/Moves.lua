@@ -554,7 +554,8 @@ function Moves.NewStage(name, opts)
     -- moments = false (the pet frame) leaves them to it (code review 2026-11-11: else the frame
     -- spent them hours later, at its next pose).
     local moments = opts.moments ~= false
-    local function Rest(key) return Plan.Rest(key, nil, not moments) end
+    -- opts.rest(key): a pose the stage's own (the pet frame's: asleep while you're AFK), or nil for Plan.Rest's.
+    local function Rest(key) return opts.rest and opts.rest(key) or Plan.Rest(key, nil, not moments) end
 
     local Play, Lift, Run
 

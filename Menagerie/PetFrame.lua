@@ -3,7 +3,8 @@ local _, ns = ...
 -- The pet frame (2026-11-11, the user): the pet that's out, on screen, with its name and your bond
 -- with it. Optional, off by default (Settings: petFrame), on a transparent background. Only to look
 -- at: it moves 1:1 as on the journal card (its own stage of Moves.lua: asleep at night, sitting,
--- playing dead, walking and running with you, turning its back in a sulk, a cheer at a new level),
+-- playing dead, walking and running with you, turning its back in a sulk, a cheer at a new level;
+-- asleep while you're AFK: PF:Afk),
 -- and a click opens the pet journal on its card. Placed in Blizzard's Edit Mode (dragged while
 -- it's open, and sized with the mouse wheel there: the spot and size saved per character,
 -- char.petFrame; 2026-11-11, the user: "It would be optimal if we could resize it in edit mode").
@@ -142,6 +143,7 @@ function PF:Build()
         actor = function() return PF.actor end,
         scene = function() return PF.scene end,
         anchor = function() return PF.frame end,
+        rest = function(key) return PF.afk and ns.Moves:For(key, "sleep") and "sleep" or nil end,
     })
     self:Place()
     return f
@@ -394,6 +396,29 @@ function PF:Sleepy()
     Tick()
 end
 
+-- Asleep while you're AFK (2026-11-13, the user): anywhere, not only resting (the "nap" activity's
+-- AFK is resting's). It lies down every time, with its Zzz; back again, it wakes, and only rarely
+-- says a line by its nature (Quirks' egg "vaken" on the "wake" activity, WAKE_CHANCE): an egg window
+-- now and then, not every time. PLAYER_FLAGS_CHANGED only while the frame is on (On, Off).
+function PF:Afk()
+    local afk = ns.Plain(UnitIsAFK("player")) and true or nil
+    if afk == self.afk then return end
+    self.afk = afk
+    local key = self.afkKey
+    self:Refresh()
+    if afk then
+        local f = self.frame
+        self.afkKey = f and f:IsShown() and self.stage.shown.mode == "sleep" and self.key or nil
+    else
+        self.afkKey = nil
+        -- (still asleep, at night: no waking line)
+        if key and key == self.key and self.frame and self.frame:IsShown() and self.stage.shown.mode ~= "sleep" then
+            self:Active()
+            ns.Activity:Emit("wake", 1)
+        end
+    end
+end
+
 -- The card's pet is posed anew each time the card opens; this one is always there, so it's
 -- posed again when night falls or ends (Personality.IsNight: 22 to 4), by one timer to then.
 function PF:NextChange()
@@ -566,6 +591,8 @@ function PF:On()
     ns.Events:On("PLAYER_ENTERING_WORLD", PF, refreshSoon)
     ns.Events:On("PET_BATTLE_OPENING_START", PF, function() PF.battle = true; PF:Refresh() end)
     ns.Events:On("PET_BATTLE_CLOSE", PF, function() PF.battle = nil; PF:Refresh() end)
+    ns.Events:On("PLAYER_FLAGS_CHANGED", PF, function(_, _, unit) if unit == "player" then PF:Afk() end end)
+    self.afk = ns.Plain(UnitIsAFK("player")) and true or nil -- (a /reload while away)
     self:Refresh()
 end
 
@@ -601,7 +628,7 @@ function PF:Off()
     cameraT:Cancel(); activeT:Cancel(); peekT:Cancel(); changeT:Cancel()
     self.active, self.peek, self.changeAt = nil, nil, nil
     if self.scene then self.scene:SetScript("OnUpdate", nil) end
-    self.key, self.points = nil, nil
+    self.key, self.points, self.afk, self.afkKey = nil, nil, nil, nil
 end
 
 -- Settings: turned on or off, or another size.

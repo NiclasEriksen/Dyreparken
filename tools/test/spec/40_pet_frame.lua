@@ -173,6 +173,49 @@ return function(test, H)
         eq(ola:CountPrinted("kortet til Panda Cub"), 2, "a later burst: a hint again")
     end)
 
+    -- Asleep while you're AFK (2026-11-13, the user): every time, its Zzz too; awake when you're back,
+    -- and only rarely a line (Quirks' egg "vaken", 29_quirks.lua). Its event only while the frame is on.
+    test("asleep while you're AFK, every time; awake when you're back, now and then with a line", function()
+        local w, ola, PF = Setup(14, false)
+        local function Flags() -- (ns.Events' frame: the activity engine's unit frame may watch it for naps)
+            for _, f in ipairs(ola.frames) do
+                if f.events.PLAYER_FLAGS_CHANGED and not (f.unitFilter and f.unitFilter.PLAYER_FLAGS_CHANGED) then return true end
+            end
+            return false
+        end
+        ola.ns.Activity:Drop("nap", ola.ns.Quirks); ola.ns.Activity:Drop("nap", ola.ns.Bond)
+        no(Flags(), "off: not listened to")
+        ola.ns.DB.global.settings.petFrame = true; PF:Apply()
+        ok(Flags(), "on: listened to")
+        local function Away(afk, unit)
+            ola.state.afk = afk
+            ola:Fire("PLAYER_FLAGS_CHANGED", unit or "player")
+            w:Run(0.7)
+        end
+        ola:Dice(0.99) -- (the line's chance says no)
+        ola:QuirksNow()
+        Away(true)
+        eq(PF.stage.shown.mode, "sleep", "asleep while you're away, by day")
+        eq(PF.actor.anim, 6, "lying down")
+        ok(PF.zzz, "its Zzz")
+        Away(false)
+        eq(PF.stage.shown.mode, "stand", "awake again")
+        eq(PF.actor.anim, 0)
+        eq(ola:Eggs("vaken"), 0, "no line most times")
+        -- Now and then it says something as it wakes.
+        ola:Dice(0)
+        Away(true); Away(false)
+        ok(ola:Said("Panda Cub gnir søvnen ut av øynene. Var du borte?"))
+        eq(ola:Eggs("vaken"), 1)
+        -- Someone else in the group going AFK: nothing.
+        ola.state.afk = true; ola:Fire("PLAYER_FLAGS_CHANGED", "party1"); w:Run(0.7)
+        eq(PF.stage.shown.mode, "stand")
+        ola.state.afk = false
+        -- Off: not listened to, and nothing sleeps.
+        ola.ns.DB.global.settings.petFrame = false; PF:Apply()
+        no(Flags())
+    end)
+
     test("it follows the pet that's out: dismissed, hidden (but shown in Edit Mode); another pet, its model; a pet battle hides it", function()
         local w, ola, PF = Setup(14)
         local f = PF.frame

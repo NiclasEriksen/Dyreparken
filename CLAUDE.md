@@ -219,7 +219,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon, a click opens its card on the Pets page (also pets you don't own);
                    loads after Achievements/Page.lua so its tab comes second),
                    PetFrame (the pet that's out on screen, optional and off by default: its own ModelScene with the card's view
-                   insets, a stage of Moves so it moves 1:1 as on the card, name and a slim bond bar with the rising numbers;
+                   insets, a stage of Moves so it moves 1:1 as on the card (and asleep while you're AFK, a rare line as it
+                   wakes: Quirks' egg vaken), name and a slim bond bar with the rising numbers;
                    a click opens its card; placed and sized (mouse wheel) in Blizzard's Edit Mode, char.petFrame),
                    Settings (the settings page: a SidePage with no tab, opened by a cog in the pet journal's title
                    bar; the four older per-character settings plus the account's DyreparkenDB.settings: chatLines (hides the lines only),

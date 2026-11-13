@@ -443,6 +443,13 @@ Quirks.EGGS = {
         traits = { "sjorover", "vannhund", "dykker", "hjemlengsel", "eventyrlysten" },
         families = { "pirate", "cat", "frog", "murloc", "reptile", "bird" },
         test = function(ctx) return Quirks.ByNature(ctx) end },
+    -- Back from AFK with the pet frame on (2026-11-13, the user: "Yes, with rare chance (don't want to
+    -- consume too many egg windows)"): the frame's pet slept while you were away (PetFrame.lua: every
+    -- time, no line); now and then it says something by its nature as it wakes. A common egg, held
+    -- back by the 45 minutes, and only at WAKE_CHANCE. Only the pet frame emits "wake" (watch = false).
+    { id = "vaken", delay = "now", on = "wake", watch = false, chance = function() return Quirks.WAKE_CHANCE end,
+        traits = { "trofast", "einstoing", "latsabb", "hjemlengsel" },
+        test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
@@ -472,6 +479,7 @@ end
 
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
 Quirks.REUNION_DAYS, Quirks.REUNION_CHANCE = 3, 0.35 -- (gjensyn: Monday's pet back on Thursday)
+Quirks.WAKE_CHANCE = 0.15 -- the pet frame's pet woken after you were AFK: the chance of a line (egg "vaken")
 -- Lines by nature, from the egg's own lists (EGGS: traits, families): the first of its
 -- traits the pet has (egg.<id>.<trait>.N), then its families' (egg.<id>.<family>.N), else
 -- the plain ones (egg.<id>.N). A test holds every listed one to its lines.

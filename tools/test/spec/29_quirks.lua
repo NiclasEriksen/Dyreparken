@@ -33,6 +33,31 @@ return function(test, H)
         ok(ola:Said("Bombay Cat lurer på om dere har tenkt å bli her for godt."))
     end)
 
+    -- The pet frame's pet woken after you were AFK (PetFrame.lua emits "wake"): rarely a line, by its nature,
+    -- held back by the 45 minutes like the common eggs (2026-11-13, the user: not too many egg windows).
+    test("back from AFK: only now and then a line, by its nature, within the 45 minutes", function()
+        local w, ola, Q = Setup({ "einstoing", "glupsk" })
+        local A = ola.ns.Activity
+        eq(Q.WAKE_CHANCE, 0.15)
+        for _, id in ipairs(Q.WATCH) do ok(id ~= "wake", "not watched: the pet frame emits it") end
+        ola:Dice(0.2)
+        A:Emit("wake")
+        eq(ola:Eggs("vaken"), 0, "over its chance: nothing")
+        ola:Dice(0.1)
+        A:Emit("wake")
+        ok(ola:Said("Bombay Cat merket ikke engang at du var borte."), "an Einstøing's")
+        eq(ola:Eggs("vaken"), 1)
+        -- The next day, but within the 45 minutes of the last line: held back.
+        w:SkipDays(1)
+        ola.ns.DB.char.quirkAt = ola.ns.Now()
+        A:Emit("wake")
+        eq(ola:Eggs("vaken"), 1, "the window holds it back")
+        ola:Traits({ "trofast", "glupsk" }, 40)
+        ola.ns.DB.char.quirkAt = nil
+        A:Emit("wake")
+        ok(ola:Said("Bombay Cat har ventet ved døra hele tiden. Endelig er du tilbake!"), "a Trofast's")
+    end)
+
     test("dislikes: from families and traits, never something the pet likes", function()
         local w, ola = Setup()
         local P = ola.ns.Personality
