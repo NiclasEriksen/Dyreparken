@@ -48,6 +48,58 @@ return function(c, env, S)
     env.ERR_LEARN_SPELL_S = "You have learned a new spell: %s."
     env.ERR_LEARN_ABILITY_S = "You have learned a new ability: %s."
     env.ERR_FISH_NOT_HOOKED = "No fish are hooked."
+    env.ERR_ZONE_EXPLORED = "Discovered: %s" -- (Forever's, /dp probe api 2026-11-11)
+    env.ERR_ZONE_EXPLORED_XP = "Discovered %s: %d experience gained" -- (retail's)
+    -- Professions as on Forever (2026-11-13): GetProfessions gives the slots' indexes (primary, primary,
+    -- archaeology, fishing, cooking; nil for an empty one), GetProfessionInfo(index) name, icon, rank,
+    -- maxRank (the trainer's current cap), ..., skillLine. S.professions: { [slot] = { name, rank, max } }.
+    env.GetProfessions = function()
+        local p = S.professions or {}
+        local function At(slot) return p[slot] and slot * 10 or nil end
+        return At(1), At(2), At(3), At(4), At(5)
+    end
+    env.GetProfessionInfo = function(i)
+        local p = (S.professions or {})[i / 10]
+        if not p then return nil end
+        return p[1], 136246, p[2], p[3], 0, 0, 100 + i, 0, 0, 0
+    end
+    -- Achievements (2026-11-13, Forever has Blizzard's): the Explorer category (15607) with Explore Azeroth
+    -- (62053) and the two continents' zone lists. A zone criterion is done only when the zone is fully
+    -- explored. S.explored: { [zone name] = true }; Explore Azeroth is done when every zone is.
+    -- S.achievementsById = false: GetAchievementInfo(id) gives nothing (only the category form works).
+    local EXPLORE = { [62353] = { "Elwynn Forest", "Westfall", "Duskwood", "Riverglades" },
+        [62355] = { "Durotar", "The Barrens", "Darkshore" } }
+    H.EXPLORE_ZONES = EXPLORE
+    local CAT = { 62053, 62353, 62355 }
+    local function Done(id)
+        local explored = S.explored or {}
+        if id == 62053 then return Done(62353) and Done(62355) end
+        for _, zone in ipairs(EXPLORE[id]) do if not explored[zone] then return false end end
+        return true
+    end
+    local TITLES = { [62053] = "Explore Azeroth", [62353] = "Explore Eastern Kingdoms", [62355] = "Explore Kalimdor" }
+    env.GetCategoryList = function() return { 92, 15607 } end
+    env.GetCategoryInfo = function(cat) return cat == 15607 and "Explorer" or "General" end
+    env.GetCategoryNumAchievements = function(cat) return cat == 15607 and #CAT or 0 end
+    env.GetAchievementInfo = function(a, i)
+        local id = a
+        if i then id = a == 15607 and CAT[i] or nil
+        elseif S.achievementsById == false then id = nil end
+        if not TITLES[id] then return nil end
+        return id, TITLES[id], 10, Done(id), 11, 13, 26, "", 0, 136246, "", false, Done(id), nil, false
+    end
+    env.GetAchievementNumCriteria = function(id) return id == 62053 and 2 or EXPLORE[id] and #EXPLORE[id] or 0 end
+    env.GetAchievementCriteriaInfo = function(id, j)
+        if id == 62053 then
+            local sub = ({ 62353, 62355 })[j]
+            if not sub then return nil end
+            return j == 1 and "Eastern Kingdoms" or "Kalimdor", 8, Done(sub), Done(sub) and 1 or 0, 1
+        end
+        local zone = EXPLORE[id] and EXPLORE[id][j]
+        if not zone then return nil end
+        local done = (S.explored or {})[zone] == true
+        return zone, 0, done, done and 1 or 0, 1
+    end
     -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
     env.C_Map = {
         GetBestMapForUnit = function(u) assert(u == "player"); return S.map or 1429 end,

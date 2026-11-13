@@ -487,6 +487,23 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
 - **Ghost Wolf** counts as a riding form (`Moves.RIDING_FORMS`, form id 16): the pet ran on its card in it (the user,
   2026-11-11). Travel Form (3) not tried.
 
+## Professions and the exploration achievements (`/dp probe api legacy`, 2026-11-13, build 1.60.1)
+
+- **Professions**: `GetProfessions()` gives the slots' indexes (primary, primary, archaeology, fishing, cooking;
+  nil for an empty slot), and `GetProfessionInfo(i)` gives name, icon, rank, maxRank, ..., skillLine (Herbalism
+  224/225, Enchanting 186/225, Fishing 193/225, Cooking 197/225). maxRank is the trainer's current cap, not 300.
+  Weapon skills can't be read: `GetSkillLineInfo` and `GetNumSkillLines` are missing. Wish.Capped reads these.
+- **Achievements**: Blizzard's API works (`GetCategoryList`, `GetCategoryInfo`, `GetCategoryNumAchievements`,
+  `GetAchievementInfo(cat, i)`, `GetAchievementNumCriteria`, `GetAchievementCriteriaInfo(id, j)` -> name, type,
+  done, have, need). Category 15607 "Explorer" holds "Explore Azeroth" (62053, criteria Eastern Kingdoms and
+  Kalimdor), "Explore Eastern Kingdoms" (62353, 23 zone criteria, Forever's Riverglades among them) and "Explore
+  Kalimdor" (62355, 20 zones). **A zone's criterion is done only when the zone is fully explored**: the tester had
+  0/23 and 1/20 after visiting many zones. The probe read them by (category, index); whether
+  `GetAchievementInfo(id)` with the id alone answers is unverified, so Wish.AchievementDone tries it and falls
+  back to finding the id in the category once.
+- `ERR_ZONE_EXPLORED` is "Discovered: %s"; whether the line comes as UI_INFO_MESSAGE or in system chat is
+  unverified, so the explore wish reads both (like ERR_NEWTAXIPATH), and `ERR_ZONE_EXPLORED_XP` too.
+
 ## SavedVariables
 
 - Written on /reload and logout (not on a crash, and not on Alt+F4 / "Exit Now"?).
