@@ -67,23 +67,28 @@ function Holidays:Ask()
     end)
 end
 
--- Today's events, in the month the calendar has open (the player may have paged it).
+-- Today's events, in the month the calendar has open (the player may have paged it). Today is
+-- the player's day (ns.Today, what everything else counts by), not the calendar's: the calendar
+-- runs on the realm's clock (GetCurrentCalendarTime), and near midnight with the two apart it
+-- read the realm's day and kept it as ours (code review 2026-11-13).
 function Holidays:Read()
     ns.Events:Off("CALENDAR_UPDATE_EVENT_LIST", Holidays)
     self.asking = nil
     local word, events = false, {}
+    local day = ns.Today()
     local ok = pcall(function()
-        local now = C_DateAndTime.GetCurrentCalendarTime()
+        local mine = date("*t", ns.Now())
         local shown = C_Calendar.GetMonthInfo and C_Calendar.GetMonthInfo(0)
-        local offset = shown and ((now.year - shown.year) * 12 + now.month - shown.month) or 0
-        for i = 1, C_Calendar.GetNumDayEvents(offset, now.monthDay) or 0 do
-            local e = C_Calendar.GetDayEvent(offset, now.monthDay, i)
+            or C_DateAndTime.GetCurrentCalendarTime()
+        local offset = (mine.year - shown.year) * 12 + mine.month - shown.month
+        for i = 1, C_Calendar.GetNumDayEvents(offset, mine.day) or 0 do
+            local e = C_Calendar.GetDayEvent(offset, mine.day, i)
             local id = e and ns.Plain(e.eventID)
             if id and self.IDS[id] then word = self.IDS[id] end
             if id and self.EVENTS[id] then events[self.EVENTS[id]] = true end
         end
     end)
-    today = { day = ns.Today(), word = word, events = events }
+    today = { day = day, word = word, events = events }
     ns.Log("Holidays", "today: %s%s", tostring(word), ok and "" or " (calendar failed)")
     ns.Bus:Fire("HOLIDAYS")
 end

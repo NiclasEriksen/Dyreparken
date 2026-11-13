@@ -368,7 +368,9 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   was 2, `GetDayEvent` gave tables (`eventID` 263 and 1842, `eventType` 4 = holiday, `sequenceType` "ONGOING",
   `numSequenceDays` 8, `startTime`/`endTime`, `iconTexture`), and `GetHolidayInfo(0, day, i)` their name and
   description: "Darkmoon Faire" ("...this time in idyllic Elwynn Forest") and "Call to Arms: Warsong Gulch". So the
-  game's own holidays can come from the calendar; the names are English (the client's locale).
+  game's own holidays can come from the calendar; the names are English (the client's locale). Unverified
+  (2026-11-13): whether the calendar's clock (`GetCurrentCalendarTime`, the realm's) and the player's (`date()`) differ
+  on Forever; Holidays.lua reads the player's date in the calendar so the two can't disagree near midnight.
 - **Loot roll lines** start with a loot history link on Forever (need and greed, not disenchant):
   "|HlootHistory:%d|h[Loot]|h: Need Roll - %d for %s by %s". Read the roll as the third capture from the end
   (Activity.Rolled); before 2026-11-11 the history id was read as the roll. Loot you pick up: `LOOT_ITEM_SELF`

@@ -122,4 +122,15 @@ return function(test, H)
         eq(ola.calendarAsked, asked + 2, "asked again the next day")
         eq(P.Holiday(w:ServerTime()), "Feast of Winter Veil")
     end)
+    test("the realm's calendar a day ahead of the player's clock: today's events are the player's day's", function()
+        local w, ola = H.Setup{ ola = {} }
+        local P = ola.ns.Personality
+        ola.state.realmOffset = 2 * 3600 -- (the realm two hours ahead: at 23:00 it's already tomorrow there)
+        local d = os.date("*t", w:ServerTime() + 86400)
+        w:SetDate(d.year, d.month, d.day, 23, 0)
+        local tomorrow = os.date("%Y%m%d", w:ServerTime() + 86400)
+        ola.state.holidays = { [ola.ns.Today()] = { 324 }, [tomorrow] = { 141 } }
+        P.Holiday(w:ServerTime()); w:Run(1.1)
+        eq(P.Holiday(w:ServerTime()), "Hallow's End", "the player's today, not the realm's")
+    end)
 end

@@ -7,7 +7,8 @@ return function(c, env, S)
     -- OpenCalendar. S.holidays: "YYYYMMDD" -> { event ids }; S.calendarMonth: the month it shows
     -- ({ month, year }; default this one). S.calendarSilent: it never says it has loaded
     -- (no CALENDAR_UPDATE_EVENT_LIST); S.calendarBroken: OpenCalendar throws.
-    local function CalendarNow() local d = os.date("*t", w:ServerTime()); return d end
+    -- S.realmOffset: seconds the realm's clock (the calendar's) is ahead of the player's.
+    local function CalendarNow() local d = os.date("*t", w:ServerTime() + (S.realmOffset or 0)); return d end
     env.C_DateAndTime = { GetCurrentCalendarTime = function()
         local d = CalendarNow()
         return { year = d.year, month = d.month, monthDay = d.day, weekday = d.wday, hour = d.hour, minute = d.min }
