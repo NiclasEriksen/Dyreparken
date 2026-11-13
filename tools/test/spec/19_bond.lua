@@ -135,14 +135,18 @@ return function(test, H)
         no(R:MergeLife(PANDA, "Ola Nord", { p = 40, f = now - 2 * day, t = now + 5 }), "fewer points: older news")
         no(R:MergeLife(PANDA, "Ola Nord", { p = 50, f = now - 2 * day, t = now }), "the same")
         ok(R:MergeLife(PANDA, "Ola Nord", { p = 50, f = now - 2 * day, t = now + 1 }), "same points, later")
+        -- The cap (X-Protocol 10): the days so far and three spare, 85 each (the day's 75 and the wish's 10).
+        local cap = R.LifeCap(now - 2 * day, now)
+        eq(cap, (2 + 3) * 85, "two days in")
         local bad = {
             "no", { p = 10, t = now }, { p = 10, f = now, t = now - 5 }, { p = -1, f = now, t = now },
             { p = 0 / 0, f = now, t = now }, { p = "9", f = now, t = now },
-            { p = 301, f = now - 2 * day, t = now }, -- more than 3 days and a spare one can bring (75 a day)
+            { p = cap + 1, f = now - 2 * day, t = now }, -- more than the days can bring
             { p = 1, f = now, t = now + 3 * day },   -- from the future
+            { p = 1, f = now - 0.5, t = now },       -- not on a whole second
         }
         for i, e in ipairs(bad) do no(R:MergeLife(KITTEN, "Ola Nord", e), "bad " .. i) end
-        ok(R:MergeLife(KITTEN, "Ola Nord", { p = 300, f = now - 2 * day, t = now }), "exactly the cap")
+        ok(R:MergeLife(KITTEN, "Ola Nord", { p = cap, f = now - 2 * day, t = now }), "exactly the cap")
         no(R:MergeLife(5, "Ola Nord", { p = 1, f = now, t = now }))
         no(R:MergeLife(KITTEN, "", { p = 1, f = now, t = now }))
         -- BOND writes only the sender's entry.

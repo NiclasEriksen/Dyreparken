@@ -1,5 +1,6 @@
 -- The wire, pinned: what a SYNC and a HELLO carry for a fixed world (written before Sync.TABLES
--- replaced the hand-listed stores, 2026-11-12), so a refactor can't change what peers see.
+-- replaced the hand-listed stores, 2026-11-12), so a refactor can't change what peers see. The
+-- digest changed with X-Protocol 10 (a claim's line carries its date and pet too).
 -- The real bytes depend on table order (LibSerialize walks pairs, which differs between runs
 -- and clients), so the pin is each decoded message written out with sorted keys: the same
 -- content, the same types, the same layout in parts.
@@ -58,8 +59,8 @@ return function(test, H)
         [==[HELLO {["d"]=0,["k"]="HELLO",["p"]=PROTOCOL,["v"]="dev"}]==],
         [==[SYNC {["a"]={["guild:family:cat"]={["ann"]=1790000070,["at"]=1790000060},["guild:future:x"]={["at"]=1790000061}},["i"]=1,["k"]="SYNC",["l"]={["Gammel Kar"]=1790000050},["of"]=3,["p"]=PROTOCOL,["r"]={["Bo Berg"]={["at"]=1790000005,["ts"]=1790000030},["Gammel Kar"]={["at"]=1790000001,["k"]="s:40",["ts"]=1790000002},["Liv Lund"]={["at"]=1790000011,["k"]="s:46",["ts"]=1790000021},["Per Hansen"]={["at"]=1790000010,["k"]="s:5159",["ts"]=1790000020}}}]==],
         [==[SYNC {["i"]=2,["k"]="SYNC",["n"]={["s:46"]={["Bo Berg"]={["at"]=1790000003,["n"]="Pus",["x"]=true}},["s:5159"]={["Per Hansen"]={["at"]=1790000025,["n"]="Bambus"}}},["of"]=3,["p"]=PROTOCOL}]==],
-        [==[SYNC {["b"]={["s:46"]={["Liv Lund"]={["f"]=1790000000,["p"]=20,["t"]=1790000040}},["s:5159"]={["Per Hansen"]={["f"]=1790000000,["p"]=120,["t"]=1790000040}}},["d"]=328157496,["i"]=3,["k"]="SYNC",["of"]=3,["p"]=PROTOCOL}]==],
-        [==[digest 328157496]==],
+        [==[SYNC {["b"]={["s:46"]={["Liv Lund"]={["f"]=1790000000,["p"]=20,["t"]=1790000040}},["s:5159"]={["Per Hansen"]={["f"]=1790000000,["p"]=120,["t"]=1790000040}}},["d"]=2218613292,["i"]=3,["k"]="SYNC",["of"]=3,["p"]=PROTOCOL}]==],
+        [==[digest 2218613292]==],
     }
 
     test("a SYNC and a HELLO carry exactly what they carried before Sync.TABLES", function()

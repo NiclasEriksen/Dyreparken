@@ -186,6 +186,13 @@ function Registry:Life(key, carer)
 end
 
 -- Returns true when our data changed.
+-- Two copies with the same stamp (a forgery: the author writes one a second) are told apart
+-- by what the digest carries (Sync.TABLES), the greater line winning, so every client keeps
+-- the same one and the digests agree (X-Protocol 10; before, the first one seen stayed).
+local function NameLine(e) return (e.n or "") .. "\31" .. (e.x and "x" or "") end
+local function ClaimLine(r) return r.at .. "\31" .. (r.k or "") end
+Registry.NameLine, Registry.ClaimLine = NameLine, ClaimLine
+
 function Registry:MergeName(key, namer, e)
     local g = G()
     if not g or not Registry.ValidNaming(key, namer, e) then
@@ -193,7 +200,7 @@ function Registry:MergeName(key, namer, e)
     end
     local byKey = g.names[key]
     local cur = byKey and byKey[namer]
-    if cur and cur.at >= e.at then return false end
+    if cur and (cur.at > e.at or (cur.at == e.at and NameLine(cur) >= NameLine(e))) then return false end
     if not byKey then byKey = {}; g.names[key] = byKey end
     byKey[namer] = { n = e.n, at = e.at, x = e.x }
     return Trim(g.names, namer, "at", Config.NAMES_PER_MEMBER, key)
@@ -204,7 +211,7 @@ function Registry:MergeRecord(owner, r)
     local g = G()
     if not g or not Registry.ValidClaim(owner, r) then return false end
     local cur = g.claims[owner]
-    if cur and cur.ts >= r.ts then return false end
+    if cur and (cur.ts > r.ts or (cur.ts == r.ts and ClaimLine(cur) >= ClaimLine(r))) then return false end
     g.claims[owner] = Copy(r)
     dirty = true
     return true

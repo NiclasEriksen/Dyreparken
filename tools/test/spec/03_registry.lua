@@ -98,7 +98,11 @@ return function(test, H)
         local w, c, R = One()
         ok(R:MergeRecord("Kari Berg", { k = KITTEN, at = T0 + 100, ts = T0 + 100 }))
         no(R:MergeRecord("Kari Berg", { k = BOMBAY, at = T0 + 50, ts = T0 + 99 }), "older")
-        no(R:MergeRecord("Kari Berg", { k = BOMBAY, at = T0 + 50, ts = T0 + 100 }), "same ts")
+        -- The same ts (a forgery: the owner writes one a second): the greater digest line (at, then
+        -- the pet) wins, so every client keeps the same copy and a pet can't change hands unseen.
+        no(R:MergeRecord("Kari Berg", { k = BOMBAY, at = T0 + 50, ts = T0 + 100 }), "same ts, an earlier claim")
+        ok(R:MergeRecord("Kari Berg", { k = "s:72", at = T0 + 100, ts = T0 + 100 }), "same ts and date, a greater key")
+        eq(R:Holder("s:72"), "Kari Berg")
         ok(R:MergeRecord("Kari Berg", { at = T0 + 100, ts = T0 + 101 }), "newer release")
         eq(R:Holder(KITTEN), nil)
         local bad = {
@@ -113,6 +117,8 @@ return function(test, H)
         bad[#bad + 1] = { k = KITTEN, at = T0 + 0 / 0, ts = T0 + 300 }        -- NaN: never compares
         bad[#bad + 1] = { k = KITTEN, at = T0 + 1, ts = now + 2 * 86400 } -- far future
         bad[#bad + 1] = { k = KITTEN, at = -5, ts = T0 + 300 }
+        bad[#bad + 1] = { k = KITTEN, at = T0 + 1, ts = T0 + 300.5 }      -- not a whole second (X-Protocol 10)
+        bad[#bad + 1] = { k = KITTEN, at = T0 + 0.25, ts = T0 + 300 }
         for i, r in ipairs(bad) do no(R:MergeRecord("Per Hansen", r), "bad record " .. i) end
         ok(R:MergeRecord("Siv Dahl", { at = T0 + 1, ts = now + 200 }), "a little ahead is fine")
         no(R:MergeRecord("Siv Dahl", { at = T0 + 1, ts = now + 3600 }), "an hour ahead isn't (one server clock)")
@@ -123,6 +129,7 @@ return function(test, H)
         no(R:MergeRecord(string.rep("x", 49), { k = KITTEN, at = T0 + 1, ts = T0 + 1 }), "owner too long")
         no(R:MergeLapse("Per Hansen", now + 10 * 365 * 86400), "far-future lapse")
         no(R:MergeLapse("Per Hansen", 0 / 0), "NaN lapse")
+        no(R:MergeLapse("Per Hansen", T0 + 0.5), "a lapse not on a whole second")
         no(R:MergeRecord("", { k = KITTEN, at = T0 + 1, ts = T0 + 1 }), "empty owner")
         no(R:MergeRecord(7, { k = KITTEN, at = T0 + 1, ts = T0 + 1 }), "owner not a string")
         ok(R:MergeRecord("Per Hansen", { k = KITTEN, at = T0 + 1, ts = T0 + 200, n = "old field", na = 5 }))
@@ -426,8 +433,11 @@ return function(test, H)
         local w, c, R = One()
         ok(R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = T0 + 100 }))
         no(R:MergeName(KITTEN, "Kari Berg", { n = "Eldre", at = T0 + 99 }), "older")
-        no(R:MergeName(KITTEN, "Kari Berg", { n = "Samme", at = T0 + 100 }), "same time")
-        eq(R:Nickname(KITTEN), "Pus")
+        -- The same time (a forgery: the namer writes one a second): the greater line wins, whatever
+        -- came first, so every client keeps the same (X-Protocol 10; the first one seen stayed).
+        ok(R:MergeName(KITTEN, "Kari Berg", { n = "Samme", at = T0 + 100 }), "same time, a greater name")
+        no(R:MergeName(KITTEN, "Kari Berg", { n = "Pus", at = T0 + 100 }), "same time, a lesser name")
+        eq(R:Nickname(KITTEN), "Samme")
         local bad = {
             "not a table",
             { n = "Pus" },                             -- no time
@@ -440,6 +450,7 @@ return function(test, H)
             { n = "Pus", at = T0 + 200, x = "yes" },
             { n = "a" .. string.rep("\128", 100), at = T0 + 200 },  -- one "character" by lead bytes
             { n = "Pus", at = T0 + 1 / 0 },
+            { n = "Pus", at = T0 + 200.5 },            -- not a whole second (X-Protocol 10)
         }
         for i, e in ipairs(bad) do no(R:MergeName(KITTEN, "Per Hansen", e), "bad entry " .. i) end
         no(R:MergeName(5, "Per Hansen", { n = "Pus", at = T0 + 1 }), "key not a string")

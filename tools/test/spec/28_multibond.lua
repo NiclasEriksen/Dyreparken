@@ -133,7 +133,7 @@ return function(test, H)
         no(adopted[KITTEN], "not in the sync's bonds")
         -- The digest doesn't move with it, so nobody SYNCs over it.
         local d = ola.ns.Sync:Digest()
-        ola.ns.Bond:Add(200, KITTEN) -- (capped at 150: a new bond's first days)
+        ola.ns.Bond:Add(300, KITTEN) -- (capped at 255: a new bond's first days, three spare of 85)
         eq(ola.ns.Sync:Digest(), d)
         w:Run(2)
         -- A newcomer gets the adopted bonds by SYNC; the others when she looks.
@@ -144,7 +144,7 @@ return function(test, H)
         nina:OpenJournal()
         nina:SelectPet(46)
         w:Run(3)
-        eq(nina:Points(KITTEN, "Ola Nord"), 150, "when she looks at it")
+        eq(nina:Points(KITTEN, "Ola Nord"), 255, "when she looks at it")
     end)
 
     test("asking about a pet: once a session, not while flicking through, answers rate-limited", function()

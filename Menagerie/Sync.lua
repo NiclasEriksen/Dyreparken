@@ -65,9 +65,12 @@ local C = ns.Config
 -- them for a fixed world.
 local R = ns.Registry
 Sync.TABLES = {
+    -- A claim's digest line carries its pet and date too (X-Protocol 10): with the time of its
+    -- write alone, a relayed copy with the same time and another pet was never corrected.
     { wire = "r", part = 1, source = function() return (R:All()) end, valid = R.ValidClaim,
         merge = function(owner, r) return R:MergeRecord(owner, r) end,
-        digest = function(owner, r) return "c" .. owner .. "\31" .. r.ts end, count = true, registry = true },
+        digest = function(owner, r) return "c" .. owner .. "\31" .. r.ts .. "\31" .. R.ClaimLine(r) end,
+        count = true, registry = true },
     { wire = "l", part = 1, source = function() return (select(2, R:All())) end, valid = R.ValidLapseOf,
         merge = function(owner, t) return R:MergeLapse(owner, t) end,
         digest = function(owner, t) return "l" .. owner .. "\31" .. t end, count = true, registry = true },
@@ -78,7 +81,7 @@ Sync.TABLES = {
         digest = function(id, rec) return "a" .. id .. "\31" .. rec.at .. "\31" .. tostring(rec.ann or "-") end },
     { wire = "n", part = 2, nested = true, source = function() return (select(3, R:All())) end, valid = R.ValidNaming,
         merge = function(key, namer, e) return R:MergeName(key, namer, e) end,
-        digest = function(key, namer, e) return "n" .. key .. "\31" .. namer .. "\31" .. e.at end,
+        digest = function(key, namer, e) return "n" .. key .. "\31" .. namer .. "\31" .. e.at .. "\31" .. R.NameLine(e) end,
         count = true, registry = true },
     -- Bonds by level, not points: points go out lazily (Bond.lua), and peers
     -- shouldn't SYNC over a few points. A level change goes out at once.

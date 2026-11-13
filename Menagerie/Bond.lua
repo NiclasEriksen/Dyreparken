@@ -325,11 +325,11 @@ end
 -- beyond: past the day's limit (BOND_DAILY_MAX), and not counted in it: a feat (2026-11-12, the user:
 -- "major feats should not count towards the daily limit, they're supposed to be huge bonuses"; one on a
 -- full day was lost for good). Still within the wire's cap (Bond:Add, Registry.LifeCap: the days so far
--- and a spare one, so at least 75 left even after a full day): no protocol change. The wish too
--- (2026-11-13, the user: "Yes, definitely past the cap"): 10 more on a full day, so after a week of
--- full days with every wish done the bond reaches LifeCap, and from then a day brings what the cap
--- has grown by (75), wish and all; Add clamps to it, and the line says what was really given (Room).
--- More room a day for the wish (LifeCap's 75 + 10) waits for the next protocol bump: peers check it.
+-- and three spare ones, so a feat's 25 fits even after full days). The wish too (2026-11-13, the user:
+-- "Yes, definitely past the cap"): 10 more on a full day. A row that's `beyond` and `once` adds its
+-- points to the cap's room a day (Wire.DayRoom, X-Protocol 10: 75 + the wish's 10), so full days with
+-- every wish done are never clamped; a new such row changes what peers accept (a protocol bump). Add
+-- still clamps to the cap, and the line says what was really given (Room).
 -- A new one is a row here and a Bond:Reward call where it happens.
 Bond.REWARDS = {
     -- today's wish done. once here too: Wish.lua starts a fresh wish when you adopt the

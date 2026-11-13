@@ -26,7 +26,8 @@ Wire.LIMITS = {
     MAX_PARTS = 64,             -- chunks per incoming message (16 KB); more is junk (Comm)
     MAX_RAW = 512 * 1024,       -- bytes an incoming message may unpack to (Comm)
     DAY = 86400,                -- a bond's cap counts 24-hour steps (Wire.LifeCap)
-    LIFE_SPARE_DAYS = 2,        -- ... plus the day it began and a spare one
+    LIFE_SPARE_DAYS = 3,        -- ... plus the day it began and spare ones (2 until X-Protocol 10: a feat's 25 on a
+                                --     full day didn't always fit)
 }
 local L = Wire.LIMITS
 local Config = ns.Config
@@ -35,9 +36,11 @@ local Config = ns.Config
 -- infinite, and not more than a few minutes ahead of us (a far-future time
 -- would win every merge and lock the record for good). Every client reads
 -- the same server clock (GetServerTime); a day of slack let a forged lapse
--- block someone's claims for a day (code review 2026-11-10).
+-- block someone's claims for a day (code review 2026-11-10). A whole number
+-- (X-Protocol 10): every honest time is GetServerTime's, and a copy of a
+-- record a fraction of a second off could change who holds a pet.
 function Wire.Time(t)
-    return type(t) == "number" and t == t and t > 0 and t <= ns.Now() + Config.CLOCK_SLACK
+    return type(t) == "number" and t == t and t > 0 and t <= ns.Now() + Config.CLOCK_SLACK and math.floor(t) == t
 end
 
 -- ... and not older than the addon (BOND_EPOCH): nothing in the registry is,
@@ -82,13 +85,26 @@ function Wire.AchId(id)
     return type(id) == "string" and #id <= L.ACH_ID_LEN and id:find(L.ACH_ID_PATTERN) ~= nil
 end
 
--- The most points a bond can hold at time t, begun at f: BOND_DAILY_MAX a
--- day, with a day to spare (the daily limit follows the calendar, this
--- follows 24-hour steps from f: without the spare day, points earned early
--- on a calendar day could be clamped away). Bond:Add and the migrations use
--- it too, so every copy agrees.
+-- The most points a day can bring a bond: BOND_DAILY_MAX, and the rewards
+-- that go past it once a day (Bond.REWARDS: `beyond` and `once`, the wish's
+-- 10). Since X-Protocol 10: until then a run of full days with every wish
+-- done reached the cap after a week and was clamped from then on. A feat
+-- (beyond, but once per character) fits in the spare days.
+function Wire.DayRoom()
+    local room = Config.BOND_DAILY_MAX
+    for _, def in pairs(ns.Bond and ns.Bond.REWARDS or {}) do
+        if def.beyond and def.once then room = room + Config[def.points] end
+    end
+    return room
+end
+
+-- The most points a bond can hold at time t, begun at f: a day's room
+-- (DayRoom) a day, with days to spare (the daily limit follows the calendar,
+-- this follows 24-hour steps from f: without a spare day, points earned early
+-- on a calendar day could be clamped away; the third holds a feat). Bond:Add
+-- and the migrations use it too, so every copy agrees.
 function Wire.LifeCap(f, t)
-    return (math.floor((t - f) / L.DAY) + L.LIFE_SPARE_DAYS) * Config.BOND_DAILY_MAX
+    return (math.floor((t - f) / L.DAY) + L.LIFE_SPARE_DAYS) * Wire.DayRoom()
 end
 
 -- Field checks for Comm:Register's field specs, by name (names, not

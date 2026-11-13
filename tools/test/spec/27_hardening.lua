@@ -33,7 +33,7 @@ return function(test, H)
         c:Login()
         local g = c.env.DyreparkenDB.guilds.Dyreparken
         eq(c.env.DyreparkenDB.schema, c.ns.DB.SCHEMA)
-        eq(g.life[PANDA]["Ola Nord"].p, 90, "within today and a spare day (150): kept")
+        eq(g.life[PANDA]["Ola Nord"].p, 90, "within today and the spare days: kept")
         eq(g.life[PANDA]["Kari Berg"].p, 20)
         eq(g.life[PANDA]["Per Hansen"], nil, "older than the addon: gone")
         eq(g.life.junk, nil); eq(g.names.junk, nil, "not a pet key")
@@ -42,7 +42,9 @@ return function(test, H)
         d.saved.DyreparkenDB = { schema = 7, guilds = { Dyreparken = { claims = {}, lapses = {}, names = {},
             life = { [PANDA] = { ["Kari Berg"] = { p = 400, f = now - 3600, t = now } } } } } }
         d:Login()
-        eq(d.env.DyreparkenDB.guilds.Dyreparken.life[PANDA]["Kari Berg"].p, 150)
+        -- (to today's cap: three spare days of 85 since X-Protocol 10, migration 8 clamping by it)
+        eq(d.env.DyreparkenDB.guilds.Dyreparken.life[PANDA]["Kari Berg"].p, d.ns.Registry.LifeCap(now - 3600, now))
+        eq(d.ns.Registry.LifeCap(now - 3600, now), 255)
     end)
 
     test("one member flooding names and bonds under made-up keys can't break the guild's sync", function()
@@ -238,9 +240,10 @@ return function(test, H)
         local now = w:ServerTime()
         local g = ola.ns.DB:Guild()
         -- An entry at the cap (WriteOwn refuses one past it: migration 8 clamped what alpha4 left): kept.
-        g.life[PANDA] = { ["Ola Nord"] = { p = 150, f = now - 600, t = now } }
+        local cap = ola.ns.Registry.LifeCap(now - 600, now)
+        g.life[PANDA] = { ["Ola Nord"] = { p = cap, f = now - 600, t = now } }
         ola.ns.Bond:Add(5)
-        eq(ola.ns.Registry:Life(PANDA, "Ola Nord").p, 150)
+        eq(ola.ns.Registry:Life(PANDA, "Ola Nord").p, cap)
         eq(ola.ns.Bond:Room(), 0)
         -- At the cap, a granted activity adds nothing to today's tally.
         local before = ola.ns.Bond:Today()

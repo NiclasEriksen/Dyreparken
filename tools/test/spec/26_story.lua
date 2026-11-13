@@ -222,17 +222,16 @@ return function(test, H)
     end)
 
     -- Wishes past the day's 75 (2026-11-13, the user: "Ensure this doesn't mess with antitampering"): peers
-    -- refuse a bond above Wire.LifeCap (75 a day and a spare day), which has no room for the wish's 10. Our
-    -- own entry stays within it (Bond:Add), so after a week of full days the wish gives only what's left.
-    test("twenty full days with every wish done: 85 a day at first, never past the wire's cap, and the guild keeps taking it", function()
+    -- refuse a bond above Wire.LifeCap. Since X-Protocol 10 its room a day is the day's 75 and the wish's 10
+    -- (Wire.DayRoom), so a run of full days with every wish done is never clamped (until then it reached the
+    -- cap after about two weeks and the wish gave nothing from then on).
+    test("twenty full days with every wish done: 85 every day, never at the wire's cap, and the guild keeps taking it", function()
         local w, ola, kari = Setup()
         local W, B, R = ola.ns.Wish, ola.ns.Bond, ola.ns.Registry
         W.For = function() return "herb" end
         local function Mine() return R:Life(PANDA, "Ola Nord") end
-        local capped = 0
-        -- (the cap is reached about day 16: 10 more a day than its 75 eat the two spare days; twenty days
-        -- show it reached and held. The guild's copy checked every fifth day: half an hour run each time
-        -- cost two minutes under coverage over forty days.)
+        -- (The guild's copy checked every fifth day: half an hour run each time cost two minutes under
+        -- coverage over forty days.)
         for day = 1, 20 do
             w:SkipDays(1)
             ola.ns.DB.char.wish = nil
@@ -245,16 +244,14 @@ return function(test, H)
             ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
             ok(W:Today().done)
             local e = Mine()
-            ok(e.p <= R.LifeCap(e.f, e.t), "within the wire's cap, day " .. day)
-            if day <= 5 then eq(e.p - before, 85, "the day's 75 and the wish's 10, day " .. day) end
-            if R.LifeCap(e.f, e.t) == e.p then capped = capped + 1 end
+            ok(e.p < R.LifeCap(e.f, e.t), "below the wire's cap, day " .. day)
+            eq(e.p - before, 85, "the day's 75 and the wish's 10, day " .. day)
             if day % 5 == 0 then
                 w:Run(1801) -- (our points go out within 30 minutes)
                 local theirs = kari.ns.Registry:Life(PANDA, "Ola Nord")
                 eq(theirs and theirs.p, e.p, "Kari took our bond, day " .. day)
             end
         end
-        ok(capped >= 3, "the cap was reached and held")
         -- A newcomer's SYNC carries it too.
         local per = w:AddClient("Per Hansen", { pets = { 40 } })
         w:Run(40)

@@ -4,7 +4,8 @@
 --
 -- What counts: every registered message kind (channel and field specs), Wire.LIMITS, the
 -- Config values that feed validation (as they ship), the bond levels (the digest carries
--- levels) and the sync's stores (Sync.TABLES: wire key, part, layout, what TooBig counts).
+-- levels), the sync's stores (Sync.TABLES: wire key, part, layout, what TooBig counts, and since
+-- X-Protocol 10 each one's digest line for a fixed entry) and a bond's room a day (Wire.DayRoom).
 -- The per-member caps (NAMES_PER_MEMBER, LIFE_PER_MEMBER) aren't in it: they only bite under
 -- a flood and came without a bump by decision (2026-11-09).
 --
@@ -61,9 +62,70 @@ store a part=1 nested=false count=false
 store n part=2 nested=true count=true
 store b part=3 nested=true count=true
 ]],
+        -- 10 (2026-11-13, 0.6.0): LIFE_SPARE_DAYS 3, a day's room 75 + the wish's 10, whole-number
+        -- times, a claim's and a name's digest line carrying what they hold. The digest and day room
+        -- lines are new with it.
+        [10] = [[
+kind ACH from=GUILD fields=a:table
+kind ACH_EARNED from=GUILD fields=a:table
+kind BOND from=GUILD fields=e:table,pet:key
+kind BOND_REQ from=GUILD fields=pet:key
+kind HELLO from=GUILD fields=
+kind HELLO from=nil fields=
+kind LAPSE from=GUILD fields=l:table
+kind NICK from=GUILD fields=e:table,pet:key
+kind PET_REQ from=GROUP fields=
+kind PLAY from=GROUP fields=pet:key
+kind SYNC from=GUILD fields=
+kind UPD from=GUILD fields=r:table
+kind VER from=nil fields=v:version
+kind VER_REQ from=nil fields=
+limit ACH_ID_LEN=64
+limit ACH_ID_PATTERN=^guild:[%w:_]+$
+limit DAY=86400
+limit GUILD_UNKNOWN_MAX=64
+limit KEY_LEN=64
+limit LIFE_SPARE_DAYS=3
+limit MAX_PARTS=64
+limit MAX_RAW=524288
+limit NAME_LEN=48
+limit NICK_BYTES_PER_CHAR=4
+limit VERSION_LEN=32
+config BOND_DAILY_MAX=75
+config BOND_EPOCH=1793487600
+config CLOCK_SLACK=300
+config NICKNAME_MAX_LEN=20
+config SYNC_MAX_ENTRIES=2000
+level 1=0
+level 2=100
+level 3=270
+level 4=530
+level 5=900
+level 6=1440
+level 7=2250
+store r part=1 nested=false count=true
+store l part=1 nested=false count=true
+store a part=1 nested=false count=false
+store n part=2 nested=true count=true
+store b part=3 nested=true count=true
+digest r=cOla Nord<31>1793500010<31>1793500000<31>s:5159
+digest l=lOla Nord<31>1793500020
+digest a=aguild:family:cat<31>1793500030<31>1793500040
+digest n=ns:5159<31>Ola Nord<31>1793500050<31>Bambus<31>
+digest b=bs:5159<31>Ola Nord<31>3
+bond dayroom=85
+]],
     }
 
     local CONFIG = { "BOND_DAILY_MAX", "BOND_EPOCH", "CLOCK_SLACK", "NICKNAME_MAX_LEN", "SYNC_MAX_ENTRIES" }
+    -- One fixed entry per store, for its digest line (a store missing here fails: add one).
+    local SAMPLE = {
+        r = { "Ola Nord", { k = "s:5159", at = 1793500000, ts = 1793500010 } },
+        l = { "Ola Nord", 1793500020 },
+        a = { "guild:family:cat", { at = 1793500030, ann = 1793500040 } },
+        n = { "s:5159", "Ola Nord", { n = "Bambus", at = 1793500050 } },
+        b = { "s:5159", "Ola Nord", { p = 300, f = 1793500000, t = 1793500060 } },
+    }
 
     local function Fingerprint(c)
         local ns, lines = c.ns, {}
@@ -86,6 +148,12 @@ store b part=3 nested=true count=true
             lines[#lines + 1] = ("store %s part=%d nested=%s count=%s"):format(row.wire, row.part, tostring(row.nested == true),
                 tostring(row.count == true))
         end
+        for _, row in ipairs(ns.Sync.TABLES) do
+            local e = SAMPLE[row.wire]
+            local line = row.nested and row.digest(e[1], e[2], e[3]) or row.digest(e[1], e[2])
+            lines[#lines + 1] = ("digest %s=%s"):format(row.wire, (line:gsub("[%z\1-\31]", function(ch) return ("<%d>"):format(ch:byte()) end)))
+        end
+        lines[#lines + 1] = ("bond dayroom=%d"):format(ns.Wire.DayRoom())
         return table.concat(lines, "\n") .. "\n"
     end
 
@@ -126,9 +194,7 @@ store b part=3 nested=true count=true
             error(snap and ("what peers accept changed, but X-Protocol is still %d: bump it in Dyreparken.toc and add "
                 .. "the fingerprint printed above as SNAPSHOTS[%d] in this file (or undo the change)"):format(proto, proto + 1)
                 or ("X-Protocol is %d and there's no snapshot for it: add the fingerprint printed above as "
-                .. "SNAPSHOTS[%d] in this file. AND, decided with the user (docs/REFACTOR.md, Q4): this bump is when "
-                .. "the sync keeps only guild members' data (refuse and prune non-members' claims, lapses, names, "
-                .. "bonds and guild achievements; B11)"):format(proto, proto), 0)
+                .. "SNAPSHOTS[%d] in this file"):format(proto, proto), 0)
         end
         -- The fingerprint sees what it should: a limit, a field spec, a Config value.
         local before = Fingerprint(c)

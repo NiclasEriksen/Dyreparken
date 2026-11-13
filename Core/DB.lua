@@ -17,7 +17,7 @@ local _, ns = ...
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 12
+local SCHEMA = 13
 local CHAR_SCHEMA = 2
 DB.SCHEMA, DB.CHAR_SCHEMA = SCHEMA, CHAR_SCHEMA
 
@@ -240,6 +240,32 @@ local MIGRATIONS = {
     [12] = function(db)
         for _, g in pairs(db.guilds or {}) do
             if type(g.ach) == "table" then ns.Achievements.TrimGuild(g.ach) end
+        end
+    end,
+    -- 13 (2026-11-13, X-Protocol 10): times from the wire are whole seconds: drop what peers
+    -- refuse now, the same on every client. Only forgeries fail these.
+    [13] = function(db)
+        local R, ValidAch = ns.Registry, ns.Achievements.ValidGuildRecord
+        for _, g in pairs(db.guilds or {}) do
+            for _, store in ipairs({ { g.claims, R.ValidClaim }, { g.lapses, R.ValidLapseOf }, { g.ach, ValidAch } }) do
+                local t, valid = store[1], store[2]
+                if type(t) == "table" then
+                    for k, e in pairs(t) do if not valid(k, e) then t[k] = nil end end
+                end
+            end
+            for _, store in ipairs({ { g.names, R.ValidNaming }, { g.life, R.ValidBond } }) do
+                local t, valid = store[1], store[2]
+                if type(t) == "table" then
+                    for key, byKey in pairs(t) do
+                        if type(byKey) == "table" then
+                            for author, e in pairs(byKey) do
+                                if not valid(key, author, e) then byKey[author] = nil end
+                            end
+                        end
+                        if type(byKey) ~= "table" or not next(byKey) then t[key] = nil end
+                    end
+                end
+            end
         end
     end,
 }

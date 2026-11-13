@@ -4,7 +4,7 @@
 ## Author: Hjelp
 ## Version: @project-version@
 ## X-Flavor: forever
-## X-Protocol: 9
+## X-Protocol: 10
 ## SavedVariables: DyreparkenDB, DyreparkenDebugDB
 ## SavedVariablesPerCharacter: DyreparkenCharDB
 ## Category: Collections
