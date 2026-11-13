@@ -329,6 +329,12 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   **past the day's 75, not counted in it** (the user: "major feats should not count towards the daily limit, they're
   supposed to be huge bonuses"). They stay within the wire's cap (Registry.LifeCap keeps a spare day): no protocol
   change. A trainer visit, a dual-spec switch, a talent reset and the tenth levels 10-50 are eggs only, no points.
+- **Wishes go past the cap** (2026-11-13, the user: "Yes, definitely past the cap. Ensure this doesn't mess with
+  antitampering"): today's wish come true gives its 10 points past the day's 75, not counted in it, like a feat
+  (Bond.REWARDS `beyond`). Our own entry still stays within Wire.LifeCap (Bond:Add clamps; the line says what was
+  really given), so peers keep accepting it: after about a week of full days with every wish done, the cap's 75 a
+  day is all a day brings, wish included (a test runs 40 days). Raising LifeCap's room a day by the wish's 10 belongs
+  to the next X-Protocol bump; Wire is unchanged for now.
 - **New traits and a one-time rework** (2026-11-12, the user, for 0.5): 13 traits (Sjørøver, Skøyer, Røverdyr
   against Ordensdyr, Venneflokk, Vinterpels against Solelsker, Tivolidyr, Bålkos, Skybåren, Jeger, Håndverker,
   Diplomat; 38 in all) and four activities for them (gold, fun, sneak, meet). Every species nobody in the guild

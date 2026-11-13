@@ -101,13 +101,14 @@ return function(test, H)
         eq(Earned(), after + 5, "once a day: the next herb is just a herb")
         card = ola:SelectPet(5159)
         eq(card.wish.text.text, "Ønsket er oppfylt!"); eq(card.wish.text.color[2], 1)
-        -- A new day, a new wish; the day's limit holds for it too.
+        -- A new day, a new wish: past the day's limit, like a feat (2026-11-13, the user).
         w:SkipDays(1)
         no(W:Today().done, "a new wish")
         ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), pets = { [PANDA] = { got = {}, total = 72 } } }
         before = Earned()
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned() - before, 3, "only what's left of the day")
+        eq(Earned() - before, 3 + 10, "the herb: what's left of the day; the wish: all of it")
+        eq(ola.ns.DB.char.bondToday.pets[PANDA].total, 75, "the wish not counted in the day")
         -- Not with another companion out.
         w:SkipDays(1)
         ola:Summon(40)
@@ -181,7 +182,7 @@ return function(test, H)
         eq(lines, 1, "one wish line")
     end)
 
-    test("a wish on a full day says what it gave: the points left, or no amount at all", function()
+    test("a wish on a full day still gives its 10; near the wire's cap it says what it gave, or no amount at all", function()
         local w, ola = Setup()
         local W = ola.ns.Wish
         W.For = function() return "herb" end
@@ -191,16 +192,26 @@ return function(test, H)
         local function Today(total)
             ola.ns.DB.char.bondToday = { day = ola.ns.Today(), pets = { [PANDA] = { got = { herb = 25 }, total = total } } }
         end
-        -- Two points left: the line says two.
-        Today(73)
+        -- A full day: all ten, past the day's 75 (2026-11-13, the user).
+        Today(75)
         local before = Earned()
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        eq(Earned() - before, 10)
+        ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+10 båndpoeng)", true))
+        -- Two points short of what the wire accepts (Registry.LifeCap): the line says two.
+        local B = ola.ns.Bond
+        local function Room(n) local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); e.p = e.p + B:Room(PANDA) - n end
+        w:SkipDays(1)
+        ola.ns.DB.char.wish = nil
+        Today(75); Room(2)
+        before = Earned()
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         eq(Earned() - before, 2)
         ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+2 båndpoeng)", true))
-        -- A full day: the wish comes true, with no promise of points.
+        -- At the cap: the wish comes true, with no promise of points.
         w:SkipDays(1)
         ola.ns.DB.char.wish = nil
-        Today(75)
+        Today(75); Room(0)
         before = Earned()
         ola:ClearPrinted()
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
@@ -208,6 +219,42 @@ return function(test, H)
         eq(Earned() - before, 0)
         match(ola:Printed("fikk ønsket sitt oppfylt", true) or "", "Panda Cub fikk ønsket sitt oppfylt: herbs!$")
         no(ola:Printed("båndpoeng", true), "no points promised")
+    end)
+
+    -- Wishes past the day's 75 (2026-11-13, the user: "Ensure this doesn't mess with antitampering"): peers
+    -- refuse a bond above Wire.LifeCap (75 a day and a spare day), which has no room for the wish's 10. Our
+    -- own entry stays within it (Bond:Add), so after a week of full days the wish gives only what's left.
+    test("forty full days with every wish done: 85 a day at first, never past the wire's cap, and the guild keeps taking it", function()
+        local w, ola, kari = Setup()
+        local W, B, R = ola.ns.Wish, ola.ns.Bond, ola.ns.Registry
+        W.For = function() return "herb" end
+        local function Mine() return R:Life(PANDA, "Ola Nord") end
+        local capped = 0
+        for day = 1, 40 do
+            w:SkipDays(1)
+            ola.ns.DB.char.wish = nil
+            local before = Mine() and Mine().p or 0
+            -- The day filled to its 75 (what it already had, and the rest), then the wish.
+            local d = ola.ns.DB.char.bondToday
+            local today = (d and d.day == ola.ns.Today() and d.pets[PANDA] and d.pets[PANDA].total) or 0
+            B:Add(75 - today, PANDA)
+            ola.ns.DB.char.bondToday = { day = ola.ns.Today(), pets = { [PANDA] = { got = { herb = 25 }, total = 75 } } }
+            ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+            ok(W:Today().done)
+            local e = Mine()
+            ok(e.p <= R.LifeCap(e.f, e.t), "within the wire's cap, day " .. day)
+            if day <= 5 then eq(e.p - before, 85, "the day's 75 and the wish's 10, day " .. day) end
+            if R.LifeCap(e.f, e.t) == e.p then capped = capped + 1 end
+            w:Run(1801) -- (our points go out within 30 minutes)
+            local theirs = kari.ns.Registry:Life(PANDA, "Ola Nord")
+            eq(theirs and theirs.p, e.p, "Kari took our bond, day " .. day)
+        end
+        ok(capped > 20, "the cap was reached and held")
+        -- A newcomer's SYNC carries it too.
+        local per = w:AddClient("Per Hansen", { pets = { 40 } })
+        w:Run(40)
+        local theirs = per.ns.Registry:Life(PANDA, "Ola Nord")
+        eq(theirs and theirs.p, Mine().p, "Per took it from a SYNC")
     end)
 
     test("petting the pet on the card: a ripple, a few hearts, a glow, a sound; once a day a cuddle", function()
