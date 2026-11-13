@@ -50,7 +50,9 @@ local ROWS = {
     { column = 2 }, -- (2026-11-11: one column had outgrown the page)
     { head = "settings.head.card" },
     { key = "settings.particles", choices = { "all", "few", "none" }, setting = "cardParticles" },
-    { key = "settings.moves", setting = "cardMoves" },
+    -- (the pet frame's stage too: it reads the setting only when it poses the pet, and walked on)
+    { key = "settings.moves", setting = "cardMoves",
+        set = function(v) Set("cardMoves", v); ns.PetFrame:Apply() end },
     { key = "settings.celebrate", setting = "celebrate" },
     { head = "settings.head.frame" },
     { key = "settings.petframe", get = function() return ns.PetFrame:Enabled() end,
