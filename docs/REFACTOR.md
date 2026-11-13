@@ -38,7 +38,7 @@ cheaper to verify.
 | B8 | Menagerie/Bond.lua:478 | `PlaceLine` uses `math.random`, not `Bond.random`, so tests can't pin it. |
 | B9 | tools/pin_unlocks.lua:21,24,28 | The `parrot`, `chicken` and `whelp` rows never run, because Scenes.ALIAS maps those tags to bird, farm and dragon first. A new parrot gets the generic bird lists. |
 | B10 | Menagerie/Registry.lua:246 | One client's odd roster read (say a name format with a realm suffix) lapses every claim it can't match, permanently and guild-wide. Guard: skip if I'm not in the roster myself, or if more than N would lapse at once. |
-| B11 | Sync (Registry.lua:200-231, Sync.lua:182) | **Flood:** `TooBig` caps entries per message, and per-member caps count by author name, which a relay can make up. A few forged SYNCs can push the stored total past `SYNC_MAX_ENTRIES`, and from then on everyone refuses every honest SYNC part. Needs a decision (Q4). |
+| B11 | Sync (Registry.lua:200-231, Sync.lua:182) | **Flood:** `TooBig` caps entries per message, and per-member caps count by author name, which a relay can make up. A few forged SYNCs can push the stored total past `SYNC_MAX_ENTRIES`, and from then on everyone refuses every honest SYNC part. Needs a decision (Q4). **Fixed in X-Protocol 10** (members only, 2026-11-13). |
 | B12 | Achievements.lua:410 | A forged ACH with 128 junk ids fills GUILD_MAX for good; there is no eviction. |
 | B13 | tools/test/harness.lua:1402 | `UnitStandState` is stubbed, but Forever doesn't have it (FOREVER_API.md:319). 05_summon tests a sitting check that never runs in game. |
 | B14 | JournalUI.lua:508-516 | Opening a side page stops Decor, BondTrack and the others, but not the bond celebration or Cuddle's bursts. |
@@ -145,7 +145,7 @@ This is the payoff for "easier to add pets, traits and eggs".
   about 7 places, and guild achievements needed hooks of their own. Keeps the wire layout, so no protocol bump.
 - **`Registry:WriteOwn(store, key, entry)`**: one place for "stamp grows, run the peers' validator on it, trim,
   fire MY_*". Bond:Add writes `g.life` directly and skips Trim.
-- **Flood resistance (B11, B12)**: depends on Q4.
+- **Flood resistance (B11, B12)**: depends on Q4. Done: B12 in Phase 3, B11 with Q4 at X-Protocol 10.
 - **Saved data with an owner**:
   - `char.wish` and `char.bondToday` are missing from CHAR_DEFAULTS.
   - `announce`, `eggs`, `sulk`, `dislikes` and `firsts` are written by 2–5 modules each; non-owners should go
@@ -268,6 +268,7 @@ This is the payoff for "easier to add pets, traits and eggs".
   disagreeing (a SYNC round per login in a mixed guild) unless X-Protocol is bumped; B11 stays open.
   **Decided (the user): D, at the next X-Protocol bump ("probably very soon. Don't forget").** 52_protocol's
   message for a missing snapshot says so, so the bump itself brings it up.
+  **Q4 done at X-Protocol 10** (2026-11-13, for 0.6.0; see below).
   B10 follow-up (the user: "hell yeah"): a batch held back as too big goes once a roster on a later day
   still misses the same owners (g.rosterHeld). New message kinds alone need no bump (the user: OK);
   52_protocol lets them through.
@@ -293,8 +294,7 @@ This is the payoff for "easier to add pets, traits and eggs".
   sub-family row (parrot, chicken, whelp) goes before its broad family's, for species added from now on.
 - **Q4 timing** (2026-11-13): the bump goes in with the release itself, not before (no desync from the guild
   until it ships).
-- **Open after the plan**: Q4 at the release with the protocol bump,
-  Q11 (UnitStandState stub), the combat taint (MountJournal:SetShown, 2026-11-12 22:19; waiting for a
+- **Open after the plan**: Q11 (UnitStandState stub), the combat taint (MountJournal:SetShown, 2026-11-12 22:19; waiting for a
   taint log or Blizzard's exported source).
 - **Bug hunt and ideas (2026-11-13)**: four reviewers; fixed: roster held batches (stale/partial reads,
   midnight, age), forged versions, page switches spending celebrations, cardMoves on the pet frame, bubbles
@@ -303,7 +303,18 @@ This is the payoff for "easier to add pets, traits and eggs".
   the journal through a secure button over it, verified in game 2026-11-13), D2 (explore/skill wishes that
   can't be done), D3 (wishes past the cap), Q9; new: Hakkebakkeloven, Bastians runde, Gjensynsglede, the
   AFK nap (egg vaken), the sulk turn with a mood cloud, the particle curve. Saved for the release's protocol
-  bump: members-only sync (Q4), LIFE_SPARE_DAYS 3, room for the wish in LifeCap, whole-number wire times.
+  bump, and done in it (below): members-only sync (Q4), LIFE_SPARE_DAYS 3, room for the wish in LifeCap,
+  whole-number wire times.
+- **X-Protocol 10, done** (2026-11-13, for 0.6.0; fixes B11): members-only sync (Q4): claims, names and bonds by
+  someone the last complete roster doesn't list wait in memory for the next roster (Registry `held`,
+  Config.HELD_MAX; an author's own guild message gets in at once), each complete roster prunes them
+  (Registry:Prune, after CheckRoster), a SYNC that leaves us apart asks for a roster read (Guild:Soon). Not pruned:
+  a claim still holding a pet (only a lapse frees one) and lapses (they stop a returning member's own old claim),
+  capped instead (Wire.LIMITS.LAPSES_MAX, oldest first; a LAPSE is held to SYNC_MAX_ENTRIES). Guild achievements
+  have no author: unchanged (B12's cap holds them). Also LIFE_SPARE_DAYS 3, Wire.DayRoom (75 + the wish's 10),
+  whole-number wire times, and a claim's (date, pet) and a name's (name, void) digest lines with a tie-break on
+  the same stamp. Migration 13 drops stored entries refused now. 56_members.lua: a flood, a newcomer after a
+  roster read, someone leaving and coming back, randomized comings and goings converging.
   Ideas set aside: Dagens humør (I5), Eggebok (I6), Sabeltanns skattejakt.
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
@@ -321,7 +332,7 @@ This is the payoff for "easier to add pets, traits and eggs".
    `Data/Personalities.lua` like Traits and Unlocks? The second makes "pinned forever" literal and removes the
    exceptions for adopted pets, but future changes to families' or traits' likes would then only reach new
    species.
-4. **Sync flood (B11/B12)**: should relayed data be limited to guild members (prune non-members on a complete
+4. **Sync flood (B11/B12)** (answered above, done at X-Protocol 10): should relayed data be limited to guild members (prune non-members on a complete
    roster), or should there be a total cap with deterministic eviction? Should an owner's client re-assert its own
    record when a relayed copy overwrites it (a forged release)?
 5. **Eggs on disliked activities**: today a dislike stops every egg on that activity (a wolf never gets `lur`, a

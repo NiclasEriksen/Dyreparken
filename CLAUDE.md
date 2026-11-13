@@ -135,8 +135,8 @@ Core/Init.lua      ns, Config tunables, Bus (internal events, each declared in B
                    don't write them again
                    ns.L / ns.T / ns.Fill: the strings (below)
 Core/Wire.lua      what peers accept, in one place: Wire.LIMITS (key, name, version and id lengths, MAX_PARTS, MAX_RAW,
-                   the bond cap, unknown guild achievement ids) and the primitive checks (Time, Since, Name, Key, Version,
-                   Nick, AchId, LifeCap, and CHECKS for Comm's field specs). A change here (or to a Config value that feeds
+                   the bond cap, the lapses' cap, unknown guild achievement ids) and the primitive checks (Time, Since,
+                   Name, Key, Version, Nick, AchId, DayRoom, LifeCap, and CHECKS for Comm's field specs). A change here (or to a Config value that feeds
                    validation) bumps X-Protocol; tools/test/spec/52_protocol.lua fails until it does
 Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" = "Flyttet inn hos {who} i dag"),
                    grouped by area; named {placeholders}; the achievement texts (ns.AchTexts) at its end. Loads right
@@ -149,7 +149,8 @@ Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (
                    ("GUILD"/"GROUP": other channels never reach fn; fields: { name = Wire.CHECKS name }, a malformed
                    message is dropped before fn), MayReply (requests anyone can send: once per channel every 5 s)
 Core/Version.lua   HELLO on login, one-time outdated notice; still answers VER_REQ from 0.2.x clients
-Core/Guild.lua     guild roster snapshot on demand (membership, days offline)
+Core/Guild.lua     guild roster snapshot on demand (membership, days offline; Guild.known: the last complete one, which
+                   judges whose data the sync keeps; Guild:Soon, a read no sooner than ROSTER_INTERVAL)
 Core/Activity.lua  the activity engine: game events -> activities, every one declared once in Activity.KINDS (always
                    watched or not, wishable, chip icons; its words in Locale by id), counted per
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
@@ -176,7 +177,7 @@ Data/Unlocks.lua   every species' minor like and minor dislike (your bond unlock
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
                    After regenerating Data/Companions.lua, run `luajit tools/pin_traits.lua`: it adds new species
                    (least-used traits) and never changes an existing line. Change a species by hand only.
-Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, probes), Registry (reservation data model,
+Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, probes), Registry (reservation data model, members only,
                    merge + holder rules: read its header first; Status: mine/taken/free; NameOf/NameFor: what a pet is called), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
                    Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (only answers 0.2.x clients' PET_REQ; /dp rapport is gone),
@@ -343,14 +344,14 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
 - **Feats** (2026-11-12, the user, for 0.5; Menagerie/Feats.lua): a class quest's reward, learning to ride and level
   60 give the pet that's out 25 points (Config.BOND_FEAT_POINTS), once per character, only with a pet out, and
   **past the day's 75, not counted in it** (the user: "major feats should not count towards the daily limit, they're
-  supposed to be huge bonuses"). They stay within the wire's cap (Registry.LifeCap keeps a spare day): no protocol
-  change. A trainer visit, a dual-spec switch, a talent reset and the tenth levels 10-50 are eggs only, no points.
+  supposed to be huge bonuses"). They stay within the wire's cap (Registry.LifeCap keeps spare days, three since
+  X-Protocol 10 so a feat on a full day always fits). A trainer visit, a dual-spec switch, a talent reset and the tenth levels 10-50 are eggs only, no points.
 - **Wishes go past the cap** (2026-11-13, the user: "Yes, definitely past the cap. Ensure this doesn't mess with
   antitampering"): today's wish come true gives its 10 points past the day's 75, not counted in it, like a feat
   (Bond.REWARDS `beyond`). Our own entry still stays within Wire.LifeCap (Bond:Add clamps; the line says what was
-  really given), so peers keep accepting it: after about a week of full days with every wish done, the cap's 75 a
-  day is all a day brings, wish included (a test runs 40 days). Raising LifeCap's room a day by the wish's 10 belongs
-  to the next X-Protocol bump; Wire is unchanged for now.
+  really given), so peers keep accepting it. Since X-Protocol 10 the cap's room a day is the day's 75 and the wish's
+  10 (Wire.DayRoom, from the REWARDS rows that are `beyond` and `once`), so full days with every wish done are never
+  clamped (26_story runs 20 of them).
 - **New traits and a one-time rework** (2026-11-12, the user, for 0.5): 13 traits (Sjørøver, Skøyer, Røverdyr
   against Ordensdyr, Venneflokk, Vinterpels against Solelsker, Tivolidyr, Bålkos, Skybåren, Jeger, Håndverker,
   Diplomat; 38 in all) and four activities for them (gold, fun, sneak, meet). Every species nobody in the guild
@@ -385,8 +386,8 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   collected or that someone in the guild has adopted (`Personality:Known`); otherwise "Ukjent personlighet".
 - **Sync hardening** (code review 2026-11-09): SYNC goes in three parts (records, names, bonds), peers hold back
   theirs when one starts arriving; a part with more than Config.SYNC_MAX_ENTRIES is refused whole; pet keys must be
-  "s:<id>" or "n:<name>"; bonds can't start before Config.BOND_EPOCH and hold at most Registry.LifeCap (75 a day plus
-  a spare day). Anything that feeds validation or the digest (LEVELS, BOND_DAILY_MAX, LifeCap, GUILD_MAX) needs an
+  "s:<id>" or "n:<name>"; bonds can't start before Config.BOND_EPOCH and hold at most Registry.LifeCap (Wire.DayRoom,
+  85, a day plus three spare days since X-Protocol 10; 75 and one spare until then). Anything that feeds validation or the digest (LEVELS, BOND_DAILY_MAX, LifeCap, GUILD_MAX) needs an
   X-Protocol bump and, for stored data, a migration that brings old entries within it (see migration 8).
   Exception (decided 2026-11-09): the per-member caps on stored names and bonds (Config.NAMES_PER_MEMBER,
   LIFE_PER_MEMBER, migration 9) came without a bump: they only bite under a flood, so mixed versions still agree in
@@ -394,6 +395,22 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   Likewise without a bump (code review 2026-11-10, migration 10): claims, lapses and names must be on or after
   Config.BOND_EPOCH, a claim no later than its record's write, and no wire time more than Config.CLOCK_SLACK (5 min)
   ahead; only forgeries fail these.
+- **Members-only sync, X-Protocol 10** (2026-11-13, the user, Q4 in docs/REFACTOR.md; fixes B11): relayed data about
+  someone who isn't a guild member doesn't matter. Claims, names (by namer) and bonds (by carer) whose author isn't on
+  the last complete roster (Guild.known, one that lists us) aren't stored: they wait in memory (Registry `held`, at
+  most Config.HELD_MAX) for the next roster (Guild:Soon), which lets the members among them in and drops the rest, so
+  a roster read before someone joined never loses them. An author's own message on the guild channel is let in at
+  once (only members can send there). Every complete roster prunes the same way (Registry:Prune, after
+  CheckRoster's lapses), so clients with the same members keep the same data and digests agree; a SYNC that leaves
+  two clients apart asks for a roster read (one may be older). No complete roster yet: kept, pruned at the first.
+  Our own entries always stay; a claim that still holds a pet stays until a lapse frees it (CheckRoster's guards);
+  lapses aren't pruned (a returning member's own client still has its old claim: only the lapse stops it), they have
+  a cap instead (Wire.LIMITS.LAPSES_MAX 1000, the oldest going; a LAPSE message is held to SYNC_MAX_ENTRIES). A
+  name a member who left gave a pet goes with them. Guild achievement records carry no author: unchanged. Same bump:
+  LIFE_SPARE_DAYS 3, LifeCap's room a day 85 (the wish), whole-number wire times (Wire.Time), and a claim's and a
+  name's digest line carry what they hold (a copy with the same stamp but another pet or name is told apart: the
+  greater line wins). Migration 13 drops stored entries peers refuse now (times off a whole second, lapses past the
+  cap); members only needs none (each roster prunes).
 - **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it,
   once their bond reaches Venn (level 3; it was 7 days of care until 2026-11-09). The name stays when they let go,
   and the next carer inherits it until they change it. A name set by
