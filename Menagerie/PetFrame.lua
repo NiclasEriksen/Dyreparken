@@ -122,7 +122,10 @@ function PF:Build()
     click:SetAllPoints()
     click:SetFrameLevel(scene:GetFrameLevel() + 5)
     click:RegisterForClicks("LeftButtonUp")
-    click:SetScript("OnClick", function() if not PF.editing then PF:OpenCard() end end)
+    click:SetScript("OnClick", function()
+        ns.Log("PetFrame", "click: key %s, editing %s, combat %s", tostring(PF.key), tostring(PF.editing), tostring(ns.InCombat()))
+        if not PF.editing then PF:OpenCard() end
+    end)
     click:SetScript("OnDragStart", function() if PF.editing then f:StartMoving() end end)
     -- Not user-placed (2026-11-12, seen in the client's logs): StartMoving makes a named frame so, and the
     -- client then keeps its spot in its own layout cache too. Ours is char.petFrame, placed at login.
@@ -557,6 +560,7 @@ function PF:PetsPage() return rawget(_G, "PetJournal") ~= nil and PetJournal:IsV
 function PF:OpenCard()
     local sid = self.key and ns.Pets:SpeciesOfKey(self.key)
     if not sid or ns.InCombat() then return end
+    ns.Log("PetFrame", "open card %s: pets page %s", tostring(sid), tostring(self:PetsPage()))
     if not self:PetsPage() then
         ns.JournalUI:ShowWhenOpen(sid)
         local now = GetTime()
