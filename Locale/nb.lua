@@ -620,6 +620,14 @@ L["egg.seilas.reptile.1"] = "{pet} soler seg på dekk og ser etter krokodiller i
 L["egg.seilas.bird.1"] = "{pet} sitter på masta og holder utkikk."
 L["activity.zeppelin"] = "zeppelinerturer"
 L["activity.boat"] = "båtturer"
+-- Drafts of 2026-11-13, for the user to edit: Hakkebakkeloven (a playdate between a hunter and its
+-- prey), Bastians runde (22:00 on the clock), Gjensynsglede (back after days apart).
+L["egg.hakkebakke.1"] = "{pet} ser lenge på {friend}, men husker Hakkebakkeloven og foreslår sisten i stedet."
+L["egg.hakkebakke.2"] = "{pet} lover {friend} at det bare er lek. Helt ærlig."
+L["egg.hakkebakke.bytte.1"] = "{pet} holder et øye med {friend}, men alle dyrene i skogen skal jo være venner."
+L["egg.hakkebakke.bytte.2"] = "{pet} leker med {friend}, men med litt avstand. Sånn for sikkerhets skyld."
+L["egg.hakkebakke.venneflokk.1"] = "{pet} stråler mot {friend}: Alle dyrene i skogen skal være venner!"
+L["egg.hakkebakke.roverdyr.1"] = "{pet} slikker seg rundt munnen når {friend} kommer. Bare en gammel vane, sier det."
 L["egg.kake.1"] = "{pet} har bakt kake til level {level}!"
 L["egg.kake.2"] = "{pet} hopper rundt deg. Level {level}!"
 L["egg.kake.3"] = "{pet} har pyntet seg til level {level}."

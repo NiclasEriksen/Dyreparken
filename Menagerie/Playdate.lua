@@ -119,6 +119,7 @@ function Playdate:Heard(sender, theirs)
         ns.Log("Bond", "playdate: %s with %s's %s", mine, sender, theirs)
         self:Count(mine, sender, theirs)
     end
+    ns.Quirks:Egg("playdate", mine, { key = theirs, owner = sender }) -- (a hunter and its prey: Hakkebakkeloven)
     self:Party(sender, mine)
     self:Announce(true) -- so theirs happens too (they may not have heard us)
 end

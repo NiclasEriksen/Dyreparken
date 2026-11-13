@@ -171,6 +171,32 @@ for family, zones in pairs(Quirks.HOME_ZONES) do
     for _, z in ipairs(zones) do homeOf[z] = homeOf[z] or {}; table.insert(homeOf[z], family) end
 end
 
+-- Who hunts whom (Hakkebakkeloven, 2026-11-13, the user's: "Alle dyrene i skogen skal være venner"):
+-- a family -> the families it would chase in the wild, for the playdate egg "hakkebakke". Only the
+-- obvious ones; the murlocs are the bear's fish, the farm's sheep the dragon's.
+Quirks.PREY = {
+    cat = { "rodent", "bird", "rabbit", "frog" },
+    wolf = { "rabbit", "farm", "rodent" },
+    snake = { "rodent", "frog", "bird" },
+    owl = { "rodent", "rabbit", "frog" },
+    reptile = { "bird", "farm", "frog" },
+    bear = { "murloc" },
+    dragon = { "farm" },
+}
+-- "hunter" (a family of mine chases one of theirs), "prey" (the other way round), or nil. Hunter
+-- first: two that could chase each other's kin (a cat and an owl don't: neither is in the other's list).
+function Quirks.Hunt(mine, theirs)
+    local function Chases(a, b)
+        for _, f in ipairs(a) do
+            for _, p in ipairs(Quirks.PREY[f] or {}) do
+                for _, g in ipairs(b) do if g == p then return true end end
+            end
+        end
+    end
+    if Chases(mine, theirs) then return "hunter" end
+    if Chases(theirs, mine) then return "prey" end
+end
+
 -- Easter Sunday of a year (the anonymous Gregorian algorithm): "MMDD".
 function Quirks.Easter(y)
     local a, b, c = y % 19, math.floor(y / 100), y % 100
@@ -261,6 +287,21 @@ Quirks.EGGS = {
     { id = "fullfest", on = "party", always = true, test = function(ctx)
         return { n = ctx.extra, _key = HasTrait(ctx.key, "flokkdyr") and "egg.fullfest.flokkdyr" or nil }
     end },
+    -- A playdate (Playdate:Heard: a guildmate's pet near yours) between a hunter and its prey: the forest's
+    -- law. `always` with a chance: a playdate is rare (a group, a guildmate near, both pets out), a pair like
+    -- this rarer, and every PLAY heard that day rolls again. A Venneflokk beams, a Røverdyr hunter licks its
+    -- lips; else by the side yours is on.
+    { id = "hakkebakke", on = "playdate", always = true, chance = 0.5, traits = { "venneflokk", "roverdyr" },
+        test = function(ctx)
+            local other = type(ctx.extra) == "table" and ctx.extra
+            local side = other and Quirks.Hunt(ns.Scenes:Families(ctx.key), ns.Scenes:Families(other.key))
+            if not side then return nil end
+            local vars = { friend = ns.Registry:NameFor(other.key, other.owner) }
+            if HasTrait(ctx.key, "venneflokk") then vars._key = "egg.hakkebakke.venneflokk"
+            elseif side == "hunter" and HasTrait(ctx.key, "roverdyr") then vars._key = "egg.hakkebakke.roverdyr"
+            elseif side == "prey" then vars._key = "egg.hakkebakke.bytte" end
+            return vars
+        end },
     { id = "midnatt", on = "*", always = true, chance = 0.5,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
     { id = "speil", delay = "now", on = "seen", test = function(ctx)
@@ -384,7 +425,7 @@ Quirks.EGGS = {
     end },
 }
 -- Eggs on moments that aren't activities: "*" eggs don't ride on them.
-local MOMENTS = { seen = true, name = true, party = true }
+local MOMENTS = { seen = true, name = true, party = true, playdate = true }
 
 local eggsOn, eggById = {}, {} -- activity -> its eggs; id -> egg
 for _, e in ipairs(Quirks.EGGS) do

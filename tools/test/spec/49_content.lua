@@ -168,7 +168,10 @@ return function(test, H)
             ["Bond.PLACE_CHANCE"] = B.PLACE_CHANCE,
         }
         -- These may leave a family out (art picked by hand, homes where there are some).
-        local MAY = { ["Decor.FAMILY_ART"] = D.FAMILY_ART, ["Quirks.HOME_ZONES"] = Q.HOME_ZONES }
+        local MAY = { ["Decor.FAMILY_ART"] = D.FAMILY_ART, ["Quirks.HOME_ZONES"] = Q.HOME_ZONES, ["Quirks.PREY"] = Q.PREY }
+        for f, list in pairs(Q.PREY) do
+            for _, p in ipairs(list) do ok(order[p], "Quirks.PREY " .. f .. ": " .. p .. " isn't a family") end
+        end
         local SPARE = { default = true, DEFAULT = true } -- (the fallbacks' own rows)
         for name, t in pairs(NEED) do
             for f in pairs(order) do ok(t[f], name .. ": no row for " .. f) end
