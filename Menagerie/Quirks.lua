@@ -197,6 +197,9 @@ function Quirks.Hunt(mine, theirs)
     if Chases(theirs, mine) then return "prey" end
 end
 
+-- Politimester Bastian's evening round (the egg "bastian"): 22:00-22:14 on the player's clock.
+function Quirks.Bastian(t) return Hour(t) == 22 and tonumber(date("%M", t)) < 15 end
+
 -- Easter Sunday of a year (the anonymous Gregorian algorithm): "MMDD".
 function Quirks.Easter(y)
     local a, b, c = y % 19, math.floor(y / 100), y % 100
@@ -301,6 +304,16 @@ Quirks.EGGS = {
             elseif side == "hunter" and HasTrait(ctx.key, "roverdyr") then vars._key = "egg.hakkebakke.roverdyr"
             elseif side == "prey" then vars._key = "egg.hakkebakke.bytte" end
             return vars
+        end },
+    -- Bastians runde (Kardemomme by, 2026-11-13, the user's): "Klokken er ti, og alt er vel" in the evening's
+    -- first quarter hour, like midnight's: an Ordensdyr says it, a Røverdyr knows the robbers are out now;
+    -- the rest say nothing. (No dice outside it: a "*" egg is asked on every activity, and a roll there
+    -- would shift every other chance after it.)
+    { id = "bastian", on = "*", always = true, chance = function(ctx) return Quirks.Bastian(ctx.t) and 0.5 end,
+        test = function(ctx)
+            if not Quirks.Bastian(ctx.t) then return nil end
+            if HasTrait(ctx.key, "ordensdyr") then return {} end
+            return HasTrait(ctx.key, "roverdyr") and { _key = "egg.bastian.roverdyr" } or nil
         end },
     { id = "midnatt", on = "*", always = true, chance = 0.5,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
@@ -482,7 +495,8 @@ function Quirks:Egg(on, key, extra, seen)
     for _, e in ipairs(list) do
         local had = ns.DB.char.eggs[e.id]
         local done = (had and had.day == today) or pending.eggs[e.id] == today
-        local chance = type(e.chance) == "function" and e.chance(ctx) or e.chance
+        local chance = e.chance
+        if type(chance) == "function" then chance = chance(ctx) end -- (false or nil: no roll, the test decides)
         if (e.always or self:Ready()) and not done
             and (not chance or ns.random() < chance) then
             ctx.egg = e
