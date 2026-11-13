@@ -256,20 +256,20 @@ return function(test, H)
         no(me:Printed("En nyere versjon"), "not from outside the guild")
         eq(me.ns.DB.char.warnedVersion, nil)
         -- Far ahead of ours: no real release, not remembered (it would hide every real one).
-        for _, v in ipairs({ "999.0", "2.0.0", "0.11.0", "1.6.0" }) do
+        for _, v in ipairs({ "999.0", "2.0.0", "3.1.0" }) do
             w:InjectMessage("Per Hansen", { k = "HELLO", p = P, v = v }, "GUILD")
             w:InjectMessage("Per Hansen", { k = "VER", p = P, v = v }, "PARTY")
         end
         w:Run(3)
         no(me:Printed("En nyere versjon"), "implausible")
         eq(me.ns.DB.char.warnedVersion, nil)
-        -- A real one still tells us.
-        w:InjectMessage("Kari Berg", { k = "HELLO", p = P, v = "0.10.2" }, "GUILD")
-        w:InjectMessage("Liv Lund", { k = "HELLO", p = P, v = "1.5.0" }, "GUILD")
+        -- A real one still tells us, however many releases behind we are (no cap on the minors).
+        w:InjectMessage("Kari Berg", { k = "HELLO", p = P, v = "0.30.2" }, "GUILD")
+        w:InjectMessage("Liv Lund", { k = "HELLO", p = P, v = "1.15.0" }, "GUILD")
         w:Run(3)
-        ok(me:Printed("En nyere versjon %(0.10.2%)"))
-        ok(me:Printed("En nyere versjon %(1.5.0%)"))
-        eq(me.ns.DB.char.warnedVersion, "1.5.0")
+        ok(me:Printed("En nyere versjon %(0.30.2%)"))
+        ok(me:Printed("En nyere versjon %(1.15.0%)"))
+        eq(me.ns.DB.char.warnedVersion, "1.15.0")
     end)
 
     test("a message that unpacks too big isn't read, and its sender is ignored for the session", function()

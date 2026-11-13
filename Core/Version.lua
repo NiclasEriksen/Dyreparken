@@ -14,22 +14,19 @@ ns.Version = Version
 local Sane = ns.Wire.Version
 Version.Sane = Sane
 
--- A version no release could be yet: more than one major ahead of ours, or more than
--- Version.MINOR_AHEAD minors into ours or the next major. Remembered as warned, a forged
--- "999.0" would make every real release compare lower and silence the notice for good (code
--- review 2026-11-13); five minors is months of releases, so a real one isn't missed.
-Version.MINOR_AHEAD = 5
+-- A version a release could be: at most one major ahead of ours. Remembered as warned, a forged "999.0" would make every real
+-- release compare lower and silence the notice for good (code review 2026-11-13). No cap on the
+-- minors: a player many releases behind must still hear of the newest (only the guild's HELLO
+-- counts, so a forger would have to be a guildmate).
 local function MajorMinor(v)
     local a, b = tostring(v):match("^v?(%d+)%.(%d+)")
     return tonumber(a), tonumber(b)
 end
 function Version.Plausible(version)
-    local ma, mi = MajorMinor(version)
-    local oa, oi = MajorMinor(ns.VERSION)
+    local ma = MajorMinor(version)
+    local oa = MajorMinor(ns.VERSION)
     if not (ma and oa) then return true end -- "dev" compares equal to everything anyway
-    if ma == oa then return mi <= oi + Version.MINOR_AHEAD end
-    if ma == oa + 1 then return mi <= Version.MINOR_AHEAD end
-    return ma < oa
+    return ma <= oa + 1
 end
 
 local function NoteVersion(sender, version)
