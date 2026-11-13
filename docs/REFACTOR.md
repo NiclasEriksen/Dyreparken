@@ -296,6 +296,15 @@ This is the payoff for "easier to add pets, traits and eggs".
 - **Open after the plan**: Q4 at the release with the protocol bump,
   Q11 (UnitStandState stub), the combat taint (MountJournal:SetShown, 2026-11-12 22:19; waiting for a
   taint log or Blizzard's exported source).
+- **Bug hunt and ideas (2026-11-13)**: four reviewers; fixed: roster held batches (stale/partial reads,
+  midnight, age), forged versions, page switches spending celebrations, cardMoves on the pet frame, bubbles
+  carried over, the story button, the hidden pet frame in combat, wish/contest lines on a full day,
+  holidays after midnight, the calendar's timeout and day; D1 (the combat taint: the pet frame now opens
+  the journal through a secure button over it, verified in game 2026-11-13), D2 (explore/skill wishes that
+  can't be done), D3 (wishes past the cap), Q9; new: Hakkebakkeloven, Bastians runde, Gjensynsglede, the
+  AFK nap (egg vaken), the sulk turn with a mood cloud, the particle curve. Saved for the release's protocol
+  bump: members-only sync (Q4), LIFE_SPARE_DAYS 3, room for the wish in LifeCap, whole-number wire times.
+  Ideas set aside: Dagens humør (I5), Eggebok (I6), Sabeltanns skattejakt.
 - **Phase 5, done**: Dev/ in a `#@do-not-package@` block (ApiProbe, the editors, galleries, Kills, and the
   probe parts of Pets, Moves, Decor, Scenes, BondTrack, JournalUI and Page); shipped Lua 18,324 → 15,136
   lines. Editor/preview flags became one `override` per module that only Dev code sets. A release client
