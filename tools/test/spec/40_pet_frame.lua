@@ -389,6 +389,47 @@ return function(test, H)
         no(slider:IsEnabled(), "not fading: the slider waits")
     end)
 
+    test("hidden in combat, its pet rests: no walk or jump on the hidden frame; out of combat it goes with you again", function()
+        local w, ola, PF = Setup(14)
+        local f = PF.frame
+        ola.ns.DB.global.settings.petFrameCombat = true; PF:Apply()
+        ola:EnterCombat()
+        no(f:IsShown())
+        local n = #PF.actor.played
+        ola:Move()
+        ola.env.JumpOrAscendStart()
+        w:Run(1)
+        eq(#PF.actor.played, n, "nothing played on the hidden frame's pet")
+        ola:LeaveCombat()
+        ok(f:IsShown())
+        w:Run(1)
+        eq(PF.actor.anim, 4, "walking with you again")
+    end)
+
+    test("turned off, nothing of it runs on: its timers end, the bar's rise and the bubble too", function()
+        local w, ola, PF = Setup(21)
+        local f = PF.frame
+        local S = ola.ns.DB.global.settings
+        S.petFrameFade = true; PF:Apply()
+        w:Run(10)
+        ola.ns.Bond:Add(5, PANDA) -- (points rising: at full, the bar peeking)
+        ola.ns.Bus:Fire("PET_SAID", PANDA, "major", "Level 60!")
+        eq(f:GetAlpha(), 1)
+        S.petFrame = false; PF:Apply()
+        no(f:IsShown())
+        no(PF.active, "no longer at full"); no(PF.peek)
+        no(f.bubble:IsShown())
+        f:SetAlpha(0.7) -- (a mark: no timer of the frame's touches it now)
+        w:Run(PF.ACTIVE_FOR + 10)
+        eq(f:GetAlpha(), 0.7)
+        -- On again: faded, and night still falls on it (the night's timer set anew).
+        S.petFrame = true; PF:Apply()
+        eq(f:GetAlpha(), 0.25)
+        eq(PF.stage.shown.mode, "stand")
+        w:Run(3600)
+        eq(PF.stage.shown.mode, "sleep", "asleep at night")
+    end)
+
     test("asleep in a loop on the frame, other companions nearby refreshing it leave the pose alone", function()
         local w, ola, PF = Setup(23)
         local S = ola.ns.DB.global.settings

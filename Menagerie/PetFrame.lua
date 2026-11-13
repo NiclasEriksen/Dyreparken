@@ -363,7 +363,10 @@ function PF:Refresh()
         self:Load(key)
     end
     f.name:SetText(ns.Registry:NameOf(key))
-    if self.combat and not self.editing then return f:Hide() end -- (Settings: petFrameCombat)
+    if self.combat and not self.editing then -- (Settings: petFrameCombat)
+        self.stage:Update(f, nil) -- (else it walked and jumped with you on the hidden actor; posed anew after)
+        return f:Hide()
+    end
     f:Show()
     self:Fade()
     self:Bond(false) -- (a rise still on goes on: BondBar's Set)
@@ -583,8 +586,14 @@ function PF:Off()
     self:Combat() -- (its flags: the combat events went with the rest)
     if self.frame then
         self.stage:Update(self.frame, nil)
+        self.frame.bar:Stop()
+        self:Hush()
         self.frame:Hide()
     end
+    -- Nothing of it runs on (the night's timer is set anew when it's on again: changeAt).
+    cameraT:Cancel(); activeT:Cancel(); peekT:Cancel(); changeT:Cancel()
+    self.active, self.peek, self.changeAt = nil, nil, nil
+    if self.scene then self.scene:SetScript("OnUpdate", nil) end
     self.key, self.points = nil, nil
 end
 
