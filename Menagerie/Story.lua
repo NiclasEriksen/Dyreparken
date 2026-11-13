@@ -164,7 +164,9 @@ end
 -- After new entries: the card's button (a first entry shows it) and an open panel.
 function Story:Changed()
     local card = ns.JournalUI and ns.JournalUI:Card()
-    if card and card.story and card.key then card.story:SetShown(self:Of(card.key) ~= nil) end
+    -- (not under our pages: the button is over the model's level and would show through; the card
+    -- is drawn anew when the page closes)
+    if card and card.story and card.key and not ns.SidePage:AnyOpen() then card.story:SetShown(self:Of(card.key) ~= nil) end
     self:Redraw()
 end
 
@@ -273,7 +275,8 @@ function Story:Update(card, key)
     local b = card.story
     if not b then return end
     b:SetShown(self:Of(key) ~= nil)
-    if self.panel and self.panel:IsShown() and key and key ~= self.panel.key then self:Show(key) end
+    if not key then return self:Close() end -- (no pet on the card: not the last one's story beside it)
+    if self.panel and self.panel:IsShown() and key ~= self.panel.key then self:Show(key) end
 end
 
 local ROW_GAP = 10
@@ -424,6 +427,8 @@ ns.Bus:On("BOND", Rescan)
 ns.Card.Register{ id = "story",
     build = function(card, c) Story:Build(card, c) end,
     update = function(card, key) Story:Update(card, key) end,
-    pause = function() Story:Close() end, -- (our pages cover the card; the window closing closes it: BuildPanel)
+    -- Our pages cover the card: the panel closes, and the button hides (over the model's level, like the
+    -- cake: it'd show through our page). The window closing closes the panel too: BuildPanel.
+    pause = function(card) Story:Update(card, nil) end,
 }
 ns.Start("settled", function() Story:Scan() end)

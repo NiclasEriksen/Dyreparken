@@ -77,6 +77,28 @@ return function(test, H)
         no(p:IsShown())
     end)
 
+    -- Like the cake, the crown and the paw badge, the book is over the model's level: hidden under our
+    -- pages, and a new entry meanwhile mustn't bring it back there. A card with no pet closes the panel.
+    test("the book hides under our pages and stays hidden through a new entry; a card with no pet closes the panel", function()
+        local w, ola = H.Setup{ ola = { 5159 }, journal = true }
+        ola.ns.Bonds.PetOfTheDay = function() end
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local card = ola:SelectPet(5159)
+        ok(card.story:IsShown())
+        ola.ns.ParkPage:Open()
+        no(card.story:IsShown(), "hidden under the page")
+        ola.ns.Story:Mine(PANDA, "egg", "Pandaen gjesper.")
+        no(card.story:IsShown(), "a new entry under the page: still hidden")
+        ola.ns.SidePage:CloseAll()
+        ok(card.story:IsShown(), "back on the card")
+        card.story:Click()
+        ok(ola.ns.Story:IsOpen())
+        ola.ns.Card:Update(card, nil, {}) -- (the card with no pet on it)
+        no(card.story:IsShown())
+        no(ola.ns.Story:IsOpen(), "no panel of the last pet beside an empty card")
+    end)
+
     test("the guild's part: homes, moves, names, levels, as this client sees them", function()
         local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 46 } }
         ola.ns.Bonds.PetOfTheDay = function() end
