@@ -316,8 +316,9 @@ return function(test, H)
     end)
 
     -- Twelve adoptions, one per member: w, c, names.
-    local function Wave()
+    local function Wave(date)
         local w = H.World()
+        if date then w:SetDate(unpack(date)) end
         local c = w:AddClient("Ola Nord")
         local names = {}
         for i = 1, 12 do
@@ -325,7 +326,8 @@ return function(test, H)
             w:AddMember(names[i], 0)
         end
         w:Run(12)
-        for i = 1, 12 do c.ns.Registry:MergeRecord(names[i], { k = "s:" .. (1000 + i), at = T0 + i, ts = T0 + i }) end
+        local t = w:ServerTime() - 100
+        for i = 1, 12 do c.ns.Registry:MergeRecord(names[i], { k = "s:" .. (1000 + i), at = t + i, ts = t + i }) end
         return w, c, names
     end
     local function Read(w, c, secs)
@@ -354,6 +356,51 @@ return function(test, H)
         Read(w, c)
         for i = 1, 6 do eq(c.ns.Registry:Holder("s:" .. (1000 + i)), nil, names[i] .. " goes") end
         eq(c.ns.DB:Guild().rosterHeld, nil)
+    end)
+
+    test("a held roster batch is confirmed only by a read a good while later, and not too late", function()
+        local w, c, names = Wave({ 2026, 11, 20, 23, 49 })
+        local C = c.ns.Config
+        local function Held(i) return c.ns.Registry:Holder("s:" .. (1000 + i)) == names[i] end
+        for i = 1, 6 do w:RemoveMember(names[i]) end
+        Read(w, c)
+        ok(Held(1), "held")
+        -- Twenty minutes later it's another date, but not a second day.
+        w:Skip(20 * 60)
+        Read(w, c)
+        for i = 1, 6 do ok(Held(i), names[i] .. " still held after midnight") end
+        -- A seventh leaves before the confirming read: the six go, the seventh is held anew.
+        w:RemoveMember(names[7])
+        w:Skip(C.ROSTER_CONFIRM_AFTER)
+        Read(w, c)
+        for i = 1, 6 do no(Held(i), names[i] .. " goes") end
+        ok(Held(7), "the seventh wasn't in the held batch")
+        local held = c.ns.DB:Guild().rosterHeld
+        ok(held and held.owners[names[7]], "the seventh is held now")
+        ok(w:ServerTime() - held.at <= 1, "held now")
+
+        -- A held batch too old to compare is held again from the read, not confirmed.
+        local w2, d, names2 = Wave()
+        local function Held2(i) return d.ns.Registry:Holder("s:" .. (1000 + i)) == names2[i] end
+        for i = 1, 6 do w2:RemoveMember(names2[i]) end
+        Read(w2, d)
+        w2:Skip(C.ROSTER_HELD_MAX + 60)
+        Read(w2, d)
+        ok(Held2(1), "too old: held again")
+        ok(w2:ServerTime() - d.ns.DB:Guild().rosterHeld.at <= 1, "held now")
+        w2:Skip(C.ROSTER_CONFIRM_AFTER)
+        Read(w2, d)
+        no(Held2(1), "confirmed by the next")
+
+        -- One held before 0.5 (a date, no time) counts as just held.
+        local w3, e, names3 = Wave()
+        for i = 1, 6 do w3:RemoveMember(names3[i]) end
+        local owners = {}
+        for i = 1, 6 do owners[names3[i]] = true end
+        e.ns.DB:Guild().rosterHeld = { day = "20200101", owners = owners }
+        Read(w3, e)
+        eq(e.ns.Registry:Holder("s:1001"), names3[1], "held, not confirmed")
+        ok(w3:ServerTime() - e.ns.DB:Guild().rosterHeld.at <= 1, "held now")
     end)
 
     test("own claim lost or lapsed: withdrawn with a notice", function()

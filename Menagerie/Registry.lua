@@ -326,22 +326,39 @@ function Registry:CheckRoster()
         -- Too many at once: one odd read, or a real wave of departures. Held back; a roster on a
         -- later day that still misses the same owners confirms it (the user, 2026-11-12: "hell
         -- yeah"), and those go, however many. Remembered per guild, across logins.
-        local today, held = ns.Today(), g.rosterHeld
-        if not (held and held.day ~= today) then
+        -- "A later day" is Config.ROSTER_CONFIRM_AFTER later, not another date: two reads minutes
+        -- apart across midnight aren't two days (code review 2026-11-13). A held batch older than
+        -- Config.ROSTER_HELD_MAX is no fair comparison any more: held again from this read. One
+        -- held before it had a time (`day` only) counts as just held.
+        local now, held = ns.Now(), g.rosterHeld
+        if held and not held.at then held.at, held.day = now, nil end
+        if held and now - held.at > Config.ROSTER_HELD_MAX then held = nil end
+        if not held or now - held.at < Config.ROSTER_CONFIRM_AFTER then
             if not held then
                 local owners = {}
                 for _, b in ipairs(batch) do owners[b[1]] = true end
-                g.rosterHeld = { day = today, owners = owners }
+                g.rosterHeld = { at = now, owners = owners }
             end
             ns.Log("Registry", "roster would lapse %d of %d adoptions at once (at most %d): none lapsed", #batch, active, most)
             return nil
         end
-        local confirmed = {}
-        for _, b in ipairs(batch) do if held.owners[b[1]] then confirmed[#confirmed + 1] = b end end
+        -- Owners missing now who weren't held are held anew (dropping them would put them two
+        -- reads further off); they go when a later read confirms them.
+        local confirmed, fresh = {}, nil
+        for _, b in ipairs(batch) do
+            if held.owners[b[1]] then
+                confirmed[#confirmed + 1] = b
+            else
+                fresh = fresh or {}
+                fresh[b[1]] = true
+            end
+        end
         ns.Log("Registry", "roster batch of %d confirmed on a second day: %d lapse", #batch, #confirmed)
         batch = confirmed
+        g.rosterHeld = fresh and { at = now, owners = fresh } or nil
+    elseif judges then
+        g.rosterHeld = nil
     end
-    if judges then g.rosterHeld = nil end
     local added
     for _, b in ipairs(batch) do
         local t = ns.Now()
