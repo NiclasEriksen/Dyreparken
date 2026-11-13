@@ -60,6 +60,7 @@ return function(test, H)
 
     test("card particles: all, fewer or none", function()
         local w, ola, S = Setup()
+        w:Befriend() -- (past the first levels' sparse particles: one of a kind can't be halved)
         local card = ola:SelectPet(5159)
         local function Shown()
             local n = 0

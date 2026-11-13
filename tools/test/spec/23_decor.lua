@@ -3,7 +3,7 @@
 -- client's animation groups and stopped when the card has nothing to show.
 return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
-    -- An everyday kind's count at a bond level (Decor.Density: 70% at 1, all at 7).
+    -- An everyday kind's count at a bond level (Decor.Density: a curve, 45% at 1 to 130% at 7).
     local function N(D, n, level) return math.max(1, math.floor(n * D.Density(level) + 0.5)) end
     local PANDA = "s:5159"
 
@@ -357,7 +357,7 @@ return function(test, H)
             ok(D.KINDS[spec.kind], family .. ": " .. spec.kind)
         end
         -- When the pool runs out, it's the ambience that goes.
-        D.TRAITS.kosete = { kind = "heart", n = 60, color = { 1, 0, 0 } } -- (42 at level 1: still past the pool)
+        D.TRAITS.kosete = { kind = "heart", n = 100, color = { 1, 0, 0 } } -- (45 at level 1: still past the pool)
         ola:Traits{ "kosete" }
         D:Apply(card, PANDA, 1)
         eq(#Parts(d), #d.parts)
@@ -442,11 +442,13 @@ return function(test, H)
         ok(ember.throb.steps[1].duration < 0.3, "quickly")
     end)
 
-    test("fewer everyday particles at the first levels, all of them at 7; the level's own rewards stay", function()
+    test("fewer everyday particles at the first levels, more than all of them at 7; the level's own rewards stay", function()
         local w, ola, card, d = Setup("dykker")
         local D = ola.ns.Decor
         At(w, ola, 9, 21, 12)
-        eq(D.Density(1), 0.7); eq(D.Density(nil), 0.7); eq(D.Density(7), 1)
+        eq(D.Density(1), D.DENSITY[1]); eq(D.Density(nil), D.DENSITY[1]); eq(D.Density(9), D.DENSITY[7])
+        ok(D.Density(1) < 0.6 and D.Density(2) < 0.6, "the first levels sparse (2026-11-13)")
+        ok(D.Density(7) > 1, "the top past the full count")
         for l = 2, 7 do ok(D.Density(l) > D.Density(l - 1), "rises with every level") end
         local function Count(level, kind)
             D:Apply(card, PANDA, level)
@@ -454,8 +456,8 @@ return function(test, H)
             for _, p in ipairs(Parts(d)) do if p.icon.tex == D.MEDIA .. kind then n = n + 1 end end
             return n
         end
-        eq(Count(1, "bubble"), 3, "4 bubbles: 3 at level 1")
-        eq(Count(7, "bubble"), 4, "... all 4 at 7")
+        eq(Count(1, "bubble"), 2, "4 bubbles: 2 at level 1")
+        eq(Count(7, "bubble"), 5, "... 5 at 7, past its own 4")
         eq(Count(7, "heart"), 4, "level 7's hearts: all of them")
         eq(Count(5, "sparkle"), 6, "level 5's sparks: all of them")
         for _, s in ipairs(D:Specs(PANDA, 1, ola.ns.Now())) do

@@ -480,17 +480,21 @@ end
 -- The particle specs for a pet right now: its traits', December's snow,
 -- and the bond's sparks (5+) and hearts (7).
 -- How many of the everyday particles (traits, the family's ambience, the
--- snow) show at a bond level (2026-11-09: a bit much at level 1): 70% at 1
--- and below, rising evenly to all of them at 7. The level's own rewards
+-- snow) show at a bond level, as a share of each kind's own count. A curve
+-- that starts low and ends past the full count (2026-11-13, the user: "a tiny
+-- bit too much on the 1-2 levels"; less for lower levels, more for higher;
+-- it was 70% at 1 rising evenly to 100% at 7). Tune by eye: one number per
+-- level. The card's pool (POOL) still caps the total; the level's own rewards
 -- (sparks, hearts) keep their counts.
-Decor.DENSITY_LOW = 0.7
+Decor.DENSITY = { 0.45, 0.55, 0.7, 0.85, 1, 1.15, 1.3 }
 function Decor.Density(level)
-    local f = Decor.DENSITY_LOW + (1 - Decor.DENSITY_LOW) * ((level or 1) - 1) / 6
-    return math.max(Decor.DENSITY_LOW, math.min(1, f))
+    local d = Decor.DENSITY
+    return d[math.max(1, math.min(#d, math.floor(level or 1)))]
 end
 
+-- A kind's count at a share (at least one particle; more than its own count past 1).
 local function Thinned(spec, f)
-    if not spec or f >= 1 then return spec end
+    if not spec or f == 1 then return spec end
     local copy = {}
     for k, v in pairs(spec) do copy[k] = v end
     copy.n = math.max(1, math.floor(spec.n * f + 0.5))
