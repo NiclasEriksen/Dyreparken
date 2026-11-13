@@ -462,6 +462,22 @@ return function(test, H)
         eq(b.tex.tex, ola.ns.Decor.MEDIA .. "speech", "a remark: the speech bubble with its dots")
     end)
 
+    test("another pet out: the last pet's bubble and line go with it, and the new pet speaks at once", function()
+        local w, ola, PF = Setup(14)
+        local f = PF.frame
+        ola.ns.Bus:Fire("PET_SAID", PANDA, "major", "Level 60!")
+        local b = f.bubble
+        ok(b:IsShown())
+        ola:Summon(46); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
+        eq(PF.key, "s:46")
+        no(b:IsShown(), "the panda's bubble isn't over the kitten")
+        no(b.anim:IsPlaying())
+        no(ola:TipOf(f.click).text:find("Level 60", 1, true), "nor its line in the kitten's tooltip")
+        ola.ns.Bus:Fire("PET_SAID", "s:46", "say", "Mjau.")
+        ok(b:IsShown())
+        eq(b.tex.tex, ola.ns.Decor.MEDIA .. "speech", "the kitten's remark isn't held back by the panda's shout")
+    end)
+
     test("what makes it speak: a liked moment, a level, an egg, a dislike; all through PET_SAID", function()
         local w, ola, PF = Setup(14)
         local kinds = {}

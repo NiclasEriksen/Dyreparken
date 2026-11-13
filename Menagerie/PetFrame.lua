@@ -357,6 +357,7 @@ function PF:Refresh()
         -- its points on this pet's bar, and the check below would leave that bar to them.
         f.bar:Stop()
         peekT:Cancel(); self.peek = nil
+        self:Hush() -- (else its bubble showed over this pet, and held back its lesser lines)
         self.key, self.points = key, nil
         self.stage:Update(f, nil) -- (the last pet's pose ends)
         self:Load(key)
@@ -491,6 +492,13 @@ function PF:Said(key, kind, text)
         ns.Fx:Burst({ self.scene, "BOTTOM", self.SAY_AT[1] * s, (self.SAY_AT[2] + 16) * s }, k.burst,
             { n = k.n, color = k.color, size = 0.6 * s, spread = 16 * s, rise = 30 * s })
     end
+end
+
+-- What the last pet said goes with it: its bubble, and its line in the tooltip.
+function PF:Hush()
+    local b = self.frame and self.frame.bubble
+    if b then b.anim:Stop(); b:Hide() end
+    self.bubbleUntil, self.bubbleRank, self.said, self.saidAt = nil, nil, nil, nil
 end
 
 -- A new level with this pet: its cheer, and stars.
