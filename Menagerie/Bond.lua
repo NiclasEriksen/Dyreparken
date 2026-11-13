@@ -400,6 +400,7 @@ function Bond:OnActivity(id, n, key)
         local now = ns.Now()
         local x, why = P:DayFactor(key, now)
         local d = Ledger(key)
+        d.dayX = x -- (Bond:DayAgain: the calendar may answer later)
         if why and why.dayFlavor then Flavor(d, key, why.dayFlavor(name, now)) end
         return Grant(d, Scaled(C.BOND_DAY_POINTS * n * x), key)
     end
@@ -511,7 +512,31 @@ function Bond:First(id, key, extra)
     self:Reward("first", key, text)
 end
 
+-- Past midnight the day's visit comes with the first thing done, and asks the calendar for the
+-- new day's holidays, which answers a second later (Holidays:On is nil until then): a game
+-- holiday's day (Festglad, Tivolidyr's Darkmoon days) counted once (code review 2026-11-13). When
+-- it answers, the visits made today get the rest, within the day's limit. (At login the calendar
+-- answers well before the visit, 30 s in.)
+function Bond:DayAgain()
+    local d = ns.DB.char.bondToday
+    if not (d and d.day == ns.Today() and d.pets) then return end
+    local now = ns.Now()
+    for key, p in pairs(d.pets) do
+        local x, why = 1, nil
+        if p.dayX then x, why = ns.Personality:DayFactor(key, now) end
+        if x > (p.dayX or x) then
+            local day, rate = ns.Config.BOND_DAY_POINTS, self:Rate(key)
+            local more = math.ceil(day * x * rate) - math.ceil(day * p.dayX * rate)
+            ns.Log("Bond", "day again for %s: x%d (+%d)", key, x, more)
+            p.dayX = x
+            if why and why.dayFlavor then Flavor(p, key, why.dayFlavor(ns.Registry:NameOf(key), now)) end
+            Grant(p, more, key)
+        end
+    end
+end
+
 function Bond:Init()
+    ns.Bus:On("HOLIDAYS", function() Bond:DayAgain() end)
     -- Any pet of ours that's out: its own bond (the summoned pet is always ours).
     ns.Bus:On("ACTIVITY", function(id, n, key, _, extra)
         if not key then return end

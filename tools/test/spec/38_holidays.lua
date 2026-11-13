@@ -57,4 +57,35 @@ return function(test, H)
         eq(P.Holiday(w:ServerTime()), nil)
         eq(P.Holiday(w:ServerTime()), nil, "and doesn't ask again today")
     end)
+    test("past midnight, the day's visit comes before the calendar answers: a holiday's day gets the rest then", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 40 } })
+        ola:Traits({ "festglad", "glupsk" }, 40)
+        w:Settle("hello")
+        ola:Slash("adopter bombay")
+        w:Run(40)
+        local B, CAT = ola.ns.Bond, "s:40"
+        -- Just past midnight, Hallow's End today: the pet comes back out (or anything is done), the day's visit.
+        local d = os.date("*t", w:ServerTime() + 86400)
+        w:SetDate(d.year, d.month, d.day, 0, 5)
+        ola.state.holidays = { [ola.ns.Today()] = { 324 } }
+        local before = B:Of(CAT)
+        ola.ns.Bus:Fire("PET_OUT")
+        local early = B:Today(CAT)
+        ok(early >= 10, "the visit came")
+        w:Run(2) -- (the calendar answers)
+        eq(B:Today(CAT) - early, 20, "the holiday's day: three times, the rest once it's known")
+        eq(B:Of(CAT) - before, B:Today(CAT))
+        ok(ola:Said("Bombay Cat feirer Hallow's End med deg!"), "Festglad's line for the day")
+        -- Again: nothing more.
+        ola.ns.Bus:Fire("HOLIDAYS")
+        eq(B:Today(CAT) - early, 20, "once")
+        -- Within the day's limit: a nearly full day gets only what's left.
+        w:SkipDays(1)
+        ola.state.holidays[ola.ns.Today()] = { 324 }
+        ola.ns.DB.char.bondToday = { day = ola.ns.Today(), pets = { [CAT] = { got = {}, total = 60 } } }
+        ola.ns.Activity:Emit("quest")
+        w:Run(2)
+        eq(B:Today(CAT), 75, "the day's limit")
+    end)
 end
