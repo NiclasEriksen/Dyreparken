@@ -118,7 +118,7 @@ return function(test, H)
             b = { ["s:72"] = { ["Tor Eng"] = { p = 10, f = now - 60, t = now } } } })
         w:Run(2)
         eq(R:Holder("s:72"), nil, "Tor isn't on Ola's roster yet: his adoption waits for the next")
-        eq(R:Held(), 3)
+        eq(R:Held(), 2, "(his name is in: it names the pet, see the inherited names below)")
         -- Liv joins too, and her own client says so: on the guild channel she's a member, roster or not.
         local liv = w:AddClient("Liv Lund", { pets = { 41 } })
         w:Settle("hello")
@@ -130,7 +130,7 @@ return function(test, H)
         w:Run(ola.ns.Config.ROSTER_INTERVAL + 20)
         eq(R:Holder("s:72"), "Tor Eng"); eq(R:Nickname("s:72"), "Hoppe"); eq(R:Life("s:72", "Tor Eng").p, 10)
         eq(R:Held(), 0)
-        eq(g.names[BOMBAY], nil, "Siv's name went with her")
+        eq(R:Nickname(BOMBAY), "Gammel", "Siv's name stays with the pet: nobody gave it another")
         eq(R:Holder("s:5159"), "Ola Nord")
         -- Liv logged in before Ola had Tor's adoption, and missed Per's SYNC: like a lost update,
         -- it heals at a login.
@@ -160,7 +160,7 @@ return function(test, H)
         eq(g.claims["Kari Berg"], nil, "her claim: lapsed, then pruned")
         ok(g.lapses["Kari Berg"], "her lapse stays")
         eq(ola.ns.Registry:Life(KITTEN, "Kari Berg"), nil); eq(ola.ns.Registry:Life(BOMBAY, "Kari Berg"), nil)
-        eq(ola.ns.Registry:Nickname(KITTEN), nil, "a name she gave goes with her")
+        eq(ola.ns.Registry:Nickname(KITTEN), "Pus", "the name she gave stays with the pet")
         -- Per's roster is older: he keeps hers until his next, which Ola's SYNC brings about.
         ok(per.ns.DB:Guild().lapses["Kari Berg"], "Per heard the LAPSE")
         ok(per.ns.Registry:Claim(KITTEN))
@@ -172,6 +172,7 @@ return function(test, H)
         w:Run(60)
         ok(kari:Printed("White Kitten dro tilbake til parken mens du var lenge borte."))
         for _, c in ipairs({ ola, kari, per }) do eq(c.ns.Registry:Holder(KITTEN), "Per Hansen", c.name) end
+        eq(per.ns.Registry:Nickname(KITTEN), "Pus", "Per inherited it")
         H.assertConverged(w)
     end)
 
@@ -232,6 +233,95 @@ return function(test, H)
         eq(Count(g.lapses), c.ns.Wire.LIMITS.LAPSES_MAX)
         ok(g.lapses["Borte0001 Navn"]); eq(g.lapses["Borte1005 Navn"], nil, "the oldest went")
         eq(g.lapses["Siv Dahl"], nil, "off a whole second")
+    end)
+
+    -- Inherited names (2026-11-08: "the name stays when they let go, and the next carer inherits it"),
+    -- kept when the namer leaves the guild too (the user, 2026-11-13).
+    test("a name stays with the pet when its namer leaves the guild: the next carer and a newcomer have it", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
+        local kari = w:AddClient("Kari Berg", { pets = { 5159 } })
+        local per = w:AddClient("Per Hansen", { pets = { 46 } })
+        w:Settle("day")
+        local PANDA = "s:5159"
+        kari:Slash("adopter panda")
+        w:Run(2)
+        w:SkipDays(3)
+        w:Befriend()
+        ok(kari.ns.Registry:SetNickname("Bambus"))
+        w:Run(2)
+        kari:Slash("gislipp")
+        w:Run(2)
+        w:RemoveMember("Kari Berg")
+        kari:Logout()
+        for _, c in ipairs({ ola, per }) do c.ns.Guild:Refresh(true) end
+        w:Run(2)
+        w:SkipDays(1)
+        ola:Slash("adopter panda")
+        w:Run(2)
+        for _, c in ipairs({ ola, per }) do
+            eq(c.ns.DB:Guild().claims["Kari Berg"], nil, c.name .. ": her (released) claim went")
+            eq(c.ns.Registry:Nickname(PANDA), "Bambus", c.name)
+        end
+        local nina = w:AddClient("Nina Ny", { pets = { 72 } })
+        w:Run(60)
+        eq(nina.ns.Registry:Nickname(PANDA), "Bambus", "a newcomer gets it by SYNC")
+        H.assertConverged(w)
+        -- The story saw no name change.
+        for _, e in ipairs(ola.ns.DB:Guild().story[PANDA].e) do
+            ok(e.k ~= "unname", "no unname in the story")
+        end
+        -- Ola renames it once their bond allows: hers names it now, and Kari's goes everywhere.
+        w:SkipDays(3)
+        w:Befriend()
+        ok(ola.ns.Registry:SetNickname("Pepe"))
+        w:Run(3)
+        for _, c in ipairs({ ola, per, nina }) do
+            eq(c.ns.Registry:Nickname(PANDA), "Pepe", c.name)
+            eq(c.ns.DB:Guild().names[PANDA]["Kari Berg"], nil, c.name .. ": the old name went")
+        end
+        H.assertConverged(w)
+    end)
+
+    test("names under made-up namers: at most the one naming each journal species is kept, the same on every client", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 46 }, world = { members = { "Per Hansen" } } }
+        local PANDA = "s:5159"
+        ola:Slash("adopter panda")
+        w:Run(2)
+        w:SkipDays(3)
+        w:Befriend()
+        ok(ola.ns.Registry:SetNickname("Pepe"))
+        w:Run(2)
+        local adopted = ola.ns.Registry:MyRecord().at
+        local now = w:ServerTime()
+        local KEYS = { "s:40", "s:41", "s:42", "s:43", "s:44", "s:99999", "n:Junk", PANDA }
+        local entries = {}
+        for _, key in ipairs(KEYS) do
+            for i = 1, 5 do
+                -- (the panda's: older than Ola's own name, or after her adoption: neither names it)
+                local at = key == PANDA and (i % 2 == 0 and adopted - i or now) or now - 100 + (i % 3)
+                entries[#entries + 1] = { key, ("Fake%d Navn"):format(i), { n = "Junk" .. i, at = at } }
+            end
+        end
+        for i = 1, #entries do ola.ns.Registry:MergeName(entries[i][1], entries[i][2], entries[i][3]) end
+        for i = #entries, 1, -1 do kari.ns.Registry:MergeName(entries[i][1], entries[i][2], entries[i][3]) end
+        local function Fakes(c)
+            local out = {}
+            for key, byKey in pairs(c.ns.DB:Guild().names) do
+                for author, e in pairs(byKey) do
+                    if author:find("^Fake") then out[#out + 1] = key .. "=" .. author .. ":" .. e.n end
+                end
+            end
+            table.sort(out)
+            return table.concat(out, " ")
+        end
+        -- One per free journal species: the newest (ties: the lower namer); none for the panda Ola
+        -- named, none for keys that aren't journal species.
+        eq(Fakes(ola), "s:40=Fake2 Navn:Junk2 s:41=Fake2 Navn:Junk2 s:42=Fake2 Navn:Junk2 s:43=Fake2 Navn:Junk2 "
+            .. "s:44=Fake2 Navn:Junk2")
+        eq(Fakes(kari), Fakes(ola), "the same, whatever order they came in")
+        eq(ola.ns.Registry:Nickname(PANDA), "Pepe")
+        H.assertConverged(w)
     end)
 
     ------------------------------------------------------------------------------
@@ -332,9 +422,12 @@ return function(test, H)
                     ok(members[owner], ("seed %d: %s keeps %s's claim"):format(seed, c.name, owner))
                 end
                 for _, store in ipairs({ "names", "life" }) do
-                    for _, byKey in pairs(g[store]) do
+                    for key, byKey in pairs(g[store]) do
+                        -- (a non-member's name only while it names the pet: one per species at most)
+                        local naming = store == "names" and c.ns.Registry:Naming(key)
                         for author in pairs(byKey) do
-                            ok(members[author], ("seed %d: %s keeps %s's %s"):format(seed, c.name, author, store))
+                            ok(members[author] or author == naming,
+                                ("seed %d: %s keeps %s's %s"):format(seed, c.name, author, store))
                         end
                     end
                 end

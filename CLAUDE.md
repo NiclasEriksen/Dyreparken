@@ -406,14 +406,16 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   Our own entries always stay; a claim that still holds a pet stays until a lapse frees it (CheckRoster's guards);
   lapses aren't pruned (a returning member's own client still has its old claim: only the lapse stops it), they have
   a cap instead (Wire.LIMITS.LAPSES_MAX 1000, the oldest going; a LAPSE message is held to SYNC_MAX_ENTRIES). A
-  name a member who left gave a pet goes with them. Guild achievement records carry no author: unchanged. Same bump:
+  name a member who left gave a pet stays while it names the pet (the user, the same day: Registry Tidy), for
+  journal species only, so one such entry per species at most; a newer name by the next carer replaces it, and the
+  old one goes then. Guild achievement records carry no author: unchanged. Same bump:
   LIFE_SPARE_DAYS 3, LifeCap's room a day 85 (the wish), whole-number wire times (Wire.Time), and a claim's and a
   name's digest line carry what they hold (a copy with the same stamp but another pet or name is told apart: the
   greater line wins). Migration 13 drops stored entries peers refuse now (times off a whole second, lapses past the
   cap); members only needs none (each roster prunes).
 - **Nicknames belong to the pet** (2026-11-08): only its current holder can name, rename or clear it,
-  once their bond reaches Venn (level 3; it was 7 days of care until 2026-11-09). The name stays when they let go,
-  and the next carer inherits it until they change it. A name set by
+  once their bond reaches Venn (level 3; it was 7 days of care until 2026-11-09). The name stays when they let go
+  (and when they leave the guild, 2026-11-13), and the next carer inherits it until they change it. A name set by
   anyone else during a holder's care doesn't count (`Registry:Nickname`). Clearing needs no bond level (2026-11-10):
   a holder can drop the name the pet came with (or a forged one) at once. One new name a day per pet, with 10 minutes after the
   day's first for typo fixes (Config.NICKNAME_FIX); at most three name lines in guild chat a day (Config.NAME_LINES). It replaces the title line of the world

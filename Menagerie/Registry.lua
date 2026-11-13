@@ -50,7 +50,8 @@ local _, ns = ...
 -- kept. Claims, names and bonds whose author isn't on the last complete
 -- roster (Guild.known, one that lists us) aren't stored: they wait in `held`
 -- (memory, at most Config.HELD_MAX) for the next roster, which takes the
--- members among them and drops the rest. So a roster read before someone
+-- members among them and drops the rest (one exception: a name a member who
+-- left gave a pet stays while it names the pet, Tidy). So a roster read before someone
 -- joined never loses them, and made-up names can't grow anyone's saved data
 -- (B11). An author's own message on the guild channel is let in at once (only
 -- members can send there). Each complete roster prunes the stores the same
@@ -229,6 +230,39 @@ function Registry:Life(key, carer)
 end
 
 -- Returns true when our data changed.
+-- The naming entry that names a pet now, as Nickname resolves it (a clear included): namer,
+-- entry. Among entries that aren't void, set by the current holder or before their adoption
+-- began, the newest (ties: the lower namer).
+local function Current(byKey, key)
+    local holder, hr = Registry:Holder(key)
+    local best, bestBy
+    for namer, e in pairs(byKey) do
+        if not e.x and (namer == holder or not hr or e.at <= hr.at)
+            and (not best or e.at > best.at or (e.at == best.at and namer < bestBy)) then
+            best, bestBy = e, namer
+        end
+    end
+    return bestBy, best
+end
+
+-- A name stays with the pet when its carer lets go (2026-11-08), and when they leave the guild too
+-- (the user, 2026-11-13): a non-member's naming entry is kept while it's the one naming a journal
+-- species (Data/Companions.lua) now, so at most one per species. The rest of a key's non-member
+-- entries go (Tidy): a newer name by the next carer replaces it as ever, and the old one goes then.
+-- Decided from what every client stores, the same way, so digests agree; a forger racing entries
+-- for one pet leaves the one that wins by the rules above, whatever order they came in.
+local function Journal(key)
+    local known = ns.Companions and ns.Companions.species
+    return known and known[ns.Pets:SpeciesOfKey(key) or false] ~= nil
+end
+local function Tidy(byKey, key, roster)
+    local me = ns.PlayerKey()
+    local keep = Journal(key) and (Current(byKey, key))
+    for author in pairs(byKey) do
+        if author ~= me and not roster[author] and author ~= keep then byKey[author] = nil end
+    end
+end
+
 -- Two copies with the same stamp (a forgery: the author writes one a second) are told apart
 -- by what the digest carries (Sync.TABLES), the greater line winning, so every client keeps
 -- the same one and the digests agree (X-Protocol 10; before, the first one seen stayed).
@@ -244,9 +278,18 @@ function Registry:MergeName(key, namer, e, from)
     local byKey = g.names[key]
     local cur = byKey and byKey[namer]
     if cur and (cur.at > e.at or (cur.at == e.at and NameLine(cur) >= NameLine(e))) then return false end
-    if not Admit(namer, from) then return Hold("names", key, namer, e) end
+    local member = Admit(namer, from)
+    if not member and not Journal(key) then return Hold("names", key, namer, e) end
     if not byKey then byKey = {}; g.names[key] = byKey end
     byKey[namer] = { n = e.n, at = e.at, x = e.x }
+    if not member and Current(byKey, key) ~= namer then
+        -- Not a member, and it wouldn't name the pet: put back what was there.
+        byKey[namer] = cur
+        if not next(byKey) then g.names[key] = nil end
+        return Hold("names", key, namer, e)
+    end
+    local roster = Roster()
+    if roster then Tidy(byKey, key, roster) end
     return Trim(g.names, namer, "at", Config.NAMES_PER_MEMBER, key)
 end
 
@@ -346,6 +389,8 @@ function Registry:WriteOwn(store, key, e)
         t[key] = t[key] or {}
         t[key][me] = e
         Trim(t, me, spec.stamp, Config[spec.cap], key)
+        local roster = Roster()
+        if store == "names" and roster then Tidy(t[key], key, roster) end -- (an inherited name we replace goes)
     else
         t[me] = e
     end
@@ -477,8 +522,12 @@ function Registry:Prune()
     end
     for _, store in ipairs({ g.names, g.life }) do
         for key, byKey in pairs(store) do
+            -- (a name a member who left gave a pet stays while it names the pet: Tidy)
+            local keep = store == g.names and Journal(key) and (Current(byKey, key))
             for author in pairs(byKey) do
-                if author ~= me and not roster[author] then byKey[author], changed, n = nil, true, n + 1 end
+                if author ~= me and not roster[author] and author ~= keep then
+                    byKey[author], changed, n = nil, true, n + 1
+                end
             end
             if not next(byKey) then store[key] = nil end
         end
@@ -606,15 +655,15 @@ function Registry:Nickname(key)
     local g = G()
     local byKey = g and key and g.names[key]
     if not byKey then return nil end
-    local holder, hr = self:Holder(key)
-    local best, bestBy
-    for namer, e in pairs(byKey) do
-        if not e.x and (namer == holder or not hr or e.at <= hr.at)
-            and (not best or e.at > best.at or (e.at == best.at and namer < bestBy)) then
-            best, bestBy = e, namer
-        end
-    end
+    local bestBy, best = Current(byKey, key)
     if best and best.n then return best.n, bestBy, best.at end
+end
+
+-- The entry naming the pet now, a clear included (Current): namer, entry; or nil.
+function Registry:Naming(key)
+    local g = G()
+    local byKey = g and key and g.names[key]
+    if byKey then return Current(byKey, key) end
 end
 
 -- This character's naming entry for a pet; MY_NAME sends it (Sync).

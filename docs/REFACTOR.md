@@ -309,7 +309,8 @@ This is the payoff for "easier to add pets, traits and eggs".
   someone the last complete roster doesn't list wait in memory for the next roster (Registry `held`,
   Config.HELD_MAX; an author's own guild message gets in at once), each complete roster prunes them
   (Registry:Prune, after CheckRoster), a SYNC that leaves us apart asks for a roster read (Guild:Soon). Not pruned:
-  a claim still holding a pet (only a lapse frees one) and lapses (they stop a returning member's own old claim),
+  a non-member's name while it names a journal species (inherited names, the user; one per species), a claim
+  still holding a pet (only a lapse frees one) and lapses (they stop a returning member's own old claim),
   capped instead (Wire.LIMITS.LAPSES_MAX, oldest first; a LAPSE is held to SYNC_MAX_ENTRIES). Guild achievements
   have no author: unchanged (B12's cap holds them). Also LIFE_SPARE_DAYS 3, Wire.DayRoom (75 + the wish's 10),
   whole-number wire times, and a claim's (date, pet) and a name's (name, void) digest lines with a tie-break on
