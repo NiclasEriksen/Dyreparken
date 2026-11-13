@@ -292,10 +292,15 @@ function Bond:Today(key)
     return Ledger(key).total, self:DailyMax(key)
 end
 
+-- What the pet's day still has room for, of points.
+local function Grantable(d, points, key)
+    return math.max(0, math.min(points, Bond:DailyMax(key) - d.total, Bond:Room(key)))
+end
+
 -- Give points within what's left of the pet's day; one line when it's full.
 local function Grant(d, points, key)
     local max = Bond:DailyMax(key)
-    points = math.min(points, max - d.total, Bond:Room(key))
+    points = Grantable(d, points, key)
     if points <= 0 then return nil end
     -- Counted before Add: Add refreshes the card, which shows today's points.
     d.total = d.total + points
@@ -338,29 +343,41 @@ Bond.REWARDS = {
 function Bond:Contest(key)
     if not (key and ns.Personality:Of(key).fish and ns.Holidays:Has(ns.Now(), "stvfishing")) then return end
     if ns.Plain(GetZoneText()) ~= "Stranglethorn Vale" then return end
-    self:Reward("contest", key, ns.T("bond.contest", { pet = ns.Registry:NameOf(key),
-        n = math.ceil(ns.Config.BOND_CONTEST_POINTS * self:Rate(key)) }))
+    self:Reward("contest", key, Bond.Line("bond.contest", "bond.contest.full", { pet = ns.Registry:NameOf(key) }))
+end
+
+-- A reward's line that tells what it really gave (code review 2026-11-13: a full day's wish said
+-- "+10" and gave nothing): `textKey` with {n}, or `fullKey`, without the amount, when it gave none.
+function Bond.Line(textKey, fullKey, vars)
+    return function(n)
+        vars.n = n
+        return ns.T(n > 0 and textKey or fullKey, vars)
+    end
 end
 
 -- A reward for a pet: its line, then its points within the day's limit and
 -- at the pet's rate. False if a once-a-day one was had today. text false: the
 -- points without a line (a new place most of the time); not counted in `lines`.
+-- text a function (Bond.Line): called with the points it gives, worked out first.
 function Bond:Reward(kind, key, text)
     local def = assert(self.REWARDS[kind], "undeclared reward")
     local d = Ledger(key)
     d.had = d.had or {}
     local n = (d.had[kind] or 0) + 1
     if def.once and n > 1 then return false end
+    local points = math.ceil(ns.Config[def.points] * self:Rate(key))
+    local capKey = def.cap and "reward:" .. kind
+    if capKey then
+        points = math.max(0, math.min(points, math.ceil(ns.Config[def.cap] * self:Rate(key)) - (d.got[capKey] or 0)))
+    end
+    if type(text) == "function" then text = text(def.beyond and points or Grantable(d, points, key)) end
     if text then
         d.had[kind] = n
         if not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text, def.kind or "like") end
     end
     ns.Log("Bond", "reward %s for %s", kind, key)
-    local points = math.ceil(ns.Config[def.points] * self:Rate(key))
     if def.beyond then self:Add(points, key); return true end
-    if def.cap then
-        local capKey = "reward:" .. kind
-        points = math.min(points, math.ceil(ns.Config[def.cap] * self:Rate(key)) - (d.got[capKey] or 0))
+    if capKey then
         if points <= 0 then return true end
         d.got[capKey] = (d.got[capKey] or 0) + points
     end

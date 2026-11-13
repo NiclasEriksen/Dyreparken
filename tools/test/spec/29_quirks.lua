@@ -379,6 +379,14 @@ return function(test, H)
         eq(ola:CountPrinted("Bombay Cat jubler over at du fisket i fiskekonkurransen! (+10 båndpoeng)"), 1)
         ok(Fish() < ola.ns.Config.BOND_CONTEST_POINTS, "once a day")
         eq(ola:CountPrinted("jubler over at du fisket"), 1)
+        -- The next contest, on a full day: no points, and the line doesn't promise any.
+        w:SkipDays(1)
+        ola.state.holidays[ola.ns.Today()] = { 301 }
+        ola.ns.Activity:Emit("day"); w:Run(2)
+        ola.ns.DB.char.bondToday = { day = ola.ns.Today(), pets = { [CAT] = { got = {}, total = 75 } } }
+        eq(Fish(), 0, "a full day")
+        eq(ola:CountPrinted("Bombay Cat jubler over at du fisket i fiskekonkurransen!"), 2)
+        eq(ola:CountPrinted("fiskekonkurransen! (+"), 1, "no points promised")
         -- A pet that doesn't care for fishing: no bonus, no day egg.
         local w2, kari = Setup({ "glupsk", "rampete" })
         local Of = kari.ns.Personality.Of

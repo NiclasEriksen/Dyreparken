@@ -793,6 +793,7 @@ L["wish.done.streak"] = "Ønsket er oppfylt! {n} dager på rad"
 L["wish.streak.tip"] = "{n} oppfylte ønsker på rad."
 L["wish.streak.keep"] = "Oppfyll det i dag, så blir det {n} dager på rad."
 L["bond.contest"] = "{pet} jubler over at du fisket i fiskekonkurransen! (+{n} båndpoeng)"
+L["bond.contest.full"] = "{pet} jubler over at du fisket i fiskekonkurransen!" -- (a full day: no points left to give)
 -- Feats (Menagerie/Feats.lua): the line and the story's word, by how the feat reads
 L["feat.spell"] = "{pet} var med da du lærte {what}! (+{n} båndpoeng)"
 L["feat.quest"] = "{pet} var med da du fullførte «{what}»! (+{n} båndpoeng)"
@@ -809,6 +810,7 @@ L["feat.totem.fire"] = "ildtotemet"
 L["feat.totem.water"] = "vanntotemet"
 L["feat.totem.air"] = "lufttotemet"
 L["wish.granted"] = "{pet} fikk ønsket sitt oppfylt: {activity}! (+{n} båndpoeng)"
+L["wish.granted.full"] = "{pet} fikk ønsket sitt oppfylt: {activity}!" -- (a full day: no points left to give)
 
 ------------------------------------------------------------------------------
 -- The park (the map page)

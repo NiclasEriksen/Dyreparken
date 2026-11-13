@@ -84,8 +84,8 @@ function Wish:OnActivity(id, key)
     local w = self:Today()
     if not w or w.done or w.pet ~= key or w.id ~= id then return end
     w.done = true
-    ns.Bond:Reward("wish", key, ns.T("wish.granted", { pet = ns.Registry:NameOf(key),
-        activity = ns.Personality.NOUN[id], n = ns.Config.BOND_WISH_POINTS }))
+    ns.Bond:Reward("wish", key, ns.Bond.Line("wish.granted", "wish.granted.full", { pet = ns.Registry:NameOf(key),
+        activity = ns.Personality.NOUN[id] }))
     self:Count(w.day)
 end
 

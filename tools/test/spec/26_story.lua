@@ -181,6 +181,35 @@ return function(test, H)
         eq(lines, 1, "one wish line")
     end)
 
+    test("a wish on a full day says what it gave: the points left, or no amount at all", function()
+        local w, ola = Setup()
+        local W = ola.ns.Wish
+        W.For = function() return "herb" end
+        ola.ns.DB.char.wish = nil
+        ola:Summon(5159)
+        local function Earned() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
+        local function Today(total)
+            ola.ns.DB.char.bondToday = { day = ola.ns.Today(), pets = { [PANDA] = { got = { herb = 25 }, total = total } } }
+        end
+        -- Two points left: the line says two.
+        Today(73)
+        local before = Earned()
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        eq(Earned() - before, 2)
+        ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+2 båndpoeng)", true))
+        -- A full day: the wish comes true, with no promise of points.
+        w:SkipDays(1)
+        ola.ns.DB.char.wish = nil
+        Today(75)
+        before = Earned()
+        ola:ClearPrinted()
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        ok(W:Today().done)
+        eq(Earned() - before, 0)
+        match(ola:Printed("fikk ønsket sitt oppfylt", true) or "", "Panda Cub fikk ønsket sitt oppfylt: herbs!$")
+        no(ola:Printed("båndpoeng", true), "no points promised")
+    end)
+
     test("petting the pet on the card: a ripple, a few hearts, a glow, a sound; once a day a cuddle", function()
         local w, ola, kari = Setup()
         local card = ola:SelectPet(5159)
