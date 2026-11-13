@@ -598,7 +598,7 @@ L["egg.vaken.1"] = "{pet} gnir søvnen ut av øynene. Var du borte?"
 L["egg.vaken.2"] = "{pet} gjesper og strekker seg. Så godt det var med en lur mens du var borte."
 L["egg.vaken.trofast.1"] = "{pet} har ventet ved døra hele tiden. Endelig er du tilbake!"
 L["egg.vaken.einstoing.1"] = "{pet} merket ikke engang at du var borte."
-L["egg.vaken.latsabb.1"] = "{pet} synes du kom tilbake litt for tidlig. Det var akkurat blitt godt."
+L["egg.vaken.latsabb.1"] = "{pet} synes du kom tilbake litt for tidlig. Det var akkurat blitt behagelig."
 L["egg.vaken.hjemlengsel.1"] = "{pet} drømte om hjemme, og våkner glad for å se deg igjen."
 -- Zeppelins and boats (Menagerie/Voyage.lua): by trait, then family, else plain
 L["egg.luftskip.1"] = "{pet} kikker ut over rekkverket. Så smått alt ser ut herfra!"
@@ -630,7 +630,7 @@ L["activity.zeppelin"] = "zeppelinerturer"
 L["activity.boat"] = "båtturer"
 -- Drafts of 2026-11-13, for the user to edit: Hakkebakkeloven (a playdate between a hunter and its
 -- prey), Bastians runde (22:00 on the clock), Gjensynsglede (back after days apart).
-L["egg.hakkebakke.1"] = "{pet} ser lenge på {friend}, men husker Hakkebakkeloven og foreslår sisten i stedet."
+L["egg.hakkebakke.1"] = "{pet} ser lenge på {friend}, men husker Hakkebakkeloven og holder litt igjen."
 L["egg.hakkebakke.2"] = "{pet} lover {friend} at det bare er lek. Helt ærlig."
 L["egg.hakkebakke.bytte.1"] = "{pet} holder et øye med {friend}, men alle dyrene i skogen skal jo være venner."
 L["egg.hakkebakke.bytte.2"] = "{pet} leker med {friend}, men med litt avstand. Sånn for sikkerhets skyld."
