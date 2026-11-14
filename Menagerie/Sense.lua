@@ -43,6 +43,10 @@ local function Read(fn, ...)
     return unpack(r, 2, table.maxn(r))
 end
 local function Families(id) return id and ns.Creatures.families[id] or nil end
+-- A secret value or table (type() still says "table" for one: 2026-11-14, UNIT_AURA's addedAuras in a fight).
+local function Secret(v)
+    return (issecretvalue and issecretvalue(v)) or (type(v) == "table" and issecrettable and issecrettable(v)) or false
+end
 
 ------------------------------------------------------------------------------
 -- Matching (part 1.2): a reaction's row says what it wants of the subject, field by field: a value, a set
@@ -207,12 +211,12 @@ Sense.SENSORS = {
             Fire("form", { id = id, was = was })
         end },
     buff = { events = { "UNIT_AURA" }, on = function(_, unit, info)
-        if unit ~= "player" or type(info) ~= "table" then return end
-        if issecretvalue and issecretvalue(info) or issecrettable and issecrettable(info) then return end
+        if unit ~= "player" or type(info) ~= "table" or Secret(info) then return end
         local added = info.addedAuras
-        if type(added) ~= "table" or issecrettable and issecrettable(added) then return end
+        if type(added) ~= "table" or Secret(added) then return end
         for _, aura in ipairs(added) do
-            local name, id = type(aura) == "table" and Plain(aura.name), type(aura) == "table" and Plain(aura.spellId)
+            if type(aura) ~= "table" or Secret(aura) then return end
+            local name, id = Plain(aura.name), Plain(aura.spellId)
             if type(name) == "string" and Plain(aura.isHelpful) ~= false then Fire("buff", { name = name, id = id }) end
         end
     end },

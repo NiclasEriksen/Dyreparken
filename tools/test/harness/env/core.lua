@@ -22,6 +22,15 @@ return function(c, env, S)
         end)
     end
     env.issecretvalue = function(v) return v == H.SECRET end
+    -- A secret can't be walked (Forever, 2026-11-14: "bad argument #1 to 'ipairs' (table expected, got secret)",
+    -- UNIT_AURA's addedAuras in a fight).
+    for _, name in ipairs({ "ipairs", "pairs" }) do
+        local real = _G[name]
+        env[name] = function(t, ...)
+            if t == H.SECRET then error("bad argument #1 to '" .. name .. "' (table expected, got secret)", 2) end
+            return real(t, ...)
+        end
+    end
     env.C_Secrets = { ShouldAurasBeSecret = function() return S.secretAuras == true end }
 
 end

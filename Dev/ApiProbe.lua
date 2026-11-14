@@ -1246,7 +1246,10 @@ function S.glance(out)
                 return Log("aura <secret>")
             end
             local added = type(b) == "table" and b.addedAuras
-            if type(added) ~= "table" then return end
+            -- (2026-11-14, in game: addedAuras itself can be secret, though type() says table)
+            if type(added) ~= "table" or (issecretvalue and issecretvalue(added)) or (issecrettable and issecrettable(added)) then
+                return Log("aura <secret list>")
+            end
             local names = {}
             for _, aura in ipairs(added) do
                 local name = type(aura) == "table" and ns.Plain(aura.name)
