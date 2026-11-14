@@ -48,3 +48,6 @@ No wire or saved-data change is planned (no X-Protocol bump; migrations only if 
 ## Status
 
 - 1 done (93fb61f).
+- 2.1 and 2.2 done (d358512): tools/log.lua, Session lines, repeats counted, /dp debug mute, Dev/Errors.lua.
+- 2.3 half done (f7d175a): /dp state. /dp try waits for the moment engine (3.1), which it will speak through.
+- 2.4 done: /dp probe perf (Dev/Perf.lua).

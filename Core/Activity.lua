@@ -106,7 +106,7 @@ local wanted = {}       -- id -> { [owner] = true }
 local listening = {}    -- event -> { source, ... } currently registered
 local broken = {}       -- id -> true (switched off for this session)
 local unavailable = {}  -- id -> true (an event the client lacks)
-local ENGINE = {}       -- our owner key for ns.Events
+local ENGINE = { name = "Activity" } -- our owner key for ns.Events (its name for /dp probe perf)
 -- Unit events (a source with `unit`) are registered for that unit only (ns.Events' unit hubs):
 -- UNIT_SPELLCAST_SUCCEEDED for every unit in a raid would be thousands of calls for nothing.
 local unitOf = {}       -- event -> the unit it's registered for
@@ -188,7 +188,10 @@ end
 local function Run(src, event, ...)
     local w = wanted[src.id]
     if broken[src.id] or not (w and next(w)) then return end
+    local prof = ns.profile -- (Dev/Perf.lua)
+    local t0 = prof and debugprofilestop()
     local ok, n, extra = pcall(src.filter, event, ...)
+    if prof then prof("Activity " .. src.id, debugprofilestop() - t0) end
     if not ok then
         broken[src.id] = true
         ns.Log("Activity", "%s switched off: %s", src.id, tostring(n))
@@ -220,7 +223,7 @@ local WHEN = {
     fight = function() return fighting and Plain(IsInGroup()) ~= true end,
     peace = function() return not fighting end,
 }
-local STATE = {} -- our owner key for the state's events
+local STATE = { name = "Activity when" } -- our owner key for the state's events
 local Update
 local function State(on)
     if not on then

@@ -339,12 +339,16 @@ function ns.Bus:On(event, fn)
     if not list then list = {}; listeners[event] = list end
     list[#list + 1] = fn
 end
+-- ns.profile(name, ms): Dev/Perf.lua's, while /dp probe perf runs; nil in a release (one check per call).
 function ns.Bus:Fire(event, ...)
     local list = listeners[event]
     if not list then return end
+    local prof = ns.profile
     for i = 1, #list do
+        local t0 = prof and debugprofilestop()
         local ok, err = pcall(list[i], ...)
         if not ok then geterrorhandler()(err) end
+        if prof then prof("Bus " .. event, debugprofilestop() - t0) end
     end
 end
 

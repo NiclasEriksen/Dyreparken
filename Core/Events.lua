@@ -29,11 +29,14 @@ local function Dispatch(hub, event, ...)
         for owner, fn in pairs(list) do snap[#snap + 1] = owner; snap[#snap + 1] = fn end
         hub.snapshots[event] = snap
     end
+    local prof = ns.profile -- (Dev/Perf.lua, /dp probe perf; nil in a release)
     for i = 1, #snap, 2 do
         local owner, fn = snap[i], snap[i + 1]
         if list[owner] == fn then -- (still listening: an earlier handler may have removed it)
+            local t0 = prof and debugprofilestop()
             local ok, err = pcall(fn, owner, event, ...)
             if not ok then geterrorhandler()(err) end
+            if prof then prof(event, debugprofilestop() - t0, owner) end
         end
     end
 end
@@ -114,11 +117,12 @@ end
 
 -- Run fn once, now if out of combat, else right after combat ends.
 local afterCombat = {}
+local AFTER = { name = "OutOfCombat" } -- (its owner key)
 function Events:OutOfCombat(fn)
     if not ns.InCombat() then return fn() end
     afterCombat[#afterCombat + 1] = fn
-    Events:On("PLAYER_REGEN_ENABLED", afterCombat, function()
-        Events:Off("PLAYER_REGEN_ENABLED", afterCombat)
+    Events:On("PLAYER_REGEN_ENABLED", AFTER, function()
+        Events:Off("PLAYER_REGEN_ENABLED", AFTER)
         local queue = { unpack(afterCombat) }
         wipe(afterCombat)
         for i = 1, #queue do

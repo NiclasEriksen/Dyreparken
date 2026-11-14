@@ -282,7 +282,7 @@ function Sense:Wants(kind) return wanted[kind] ~= nil and next(wanted[kind]) ~= 
 
 local function Update(kind)
     local s = Sense.SENSORS[kind]
-    owners[kind] = owners[kind] or {}
+    owners[kind] = owners[kind] or { name = "Sense " .. kind }
     local on = Sense:Wants(kind)
     for _, e in ipairs(s.events or {}) do
         if on and not ns.Events:Has(e, owners[kind], s.unit) then

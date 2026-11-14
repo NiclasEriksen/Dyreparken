@@ -289,7 +289,8 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    (Moves.override, Decor.override, Scenes.override, BondTrack.override). The tests load it all; a
                    client made with { release = true } loads the release's files only (spec/48_release.lua).
                    Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
-                   lift|moves|gains|api|sense] and /dp debug, only when ns.DEV); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); PetsProbe (/dp probe, more, ach);
+                   lift|moves|gains|api|sense|perf] and /dp debug, only when ns.DEV); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); Perf (/dp probe perf: calls and time per
+                   handler, through ns.profile, the one hook Events, Bus and Activity check; a release leaves it nil); PetsProbe (/dp probe, more, ach);
                    MovesProbe (/dp probe anim and pos, the editors' Moves.override); DecorProbe (/dp probe decor,
                    frames, level: Decor.show/preview, Decor.override, BondTrack.override); ScenesProbe (/dp probe bg);
                    BondTrackProbe (celebrate, gains); JournalProbe (card, tabs); SceneGallery (the galleries of bg,

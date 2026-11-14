@@ -28,6 +28,7 @@ local PROBES = {
     { "gains", function(a) ns.BondTrack:PreviewGains(a) end, "[n n ...]" },
     { "api", function(a) ns.ApiProbe:Run(a) end, "[section|clear]" },
     { "sense", function(a) ns.Commands.Sense(a) end, "[off]" },
+    { "perf", function(a) ns.Perf:Command(a) end, "[on|off|show]" },
 }
 
 -- /dp probe sense: every sensor (Menagerie/Sense.lua) on for this session, each subject to the debug log

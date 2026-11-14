@@ -331,7 +331,7 @@ local function Explored(how)
         Wish:Grant(w)
     end)
 end
-local WATCH = {} -- (our owner key for ns.Events and Activity:Want)
+local WATCH = { name = "Wish" } -- (our owner key for ns.Events and Activity:Want)
 local armed = false -- the wish watched for: its id, or false
 local function Pending(id)
     local w = Wish:Today() -- (past midnight: the new day's wish, which arms or drops these)

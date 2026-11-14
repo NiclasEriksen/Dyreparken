@@ -220,7 +220,7 @@ H.ALLOWED_GLOBALS = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDe
 H.OPTIONAL_GLOBALS = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true, -- first login
     GetAddOnMetadata = true, ScrollUtil = true, SendAddonMessage = true,
     RegisterAddonMessagePrefix = true, io = true --[[ LibDeflate's command line mode ]],
-    BugGrabber = true --[[ Dev/Errors.lua: when installed ]] }
+    BugGrabber = true --[[ Dev/Errors.lua: when installed ]], C_AddOnProfiler = true --[[ Dev/Perf.lua ]] }
 function H.Invariants(c)
     local out = {}
     for k in pairs(c.newGlobals or {}) do

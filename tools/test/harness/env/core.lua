@@ -26,6 +26,7 @@ return function(c, env, S)
         end,
     }
     env.debugstack = function() return debug.traceback() end
+    env.debugprofilestop = function() return os.clock() * 1000 end -- (ms, as the client's)
     env.hooksecurefunc = function(a, b, fn)
         local t, name = env, a
         if type(a) == "table" then t, name = a, b else fn = b end
