@@ -32,7 +32,10 @@ quirks. When you learn something new about the client, add it there with the dat
   `/dp probe` or the feature. Then read the log at
   `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
   `serverTime  GetTime  module  message`, ring buffer of `Config.DEBUG_RING_SIZE` (8000); `head` is the newest index).
-  Lua errors appear in-game (BugSack, if installed) or in `../../../Logs/`.
+  **Read it with `luajit tools/log.lua`** (`-h`: the newest session by default, `--sessions`, `-m/-x` modules, `-g`
+  text, `--summary`, `--errors`, `--dump api.glance`). Each login writes a `Session` line; a line repeated right
+  after itself becomes " (xN)"; `/dp debug mute <Module>` silences a noisy one. Our own Lua errors go into the log
+  with their stack (Dev/Errors.lua, through BugGrabber), and `--errors` also reads BugGrabber's saved ones.
 
 ## Testing
 
@@ -142,7 +145,8 @@ Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" 
                    grouped by area; named {placeholders}; the achievement texts (ns.AchTexts) at its end. Loads right
                    after Init and Wire. Code never holds player text: add a key here and use ns.L[key] / ns.T(key, vars).
                    Developer output (/dp probe, /dp debug, the log) stays English in the code.
-Core/Debug.lua     ns.Log(module, fmt, ...) → SavedVariables ring buffer; no-op when off
+Core/Debug.lua     ns.Log(module, fmt, ...) → SavedVariables ring buffer; no-op when off; repeats counted, muted
+                   modules, a Session line at each login (tools/log.lua reads it)
 Core/Events.lua    one event frame, and one per unit: On(event, owner, fn, unit) registers a UNIT_ event for that unit
                    only (the tests fail on one left registered for every unit); Off/Has/OffAll(owner), Registered,
                    OutOfCombat queue
@@ -285,7 +289,7 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    (Moves.override, Decor.override, Scenes.override, BondTrack.override). The tests load it all; a
                    client made with { release = true } loads the release's files only (spec/48_release.lua).
                    Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
-                   lift|moves|gains|api|sense] and /dp debug, only when ns.DEV); PetsProbe (/dp probe, more, ach);
+                   lift|moves|gains|api|sense] and /dp debug, only when ns.DEV); Errors (our Lua errors into the log); PetsProbe (/dp probe, more, ach);
                    MovesProbe (/dp probe anim and pos, the editors' Moves.override); DecorProbe (/dp probe decor,
                    frames, level: Decor.show/preview, Decor.override, BondTrack.override); ScenesProbe (/dp probe bg);
                    BondTrackProbe (celebrate, gains); JournalProbe (card, tabs); SceneGallery (the galleries of bg,

@@ -104,6 +104,7 @@ Dev\SceneGallery.lua
 Dev\LiftEditor.lua
 Dev\MovesEditor.lua
 Dev\ApiProbe.lua
+Dev\Errors.lua
 Dev\Commands.lua
 #@end-do-not-package@
 

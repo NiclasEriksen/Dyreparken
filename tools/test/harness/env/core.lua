@@ -7,7 +7,24 @@ return function(c, env, S)
     env.GetTime = function() return w.t end
     env.GetServerTime = function() return w:ServerTime() end
     env.time, env.date = os.time, os.date
-    env.geterrorhandler = function() return function(e) c.errors[#c.errors + 1] = tostring(e) end end
+    -- (A test's own handler, seterrorhandler'd, first; the client's records it for the runner.)
+    c.errorHandler = nil -- (a new session)
+    local record = function(e) c.errors[#c.errors + 1] = tostring(e) end
+    env.geterrorhandler = function() return c.errorHandler or record end
+    env.seterrorhandler = function(fn) c.errorHandler = fn end
+    -- EventRegistry: callbacks by event (BugGrabber's "BugGrabber.BugGrabbed").
+    local callbacks = {}
+    env.EventRegistry = {
+        RegisterCallback = function(_, event, fn, owner)
+            callbacks[event] = callbacks[event] or {}
+            table.insert(callbacks[event], { fn, owner })
+        end,
+        TriggerEvent = function(_, event, ...)
+            for _, cb in ipairs(callbacks[event] or {}) do
+                if cb[2] ~= nil then cb[1](cb[2], ...) else cb[1](...) end
+            end
+        end,
+    }
     env.debugstack = function() return debug.traceback() end
     env.hooksecurefunc = function(a, b, fn)
         local t, name = env, a

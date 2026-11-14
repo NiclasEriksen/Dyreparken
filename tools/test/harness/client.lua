@@ -219,7 +219,8 @@ H.ALLOWED_GLOBALS = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDe
     SLASH_DYREPARKEN1 = true, SLASH_DYREPARKEN2 = true, LibStub = true }
 H.OPTIONAL_GLOBALS = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true, -- first login
     GetAddOnMetadata = true, ScrollUtil = true, SendAddonMessage = true,
-    RegisterAddonMessagePrefix = true, io = true --[[ LibDeflate's command line mode ]] }
+    RegisterAddonMessagePrefix = true, io = true --[[ LibDeflate's command line mode ]],
+    BugGrabber = true --[[ Dev/Errors.lua: when installed ]] }
 function H.Invariants(c)
     local out = {}
     for k in pairs(c.newGlobals or {}) do
@@ -359,7 +360,12 @@ function Client:Log(pattern)
     local head = lines.head or 0
     for n = 1, size do
         local l = lines[((head + n - 1) % size) + 1]
-        if l and (not pattern or l:find(pattern)) then out[#out + 1] = l end
+        -- (A line said again right after itself is one line, " (xN)": as N lines here.)
+        local again = l and tonumber(l:match(" %(x(%d+)%)$"))
+        if again then l = l:gsub(" %(x%d+%)$", "") end
+        for _ = 1, again or 1 do
+            if l and (not pattern or l:find(pattern)) then out[#out + 1] = l end
+        end
     end
     return out
 end

@@ -49,9 +49,15 @@ Add("probe", "probe [" .. table.concat(usage, "|") .. "] - dump API info to the 
     ns.Pets:Probe()
 end)
 
-Add("debug", "debug [on|off|echo|clear] - debug log (saved on /reload)", function(arg)
+Add("debug", "debug [on|off|echo|clear|mute [module]|unmute <module>] - debug log (saved on /reload)", function(arg, typed)
     local D = ns.Debug
-    if arg == "clear" then
+    local word, module = (typed or arg or ""):match("^(%S*)%s*(%S*)") -- (a module keeps its case: Moves)
+    word = word:lower()
+    if word == "mute" or word == "unmute" then
+        local list = D:Mute(module ~= "" and module or nil, word == "mute")
+        ns.Print("Muted in the log: " .. (#list > 0 and table.concat(list, ", ") or "none") .. ".")
+        return
+    elseif arg == "clear" then
         D:Clear()
         ns.Print("Debug log cleared.")
         return

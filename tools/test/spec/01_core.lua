@@ -295,6 +295,58 @@ return function(test, H)
         ok(c:Printed("Debug on %(echo to chat%)"))
     end)
 
+    test("debug log: a line again right after itself counts up; a muted module logs nothing; sessions start with a line", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        local ns, D = c.ns, c.ns.Debug
+        local raw = c.env.DyreparkenDebugDB.lines
+        match(raw[1] or "", "\tDebug\tenabled")
+        eq(#c:Log("\tSession\tstart dev, Ola Nord WARRIOR level 10, in Elwynn Forest, client 1.60.1 %(70790, 16001%), protocol"), 1, "the session's header")
+        D:Clear()
+        raw = c.env.DyreparkenDebugDB.lines
+        for _ = 1, 4 do ns.Log("Moves", "frame s:1: play %d", 0) end
+        ns.Log("Moves", "frame s:1: play %d", 5)
+        ns.Log("Moves", "frame s:1: play %d", 0)
+        match(raw[1], "\tMoves\tframe s:1: play 0 %(x4%)$")
+        eq(raw.head, 3)
+        eq(#c:Log("play 0$"), 5, "counted as lines by the harness")
+        c:Slash("debug mute Moves")
+        ok(c:Printed("Muted in the log: Moves.", true))
+        ns.Log("Moves", "muted"); ns.Log("Fight", "heard")
+        eq(#c:Log("muted"), 0); eq(#c:Log("heard"), 1)
+        c:Reload()
+        ok(c.ns.Debug.enabled)
+        c.ns.Log("Moves", "still muted")
+        eq(#c:Log("still muted"), 0, "kept across a reload")
+        c:Slash("debug unmute Moves")
+        ok(c:Printed("Muted in the log: none.", true))
+        c.ns.Log("Moves", "back")
+        eq(#c:Log("back"), 1)
+    end)
+
+    test("our own Lua errors go into the log with their stack (through BugGrabber, or a handler of ours)", function()
+        local w = H.World()
+        local errors = {}
+        local c = w:AddClient("Ola Nord", { patch = function(env)
+            env.BugGrabber = { GetErrorByID = function(_, id) return errors[id] end }
+        end })
+        eq(c.ns.Errors.via, "BugGrabber")
+        errors.e1 = { message = "Interface/AddOns/Dyreparken/Menagerie/Sense.lua:1: boom", stack = "a\nb" }
+        errors.e2 = { message = "Interface/AddOns/OtherAddon/x.lua:1: theirs", stack = "c" }
+        for _ = 1, 3 do c.env.EventRegistry:TriggerEvent("BugGrabber.BugGrabbed", "e1") end
+        c.env.EventRegistry:TriggerEvent("BugGrabber.BugGrabbed", "e2")
+        eq(#c:Log("\tError\tInterface/AddOns/Dyreparken/Menagerie/Sense.lua:1: boom$"), 1, "the first in full")
+        eq(#c:Log("\tError\tstack: a | b$"), 1)
+        eq(#c:Log("theirs"), 0, "another addon's")
+        eq(c.ns.Errors.count, 1)
+        -- Without BugGrabber: in front of the handler there, which still gets it.
+        local d = w:AddClient("Kari Berg")
+        eq(d.ns.Errors.via, "handler")
+        d.env.geterrorhandler()("Dyreparken/Core/Init.lua:5: oops")
+        eq(#d:Log("\tError\tDyreparken/Core/Init.lua:5: oops"), 1)
+        eq(#d:TakeErrors(), 1, "and the client's handler had it")
+    end)
+
     test("schema 6: nicknames move from the record to the pet", function()
         local T0 = 1790000000 -- (after the bond epoch: migration 10 keeps them)
         local w = H.World()
