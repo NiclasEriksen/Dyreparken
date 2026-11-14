@@ -11,6 +11,10 @@ local _, ns = ...
 --             own activity for the remarks (egg "luftskip")
 --   boat      its own activity, remarks only (egg "seilas"): pirates sing, cats get seasick...
 -- A loading screen between two zones no route knows (Forever's own?) is logged, to add.
+-- The zones are those of the loading screen's moment and of the arrival, both at sea, not the docks' own: the boat
+-- from Ratchet reads "Durotar" halfway (2026-11-14, the user: a friend's pet said zeppelin lines on the boat to
+-- Booty Bay), so Durotar to Stranglethorn is either kind. A pair both kinds list is decided by where you are on
+-- the map of the end in SPLIT (Grom'gol's tower is in the north of Stranglethorn, Booty Bay at its southern tip).
 local Voyage = {}
 ns.Voyage = Voyage
 
@@ -26,8 +30,12 @@ Voyage.ROUTES = {
         { "Tirisfal Glades", "Stranglethorn Vale" }, { "Zephras Isle", "*" } },
     boat = { { "Wetlands", "Dustwallow Marsh" }, { "Wetlands", "Darkshore" }, { "Stranglethorn Vale", "The Barrens" },
         { "Tanaris", "Riverglades" }, { "Stormwind City", "Darkshore" }, { "Hillsbrad Foothills", "Darkshore" },
-        { "Wetlands", "Hillsbrad Foothills" }, { "Darkshore", "Teldrassil" } },
+        { "Wetlands", "Hillsbrad Foothills" }, { "Darkshore", "Teldrassil" },
+        { "Durotar", "Stranglethorn Vale" } }, -- (Ratchet's boat, out at sea: SPLIT says which)
 }
+-- y on the zone's own map (0 north, 1 south): Grom'gol about 0.29, Booty Bay about 0.77 (classic's maps; the line
+-- between them is a guess until a ride's log shows where the loading screens come: "... at x,y").
+Voyage.SPLIT = { ["Stranglethorn Vale"] = { y = 0.55, north = "zeppelin", south = "boat" } }
 Voyage.CAST_FOR = 15  -- seconds: a cast this soon before the loading screen took you there (a hearthstone...)
 Voyage.NOT_A_RIDE = { "Hearth", "Teleport", "Portal", "Recall", "Astral" } -- (spell names, enUS)
 
@@ -35,7 +43,9 @@ local Plain = ns.Plain
 local byPair = {}
 for kind, list in pairs(Voyage.ROUTES) do
     for _, r in ipairs(list) do
-        byPair[r[1] .. "\31" .. r[2]], byPair[r[2] .. "\31" .. r[1]] = kind, kind
+        for _, key in ipairs({ r[1] .. "\31" .. r[2], r[2] .. "\31" .. r[1] }) do
+            byPair[key] = (byPair[key] and byPair[key] ~= kind) and "either" or kind
+        end
     end
 end
 
@@ -57,9 +67,27 @@ function Voyage.Continent()
     end
 end
 
+-- Where the player is on their zone's map (the parents up to a mapType 3), or nil.
+function Voyage.Position()
+    local ok, id = pcall(C_Map.GetBestMapForUnit, "player")
+    id = ok and Plain(id) or nil
+    for _ = 1, 8 do
+        local okI, info = pcall(C_Map.GetMapInfo, id)
+        if not (okI and type(info) == "table") or info.mapType == 2 then return nil end
+        if info.mapType == 3 then break end
+        id = info.parentMapID
+    end
+    local okP, pos = pcall(C_Map.GetPlayerMapPosition, id, "player")
+    if not (okP and type(pos) == "table" and pos.GetXY) then return nil end
+    local x, y = pos:GetXY()
+    x, y = Plain(x), Plain(y)
+    if type(x) == "number" and type(y) == "number" then return x, y end
+end
+
 local function Here()
     local inside = IsInInstance()
-    return { zone = Plain(GetZoneText()), continent = Voyage.Continent(), instance = Plain(inside) == true }
+    local x, y = Voyage.Position()
+    return { zone = Plain(GetZoneText()), continent = Voyage.Continent(), instance = Plain(inside) == true, x = x, y = y }
 end
 
 local from, lastCast, arriving
@@ -75,7 +103,13 @@ end
 function Voyage.Kind(a, b)
     if not (a and b and a.zone and b.zone) or a.instance or b.instance then return nil end
     -- (only ever after a loading screen: a route on one continent counts, Undercity to Grom'gol)
-    return byPair[a.zone .. "\31" .. b.zone] or byPair[a.zone .. "\31*"] or byPair["*\31" .. b.zone]
+    local kind = byPair[a.zone .. "\31" .. b.zone] or byPair[a.zone .. "\31*"] or byPair["*\31" .. b.zone]
+    if kind ~= "either" then return kind end
+    for _, p in ipairs({ a, b }) do
+        local split = Voyage.SPLIT[p.zone]
+        if split and p.y then return p.y < split.y and split.north or split.south end
+    end
+    return nil -- (no position: better no remark than the wrong one)
 end
 
 function Voyage:Arrived()
@@ -88,11 +122,13 @@ function Voyage:Arrived()
     local kind = Voyage.Kind(a, b)
     if not kind then
         if a.continent ~= b.continent and not (a.instance or b.instance) then
-            ns.Log("Voyage", "an unknown way between continents: %s -> %s", tostring(a.zone), tostring(b.zone))
+            ns.Log("Voyage", "an unknown way between continents: %s at %s,%s -> %s at %s,%s", tostring(a.zone),
+                tostring(a.x), tostring(a.y), tostring(b.zone), tostring(b.x), tostring(b.y))
         end
         return
     end
-    ns.Log("Voyage", "%s: %s -> %s", kind, tostring(a.zone), tostring(b.zone))
+    ns.Log("Voyage", "%s: %s at %s,%s -> %s at %s,%s", kind, tostring(a.zone), tostring(a.x), tostring(a.y),
+        tostring(b.zone), tostring(b.x), tostring(b.y))
     ns.Activity:Emit(kind, 1, a.zone .. "\31" .. b.zone)
     if kind == "zeppelin" then ns.Activity:Emit("taxi", 1) end -- (flying: the flight lovers' and the fearful's)
 end

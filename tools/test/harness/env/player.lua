@@ -108,6 +108,13 @@ return function(c, env, S)
             local t = (S.mapTree or {})[id] or {}
             return { mapID = id, name = (S.mapNames or {})[id] or ("Map " .. id), parentMapID = t[1], mapType = t[2] }
         end,
+        -- (S.mapPos = { x, y }: where on the zone's map, 0..1; the middle unless a test says. A Vector2D, as the client's)
+        GetPlayerMapPosition = function(id, u)
+            assert(u == "player")
+            if not id then return nil end
+            local p = S.mapPos or { 0.5, 0.5 }
+            return { x = p[1], y = p[2], GetXY = function(v) return v.x, v.y end }
+        end,
     }
     -- Emotes and jumps: what the player pressed (hooked by the addon).
     env.DoEmote = function(token, target) S.lastEmote = token end

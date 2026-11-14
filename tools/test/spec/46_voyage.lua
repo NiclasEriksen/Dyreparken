@@ -28,8 +28,10 @@ return function(test, H)
         opts = opts or {}
         At(ola, from)
         if opts.cast then ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "x", opts.cast) end
+        ola.state.mapPos = opts.fromPos
         ola:Fire("LOADING_SCREEN_ENABLED")
         ola.state.map = MAPS[to] -- (the map first; the zone's name a moment later)
+        ola.state.mapPos = opts.toPos
         ola:Fire("PLAYER_ENTERING_WORLD", opts.login or false, false)
         ola.state.zone = to
         ola:Fire("ZONE_CHANGED_NEW_AREA")
@@ -56,7 +58,24 @@ return function(test, H)
         ok(ola:Printed("grønn i fjeset", true))
         Trip(w, ola, "Wetlands", "The Barrens")
         eq(N(ola, "boat"), 1, "no route between those")
-        ok(ola:Log("an unknown way between continents: Wetlands %-> The Barrens")[1], "logged, to add")
+        ok(ola:Log("an unknown way between continents: Wetlands at [%d.]+,[%d.]+ %-> The Barrens")[1], "logged, to add")
+    end)
+
+    test("Durotar to Stranglethorn is either: Ratchet's boat reads Durotar at sea; the Stranglethorn end decides", function()
+        local w, ola = Setup()
+        Trip(w, ola, "Durotar", "Stranglethorn Vale", { toPos = { 0.25, 0.85 } })
+        eq(N(ola, "boat"), 1, "Ratchet to Booty Bay (the user's ride: a friend's pet said zeppelin lines)")
+        eq(N(ola, "zeppelin"), 0)
+        ok(ola:Printed("kjenner saltvannet", true) or ola:Printed("baugen og later", true), "a boat's line")
+        no(ola:Printed("Så smått alt ser ut", true), "no zeppelin line")
+        Trip(w, ola, "Stranglethorn Vale", "Durotar", { fromPos = { 0.2, 0.9 } })
+        eq(N(ola, "boat"), 2, "and back from Booty Bay")
+        Trip(w, ola, "Durotar", "Stranglethorn Vale", { toPos = { 0.3, 0.3 } })
+        eq(N(ola, "zeppelin"), 1, "Orgrimmar to Grom'gol")
+        Trip(w, ola, "Stranglethorn Vale", "Durotar", { fromPos = { 0.15, 0.25 } })
+        eq(N(ola, "zeppelin"), 2, "and back")
+        eq(N(ola, "boat"), 2)
+        ok(ola:Log("zeppelin: Stranglethorn Vale at 0.15,0.25 %-> Durotar")[1], "the position is logged")
     end)
 
     test("no ride: a hearthstone or a portal before, a login or a /reload, the same continent", function()

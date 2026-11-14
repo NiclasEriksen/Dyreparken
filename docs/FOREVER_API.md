@@ -429,6 +429,11 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   Forever's 14 routes (wowforever.be, from the 1.60.1 game files): new are Steamwheedle Port to Powderfuse Port,
   Stormwind Harbor to Auberdine, Menethil to Southshore to Auberdine, and Zephras Isle's zeppelins (Valanaar to
   Dalaran and to Skywatcher Plateau); their zone names other than Riverglades are unverified.
+- **A ride's zones are the sea's, not the docks'** (2026-11-14, 1.60.1, the user): the boat from Ratchet to Booty Bay
+  was taken for Grom'gol's zeppelin on a friend's client, so halfway out from Ratchet `GetZoneText` must have read
+  "Durotar" (the zeppelin's pair: Durotar and Stranglethorn Vale). Voyage tells them apart by the position on
+  Stranglethorn's map (`C_Map.GetPlayerMapPosition`, north: Grom'gol; south: Booty Bay); the line at y 0.55 is a guess
+  until a ride's log ("Voyage ... at x,y") shows where the loading screens come.
 - **A melee fight without a combat log** (2026-11-12, 1.60.1, `/dp probe api combat`, a shaman, solo, one mob):
   `PLAYER_ENTER_COMBAT` fires when auto-attack starts (here 5 s before `PLAYER_REGEN_DISABLED`: walking up to the
   mob) and `PLAYER_LEAVE_COMBAT` when it stops (just before `PLAYER_REGEN_ENABLED`). `UNIT_COMBAT` registered for
