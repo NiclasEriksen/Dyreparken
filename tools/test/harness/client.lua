@@ -336,8 +336,7 @@ end
 -- Quirk lines at once: every delay tier (read from the real table, so a new one is
 -- covered) at zero, and no line said yet in the last 45 minutes.
 function Client:QuirksNow()
-    local Q = self.ns.Quirks
-    for k in pairs(Q.DELAY) do Q.DELAY[k] = { 0, 0 } end
+    for k in pairs(self.ns.Moments.DELAY) do self.ns.Moments.DELAY[k] = { 0, 0 } end -- (Quirks.DELAY is the same table)
     self.ns.DB.char.quirkAt = nil
 end
 

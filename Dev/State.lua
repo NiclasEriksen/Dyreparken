@@ -8,11 +8,7 @@ if not ns.DEV then return end
 local State = {}
 ns.State = State
 
-local function Left(at, every)
-    if not at then return "free" end
-    local left = at + every - ns.Now()
-    return left <= 0 and "free" or ("in %dm"):format(math.ceil(left / 60))
-end
+local function Left(seconds) return seconds <= 0 and "free" or ("in %dm"):format(math.ceil(seconds / 60)) end
 local function Today(store)
     local out, today = {}, ns.Today()
     for id, e in pairs(store or {}) do
@@ -39,12 +35,11 @@ function State.Lines()
     lines[#lines + 1] = ("pet out %s%s, bond %s (level %s), today %d/%d"):format(tostring(key),
         key and key == mine and " (adopted)" or (mine and (", adopted " .. mine) or ""), tostring(points), tostring(level),
         got or 0, max or 0)
-    lines[#lines + 1] = ("quirks: %s%s; eggs today: %s"):format(Left(char.quirkAt, ns.Quirks.EVERY),
-        ns.Quirks:Pending() and ", a line on its way" or "", Today(char.eggs))
+    local M = ns.Moments
+    lines[#lines + 1] = ("quirks: %s; eggs today: %s"):format(Left(M:Left("quirk")), Today(char.eggs))
     local rows = ns.Reactions.mine and #ns.Reactions.mine or 0
-    lines[#lines + 1] = ("reactions (%d rows of your class): %s%s; said today: %s"):format(rows,
-        Left(char.reactAt, ns.Reactions.EVERY), ns.Reactions:Pending() and (", on its way: " .. ns.Reactions:Pending()) or "",
-        Today(char.reacts))
+    lines[#lines + 1] = ("reactions (%d rows of your class): %s; said today: %s%s"):format(rows,
+        Left(M:Left("react")), Today(char.reacts), M:Pending() and ("; on its way: " .. M:Pending()) or "")
     local w = char.wish
     lines[#lines + 1] = w and w.day == ns.Today() and ("wish: %s%s, %s, watching %s"):format(w.id, w.zone and (" (" .. w.zone .. ")") or "",
         w.done and "done" or "not yet", tostring(ns.Wish:Armed())) or "wish: none made yet today (it is, the first time your adopted pet is out or its card shows)"

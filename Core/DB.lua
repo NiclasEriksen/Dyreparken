@@ -94,9 +94,10 @@ local CHAR_DEFAULTS = {
     sulk = nil,                -- { key, day, shown }: a dislike came up today (Moves turns the pet's back once: SulkShown)
     dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (the card shows these)
     eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Moves plays dead once: EggPlayed)
-    quirkAt = nil,             -- when the last quirk line was shown (at most one every 45 minutes)
     -- [Reactions]
     reacts = {},               -- [row id] = { n, day, key }: class reactions said (Reactions.lua; once a day each)
+    -- [Moments]
+    quirkAt = nil,             -- when the last quirk line was shown (at most one every 45 minutes)
     reactAt = nil,             -- when the last common reaction line was said (at most one every 20 minutes)
     -- [Registry]
     named = nil,               -- { day, at = { [petKey] = when } }: today's first new name per pet (once a day)

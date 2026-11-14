@@ -204,8 +204,12 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Reactions (2026-11-14: your pet reacts to what your class does, read from the sensors: rows in
                    Reactions.ROWS by class and spell name (Forever's spell ids differ), lines by nature
                    (react.<id>.<trait|family>.N), once a day each, common ones at most one every 20 minutes
-                   (char.reactAt, beside Quirks' 45), rare ones always, a fight's after it; counted in char.reacts
+                   (char.reactAt, beside Quirks' 45), rare ones always (with another line on its way, half the
+                   time: RARE_SKIP), a fight's after it; counted in char.reacts
                    for achievements of their own once enough rows exist; plan: docs/CLASS_INTERACTIONS.md)
+                   Moments (2026-11-14: what Quirks' lines and the reactions share: lines by nature
+                   (Moments.ByNature), the cooldown budgets (quirk 45 min, react 20), ONE line on its way at a
+                   time for both, the waits (Moments.DELAY = Quirks.DELAY), counting once a day (SaidToday, Count)),
                    Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;

@@ -7,7 +7,7 @@ return function(test, H)
     local SPELLS = { [1] = "Battle Shout", [2] = "Battle Stance", [3] = "Defensive Stance", [4] = "Berserker Stance",
         [5] = "Feign Death", [6] = "Divine Shield", [7] = "Hearthstone", [8] = "Searing Totem", [9] = "Healing Stream Totem",
         [10] = "Windfury Totem", [11] = "Stoneskin Totem", [12] = "Summon Imp", [13] = "Polymorph: Pig", [14] = "Ghost Wolf",
-        [15] = "Sprint" }
+        [15] = "Sprint", [16] = "Tame Beast" }
 
     -- Ola, of the class given, with the panda adopted and out; every chance and delay at once.
     local function Setup(class)
@@ -107,7 +107,7 @@ return function(test, H)
         local at = ola.ns.DB.char.reactAt
         ok(at)
         no(R:Ready(), "the 20 minutes")
-        w:Run(R.EVERY)
+        w:Run(ola.ns.Moments.BUDGETS.react.every)
         ok(R:Ready())
     end)
 
@@ -135,11 +135,17 @@ return function(test, H)
         Cast(ola, 4)
         w:Run(1)
         ok(Said(ola, "stansdans"))
-        -- A shaman's four totems: a whole garden (rare, past the budget); one alone is just a totem.
+        -- A shaman's four totems: a whole garden (common since the user found it twice in a short while: the
+        -- budget holds it back too); one alone is just a totem.
         w:SkipDays(1)
         ola.state.class = "SHAMAN"
         R:Watch()
         ola.ns.DB.char.reactAt = ola.ns.Now()
+        Cast(ola, 8); Cast(ola, 9); Cast(ola, 10); Cast(ola, 11)
+        w:Run(1)
+        ok(ola:Log("totemhage: the 20 minutes")[1], "the budget spent: no garden")
+        ola.ns.DB.char.reactAt = nil
+        w:Run(R.TOTEM_SPAN + 1) -- (those four gone from the garden's span)
         -- (the totems' own line said already today, as in game: the garden is a row of its own)
         ola.ns.DB.char.reacts.totemer = { n = 1, day = ola.ns.Today() }
         -- (in a fight, as a shaman drops them: said after it)
@@ -147,7 +153,7 @@ return function(test, H)
         ola:Fire("PLAYER_REGEN_DISABLED")
         Cast(ola, 8); Cast(ola, 9); Cast(ola, 10)
         w:Run(1)
-        no(Said(ola, "totemer"), "three, and the budget spent")
+        no(Said(ola, "totemer"), "three")
         ok(ola:Log("totemer: said today")[1])
         ok(ola:Log("totemhage: not its moment")[1], "three kinds: no garden yet")
         Cast(ola, 11)
@@ -191,5 +197,44 @@ return function(test, H)
         end
         ok(ns.Strings["react.totemhage.1"])
         match(ns.L["react.krigsrop.1"], "{pet}")
+    end)
+    test("one line on its way at a time, an egg's or a reaction's (Moments): no two seconds apart", function()
+        local w, ola = Setup("WARRIOR")
+        w:Run(30) -- (the day's visit and its eggs first)
+        for k in pairs(ola.ns.Moments.DELAY) do ola.ns.Moments.DELAY[k] = { 5, 5 } end
+        -- A roll's egg on its way: the shout waits its turn (and is said another time).
+        ola:Fire("CHAT_MSG_SYSTEM", "Ola Nord rolls 1 (1-100)")
+        Cast(ola, 1)
+        ok(ola:Log("krigsrop: a line on its way")[1])
+        w:Run(6)
+        no(Said(ola, "krigsrop"))
+        eq(ola.ns.DB.char.eggs.ener.n, 1, "the egg said")
+        -- And the other way round: a shout on its way holds back a common egg (a known dislike, the fire...).
+
+        Cast(ola, 1)
+        ok(ola.ns.Moments:Pending())
+        no(ola.ns.Quirks:Ready(), "the eggs wait too")
+        w:Run(6)
+        ok(Said(ola, "krigsrop"))
+        no(ola.ns.Moments:Pending())
+    end)
+
+    test("a rare row with a line on its way: said anyway some of the time (RARE_SKIP), else lost", function()
+        local w, ola, R = Setup("HUNTER")
+        w:Run(30) -- (the day's visit and its eggs first)
+        local M = ola.ns.Moments
+        for k in pairs(M.DELAY) do M.DELAY[k] = { 5, 5 } end
+        local function Waiting() M:Say({ text = "Hm.", key = PANDA, why = "another line" }) end
+        Waiting()
+        ola:Dice(R.RARE_SKIP + 0.01)
+        Cast(ola, 16)
+        ok(ola:Log("sjalusi: a line on its way")[1], "lost this time")
+        w:Run(6)
+        no(Said(ola, "sjalusi"))
+        Waiting()
+        ola:Dice(R.RARE_SKIP - 0.01)
+        Cast(ola, 16)
+        w:Run(6)
+        ok(Said(ola, "sjalusi"), "said anyway")
     end)
 end

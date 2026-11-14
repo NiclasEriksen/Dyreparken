@@ -27,20 +27,15 @@ local _, ns = ...
 local Quirks = {}
 ns.Quirks = Quirks
 
-Quirks.EVERY = 2700          -- seconds between quirk lines (an hour until 2026-11-11: the user, 45 minutes)
+-- (The 45 minutes between quirk lines, the waits and the one line on its way: Moments.lua, shared with the
+-- class reactions since 2026-11-14.)
 Quirks.DISLIKE_CHANCE = 0.35 -- a dislike not yet found: per time it happens (the cooldown doesn't hold it back)
 Quirks.DISLIKE_AGAIN = 0.15  -- one already found: per time, with the 45 minutes free
 -- A minor dislike (Personality: unlocked by your bond at level 6), a third as often (the user, 2026-11-12).
 Quirks.MINOR_CHANCE, Quirks.MINOR_AGAIN = 0.15, 0.05
--- A line comes a while after what caused it, not the instant it happens
--- (2026-11-10: "scared of flying" the moment you took off read as if it had
--- flown for ages). Seconds, picked at random within; a dislike takes longer
--- to sink in than an egg's moment.
--- 2026-11-11, the user: "some remarks feel a little too separated as they come so late": by the
--- line now. A reaction to something that just happened (a roll, a duel, a lost fish) comes almost at
--- once ("now"); a day's egg (a holiday) a little after; the flight's dislike still waits ("slow").
--- An egg names its own (delay = ...), day eggs are "day"; Quirks.DISLIKE_DELAY per activity.
-Quirks.DELAY = { dislike = { 8, 15 }, egg = { 3, 10 }, now = { 1, 3 }, day = { 5, 15 }, slow = { 20, 40 } }
+-- How long a line waits: Moments.DELAY (the same table). An egg names its own (delay = ...), day eggs
+-- are "day"; Quirks.DISLIKE_DELAY per activity.
+Quirks.DELAY = ns.Moments.DELAY
 Quirks.DISLIKE_DELAY = { taxi = "slow" }
 -- Talking a lot (2026-11-11, the user): this many of your guild chat lines within CHAT_SPAN seconds.
 Quirks.CHAT_BURST, Quirks.CHAT_SPAN = 5, 120
@@ -49,33 +44,17 @@ local T = ns.T
 
 local Pick = ns.PickLine
 
--- A line decided and not yet said: nothing else is decided meanwhile.
+-- The eggs decided and not yet said, by the day they're for (an egg isn't decided twice meanwhile).
 local pending = { eggs = {} }
 
-function Quirks:Pending() return pending.line == true end -- (/dp state)
-function Quirks:Ready()
-    if pending.line then return false end
-    local at = ns.DB.char.quirkAt
-    return not at or ns.Now() - at >= self.EVERY
-end
+function Quirks:Ready() return ns.Moments:Ready("quirk") end
 
--- Decided now, said after the delay. What it uses up (the hour, an egg's
--- day, a dislike found) is saved only when it's said: a /reload in the
--- delay used to spend it unsaid (code review 2026-11-10). said(): saves
--- that, and what follows the line.
+-- Decided now, said after the delay (Moments:Say); every quirk line spends the 45 minutes as it's said.
+-- said(): saves what it used up, and what follows the line. On the pet frame a dislike its own way, an egg
+-- a plain remark.
 function Quirks:Say(text, why, kind, said, delay, key, bubble)
-    pending.line = true
-    local span = self.DELAY[delay or kind]
-    local wait = span[1] + ns.random() * (span[2] - span[1])
-    ns.Log("Quirks", "%s, in %d s", why, wait)
-    C_Timer.After(wait, function()
-        pending.line = nil
-        ns.DB.char.quirkAt = ns.Now()
-        -- (chatLines off hides the line only, what it found still counts; on the pet frame a dislike
-        -- its own way, an egg a plain remark)
-        ns.PetSays(text, key, bubble or (kind == "dislike" and "dislike" or "say"))
-        if said then said() end
-    end)
+    ns.Moments:Say({ text = text, key = key, why = why, delay = delay or kind, budget = "quirk", said = said,
+        bubble = bubble or (kind == "dislike" and "dislike" or "say") })
 end
 
 ------------------------------------------------------------------------------
@@ -98,7 +77,7 @@ function Quirks:Dislike(key, id, minor)
     local first = not (seen[key] and seen[key][id])
     -- (found: common, the 45 minutes; not yet: a discovery, only another line on its way holds it)
     if first then
-        if pending.line then return end
+        if ns.Moments:Pending() then return end
     elseif not self:Ready() then
         return
     end
@@ -491,17 +470,8 @@ Quirks.REUNION_DAYS, Quirks.REUNION_CHANCE = 3, 0.35 -- (gjensyn: Monday's pet b
 Quirks.WAKE_CHANCE = 0.15 -- the pet frame's pet woken after you were AFK: the chance of a line (egg "vaken")
 -- Lines by nature, from the egg's own lists (EGGS: traits, families): the first of its
 -- traits the pet has (egg.<id>.<trait>.N), then its families' (egg.<id>.<family>.N), else
--- the plain ones (egg.<id>.N). A test holds every listed one to its lines.
-function Quirks.ByNature(ctx)
-    local e = ctx.egg
-    for _, t in ipairs(e.traits or {}) do
-        if HasTrait(ctx.key, t) and ns.Strings["egg." .. e.id .. "." .. t .. ".1"] then return { _key = "egg." .. e.id .. "." .. t } end
-    end
-    for _, f in ipairs(e.families or {}) do
-        if ctx.family[f] and ns.Strings["egg." .. e.id .. "." .. f .. ".1"] then return { _key = "egg." .. e.id .. "." .. f } end
-    end
-    return {}
-end
+-- the plain ones (egg.<id>.N). A test holds every listed one to its lines. (Moments.ByNature.)
+function Quirks.ByNature(ctx) return ns.Moments.ByNature("egg", ctx.egg, ctx.key) end
 
 -- The meter's eggs (Meter.lua): a dungeon boss, a raid boss, and more when well ahead of the next.
 Quirks.METER_DUNGEON, Quirks.METER_RAID, Quirks.METER_FAR = 0.35, 0.7, 0.25
@@ -538,11 +508,9 @@ function Quirks:Egg(on, key, extra, seen)
                 local cheer = e.cheer
                 if type(cheer) == "function" then cheer = cheer(vars) end -- (by the line it says)
                 self:Say(text, ("egg %s %s"):format(e.id, key), "egg", function()
-                    local got = ns.DB.char.eggs[e.id] or {}
-                    got.n, got.day, got.key, got.played = (got.n or 0) + 1, today, key, nil -- (Moves: playing dead)
-                    ns.DB.char.eggs[e.id] = got
+                    local got = ns.Moments.Count(ns.DB.char.eggs, e.id, key, text, e.id, today)
+                    got.played = nil -- (Moves: playing dead, anew)
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
-                    ns.Story:Mine(key, "egg", text, e.id) -- (its story keeps the line, once per egg)
                     if cheer and ns.Moves then ns.Moves:Cheer(key) end -- (on its card and the pet frame)
                 end, e.delay or (e.on == "day" and "day" or nil), key, e.bubble)
                 any = true

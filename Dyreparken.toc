@@ -65,6 +65,7 @@ Menagerie\Tooltip.lua
 Menagerie\Sense.lua
 Menagerie\Unlisted.lua
 Menagerie\Bonds.lua
+Menagerie\Moments.lua
 Menagerie\Bond.lua
 Menagerie\Wish.lua
 Menagerie\Playdate.lua

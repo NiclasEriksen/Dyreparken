@@ -9,15 +9,18 @@ local _, ns = ...
 -- sensor), spells / starts / ends (a cast's or buff's name: exactly, or how it starts or ends; names, not ids:
 -- Forever has ids of its own), test (fn(subject, row, key) -> vars or nil; vars._key a line of its own), calm (only
 -- when it happened out of combat), rare, chance, traits / families (lines by nature, the first the pet has),
--- delay (Quirks.DELAY's).
--- Pacing (the user's answer 2): common rows at most one line every EVERY seconds (char.reactAt), beside the
--- eggs' 45 minutes; rare ones always. Each row once a day. Something done in a fight is said after it.
+-- delay (Moments.DELAY's).
+-- Pacing (the user's answer 2): common rows at most one line every 20 minutes (Moments' "react" budget,
+-- char.reactAt), beside the eggs' 45; rare ones always. Each row once a day. Something done in a fight is said
+-- after it. No line while another is on its way, an egg's either (Moments.lua).
 -- Lines: Locale/nb.lua, react.<id>.N and react.<id>.<trait|family>.N.
 local Reactions = {}
 ns.Reactions = Reactions
 
-Reactions.EVERY = 1200 -- seconds between common reaction lines (the user: their own budget, about 20 minutes)
 Reactions.CHANCE = 0.5 -- a common row's line, when its moment comes (once a day each)
+-- A rare row with another line on its way (an egg's, Moments): said anyway this often, else lost (2026-11-14, the
+-- user: "rare should have a chance to skip the one at a time rule, but only some of the time").
+Reactions.RARE_SKIP = 0.5
 Reactions.STANCES, Reactions.STANCE_SPAN = 3, 10 -- a warrior's stance dance: this many changes within this many seconds
 Reactions.BUBBLE_SPAN = 20 -- seconds from Divine Shield to the hearthstone's end (its cast takes 10)
 Reactions.TOTEMS, Reactions.TOTEM_SPAN = 4, 30 -- a whole garden: four totems within this many seconds
@@ -89,11 +92,12 @@ Reactions.ROWS = {
     { id = "kjempeugle", class = "DRUID", on = "cast", spells = { "Moonkin Form" }, rare = true, traits = { "nattugle" },
         families = { "owl" } },
     { id = "moonglade", class = "DRUID", on = "cast", spells = { "Teleport: Moonglade" }, families = { "owl", "spirit" } },
-    -- Shaman: totems; four kinds within TOTEM_SPAN are a whole garden, a rare row of its own (2026-11-14, in game: a
-    -- garden inside the totems' row was lost to it, said already that day, six gardens in one evening)
+    -- Shaman: totems; four kinds within TOTEM_SPAN are a whole garden, a row of its own (2026-11-14, in game: a
+    -- garden inside the totems' row was lost to it, said already that day, six gardens in one evening). Common, not
+    -- rare (the user, the same day: "Totem garden is not rare, I've gotten it twice in a short period").
     { id = "spokelsesulv", class = "SHAMAN", on = "cast", spells = { "Ghost Wolf" }, families = { "wolf", "rabbit", "farm" } },
     -- (in a fight too, said after it: a shaman drops them in fights, the garden most of all; seen 2026-11-14)
-    { id = "totemhage", class = "SHAMAN", on = "cast", ends = { " Totem" }, rare = true, test = function()
+    { id = "totemhage", class = "SHAMAN", on = "cast", ends = { " Totem" }, test = function()
             local list = times.totem
             Within(list, Reactions.TOTEM_SPAN, 1)
             local kinds, n = {}, 0
@@ -125,45 +129,18 @@ end
 Reactions.Named = Named
 
 -- Lines by nature: the first of the row's traits the pet has with lines, then its families', else the plain.
-function Reactions.ByNature(row, key)
-    for _, t in ipairs(row.traits or {}) do
-        if ns.Personality:Has(key, t) and ns.Strings["react." .. row.id .. "." .. t .. ".1"] then return { _key = "react." .. row.id .. "." .. t } end
-    end
-    local families = {}
-    for _, f in ipairs(ns.Scenes:Families(key)) do families[f] = true end
-    for _, f in ipairs(row.families or {}) do
-        if families[f] and ns.Strings["react." .. row.id .. "." .. f .. ".1"] then return { _key = "react." .. row.id .. "." .. f } end
-    end
-    return {}
-end
+function Reactions.ByNature(row, key) return ns.Moments.ByNature("react", row, key) end
 
-local pending -- a line decided and not yet said
-function Reactions:Pending() return pending end -- (/dp state: the row's id)
-function Reactions:Ready()
-    if pending then return false end
-    local at = ns.DB.char.reactAt
-    return not at or ns.Now() - at >= self.EVERY
-end
+function Reactions:Ready() return ns.Moments:Ready("react") end
 
 -- The row's line, said a moment later (after the fight, if in one); what it uses up is saved as it's said.
 function Reactions:Say(row, key, text, rare)
     local today = ns.Today()
-    pending = row.id
-    ns.Events:OutOfCombat(function()
-        local span = ns.Quirks.DELAY[row.delay or "now"]
-        local wait = span[1] + ns.random() * (span[2] - span[1])
-        ns.Log("Reactions", "%s %s, in %d s", row.id, key, wait)
-        C_Timer.After(wait, function()
-            pending = nil
-            if not rare then ns.DB.char.reactAt = ns.Now() end
-            ns.PetSays(text, key, "say")
-            local got = ns.DB.char.reacts[row.id] or {}
-            got.n, got.day, got.key = (got.n or 0) + 1, today, key
-            ns.DB.char.reacts[row.id] = got
+    ns.Moments:Say({ text = text, key = key, why = ("react %s %s"):format(row.id, key), delay = row.delay or "now",
+        budget = not rare and "react" or nil, afterFight = true, said = function()
+            local got = ns.Moments.Count(ns.DB.char.reacts, row.id, key, text, "react:" .. row.id, today)
             if got.n == 1 then ns.Bus:Fire("REACT_FOUND", row.id) end
-            ns.Story:Mine(key, "egg", text, "react:" .. row.id) -- (its story keeps the line, once per reaction)
-        end)
-    end)
+        end })
 end
 
 -- Why a row's moment said nothing, or nil when it speaks (the log says which: 2026-11-14, a Ghost Wolf
@@ -171,13 +148,12 @@ end
 function Reactions:Try(row, s, key)
     if row.calm and s.combat then return "in a fight" end
     if not key then return "no pet out" end
-    local had = ns.DB.char.reacts[row.id]
-    if had and had.day == ns.Today() then return "said today" end
+    if ns.Moments.SaidToday(ns.DB.char.reacts, row.id) then return "said today" end
     local vars
     if row.test then vars = row.test(s, row, key) else vars = self.ByNature(row, key) end
     if not vars then return "not its moment" end
     local rare = row.rare
-    if pending then return "a line on its way" end
+    if ns.Moments:Pending() and not (rare and ns.random() < self.RARE_SKIP) then return "a line on its way" end
     if not (rare or self:Ready()) then return "the 20 minutes" end
     if not rare and ns.random() >= (row.chance or self.CHANCE) then return "the roll" end
     local text = ns.PickLine(vars._key or ("react." .. row.id), setmetatable({ pet = ns.Registry:NameOf(key) }, { __index = vars }))
