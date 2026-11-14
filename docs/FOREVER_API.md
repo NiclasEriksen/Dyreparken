@@ -492,6 +492,38 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
 - **Ghost Wolf** counts as a riding form (`Moves.RIDING_FORMS`, form id 16): the pet ran on its card in it (the user,
   2026-11-11). Travel Form (3) not tried.
 
+## Units under the mouse, forms and your casts (`/dp probe api glance`, 2026-11-14, build 1.60.1, Horde shaman)
+
+- **A unit in combat has a secret identity, even when you aren't in combat**: `C_Secrets.ShouldUnitIdentityBeSecret`
+  true, and then `UnitGUID` is nil, and `UnitName`, `UnitClass`, `UnitCreatureType`, `UnitIsPVP` and the tooltip's
+  second line are secret. Still readable then: `UnitFactionGroup`, `UnitReaction`, `UnitIsEnemy`, `UnitCanAttack`,
+  `UnitClassification`, `UnitLevel`, `UnitPlayerControlled`. 62 of 103 glances were secret (46 with us in combat,
+  16 of elites or players fighting nearby). Out of combat everything reads plain.
+- **The other faction reads plain** out of combat: a Horde player saw an Alliance gnome mage's class, race and
+  faction (reaction 2, `UnitIsPVP` false). The tooltip's line 2 is the guild, else "Level N Race (Player)".
+  Skyborne race: "Windshaper Skyborne", file name "Skyborne", id 96.
+- Creatures: `UnitClass` gives a class (a mob's own: "WARRIOR", "MAGE"), `UnitCreatureFamily` names beasts and
+  demons ("Crocolisk", "Bat", "Imp"), `UnitCreatureType` gives "Beast", "Elemental", "Demon". A warlock's demon has a
+  `Pet-` GUID (npc id 416 for an Imp), line 2 "<Owner>'s Minion". A companion: `UnitBattlePetSpeciesID` works (70),
+  line 2 "<Owner>'s Companion". No hunter pet or totem was moused over.
+- Second run (the same day): **hunter pets** have a `Pet-` GUID with npc id **165189 for every one** (a Cat and a
+  Tallstrider alike: tell them apart by `UnitCreatureFamily`), line 2 "<Owner>'s Pet". A Voidwalker: family
+  "Voidwalker", "<Owner>'s Minion". A **totem**: a `Creature-` GUID, `UnitCreatureType` "Totem" (11), controlled,
+  its name with its rank ("Healing Stream Totem III"). Players' `UnitCreatureType` isn't their race: Tauren,
+  Trolls in a form, Skyborne and Night Elf druids read "Beast". Alliance Skyborne: "High Order Skyborne", id 95.
+  Varimathras: classification "worldboss", line 2 "Level ?? (Boss)".
+- **`GetZonePVPInfo` is missing**, so a zone's faction context must come from a list of our own. Zone names
+  as `GetZoneText` gives them include Forever's own "Riverglades" and "Dalaran" (its own zone, entered from
+  Alterac Mountains); `GetSubZoneText` works ("Thandol Span", "Lordamere Lake").
+- **`GetPetHappiness` is missing.** `UNIT_HAPPINESS` (registered for every unit) fired 543 times in ~30 minutes
+  with no pet of ours out: register it for "pet" only, if at all.
+- Shaman: `GetShapeshiftFormID()` 16 in Ghost Wolf, `GetShapeshiftForm()` 1, but `GetNumShapeshiftForms()` 0.
+  `UPDATE_SHAPESHIFT_FORM` also fires with no form (nil) when casting (fishing).
+- Forever's own spell ids (`UNIT_SPELLCAST_SUCCEEDED`): Ghost Wolf 1238640, Water Shield 408510, Totemic Call
+  437009, Call of the Elements 66842, Unroll Bag 429961, Nutritious Food 1249507; the classic ids for the rest (Flame
+  Shock 10447, Searing Totem 6365, Fishing 7732...). Buffs seen: Plainsrunning 1299038 (Tauren, often), Boosted Rest
+  1229451, Well Fed 1249520, Windfury Totem 8515, Stoneskin 10403, Healing Stream 6372.
+
 ## Professions and the exploration achievements (`/dp probe api legacy`, 2026-11-13, build 1.60.1)
 
 - **Professions**: `GetProfessions()` gives the slots' indexes (primary, primary, archaeology, fishing, cooking;
