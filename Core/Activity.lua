@@ -304,6 +304,17 @@ end
 
 function Activity:IsListening(event) return listening[event] ~= nil end
 
+-- Which activities are wanted, by how many owners (/dp state).
+function Activity:Wanted()
+    local out = {}
+    for id, owners in pairs(wanted) do
+        local n = 0
+        for _ in pairs(owners) do n = n + 1 end
+        if n > 0 then out[id] = n end
+    end
+    return out
+end
+
 -- The debug log wants every activity, so it shows what this client fires.
 local DEBUG = {}
 function Activity:SetDebug(on)

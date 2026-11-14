@@ -376,6 +376,7 @@ function Wish:Arm()
 end
 -- Whether today's wish has events of its own watched (an explore's, a trip's).
 function Wish:Watching() return armed == "explore" or armed == "zone" end
+function Wish:Armed() return armed end -- (/dp state)
 
 -- The calendar day before a day ("YYYYMMDD"): noon of the day before, safe around DST.
 local function DayBefore(day)

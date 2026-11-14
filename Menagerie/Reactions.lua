@@ -138,6 +138,7 @@ function Reactions.ByNature(row, key)
 end
 
 local pending -- a line decided and not yet said
+function Reactions:Pending() return pending end -- (/dp state: the row's id)
 function Reactions:Ready()
     if pending then return false end
     local at = ns.DB.char.reactAt

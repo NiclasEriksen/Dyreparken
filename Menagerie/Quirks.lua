@@ -52,6 +52,7 @@ local Pick = ns.PickLine
 -- A line decided and not yet said: nothing else is decided meanwhile.
 local pending = { eggs = {} }
 
+function Quirks:Pending() return pending.line == true end -- (/dp state)
 function Quirks:Ready()
     if pending.line then return false end
     local at = ns.DB.char.quirkAt
