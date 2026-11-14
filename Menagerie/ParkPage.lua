@@ -210,6 +210,18 @@ local function NewCell()
     c.mine:SetVertexColor(1, 0.82, 0.2, 0.9)
     c.mine:SetSize(ICON_SIZE + 10, ICON_SIZE + 10)
     c.mine:SetPoint("CENTER")
+    -- The ring's shine from level 5 (a soft glow in its color) and its glint from 3 (a twinkling sparkle,
+    -- each cell at its own pace so they don't blink together).
+    c.sheen = c:CreateTexture(nil, "BACKGROUND", nil, -1)
+    c.sheen:SetTexture(ns.Icon("ring"))
+    c.sheen:SetBlendMode("ADD")
+    c.sheen:SetSize(ICON_SIZE + 10, ICON_SIZE + 10)
+    c.sheen:SetPoint("CENTER")
+    c.glint = c:CreateTexture(nil, "OVERLAY", nil, 3)
+    c.glint:SetTexture(ns.Icon("sparkle"))
+    c.glint:SetBlendMode("ADD")
+    c.glint:SetPoint("CENTER", c, "TOPRIGHT", -6, -6)
+    c.glint.pulse = ns.Anim.Pulse(c.glint, 0.25, 1, 1.8 + (#cells % 7) * 0.25)
     c.free = c:CreateTexture(nil, "OVERLAY", nil, 2)
     c.free:SetTexture(READY)
     c.free:SetSize(14, 14)
@@ -255,7 +267,7 @@ local function Redraw()
         c.key = it.key
         ns.Pets:Portrait(c.icon, it.key)
         local owner = R:Holder(it.key)
-        Park.Ring(c.ring, it.key, owner, match)
+        Park.Ring(c, it.key, owner, match)
         local match = not filtering or Park.Matches(it.key, nil, owned)
         if match then matches = matches + 1 end
         c.match = match
@@ -276,19 +288,43 @@ local function Redraw()
     page.matches:SetText(filtering and ns.T("park.matches", { n = matches }) or "")
 end
 
--- A cell's ring: an adopted pet's holder's bond level in the card's tier colors (below silver, the
--- family's, brightened: the tints are made for the card's wash and were too faint here, 2026-11-15, the
--- user: "it should be clearer which one is adopted"); none for a pet that needs a home; fainter when the
--- filter leaves it out.
-Park.RING_BRIGHT = 2.2
-function Park.Ring(ring, key, owner, match)
-    ring:SetShown(owner ~= nil)
-    if not owner then return end
-    local _, level = ns.Bond:Of(key)
-    local family = ns.Scenes:Families(key)[1] or "default"
-    local tint = ns.Scenes.Bright(ns.Scenes.TINT[family] or ns.Scenes.TINT.default, Park.RING_BRIGHT)
-    local c = ns.Scenes.Tier(level or 1, tint)
-    ring:SetVertexColor(c[1], c[2], c[3], match and 1 or Park.DIM)
+-- A cell's ring (2026-11-15, the user): an adopted pet's family color at every level, paler at the first
+-- and deeper and brighter as its holder's bond grows (Park.RingColor), a glint from GLINT_AT and a shine
+-- from SHEEN_AT ("with a glint / something shiny for higher levels"); your own pet's in gold (with its
+-- glow). None for a pet that needs a home. Fainter when the filter leaves it out.
+Park.GLINT_AT, Park.SHEEN_AT = 3, 5
+-- { r, g, b, a } for a family at a bond level: saturated (away from its grey) and brightened along the
+-- levels; the tints are made for the card's dark wash, so even level 1 is lifted.
+function Park.RingColor(family, level)
+    local c = ns.Scenes.TINT[family] or ns.Scenes.TINT.default
+    local t = math.min(1, math.max(0, ((level or 1) - 1) / 6))
+    local sat, bright = 1 + 0.8 * t, 1.6 + 1.0 * t
+    local grey = (c[1] + c[2] + c[3]) / 3
+    local out = {}
+    for i = 1, 3 do out[i] = math.min(1, math.max(0, (grey + (c[i] - grey) * sat) * bright)) end
+    out[4] = 0.75 + 0.25 * t
+    return out
+end
+
+function Park.Ring(c, key, owner, match)
+    local level = owner and select(2, ns.Bond:Of(key)) or 0
+    local mine = owner ~= nil and owner == ns.PlayerKey()
+    local col = mine and { ns.Scenes.GOLD[1], ns.Scenes.GOLD[2], ns.Scenes.GOLD[3], 1 }
+        or owner and Park.RingColor(ns.Scenes:Families(key)[1] or "default", level)
+    c.ring:SetShown(col ~= nil)
+    local glint = col ~= nil and not mine and match and level >= Park.GLINT_AT
+    local sheen = col ~= nil and not mine and match and level >= Park.SHEEN_AT
+    c.glint:SetShown(glint); c.sheen:SetShown(sheen)
+    if glint then
+        local size = level >= Park.SHEEN_AT and 18 or 13
+        c.glint:SetSize(size, size)
+        if not c.glint.pulse:IsPlaying() then c.glint.pulse:Play() end
+    else
+        c.glint.pulse:Stop()
+    end
+    if not col then return end
+    c.ring:SetVertexColor(col[1], col[2], col[3], match and col[4] or Park.DIM)
+    if sheen then c.sheen:SetVertexColor(col[1], col[2], col[3], 0.55) end
 end
 
 ------------------------------------------------------------------------------
@@ -466,7 +502,7 @@ function Park:Bonds(keys)
     if not (self:IsOpen() and spot) then return end
     local R = ns.Registry
     for _, c in ipairs(cells) do
-        if c:IsShown() and keys[c.key] then Park.Ring(c.ring, c.key, R:Holder(c.key), c.match) end
+        if c:IsShown() and keys[c.key] then Park.Ring(c, c.key, R:Holder(c.key), c.match) end
     end
     if spot.key and keys[spot.key] then self:Spot(spot.key, true) end
 end
