@@ -73,5 +73,5 @@ No wire or saved-data change is planned (no X-Protocol bump; migrations only if 
   most). To check in game: auto shot at a fight's start (Fight misses
   START_AUTOREPEAT_SPELL fired before combat; Forever lacks IsAutoRepeatSpell), PLAYER_FLAGS_CHANGED by unit
   (AFK sleep on the pet frame, naps), the pet frame's secure button left over an empty spot when the frame
-  hides mid-fight, Summon's verify re-call after a slow summon, and the combat key binding after opening the
-  window from the pet frame.
+  hides mid-fight, and Summon's verify re-call after a slow summon. Seen in game the same day (the user): the
+  Collections key binding works in combat, and so does a click on the pet frame.

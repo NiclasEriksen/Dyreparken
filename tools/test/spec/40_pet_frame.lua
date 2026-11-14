@@ -284,6 +284,7 @@ return function(test, H)
         -- The option off: no driver; the pet put away in combat: the button goes after the fight.
         ola.ns.DB.global.settings.petFrameCombat = false; PF:Apply()
         eq(ola.drivers[b], nil)
+        ola.ns.Summon:SetActive(PANDA, false) -- (no pet kept out: the frame goes with the one that's out)
         ola:EnterCombat()
         ola:Summon(nil); ola:Fire("COMPANION_UPDATE"); w:Run(0.5)
         no(f:IsShown(), "the frame hides in combat (ours, unprotected)")
@@ -375,6 +376,7 @@ return function(test, H)
     test("it follows the pet that's out: dismissed, hidden (but shown in Edit Mode); another pet, its model; a pet battle hides it", function()
         local w, ola, PF = Setup(14)
         local f = PF.frame
+        ola.ns.Summon:SetActive(PANDA, false) -- (no pet kept out: else the frame shows that one)
         ola:Summon(nil); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
         no(f:IsShown(), "no pet out")
         PF:EditMode(true)
@@ -388,6 +390,42 @@ return function(test, H)
         no(f:IsShown())
         ola:Fire("PET_BATTLE_CLOSE")
         ok(f:IsShown())
+    end)
+
+    test("the pet you keep out (Med deg) shows when it isn't out: mounted, on a flight path; not while you're dead", function()
+        local w, ola, PF = Setup(14)
+        local f = PF.frame
+        -- Mounted: the game puts the pet away, the frame keeps it.
+        ola:Mount(); ola:Summon(nil); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
+        ok(f:IsShown(), "mounted: still there")
+        eq(PF.key, PANDA); eq(f.name.text, "Panda Cub")
+        ola:Move(); w:Run(0.2)
+        eq(PF.actor.anim, 5, "it runs with you, as on the card")
+        ola:Halt(); ola:Dismount(); w:Run(2)
+        -- A flight path: there, standing (no run on a taxi).
+        ola.state.taxi = true; ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
+        ok(f:IsShown(), "on a flight path")
+        ola.state.taxi = false
+        -- Another pet out by hand: that one, as before.
+        ola:Summon(46); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
+        eq(PF.actor.display, 20000 + 46)
+        ola:Summon(nil); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
+        eq(PF.actor.display, 20000 + 5159, "back to the one you keep out")
+        -- Dead, and as a ghost: hidden; alive again: back.
+        ola.state.dead = true; ola:Fire("PLAYER_DEAD"); w:Run(0.4)
+        no(f:IsShown(), "dead: hidden")
+        ola:Fire("PLAYER_ALIVE"); w:Run(0.4) -- (released: a ghost, still dead or ghost)
+        no(f:IsShown(), "a ghost: hidden")
+        ola.state.dead = false; ola:Fire("PLAYER_UNGHOST"); w:Run(0.4)
+        ok(f:IsShown(), "alive again")
+        -- Med deg off (on the card, or the settings' auto-summon): only a pet that's out.
+        ola.ns.Summon:SetEnabled(false)
+        no(f:IsShown(), "auto-summon off, no pet out: hidden")
+        ola.ns.Summon:SetEnabled(true)
+        ok(f:IsShown())
+        ola.ns.Summon:SetActive(PANDA, false)
+        ola:Summon(nil); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4) -- (turned on, it summoned the panda)
+        no(f:IsShown(), "unticked on the card: hidden")
     end)
 
     test("the bar: your bond, its points rising as they come; its tooltip", function()

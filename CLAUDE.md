@@ -256,7 +256,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    come home instead), stopped when hidden),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon, a click opens its card on the Pets page (also pets you don't own);
                    loads after Achievements/Page.lua so its tab comes second),
-                   PetFrame (the pet that's out on screen, optional and off by default: its own ModelScene with the card's view
+                   PetFrame (the pet that's out on screen, else the one kept out (Med deg: mounted, on a flight path), none while
+                   you're dead, optional and off by default: its own ModelScene with the card's view
                    insets, a stage of Moves so it moves 1:1 as on the card (and asleep while you're AFK, a rare line as it
                    wakes: Quirks' egg vaken), name and a slim bond bar with the rising numbers;
                    a click opens its card through a secure button of its own over it (SecureActionButtonTemplate, type

@@ -16,8 +16,14 @@ local _, ns = ...
 -- 386 px, the model's view 50 px below its bottom to 86 above), else the pet stands half out of the
 -- top. The scene takes no mouse (it would rotate the pet): a button over it takes the clicks.
 --
+-- Which pet (PF:Pet): the one that's out, else the one you keep out ("Med deg", auto-summon on), so it
+-- stays on screen while you're mounted or on a flight path, where the game puts it away and its lines
+-- still come (2026-11-14, the user: "we want it to show on flight paths and mounted, as they have
+-- reactions then also"). None while you're dead or a ghost: hidden for now (the user: "we'll think of
+-- a creative way to use the frame during corpse runs later"), nor in a pet battle.
+--
 -- Dormant while off: no frame, no events. On: COMPANION_UPDATE (debounced: it fires for every
--- companion nearby) and pet battles, to follow the pet that's out; Bus BOND for the bar.
+-- companion nearby), pet battles and death, to follow the pet; Bus BOND for the bar, ACTIVE_PET.
 local PF = {}
 ns.PetFrame = PF
 
@@ -357,11 +363,17 @@ function PF:Peek(secs)
     end)
 end
 
+-- The pet the frame shows: see the header.
+function PF:Pet()
+    if self.battle or ns.Plain(UnitIsDeadOrGhost("player")) then return nil end
+    return ns.Pets:OutKey() or ns.Summon:ActiveKey()
+end
+
 -- Show what should show now: the pet that's out (or Edit Mode's empty frame), or nothing.
 function PF:Refresh()
     if not self:Enabled() then return self:Off() end
     local f = self:Build()
-    local key = not self.battle and ns.Pets:OutKey() or nil
+    local key = self:Pet()
     if not key then
         self.stage:Update(f, nil)
         if self.key and self.actor then Call(self.actor, "ClearModel") end -- (Edit Mode's empty frame: no pet in it)
@@ -744,14 +756,17 @@ function PF:On()
     -- pet out (or none) needs the frame redone; the rest has its own events (BOND, REGISTRY, the
     -- night's timer, Moves' motion). (Review 2026-11-12: it redid all of it, about 3 times a second.)
     companionSoon = companionSoon or ns.Debounce(0.3, function()
-        local key = not PF.battle and ns.Pets:OutKey() or nil -- (as Refresh reads it)
-        if key ~= PF.key then PF:Refresh() end
+        if PF:Pet() ~= PF.key then PF:Refresh() end
     end)
     ns.Events:On("COMPANION_UPDATE", PF, companionSoon)
     ns.Events:On("PLAYER_ENTERING_WORLD", PF, refreshSoon)
     ns.Events:On("PET_BATTLE_OPENING_START", PF, function() PF.battle = true; PF:Refresh() end)
     ns.Events:On("PET_BATTLE_CLOSE", PF, function() PF.battle = nil; PF:Refresh() end)
     ns.Events:On("PLAYER_FLAGS_CHANGED", PF, function() PF:Afk() end, "player")
+    -- (PLAYER_ALIVE comes on releasing to a ghost too: Pet reads the state, so it stays hidden then)
+    ns.Events:On("PLAYER_DEAD", PF, refreshSoon)
+    ns.Events:On("PLAYER_ALIVE", PF, refreshSoon)
+    ns.Events:On("PLAYER_UNGHOST", PF, refreshSoon)
     self.afk = ns.Plain(UnitIsAFK("player")) and true or nil -- (a /reload while away)
     self:Refresh()
 end
@@ -831,6 +846,7 @@ ns.Start("settled", function()
     ns.Bus:On("PET_SAID", function(key, kind, text) PF:Said(key, kind, text) end)
     -- Its day full: it sits (Moves:Rest), as on the card.
     ns.Bus:On("BOND_FULL", function(key) if PF.frame and PF.frame:IsShown() and key == PF.key then PF:Refresh() end end)
+    ns.Bus:On("ACTIVE_PET", function() if PF.on then PF:Refresh() end end) -- ("Med deg" on or off, or another pet)
     ns.Bus:On("REGISTRY", function() if PF.frame and PF.key then PF.frame.name:SetText(ns.Registry:NameOf(PF.key)) end end)
     PF:HookEditMode()
     PF:Apply()

@@ -79,6 +79,8 @@ function Summon:SetEnabled(on)
     ns.DB.char.autoSummon = on
     ns.Log("Summon", "auto-summon %s", on and "on" or "off")
     self:Watch()
+    -- (the pet kept out changes with it: Moves, Quirks, Bond and the pet frame follow ACTIVE_PET)
+    ns.Bus:Fire("ACTIVE_PET", self:ActiveKey())
     if on then self:Check("enabled") end
 end
 
