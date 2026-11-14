@@ -66,3 +66,12 @@ No wire or saved-data change is planned (no X-Protocol bump; migrations only if 
   off), ns.Read shared; Data/Zones.lua (Bond's Stranglethorn stays: it's the contest's own place).
 - 3.4: bond-only registry changes no longer rescan the guild (461ada4); Core/Sources.lua (f4c16a7); the owed
   moves (char.owed, char migration 3).
+- 3.4 left: Moves.NewStage (374 lines) not split: in-game tuning, most risk for the least gain.
+- Bug hunt (three reviewers, 2026-11-14): fixed in 1ff5c6b and 7ca2daf. Open, for the user: Zephras Isle as a
+  trip (unverified name and level), social wishes solo (they break a streak), the bad-luck runs reset at each
+  fight's start (0.6.2 carried them over), one line on its way now also holds back a fight's trophy egg or a
+  first dislike after a fight with a reaction. To check in game: auto shot at a fight's start (Fight misses
+  START_AUTOREPEAT_SPELL fired before combat; Forever lacks IsAutoRepeatSpell), PLAYER_FLAGS_CHANGED by unit
+  (AFK sleep on the pet frame, naps), the pet frame's secure button left over an empty spot when the frame
+  hides mid-fight, Summon's verify re-call after a slow summon, and the combat key binding after opening the
+  window from the pet frame.
