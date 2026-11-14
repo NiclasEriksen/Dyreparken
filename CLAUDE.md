@@ -161,6 +161,7 @@ Core/Activity.lua  the activity engine: game events -> activities, every one dec
                    watched or not, wishable, chip icons; its words in Locale by id), counted per
                    character after combat, Bus "ACTIVITY". Events registered only while a consumer wants them
                    (Want/Drop). Bond, achievements (`activity` kind) and stories build on it. Read its header.
+Core/Sources.lua   the activity engine's sources, by area (what in the game counts as each activity)
 Core/UI.lua        the UI kit: MEDIA/Icon(name) (our particle textures), Edges, Gradient, RoundBadge (disc, ring, icon)
 Core/Anim.lua      shared animation pieces for the card (Pulse, OneShot, Fade, Scale; Decor's Loop,
                    Timeline, Swing/SetSwing): no BOUNCE loops, one group per region

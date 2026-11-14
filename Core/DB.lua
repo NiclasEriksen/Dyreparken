@@ -82,6 +82,7 @@ local CHAR_DEFAULTS = {
     bondDay = nil,             -- the day the login's milestone and pet-of-the-day lines last showed
     -- [Activity]
     activity = {},             -- activity counters
+    -- [Sources]
     places = {},               -- [petKey] = { [zone] = true }: where each companion has been ("explore")
     lastPlace = {},            -- [petKey] = the newest place it discovered with you (Stats: the explore chip)
     -- [Stats]
