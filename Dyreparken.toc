@@ -72,6 +72,7 @@ Menagerie\Fx.lua
 Menagerie\Feats.lua
 Menagerie\Meter.lua
 Menagerie\Voyage.lua
+Menagerie\Reactions.lua
 
 Achievements\Defs.lua
 Achievements\Achievements.lua

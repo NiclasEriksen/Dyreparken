@@ -24,6 +24,7 @@ return function(test, H)
     test("dormant unless wanted: no events, and the tooltip glance does nothing", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         local S = ola.ns.Sense
+        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions) end -- (a warrior's reactions want casts)
         local n = 0
         ola.ns.Bus:On("SENSE", function() n = n + 1 end)
         for _, kind in ipairs(S.KINDS) do no(S:Listening(kind), kind) end
@@ -43,6 +44,7 @@ return function(test, H)
     test("/dp probe sense: every sensor on, each subject in the debug log; off again", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         local S = ola.ns.Sense
+        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions) end -- (a warrior's reactions want casts)
         ola:Slash("probe sense")
         for _, kind in ipairs(S.KINDS) do if kind ~= "glance" then ok(S:Listening(kind), kind) end end
         ok(S:Wants("glance"))

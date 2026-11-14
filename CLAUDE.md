@@ -192,6 +192,11 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    flag, zone, emote; each fires Bus "SENSE" (kind, subject), registered only while wanted
                    (Sense:Want/Drop), nothing from secret units; Sense.Match for rows; Data/Creatures.lua maps
                    creature family ids to our families, edited by hand; /dp probe sense logs them all)
+                   Reactions (2026-11-14: your pet reacts to what your class does, read from the sensors: rows in
+                   Reactions.ROWS by class and spell name (Forever's spell ids differ), lines by nature
+                   (react.<id>.<trait|family>.N), once a day each, common ones at most one every 20 minutes
+                   (char.reactAt, beside Quirks' 45), rare ones always, a fight's after it; counted in char.reacts
+                   for achievements of their own once enough rows exist; plan: docs/CLASS_INTERACTIONS.md)
                    Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;
