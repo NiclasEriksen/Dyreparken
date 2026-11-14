@@ -1059,7 +1059,7 @@ return function(test, H)
     -- Setup's panda with lengths of its own (not the file's), and the planner.
     local function Planner(hour)
         local w, ola = Setup(hour)
-        ola.ns.AnimLengths[5159] = { [96] = 1, [98] = 1.1, [101] = 1.3, [756] = 1.5, [754] = 1.25, [1] = 1.5 }
+        ola.ns.AnimLengths[5159] = { [96] = 1, [98] = 1.1, [101] = 1.3, [756] = 1.5, [754] = 1.25, [1] = 1.5, [99] = 1.5 }
         return w, ola, ola.ns.Moves.Plan
     end
     local STANDING = { mode = "stand", playing = 0, last = true }
@@ -1080,6 +1080,14 @@ return function(test, H)
         eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 6/1.2 100")
         ola.ns.PetMoves.species[5159] = { sleep = 100, sleepHold = 100 }
         eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 100")
+        -- A lie-down never plays past its own end, or the pet stands up for a moment before its loop
+        -- (2026-11-14: the cats' 99 is 1.34 s, sleepAt was 1.4). The panda's 99 is measured at 1.5 s.
+        ola.ns.PetMoves.species[5159] = { sleep = 99, sleepAt = 1.6, sleepHold = 100 }
+        eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 99/1.45 100", "cut just before the lie-down ends")
+        eq(Show(P.Try(PANDA, "sleep")), "99/1.45 100! =stand")
+        eq(Show(P.Try(PANDA, "sleepHold", true)), "99/1.45 100/3 0/1.4 0! =stand")
+        ola.ns.PetMoves.species[5159] = { sleep = 99, sleepAt = 0.9, sleepHold = 100 }
+        eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 99/0.9 100", "sleepAt when it's shorter")
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
         -- Its pose: a Latsabb sits; the day of three deaths it plays dead (not on a stage without
         -- moments: the pet frame).

@@ -303,6 +303,18 @@ local function Once(key, id, t)
     if id then return { id, Moves:Length(key, id, t) } end
 end
 
+-- How long a lie-down plays before its sleep loop (sleepHold) takes over: sleepAt, but never past the
+-- lie-down's own end. 2026-11-14 (the user: the cats "start laying down, then instantly stand up for 0.2s"):
+-- their 99 plays 1.34 s and sleepAt was 1.4 (set by eye before lengths were measured), so the one-off
+-- ended, the cat stood, and the loop blended in from standing. A frame early, the loop blends from lying.
+Plan.LIE_MARGIN = 0.05
+local function LieDown(key, id, at)
+    local len = Moves:Length(key, id)
+    at = at or Moves:Length(key, id, Moves.T.down)
+    if len and at > len - Plan.LIE_MARGIN then at = math.max(0.1, len - Plan.LIE_MARGIN) end
+    return at
+end
+
 -- Playing dead: the egg came up today with this pet, and it hasn't been seen yet.
 local function DeadToday(key)
     local egg = ns.DB.char.eggs.dodsfall
@@ -362,8 +374,7 @@ function Plan.Hold(key, mode, fresh)
         -- loads, as the lie-down sleepers do (SLEEP_AFTER), then sleeps; the same pet sleeps at once.
         -- (And now that it stands first, it lies down before the loop, as a pet with a lie-down of its
         -- own should: 2026-11-11, the user: "lacking the get up / down animations".)
-        return List({ STAND, Moves.SLEEP_AFTER }, id and id ~= hold and { id, at or Moves:Length(key, id, Moves.T.down) },
-            { hold })
+        return List({ STAND, Moves.SLEEP_AFTER }, id and id ~= hold and { id, LieDown(key, id, at) }, { hold })
     end
     if mode == "sit" then
         return List({ STAND, Moves.SIT_AFTER }, Once(key, For(key, "sitDown"), Moves.T.down), { For(key, "sit") })
@@ -524,7 +535,7 @@ local function Part(key, what)
     if what == "sleep" then
         local id, at, hold = For(key, "sleep"), For(key, "sleepAt") or 0, For(key, "sleepHold")
         if not id then return nil end
-        return { { id, at }, hold and { hold, keep = true } or { id, nil, at } }
+        return { { id, hold and id ~= hold and LieDown(key, id, at) or at }, hold and { hold, keep = true } or { id, nil, at } }
     end
     local id = For(key, what)
     return id and { { id, keep = true } } or nil
@@ -535,7 +546,8 @@ local function Whole(key, reaction)
     local plan
     if reaction:find("^sleep") then
         local id, at, hold = For(key, "sleep"), For(key, "sleepAt") or 0, For(key, "sleepHold")
-        plan = List(id and { id, at }, hold and { hold, Moves.TRY_HOLD } or id and { id, Moves.TRY_HOLD, at },
+        plan = List(id and { id, hold and id ~= hold and LieDown(key, id, at) or at },
+            hold and { hold, Moves.TRY_HOLD } or id and { id, Moves.TRY_HOLD, at },
             Once(key, For(key, "sleepUp"), Moves.T.up))
     elseif reaction:find("^sit") then
         local sit = For(key, "sit")
