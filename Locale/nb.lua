@@ -1050,6 +1050,10 @@ L["wish.say.guildpet.3"] = "{pet} lurer på hvordan guildens dyr har det"
 L["wish.say.zone.1"] = "{pet} vil til {zone} i dag"
 L["wish.say.zone.2"] = "{pet} drømmer om {zone}"
 L["wish.say.zone.3"] = "{pet} lengter til {zone} i dag"
+-- A companion not in Data/Companions.lua (Menagerie/Unlisted.lua), once per species
+L["unlisted.seen"] = "Dyreparken kjenner ikke {name} (art {id}) ennå. Si fra til {who}, så kommer den med!"
+L["unlisted.learned"] = "Du har {name} (art {id}), som Dyreparken ikke kjenner ennå. Si fra til {who}, så kommer den med!"
+L["unlisted.noname"] = "et ukjent dyr"
 L["wish.zone.noun"] = "en tur til {zone}" -- (a trip wish, in "fikk ønsket sitt oppfylt: ...")
 L["bond.contest"] = "{pet} jubler over at du fisket i fiskekonkurransen! (+{n} båndpoeng)"
 L["bond.contest.full"] = "{pet} jubler over at du fisket i fiskekonkurransen!" -- (a full day: no points left to give)

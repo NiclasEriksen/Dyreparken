@@ -35,6 +35,8 @@ local ACCOUNT_DEFAULTS = {
     -- [Achievements]
     ach = { got = {}, seen = {} }, -- account-scope achievements
     achHeard = {}, -- ["sender\31id"] = when: others' achievements already told (OnEarned)
+    -- [Unlisted]
+    unlisted = {}, -- [speciesID] = { t, how, name, owner }: companions not in Data/Companions.lua, told once
     -- [Settings]
     settings = { -- the account's settings
         chatLines = true, worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,

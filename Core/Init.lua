@@ -251,6 +251,7 @@ ns.Config = {
     BOND_OTHER_TOTAL = 10,        -- ... and all of them together (2026-11-10: likes are what fill a day)
     BOND_TRAIT_CAP = 10,          -- a trait's moment (Friluftsdyr outdoors...): this many a day per trait (25 until 2026-11-10)
     BOND_OTHER_RATE = 0.5,        -- a pet you own but haven't adopted earns this share (points rounded up, its day 37)
+    REPORT_TO = "Hjelp Plask",    -- who to tell about a companion we don't know (Unlisted.lua; the user's pick, 2026-11-14)
     BOND_WISH_POINTS = 10,        -- today's wish done (Wish.lua), past the daily limit (Bond.REWARDS)
     BOND_FIRST_POINTS = 5,        -- a first together: a boss this pet hasn't seen fall, a place it hasn't seen (10 until 2026-11-10)
     BOND_FIRST_CAP = 15,          -- ... at most this many a day (2026-11-10: one dungeon of firsts filled the day)

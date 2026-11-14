@@ -63,6 +63,7 @@ Menagerie\CardActions.lua
 Menagerie\JournalUI.lua
 Menagerie\Tooltip.lua
 Menagerie\Sense.lua
+Menagerie\Unlisted.lua
 Menagerie\Bonds.lua
 Menagerie\Bond.lua
 Menagerie\Wish.lua
