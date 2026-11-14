@@ -317,6 +317,7 @@ ns.Bus.EVENTS = {
     BOND_LINE = "key, text, kind: a bond reward's line to show (Bond: a like, a wish, a first, a playdate ...)",
     PET_SAID = "key, bubble, text: a pet's line, for the pet frame's bubble (say, dislike, like, major, or an egg's own)",
     WISH_DONE = "(none): a wish came true, counted for the day (Wish)",
+    SENSE = "kind, subject: a sensor saw something (Sense: glance, cast, form, buff, pet, group, flag, zone, emote)",
     FEAT = "featID, key: a feat's reward went to the pet out (Feats); nothing listens yet",
     -- Quirks and achievements
     DISLIKE_FOUND = "key, activity: a dislike happened for the first time (Quirks)",

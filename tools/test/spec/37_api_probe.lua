@@ -374,7 +374,7 @@ return function(test, H)
         match(line, "companion=true")
         match(line, "species=70")
         match(line, "line2=\"Kari Berg's Companion\"")
-        match(line, "class=missing") -- (the stub client has no UnitClass: reported, never thrown)
+        match(line, "attack=missing") -- (the stub client has no UnitCanAttack: reported, never thrown)
         ola:Fire("UPDATE_MOUSEOVER_UNIT")
         eq(#ola:Log("glance mouseover"), 1, "the same unit again: not logged")
         -- Units in combat have no GUID: told apart by what stays readable, each logged once.

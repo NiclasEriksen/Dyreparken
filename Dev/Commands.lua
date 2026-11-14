@@ -27,7 +27,18 @@ local PROBES = {
     { "moves", function() ns.MovesEditor:Toggle() end },
     { "gains", function(a) ns.BondTrack:PreviewGains(a) end, "[n n ...]" },
     { "api", function(a) ns.ApiProbe:Run(a) end, "[section|clear]" },
+    { "sense", function(a) ns.Commands.Sense(a) end, "[off]" },
 }
+
+-- /dp probe sense: every sensor (Menagerie/Sense.lua) on for this session, each subject to the debug log
+-- ("Sense <kind> ..."); off turns them off again.
+local SENSE = {}
+function ns.Commands.Sense(arg)
+    for _, kind in ipairs(ns.Sense.KINDS) do
+        if arg == "off" then ns.Sense:Drop(kind, SENSE) else ns.Sense:Want(kind, SENSE) end
+    end
+    ns.Print(arg == "off" and "Sensors off." or "Sensors on: every subject goes to the debug log (/dp debug on).")
+end
 local usage = {}
 for _, p in ipairs(PROBES) do usage[#usage + 1] = p[3] and (p[1] .. " " .. p[3]) or p[1] end
 Add("probe", "probe [" .. table.concat(usage, "|") .. "] - dump API info to the debug log (development)", function(arg)

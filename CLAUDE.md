@@ -187,6 +187,11 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Card.ORDER for build, update, our pages' pause and the card's one OnHide; a widget with nothing
                    to stop says still = true),
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
+                   Sense (2026-11-14, docs/CLASS_INTERACTIONS.md part 1: sensors for the class, race and faction
+                   reactions, none of which exist yet: glance (a unit under the mouse), cast, form, buff, pet, group,
+                   flag, zone, emote; each fires Bus "SENSE" (kind, subject), registered only while wanted
+                   (Sense:Want/Drop), nothing from secret units; Sense.Match for rows; Data/Creatures.lua maps
+                   creature family ids to our families, edited by hand; /dp probe sense logs them all)
                    Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;
@@ -270,7 +275,7 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    (Moves.override, Decor.override, Scenes.override, BondTrack.override). The tests load it all; a
                    client made with { release = true } loads the release's files only (spec/48_release.lua).
                    Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
-                   lift|moves|gains|api] and /dp debug, only when ns.DEV); PetsProbe (/dp probe, more, ach);
+                   lift|moves|gains|api|sense] and /dp debug, only when ns.DEV); PetsProbe (/dp probe, more, ach);
                    MovesProbe (/dp probe anim and pos, the editors' Moves.override); DecorProbe (/dp probe decor,
                    frames, level: Decor.show/preview, Decor.override, BondTrack.override); ScenesProbe (/dp probe bg);
                    BondTrackProbe (celebrate, gains); JournalProbe (card, tabs); SceneGallery (the galleries of bg,

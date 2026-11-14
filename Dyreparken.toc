@@ -37,6 +37,7 @@ Data\Traits.lua
 Data\Unlocks.lua
 Data\PetMoves.lua
 Data\AnimLengths.lua
+Data\Creatures.lua
 
 Menagerie\Pets.lua
 Menagerie\Registry.lua
@@ -61,6 +62,7 @@ Menagerie\JournalList.lua
 Menagerie\CardActions.lua
 Menagerie\JournalUI.lua
 Menagerie\Tooltip.lua
+Menagerie\Sense.lua
 Menagerie\Bonds.lua
 Menagerie\Bond.lua
 Menagerie\Wish.lua
