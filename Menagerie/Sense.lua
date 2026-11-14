@@ -169,7 +169,7 @@ end
 -- The sensors: their events (registered only while wanted), what each starts from, and the subject.
 ------------------------------------------------------------------------------
 local function Fire(kind, s)
-    ns.Log("Sense", "%s %s", kind, Sense.Show(s))
+    if ns.Debug.enabled then ns.Log("Sense", "%s %s", kind, Sense.Show(s)) end -- (Show builds tables: not for nothing)
     ns.Bus:Fire("SENSE", kind, s)
 end
 -- A subject as one line, for the log.
@@ -194,8 +194,7 @@ local last = {} -- what each sensor last saw (its change is the moment)
 local seen = {} -- glance: guid -> GetTime()
 Sense.SENSORS = {
     glance = {}, -- (the tooltip post-call, below)
-    cast = { events = { "UNIT_SPELLCAST_SUCCEEDED" }, on = function(_, unit, _, id)
-        if unit ~= "player" then return end
+    cast = { events = { "UNIT_SPELLCAST_SUCCEEDED" }, unit = "player", on = function(_, _, _, id)
         id = Plain(id)
         if type(id) ~= "number" then return end
         Fire("cast", { id = id, name = ns.SpellName(id), combat = ns.InCombat() })
@@ -210,8 +209,8 @@ Sense.SENSORS = {
             last.form = id
             Fire("form", { id = id, was = was })
         end },
-    buff = { events = { "UNIT_AURA" }, on = function(_, unit, info)
-        if unit ~= "player" or type(info) ~= "table" or Secret(info) then return end
+    buff = { events = { "UNIT_AURA" }, unit = "player", on = function(_, _, info)
+        if type(info) ~= "table" or Secret(info) then return end
         local added = info.addedAuras
         if type(added) ~= "table" or Secret(added) then return end
         for _, aura in ipairs(added) do
@@ -220,10 +219,9 @@ Sense.SENSORS = {
             if type(name) == "string" and Plain(aura.isHelpful) ~= false then Fire("buff", { name = name, id = id }) end
         end
     end },
-    pet = { events = { "UNIT_PET" },
+    pet = { events = { "UNIT_PET" }, unit = "player",
         start = function() last.pet = Read(UnitGUID, "pet") or false end,
-        on = function(_, unit)
-            if unit ~= "player" then return end
+        on = function()
             local guid = Read(UnitExists, "pet") == true and Read(UnitGUID, "pet") or false
             if guid == last.pet then return end
             last.pet = guid
@@ -246,10 +244,9 @@ Sense.SENSORS = {
             last.group = sig
             Fire("group", { members = members, raid = raid })
         end },
-    flag = { events = { "PLAYER_FLAGS_CHANGED", "UNIT_FACTION" },
+    flag = { events = { "PLAYER_FLAGS_CHANGED", "UNIT_FACTION" }, unit = "player",
         start = function() last.flag = Read(UnitIsPVP, "player") == true end,
-        on = function(_, unit)
-            if unit ~= "player" then return end
+        on = function()
             local on = Read(UnitIsPVP, "player") == true
             if on == last.flag then return end
             last.flag = on
@@ -288,10 +285,10 @@ local function Update(kind)
     owners[kind] = owners[kind] or {}
     local on = Sense:Wants(kind)
     for _, e in ipairs(s.events or {}) do
-        if on and not ns.Events:Has(e, owners[kind]) then
-            ns.Events:On(e, owners[kind], function(_, event, ...) s.on(event, ...) end)
+        if on and not ns.Events:Has(e, owners[kind], s.unit) then
+            ns.Events:On(e, owners[kind], function(_, event, ...) s.on(event, ...) end, s.unit)
         elseif not on then
-            ns.Events:Off(e, owners[kind])
+            ns.Events:Off(e, owners[kind], s.unit)
         end
     end
 end
@@ -310,7 +307,7 @@ end
 -- Whether a sensor's events are registered now (for the tests: dormant unless wanted).
 function Sense:Listening(kind)
     for _, e in ipairs(self.SENSORS[kind].events or {}) do
-        if owners[kind] and ns.Events:Has(e, owners[kind]) then return true end
+        if owners[kind] and ns.Events:Has(e, owners[kind], self.SENSORS[kind].unit) then return true end
     end
     return false
 end

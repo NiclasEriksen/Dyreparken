@@ -92,15 +92,14 @@ local Plain = ns.Plain
 local ready = false -- the first look is done: from now on, what's new is a feat
 local function Done(id) return ns.DB.char.feats[id] ~= nil end
 
+local function Asks(fn, id)
+    if type(fn) ~= "function" then return false end
+    local ok, v = pcall(fn, id)
+    return ok and Plain(v) and true or false
+end
 local function Known(id)
     if type(id) ~= "number" then return false end
-    for _, fn in ipairs({ IsPlayerSpell, IsSpellKnown }) do
-        if type(fn) == "function" then
-            local ok, v = pcall(fn, id)
-            if ok and Plain(v) then return true end
-        end
-    end
-    return false
+    return Asks(IsPlayerSpell, id) or Asks(IsSpellKnown, id)
 end
 
 -- Has the character got it now (by spell or level; a quest only says so as it's handed in)?

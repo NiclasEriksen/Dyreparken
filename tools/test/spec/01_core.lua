@@ -166,20 +166,37 @@ return function(test, H)
         local owner1, owner2, hits = {}, {}, 0
         no(E:On("BOGUS_EVENT", owner1, function() end), "unknown event")
         eq(#c:Log("unknown event BOGUS_EVENT"), 1)
-        ok(E:On("UNIT_AURA", owner1, function() hits = hits + 1 end))
-        ok(E:On("UNIT_AURA", owner2, function() error("listener failed") end))
-        c:Fire("UNIT_AURA", "player")
+        ok(E:On("PLAYER_TARGET_CHANGED", owner1, function() hits = hits + 1 end))
+        ok(E:On("PLAYER_TARGET_CHANGED", owner2, function() error("listener failed") end))
+        c:Fire("PLAYER_TARGET_CHANGED")
         eq(hits, 1)
         eq(#c:TakeErrors(), 1)
-        E:Off("UNIT_AURA", owner1)
-        E:Off("UNIT_AURA", owner2)
-        E:Off("UNIT_AURA", owner2) -- twice is fine
+        E:Off("PLAYER_TARGET_CHANGED", owner1)
+        E:Off("PLAYER_TARGET_CHANGED", owner2)
+        E:Off("PLAYER_TARGET_CHANGED", owner2) -- twice is fine
         E:Off("NEVER_REGISTERED", owner1)
         local frame
         for _, f in ipairs(c.frames) do if f.scripts.OnEvent and f.events.PLAYER_LOGIN ~= nil or f.events.CHAT_MSG_ADDON then frame = f end end
-        no(frame.events.UNIT_AURA, "unregistered when nobody listens")
-        c:Fire("UNIT_AURA", "player")
+        no(frame.events.PLAYER_TARGET_CHANGED, "unregistered when nobody listens")
+        c:Fire("PLAYER_TARGET_CHANGED")
         eq(hits, 1)
+    end)
+
+    test("events: a unit's own, registered for that unit only; OffAll and Registered see every hub", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        local E = c.ns.Events
+        local o, heard = {}, {}
+        ok(E:On("UNIT_HAPPINESS", o, function(_, _, unit) heard[#heard + 1] = unit end, "pet"))
+        E:On("PLAYER_TARGET_CHANGED", o, function() heard[#heard + 1] = "target" end)
+        c:Fire("UNIT_HAPPINESS", "party1"); c:Fire("UNIT_HAPPINESS", "pet"); c:Fire("PLAYER_TARGET_CHANGED")
+        eq(table.concat(heard, ","), "pet,target", "party1's never reaches us")
+        ok(E:Has("UNIT_HAPPINESS", o, "pet")); no(E:Has("UNIT_HAPPINESS", o), "not on the main hub")
+        eq(E:Registered()["UNIT_HAPPINESS@pet"], 1)
+        E:OffAll(o)
+        no(E:Has("UNIT_HAPPINESS", o, "pet")); no(E:Has("PLAYER_TARGET_CHANGED", o))
+        eq(E:Registered()["UNIT_HAPPINESS@pet"], nil)
+        for _, f in ipairs(c.frames) do no(f.unitFilter and f.events.UNIT_HAPPINESS, "unregistered") end
     end)
 
     test("events: listeners changing during an event; no garbage per event", function()
@@ -188,29 +205,29 @@ return function(test, H)
         local E = c.ns.Events
         local a, b, d, ran = {}, {}, {}, {}
         local function D() ran[#ran + 1] = "d" end
-        E:On("UNIT_AURA", a, function()
+        E:On("PLAYER_TARGET_CHANGED", a, function()
             ran[#ran + 1] = "a"
-            E:Off("UNIT_AURA", b) -- (removed before its turn: it doesn't run)
-            E:On("UNIT_AURA", d, D) -- (added: from the next event on)
+            E:Off("PLAYER_TARGET_CHANGED", b) -- (removed before its turn: it doesn't run)
+            E:On("PLAYER_TARGET_CHANGED", d, D) -- (added: from the next event on)
         end)
-        E:On("UNIT_AURA", b, function() ran[#ran + 1] = "b" end)
-        c:Fire("UNIT_AURA", "player")
+        E:On("PLAYER_TARGET_CHANGED", b, function() ran[#ran + 1] = "b" end)
+        c:Fire("PLAYER_TARGET_CHANGED")
         ok(ran[1] == "a" or ran[1] == "b")
         local first = table.concat(ran, ",")
         ok(first == "a" or first == "b,a", "b ran only if before a: " .. first)
         ran = {}
-        c:Fire("UNIT_AURA", "player")
+        c:Fire("PLAYER_TARGET_CHANGED")
         table.sort(ran)
         eq(table.concat(ran, ","), "a,d")
-        E:Off("UNIT_AURA", a); E:Off("UNIT_AURA", d)
+        E:Off("PLAYER_TARGET_CHANGED", a); E:Off("PLAYER_TARGET_CHANGED", d)
         -- An event that keeps coming makes no garbage of its own. (Not measurable under --coverage:
         -- its line hook allocates.)
-        if debug.gethook() then return E:Off("UNIT_AURA", a) end
-        E:On("UNIT_AURA", a, function() end)
-        c:Fire("UNIT_AURA", "player")
+        if debug.gethook() then return E:Off("PLAYER_TARGET_CHANGED", a) end
+        E:On("PLAYER_TARGET_CHANGED", a, function() end)
+        c:Fire("PLAYER_TARGET_CHANGED")
         collectgarbage("stop")
         local before = collectgarbage("count")
-        for _ = 1, 1000 do c:Fire("UNIT_AURA", "player") end
+        for _ = 1, 1000 do c:Fire("PLAYER_TARGET_CHANGED") end
         local grew = collectgarbage("count") - before
         collectgarbage("restart")
         ok(grew < 40, ("%.1f KB for 1000 events"):format(grew))

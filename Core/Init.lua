@@ -145,10 +145,18 @@ function ns.PrintGold(text) ns.Print(ns.Gold(text)) end
 function ns.IsSecret(v) return issecretvalue ~= nil and issecretvalue(v) == true end
 
 -- A spell's name by id (nil for a secret or missing id, or without C_Spell).
+-- Kept once read (2026-11-14, the performance review: each cast of yours was looked up four or five times,
+-- by gathering, Voyage, Sense and the hearth). A name doesn't change while playing; a missing one is asked again.
+local spellNames = {}
 function ns.SpellName(id)
     id = ns.Plain(id)
-    if type(id) ~= "number" or not (C_Spell and C_Spell.GetSpellName) then return nil end
-    return ns.Plain(C_Spell.GetSpellName(id))
+    if type(id) ~= "number" then return nil end
+    local name = spellNames[id]
+    if name then return name end
+    if not (C_Spell and C_Spell.GetSpellName) then return nil end
+    name = ns.Plain(C_Spell.GetSpellName(id))
+    if type(name) == "string" then spellNames[id] = name end
+    return name
 end
 
 -- Every variant of a line: prefix.1, prefix.2, ... (Locale/nb.lua), as keys; {} for none.

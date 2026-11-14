@@ -1159,7 +1159,7 @@ end
 -- Mouse over players of both factions (flagged and not), hunter pets, demons, totems, critters, a rare; change
 -- form, flag for PvP, cast a few spells, then /reload.
 Api.GLANCE_EVENTS = { "UPDATE_MOUSEOVER_UNIT", "PLAYER_TARGET_CHANGED", "UPDATE_SHAPESHIFT_FORM", "PLAYER_FLAGS_CHANGED",
-    "UNIT_FACTION", "UPDATE_BATTLEFIELD_STATUS", "GROUP_ROSTER_UPDATE", "CHAT_MSG_TEXT_EMOTE", "CHAT_MSG_SAY",
+    "UPDATE_BATTLEFIELD_STATUS", "GROUP_ROSTER_UPDATE", "CHAT_MSG_TEXT_EMOTE", "CHAT_MSG_SAY",
     "CONFIRM_SUMMON", "RESURRECT_REQUEST", "PVP_MATCH_COMPLETE", "ZONE_CHANGED_NEW_AREA" }
 Api.GLANCE_MAX, Api.GLANCE_AGAIN = 800, 600
 -- A global by name, called with its arguments, as text ("missing" when the client lacks it).
@@ -1212,7 +1212,7 @@ function S.glance(out)
     for _, e in ipairs(Api.GLANCE_EVENTS) do
         if not pcall(f.RegisterEvent, f, e) then refused[#refused + 1] = e end
     end
-    for _, e in ipairs({ "UNIT_SPELLCAST_SUCCEEDED", "UNIT_PET", "UNIT_AURA" }) do
+    for _, e in ipairs({ "UNIT_SPELLCAST_SUCCEEDED", "UNIT_PET", "UNIT_AURA", "UNIT_FACTION" }) do
         if not pcall(f.RegisterUnitEvent, f, e, "player") then refused[#refused + 1] = e end
     end
     if not pcall(f.RegisterUnitEvent, f, "UNIT_HAPPINESS", "pet") then refused[#refused + 1] = "UNIT_HAPPINESS" end

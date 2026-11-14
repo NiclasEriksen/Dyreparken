@@ -107,11 +107,9 @@ local listening = {}    -- event -> { source, ... } currently registered
 local broken = {}       -- id -> true (switched off for this session)
 local unavailable = {}  -- id -> true (an event the client lacks)
 local ENGINE = {}       -- our owner key for ns.Events
--- Unit events (a source with `unit`) go on a frame of their own, registered
--- for that unit only: UNIT_SPELLCAST_SUCCEEDED for every unit in a raid
--- would be thousands of calls for nothing.
-local unitFrame = CreateFrame("Frame")
-local unitEvents = {}   -- event -> true while registered on unitFrame
+-- Unit events (a source with `unit`) are registered for that unit only (ns.Events' unit hubs):
+-- UNIT_SPELLCAST_SUCCEEDED for every unit in a raid would be thousands of calls for nothing.
+local unitOf = {}       -- event -> the unit it's registered for
 
 local Today, Plain = ns.Today, ns.Plain
 
@@ -180,7 +178,8 @@ end
 ------------------------------------------------------------------------------
 -- src: { id, events = { ... }, filter = fn(event, ...) -> n (or nil to
 -- skip), extra; hook = fn(fire) for sources driven by a function hook;
--- start = fn() when it starts being watched; available = fn() -> bool }
+-- start = fn() when it starts being watched; available = fn() -> bool;
+-- when = "fight" (registered only in a fight, solo) or "peace" (only out of one) }
 function Activity:Source(src)
     assert(self.KIND[src.id], "Activity:Source: declare " .. tostring(src.id) .. " in Activity.KINDS")
     sources[src.id] = src
@@ -201,33 +200,51 @@ end
 local function OnEvent(_, event, ...)
     for _, src in ipairs(listening[event] or {}) do Run(src, event, ...) end
 end
-unitFrame:SetScript("OnEvent", function(_, event, ...) OnEvent(nil, event, ...) end)
 
 local function Register(e, list)
-    local unit = list[1].unit
-    if unit then
-        local ok = pcall(unitFrame.RegisterUnitEvent, unitFrame, e, unit)
-        if ok then unitEvents[e] = true end
-        return ok
-    end
-    return ns.Events:On(e, ENGINE, OnEvent)
+    unitOf[e] = list[1].unit
+    return ns.Events:On(e, ENGINE, OnEvent, unitOf[e])
 end
 
 local function Unregister(e)
-    if unitEvents[e] then
-        unitFrame:UnregisterEvent(e)
-        unitEvents[e] = nil
-    else
-        ns.Events:Off(e, ENGINE)
+    ns.Events:Off(e, ENGINE, unitOf[e])
+    unitOf[e] = nil
+end
+
+-- A source's `when` (2026-11-14, the performance review): UNIT_COMBAT on your target is every hit on it from
+-- anyone, dozens a second on a raid boss, and the bad-luck eggs want it only in a fight of your own; UNIT_HEALTH
+-- is every hit or heal in a fight, and a fall counts only out of one. Our own fight state, from the events
+-- themselves (the client's may lag the event by a frame), registered while some wanted source has a `when`.
+local fighting = false
+local WHEN = {
+    fight = function() return fighting and Plain(IsInGroup()) ~= true end,
+    peace = function() return not fighting end,
+}
+local STATE = {} -- our owner key for the state's events
+local Update
+local function State(on)
+    if not on then
+        for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "GROUP_ROSTER_UPDATE" }) do ns.Events:Off(e, STATE) end
+        return
     end
+    if ns.Events:Has("PLAYER_REGEN_DISABLED", STATE) then return end
+    fighting = ns.InCombat() == true
+    ns.Events:On("PLAYER_REGEN_DISABLED", STATE, function() fighting = true; Update() end)
+    ns.Events:On("PLAYER_REGEN_ENABLED", STATE, function() fighting = false; Update() end)
+    ns.Events:On("GROUP_ROSTER_UPDATE", STATE, function() Update() end)
 end
 
 -- Register the game events the wanted sources need, and only those.
-local function Update()
+function Update()
     local need = {}
+    local conditional = false
     for id, owners in pairs(wanted) do
         local src = sources[id]
-        if src and next(owners) and not broken[id] then
+        if src and next(owners) and not broken[id] and src.when then
+            conditional = true
+            State(true)
+        end
+        if src and next(owners) and not broken[id] and (not src.when or WHEN[src.when]()) then
             for _, e in ipairs(src.events or {}) do
                 need[e] = need[e] or {}
                 table.insert(need[e], src)
@@ -238,6 +255,7 @@ local function Update()
             end
         end
     end
+    if not conditional then State(false) end
     for e in pairs(listening) do
         if not need[e] then Unregister(e) end
     end
@@ -468,7 +486,7 @@ end
 -- in combat) is skipped. extra: "dead" when it was the end of you.
 Activity.FALL_SHARE = 0.7
 local lastHealth
-Activity:Source({ id = "fall", events = { "UNIT_HEALTH" }, unit = "player",
+Activity:Source({ id = "fall", events = { "UNIT_HEALTH" }, unit = "player", when = "peace",
     start = function() lastHealth = nil end,
     filter = function()
         local hp, max = Plain(UnitHealth("player")), Plain(UnitHealthMax("player"))
@@ -559,7 +577,8 @@ local function Streak(id, n)
     streak[id] = 0
     return 1
 end
-Activity:Source({ id = "misses", events = { "UNIT_COMBAT" }, unit = "target", filter = function(_, unit, action, _, _, school)
+Activity:Source({ id = "misses", events = { "UNIT_COMBAT" }, unit = "target", when = "fight",
+    start = function() streak.misses = 0 end, filter = function(_, unit, action, _, _, school)
     action, school = Plain(action), Plain(school)
     if unit ~= "target" or type(action) ~= "string" or not Alone() then return nil end
     if AVOIDED[action] then
@@ -568,7 +587,8 @@ Activity:Source({ id = "misses", events = { "UNIT_COMBAT" }, unit = "target", fi
     end
     if action == "WOUND" and school == 1 then streak.misses = 0 end
 end })
-Activity:Source({ id = "resisted", events = { "UNIT_COMBAT" }, unit = "target", filter = function(_, unit, action, _, _, school)
+Activity:Source({ id = "resisted", events = { "UNIT_COMBAT" }, unit = "target", when = "fight",
+    start = function() streak.resisted = 0 end, filter = function(_, unit, action, _, _, school)
     action, school = Plain(action), Plain(school)
     if unit ~= "target" or type(action) ~= "string" or not Alone() then return nil end
     if action == "RESIST" then return Streak("resisted", Activity.RESIST_STREAK) end
@@ -726,9 +746,17 @@ local function RollOf(...)
     if n < 3 or not Me((select(n, ...))) then return nil end
     return tonumber((select(n - 2, ...)))
 end
+-- (The roll and the hundred both ask of the same line: read once, 2026-11-14.)
+local lastRoll = {}
 function Activity.Rolled(event, text)
     text = Plain(text)
     if type(text) ~= "string" then return nil end
+    if lastRoll.event == event and lastRoll.text == text then return lastRoll.roll end
+    local roll = Activity.ReadRoll(event, text)
+    lastRoll.event, lastRoll.text, lastRoll.roll = event, text, roll
+    return roll
+end
+function Activity.ReadRoll(event, text)
     if event == "CHAT_MSG_SYSTEM" then
         local pattern = Activity.FormatPattern(_G.RANDOM_ROLL_RESULT)
         if not pattern then return nil end

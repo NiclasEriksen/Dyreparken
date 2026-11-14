@@ -225,6 +225,16 @@ function H.Invariants(c)
     for k in pairs(c.newGlobals or {}) do
         if not H.ALLOWED_GLOBALS[k] then out[#out + 1] = "wrote a stray global: " .. tostring(k) end
     end
+    -- A UNIT_ event left registered for every unit (2026-11-14: 0.6.2's class reactions heard every cast in
+    -- a raid): ns.Events:On(event, owner, fn, unit) registers it for one. (A probe's register-and-drop to
+    -- see if an event exists is fine.)
+    for _, f in ipairs(c.frames or {}) do
+        for e, on in pairs(f.events or {}) do
+            if on and e:find("^UNIT_") and not (f.unitFilter and f.unitFilter[e]) then
+                out[#out + 1] = "registered " .. e .. " for every unit (give ns.Events:On a unit)"
+            end
+        end
+    end
     -- (Reads of missing globals only in 01_core's tour: many tests take a stub away on purpose.)
     if not c.allowRawText then
         for _, line in ipairs(c.printed) do

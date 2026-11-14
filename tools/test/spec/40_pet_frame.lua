@@ -338,12 +338,7 @@ return function(test, H)
     -- and only rarely a line (Quirks' egg "vaken", 29_quirks.lua). Its event only while the frame is on.
     test("asleep while you're AFK, every time; awake when you're back, now and then with a line", function()
         local w, ola, PF = Setup(14, false)
-        local function Flags() -- (ns.Events' frame: the activity engine's unit frame may watch it for naps)
-            for _, f in ipairs(ola.frames) do
-                if f.events.PLAYER_FLAGS_CHANGED and not (f.unitFilter and f.unitFilter.PLAYER_FLAGS_CHANGED) then return true end
-            end
-            return false
-        end
+        local function Flags() return ola.ns.Events:Has("PLAYER_FLAGS_CHANGED", PF, "player") end
         ola.ns.Activity:Drop("nap", ola.ns.Quirks); ola.ns.Activity:Drop("nap", ola.ns.Bond)
         no(Flags(), "off: not listened to")
         ola.ns.DB.global.settings.petFrame = true; PF:Apply()

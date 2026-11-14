@@ -55,6 +55,28 @@ return function(test, H)
         ok(Said(ola, "egg.motstand.skoyer"))
     end)
 
+    test("the target's hits are heard only in a fight of your own: not out of one, not in a group", function()
+        local w, ola = Setup()
+        local A = ola.ns.Activity
+        ok(A:IsListening("UNIT_COMBAT"), "in a fight, solo")
+        no(A:IsListening("UNIT_HEALTH"), "a fall only counts out of one")
+        After(w, ola)
+        no(A:IsListening("UNIT_COMBAT"), "after it")
+        ok(A:IsListening("UNIT_HEALTH"))
+        w:SetGroup({ "Ola Nord", "Per Hansen" })
+        ola.state.combat = true; ola:Fire("PLAYER_REGEN_DISABLED")
+        no(A:IsListening("UNIT_COMBAT"), "in a group's fight: anyone's hits")
+        w:SetGroup(nil); ola:Fire("GROUP_ROSTER_UPDATE")
+        ok(A:IsListening("UNIT_COMBAT"), "the group gone, mid-fight")
+        -- A run doesn't carry over into the next fight.
+        for _ = 1, 4 do Hit(ola, "MISS") end
+        After(w, ola)
+        ola.state.combat = true; ola:Fire("PLAYER_REGEN_DISABLED")
+        Hit(ola, "MISS")
+        After(w, ola)
+        no(Said(ola, "egg.bom"))
+    end)
+
     test("not when it may be someone else's: in a group, with a combat pet out, or without your auto-attack", function()
         local w, ola = Setup()
         ola.state.attacking = false

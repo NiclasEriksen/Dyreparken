@@ -142,8 +142,12 @@ function Frame:GetScale() return self.scale or 1 end
 function Frame:RegisterEvent(e)
     if not KNOWN_EVENTS[e] then error("Attempt to register unknown event \"" .. tostring(e) .. "\"", 2) end
     self.events[e] = true
+    if self.unitFilter then self.unitFilter[e] = nil end -- (like the client: every unit's now)
 end
-function Frame:UnregisterEvent(e) self.events[e] = nil end
+function Frame:UnregisterEvent(e)
+    self.events[e] = nil
+    if self.unitFilter then self.unitFilter[e] = nil end
+end
 function Frame:LockHighlight() self.highlightLocked = true end
 function Frame:UnlockHighlight() self.highlightLocked = false end
 function Frame:RegisterUnitEvent(e, ...)
@@ -152,7 +156,7 @@ function Frame:RegisterUnitEvent(e, ...)
     self.unitFilter = self.unitFilter or {}
     self.unitFilter[e] = { ... }
 end
-function Frame:UnregisterAllEvents() self.events = {} end
+function Frame:UnregisterAllEvents() self.events = {}; self.unitFilter = nil end
 function Frame:IsEventRegistered(e) return self.events[e] == true end
 function Frame:SetScript(k, fn) self.scripts[k] = fn end
 function Frame:GetScript(k) return self.scripts[k] end

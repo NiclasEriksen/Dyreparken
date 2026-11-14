@@ -7,6 +7,7 @@ local Main = {}
 
 ns.Events:On("ADDON_LOADED", Main, function(_, _, name)
     if name ~= addonName then return end
+    ns.Events:Off("ADDON_LOADED", Main) -- (every addon after us would be heard)
     ns.RunPhase("loaded")
     ns.Log("Main", "loaded %s (protocol %d)", ns.VERSION, ns.PROTOCOL)
 end)

@@ -743,7 +743,7 @@ function PF:On()
     ns.Events:On("PLAYER_ENTERING_WORLD", PF, refreshSoon)
     ns.Events:On("PET_BATTLE_OPENING_START", PF, function() PF.battle = true; PF:Refresh() end)
     ns.Events:On("PET_BATTLE_CLOSE", PF, function() PF.battle = nil; PF:Refresh() end)
-    ns.Events:On("PLAYER_FLAGS_CHANGED", PF, function(_, _, unit) if unit == "player" then PF:Afk() end end)
+    ns.Events:On("PLAYER_FLAGS_CHANGED", PF, function() PF:Afk() end, "player")
     self.afk = ns.Plain(UnitIsAFK("player")) and true or nil -- (a /reload while away)
     self:Refresh()
 end
