@@ -39,11 +39,13 @@ local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
 local sp, page, child, records, legend, spot
 local cells = {}
 local spotT, cameraT = ns.Timers(), ns.Timers()
-Park.SPOT_H = 200        -- the stage under the map
+-- (200 until 2026-11-15: the six rows of the map then overflowed by a few pixels, and a scrollbar showed
+-- with nothing to scroll)
+Park.SPOT_H = 180        -- the stage under the map
 Park.SCENE_W = 280       -- its model's part, at the left
 -- The model's view in the stage: the pet frame's (0, 0, 84, -50 on 170 px) a third larger, so the pet
 -- stands as there, bigger (2026-11-15, the first look: small and off to the side). Tuned by eye.
-Park.VIEW = { 0, 0, 74, -68 }
+Park.VIEW = { 0, 0, 54, -68 } -- (its box the same 190 px as on the 200 px stage: the pet as big)
 Park.SPOT_BACK = 1       -- seconds after the mouse leaves an icon, today's pet again
 Park.CAMERA_FOR = 2      -- the stage's camera runs this long after a change (PF.CAMERA_FOR)
 -- The filter: { text = lower-cased search, free = bool, adopt = bool }, for this session.
@@ -371,6 +373,11 @@ function Park:Spot(key, again)
     local source = Park.Source(key)
     if source then lines[#lines + 1] = Colored({ source, 0.6, 0.8, 1 }) end
     spot.text:SetText(table.concat(lines, "\n"))
+    -- The words centered beside the pet (from the top they left the stage's lower half empty, 2026-11-15).
+    local h = spot.today:GetStringHeight() + 6 + spot.name:GetStringHeight() + 4 + spot.species:GetStringHeight()
+        + 8 + spot.text:GetStringHeight()
+    spot.today:ClearAllPoints()
+    spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 24, -math.max(10, (self.SPOT_H - h) / 2))
 end
 
 -- The mouse left an icon: today's pet again, in a moment (the next icon's hover cancels it).
