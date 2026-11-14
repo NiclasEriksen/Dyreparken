@@ -148,7 +148,8 @@ end
 function Reactions:Try(row, s, key)
     if row.calm and s.combat then return "in a fight" end
     if not key then return "no pet out" end
-    if ns.Moments.SaidToday(ns.DB.char.reacts, row.id) or ns.Moments:Queued("react:" .. row.id) then return "said today" end
+    if ns.Moments.SaidToday(ns.DB.char.reacts, row.id) then return "said today" end
+    if ns.Moments:Queued("react:" .. row.id) then return "on its way already" end
     local vars
     if row.test then vars = row.test(s, row, key) else vars = self.ByNature(row, key) end
     if not vars then return "not its moment" end

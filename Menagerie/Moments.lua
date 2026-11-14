@@ -12,6 +12,7 @@ local _, ns = ...
 --   once a day       Moments.SaidToday(store, id), and Moments.Count(...) as it's said: store[id] (char.eggs,
 --                    char.reacts) { n, day, key }; the caller fires its Bus event the first time
 --   the delay        Moments.DELAY's spans; `afterFight`: in a fight, the wait starts once it's over
+--                    (a fight that ended with your death: unsaid; any other line while you're dead is fine)
 --   later            a moment held back only by another line on its way waits its turn (Moments:Later; the
 --                    user, 2026-11-14: "queue them instead"), at most LATER_MAX seconds, LATER_SIZE of them
 --
@@ -97,7 +98,20 @@ function Moments:Say(m)
             Drain()
         end)
     end
-    if m.afterFight then ns.Events:OutOfCombat(Wait) else Wait() end
+    if not (m.afterFight and ns.InCombat()) then return Wait() end
+    ns.Events:OutOfCombat(function()
+        -- A fight that ended with your death: what was said about it would come as you lie there, too
+        -- late (2026-11-15, the user: a totem line "after I died, which is weird timing"). It goes unsaid,
+        -- nothing spent. Other lines while you're dead are fine (the user: "it's okay for many lines to
+        -- fire when I'm dead").
+        if ns.Plain(UnitIsDeadOrGhost("player")) then
+            onTheWay = math.max(0, onTheWay - 1)
+            if m.id then queued[m.id] = nil end
+            ns.Log("Moments", "%s: unsaid, the fight ended with your death", tostring(m.why))
+            return Drain()
+        end
+        Wait()
+    end)
 end
 
 -- Lines by nature: { _key = "<prefix>.<id>.<trait|family>" } for the first the pet has with lines, else {}.
