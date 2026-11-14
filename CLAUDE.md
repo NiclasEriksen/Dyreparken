@@ -177,6 +177,8 @@ Data/PetMoves.lua  which animation each pet uses for each reaction on the card (
                    default and per-species overrides, EDITED BY HAND by the user (found by eye, /dp probe anim)
 Data/AnimLengths.lua GENERATED (luajit tools/anim_lengths.lua, from a /dp probe api lengths run): how long each
                    species' one-off moves play, so the card moves on when one ends (Moves:Length); else Moves.T. Don't edit
+Data/Zones.lua     zones, one row each (level, faction, capital, climate, high, neutral, home families), EDITED BY
+                   HAND: Personality's climates and cities, Quirks.HOME_ZONES, Wish.ZONES, Sense's capitals are views
 Data/Unlocks.lua   every species' minor like and minor dislike (your bond unlocks them at levels 4 and 6), PINNED
                    for good like the traits (2026-11-12): luajit tools/pin_unlocks.lua adds new species (from
                    fitting lists per family and species, never a major like or dislike) and never changes a line

@@ -45,23 +45,12 @@ Wish.SOCIAL = {
     guildpet = { "farm", "rodent" },
 }
 Wish.SOCIAL_ORDER = { "guildgroup", "playmate", "guildpet" }
--- Zones a trip can be to: the lowest level that goes there (classic's ranges), and the faction whose own
--- land it is (the other faction's never comes up). Not instances, nor battlegrounds. Zephras Isle is
--- Forever's own (the Skyborne's), level and faction unverified.
-Wish.ZONES = {
-    ["Elwynn Forest"] = { 1, "Alliance" }, ["Dun Morogh"] = { 1, "Alliance" }, ["Teldrassil"] = { 1, "Alliance" },
-    ["Stormwind City"] = { 1, "Alliance" }, ["Ironforge"] = { 1, "Alliance" }, ["Darnassus"] = { 1, "Alliance" },
-    ["Westfall"] = { 10, "Alliance" }, ["Darkshore"] = { 10, "Alliance" },
-    ["Durotar"] = { 1, "Horde" }, ["Mulgore"] = { 1, "Horde" }, ["Tirisfal Glades"] = { 1, "Horde" },
-    ["Orgrimmar"] = { 1, "Horde" }, ["Thunder Bluff"] = { 1, "Horde" }, ["Undercity"] = { 1, "Horde" },
-    ["The Barrens"] = { 10, "Horde" }, ["Silverpine Forest"] = { 10, "Horde" },
-    ["Zephras Isle"] = { 1 },
-    ["Ashenvale"] = { 18 }, ["Wetlands"] = { 20 }, ["Thousand Needles"] = { 25 }, ["Alterac Mountains"] = { 30 },
-    ["Desolace"] = { 30 }, ["Stranglethorn Vale"] = { 30 }, ["Dustwallow Marsh"] = { 35 }, ["Badlands"] = { 35 },
-    ["Swamp of Sorrows"] = { 35 }, ["Feralas"] = { 40 }, ["Tanaris"] = { 40 }, ["Searing Gorge"] = { 43 },
-    ["Blasted Lands"] = { 45 }, ["Felwood"] = { 48 }, ["Un'Goro Crater"] = { 48 }, ["Moonglade"] = { 48 },
-    ["Burning Steppes"] = { 50 }, ["Eastern Plaguelands"] = { 53 }, ["Winterspring"] = { 55 }, ["Silithus"] = { 55 },
-}
+-- Zones a trip can be to (Data/Zones.lua): the lowest level that goes there, and the faction whose own land
+-- it is (the other faction's never comes up). Not instances, nor battlegrounds (no level).
+Wish.ZONES = {}
+for name, r in pairs(ns.Zones.rows) do
+    if r.level then Wish.ZONES[name] = { r.level, r.faction } end
+end
 -- Its traits' zones (by the trait's moment: Personality's lists).
 Wish.TRAIT_ZONES = { vinterpels = "COLD", solelsker = "WARM", skybaren = "HIGH", ordensdyr = "CITIES" }
 

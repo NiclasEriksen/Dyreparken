@@ -62,3 +62,5 @@ No wire or saved-data change is planned (no X-Protocol bump; migrations only if 
   twice in a short period").
 - 3.2 done: Fight through ns.Events (the last frame of its own), ns.AutoAttacking, PetFrame:ShownPet/Act
   (Fight no longer reads its fields), Activity's sources apart by event and unit.
+- 3.3 done: ns.IsSecret/Plain know secret tables (3d30722: a secret aura list had switched four aura sources
+  off), ns.Read shared; Data/Zones.lua (Bond's Stranglethorn stays: it's the contest's own place).

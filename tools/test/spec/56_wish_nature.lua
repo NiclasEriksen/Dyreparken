@@ -172,4 +172,25 @@ return function(test, H)
         for _, key in ipairs(ns.Variants("wish.say.zone")) do match(ns.L[key], "{zone}") end
         for zone in pairs(ns.Wish.ZONES) do ok(type(ns.Wish.ZONES[zone][1]) == "number", zone) end
     end)
+
+    test("Data/Zones.lua: each row's fields are ones we read, its families exist, a capital has its faction", function()
+        local _, ola = H.Setup{ ola = {} }
+        local ns = ola.ns
+        local families = {}
+        for _, f in ipairs(ns.Scenes.ORDER) do families[f] = true end
+        local FIELDS = { level = "number", faction = "string", capital = "boolean", climate = "string", high = "boolean",
+            neutral = "boolean", home = "table" }
+        for name, r in pairs(ns.Zones.rows) do
+            for k, v in pairs(r) do eq(type(v), FIELDS[k], name .. "." .. k) end
+            if r.faction then ok(r.faction == "Alliance" or r.faction == "Horde", name) end
+            if r.climate then ok(r.climate == "cold" or r.climate == "warm", name) end
+            if r.capital then ok(r.faction, name .. ": a capital's faction") end
+            for _, f in ipairs(r.home or {}) do ok(families[f], name .. ": no family " .. f) end
+        end
+        -- The views the modules read.
+        eq(ns.Sense.CAPITALS["Orgrimmar"], "Horde"); ok(ns.Sense.NEUTRAL["Booty Bay"])
+        ok(ns.Personality.COLD["Winterspring"]); ok(ns.Personality.CITIES["Undercity"])
+        eq(ns.Wish.ZONES["Tanaris"][1], 40); eq(ns.Wish.ZONES["Gnomeregan"], nil, "an instance: never a trip")
+        ok(table.concat(ns.Quirks.HOME_ZONES.pirate, ",") == "Stranglethorn Vale,Tanaris")
+    end)
 end

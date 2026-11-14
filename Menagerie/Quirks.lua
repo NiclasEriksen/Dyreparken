@@ -126,26 +126,7 @@ local function Hour(t) return tonumber(date("%H", t)) end
 -- Places a family feels at home in (2026-11-10): the zone's name as the
 -- client says it (enUS; GetZoneText, as "explore" carries it). Hand-made, to
 -- check in game: a name that never comes up only means no line.
-Quirks.HOME_ZONES = { -- (classic zone names: Forever is the classic world, the user 2026-11-10)
-    pirate = { "Stranglethorn Vale", "Tanaris" },
-    frog = { "Wailing Caverns", "Swamp of Sorrows" },
-    owl = { "Moonglade", "Teldrassil", "Darnassus" },
-    mechanical = { "Gnomeregan", "Ironforge" },
-    dragon = { "Blackwing Lair", "Onyxia's Lair", "Burning Steppes", "Wetlands" },
-    snake = { "Wailing Caverns", "Tanaris" },
-    reptile = { "Swamp of Sorrows", "Dustwallow Marsh", "The Temple of Atal'Hakkar" },
-    murloc = { "Westfall", "Wetlands", "Darkshore" },
-    wolf = { "Alterac Mountains", "Alterac Valley", "Silverpine Forest" },
-    bear = { "Ashenvale", "Feralas" },
-    demon = { "Felwood", "Blasted Lands", "Desolace" },
-    bug = { "Silithus", "Ruins of Ahn'Qiraj", "Ahn'Qiraj" },
-    plant = { "Un'Goro Crater", "Feralas" },
-    spirit = { "Eastern Plaguelands", "Moonglade" },
-    ooze = { "Naxxramas", "Blackrock Depths" },
-    farm = { "Westfall" },
-    rabbit = { "Elwynn Forest", "Mulgore" },
-    cat = { "Winterspring" },
-}
+Quirks.HOME_ZONES = ns.Zones.Homes() -- (family -> zones: Data/Zones.lua's `home`)
 local homeOf = {} -- zone -> { families }
 for family, zones in pairs(Quirks.HOME_ZONES) do
     for _, z in ipairs(zones) do homeOf[z] = homeOf[z] or {}; table.insert(homeOf[z], family) end

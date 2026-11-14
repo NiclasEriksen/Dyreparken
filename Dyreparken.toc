@@ -38,6 +38,7 @@ Data\Unlocks.lua
 Data\PetMoves.lua
 Data\AnimLengths.lua
 Data\Creatures.lua
+Data\Zones.lua
 
 Menagerie\Pets.lua
 Menagerie\Registry.lua

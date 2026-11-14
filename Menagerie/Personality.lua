@@ -238,15 +238,11 @@ Personality.TRAITS = {
     { id = "diplomat", is = { "social" }, like = "rep" },
 }
 
--- Where the zone traits feel at home: GetZoneText's names (enUS; Classic's, and Forever's own: Zephras
--- Isle and Mount Hyjal from Forever's news, unverified in the client; a name that never comes only means
--- no moment).
-local function Set(list) local t = {} for _, v in ipairs(list) do t[v] = true end return t end
-Personality.COLD = Set({ "Winterspring", "Dun Morogh", "Alterac Mountains", "Alterac Valley", "Ironforge" })
-Personality.WARM = Set({ "Tanaris", "The Barrens", "Durotar", "Desolace", "Silithus", "Badlands", "Searing Gorge",
-    "Burning Steppes", "Thousand Needles", "Stranglethorn Vale", "Un'Goro Crater", "Orgrimmar" })
-Personality.HIGH = Set({ "Zephras Isle", "Mount Hyjal", "Thunder Bluff", "Teldrassil", "Darnassus" })
-Personality.CITIES = Set({ "Stormwind City", "Ironforge", "Darnassus", "Orgrimmar", "Thunder Bluff", "Undercity" })
+-- Where the zone traits feel at home (Data/Zones.lua: climate, high, capital), as sets of GetZoneText's names.
+Personality.COLD = ns.Zones.Where("climate", "cold")
+Personality.WARM = ns.Zones.Where("climate", "warm")
+Personality.HIGH = ns.Zones.Where("high", true)
+Personality.CITIES = ns.Zones.Where("capital", true)
 Personality.TAGS = { fighter = true, timid = true, watcher = true, sleeper = true, cozy = true, adventurous = true,
     social = true, loner = true }
 local byId = {}

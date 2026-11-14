@@ -27,11 +27,9 @@ ns.Sense = Sense
 local Plain = ns.Plain
 
 Sense.GLANCE_AGAIN = 600 -- seconds before the same unit under the mouse is a glance again
--- Capitals by faction, and the goblins' neutral towns (subzones), for the zone's place.
-Sense.CAPITALS = { ["Stormwind City"] = "Alliance", ["Ironforge"] = "Alliance", ["Darnassus"] = "Alliance",
-    ["Orgrimmar"] = "Horde", ["Thunder Bluff"] = "Horde", ["Undercity"] = "Horde" }
-Sense.NEUTRAL = { ["Booty Bay"] = true, ["Gadgetzan"] = true, ["Ratchet"] = true, ["Everlook"] = true,
-    ["Steamwheedle Port"] = true }
+-- Capitals by faction, and the goblins' neutral towns (subzones), for the zone's place (Data/Zones.lua).
+Sense.CAPITALS, Sense.NEUTRAL = {}, ns.Zones.Where("neutral", true)
+for name in pairs(ns.Zones.Where("capital", true)) do Sense.CAPITALS[name] = ns.Zones.rows[name].faction end
 Sense.TYPE = { beast = 1, demon = 3, critter = 8, totem = 11 } -- (UnitCreatureType's ids)
 
 local Read, Secret = ns.Read, ns.IsSecret
