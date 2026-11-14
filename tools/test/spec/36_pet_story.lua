@@ -60,6 +60,11 @@ return function(test, H)
         eq(lines[1], "Fikk navnet «Pepe» av deg")
         eq(lines[2], "1 måned hos deg")
         eq(lines[3], "Første hjem: flyttet inn hos deg")
+        -- Dense (2026-11-14, the user: "more dense"): the small font, no button bar, entries close together
+        -- (a 12 px date, 1 px, a 14 px line in the harness, a 4 px gap).
+        ok(p.buttonBarHidden, "the inset takes the button bar's strip")
+        eq(p.rows[1].text.font, "GameFontHighlightSmall"); eq(p.rows[1].date.font, "GameFontDisableSmall")
+        eq(p.rows[2].date.points[1][5], -31, "the next entry starts right below")
         -- The close button; the button again toggles it.
         p.close:Click()
         no(p:IsShown())

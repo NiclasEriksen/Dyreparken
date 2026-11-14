@@ -279,7 +279,12 @@ function Story:Update(card, key)
     if self.panel and self.panel:IsShown() and key ~= self.panel.key then self:Show(key) end
 end
 
-local ROW_GAP = 10
+-- Dense (2026-11-14, the user: "more dense"): the text in the small font, as
+-- the date above it, and a small gap between entries, so a long life shows more
+-- at once. The date is a line of the small font (about 12 px; was 14 with the
+-- big text, and a 10 px gap).
+local ROW_GAP = 4
+local DATE_H = 12
 
 -- Past the side tabs when they're laid out; else about their width (Forever's, seen 2026-11-10).
 Story.TABS_W = 62
@@ -307,6 +312,8 @@ function Story:BuildPanel()
     f:EnableMouse(true)
     if template then
         if ButtonFrameTemplate_HidePortrait then ButtonFrameTemplate_HidePortrait(f) end
+        -- No buttons at the bottom: Blizzard's own call gives the inset that strip (2026-11-14, "more dense").
+        if ButtonFrameTemplate_HideButtonBar then ButtonFrameTemplate_HideButtonBar(f) end
     else
         f.bg = f:CreateTexture(nil, "BACKGROUND")
         f.bg:SetAllPoints()
@@ -334,13 +341,13 @@ function Story:BuildPanel()
     if not inset then
         inset = CreateFrame("Frame", nil, f, ns.SidePage.Template("InsetFrameTemplate"))
         inset:SetPoint("TOPLEFT", f, "TOPLEFT", 4, -60)
-        inset:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -6, 26)
+        inset:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -6, 6) -- (no button bar, as above)
     end
     f.scroll = CreateFrame("ScrollFrame", nil, inset, "UIPanelScrollFrameTemplate")
-    f.scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", 8, -8)
-    f.scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 6)
+    f.scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", 6, -6)
+    f.scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 4) -- (room for the scroll bar on the right)
     f.child = CreateFrame("Frame", nil, f.scroll)
-    f.child:SetSize(self.WIDTH - 50, 1)
+    f.child:SetSize(self.WIDTH - 46, 1)
     f.scroll:SetScrollChild(f.child)
     f.rows = {}
     -- Only beside the pets: another tab of the window, or the window closing, closes it.
@@ -355,9 +362,9 @@ local function Row(f, i)
     r = {}
     r.date = f.child:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
     r.date:SetJustifyH("LEFT")
-    r.text = f.child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    r.text = f.child:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     r.text:SetJustifyH("LEFT")
-    r.text:SetWidth(Story.WIDTH - 54)
+    r.text:SetWidth(Story.WIDTH - 50) -- (wider lines wrap less)
     r.text:SetWordWrap(true)
     f.rows[i] = r
     return r
@@ -382,10 +389,10 @@ function Story:Redraw()
         r.date:SetPoint("TOPLEFT", f.child, "TOPLEFT", 0, -y)
         r.date:SetText(ns.Date(e.t))
         r.text:ClearAllPoints()
-        r.text:SetPoint("TOPLEFT", r.date, "BOTTOMLEFT", 0, -2)
+        r.text:SetPoint("TOPLEFT", r.date, "BOTTOMLEFT", 0, -1)
         r.text:SetText(self:Text(key, e, i == firstAdopt))
         r.date:Show(); r.text:Show()
-        y = y + 14 + (r.text:GetStringHeight() or 14) + ROW_GAP
+        y = y + DATE_H + 1 + (r.text:GetStringHeight() or 12) + ROW_GAP
     end
     if n == 0 then
         local r = Row(f, 1)
@@ -394,7 +401,7 @@ function Story:Redraw()
         r.text:SetPoint("TOPLEFT", f.child, "TOPLEFT", 0, 0)
         r.text:SetText(ns.L["story.none"])
         r.text:Show()
-        n, y = 1, 20
+        n, y = 1, 16
     end
     for i = n + 1, #f.rows do f.rows[i].date:Hide(); f.rows[i].text:Hide() end
     f.child:SetHeight(math.max(1, y))
