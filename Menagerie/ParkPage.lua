@@ -197,11 +197,11 @@ local function NewCell()
         t:AddMaskTexture(m)
         return t
     end
-    c.ring = Round("BACKGROUND", 0, ICON_SIZE)
+    c.ring = Round("BACKGROUND", 0, ICON_SIZE + 2)
     c.ring:SetColorTexture(1, 1, 1, 1)
-    c.disc = Round("BACKGROUND", 1, ICON_SIZE - 6)
+    c.disc = Round("BACKGROUND", 1, ICON_SIZE - 8)
     c.disc:SetColorTexture(0.06, 0.05, 0.04, 1)
-    c.icon = Round("ARTWORK", 0, ICON_SIZE - 6) -- (a journal icon, where there's no portrait, round as well)
+    c.icon = Round("ARTWORK", 0, ICON_SIZE - 8) -- (a journal icon, where there's no portrait, round as well)
     c.mine = c:CreateTexture(nil, "OVERLAY", nil, 1)
     c.mine:SetTexture(ns.Icon("ring"))
     c.mine:SetBlendMode("ADD")
@@ -274,17 +274,19 @@ local function Redraw()
     page.matches:SetText(filtering and ns.T("park.matches", { n = matches }) or "")
 end
 
--- A cell's ring: an adopted pet's holder's bond level in the card's tier colors (the family's below
--- silver), a dim one for a pet that needs a home; fainter when the filter leaves it out.
+-- A cell's ring: an adopted pet's holder's bond level in the card's tier colors (below silver, the
+-- family's, brightened: the tints are made for the card's wash and were too faint here, 2026-11-15, the
+-- user: "it should be clearer which one is adopted"); none for a pet that needs a home; fainter when the
+-- filter leaves it out.
+Park.RING_BRIGHT = 2.2
 function Park.Ring(ring, key, owner, match)
-    local r, g, b, a = 0.22, 0.2, 0.17, 1
-    if owner then
-        local _, level = ns.Bond:Of(key)
-        local family = ns.Scenes:Families(key)[1] or "default"
-        local c = ns.Scenes.Tier(level or 1, ns.Scenes.TINT[family] or ns.Scenes.TINT.default)
-        r, g, b, a = c[1], c[2], c[3], 1
-    end
-    ring:SetVertexColor(r, g, b, match and a or Park.DIM)
+    ring:SetShown(owner ~= nil)
+    if not owner then return end
+    local _, level = ns.Bond:Of(key)
+    local family = ns.Scenes:Families(key)[1] or "default"
+    local tint = ns.Scenes.Bright(ns.Scenes.TINT[family] or ns.Scenes.TINT.default, Park.RING_BRIGHT)
+    local c = ns.Scenes.Tier(level or 1, tint)
+    ring:SetVertexColor(c[1], c[2], c[3], match and 1 or Park.DIM)
 end
 
 ------------------------------------------------------------------------------

@@ -137,8 +137,10 @@ return function(test, H)
         eq(panda.icon.tex, nil)
         ok(panda.icon.mask, "round")
         local cat = ola.ns.Scenes.TINT.cat
-        eq(kitty.ring.vertexColor[1], cat[1], "level 1: the family's color, as on the card")
-        eq(tabby.ring.vertexColor[1], 0.22, "free: a dim ring")
+        local bright = ola.ns.Scenes.Bright(cat, ola.ns.ParkPage.RING_BRIGHT)
+        eq(kitty.ring.vertexColor[1], bright[1], "level 1: the family's color, brightened")
+        ok(kitty.ring:IsShown())
+        no(tabby.ring:IsShown(), "free: no ring")
         ok(panda.mine:IsShown())
         -- Kari's bond grows to silver: her cat's ring follows, without a redraw of the rest.
         local now = ola.ns.Now()
