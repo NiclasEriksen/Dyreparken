@@ -40,6 +40,10 @@ local sp, page, child, records, legend, spot
 local cells = {}
 local spotT, cameraT = ns.Timers(), ns.Timers()
 Park.SPOT_H = 200        -- the stage under the map
+Park.SCENE_W = 280       -- its model's part, at the left
+-- The model's view in the stage: the pet frame's (0, 0, 84, -50 on 170 px) a third larger, so the pet
+-- stands as there, bigger (2026-11-15, the first look: small and off to the side). Tuned by eye.
+Park.VIEW = { 0, 0, 74, -68 }
 Park.SPOT_BACK = 1       -- seconds after the mouse leaves an icon, today's pet again
 Park.CAMERA_FOR = 2      -- the stage's camera runs this long after a change (PF.CAMERA_FOR)
 -- The filter: { text = lower-cased search, free = bool, adopt = bool }, for this session.
@@ -181,22 +185,23 @@ local ROUND = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local function NewCell()
     local c = CreateFrame("Button", nil, child)
     c:SetSize(ICON_SIZE, ICON_SIZE)
-    c.disc = c:CreateTexture(nil, "BACKGROUND")
-    c.disc:SetTexture(ns.Icon("dot"))
-    c.disc:SetVertexColor(0.05, 0.04, 0.03, 1)
-    c.disc:SetAllPoints()
-    c.icon = c:CreateTexture(nil, "ARTWORK")
-    c.icon:SetSize(ICON_SIZE - 4, ICON_SIZE - 4)
-    c.icon:SetPoint("CENTER")
-    -- (round: a journal icon, where there's no portrait, as well)
-    c.round = c:CreateMaskTexture()
-    c.round:SetTexture(ROUND, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
-    c.round:SetAllPoints(c.icon)
-    c.icon:AddMaskTexture(c.round)
-    c.ring = c:CreateTexture(nil, "OVERLAY")
-    c.ring:SetTexture(ns.Icon("ring"))
-    c.ring:SetSize(ICON_SIZE + 2, ICON_SIZE + 2)
-    c.ring:SetPoint("CENTER")
+    -- Three round layers, each cut by its own mask: the ring (a colored disc, its edge showing), a dark disc,
+    -- the face. (Our soft ring particle vanished at this size: seen 2026-11-15.)
+    local function Round(layer, sub, size)
+        local t = c:CreateTexture(nil, layer, nil, sub)
+        t:SetSize(size, size)
+        t:SetPoint("CENTER")
+        local m = c:CreateMaskTexture()
+        m:SetTexture(ROUND, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+        m:SetAllPoints(t)
+        t:AddMaskTexture(m)
+        return t
+    end
+    c.ring = Round("BACKGROUND", 0, ICON_SIZE)
+    c.ring:SetColorTexture(1, 1, 1, 1)
+    c.disc = Round("BACKGROUND", 1, ICON_SIZE - 6)
+    c.disc:SetColorTexture(0.06, 0.05, 0.04, 1)
+    c.icon = Round("ARTWORK", 0, ICON_SIZE - 6) -- (a journal icon, where there's no portrait, round as well)
     c.mine = c:CreateTexture(nil, "OVERLAY", nil, 1)
     c.mine:SetTexture(ns.Icon("ring"))
     c.mine:SetBlendMode("ADD")
@@ -263,11 +268,7 @@ local function Redraw()
         c:Show()
     end
     for i = #keys + 1, #cells do cells[i]:Hide() end
-    top = top + math.ceil(#keys / cols) * CELL + 10
-    spot:ClearAllPoints()
-    spot:SetPoint("TOPLEFT", child, "TOPLEFT", 4, -top)
-    spot:SetPoint("RIGHT", child, "RIGHT", -4, 0)
-    child:SetHeight(top + Park.SPOT_H + 8)
+    child:SetHeight(top + math.ceil(#keys / cols) * CELL + 8)
     Park:Spot(spot.hover or (ns.Bonds:PetOfTheDay()), true)
     page.summary:SetText(("%d/%d"):format(homes, #keys))
     page.matches:SetText(filtering and ns.T("park.matches", { n = matches }) or "")
@@ -276,7 +277,7 @@ end
 -- A cell's ring: an adopted pet's holder's bond level in the card's tier colors (the family's below
 -- silver), a dim one for a pet that needs a home; fainter when the filter leaves it out.
 function Park.Ring(ring, key, owner, match)
-    local r, g, b, a = 0.3, 0.28, 0.24, 0.9
+    local r, g, b, a = 0.22, 0.2, 0.17, 1
     if owner then
         local _, level = ns.Bond:Of(key)
         local family = ns.Scenes:Families(key)[1] or "default"
@@ -289,21 +290,23 @@ end
 ------------------------------------------------------------------------------
 -- The spotlight: today's pet, or the one under the mouse
 ------------------------------------------------------------------------------
-local function BuildSpot()
-    spot = CreateFrame("Button", nil, child)
+local function BuildSpot(inset)
+    spot = CreateFrame("Button", nil, inset)
     Park.spot = spot -- (the tests read its model)
     spot:SetHeight(Park.SPOT_H)
+    -- (fixed under the map, which scrolls above it: in the scroll it was cut off at the bottom, 2026-11-15)
+    spot:SetPoint("BOTTOMLEFT", inset, "BOTTOMLEFT", 4, 4)
+    spot:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -4, 4)
     spot.card = {}
     ns.Scenes:Build(spot.card, spot) -- (the card's backdrop: its picture, tint, light of the hour, edges)
-    spot.card.floor:SetPoint("CENTER", spot, "BOTTOMLEFT", 130, 34)
     local scene = CreateFrame("ModelScene", nil, spot, "ModelSceneMixinTemplate")
     ns.Call(scene, "EnableMouse", false)
     ns.Call(scene, "EnableMouseWheel", false)
-    scene:SetSize(200, 170)
-    scene:SetPoint("BOTTOMLEFT", spot, "BOTTOMLEFT", 30, 8)
+    scene:SetSize(Park.SCENE_W, Park.SPOT_H - 4)
+    scene:SetPoint("BOTTOMLEFT", spot, "BOTTOMLEFT", 10, 2)
     spot.scene = scene
     spot.today = spot:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", 250, -18)
+    spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 24, -18)
     spot.name = spot:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     spot.name:SetPoint("TOPLEFT", spot.today, "BOTTOMLEFT", 0, -6)
     spot.name:SetShadowColor(0, 0, 0, 1); spot.name:SetShadowOffset(1, -1)
@@ -348,11 +351,11 @@ function Park:Spot(key, again)
     spot.hint:SetShown(key == nil)
     for _, t in ipairs({ spot.today, spot.name, spot.species, spot.text }) do t:SetShown(key ~= nil) end
     spot.scene:SetShown(key ~= nil)
-    spot.card.floor:SetShown(key ~= nil)
+    spot.card.floor:Hide() -- (the card's shadow under the feet: placed for the card's model only)
     if not key then return end
     if changed then
         spot.actor = ns.Pets:LoadModel(spot.scene, key, function()
-            ns.Call(spot.scene, "SetViewInsets", 0, 0, 170 - 86, -50) -- (the pet frame's view: PF.H 170)
+            ns.Call(spot.scene, "SetViewInsets", unpack(Park.VIEW))
         end)
         Camera()
     end
@@ -361,8 +364,8 @@ function Park:Spot(key, again)
     spot.name:SetText(nick or ns.Pets:NameOfKey(key))
     spot.species:SetText(nick and ns.Pets:NameOfKey(key) or "")
     local lines = {}
+    -- (the home, the bond, the personality: the icons' tooltip lines)
     for _, l in ipairs(ns.JournalList.PetLines(key, "park.free")) do lines[#lines + 1] = Colored(l) end
-    lines[#lines + 1] = Colored({ ns.Personality:Line(key), 0.9, 0.75, 0.3 })
     local source = Park.Source(key)
     if source then lines[#lines + 1] = Colored({ source, 0.6, 0.8, 1 }) end
     spot.text:SetText(table.concat(lines, "\n"))
@@ -424,7 +427,8 @@ local function Build(p)
     page.matches:SetPoint("LEFT", page.search, "RIGHT", 6, 0)
     page.free = Toggle(page, "free", counter)
     page.adopt = Toggle(page, "adopt", page.free.label)
-    child = ns.SidePage:ScrollInset(p)
+    local inset
+    child, inset = ns.SidePage:ScrollInset(p, nil, Park.SPOT_H + 6)
     records = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     records:SetPoint("TOPLEFT", child, "TOPLEFT", 8, -8)
     records:SetPoint("RIGHT", child, "RIGHT", -8, 0)
@@ -432,7 +436,7 @@ local function Build(p)
     legend = child:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     legend:SetTextColor(0.8, 0.76, 0.66) -- (the disabled grey was hard to read, UX review 2026-11-11)
     legend:SetText(ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) }))
-    BuildSpot()
+    BuildSpot(inset)
 end
 
 sp = ns.SidePage:New({

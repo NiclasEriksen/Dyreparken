@@ -161,7 +161,8 @@ function SidePage:CounterBox(p, label)
 end
 
 -- The inset below the portrait, with a scroll frame. Returns the scroll child.
-function SidePage:ScrollInset(p, top)
+-- foot: room kept free under the scroll, inside the inset (the park's stage). Returns the scroll's child and the inset.
+function SidePage:ScrollInset(p, top, foot)
     local inset = CreateFrame("Frame", nil, p.frame, SidePage.Template("InsetFrameTemplate"))
     inset:SetPoint("TOPLEFT", host, "TOPLEFT", 4, -(top or 60))
     inset:SetPoint("BOTTOMRIGHT", host, "BOTTOMRIGHT", -6, 26)
@@ -170,11 +171,11 @@ function SidePage:ScrollInset(p, top)
     -- if asked: an empty bar beside a page that fits looked broken (UX review 2026-11-11).
     scroll.scrollBarHideable = true
     scroll:SetPoint("TOPLEFT", inset, "TOPLEFT", 4, -4)
-    scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 4)
+    scroll:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -26, 4 + (foot or 0))
     local child = CreateFrame("Frame", nil, scroll)
     child:SetSize((host:GetWidth() or 703) - 44, 1)
     scroll:SetScrollChild(child)
-    return child
+    return child, inset
 end
 
 ------------------------------------------------------------------------------

@@ -138,7 +138,7 @@ return function(test, H)
         ok(panda.icon.mask, "round")
         local cat = ola.ns.Scenes.TINT.cat
         eq(kitty.ring.vertexColor[1], cat[1], "level 1: the family's color, as on the card")
-        eq(tabby.ring.vertexColor[1], 0.3, "free: a dim ring")
+        eq(tabby.ring.vertexColor[1], 0.22, "free: a dim ring")
         ok(panda.mine:IsShown())
         -- Kari's bond grows to silver: her cat's ring follows, without a redraw of the rest.
         local now = ola.ns.Now()
@@ -165,6 +165,8 @@ return function(test, H)
         ok(ola:Visible(ola.ns.L["park.spot.today"]), "today's pet, crowned")
         ok(ola:Visible("Cornish Rex Cat"))
         no(ola:Visible(ola.ns.L["park.spot.hint"]))
+        local _, likes = P.spot.text.text:gsub(" · liker", "")
+        eq(likes, 1, "its personality once (it was twice: 2026-11-15)")
         local scene = P.spot.scene
         eq(scene.actor.display, 20000 + 41, "its model")
         eq(scene.scripts.OnUpdate, nil, "its camera still a while after: an open park costs nothing")
