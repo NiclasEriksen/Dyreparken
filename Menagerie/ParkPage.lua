@@ -15,8 +15,9 @@ local _, ns = ...
 --
 -- A search box and two toggles (2026-11-14, the user): "Trenger et hjem" (nobody has adopted it) and "Kan
 -- adopteres" (that, and you own it). What doesn't match is dimmed in place, not hidden, so the park keeps
--- its shape (the user). The search reads what a player sees of a pet: its name, nickname, who has it, its
--- families and its source (Data/Companions.lua: s, w), in the tooltip too.
+-- its shape (the user). The search reads a pet's name, nickname, who has it and its families; not its source
+-- (2026-11-14, the user: searching it was a mistake). The tooltip says where a pet comes from
+-- (Data/Companions.lua: s, w).
 --
 -- Everything comes from the registry; nothing is sent. We can't know which
 -- pets other members own (that isn't synced), so there's no "nobody has it".
@@ -61,7 +62,6 @@ function Park.Haystack(key)
     local data = sid and ns.Companions and ns.Companions.species and ns.Companions.species[sid]
     local names = ns.AchTexts.generic.families
     for _, tag in ipairs(type(data) == "table" and data.t or {}) do parts[#parts + 1] = names[tag] or "" end
-    parts[#parts + 1] = Park.Source(key) or ""
     return Park.Fold(table.concat(parts, "\31"))
 end
 

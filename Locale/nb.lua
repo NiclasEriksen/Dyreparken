@@ -868,7 +868,7 @@ L["park.combat_hint"] = "Kortet til {pet} kommer når kampen er over."
 L["park.legend"] = "I farger: har et hjem.  Grå: trenger et hjem.  {icon} Du kan adoptere det."
 -- The search and the filters (2026-11-14): what doesn't match is dimmed in place.
 L["park.search"] = "Søk"
-L["park.search.tip"] = "Søk etter navn, kallenavn, hvem det bor hos, familie eller hvor det fås."
+L["park.search.tip"] = "Søk etter navn, kallenavn, hvem det bor hos eller familie."
 L["park.matches"] = "{n} treff"
 L["park.filter.free"] = "Trenger et hjem"
 L["park.filter.free.tip"] = "Bare dyr ingen i guilden har adoptert."
