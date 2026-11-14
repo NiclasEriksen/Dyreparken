@@ -1114,7 +1114,9 @@ L["park.click"] = "Klikk for å se kortet."
 L["park.click.pets"] = "Åpne Pets-fanen, så kan du klikke her for å se kortet."
 -- (2026-11-13: a draft) A click on an icon in combat.
 L["park.combat_hint"] = "Kortet til {pet} kommer når kampen er over."
-L["park.legend"] = "I farger: har et hjem.  Grå: trenger et hjem.  {icon} Du kan adoptere det."
+L["park.legend"] = "I farger: har et hjem, ringen viser båndet.  Grå: trenger et hjem.  {icon} Du kan adoptere det."
+L["park.spot.today"] = "Dagens dyr"
+L["park.spot.hint"] = "Hold musen over et dyr for å se det her."
 -- The search and the filters (2026-11-14): what doesn't match is dimmed in place.
 L["park.search"] = "Søk"
 L["park.search.tip"] = "Søk etter navn, kallenavn, hvem det bor hos eller familie."

@@ -291,18 +291,7 @@ end
 
 -- The pet's model, as Blizzard's card shows it: its scene, then the unwrapped actor.
 function PF:Load(key)
-    local sid = ns.Pets:SpeciesOfKey(key)
-    local scene = self.scene
-    local okI, sceneID = pcall(C_PetJournal.GetPetModelSceneInfoBySpeciesID, sid)
-    if okI and sceneID then
-        Call(scene, "TransitionToModelSceneID", sceneID, rawget(_G, "CAMERA_TRANSITION_TYPE_IMMEDIATE") or 1,
-            rawget(_G, "CAMERA_MODIFICATION_TYPE_DISCARD") or 1, true)
-    end
-    self:Insets()
-    local okA, actor = Call(scene, "GetActorByTag", "unwrapped")
-    actor = okA and actor or nil
-    local display = select(12, C_PetJournal.GetPetInfoBySpeciesID(sid))
-    if actor and display then Call(actor, "SetModelByCreatureDisplayID", display) end
+    local actor, sceneID, display = ns.Pets:LoadModel(self.scene, key, function() PF:Insets() end)
     self.actor = actor
     ns.Log("PetFrame", "%s: scene %s, actor %s, display %s", key, tostring(sceneID), tostring(actor ~= nil), tostring(display))
 end

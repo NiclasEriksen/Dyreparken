@@ -141,6 +141,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - Journal: `Blizzard_Collections` is load-on-demand. Frame names are above. The ScrollBox button layout is still
   unverified: check with `/fstack`.
 - `C_PetJournal.SetCustomName` exists. We still use our own synced nicknames.
+- `SetPortraitTextureFromCreatureDisplayID(texture, displayID)` exists (the API probe's globals, 2026-11-15).
+  The park and the list draw each pet's face with it from `GetPetInfoBySpeciesID`'s 12th return (Pets:Portrait).
+  Unverified in game: whether every species draws (a model not loaded yet may come up blank), and whether the
+  portrait is round already (the park masks it round anyway; the list shows it square on a dark square).
 
 ## Journal list, roster and companion units (probed 2026-11-06, build 70790)
 

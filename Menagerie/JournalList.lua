@@ -21,6 +21,8 @@ local MARKERS = {
 local markers = setmetatable({}, { __mode = "k" }) -- button -> texture
 local badges = setmetatable({}, { __mode = "k" })  -- button -> { ring, level, nick }
 JournalList._badges = badges -- (for the tests)
+local faces = setmetatable({}, { __mode = "k" })   -- button -> { bg, face }
+JournalList._faces = faces -- (for the tests)
 local hooked = setmetatable({}, { __mode = "k" })  -- button -> true
 local speciesOf = setmetatable({}, { __mode = "k" }) -- button -> speciesID, owned
 local ownedOf = setmetatable({}, { __mode = "k" })
@@ -81,6 +83,32 @@ local function UpdateMarker(button)
     tex:SetTexture(m[1])
     tex:SetVertexColor(m[2], m[3], m[4], 1)
     tex:Show()
+end
+
+-- The pet's own face over the button's icon (2026-11-15, the user: the park's portraits, in the list
+-- too; the Brown Prairie Dog's icon is a whistle): our textures over Blizzard's icon, which is left as it
+-- is underneath (never set on their frame), on a dark square that hides it; grey when theirs is.
+local function UpdateFace(button)
+    local icon = rawget(button, "icon")
+    if not (type(icon) == "table" and icon.GetObjectType) then return end
+    local f = faces[button]
+    if not f then
+        f = {}
+        f.bg = button:CreateTexture(nil, "ARTWORK", nil, 6)
+        f.bg:SetColorTexture(0.05, 0.04, 0.03, 1)
+        f.bg:SetAllPoints(icon)
+        f.face = button:CreateTexture(nil, "ARTWORK", nil, 7)
+        f.face:SetPoint("TOPLEFT", icon, "TOPLEFT", 1, -1)
+        f.face:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", -1, 1)
+        faces[button] = f
+    end
+    local sid = speciesOf[button]
+    local shown = sid ~= nil and ns.Pets:Portrait(f.face, ns.Pets:KeyOfSpecies(sid))
+    f.bg:SetShown(shown); f.face:SetShown(shown)
+    if shown then
+        local okD, grey = pcall(icon.IsDesaturated, icon)
+        f.face:SetDesaturated(okD and grey and true or false)
+    end
 end
 
 -- An adopted pet's bond level in a small gold ring, left of the marker, and
@@ -172,6 +200,7 @@ function JournalList.InitButton(button, elementData)
     end
     UpdateMarker(button)
     UpdateBadge(button, ListContext())
+    UpdateFace(button)
 end
 
 -- keys: only these pets' bonds changed (their rings), else all of it.

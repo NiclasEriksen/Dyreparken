@@ -106,6 +106,44 @@ function Pets:IconOfKey(key)
     end
 end
 
+-- A pet's face, round, on tex: its creature's portrait drawn from its model (2026-11-15, the user picked
+-- it for the park: a third of the journal's icons are cages, crates and whistles, the item that teaches the
+-- pet), else its journal icon. Whether it's a portrait.
+function Pets:Portrait(tex, key)
+    local sid = self:SpeciesOfKey(key)
+    local icon, display
+    if sid and C_PetJournal.GetPetInfoBySpeciesID then
+        local info = { C_PetJournal.GetPetInfoBySpeciesID(sid) }
+        icon, display = info[2], info[12]
+    end
+    local draw = rawget(_G, "SetPortraitTextureFromCreatureDisplayID")
+    if draw and type(display) == "number" and display > 0 and pcall(draw, tex, display) then
+        tex:SetTexCoord(0, 1, 0, 1)
+        return true
+    end
+    tex:SetTexture(icon)
+    return false
+end
+
+-- A pet's model in a ModelScene of ours (ModelSceneMixinTemplate), as Blizzard's card shows it: the
+-- species' scene, then its "unwrapped" actor (docs/FOREVER_API.md). insets(): the view, set between the
+-- two. Returns the actor (nil: none), the scene id and the display id. The pet frame and the park's
+-- spotlight.
+function Pets:LoadModel(scene, key, insets)
+    local sid = self:SpeciesOfKey(key)
+    local okI, sceneID = pcall(C_PetJournal.GetPetModelSceneInfoBySpeciesID, sid)
+    if okI and sceneID then
+        ns.Call(scene, "TransitionToModelSceneID", sceneID, rawget(_G, "CAMERA_TRANSITION_TYPE_IMMEDIATE") or 1,
+            rawget(_G, "CAMERA_MODIFICATION_TYPE_DISCARD") or 1, true)
+    end
+    if insets then insets() end
+    local okA, actor = ns.Call(scene, "GetActorByTag", "unwrapped")
+    actor = okA and actor or nil
+    local display = sid and select(12, C_PetJournal.GetPetInfoBySpeciesID(sid))
+    if actor and display then ns.Call(actor, "SetModelByCreatureDisplayID", display) end
+    return actor, okI and sceneID or nil, display
+end
+
 -- How many companions Forever has (Data/Companions.lua): counted from the
 -- generated species list when there is one, else the stub's count.
 function Pets:Total()

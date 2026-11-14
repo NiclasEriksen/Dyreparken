@@ -19,6 +19,14 @@ local _, ns = ...
 -- (2026-11-14, the user: searching it was a mistake). The tooltip says where a pet comes from
 -- (Data/Companions.lua: s, w).
 --
+-- Portraits and the spotlight (2026-11-15, the user picked them): each pet is its own face, a round
+-- portrait drawn from its model (Pets:Portrait; a third of the journal's icons were cages, crates and
+-- whistles), in a ring of its holder's bond level (the card's tier colors: Scenes.Tier, the family's
+-- below silver), a gold glow on yours. Under the map, a stage: today's pet (Bonds:PetOfTheDay) as a
+-- live model on its card's backdrop (Scenes), with its name, home and personality; the pet under the
+-- mouse takes its place while hovered. A click there opens its card, as an icon's does. The stage's
+-- camera runs only a moment after a change (as the pet frame's: PF:Camera), so an open park costs nothing.
+--
 -- Everything comes from the registry; nothing is sent. We can't know which
 -- pets other members own (that isn't synced), so there's no "nobody has it".
 -- Loads after Achievements/Page.lua, so its tab comes second.
@@ -28,8 +36,12 @@ ns.ParkPage = Park
 local CELL, ICON_SIZE = 40, 36
 local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
-local sp, page, child, records, legend
+local sp, page, child, records, legend, spot
 local cells = {}
+local spotT, cameraT = ns.Timers(), ns.Timers()
+Park.SPOT_H = 200        -- the stage under the map
+Park.SPOT_BACK = 1       -- seconds after the mouse leaves an icon, today's pet again
+Park.CAMERA_FOR = 2      -- the stage's camera runs this long after a change (PF.CAMERA_FOR)
 -- The filter: { text = lower-cased search, free = bool, adopt = bool }, for this session.
 Park.filter = { text = "", free = false, adopt = false }
 Park.DIM = 0.12
@@ -165,22 +177,42 @@ function Park:Show(key)
     ns.JournalUI:ShowSpecies(sid)
 end
 
+local ROUND = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local function NewCell()
     local c = CreateFrame("Button", nil, child)
     c:SetSize(ICON_SIZE, ICON_SIZE)
+    c.disc = c:CreateTexture(nil, "BACKGROUND")
+    c.disc:SetTexture(ns.Icon("dot"))
+    c.disc:SetVertexColor(0.05, 0.04, 0.03, 1)
+    c.disc:SetAllPoints()
     c.icon = c:CreateTexture(nil, "ARTWORK")
-    c.icon:SetAllPoints()
-    c.mine = c:CreateTexture(nil, "OVERLAY")
-    c.mine:SetTexture("Interface\\Buttons\\CheckButtonHilight")
+    c.icon:SetSize(ICON_SIZE - 4, ICON_SIZE - 4)
+    c.icon:SetPoint("CENTER")
+    -- (round: a journal icon, where there's no portrait, as well)
+    c.round = c:CreateMaskTexture()
+    c.round:SetTexture(ROUND, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    c.round:SetAllPoints(c.icon)
+    c.icon:AddMaskTexture(c.round)
+    c.ring = c:CreateTexture(nil, "OVERLAY")
+    c.ring:SetTexture(ns.Icon("ring"))
+    c.ring:SetSize(ICON_SIZE + 2, ICON_SIZE + 2)
+    c.ring:SetPoint("CENTER")
+    c.mine = c:CreateTexture(nil, "OVERLAY", nil, 1)
+    c.mine:SetTexture(ns.Icon("ring"))
     c.mine:SetBlendMode("ADD")
-    c.mine:SetAllPoints()
-    c.free = c:CreateTexture(nil, "OVERLAY")
+    c.mine:SetVertexColor(1, 0.82, 0.2, 0.9)
+    c.mine:SetSize(ICON_SIZE + 10, ICON_SIZE + 10)
+    c.mine:SetPoint("CENTER")
+    c.free = c:CreateTexture(nil, "OVERLAY", nil, 2)
     c.free:SetTexture(READY)
     c.free:SetSize(14, 14)
     c.free:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 2, -2)
     -- Below the icon: ANCHOR_RIGHT grew upwards over the page's header from the top rows (UX review 2026-11-11).
     ns.SetTip(c, "ANCHOR_BOTTOMRIGHT", function(self) return Park.Lines(self.key) end)
     c:SetScript("OnClick", function(self) Park:Show(self.key) end)
+    -- (hooked: SetTip's own OnEnter shows the tooltip)
+    c:HookScript("OnEnter", function(self) Park:Spot(self.key) end)
+    c:HookScript("OnLeave", function() Park:SpotBack() end)
     cells[#cells + 1] = c
     return c
 end
@@ -214,8 +246,9 @@ local function Redraw()
     for i, it in ipairs(keys) do
         local c = cells[i] or NewCell()
         c.key = it.key
-        c.icon:SetTexture(ns.Pets:IconOfKey(it.key))
+        ns.Pets:Portrait(c.icon, it.key)
         local owner = R:Holder(it.key)
+        Park.Ring(c.ring, it.key, owner, match)
         local match = not filtering or Park.Matches(it.key, nil, owned)
         if match then matches = matches + 1 end
         c.match = match
@@ -230,9 +263,116 @@ local function Redraw()
         c:Show()
     end
     for i = #keys + 1, #cells do cells[i]:Hide() end
-    child:SetHeight(top + math.ceil(#keys / cols) * CELL + 8)
+    top = top + math.ceil(#keys / cols) * CELL + 10
+    spot:ClearAllPoints()
+    spot:SetPoint("TOPLEFT", child, "TOPLEFT", 4, -top)
+    spot:SetPoint("RIGHT", child, "RIGHT", -4, 0)
+    child:SetHeight(top + Park.SPOT_H + 8)
+    Park:Spot(spot.hover or (ns.Bonds:PetOfTheDay()), true)
     page.summary:SetText(("%d/%d"):format(homes, #keys))
     page.matches:SetText(filtering and ns.T("park.matches", { n = matches }) or "")
+end
+
+-- A cell's ring: an adopted pet's holder's bond level in the card's tier colors (the family's below
+-- silver), a dim one for a pet that needs a home; fainter when the filter leaves it out.
+function Park.Ring(ring, key, owner, match)
+    local r, g, b, a = 0.3, 0.28, 0.24, 0.9
+    if owner then
+        local _, level = ns.Bond:Of(key)
+        local family = ns.Scenes:Families(key)[1] or "default"
+        local c = ns.Scenes.Tier(level or 1, ns.Scenes.TINT[family] or ns.Scenes.TINT.default)
+        r, g, b, a = c[1], c[2], c[3], 1
+    end
+    ring:SetVertexColor(r, g, b, match and a or Park.DIM)
+end
+
+------------------------------------------------------------------------------
+-- The spotlight: today's pet, or the one under the mouse
+------------------------------------------------------------------------------
+local function BuildSpot()
+    spot = CreateFrame("Button", nil, child)
+    Park.spot = spot -- (the tests read its model)
+    spot:SetHeight(Park.SPOT_H)
+    spot.card = {}
+    ns.Scenes:Build(spot.card, spot) -- (the card's backdrop: its picture, tint, light of the hour, edges)
+    spot.card.floor:SetPoint("CENTER", spot, "BOTTOMLEFT", 130, 34)
+    local scene = CreateFrame("ModelScene", nil, spot, "ModelSceneMixinTemplate")
+    ns.Call(scene, "EnableMouse", false)
+    ns.Call(scene, "EnableMouseWheel", false)
+    scene:SetSize(200, 170)
+    scene:SetPoint("BOTTOMLEFT", spot, "BOTTOMLEFT", 30, 8)
+    spot.scene = scene
+    spot.today = spot:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", 250, -18)
+    spot.name = spot:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+    spot.name:SetPoint("TOPLEFT", spot.today, "BOTTOMLEFT", 0, -6)
+    spot.name:SetShadowColor(0, 0, 0, 1); spot.name:SetShadowOffset(1, -1)
+    spot.species = spot:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    spot.species:SetPoint("TOPLEFT", spot.name, "BOTTOMLEFT", 0, -4)
+    spot.text = spot:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    spot.text:SetPoint("TOPLEFT", spot.species, "BOTTOMLEFT", 0, -8)
+    spot.text:SetPoint("RIGHT", spot, "RIGHT", -16, 0)
+    spot.text:SetJustifyH("LEFT")
+    spot.text:SetSpacing(3)
+    spot.hint = spot:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    spot.hint:SetPoint("CENTER")
+    spot.hint:SetText(ns.L["park.spot.hint"])
+    spot:SetScript("OnClick", function(self) if self.key then Park:Show(self.key) end end)
+    -- The template's camera runs on every frame drawn: only a moment after a change (PF:Camera).
+    local ok, fn = pcall(scene.GetScript, scene, "OnUpdate")
+    spot.update = ok and type(fn) == "function" and fn or nil
+end
+
+local function Camera()
+    if not spot.update then return end
+    spot.scene:SetScript("OnUpdate", spot.update)
+    cameraT:Cancel()
+    cameraT:After(Park.CAMERA_FOR, function() spot.scene:SetScript("OnUpdate", nil) end)
+end
+
+local function Colored(line)
+    local r, g, b = line[2] or 1, line[3] or 1, line[4] or 1
+    return ("|cff%02x%02x%02x%s|r"):format(r * 255, g * 255, b * 255, line[1])
+end
+
+-- The stage shows key (nil: nobody's pet of the day yet, only the hint). again: its words anew (a redraw).
+function Park:Spot(key, again)
+    if not spot then return end
+    spotT:Cancel()
+    if key == spot.key and not again then return end
+    local today = (ns.Bonds:PetOfTheDay())
+    spot.hover = key ~= today and key or nil
+    local changed = key ~= spot.key
+    spot.key = key
+    ns.Scenes:Paint(spot.card, key)
+    spot.hint:SetShown(key == nil)
+    for _, t in ipairs({ spot.today, spot.name, spot.species, spot.text }) do t:SetShown(key ~= nil) end
+    spot.scene:SetShown(key ~= nil)
+    spot.card.floor:SetShown(key ~= nil)
+    if not key then return end
+    if changed then
+        spot.actor = ns.Pets:LoadModel(spot.scene, key, function()
+            ns.Call(spot.scene, "SetViewInsets", 0, 0, 170 - 86, -50) -- (the pet frame's view: PF.H 170)
+        end)
+        Camera()
+    end
+    spot.today:SetText(key == today and ("|T%s:16|t %s"):format(ns.Icon("crown"), ns.L["park.spot.today"]) or "")
+    local nick = ns.Registry:Nickname(key)
+    spot.name:SetText(nick or ns.Pets:NameOfKey(key))
+    spot.species:SetText(nick and ns.Pets:NameOfKey(key) or "")
+    local lines = {}
+    for _, l in ipairs(ns.JournalList.PetLines(key, "park.free")) do lines[#lines + 1] = Colored(l) end
+    lines[#lines + 1] = Colored({ ns.Personality:Line(key), 0.9, 0.75, 0.3 })
+    local source = Park.Source(key)
+    if source then lines[#lines + 1] = Colored({ source, 0.6, 0.8, 1 }) end
+    spot.text:SetText(table.concat(lines, "\n"))
+end
+
+-- The mouse left an icon: today's pet again, in a moment (the next icon's hover cancels it).
+function Park:SpotBack()
+    spotT:After(self.SPOT_BACK, function()
+        if spot then spot.hover = nil; Park:Spot((ns.Bonds:PetOfTheDay())) end
+    end)
 end
 
 -- The search box: Blizzard's (an instruction text and a clear button), else a plain one.
@@ -292,6 +432,7 @@ local function Build(p)
     legend = child:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     legend:SetTextColor(0.8, 0.76, 0.66) -- (the disabled grey was hard to read, UX review 2026-11-11)
     legend:SetText(ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) }))
+    BuildSpot()
 end
 
 sp = ns.SidePage:New({
@@ -306,5 +447,15 @@ function Park:Open() sp:Open() end
 function Park:IsOpen() return sp:IsOpen() end
 function Park:Refresh() sp:Refresh() end
 
--- (Bonds show only in a cell's tooltip, read as it opens: a change of bonds alone redraws nothing.)
-ns.Bus:On("REGISTRY", function(keys) if not keys then Park:Refresh() end end)
+-- Only these pets' bonds changed (a guildmate's BOND): their rings, and the stage if it shows one of them;
+-- the rest stays (a whole redraw on every bond was what 53_card guards against).
+function Park:Bonds(keys)
+    if not (self:IsOpen() and spot) then return end
+    local R = ns.Registry
+    for _, c in ipairs(cells) do
+        if c:IsShown() and keys[c.key] then Park.Ring(c.ring, c.key, R:Holder(c.key), c.match) end
+    end
+    if spot.key and keys[spot.key] then self:Spot(spot.key, true) end
+end
+
+ns.Bus:On("REGISTRY", function(keys) if keys then Park:Bonds(keys) else Park:Refresh() end end)

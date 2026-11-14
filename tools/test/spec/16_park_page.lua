@@ -27,11 +27,11 @@ return function(test, H)
         return w, unpack(cs)
     end
 
-    -- The park's icons as the player sees them: shown on the page, each with a species' journal
-    -- icon (the harness's GetPetInfoBySpeciesID gives species sid the icon 1000 + sid).
+    -- The park's icons as the player sees them: shown on the page, each with a species' portrait (the
+    -- harness's GetPetInfoBySpeciesID gives species sid the display 20000 + sid).
     local function SpeciesOf(f)
         for _, t in ipairs(f.textures) do
-            if t.shown and type(t.tex) == "number" and H.SPECIES[t.tex - 1000] then return t.tex - 1000 end
+            if t.shown and type(t.portrait) == "number" and H.SPECIES[t.portrait - 20000] then return t.portrait - 20000 end
         end
     end
     local function Cells(c) return c:Page("Parken"):Frames(SpeciesOf) end
@@ -123,6 +123,69 @@ return function(test, H)
         kari:Page("Parken"):Open()
         match(Tip(kari, Cell(kari, 5159)), "^Pepe / Panda Cub / Har bodd hos Ola Nord")
         no(Tip(kari, Cell(kari, 5159)):find("Du har", 1, true))
+    end)
+
+    test("portraits in rings: the holder's bond level in the card's colors, a dim ring for a free one, a gold glow on yours", function()
+        local w, ola, kari = Setup()
+        ola:Slash("adopter panda")
+        kari:Slash("adopter")
+        w:Run(5)
+        ola:OpenJournal({ sideTabs = 4 })
+        ola:Page("Parken"):Open()
+        local panda, kitty, tabby = Cell(ola, 5159), Cell(ola, 41), Cell(ola, 42)
+        eq(panda.icon.portrait, 20000 + 5159, "its own face, not the journal's icon")
+        eq(panda.icon.tex, nil)
+        ok(panda.icon.mask, "round")
+        local cat = ola.ns.Scenes.TINT.cat
+        eq(kitty.ring.vertexColor[1], cat[1], "level 1: the family's color, as on the card")
+        eq(tabby.ring.vertexColor[1], 0.3, "free: a dim ring")
+        ok(panda.mine:IsShown())
+        -- Kari's bond grows to silver: her cat's ring follows, without a redraw of the rest.
+        local now = ola.ns.Now()
+        w:InjectMessage("Kari Berg", { k = "BOND", p = ola.ns.PROTOCOL, pet = "s:41", e = { p = 1500, f = now - 86400 * 30, t = now } })
+        w:Run(1)
+        local silver = ola.ns.Scenes.Tier(ola.ns.Bond:Level(1500))
+        eq(Cell(ola, 41).ring.vertexColor[1], silver[1], "a guildmate's bond: its ring")
+        -- No portrait call: the journal's icon, round as well.
+        ola.env.SetPortraitTextureFromCreatureDisplayID = nil
+        ola.ns.ParkPage:Refresh()
+        eq(kitty.icon.tex, 1000 + 41, "the same cell, its journal icon")
+        eq(kitty.icon.portrait, nil)
+    end)
+
+    test("the spotlight: today's pet on its card's backdrop, the one under the mouse while hovered, a click opens its card", function()
+        local w, ola, kari = Setup()
+        ola:OpenJournal({ sideTabs = 4 })
+        local P = ola.ns.ParkPage
+        ola:Page("Parken"):Open()
+        ok(ola:Visible(ola.ns.L["park.spot.hint"]), "nobody's pet of the day yet: a hint")
+        kari:Slash("adopter cornish"); w:Run(5)
+        local today = ola.ns.Bonds:PetOfTheDay()
+        eq(today, "s:41")
+        ok(ola:Visible(ola.ns.L["park.spot.today"]), "today's pet, crowned")
+        ok(ola:Visible("Cornish Rex Cat"))
+        no(ola:Visible(ola.ns.L["park.spot.hint"]))
+        local scene = P.spot.scene
+        eq(scene.actor.display, 20000 + 41, "its model")
+        eq(scene.scripts.OnUpdate, nil, "its camera still a while after: an open park costs nothing")
+        -- Under the mouse: the rabbit; the mouse gone, today's pet again in a moment.
+        local rabbit = Cell(ola, 72)
+        rabbit.scripts.OnEnter(rabbit)
+        eq(scene.actor.display, 20000 + 72)
+        ok(scene.scripts.OnUpdate, "the camera, for the new pet")
+        w:Run(P.CAMERA_FOR + 0.1)
+        eq(scene.scripts.OnUpdate, nil, "then still")
+        ok(ola:Visible("Trenger et hjem"))
+        no(ola:Visible(ola.ns.L["park.spot.today"]), "no crown on another pet")
+        rabbit.scripts.OnLeave(rabbit)
+        w:Run(0.5)
+        eq(scene.actor.display, 20000 + 72, "not at once (the next icon may come)")
+        w:Run(P.SPOT_BACK)
+        eq(scene.actor.display, 20000 + 41, "today's pet again")
+        -- A click on the stage: its card.
+        P.spot:Click()
+        no(P:IsOpen())
+        eq(ola.shownSpecies, 41)
     end)
 
     test("tooltips say where a pet comes from: the kind, and where when known (names from the data, prose from Locale)", function()

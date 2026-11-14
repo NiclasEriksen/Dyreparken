@@ -254,7 +254,9 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    groups only, timelines in steps (never Alpha delays inside a step), one playing group per region
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
                    come home instead), stopped when hidden),
-                   ParkPage ("Parken", the park map SidePage: records, every journal companion as an icon, a click opens its card on the Pets page (also pets you don't own);
+                   ParkPage ("Parken", the park map SidePage: records, every journal companion as a round portrait (Pets:Portrait, also
+                   the list's icons) in a ring of its holder's bond level, a click opens its card on the Pets page (also pets you
+                   don't own); under the map a stage with today's pet, or the one hovered, as a live model (Pets:LoadModel);
                    loads after Achievements/Page.lua so its tab comes second),
                    PetFrame (the pet that's out on screen, else the one kept out (Med deg: mounted, on a flight path), none while
                    you're dead, optional and off by default: its own ModelScene with the card's view

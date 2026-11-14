@@ -255,6 +255,26 @@ return function(test, H)
         ok(Paw(46)); no(Paw(5159), "only the active one")
     end)
 
+    test("the list shows each pet's face over Blizzard's icon, left as it was; grey where theirs is", function()
+        local w, ola = Setup()
+        ola:ListPets({ extra = { 72 } })
+        local faces = {}
+        for button, f in pairs(ola.ns.JournalList._faces) do faces[button.sid] = { f = f, icon = button.icon } end
+        local panda = faces[5159]
+        eq(panda.f.face.portrait, 20000 + 5159, "its portrait")
+        ok(panda.f.face:IsShown()); ok(panda.f.bg:IsShown(), "on a dark square over the icon")
+        eq(panda.icon.tex, 1000 + 5159, "Blizzard's icon untouched")
+        no(panda.f.face.desaturated)
+        ok(faces[72].f.face.desaturated, "not owned: grey, as Blizzard's")
+        -- No portrait call: theirs shows, nothing of ours.
+        ola.env.SetPortraitTextureFromCreatureDisplayID = nil
+        ola:ListPets()
+        local button = ola:Button(5159)
+        local f = ola.ns.JournalList._faces[button]
+        ok(f, "the new button's")
+        no(f.bg:IsShown(), "no portrait: Blizzard's icon shows"); no(f.face:IsShown())
+    end)
+
     test("with AutoCompanion the badge is greyed out", function()
         local w, ola = Setup(nil, { addons = { "AutoCompanion" } })
         local card = ola:SelectPet(5159)

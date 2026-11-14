@@ -336,7 +336,7 @@ for _, m in ipairs({ "SetWidth", "SetHeight", "SetAllPoints", "SetJustifyH", "Se
 end
 function Region:SetPoint(...) self.points = self.points or {}; self.points[#self.points + 1] = { ... } end
 function Region:ClearAllPoints() self.points = {} end
-function Region:SetTexture(x) self.tex = x; self.atlas = nil end -- (an atlas set before is gone)
+function Region:SetTexture(x) self.tex = x; self.atlas = nil; self.portrait = nil end -- (an atlas set before is gone)
 function Region:GetTexture() return self.tex end
 function Region:SetAtlas(x) self.tex = x; self.atlas = x end
 function Region:SetTexCoord(...) self.texCoord = { ... } end
@@ -400,6 +400,7 @@ function Region:GetDrawLayer() return "ARTWORK" end
 function Region:GetWidth() return 16 end
 function Region:GetHeight() return 16 end
 function Region:SetDesaturated(v) self.desaturated = not not v end
+function Region:IsDesaturated() return self.desaturated == true end
 function Region:Show() self.shown = true end
 function Region:Hide() self.shown = false end
 function Region:IsShown() return self.shown end
@@ -411,6 +412,7 @@ function Region:SetText(x) self.text = x; self.plain = x and StripColors(x) end
 function Region:GetText() return self.text end
 function Region:SetTextColor(r, g, b) self.color = { r, g, b } end
 function Region:SetShadowOffset(x, y) self.shadow = { x, y } end
+function Region:SetSpacing(n) self.spacing = n end
 function Region:SetShadowColor(r, g, b, a) self.shadowColor = { r, g, b, a } end
 -- A font string's font: path, size, flags (OUTLINE...), as the client returns it.
 function Region:GetFont() return self.fontPath or "Fonts\\FRIZQT__.TTF", self.fontSize or 16, self.fontFlags or "" end

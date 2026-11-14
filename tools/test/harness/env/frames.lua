@@ -109,6 +109,12 @@ return function(c, env, S)
         return { type = "Frame", width = 0, height = 0 }
     end }
     -- Paths the client has: every one, except those in c.missingFiles.
+    -- A creature's round portrait on a texture (on Forever: the API probe saw it, 2026-11-15): the texture's
+    -- file goes, its portrait is the display id (tex.portrait).
+    env.SetPortraitTextureFromCreatureDisplayID = function(tex, display)
+        assert(type(tex) == "table" and tex.SetTexture, "SetPortraitTextureFromCreatureDisplayID: not a texture")
+        tex.tex, tex.atlas, tex.portrait = nil, nil, display
+    end
     env.GetFileIDFromPath = function(path)
         if c.missingFiles and c.missingFiles[path] then return nil end
         return 100000 + #path

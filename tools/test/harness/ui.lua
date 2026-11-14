@@ -265,6 +265,8 @@ function Client:ListPets(o)
         if not o.bare then b.petID, b.speciesID, b.owned = e.guid, e.sid, e.owned end
         b.sid = e.sid -- for the harness only
         b.name = b:CreateFontString() -- the species' name, as on Retail's list buttons
+        -- Its journal icon, grey when not owned (Blizzard's PetJournal_InitPetButton)
+        b.icon = b:CreateTexture(); b.icon:SetTexture(1000 + e.sid); b.icon:SetDesaturated(not e.owned)
         buttons[i] = b
     end
     env.PetJournal.ScrollBox.buttons = buttons
@@ -281,7 +283,8 @@ end
 function Client:Marker(sid)
     for _, b in ipairs(self.env.PetJournal.ScrollBox.buttons) do
         if b.sid == sid then
-            local t = b.textures[1]
+            -- (the first texture after Blizzard's icon: the marker, made first)
+            local t = b.textures[1] == b.icon and b.textures[2] or b.textures[1]
             return t and t.shown and t.tex or nil
         end
     end
