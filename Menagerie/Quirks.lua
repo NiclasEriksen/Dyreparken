@@ -65,11 +65,12 @@ function Quirks:Dislike(key, id, minor)
     local seen = ns.DB.char.dislikes
     local first = not (seen[key] and seen[key][id])
     -- (found: common, the 45 minutes; not yet: a discovery, only another line on its way holds it)
-    if first then
-        if ns.Moments:Pending() then return end
-    elseif not self:Ready() then
-        return
+    -- (only another line on its way in the way: its turn comes after it, Moments:Later)
+    local M = ns.Moments
+    if M:Pending() and (first or M:Left("quirk") == 0) then
+        return M:Later(("dislike %s %s"):format(key, id), function() Quirks:Dislike(key, id, minor) end)
     end
+    if not first and not self:Ready() then return end
     local chance = minor and (first and self.MINOR_CHANCE or self.MINOR_AGAIN)
         or (first and self.DISLIKE_CHANCE or self.DISLIKE_AGAIN)
     if ns.random() >= chance then return end
@@ -462,10 +463,13 @@ function Quirks:Egg(on, key, extra, seen)
     -- Every `always` egg that's due says its line (one a day each: a round
     -- day on Christmas Eve isn't lost to the Christmas egg); the others only
     -- with the hour free, so at most one of those.
-    local any = false
+    local any, held = false, false
+    local M = ns.Moments
     for _, e in ipairs(list) do
         local had = ns.DB.char.eggs[e.id]
         local done = (had and had.day == today) or pending.eggs[e.id] == today
+        -- (a common one held back only by another line on its way: this moment again after it)
+        if not e.always and not done and M:Pending() and M:Left("quirk") == 0 then held = true end
         local chance = e.chance
         if type(chance) == "function" then chance = chance(ctx) end -- (false or nil: no roll, the test decides)
         if (e.always or self:Ready()) and not done
@@ -486,6 +490,9 @@ function Quirks:Egg(on, key, extra, seen)
                 any = true
             end
         end
+    end
+    if held and not any then
+        M:Later(("egg %s %s"):format(on, key), function() Quirks:Egg(on, key, extra, seen) end)
     end
     return any
 end

@@ -12,6 +12,8 @@ local _, ns = ...
 --   once a day       Moments.SaidToday(store, id), and Moments.Count(...) as it's said: store[id] (char.eggs,
 --                    char.reacts) { n, day, key }; the caller fires its Bus event the first time
 --   the delay        Moments.DELAY's spans; `afterFight`: in a fight, the wait starts once it's over
+--   later            a moment held back only by another line on its way waits its turn (Moments:Later; the
+--                    user, 2026-11-14: "queue them instead"), at most LATER_MAX seconds, LATER_SIZE of them
 --
 -- What a moment uses up (the cooldown, the day, a find) is saved when it's said, not when it's decided: a
 -- /reload in the delay used to spend it unsaid (code review 2026-11-10).
@@ -31,6 +33,8 @@ Moments.BUDGETS = {
         get = function() return ns.DB.char.reactAt end, set = function(t) ns.DB.char.reactAt = t end },
 }
 
+Moments.LATER_MAX, Moments.LATER_SIZE = 60, 4
+
 local onTheWay = 0 -- lines decided and not yet said
 local why       -- the newest one's reason (/dp state)
 local queued = {} -- m.id -> true while that moment is on its way (it isn't decided twice: a rare reaction in a long fight)
@@ -38,6 +42,25 @@ local queued = {} -- m.id -> true while that moment is on its way (it isn't deci
 function Moments:Pending() return onTheWay > 0 and why or nil end
 -- This moment (its id) is on its way already.
 function Moments:Queued(id) return id ~= nil and queued[id] == true end
+
+-- Held back by a line on its way: fn() decides again once no line is (each its own checks: the cooldown, the
+-- day, the roll). One per id; the oldest go past LATER_SIZE; older than LATER_MAX seconds, it has passed.
+local later = {}
+function Moments:Later(id, fn)
+    for _, q in ipairs(later) do if q.id == id then return end end
+    later[#later + 1] = { id = id, fn = fn, t = GetTime() }
+    while #later > self.LATER_SIZE do table.remove(later, 1) end
+    ns.Log("Moments", "%s waits its turn", tostring(id))
+end
+local function Drain()
+    while onTheWay == 0 and later[1] do
+        local q = table.remove(later, 1)
+        if GetTime() - q.t <= Moments.LATER_MAX then
+            local ok, err = pcall(q.fn)
+            if not ok then geterrorhandler()(err) end
+        end
+    end
+end
 
 -- A budget's cooldown is over and no line is on its way.
 function Moments:Ready(budget)
@@ -71,6 +94,7 @@ function Moments:Say(m)
             -- (chatLines off hides the line only: what it found still counts)
             ns.PetSays(m.text, m.key, m.bubble or "say")
             if m.said then m.said() end
+            Drain()
         end)
     end
     if m.afterFight then ns.Events:OutOfCombat(Wait) else Wait() end

@@ -152,8 +152,24 @@ function Reactions:Try(row, s, key)
     local vars
     if row.test then vars = row.test(s, row, key) else vars = self.ByNature(row, key) end
     if not vars then return "not its moment" end
+    return self:Speak(row, key, vars)
+end
+
+-- What's left once the moment is the row's: the line on its way (then its turn after it: Moments:Later), the
+-- budget, the roll. Why not, or nil when it speaks.
+function Reactions:Speak(row, key, vars, again)
     local rare = row.rare
-    if ns.Moments:Pending() and not (rare and ns.random() < self.RARE_SKIP) then return "a line on its way" end
+    local M = ns.Moments
+    if again and (M.SaidToday(ns.DB.char.reacts, row.id) or M:Queued("react:" .. row.id)) then return "said today" end
+    if M:Pending() and not (rare and ns.random() < self.RARE_SKIP) then
+        if not again and (rare or M:Left("react") == 0) then
+            M:Later("react:" .. row.id, function()
+                local why = Reactions:Speak(row, key, vars, true)
+                if why then ns.Log("Reactions", "%s, its turn: %s", row.id, why) end
+            end)
+        end
+        return "a line on its way"
+    end
     if not (rare or self:Ready()) then return "the 20 minutes" end
     if not rare and ns.random() >= (row.chance or self.CHANCE) then return "the roll" end
     local text = ns.PickLine(vars._key or ("react." .. row.id), setmetatable({ pet = ns.Registry:NameOf(key) }, { __index = vars }))

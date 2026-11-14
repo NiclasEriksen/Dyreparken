@@ -22,6 +22,19 @@ return function(test, H)
     end
     local function Dive(c) c:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath") end
 
+    test("a dislike's discovery held back by another line on its way comes after it, not lost (Moments:Later)", function()
+        local w, ola = Setup()
+        local M = ola.ns.Moments
+        for k in pairs(M.DELAY) do M.DELAY[k] = { 5, 5 } end
+        ola:Dice(0)
+        M:Say({ text = "Hm.", key = CAT, why = "a reaction" })
+        Dive(ola)
+        w:Run(5.5)
+        no(ola:Said("Nå vet du det: Bombay Cat liker ikke dykking."), "not yet")
+        w:Run(5)
+        ok(ola:Said("Nå vet du det: Bombay Cat liker ikke dykking."), "after the other line")
+    end)
+
     test("a dislike doesn't stop the eggs: a wolf that minds naps still has its fifth nap's", function()
         local w, ola = Setup()
         ola:Companions{ [40] = { a = true, t = { "wolf" } } }

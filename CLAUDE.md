@@ -212,7 +212,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    for achievements of their own once enough rows exist; plan: docs/CLASS_INTERACTIONS.md)
                    Moments (2026-11-14: what Quirks' lines and the reactions share: lines by nature
                    (Moments.ByNature), the cooldown budgets (quirk 45 min, react 20), ONE line on its way at a
-                   time for both, the waits (Moments.DELAY = Quirks.DELAY), counting once a day (SaidToday, Count)),
+                   time for both (one held back by it waits its turn: Moments:Later, a minute at most), the waits
+                   (Moments.DELAY = Quirks.DELAY), counting once a day (SaidToday, Count)),
                    Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;
