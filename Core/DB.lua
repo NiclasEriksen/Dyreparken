@@ -113,7 +113,8 @@ local CHAR_DEFAULTS = {
     -- [Feats]
     feats = {},                -- [feat id] = { t, before, what, key }: a character's feats, each once
     -- [Wish]
-    wish = nil,                -- { day, pet, id, done, shown }: today's wish (Today; the card's hop: Shown)
+    wish = nil,                -- { day, pet, id, done }: today's wish (Today)
+    company = nil,             -- when a guildmate was last with you (a group, their pet met, a playdate): social wishes
     wishes = { n = 0, streak = 0, best = 0 }, -- wishes come true: in all, days in a row (to `last`, a day), the best run
     -- [Cuddle]
     cardCuddle = nil,          -- the day a click on the card last counted as a cuddle

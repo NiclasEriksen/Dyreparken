@@ -80,9 +80,18 @@ function Wish.Zones(key)
 end
 
 -- The company wishes that fit this pet (SOCIAL_ORDER's order).
+-- Only with guild company lately (the user, 2026-11-14: a solo player's streak broke on them): a guildmate
+-- in your group, their pet met or a playdate within COMPANY_DAYS (char.company), or in your group now.
+Wish.COMPANY_DAYS = 3
+Wish.COMPANY = { guildgroup = true, guildpet = true, playmate = true }
+function Wish.Company()
+    local at = ns.DB.char.company
+    if at and ns.Now() - at <= Wish.COMPANY_DAYS * 86400 then return true end
+    return ns.Activity.Guildmate() ~= nil
+end
 function Wish.Social(key)
     local list = {}
-    if ns.Personality:Tagged(key, "loner") then return list end
+    if ns.Personality:Tagged(key, "loner") or not Wish.Company() then return list end
     local social = ns.Personality:Tagged(key, "social")
     local families = {}
     for _, f in ipairs(ns.Scenes:Families(key)) do families[f] = true end
@@ -390,7 +399,12 @@ end
 
 function Wish:Init()
     -- (OnActivity checks the pet out is today's wisher: your adopted pet.)
-    ns.Bus:On("ACTIVITY", function(id, _, key) Wish:OnActivity(id, key) end)
+    ns.Bus:On("ACTIVITY", function(id, _, key)
+        if Wish.COMPANY[id] then ns.DB.char.company = ns.Now() end
+        Wish:OnActivity(id, key)
+    end)
+    -- (the company's activities heard always: what the social wishes are offered by)
+    for id in pairs(Wish.COMPANY) do ns.Activity:Want(id, Wish.COMPANY) end
     self:Arm() -- (a wish made before a /reload)
     -- Adopted or let go: today's wish is another pet's, or none (and what it watched goes).
     ns.Bus:On("MY_RECORD", function() Wish:Arm() end)

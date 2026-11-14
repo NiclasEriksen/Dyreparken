@@ -26,7 +26,7 @@ ns.Zones = { rows = {
     ["Thunder Bluff"] = { level = 1, faction = "Horde", capital = true, high = true },
     ["Tirisfal Glades"] = { level = 1, faction = "Horde" },
     ["Undercity"] = { level = 1, faction = "Horde", capital = true },
-    ["Zephras Isle"] = { level = 1, high = true },
+    ["Zephras Isle"] = { high = true }, -- (no level: never a trip until its name is seen in game; the user, 2026-11-14)
     ["Darkshore"] = { level = 10, faction = "Alliance", home = { "murloc" } },
     ["Silverpine Forest"] = { level = 10, faction = "Horde", home = { "wolf" } },
     ["The Barrens"] = { level = 10, faction = "Horde", climate = "warm" },

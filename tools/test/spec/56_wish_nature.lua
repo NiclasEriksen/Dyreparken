@@ -46,7 +46,15 @@ return function(test, H)
     test("company from the guild: for a social trait or family, never a loner", function()
         local w, ola, kari, W = Setup()
         ola:Traits({ "flokkdyr", "latsabb" }, 5159)
+        eq(#W.Social(PANDA), 0, "no guildmate with you lately: none (2026-11-14, the user)")
+        -- A group with Kari, a guildmate: company for COMPANY_DAYS, after the group too.
+        w:SetGroup({ "Ola Nord", "Kari Berg" }); ola:Fire("GROUP_ROSTER_UPDATE"); w:Run(1)
+        w:SetGroup(nil); ola:Fire("GROUP_ROSTER_UPDATE")
+        ok(ola.ns.DB.char.company, "the group counted as company")
         eq(table.concat(W.Social(PANDA), " "), "guildgroup playmate guildpet", "a social trait: all three")
+        w:Skip(W.COMPANY_DAYS * 86400 + 60)
+        eq(#W.Social(PANDA), 0, "days ago: none again")
+        ola.ns.DB.char.company = ola.ns.Now()
         ola:Traits({ "latsabb", "glupsk" }, 5159)
         eq(#W.Social(PANDA), 0, "neither social nor a social family")
         ola:Traits({ "latsabb", "glupsk" }, 5018)
@@ -59,6 +67,13 @@ return function(test, H)
         local w, ola, kari, W = Setup()
         ola:Traits({ "flokkdyr", "latsabb" }, 5159)
         local extra, n = { guildgroup = true, playmate = true, guildpet = true }, 0
+        -- No guildmate with you lately: no company wishes at all (a solo player's streak broke on them).
+        for d = 0, 199 do
+            local day = os.date("%Y%m%d", os.time({ year = 2026, month = 1, day = 1 + d, hour = 12 }))
+            no(extra[W:For(PANDA, day)], "no company lately: " .. day)
+        end
+        ok(ola.ns.Activity:IsListening("GROUP_ROSTER_UPDATE"), "what brings company is heard")
+        ola.ns.DB.char.company = ola.ns.Now() - (W.COMPANY_DAYS - 1) * 86400 -- (a guildmate two days ago)
         for d = 0, 199 do
             local day = os.date("%Y%m%d", os.time({ year = 2026, month = 1, day = 1 + d, hour = 12 }))
             local id = W:For(PANDA, day)
