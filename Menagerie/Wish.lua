@@ -225,12 +225,7 @@ end
 ------------------------------------------------------------------------------
 Wish.EXPLORE = { all = 62053, lists = { 62353, 62355 }, category = 15607 } -- (/dp probe api legacy, 2026-11-13)
 
-local function Call(fn, ...)
-    if type(fn) ~= "function" then return nil end
-    local r = { pcall(fn, ...) }
-    if not r[1] then return nil end
-    return unpack(r, 2, table.maxn(r))
-end
+local Call = ns.Read
 
 -- Whether an achievement is done: by its id, else (if the id form gives nothing) found once in the
 -- Explorer category by position.

@@ -180,4 +180,17 @@ return function(test, H)
         ola:Fire("CHAT_MSG_TEXT_EMOTE", "You dance.", "Ola Nord", "", "", "", "", 0, 0, "", 0, 3, "Player-0000-00000001")
         eq(Count("emote"), 2)
     end)
+    test("a secret table is a secret everywhere (ns.Plain, ns.IsSecret): an aura change no longer switches the aura sources off", function()
+        local w, ola = H.Setup{ ola = { 5159 }, settle = "bond" }
+        local ns = ola.ns
+        eq(ns.Plain(H.SECRET_TABLE), nil); ok(ns.IsSecret(H.SECRET_TABLE)); no(ns.IsSecret({}))
+        eq(ns.Read(function() return H.SECRET_TABLE, 2 end), nil)
+        eq(select(2, ns.Read(function() return H.SECRET_TABLE, 2 end)), 2)
+        ns.Sense:Want("buff", "test")
+        ola:Fire("UNIT_AURA", "player", H.SECRET_TABLE)
+        ola:Fire("UNIT_AURA", "player", { addedAuras = H.SECRET_TABLE })
+        ola:Fire("UNIT_AURA", "player", { addedAuras = { H.SECRET_TABLE } })
+        ola:Fire("UNIT_AURA", "player", { isFullUpdate = false, addedAuras = H.SECRET_TABLE, removedAuraInstanceIDs = {} })
+        eq(#ola:Log("switched off"), 0, "no source switched itself off")
+    end)
 end

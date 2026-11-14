@@ -34,19 +34,8 @@ Sense.NEUTRAL = { ["Booty Bay"] = true, ["Gadgetzan"] = true, ["Ratchet"] = true
     ["Steamwheedle Port"] = true }
 Sense.TYPE = { beast = 1, demon = 3, critter = 8, totem = 11 } -- (UnitCreatureType's ids)
 
--- A value from the client, or nil if the call is missing, fails or is secret. All its values plain.
-local function Read(fn, ...)
-    if type(fn) ~= "function" then return nil end
-    local r = { pcall(fn, ...) }
-    if not r[1] then return nil end
-    for i = 2, table.maxn(r) do r[i] = Plain(r[i]) end
-    return unpack(r, 2, table.maxn(r))
-end
+local Read, Secret = ns.Read, ns.IsSecret
 local function Families(id) return id and ns.Creatures.families[id] or nil end
--- A secret value or table (type() still says "table" for one: 2026-11-14, UNIT_AURA's addedAuras in a fight).
-local function Secret(v)
-    return (issecretvalue and issecretvalue(v)) or (type(v) == "table" and issecrettable and issecrettable(v)) or false
-end
 
 ------------------------------------------------------------------------------
 -- Matching (part 1.2): a reaction's row says what it wants of the subject, field by field: a value, a set

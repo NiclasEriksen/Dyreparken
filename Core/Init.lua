@@ -46,10 +46,26 @@ ns.L = setmetatable({}, {
 ns.random = math.random
 
 -- A value the client may hand us as a secret (docs/FOREVER_API.md): nil
--- then, so nothing compares, indexes or prints it.
+-- then, so nothing compares, indexes or prints it. A secret table too: type()
+-- says "table" for one, and issecretvalue doesn't know it (2026-11-14, UNIT_AURA's
+-- addedAuras in a fight: "bad argument #1 to 'ipairs' (table expected, got secret)").
+local function Secret(v)
+    return (issecretvalue ~= nil and issecretvalue(v) == true)
+        or (type(v) == "table" and issecrettable ~= nil and issecrettable(v) == true)
+end
 function ns.Plain(v)
-    if v == nil or (issecretvalue and issecretvalue(v)) then return nil end
+    if v == nil or Secret(v) then return nil end
     return v
+end
+ns.IsSecret = Secret
+
+-- A client call's values, or nil if the function is missing, fails or gives secrets: each one plain.
+function ns.Read(fn, ...)
+    if type(fn) ~= "function" then return nil end
+    local r = { pcall(fn, ...) }
+    if not r[1] then return nil end
+    for i = 2, table.maxn(r) do r[i] = ns.Plain(r[i]) end
+    return unpack(r, 2, table.maxn(r))
 end
 
 -- A calendar day as "YYYYMMDD" (the local clock, from server time): the
@@ -142,7 +158,6 @@ end
 function ns.Gold(text) return "|cffffd100" .. text .. "|r" end
 function ns.PrintGold(text) ns.Print(ns.Gold(text)) end
 
-function ns.IsSecret(v) return issecretvalue ~= nil and issecretvalue(v) == true end
 
 -- A spell's name by id (nil for a secret or missing id, or without C_Spell).
 -- Kept once read (2026-11-14, the performance review: each cast of yours was looked up four or five times,

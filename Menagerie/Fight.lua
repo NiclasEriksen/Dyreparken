@@ -44,8 +44,7 @@ local key, nature, swing, attacking, autoRepeat, lastSwing, lastMove
 local function Pet() return ns.PetFrame and ns.PetFrame:ShownPet() or nil end
 
 local function Number(fn, ...)
-    local ok, v = pcall(fn, ...)
-    v = ok and ns.Plain(v) or nil
+    local v = ns.Read(fn, ...)
     return type(v) == "number" and v > 0 and v or nil
 end
 

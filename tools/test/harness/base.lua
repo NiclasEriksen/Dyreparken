@@ -15,6 +15,10 @@ H.SPECIES = {
 }
 -- A value the client hides from addons (Forever "secret values").
 H.SECRET = setmetatable({}, { __tostring = function() return "<secret>" end })
+-- A secret table: type() says "table", issecretvalue doesn't know it, issecrettable does, and it can't be walked
+-- or read (Forever 2026-11-14, UNIT_AURA's addedAuras in a fight).
+H.SECRET_TABLE = setmetatable({}, { __tostring = function() return "<secret table>" end,
+    __index = function() error("attempt to index a secret table", 2) end })
 
 -- What Forever doesn't have (docs/FOREVER_API.md, "Missing"): the stub client must lack it too
 -- (01_core checks), so the addon can't come to rely on it. Keep this in step with the doc.
