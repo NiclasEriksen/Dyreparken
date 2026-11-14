@@ -103,13 +103,14 @@ for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end
 
 local sources = {}      -- id -> source
 local wanted = {}       -- id -> { [owner] = true }
-local listening = {}    -- event -> { source, ... } currently registered
+local listening = {}    -- event (or "event@unit") -> { source, ... } currently registered
 local broken = {}       -- id -> true (switched off for this session)
 local unavailable = {}  -- id -> true (an event the client lacks)
 local ENGINE = { name = "Activity" } -- our owner key for ns.Events (its name for /dp probe perf)
 -- Unit events (a source with `unit`) are registered for that unit only (ns.Events' unit hubs):
--- UNIT_SPELLCAST_SUCCEEDED for every unit in a raid would be thousands of calls for nothing.
-local unitOf = {}       -- event -> the unit it's registered for
+-- UNIT_SPELLCAST_SUCCEEDED for every unit in a raid would be thousands of calls for nothing. Sources of
+-- one event for different units (the target's UNIT_COMBAT, yours) are apart: "event@unit".
+local function Slot(e, unit) return unit and (e .. "@" .. unit) or e end
 
 local Today, Plain = ns.Today, ns.Plain
 
@@ -200,18 +201,25 @@ local function Run(src, event, ...)
     if n then Activity:Emit(src.id, n, extra) end
 end
 
-local function OnEvent(_, event, ...)
-    for _, src in ipairs(listening[event] or {}) do Run(src, event, ...) end
+local handlers = {} -- slot -> its ns.Events handler
+local function Handler(slot)
+    local fn = handlers[slot]
+    if not fn then
+        fn = function(_, event, ...)
+            for _, src in ipairs(listening[slot] or {}) do Run(src, event, ...) end
+        end
+        handlers[slot] = fn
+    end
+    return fn
 end
 
-local function Register(e, list)
-    unitOf[e] = list[1].unit
-    return ns.Events:On(e, ENGINE, OnEvent, unitOf[e])
+local function Register(slot, list)
+    local src = list[1]
+    return ns.Events:On(slot:match("^[^@]+"), ENGINE, Handler(slot), src.unit)
 end
 
-local function Unregister(e)
-    ns.Events:Off(e, ENGINE, unitOf[e])
-    unitOf[e] = nil
+local function Unregister(slot, list)
+    ns.Events:Off(slot:match("^[^@]+"), ENGINE, list[1].unit)
 end
 
 -- A source's `when` (2026-11-14, the performance review): UNIT_COMBAT on your target is every hit on it from
@@ -249,8 +257,9 @@ function Update()
         end
         if src and next(owners) and not broken[id] and (not src.when or WHEN[src.when]()) then
             for _, e in ipairs(src.events or {}) do
-                need[e] = need[e] or {}
-                table.insert(need[e], src)
+                local slot = Slot(e, src.unit)
+                need[slot] = need[slot] or {}
+                table.insert(need[slot], src)
             end
             if src.hook and not src.hooked then
                 src.hooked = true
@@ -259,8 +268,8 @@ function Update()
         end
     end
     if not conditional then State(false) end
-    for e in pairs(listening) do
-        if not need[e] then Unregister(e) end
+    for slot, list in pairs(listening) do
+        if not need[slot] then Unregister(slot, list) end
     end
     for e, list in pairs(need) do
         if not listening[e] then
@@ -305,7 +314,14 @@ function Activity:Available(id)
     return true
 end
 
-function Activity:IsListening(event) return listening[event] ~= nil end
+-- Listening to the event (for any unit, or this one).
+function Activity:IsListening(event, unit)
+    if unit then return listening[Slot(event, unit)] ~= nil end
+    for slot in pairs(listening) do
+        if slot == event or slot:sub(1, #event + 1) == event .. "@" then return true end
+    end
+    return false
+end
 
 -- Which activities are wanted, by how many owners (/dp state).
 function Activity:Wanted()
@@ -580,10 +596,6 @@ local streak = { misses = 0, resisted = 0 }
 local function Alone()
     return not (Plain(IsInGroup()) == true or Plain(UnitExists("pet")) == true)
 end
-local function Swinging()
-    local ok, on = pcall(C_Spell.IsCurrentSpell, 6603) -- (Attack: true while auto-attack is on)
-    return ok and Plain(on) == true
-end
 -- One more in the run: 1 (the activity) when it reaches n, and the run starts over.
 local function Streak(id, n)
     streak[id] = streak[id] + 1
@@ -596,7 +608,7 @@ Activity:Source({ id = "misses", events = { "UNIT_COMBAT" }, unit = "target", wh
     action, school = Plain(action), Plain(school)
     if unit ~= "target" or type(action) ~= "string" or not Alone() then return nil end
     if AVOIDED[action] then
-        if not Swinging() then return nil end
+        if not ns.AutoAttacking() then return nil end
         return Streak("misses", Activity.MISS_STREAK)
     end
     if action == "WOUND" and school == 1 then streak.misses = 0 end

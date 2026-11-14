@@ -51,6 +51,14 @@ local Call = ns.Call
 
 function PF:Enabled() return ns.Settings:Get("petFrame") == true end
 
+-- The pet the frame shows now, on screen (not hidden for a fight by petFrameCombat), or nil: Fight's.
+function PF:ShownPet()
+    if not (self.on and self.frame and self.frame:IsShown() and self.key) or self.combatOn then return nil end
+    return self.key
+end
+-- The frame's pet does a move (Moves' stage: "attack", "cower"...); whether it did.
+function PF:Act(key, what) return self.stage ~= nil and self.stage:Act(key, what) end
+
 ------------------------------------------------------------------------------
 -- The frame
 ------------------------------------------------------------------------------

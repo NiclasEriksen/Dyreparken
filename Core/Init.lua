@@ -518,3 +518,11 @@ end
 function ns.InCombat()
     return InCombatLockdown()
 end
+
+-- Your auto-attack is on (Attack, 6603, is the current spell while it swings): Fight's swings, the bad-luck eggs.
+function ns.AutoAttacking()
+    local S = rawget(_G, "C_Spell")
+    if not (S and S.IsCurrentSpell) then return false end
+    local ok, on = pcall(S.IsCurrentSpell, 6603)
+    return ok and ns.Plain(on) == true
+end

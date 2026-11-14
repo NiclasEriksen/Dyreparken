@@ -45,6 +45,12 @@ No wire or saved-data change is planned (no X-Protocol bump; migrations only if 
    today); Fight asks PetFrame through methods; Activity's ~35 sources out of the engine file; Moves.NewStage
    (374 lines) split; a bond-only registry change doesn't rescan the guild (1, Left).
 
+## Decided along the way
+
+- 3.2: Sense's sensors stay a registry of their own beside Activity's sources. Both sit on ns.Events' unit
+  hubs now, and the rest of their Want/Drop is a dozen lines each; merging them would mix counted activities
+  (bond points, achievements) with uncounted subjects for no gain in cost.
+
 ## Status
 
 - 1 done (93fb61f).
@@ -54,3 +60,5 @@ No wire or saved-data change is planned (no X-Protocol bump; migrations only if 
 - 3.1 done: Menagerie/Moments.lua. The user, the same day: a rare reaction skips the one-at-a-time slot only
   some of the time (Reactions.RARE_SKIP 0.5), and the totem garden is common now ("not rare, I've gotten it
   twice in a short period").
+- 3.2 done: Fight through ns.Events (the last frame of its own), ns.AutoAttacking, PetFrame:ShownPet/Act
+  (Fight no longer reads its fields), Activity's sources apart by event and unit.

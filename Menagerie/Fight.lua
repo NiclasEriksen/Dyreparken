@@ -10,8 +10,8 @@ local _, ns = ...
 -- your weapon (in a group others' hits come too: they only fill in the rhythm). Each cast of yours in a
 -- fight is a chance as well. A roll per swing, at most one move every GAP seconds; a crit is likelier.
 --
--- Cheap: nothing at all out of combat but the two combat events; in a fight, a frame of its own with
--- UNIT_COMBAT for the target only and your casts, and only while the pet frame shows a pet that joins in.
+-- Cheap: nothing at all out of combat but the two combat events; in a fight, UNIT_COMBAT for the target
+-- only and your casts (ns.Events' unit hubs), and only while the pet frame shows a pet that joins in.
 local Fight = {}
 ns.Fight = Fight
 
@@ -36,17 +36,12 @@ function Fight.Nature(key)
     return "normal"
 end
 
-local frame -- (in a fight only)
+local FIGHTING = { name = "Fight" } -- (our owner key for a fight's events; Fight's own is for the fight's start and end)
 local key, nature, swing, attacking, autoRepeat, lastSwing, lastMove
 
--- The pet on the pet frame, shown, that joins in: its key, or nil.
-local function Pet()
-    local PF = ns.PetFrame
-    local f = PF and PF.on and PF.frame
-    -- (hidden in combat: PF.combatOn, its setting; read here, since its own handler may come after ours)
-    if not (f and f:IsShown() and PF.key) or PF.combatOn then return nil end
-    return PF.key
-end
+-- The pet on the pet frame, shown, that joins in: its key, or nil. (Hidden in combat by its setting,
+-- petFrameCombat: asked here, since the frame's own handler may come after ours.)
+local function Pet() return ns.PetFrame and ns.PetFrame:ShownPet() or nil end
 
 local function Number(fn, ...)
     local ok, v = pcall(fn, ...)
@@ -62,12 +57,6 @@ local function Swing()
     return Number(UnitAttackSpeed, "player") or Fight.SWING
 end
 
-local function Attacking()
-    local S = rawget(_G, "C_Spell")
-    if not (S and S.IsCurrentSpell) then return false end
-    local ok, v = pcall(S.IsCurrentSpell, 6603) -- (Attack)
-    return ok and ns.Plain(v) == true
-end
 
 -- A moment the pet may join in: chance on top of its own.
 function Fight:Moment(extra, why)
@@ -78,7 +67,7 @@ function Fight:Moment(extra, why)
     local p = (nature == "fighter" and self.FIGHTER_CHANCE or self.CHANCE)[how] + (extra or 0)
     if ns.random() >= p then return end
     local what = nature == "timid" and "cower" or "attack"
-    if ns.PetFrame.stage:Act(key, what) then
+    if ns.PetFrame:Act(key, what) then
         lastMove = now
         ns.Log("Fight", "%s %s (%s, %s)", tostring(key), what, nature, why)
     end
@@ -112,12 +101,10 @@ function Fight:Start()
     key = Pet()
     nature = key and self.Nature(key)
     if not key or nature == "watch" then key = nil; return end
-    frame = frame or CreateFrame("Frame")
-    frame:SetScript("OnEvent", OnEvent)
-    for _, e in ipairs(self.EVENTS) do pcall(frame.RegisterEvent, frame, e) end
-    pcall(frame.RegisterUnitEvent, frame, "UNIT_COMBAT", "target")
-    pcall(frame.RegisterUnitEvent, frame, "UNIT_SPELLCAST_SUCCEEDED", "player")
-    attacking, autoRepeat, lastSwing, lastMove = Attacking(), false, nil, nil
+    for _, e in ipairs(self.EVENTS) do ns.Events:On(e, FIGHTING, OnEvent) end
+    ns.Events:On("UNIT_COMBAT", FIGHTING, OnEvent, "target")
+    ns.Events:On("UNIT_SPELLCAST_SUCCEEDED", FIGHTING, OnEvent, "player")
+    attacking, autoRepeat, lastSwing, lastMove = ns.AutoAttacking(), false, nil, nil
     swing = Swing()
     ns.Log("Fight", "%s joins in (%s), swing %.1f s, attacking %s", key, nature, swing, tostring(attacking))
     -- The fight's start: a pounce (or a cower), likely.
@@ -126,7 +113,7 @@ function Fight:Start()
 end
 
 function Fight:Stop()
-    if frame then frame:UnregisterAllEvents() end
+    ns.Events:OffAll(FIGHTING)
     key = nil
 end
 
