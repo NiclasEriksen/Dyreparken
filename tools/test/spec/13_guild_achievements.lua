@@ -284,4 +284,17 @@ return function(test, H)
         eq(n, MAX + 1)
         ok(g.ach["guild:family:cat"]); ok(g.ach[("guild:%04d"):format(MAX)]); no(g.ach[("guild:%04d"):format(MAX + 1)])
     end)
+
+    test("a bond-only registry change (a guildmate's BOND) checks no guild achievement", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local function Checks() return #ola:Log("check %(REGISTRY%)") end
+        w:Run(20)
+        local before = Checks()
+        ola.ns.Bus:Fire("REGISTRY", { ["s:40"] = true })
+        w:Run(10)
+        eq(Checks(), before, "bonds only: who holds what is the same")
+        ola.ns.Bus:Fire("REGISTRY")
+        w:Run(10)
+        eq(Checks(), before + 1)
+    end)
 end

@@ -428,9 +428,32 @@ function Story:Toggle(key)
     if self:IsOpen() and self.panel.key == key then self:Close() else self:Show(key) end
 end
 
-local Rescan = ns.Debounce(2, function() Story:Scan() end)
-ns.Bus:On("REGISTRY", Rescan)
-ns.Bus:On("BOND", Rescan)
+-- Only the pets whose bonds changed (REGISTRY with keys, our own BOND), the whole guild otherwise: a guildmate's
+-- bond line came about once a minute in a busy guild (the performance review, 2026-11-14).
+local soon = { all = false, keys = {} }
+local Rescan = ns.Debounce(2, function()
+    local all, keys = soon.all, soon.keys
+    soon.all, soon.keys = false, {}
+    if all then return Story:Scan() end
+    local g = G()
+    if not g then return end
+    g.story = g.story or {}
+    local now = ns.Now()
+    for key in pairs(keys) do ScanPet(g, key, now) end
+    Story:Changed()
+end)
+ns.Bus:On("REGISTRY", function(keys)
+    if type(keys) == "table" then
+        for k in pairs(keys) do soon.keys[k] = true end
+    else
+        soon.all = true
+    end
+    Rescan()
+end)
+ns.Bus:On("BOND", function(key)
+    if key then soon.keys[key] = true else soon.all = true end
+    Rescan()
+end)
 ns.Card.Register{ id = "story",
     build = function(card, c) Story:Build(card, c) end,
     update = function(card, key) Story:Update(card, key) end,

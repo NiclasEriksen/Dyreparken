@@ -756,8 +756,11 @@ function Ach:Init()
         if behind then ns.Sync:Nudge() end
     end, "GUILD", { a = "table" })
     -- The registry changes in bursts (a SYNC merges many records): check
-    -- the guild ones once it settles.
-    ns.Bus:On("REGISTRY", ns.Debounce(GUILD_DEBOUNCE, function() Ach:Check("REGISTRY", "guild") end))
+    -- the guild ones once it settles. Not for bonds only (REGISTRY with keys): the guild ones count who
+    -- holds what, and a guildmate's bond line came about once a minute in a busy guild, each a walk of the
+    -- whole collection (the performance review, 2026-11-14).
+    local guildSoon = ns.Debounce(GUILD_DEBOUNCE, function() Ach:Check("REGISTRY", "guild") end)
+    ns.Bus:On("REGISTRY", function(keys) if keys == nil then guildSoon() end end)
 end
 
 ns.Start("loaded", function() Ach:Init() end)
