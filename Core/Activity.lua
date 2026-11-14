@@ -94,6 +94,9 @@ Activity.KINDS = {
     { "guildgroup" },             -- in a group with a guildmate (once a day)
     { "guildpet" },               -- a guildmate's companion met under the mouse (the meet activity's, guild owners)
     { "playmate" },               -- a playdate happened (Playdate.lua emits it; extra: who)
+    -- Bad luck in a fight (2026-11-14, the user): eggs only, said after the fight.
+    { "misses", wish = false },   -- your weapon swings missed (missed, dodged, parried) MISS_STREAK times in a row
+    { "resisted", wish = false }, -- your spells resisted RESIST_STREAK times in a row
 }
 Activity.KIND = {}
 for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end
@@ -532,6 +535,44 @@ Activity:Source({ id = "guildgroup", events = { "GROUP_ROSTER_UPDATE" }, filter 
     local was = withGuild
     withGuild = who ~= nil
     if who and not was then return 1, who end
+end })
+
+-- Bad luck in a fight (2026-11-14, the user: "missing 5 weapon swings in a row, or 3 spells resisted by enemy in a
+-- row"). No combat log on Forever: UNIT_COMBAT on the target says each hit's action (WOUND, MISS, DODGE, PARRY,
+-- RESIST...) and school, not who hit (docs/FOREVER_API.md). So only when it can be no one else's: solo, no
+-- combat pet of yours out (a hunter's or a warlock's would miss and be resisted too), and for swings with
+-- your auto-attack on. A hit of the same kind between them breaks the run. RESIST on Forever is unverified.
+Activity.MISS_STREAK, Activity.RESIST_STREAK = 5, 3
+local AVOIDED = { MISS = true, DODGE = true, PARRY = true }
+local streak = { misses = 0, resisted = 0 }
+local function Alone()
+    return not (Plain(IsInGroup()) == true or Plain(UnitExists("pet")) == true)
+end
+local function Swinging()
+    local ok, on = pcall(C_Spell.IsCurrentSpell, 6603) -- (Attack: true while auto-attack is on)
+    return ok and Plain(on) == true
+end
+-- One more in the run: 1 (the activity) when it reaches n, and the run starts over.
+local function Streak(id, n)
+    streak[id] = streak[id] + 1
+    if streak[id] < n then return nil end
+    streak[id] = 0
+    return 1
+end
+Activity:Source({ id = "misses", events = { "UNIT_COMBAT" }, unit = "target", filter = function(_, unit, action, _, _, school)
+    action, school = Plain(action), Plain(school)
+    if unit ~= "target" or type(action) ~= "string" or not Alone() then return nil end
+    if AVOIDED[action] then
+        if not Swinging() then return nil end
+        return Streak("misses", Activity.MISS_STREAK)
+    end
+    if action == "WOUND" and school == 1 then streak.misses = 0 end
+end })
+Activity:Source({ id = "resisted", events = { "UNIT_COMBAT" }, unit = "target", filter = function(_, unit, action, _, _, school)
+    action, school = Plain(action), Plain(school)
+    if unit ~= "target" or type(action) ~= "string" or not Alone() then return nil end
+    if action == "RESIST" then return Streak("resisted", Activity.RESIST_STREAK) end
+    if action == "WOUND" and type(school) == "number" and school ~= 1 then streak.resisted = 0 end
 end })
 
 -- A playdate (2026-11-14, a wish for social pets): Playdate.lua emits it, as it happens.

@@ -631,6 +631,8 @@ L["activity.boat"] = "båtturer"
 L["activity.guildgroup"] = "selskap fra guilden" -- (2026-11-14: wishes for social pets, Wish.SOCIAL)
 L["activity.guildpet"] = "dyrevenner fra guilden"
 L["activity.playmate"] = "en lekeavtale"
+L["activity.misses"] = "bom på rad" -- (eggs only: Quirks' bom and motstand)
+L["activity.resisted"] = "trolldom som prellet av"
 -- Drafts of 2026-11-13, for the user to edit: Hakkebakkeloven (a playdate between a hunter and its
 -- prey), Bastians runde (22:00 on the clock), Gjensynsglede (back after days apart).
 L["egg.hakkebakke.1"] = "{pet} ser lenge på {friend}, men husker Hakkebakkeloven og holder litt igjen."
@@ -667,6 +669,21 @@ L["egg.glemsel.1"] = "{pet} ser forvirret på deg. Kjenner det deg fortsatt igje
 L["egg.glemsel.2"] = "{pet} snuser grundig på deg, som for å sjekke at du fortsatt er deg."
 L["egg.glemsel.3"] = "{pet} lurer på hvorfor du betalte for å glemme alt du kunne."
 L["egg.oppdrag.1"] = "{pet} har hjulpet deg med {n} quests. Det fortjener en godbit!"
+-- Five swings missed in a row, three spells resisted in a row (2026-11-14; edited by the user)
+L["egg.bom.1"] = "{pet} teller: fem bom på rad. Kanskje du trenger briller?"
+L["egg.bom.2"] = "{pet} lurer på om du sikter på luft med vilje."
+L["egg.bom.3"] = "{pet} ser på våpenet ditt, så på deg. Var det ikke den andre veien?"
+L["egg.bom.skoyer.1"] = "{pet} ler så den nesten faller om. Fem bom! Fem!"
+L["egg.bom.rampete.1"] = "{pet} viser deg hvordan man gjør det: rett i leggen."
+L["egg.bom.kjaelen.1"] = "{pet} klapper deg på beinet. Det går bedre neste gang."
+L["egg.bom.eventyrlysten.1"] = "{pet} er utålmodig. Treff noe, da!"
+L["egg.bom.latsabb.1"] = "{pet} gjesper. Si fra når du treffer noe."
+L["egg.motstand.1"] = "{pet} ser spellsene din prelle av, tre ganger på rad. Den fienden var sta!"
+L["egg.motstand.2"] = "{pet} lurer på om fienden ikke tror på magi."
+L["egg.motstand.skoyer.1"] = "{pet} fniser. Tre ganger sa fienden nei takk!"
+L["egg.motstand.oppdager.1"] = "{pet} vil vite hvordan fienden blåser av seg spellsene sånn."
+L["egg.motstand.kjaelen.1"] = "{pet} trøster deg. Spellsene var fine, selv om den ikke funket så bra."
+L["egg.motstand.ordensdyr.1"] = "{pet} synes det er urettferdig. Man kan ikke bare motstå magi!"
 -- Class reactions (Menagerie/Reactions.lua, 2026-11-14): your pet reacts to what your class does. react.<id>.N,
 -- and by nature react.<id>.<trait|family>.N. Drafts, edited by the user 2026-11-14.
 -- Warrior

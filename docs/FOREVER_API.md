@@ -445,6 +445,8 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   true while auto-attack is on; the globals `IsCurrentSpell` and `IsAutoRepeatSpell` don't exist.
   `UnitRangedDamage("player")` answers (0 speed without a ranged weapon). `START/STOP_AUTOREPEAT_SPELL` register fine
   (unseen: no ranged weapon); `PLAYER_TARGET_SET_ATTACKING` doesn't exist.
+  Since 2026-11-14 the misses and resists eggs (Activity "misses", "resisted") read `MISS`, `DODGE`, `PARRY` and
+  `RESIST` from it; `MISS` and `DODGE` were seen, **`PARRY` and `RESIST` (a fully resisted spell) are unverified**.
 - **The layout cache** (2026-11-12, 1.60.1, from Logs/AccountData.log): a named frame moved with `StartMoving` is
   user-placed, and the client saves its spot itself ("Frame: DyreparkenPetFrame", anchor, x, y), to restore it
   before our code runs. A frame that keeps its own spot calls `SetUserPlaced(false)` after a drag. `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.

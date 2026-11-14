@@ -450,6 +450,14 @@ Quirks.EGGS = {
     { id = "vaken", delay = "now", on = "wake", watch = false, chance = function() return Quirks.WAKE_CHANCE end,
         traits = { "trofast", "einstoing", "latsabb", "hjemlengsel" },
         test = function(ctx) return Quirks.ByNature(ctx) end },
+    -- Bad luck in a fight (2026-11-14, the user): five swings missed in a row, three spells resisted in a row
+    -- (Activity: solo, only yours). Rare, said after the fight; by nature.
+    { id = "bom", delay = "now", on = "misses", always = true,
+        traits = { "skoyer", "rampete", "kjaelen", "eventyrlysten", "latsabb" },
+        test = function(ctx) return Quirks.ByNature(ctx) end },
+    { id = "motstand", delay = "now", on = "resisted", always = true,
+        traits = { "skoyer", "oppdager", "kjaelen", "ordensdyr" },
+        test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
