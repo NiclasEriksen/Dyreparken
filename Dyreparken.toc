@@ -107,6 +107,7 @@ Dev\MovesEditor.lua
 Dev\ApiProbe.lua
 Dev\Errors.lua
 Dev\State.lua
+Dev\Try.lua
 Dev\Perf.lua
 Dev\Commands.lua
 #@end-do-not-package@

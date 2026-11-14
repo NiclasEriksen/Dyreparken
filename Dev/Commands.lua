@@ -4,7 +4,8 @@ local _, ns = ...
 -- isn't packaged (#@do-not-package@ in the TOC), and a checkout given a
 -- release's version (the tests do) has none either.
 if not ns.DEV then return end
-local Add = ns.Commands.Add
+-- (A usage's "|" as "/" in chat: a single | starts an escape there, and "|tabs" is a texture's.)
+local function Add(name, usage, fn) return ns.Commands.Add(name, (usage:gsub("|", "/")), fn) end
 
 -- /dp probe <word> [arg]: development dumps to the debug log. One line each;
 -- the usage is built from this list. (no word: the journal probe)
