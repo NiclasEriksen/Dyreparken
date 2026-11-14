@@ -41,7 +41,8 @@ function Client:TipOf(f)
 end
 
 -- World tooltip -------------------------------------------------------------------
--- Hover a companion: o = { species, owner ("First Surname" or nil), companion (false: not a pet) }.
+-- Hover a companion: o = { species, owner ("First Surname" or nil), companion (false: not a pet), secret (a unit
+-- in combat: no GUID, its name secret, as on Forever 2026-11-14) }.
 -- Returns the lines the addon added (and the whole tooltip, third).
 function Client:Hover(o)
     local unit = "mouseover"
@@ -53,7 +54,7 @@ function Client:Hover(o)
     if o.lines then lines = o.lines end
     for i, l in ipairs(lines) do if type(l) == "table" and l.lineIndex == nil then l.lineIndex = i end end
     self.units[unit] = { companion = o.companion ~= false, species = o.species, lines = lines,
-        name = SpeciesName(o.species or 0) }
+        name = o.secret and H.SECRET or SpeciesName(o.species or 0), secret = o.secret }
     local tip = self.env.GameTooltip
     tip:ClearLines()
     -- The client fills in the unit's own lines before the post-calls run.

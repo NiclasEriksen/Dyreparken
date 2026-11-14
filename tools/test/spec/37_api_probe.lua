@@ -364,6 +364,40 @@ return function(test, H)
         eq(out.globals[1], "LegacySystemFrame_LoadUI function")
     end)
 
+    test("glance: each unit under the mouse once (its owner line too), your casts, your PvP flag", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("probe api glance")
+        match(ola:Printed("api probe glance", true), "watching this session.*you: guid=")
+        ola:Hover{ species = 70, owner = "Kari Berg" }
+        ola:Fire("UPDATE_MOUSEOVER_UNIT")
+        local line = ola:Log("glance mouseover")[1]
+        match(line, "companion=true")
+        match(line, "species=70")
+        match(line, "line2=\"Kari Berg's Companion\"")
+        match(line, "class=missing") -- (the stub client has no UnitClass: reported, never thrown)
+        ola:Fire("UPDATE_MOUSEOVER_UNIT")
+        eq(#ola:Log("glance mouseover"), 1, "the same unit again: not logged")
+        -- Units in combat have no GUID: told apart by what stays readable, each logged once.
+        ola:Hover{ species = 70, secret = true }
+        ola:Fire("UPDATE_MOUSEOVER_UNIT")
+        ola:Fire("UPDATE_MOUSEOVER_UNIT")
+        eq(#ola:Log("glance mouseover guid=nil"), 1, "a secret unit once")
+        match(ola:Log("glance mouseover guid=nil")[1], "name=<secret>")
+        -- UNIT_HAPPINESS for our own pet only (for every unit it filled the log, 2026-11-14).
+        ola:Fire("UNIT_HAPPINESS", "nameplate3")
+        eq(#ola:Log("glance UNIT_HAPPINESS"), 0, "another unit's: not logged")
+        ola:Fire("UNIT_HAPPINESS", "pet")
+        eq(#ola:Log("glance UNIT_HAPPINESS"), 1)
+        ola:Fire("ZONE_CHANGED_NEW_AREA")
+        match(ola:Log("glance zone")[1], "| pvp ")
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "x", 8690)
+        ok(ola:Log("glance cast 8690")[1])
+        ola:Fire("PLAYER_FLAGS_CHANGED", "player")
+        ok(ola:Log("glance PLAYER_FLAGS_CHANGED pvp")[1])
+        ola:Slash("probe api glance")
+        match(ola:Printed("api probe glance", true), "watching already")
+    end)
+
     test("transport: where you are, logged at every zone and world change, each cast, and every few seconds", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         ola.state.zone = "Durotar"

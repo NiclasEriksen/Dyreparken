@@ -29,6 +29,8 @@ local _, ns = ...
 --               screen: our own model scene with the pet that's out, as the journal card builds it.
 --               Left-click: its happy move; right-click: close. Logs each step, and whether Edit Mode
 --               tells us when it opens and closes (EventRegistry "EditMode.Enter"/"EditMode.Exit").
+--   glance      (2026-11-13) units under the mouse, your forms, pet, PvP flag, casts and buffs, this session:
+--               for docs/CLASS_INTERACTIONS.md (S.glance)
 --   legacy      (2026-11-13) Forever's legacy points: professions, exploration achievements (S.legacy)
 --   meter       (2026-11-12, the user: could the pet react to the built-in damage meter, a first place in
 --               damage or healing?) C_DamageMeter now (every session, damage/healing/interrupts: secret or
@@ -1139,6 +1141,160 @@ function S.combat(out)
 end
 
 ------------------------------------------------------------------------------
+-- glance (2026-11-13, by name only; docs/CLASS_INTERACTIONS.md): what the class, race and faction reactions
+-- could read. This session, to the debug log ("glance ..."), at most GLANCE_MAX lines:
+--   each unit under the mouse or targeted (once per GUID every GLANCE_AGAIN seconds): player or not, class,
+--     race, faction, PvP flag, enemy, creature family and type, classification, the npc id from the GUID,
+--     a companion's species, the tooltip's second line (a pet's owner), and whether we're in combat (are
+--     other players' identities secret? C_Secrets.ShouldUnitIdentityBeSecret);
+--   your own combat pet (UNIT_PET: family, happiness), your form (UPDATE_SHAPESHIFT_FORM), your PvP flag
+--     (PLAYER_FLAGS_CHANGED), battleground status, the group's classes and pets;
+--   your casts (id and name), the buffs you gain (names), emotes at you, and the language of /say lines near
+--     you (never their text: a Horde player's Common is the question);
+--   each zone you enter, with its PvP type (GetZonePVPInfo: your capital, the enemy's, contested...).
+-- 2026-11-14, after the first run: a unit in combat has a secret identity and no GUID, so such units are told
+-- apart by what stays readable (faction, reaction, classification, level) and logged once each per
+-- GLANCE_AGAIN; UNIT_HAPPINESS only for your own pet (for every unit it fired 543 times in 30 minutes and
+-- spent the budget); a raid's members too.
+-- Mouse over players of both factions (flagged and not), hunter pets, demons, totems, critters, a rare; change
+-- form, flag for PvP, cast a few spells, then /reload.
+Api.GLANCE_EVENTS = { "UPDATE_MOUSEOVER_UNIT", "PLAYER_TARGET_CHANGED", "UPDATE_SHAPESHIFT_FORM", "PLAYER_FLAGS_CHANGED",
+    "UNIT_FACTION", "UPDATE_BATTLEFIELD_STATUS", "GROUP_ROSTER_UPDATE", "CHAT_MSG_TEXT_EMOTE", "CHAT_MSG_SAY",
+    "CONFIRM_SUMMON", "RESURRECT_REQUEST", "PVP_MATCH_COMPLETE", "ZONE_CHANGED_NEW_AREA" }
+Api.GLANCE_MAX, Api.GLANCE_AGAIN = 800, 600
+-- A global by name, called with its arguments, as text ("missing" when the client lacks it).
+local function Call(name, ...)
+    local fn = G(name)
+    if type(fn) ~= "function" then return "missing" end
+    return Try(fn, ...)
+end
+function Api.Glance(unit)
+    local parts = {}
+    local function Add(label, text) parts[#parts + 1] = label .. "=" .. text end
+    local guid = ns.Plain((pcall(UnitGUID, unit)) and UnitGUID(unit) or nil)
+    Add("guid", Show(guid))
+    local npc = type(guid) == "string" and guid:match("^%a+%-%d+%-%d+%-%d+%-%d+%-(%d+)%-")
+    if npc then Add("npc", npc) end
+    Add("name", Call("UnitName", unit))
+    Add("player", Call("UnitIsPlayer", unit))
+    Add("class", Call("UnitClass", unit))
+    Add("race", Call("UnitRace", unit))
+    Add("faction", Call("UnitFactionGroup", unit))
+    Add("pvp", Call("UnitIsPVP", unit))
+    Add("enemy", Call("UnitIsEnemy", "player", unit))
+    Add("attack", Call("UnitCanAttack", "player", unit))
+    Add("reaction", Call("UnitReaction", "player", unit))
+    Add("family", Call("UnitCreatureFamily", unit))
+    Add("type", Call("UnitCreatureType", unit))
+    Add("classif", Call("UnitClassification", unit))
+    Add("level", Call("UnitLevel", unit))
+    Add("controlled", Call("UnitPlayerControlled", unit))
+    Add("companion", Call("UnitIsBattlePetCompanion", unit))
+    Add("species", Call("UnitBattlePetSpeciesID", unit))
+    Add("othersPet", Call("UnitIsOtherPlayersBattlePet", unit))
+    Add("secretId", C_Secrets and Call("C_Secrets.ShouldUnitIdentityBeSecret", unit) or "missing")
+    local TI = G("C_TooltipInfo.GetUnit")
+    if type(TI) == "function" then
+        local ok, data = pcall(TI, unit)
+        local line = ok and type(data) == "table" and type(data.lines) == "table" and data.lines[2]
+        Add("line2", type(line) == "table" and Show(line.leftText) or "none")
+    end
+    Add("combat", Try(InCombatLockdown))
+    return table.concat(parts, " | ")
+end
+function S.glance(out)
+    out.now = "you: " .. Api.Glance("player") .. " | form " .. Call("GetShapeshiftFormID")
+        .. " | pet " .. Call("UnitCreatureFamily", "pet") .. " happiness " .. Call("GetPetHappiness")
+    if Api.glanceWatch then return "watching already: " .. out.now end
+    local f = CreateFrame("Frame")
+    Api.glanceWatch = f
+    local refused, n, seen = {}, 0, {}
+    for _, e in ipairs(Api.GLANCE_EVENTS) do
+        if not pcall(f.RegisterEvent, f, e) then refused[#refused + 1] = e end
+    end
+    for _, e in ipairs({ "UNIT_SPELLCAST_SUCCEEDED", "UNIT_PET", "UNIT_AURA" }) do
+        if not pcall(f.RegisterUnitEvent, f, e, "player") then refused[#refused + 1] = e end
+    end
+    if not pcall(f.RegisterUnitEvent, f, "UNIT_HAPPINESS", "pet") then refused[#refused + 1] = "UNIT_HAPPINESS" end
+    out.refused = refused
+    local function Log(fmt, ...)
+        n = n + 1
+        if n > Api.GLANCE_MAX then return f:UnregisterAllEvents() end
+        ns.Log("Api", "glance " .. fmt, ...)
+    end
+    local function Unit(unit, why)
+        local ok, exists = pcall(UnitExists, unit)
+        if not ok or not ns.Plain(exists) then return end
+        local guid = ns.Plain(UnitGUID(unit))
+        -- (no GUID: a secret unit, known only by what stays readable)
+        local key = type(guid) == "string" and guid or ("secret %s %s %s %s %s"):format(Call("UnitFactionGroup", unit),
+            Call("UnitReaction", "player", unit), Call("UnitClassification", unit), Call("UnitLevel", unit),
+            Call("UnitPlayerControlled", unit))
+        if seen[key] and GetTime() - seen[key] < Api.GLANCE_AGAIN then return end
+        seen[key] = GetTime()
+        Log("%s %s", why, Api.Glance(unit))
+    end
+    f:SetScript("OnEvent", function(_, event, a, b, c, d, e)
+        if event == "UPDATE_MOUSEOVER_UNIT" then return Unit("mouseover", "mouseover") end
+        if event == "PLAYER_TARGET_CHANGED" then return Unit("target", "target") end
+        if event == "UNIT_SPELLCAST_SUCCEEDED" then
+            local id = ns.Plain(c)
+            return Log("cast %s %s combat %s", tostring(id), tostring(ns.SpellName(id)), Try(InCombatLockdown))
+        end
+        if event == "UNIT_AURA" then
+            if issecretvalue and (issecretvalue(b) or (type(b) == "table" and issecrettable and issecrettable(b))) then
+                return Log("aura <secret>")
+            end
+            local added = type(b) == "table" and b.addedAuras
+            if type(added) ~= "table" then return end
+            local names = {}
+            for _, aura in ipairs(added) do
+                local name = type(aura) == "table" and ns.Plain(aura.name)
+                names[#names + 1] = ("%s %s"):format(tostring(name or "?"), Show(type(aura) == "table" and aura.spellId or nil))
+            end
+            if #names > 0 then Log("aura + %s", table.concat(names, ", ")) end
+            return
+        end
+        if event == "UNIT_PET" or event == "UNIT_HAPPINESS" then
+            return Log("%s pet %s | happiness %s", event, Api.Glance("pet"), Call("GetPetHappiness"))
+        end
+        if event == "UPDATE_SHAPESHIFT_FORM" then
+            return Log("form %s (%s of %s)", Call("GetShapeshiftFormID"), Call("GetShapeshiftForm"), Call("GetNumShapeshiftForms"))
+        end
+        if event == "PLAYER_FLAGS_CHANGED" or event == "UNIT_FACTION" then
+            if a ~= "player" then return end
+            return Log("%s pvp %s ffa %s afk %s", event, Call("UnitIsPVP", "player"), Call("UnitIsPVPFreeForAll", "player"),
+                Call("UnitIsAFK", "player"))
+        end
+        if event == "ZONE_CHANGED_NEW_AREA" then
+            return Log("zone %s / %s | pvp %s", Call("GetRealZoneText"), Call("GetSubZoneText"), Call("GetZonePVPInfo"))
+        end
+        if event == "GROUP_ROSTER_UPDATE" then
+            local list = {}
+            local raid = ns.Plain(IsInRaid()) == true
+            for i = 1, raid and 40 or 4 do
+                local u = (raid and "raid" or "party") .. i
+                local ok, exists = pcall(UnitExists, u)
+                if ok and ns.Plain(exists) then
+                    list[#list + 1] = ("%s: %s %s pet %s"):format(u, Call("UnitClass", u), Call("UnitRace", u),
+                        Call("UnitCreatureFamily", (raid and "raidpet" or "partypet") .. i))
+                end
+            end
+            return Log("group %s", #list > 0 and table.concat(list, "; ") or "none")
+        end
+        if event == "CHAT_MSG_SAY" then -- (the language and who, never the words)
+            return Log("say from %s language %s", Show(b), Show(c))
+        end
+        if event == "CHAT_MSG_TEXT_EMOTE" then
+            return Log("emote %s from %s", Show(a), Show(b))
+        end
+        Log("%s (%s, %s, %s, %s, %s) %s", event, Show(a), Show(b), Show(c), Show(d), Show(e),
+            event == "UPDATE_BATTLEFIELD_STATUS" and Call("GetBattlefieldStatus", a) or "")
+    end)
+    return ("watching this session (events refused: %s): %s"):format(#refused > 0 and table.concat(refused, " ") or "none", out.now)
+end
+
+------------------------------------------------------------------------------
 -- legacy (2026-11-13, by name only; the user: Forever's new legacy point system shows exploration "achievement"
 -- progress and professions, for wishes a level 60 can't do any more: a skill-up with every profession at its
 -- cap, a new place with the map explored). Read-only, nothing opened: open the legacy window yourself first
@@ -1226,7 +1382,7 @@ function Api:Run(arg)
     rest = rest ~= "" and rest or nil
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, transport, combat, legacy)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, transport, combat, glance, legacy)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out, rest)

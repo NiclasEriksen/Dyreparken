@@ -41,7 +41,10 @@ return function(c, env, S)
     end
     env.UnitFullName = UnitNameOf
     env.UnitExists = function(u) return u == "player" or c.units[u] ~= nil end
-    env.UnitGUID = function() return ("Player-0000-%08X"):format(c.idx) end
+    env.UnitGUID = function(u)
+        if c.units[u] and c.units[u].secret then return nil end -- (a unit in combat: its identity is secret)
+        return ("Player-0000-%08X"):format(c.idx)
+    end
     env.GetPlayerInfoByGUID = function() return "Warrior", "WARRIOR", "Human", "Human", 2, c.first, "" end
     env.GetNormalizedRealmName = function() return "CAMWOWEU4Realm1PvE" end
     env.GetRealmName = env.GetNormalizedRealmName
