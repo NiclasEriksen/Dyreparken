@@ -73,6 +73,15 @@ return function(test, H)
         end
     end)
 
+    test("a trip is never to where you are as it's made (it would come true by itself)", function()
+        local w, ola, kari, W = Setup()
+        ola:Traits({ "ordensdyr", "glupsk" }, 5159)
+        ola.state.zone = "Ironforge"
+        local zones = table.concat(W.Zones(PANDA), ",")
+        ok(zones:find("Stormwind City", 1, true), zones)
+        no(zones:find("Ironforge", 1, true), "where you stand")
+    end)
+
     test("a trip: entering the zone with the pet out does it, and so does being there already", function()
         local w, ola, kari, W = Setup()
         local wish = Wishes(ola, "zone", "Durotar")

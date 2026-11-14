@@ -202,8 +202,10 @@ end })
 Activity.MISS_STREAK, Activity.RESIST_STREAK = 5, 3
 local AVOIDED = { MISS = true, DODGE = true, PARRY = true }
 local streak = { misses = 0, resisted = 0 }
+-- (a pet we can't tell is there, its read secret, counts as there: its misses would be ours otherwise)
 local function Alone()
-    return not (Plain(IsInGroup()) == true or Plain(UnitExists("pet")) == true)
+    local pet = UnitExists("pet")
+    return not (Plain(IsInGroup()) == true or ns.IsSecret(pet) or Plain(pet) == true)
 end
 -- One more in the run: 1 (the activity) when it reaches n, and the run starts over.
 local function Streak(id, n)

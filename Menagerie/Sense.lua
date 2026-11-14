@@ -203,12 +203,15 @@ Sense.SENSORS = {
         for _, aura in ipairs(added) do
             if type(aura) ~= "table" or Secret(aura) then return end
             local name, id = Plain(aura.name), Plain(aura.spellId)
-            if type(name) == "string" and Plain(aura.isHelpful) ~= false then Fire("buff", { name = name, id = id }) end
+            if type(name) == "string" and Plain(aura.isHelpful) ~= false then Fire("buff", { name = name, id = id, combat = ns.InCombat() }) end
         end
     end },
     pet = { events = { "UNIT_PET" }, unit = "player",
         start = function() last.pet = Read(UnitGUID, "pet") or false end,
         on = function()
+            -- (secret, in a fight: not "gone", unknown; the next UNIT_PET tells)
+            local ok, exists = pcall(UnitExists, "pet")
+            if not ok or ns.IsSecret(exists) or ns.IsSecret(select(2, pcall(UnitGUID, "pet"))) then return end
             local guid = Read(UnitExists, "pet") == true and Read(UnitGUID, "pet") or false
             if guid == last.pet then return end
             last.pet = guid

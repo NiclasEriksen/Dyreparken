@@ -478,7 +478,7 @@ function Quirks:Egg(on, key, extra, seen)
                 local cheer = e.cheer
                 if type(cheer) == "function" then cheer = cheer(vars) end -- (by the line it says)
                 self:Say(text, ("egg %s %s"):format(e.id, key), "egg", function()
-                    local got = ns.Moments.Count(ns.DB.char.eggs, e.id, key, text, e.id, today)
+                    local got = ns.Moments.Count(ns.DB.char.eggs, e.id, key, text, e.id) -- (the day it's said)
                     if e.move then ns.Moves:Owe(key, e.move) end -- (on its card, once: playing dead)
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
                     if cheer and ns.Moves then ns.Moves:Cheer(key) end -- (on its card and the pet frame)

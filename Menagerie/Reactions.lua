@@ -135,11 +135,10 @@ function Reactions:Ready() return ns.Moments:Ready("react") end
 
 -- The row's line, said a moment later (after the fight, if in one); what it uses up is saved as it's said.
 function Reactions:Say(row, key, text, rare)
-    local today = ns.Today()
     ns.Moments:Say({ text = text, key = key, why = ("react %s %s"):format(row.id, key), id = "react:" .. row.id,
         delay = row.delay or "now",
         budget = not rare and "react" or nil, afterFight = true, said = function()
-            local got = ns.Moments.Count(ns.DB.char.reacts, row.id, key, text, "react:" .. row.id, today)
+            local got = ns.Moments.Count(ns.DB.char.reacts, row.id, key, text, "react:" .. row.id) -- (the day it's said)
             if got.n == 1 then ns.Bus:Fire("REACT_FOUND", row.id) end
         end })
 end
@@ -167,6 +166,7 @@ function Reactions:OnSense(kind, s)
     if kind == "cast" and s.name == "Divine Shield" then times.bubble = now() end
     if kind == "cast" and type(s.name) == "string" and s.name:sub(-6) == " Totem" then
         times.totem[#times.totem + 1] = { t = now(), name = s.name }
+        Within(times.totem, Reactions.TOTEM_SPAN, 1) -- (trimmed here too: the garden's test may not run)
     end
     local key = ns.Pets:OutKey()
     for _, row in ipairs(self.mine or {}) do

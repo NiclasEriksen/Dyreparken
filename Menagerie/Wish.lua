@@ -67,6 +67,9 @@ function Wish.Zones(key)
     end
     local level = tonumber(ns.Plain(UnitLevel("player"))) or 1
     local faction = ns.Plain((UnitFactionGroup("player")))
+    -- (not where you are: logged out in your capital, an Ordensdyr's trip there came true as it was made;
+    -- the bug hunt, 2026-11-14)
+    set[ns.Plain(GetZoneText()) or false] = nil
     local list = {}
     for z in pairs(set) do
         local row = Wish.ZONES[z]
