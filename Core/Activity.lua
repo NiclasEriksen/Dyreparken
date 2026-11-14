@@ -90,6 +90,10 @@ Activity.KINDS = {
     { "specswap", wish = false }, -- a dual-spec switch: only the eggs watch it
     { "respec", wish = false },   -- a talent reset: only the eggs watch it
     { "wake", wish = false },     -- back from AFK, the pet frame's pet woken (PetFrame.lua emits it): the eggs only
+    -- Company from the guild (2026-11-14, the user): wishes for social pets (Wish.SOCIAL), no chips, liked by none.
+    { "guildgroup" },             -- in a group with a guildmate (once a day)
+    { "guildpet" },               -- a guildmate's companion met under the mouse (the meet activity's, guild owners)
+    { "playmate" },               -- a playdate happened (Playdate.lua emits it; extra: who)
 }
 Activity.KIND = {}
 for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end
@@ -500,6 +504,38 @@ end, filter = function(_, species, owner)
     met[id] = true
     return 1, owner
 end })
+
+-- A guildmate's companion met (2026-11-14, a wish for social pets): as "meet", the owner in the guild.
+local metGuild = {}
+Activity:Source({ id = "guildpet", hook = function(fire)
+    ns.Bus:On("COMPANION_SEEN", function(species, owner) fire(species, owner) end)
+end, filter = function(_, species, owner)
+    if type(owner) ~= "string" or owner == ns.PlayerKey() or ns.Guild:IsMember(owner) ~= true then return nil end
+    local id = Today() .. "\31" .. owner .. "\31" .. tostring(species)
+    if metGuild[id] then return nil end
+    metGuild[id] = true
+    return 1, owner
+end })
+
+-- In a group with a guildmate (2026-11-14, a wish for social pets): when the first one is there (a raid's
+-- every roster change would count again otherwise). Already together with the wish made: Wish:Auto.
+local withGuild = false
+function Activity.Guildmate()
+    if not IsInGroup() then return nil end
+    local me = ns.PlayerKey()
+    for _, key in ipairs(ns.GroupKeys()) do
+        if key ~= me and ns.Guild:IsMember(key) == true then return key end
+    end
+end
+Activity:Source({ id = "guildgroup", events = { "GROUP_ROSTER_UPDATE" }, filter = function()
+    local who = Activity.Guildmate()
+    local was = withGuild
+    withGuild = who ~= nil
+    if who and not was then return 1, who end
+end })
+
+-- A playdate (2026-11-14, a wish for social pets): Playdate.lua emits it, as it happens.
+Activity:Source({ id = "playmate", events = {} })
 
 -- A line of our own in guild chat (only the sender is read, never the text).
 Activity:Source({ id = "chat", events = { "CHAT_MSG_GUILD" }, filter = function(_, _, ...)

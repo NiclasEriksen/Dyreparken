@@ -85,7 +85,12 @@ return function(test, H)
         eq(wish.id, "herb"); eq(wish.pet, PANDA); no(wish.done)
         local card = ola:SelectPet(5159)
         ok(card.wish:IsShown())
-        eq(card.wish.text.text, "Panda Cub ønsker seg herbs i dag")
+        -- In one of its own words, the same all day (2026-11-14, the user: "a little more flavor").
+        local said = card.wish.text.text
+        local own = {}
+        for _, k in ipairs(ola.ns.Variants("wish.say.herb")) do own[ola.ns.T(k, { pet = "Panda Cub" })] = true end
+        ok(own[said], said)
+        eq(ola:SelectPet(5159).wish.text.text, said, "the same line when it shows again")
         eq(card.wish.icon.tex, "Interface\\Icons\\Trade_Herbalism")
         eq(ola:TipOf(card.wish).text, "Dagens ønske / Gjør det med Panda Cub ute i dag, så får dere 10 ekstra båndpoeng.")
         local function Earned() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end

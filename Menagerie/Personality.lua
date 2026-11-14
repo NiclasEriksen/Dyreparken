@@ -185,7 +185,8 @@ function Personality.IsWeekend(t) local w = tonumber(date("%w", t)); return w ==
 -- trait ids elsewhere (Personality:Tagged, 2026-11-12 refactor):
 --   is = { tags }   fighter / timid / watcher (Fight: joins your fights, cowers, watches; a
 --                   fighter wins), sleeper (Wish: may wish for a sleeping bag), cozy /
---                   adventurous (Quirks: the campfire eggs; cozy wins)
+--                   adventurous (Quirks: the campfire eggs; cozy wins), social / loner (Wish: may wish
+--                   for company from the guild; a loner never does)
 --   place = x       a new place is a moment x times as often (Bond:PlaceChance)
 -- An egg that speaks by trait lists its traits on the egg (Quirks.EGGS: traits).
 -- Personality.TAGS: every tag there is; a test holds the rows to it.
@@ -206,7 +207,7 @@ Personality.TRAITS = {
     { id = "hjemlengsel", is = { "timid", "sleeper", "cozy" }, place = 0.5, like = "hearth", dislike = "taxi" },
     { id = "ambisios", is = { "fighter" }, like = "level" },
     { id = "latsabb", is = { "watcher", "sleeper", "cozy" }, place = 0.6, like = "nap", dislike = "jump" },
-    { id = "pratsom", like = "chat" },
+    { id = "pratsom", is = { "social" }, like = "chat" },
     { id = "kosete", is = { "timid", "sleeper", "cozy" }, day = function() return 2 end, dayX = 2 },
     { id = "nattugle", when = function(ctx) return Personality.IsNight(ctx.t) end },
     { id = "festglad", day = function(t) return Personality.Holiday(t) and 3 or 1 end, dayX = 3,
@@ -215,26 +216,26 @@ Personality.TRAITS = {
         end },
     { id = "helgedyr", day = function(t) return Personality.IsWeekend(t) and 2 or 1 end,
         dayX = 2, dayFlavor = function(name) return ns.T("trait.helgedyr.dayflavor", { pet = name }) end },
-    { id = "flokkdyr", against = "einstoing", when = function(ctx) return ctx.guildmates > 0 end },
-    { id = "einstoing", against = "flokkdyr", dislike = "chat", when = function(ctx) return not ctx.group end },
+    { id = "flokkdyr", is = { "social" }, against = "einstoing", when = function(ctx) return ctx.guildmates > 0 end },
+    { id = "einstoing", is = { "loner" }, against = "flokkdyr", dislike = "chat", when = function(ctx) return not ctx.group end },
     { id = "huleboer", against = "friluftsdyr", when = function(ctx) return ctx.instance end },
     { id = "friluftsdyr", is = { "sleeper" }, place = 1.3, against = "huleboer", when = function(ctx) return not ctx.instance end },
     -- 2026-11-12 (the user, for 0.5): from Dyreparken in Kristiansand (Kaptein Sabeltann, Julius, Kardemomme
     -- by, Hakkebakkeskogen, the Nordic wilds and the savanna, the rides), Forever, and the likes no trait had.
     { id = "sjorover", is = { "fighter" }, like = "gold" },                       -- Kaptein Sabeltann: gold!
-    { id = "skoyer", like = "fun" },                          -- Julius: silly emotes
+    { id = "skoyer", is = { "social" }, like = "fun" },                          -- Julius: silly emotes
     { id = "roverdyr", is = { "fighter" }, against = "ordensdyr", like = "sneak" }, -- Kasper, Jesper og Jonatan
     { id = "ordensdyr", against = "roverdyr", dislike = "pvp", when = function(ctx) return ctx.city end }, -- Politimester Bastian
-    { id = "venneflokk", is = { "timid" }, like = "meet", dislike = "pvp" },    -- Hakkebakkeskogen: all animals are friends
+    { id = "venneflokk", is = { "timid", "social" }, like = "meet", dislike = "pvp" },    -- Hakkebakkeskogen: all animals are friends
     { id = "vinterpels", against = "solelsker", when = function(ctx) return Personality.COLD[ctx.zone] end },
     { id = "solelsker", against = "vinterpels", when = function(ctx) return Personality.WARM[ctx.zone] end },
-    { id = "tivolidyr", day = function(t) return ns.Holidays:Has(t, "darkmoon") and 2 or 1 end, dayX = 2,
+    { id = "tivolidyr", is = { "social" }, day = function(t) return ns.Holidays:Has(t, "darkmoon") and 2 or 1 end, dayX = 2,
         dayFlavor = function(name) return ns.T("trait.tivolidyr.dayflavor", { pet = name }) end },
     { id = "balkos", is = { "cozy" }, like = "camp" },
     { id = "skybaren", is = { "adventurous" }, place = 1.3, when = function(ctx) return Personality.HIGH[ctx.zone] end }, -- the Skyborne, Zephras Isle
     { id = "jeger", is = { "fighter" }, like = "skin" },
     { id = "handverker", like = "skill" },
-    { id = "diplomat", like = "rep" },
+    { id = "diplomat", is = { "social" }, like = "rep" },
 }
 
 -- Where the zone traits feel at home: GetZoneText's names (enUS; Classic's, and Forever's own: Zephras
@@ -246,7 +247,8 @@ Personality.WARM = Set({ "Tanaris", "The Barrens", "Durotar", "Desolace", "Silit
     "Burning Steppes", "Thousand Needles", "Stranglethorn Vale", "Un'Goro Crater", "Orgrimmar" })
 Personality.HIGH = Set({ "Zephras Isle", "Mount Hyjal", "Thunder Bluff", "Teldrassil", "Darnassus" })
 Personality.CITIES = Set({ "Stormwind City", "Ironforge", "Darnassus", "Orgrimmar", "Thunder Bluff", "Undercity" })
-Personality.TAGS = { fighter = true, timid = true, watcher = true, sleeper = true, cozy = true, adventurous = true }
+Personality.TAGS = { fighter = true, timid = true, watcher = true, sleeper = true, cozy = true, adventurous = true,
+    social = true, loner = true }
 local byId = {}
 for _, t in ipairs(Personality.TRAITS) do
     byId[t.id] = t

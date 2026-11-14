@@ -27,6 +27,7 @@ return function(c, env, S)
     env.IsResting = function() return S.resting or false end
     env.UnitIsAFK = function(u) return u == "player" and S.afk or false end
     env.UnitLevel = function() return S.level or 10 end
+    env.UnitFactionGroup = function(u) local f = S.faction or "Alliance"; return f, f end
     env.GetZoneText = function() return S.zone or "Elwynn Forest" end
     env.GetBindLocation = function() return S.home end
     -- The chat formats skill-ups and reputation are read with (enUS GlobalStrings).

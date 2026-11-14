@@ -27,11 +27,102 @@ end
 Wish.CAMP_EVERY = 6
 local function Sleeper(key) return ns.Personality:Tagged(key, "sleeper") end -- (Personality.TRAITS' `is`)
 
--- What the pet wishes for on a day ("YYYYMMDD").
+------------------------------------------------------------------------------
+-- Wishes by nature (2026-11-14, the user: "wishing to meet guildies etc, using the events we already
+-- track, and which suits the traits/family ... visit specific zones (also related to family)"). One day in
+-- EXTRA_EVERY, a pet with one that fits wishes for it instead of a like:
+--   company from the guild, for a social pet (Personality tag "social", or a family in SOCIAL's list),
+--     never a loner (Einstøing): in a group with a guildmate, a playdate, a guildmate's pet met;
+--   a trip to a zone of its nature: its families' homes (Quirks.HOME_ZONES) and its traits' zones
+--     (Vinterpels the cold, Solelsker the warm, Skybåren the high, Ordensdyr the cities), only zones in
+--     ZONES that your character can reach (its lowest level at most yours, not the other faction's).
+-- Each choice is as likely (a pet with many zones doesn't wish for trips more often).
+------------------------------------------------------------------------------
+Wish.EXTRA_EVERY = 4
+Wish.SOCIAL = {
+    guildgroup = { "wolf" },          -- (a pack)
+    playmate = { "rabbit", "festive" },
+    guildpet = { "farm", "rodent" },
+}
+Wish.SOCIAL_ORDER = { "guildgroup", "playmate", "guildpet" }
+-- Zones a trip can be to: the lowest level that goes there (classic's ranges), and the faction whose own
+-- land it is (the other faction's never comes up). Not instances, nor battlegrounds. Zephras Isle is
+-- Forever's own (the Skyborne's), level and faction unverified.
+Wish.ZONES = {
+    ["Elwynn Forest"] = { 1, "Alliance" }, ["Dun Morogh"] = { 1, "Alliance" }, ["Teldrassil"] = { 1, "Alliance" },
+    ["Stormwind City"] = { 1, "Alliance" }, ["Ironforge"] = { 1, "Alliance" }, ["Darnassus"] = { 1, "Alliance" },
+    ["Westfall"] = { 10, "Alliance" }, ["Darkshore"] = { 10, "Alliance" },
+    ["Durotar"] = { 1, "Horde" }, ["Mulgore"] = { 1, "Horde" }, ["Tirisfal Glades"] = { 1, "Horde" },
+    ["Orgrimmar"] = { 1, "Horde" }, ["Thunder Bluff"] = { 1, "Horde" }, ["Undercity"] = { 1, "Horde" },
+    ["The Barrens"] = { 10, "Horde" }, ["Silverpine Forest"] = { 10, "Horde" },
+    ["Zephras Isle"] = { 1 },
+    ["Ashenvale"] = { 18 }, ["Wetlands"] = { 20 }, ["Thousand Needles"] = { 25 }, ["Alterac Mountains"] = { 30 },
+    ["Desolace"] = { 30 }, ["Stranglethorn Vale"] = { 30 }, ["Dustwallow Marsh"] = { 35 }, ["Badlands"] = { 35 },
+    ["Swamp of Sorrows"] = { 35 }, ["Feralas"] = { 40 }, ["Tanaris"] = { 40 }, ["Searing Gorge"] = { 43 },
+    ["Blasted Lands"] = { 45 }, ["Felwood"] = { 48 }, ["Un'Goro Crater"] = { 48 }, ["Moonglade"] = { 48 },
+    ["Burning Steppes"] = { 50 }, ["Eastern Plaguelands"] = { 53 }, ["Winterspring"] = { 55 }, ["Silithus"] = { 55 },
+}
+-- Its traits' zones (by the trait's moment: Personality's lists).
+Wish.TRAIT_ZONES = { vinterpels = "COLD", solelsker = "WARM", skybaren = "HIGH", ordensdyr = "CITIES" }
+
+-- The zones this pet would like a trip to, that you can reach now: sorted names.
+function Wish.Zones(key)
+    local set = {}
+    for _, f in ipairs(ns.Scenes:Families(key)) do
+        for _, z in ipairs(ns.Quirks.HOME_ZONES[f] or {}) do set[z] = true end
+    end
+    for trait, list in pairs(Wish.TRAIT_ZONES) do
+        if ns.Personality:Has(key, trait) then
+            for z in pairs(ns.Personality[list]) do set[z] = true end
+        end
+    end
+    local level = tonumber(ns.Plain(UnitLevel("player"))) or 1
+    local faction = ns.Plain((UnitFactionGroup("player")))
+    local list = {}
+    for z in pairs(set) do
+        local row = Wish.ZONES[z]
+        if row and row[1] <= level and (not row[2] or row[2] == faction) then list[#list + 1] = z end
+    end
+    table.sort(list)
+    return list
+end
+
+-- The company wishes that fit this pet (SOCIAL_ORDER's order).
+function Wish.Social(key)
+    local list = {}
+    if ns.Personality:Tagged(key, "loner") then return list end
+    local social = ns.Personality:Tagged(key, "social")
+    local families = {}
+    for _, f in ipairs(ns.Scenes:Families(key)) do families[f] = true end
+    for _, id in ipairs(Wish.SOCIAL_ORDER) do
+        local fits = social
+        for _, f in ipairs(Wish.SOCIAL[id]) do fits = fits or families[f] end
+        if fits and ns.Activity:Available(id) then list[#list + 1] = id end
+    end
+    return list
+end
+
+local function Hash(text) return LibStub("LibDeflate"):Adler32(text) end
+
+-- A wish by nature on this day, or nil: its id, and the zone for a trip.
+function Wish:Extra(key, day)
+    if Hash("extra " .. day .. " " .. key) % self.EXTRA_EVERY ~= 0 then return nil end
+    local choices = self.Social(key)
+    local zones = self.Zones(key)
+    if #zones > 0 then choices[#choices + 1] = "zone" end
+    if #choices == 0 then return nil end
+    local id = choices[Hash("extra pick " .. day .. " " .. key) % #choices + 1]
+    if id == "zone" then return id, zones[Hash("zone " .. day .. " " .. key) % #zones + 1] end
+    return id
+end
+
+-- What the pet wishes for on a day ("YYYYMMDD"): the wish's id, and its zone for a trip.
 function Wish:For(key, day)
-    local roll = LibStub("LibDeflate"):Adler32("camp " .. day .. " " .. key) % self.CAMP_EVERY
+    local roll = Hash("camp " .. day .. " " .. key) % self.CAMP_EVERY
     if roll == 0 and ns.Activity:Available("camp") then return "camp" end
     if roll == 1 and Sleeper(key) and ns.Activity:Available("rested") then return "rested" end
+    local extra, zone = self:Extra(key, day)
+    if extra then return extra, zone end
     local _, list = ns.Personality:Of(key)
     local choices = {}
     for _, act in ipairs(list) do
@@ -39,8 +130,7 @@ function Wish:For(key, day)
         if not self.NEVER[act] and ns.Activity:Available(act) then choices[#choices + 1] = act end
     end
     if #choices == 0 then choices = { "quest" } end
-    local h = LibStub("LibDeflate"):Adler32("wish " .. day .. " " .. key)
-    return choices[h % #choices + 1]
+    return choices[Hash("wish " .. day .. " " .. key) % #choices + 1]
 end
 
 -- Today's wish for your adopted pet: { pet, id, done }, or nil without one.
@@ -50,7 +140,8 @@ function Wish:Today()
     local day = ns.Today()
     local w = ns.DB.char.wish
     if not w or w.day ~= day or w.pet ~= key then
-        w = { day = day, pet = key, id = self:For(key, day), done = false }
+        local id, zone = self:For(key, day)
+        w = { day = day, pet = key, id = id, zone = zone, done = false }
         ns.DB.char.wish = w
         self:Arm()
         self:Auto(w)
@@ -62,6 +153,20 @@ end
 local function Stored()
     local w = ns.DB.char and ns.DB.char.wish
     if w and w.day == ns.Today() and w.pet == ns.Registry:MyPet() then return w end
+end
+
+-- What a wish is for, as a noun ("fisking", "en tur til Tanaris").
+function Wish.Noun(w)
+    if w.id == "zone" then return ns.T("wish.zone.noun", { zone = w.zone }) end
+    return ns.Personality.NOUN[w.id]
+end
+
+-- The card's line for a wish: one of its own lines (wish.say.<id>.N), the same all day; else the usual.
+function Wish.Line(w)
+    local vars = { pet = ns.Registry:NameOf(w.pet), activity = Wish.Noun(w), zone = w.zone }
+    local list = ns.Variants("wish.say." .. w.id)
+    if #list == 0 then return ns.T("wish.line", vars) end
+    return ns.T(list[Hash("line " .. w.day .. " " .. w.pet) % #list + 1], vars)
 end
 
 -- The wish line's tooltip: what today's wish gives, and the streak.
@@ -102,7 +207,7 @@ function Wish:Grant(w, textKey, fullKey)
     w.done = true
     self:Arm()
     ns.Bond:Reward("wish", w.pet, ns.Bond.Line(textKey, fullKey, { pet = ns.Registry:NameOf(w.pet),
-        activity = ns.Personality.NOUN[w.id] }))
+        activity = Wish.Noun(w) }))
     self:Count(w.day)
 end
 
@@ -196,16 +301,26 @@ function Wish.Capped()
     return any
 end
 
+-- The wishes with no chip of their own borrow one's icon.
+Wish.ICON = { zone = "explore", guildgroup = "chat", guildpet = "meet", playmate = "meet" }
+
 -- A wish that comes true by itself, checked with the pet out (and out of combat: the pet can't be read in it).
 function Wish:Auto(w)
-    if not w or w.done or not (w.id == "skill" or w.id == "explore") then return end
+    if not w or w.done or not Wish.AUTO[w.id] then return end
     if ns.InCombat() or ns.Pets:OutKey() ~= w.pet then return end
-    if w.id == "skill" and self.Capped() then
+    -- (already there, or already together, as the wish is made or the pet comes out)
+    if w.id == "zone" and ns.Plain(GetZoneText()) == w.zone then
+        self:Grant(w)
+    elseif w.id == "guildgroup" and ns.Activity.Guildmate() then
+        self:Grant(w)
+    elseif w.id == "skill" and self.Capped() then
         self:Grant(w, "wish.auto.skill", "wish.auto.skill.full")
     elseif w.id == "explore" and self.SeenAll(w.pet) then
         self:Grant(w, "wish.auto.explore", "wish.auto.explore.full")
     end
 end
+
+Wish.AUTO = { skill = true, explore = true, zone = true, guildgroup = true }
 
 -- An explore wish's other ways, with the pet out.
 local function Explored(how)
@@ -216,14 +331,14 @@ local function Explored(how)
         Wish:Grant(w)
     end)
 end
-local WATCH = {} -- (our owner key for ns.Events)
-local armed = false
-local function Pending()
+local WATCH = {} -- (our owner key for ns.Events and Activity:Want)
+local armed = false -- the wish watched for: its id, or false
+local function Pending(id)
     local w = Wish:Today() -- (past midnight: the new day's wish, which arms or drops these)
-    return w and not w.done and w.id == "explore"
+    return w and not w.done and w.id == id and w
 end
 local function OnDiscovered(_, event, a, b)
-    if not Pending() then return end
+    if not Pending("explore") then return end
     local text = ns.Plain(event == "UI_INFO_MESSAGE" and b or a)
     if type(text) ~= "string" then return end
     for _, global in ipairs({ "ERR_ZONE_EXPLORED", "ERR_ZONE_EXPLORED_XP" }) do
@@ -232,30 +347,35 @@ local function OnDiscovered(_, event, a, b)
     end
 end
 local function OnZone()
-    if not Pending() then return end
+    if not (Pending("explore") or Pending("zone")) then return end
     -- (a few seconds on, like Activity:CheckPlace: the companion is back out after the loading screen)
     C_Timer.After(5, function()
-        if Pending() and Wish.ZoneOpen(ns.Plain(GetZoneText())) then Explored("zone") end
+        if Pending("explore") and Wish.ZoneOpen(ns.Plain(GetZoneText())) then return Explored("zone") end
+        local w = Pending("zone")
+        if w then ns.Events:OutOfCombat(function() Wish:Auto(w) end) end
     end)
 end
 Wish.WATCH = WATCH
 
--- The explore wish's events while today's wish is an explore not done yet; none otherwise.
+-- What today's wish needs watched, while it isn't done: its activity (a like is watched by the bond
+-- already, but a campfire or company from the guild isn't), an explore's other ways, a trip's zone.
+-- Nothing otherwise.
 function Wish:Arm()
     local w = Stored()
-    local want = (w and not w.done and w.id == "explore") and true or false
+    local want = (w and not w.done and w.id) or false
     if want == armed then return end
     armed = want
-    if want then
+    ns.Events:OffAll(WATCH)
+    ns.Activity:WantOnly(WATCH, (want and ns.Activity.KIND[want]) and { [want] = true } or {})
+    if want == "explore" then
         ns.Events:On("UI_INFO_MESSAGE", WATCH, OnDiscovered)
         ns.Events:On("CHAT_MSG_SYSTEM", WATCH, OnDiscovered)
-        ns.Events:On("ZONE_CHANGED_NEW_AREA", WATCH, OnZone)
-    else
-        ns.Events:OffAll(WATCH)
     end
-    ns.Log("Wish", "explore watch %s", want and "on" or "off")
+    if want == "explore" or want == "zone" then ns.Events:On("ZONE_CHANGED_NEW_AREA", WATCH, OnZone) end
+    ns.Log("Wish", "watch %s", tostring(want))
 end
-function Wish:Watching() return armed end
+-- Whether today's wish has events of its own watched (an explore's, a trip's).
+function Wish:Watching() return armed == "explore" or armed == "zone" end
 
 -- The calendar day before a day ("YYYYMMDD"): noon of the day before, safe around DST.
 local function DayBefore(day)
@@ -288,6 +408,8 @@ function Wish:Init()
     -- (OnActivity checks the pet out is today's wisher: your adopted pet.)
     ns.Bus:On("ACTIVITY", function(id, _, key) Wish:OnActivity(id, key) end)
     self:Arm() -- (a wish made before a /reload)
+    -- Adopted or let go: today's wish is another pet's, or none (and what it watched goes).
+    ns.Bus:On("MY_RECORD", function() Wish:Arm() end)
 end
 
 ------------------------------------------------------------------------------
@@ -314,14 +436,14 @@ function Wish:Update(card, key)
     local w = key and self:Today()
     if not w or w.pet ~= key then f:Hide(); return end
     self:Auto(w)
-    f.icon:SetTexture(ns.Stats.Icon(w.id) or ns.Icon("heart")) -- (the first that exists)
+    f.icon:SetTexture(ns.Stats.Icon(Wish.ICON[w.id] or w.id) or ns.Icon("heart")) -- (the first that exists)
     if w.done then
         local run = self:Streak()
         f.text:SetText(run >= 2 and ns.T("wish.done.streak", { n = run }) or ns.L["wish.done"])
         f.text:SetTextColor(0.4, 1, 0.4)
         f.icon:SetDesaturated(false)
     else
-        f.text:SetText(ns.T("wish.line", { pet = ns.Registry:NameOf(key), activity = ns.Personality.NOUN[w.id] }))
+        f.text:SetText(Wish.Line(w))
         f.text:SetTextColor(1, 0.82, 0)
     end
     f:SetWidth(20 + f.text:GetStringWidth())

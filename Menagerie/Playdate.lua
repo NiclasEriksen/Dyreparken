@@ -120,6 +120,7 @@ function Playdate:Heard(sender, theirs)
         self:Count(mine, sender, theirs)
     end
     ns.Quirks:Egg("playdate", mine, { key = theirs, owner = sender }) -- (a hunter and its prey: Hakkebakkeloven)
+    ns.Activity:Emit("playmate", 1, sender) -- (a social pet's wish, Wish.SOCIAL)
     self:Party(sender, mine)
     self:Announce(true) -- so theirs happens too (they may not have heard us)
 end
