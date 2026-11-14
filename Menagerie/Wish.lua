@@ -176,11 +176,6 @@ function Wish.Lines()
     return lines
 end
 
--- The card's happy hop for today's wish come true has played (Moves): once.
-function Wish:Shown()
-    local w = ns.DB.char.wish
-    if w then w.shown = true end
-end
 
 function Wish:OnActivity(id, key)
     local w = self:Today()
@@ -194,6 +189,7 @@ end
 function Wish:Grant(w, textKey, fullKey)
     textKey, fullKey = textKey or "wish.granted", fullKey or "wish.granted.full"
     w.done = true
+    if ns.Moves then ns.Moves:Owe(w.pet, "joy") end -- (a happy hop on its card, once)
     self:Arm()
     ns.Bond:Reward("wish", w.pet, ns.Bond.Line(textKey, fullKey, { pet = ns.Registry:NameOf(w.pet),
         activity = Wish.Noun(w) }))

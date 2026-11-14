@@ -199,7 +199,7 @@ return function(test, H)
         ola.ns.Moves:Cheer("s:46")
         eq(actor.anim, 0, "not the pet on the card: nothing")
         -- The egg came up today with the panda out.
-        ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }
+        ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }; ola.ns.Moves:Owe(PANDA, "dead")
         ola:SelectPet(46); ola:SelectPet(5159)
         w:Run(0.61)
         eq(actor.anim, 1, "playing dead: Death (1), the fall")
@@ -213,7 +213,7 @@ return function(test, H)
         local w, ola, actor = Setup(14)
         function actor:SetPaused(p) self.paused = p end
         ola.ns.AnimLengths[5159] = { [1] = 1.5 }
-        ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }
+        ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }; ola.ns.Moves:Owe(PANDA, "dead")
         ola:SelectPet(5159)
         w:Run(0.61)
         eq(actor.anim, 1)
@@ -482,7 +482,7 @@ return function(test, H)
         local yaws, set = {}, actor.SetYaw
         function actor:SetYaw(y) yaws[#yaws + 1] = y; set(self, y) end
         local function Near(a, b) return math.abs(a - b) < 1e-6 end
-        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola.ns.Moves:Owe(PANDA, "sulk") -- (as a dislike does)
         ola:SelectPet(5159)
         eq(Fx:Playing(c, "mood"), 0, "no cloud before it sulks")
         w:Run(M.SETTLE + 0.05)
@@ -518,7 +518,7 @@ return function(test, H)
         local M, Fx, c = ola.ns.Moves, ola.ns.Fx, ola.env.PetJournalPetCard
         local yaws, set = {}, actor.SetYaw
         function actor:SetYaw(y) yaws[#yaws + 1] = y; set(self, y) end
-        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola.ns.Moves:Owe(PANDA, "sulk") -- (as a dislike does)
         ola:SelectPet(5159)
         w:Run(M.SETTLE + M.TURN / 2)
         ok(actor.yaw > 0.3 and actor.yaw < math.pi - 0.3, "mid-turn")
@@ -530,7 +530,7 @@ return function(test, H)
         eq(actor.yaw, 0, "no drift")
         eq(Fx:Playing(c, "mood"), 0)
         -- The card closing mid-sulk: the same.
-        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola.ns.Moves:Owe(PANDA, "sulk") -- (as a dislike does)
         ola:SelectPet(5159)
         w:Run(M.SETTLE + M.TURN + 0.5)
         ok(math.abs(actor.yaw - math.pi) < 1e-6)
@@ -541,7 +541,7 @@ return function(test, H)
         w:Run(5)
         eq(#yaws, n)
         -- A click while its back is turned: it walks round to us first, then its happy move.
-        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola.ns.Moves:Owe(PANDA, "sulk") -- (as a dislike does)
         ola:SelectPet(46); ola:SelectPet(5159)
         w:Run(M.SETTLE + M.TURN + 0.5)
         ola.ns.Cuddle:Pet(ola:Card())
@@ -620,9 +620,9 @@ return function(test, H)
         ola:Halt(); w:Run(2.5)
         eq(actor.anim, 0, "the hop ends standing: we stopped meanwhile")
         -- A sulk cut short by another pet: not spent, and the next pet faces us.
-        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola.ns.Moves:Owe(PANDA, "sulk") -- (as a dislike does)
         ola:SelectPet(46); ola:SelectPet(5159); w:Run(0.2); ola:SelectPet(46); w:Run(1)
-        no(ola.ns.DB.char.sulk.shown, "not seen yet")
+        ok(ola.ns.Moves:Owed(PANDA, "sulk"), "not seen yet")
         ola:SelectPet(5159); w:Run(ola.ns.Moves.SETTLE + ola.ns.Moves.TURN + 0.05)
         ok(math.abs(actor.yaw - math.pi) < 1e-6)
         ola:SelectPet(46)
@@ -1094,7 +1094,7 @@ return function(test, H)
         ola:Traits{ "latsabb" }
         eq(P.Rest(PANDA), "sit")
         eq(P.Rest(PANDA, nil, nil, true), "stand", "woken, it doesn't sit again")
-        ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }
+        ola.ns.DB.char.eggs.dodsfall = { n = 1, day = ola.ns.Today(), key = PANDA }; ola.ns.Moves:Owe(PANDA, "dead")
         eq(P.Rest(PANDA), "dead")
         eq(P.Rest(PANDA, nil, true), "sit")
         -- At night it sleeps; woken, or a night owl, it doesn't.
@@ -1114,17 +1114,18 @@ return function(test, H)
         eq(Show(P.Pose(PANDA, { fresh = true })), "0 =stand")
         eq(Show(P.Pose(PANDA, { cheer = true })), "0/0.6 754/1.25 0 =stand wake", "the cheer once the model has loaded")
         ola.ns.DB.char.wish = { done = true, pet = PANDA, day = ola.ns.Today() }
+        ola.ns.Moves:Owe(PANDA, "joy") -- (as Wish:Grant does)
         eq(Show(P.Pose(PANDA, {})), "0/0.6 756/1.5* 0 =stand", "its wish came true: a hop, counted once it plays")
         eq(Show(P.Pose(PANDA, { noMoments = true })), "0 =stand", "the pet frame leaves it to the card")
         eq(Show(P.Pose(PANDA, { cheer = true })), "0/0.6 754/1.25 0 =stand wake", "the cheer wins")
         -- At night: the cheer wakes it; asleep, no hop.
         local _, night, P2 = Planner(23)
-        night.ns.DB.char.wish = { done = true, pet = PANDA, day = night.ns.Today() }
+        night.ns.DB.char.wish = { done = true, pet = PANDA, day = night.ns.Today() }; night.ns.Moves:Owe(PANDA, "joy")
         eq(Show(P2.Pose(PANDA, { fresh = true })), "0/0.6 6/1.2 6@1.2 =sleep")
         eq(Show(P2.Pose(PANDA, { fresh = true, cheer = true })), "0/0.6 754/1.25 0 =stand wake")
         eq(Show(P2.Pose(PANDA, { mode = "stand" })), "0/0.6 756/1.5* 0 =stand", "the mode given")
         -- Playing dead: no cheer over it.
-        night.ns.DB.char.eggs.dodsfall = { n = 1, day = night.ns.Today(), key = PANDA }
+        night.ns.DB.char.eggs.dodsfall = { n = 1, day = night.ns.Today(), key = PANDA }; night.ns.Moves:Owe(PANDA, "dead")
         eq(Show(P2.Pose(PANDA, { cheer = true })), "0/0.6 1/4@1.45* 0 =dead")
     end)
 
@@ -1198,7 +1199,7 @@ return function(test, H)
         eq(Show(P.Try(PANDA, "sleepHold", true)), "6/1.2 100/3 101/1.3 0! =stand")
         -- The sulk: a dislike today, once.
         eq(P.Sulk(PANDA), false)
-        ola.ns.DB.char.sulk = { key = PANDA, day = ola.ns.Today() }
+        ola.ns.Moves:Owe(PANDA, "sulk") -- (as a dislike does)
         ok(P.Sulk(PANDA)); eq(P.Sulk("s:46"), false)
         -- Round walking (2026-11-13), its back held, round again walking; and first, as the card opens.
         local s = P.Sulk(PANDA)
@@ -1210,7 +1211,7 @@ return function(test, H)
         eq(Show(P.Pose(PANDA, { fresh = true, noMoments = true })), "0 =stand", "not on the pet frame")
         ola.ns.PetMoves.species[5159].walk = false
         eq(P.Sulk(PANDA)[1][1], 0, "no walk: it turns standing")
-        ola.ns.DB.char.sulk.shown = true
+        ola.ns.Moves:Paid(PANDA, "sulk")
         eq(P.Sulk(PANDA), false)
     end)
 end

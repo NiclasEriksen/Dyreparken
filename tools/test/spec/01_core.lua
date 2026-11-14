@@ -347,6 +347,21 @@ return function(test, H)
         eq(#d:TakeErrors(), 1, "and the client's handler had it")
     end)
 
+    test("char schema 3: the card's once-only moves move to char.owed; today's not yet seen carry over", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { login = false })
+        local today = os.date("%Y%m%d", w:ServerTime())
+        c.saved.DyreparkenCharDB = { schema = 2, sulk = { key = "s:40", day = today },
+            eggs = { dodsfall = { n = 2, day = today, key = "s:46", played = true } },
+            wish = { day = today, pet = "s:5159", id = "herb", done = true } }
+        c:Login()
+        local db = c.env.DyreparkenCharDB
+        eq(db.schema, 3)
+        eq(db.sulk, nil); eq(db.eggs.dodsfall.played, nil); eq(db.eggs.dodsfall.n, 2)
+        ok(c.ns.Moves:Owed("s:40", "sulk")); ok(c.ns.Moves:Owed("s:5159", "joy"))
+        no(c.ns.Moves:Owed("s:46", "dead"), "already played")
+    end)
+
     test("schema 6: nicknames move from the record to the pet", function()
         local T0 = 1790000000 -- (after the bond epoch: migration 10 keeps them)
         local w = H.World()

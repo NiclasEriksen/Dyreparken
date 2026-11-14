@@ -315,18 +315,36 @@ local function LieDown(key, id, at)
     return at
 end
 
--- Playing dead: the egg came up today with this pet, and it hasn't been seen yet.
-local function DeadToday(key)
-    local egg = ns.DB.char.eggs.dodsfall
-    return egg and egg.key == key and egg.day == ns.Today() and not egg.played
+-- Moves a moment earned the pet today, played once (2026-11-14, round 2: one list, char.owed, instead of
+-- Moves reading each module's flags): "dead" (an egg with move = "dead": the three deaths), "joy" (a wish
+-- come true: a happy hop, 2026-11-10), "sulk" (a dislike came up: its back turned). Owed for the day only.
+function Moves:Owe(key, move)
+    local o = ns.DB.char.owed
+    o[key] = o[key] or {}
+    o[key][move] = ns.Today()
+end
+function Moves:Owed(key, move)
+    local o = key and ns.DB.char.owed[key]
+    return o ~= nil and o[move] == ns.Today()
+end
+function Moves:Paid(key, move)
+    local owed = ns.DB.char.owed
+    local o = owed[key]
+    if not o then return end
+    o[move] = nil
+    if next(o) == nil then owed[key] = nil end
+end
+-- (Yesterday's never played: gone at login.)
+local function Forget()
+    local today = ns.Today()
+    for key, o in pairs(ns.DB.char.owed) do
+        for move, day in pairs(o) do if day ~= today then o[move] = nil end end
+        if next(o) == nil then ns.DB.char.owed[key] = nil end
+    end
 end
 
--- Your adopted pet's wish came true and you haven't seen it on the card since:
--- a happy hop, once (2026-11-10).
-local function WishJoy(key)
-    local w = ns.DB.char.wish
-    return w and w.done and w.pet == key and w.day == ns.Today() and not w.shown and For(key, "happy")
-end
+local function DeadToday(key) return Moves:Owed(key, "dead") end
+local function WishJoy(key) return Moves:Owed(key, "joy") and For(key, "happy") end
 
 -- The pose the pet takes on its own: "sleep", "sit", "dead" or "stand". woken: as if awake.
 function Plan.Rest(key, t, noMoments, woken)
@@ -386,7 +404,7 @@ function Plan.Hold(key, mode, fresh)
         local len = Moves:Length(key, id)
         local pose = len and math.max(0.1, len - 0.05) or nil
         return { { STAND, Moves.SETTLE },
-            { id, math.max(Moves.T.dead, (len or 0) + 1), pose, on = function() ns.Quirks:EggPlayed("dodsfall") end },
+            { id, math.max(Moves.T.dead, (len or 0) + 1), pose, on = function() Moves:Paid(key, "dead") end },
             { STAND } }
     end
     -- Walking or running: only once the model has loaded. 2026-11-10: the client scales a
@@ -414,7 +432,7 @@ function Plan.Pose(key, o)
     local front = o.noMoments and {} or Plan.Sulk(key) or {}
     if cheer or joy then
         front[#front + 1] = { cheer or joy, Moves:Length(key, cheer or joy, cheer and Moves.T.cheer or Moves.T.happy),
-            on = joy and function() ns.Wish:Shown() end or nil }
+            on = joy and function() Moves:Paid(key, "joy") end or nil }
     end
     if #front > 0 then
         table.insert(front, 1, { STAND, Moves.SETTLE })
@@ -579,13 +597,12 @@ function Plan.Turn(key, yaw, on)
 end
 
 -- Sulking (2026-11-10): the first time you open its card on a day a dislike of its came up
--- (Quirks: char.sulk), the pet turns its back for a few seconds, a grey cloud over it (mood), and
+-- (Quirks owes it: "sulk"), the pet turns its back for a few seconds, a grey cloud over it (mood), and
 -- turns round again (2026-11-13: walking, not at once). The steps, or false; seen once it starts turning.
 function Plan.Sulk(key)
-    local s = ns.DB.char.sulk
-    if not (s and s.key == key and s.day == ns.Today() and not s.shown) then return false end
+    if not Moves:Owed(key, "sulk") then return false end
     return {
-        Plan.Turn(key, math.pi, function() ns.Quirks:SulkShown(key) end),
+        Plan.Turn(key, math.pi, function() Moves:Paid(key, "sulk") end),
         { STAND, Moves.SULK, mood = "sulk" },
         Plan.Turn(key, 0),
     }
@@ -999,3 +1016,4 @@ end
 
 -- Another pet made the one kept out (or auto-summon off) while a stage shows one.
 ns.Bus:On("ACTIVE_PET", function() Moves:FollowAll() end)
+ns.Start("login", function() Forget() end) -- (owed moves from before today: gone)

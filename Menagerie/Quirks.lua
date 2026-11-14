@@ -60,17 +60,6 @@ end
 ------------------------------------------------------------------------------
 -- Dislikes
 ------------------------------------------------------------------------------
--- The card turned the pet's back for today's sulk (Moves): once a day, so not again.
-function Quirks:SulkShown(key)
-    local s = ns.DB.char.sulk
-    if s and s.key == key then s.shown = true end
-end
-
--- The card played today's egg (Moves: playing dead for dodsfall): not again until it comes up anew.
-function Quirks:EggPlayed(id)
-    local e = ns.DB.char.eggs[id]
-    if e then e.played = true end
-end
 
 function Quirks:Dislike(key, id, minor)
     local seen = ns.DB.char.dislikes
@@ -90,7 +79,7 @@ function Quirks:Dislike(key, id, minor)
     self:Say(text, ("dislike %s %s"):format(key, id), "dislike", function()
         seen[key] = seen[key] or {}
         seen[key][id] = true
-        ns.DB.char.sulk = { key = key, day = ns.Today() } -- (Moves: its back turned on the card, once)
+        ns.Moves:Owe(key, "sulk") -- (its back turned on the card, once)
         if not first then return end
         ns.Bus:Fire("DISLIKE_FOUND", key, id)
         ns.PetSays(T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }))
@@ -360,7 +349,7 @@ Quirks.EGGS = {
     end, test = function(ctx)
         return type(ctx.extra) == "string" and ctx.extra ~= "" and ctx.extra ~= "?" and { boss = ctx.extra }
     end },
-    { id = "dodsfall", on = "revive", test = function(ctx) return ctx.today >= 3 and {} end },
+    { id = "dodsfall", on = "revive", move = "dead", test = function(ctx) return ctx.today >= 3 and {} end },
     -- Every tenth level, likelier the higher it is (the user, 2026-11-12); 60 is a feat (Feats.lua), with its own.
     { id = "kake", on = "level", always = true, chance = function(ctx)
         return Quirks.CAKE_CHANCE[tonumber(ctx.extra) or 0] or 0
@@ -490,7 +479,7 @@ function Quirks:Egg(on, key, extra, seen)
                 if type(cheer) == "function" then cheer = cheer(vars) end -- (by the line it says)
                 self:Say(text, ("egg %s %s"):format(e.id, key), "egg", function()
                     local got = ns.Moments.Count(ns.DB.char.eggs, e.id, key, text, e.id, today)
-                    got.played = nil -- (Moves: playing dead, anew)
+                    if e.move then ns.Moves:Owe(key, e.move) end -- (on its card, once: playing dead)
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
                     if cheer and ns.Moves then ns.Moves:Cheer(key) end -- (on its card and the pet frame)
                 end, e.delay or (e.on == "day" and "day" or nil), key, e.bubble)

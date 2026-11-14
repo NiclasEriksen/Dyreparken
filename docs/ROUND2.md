@@ -64,3 +64,5 @@ No wire or saved-data change is planned (no X-Protocol bump; migrations only if 
   (Fight no longer reads its fields), Activity's sources apart by event and unit.
 - 3.3 done: ns.IsSecret/Plain know secret tables (3d30722: a secret aura list had switched four aura sources
   off), ns.Read shared; Data/Zones.lua (Bond's Stranglethorn stays: it's the contest's own place).
+- 3.4: bond-only registry changes no longer rescan the guild (461ada4); Core/Sources.lua (f4c16a7); the owed
+  moves (char.owed, char migration 3).

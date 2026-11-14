@@ -18,7 +18,7 @@ local DB = {}
 ns.DB = DB
 
 local SCHEMA = 13
-local CHAR_SCHEMA = 2
+local CHAR_SCHEMA = 3
 DB.SCHEMA, DB.CHAR_SCHEMA = SCHEMA, CHAR_SCHEMA
 
 -- Every key a module keeps in the account's or the character's table has a
@@ -91,8 +91,9 @@ local CHAR_DEFAULTS = {
     playmates = {},            -- [petKey] = { ["owner\31theirKey"] = playdates }: best friends
     -- [Cake]
     congratulated = nil,       -- { day, pets = { [petKey] = true } }: cakes clicked today (once a day per pet)
+    -- [Moves]
+    owed = {},                 -- [petKey] = { [move] = day }: a move a moment earned it today, played once (Moves:Owe)
     -- [Quirks]
-    sulk = nil,                -- { key, day, shown }: a dislike came up today (Moves turns the pet's back once: SulkShown)
     dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (the card shows these)
     eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Moves plays dead once: EggPlayed)
     -- [Reactions]
@@ -286,6 +287,28 @@ local CHAR_MIGRATIONS = {
     -- seen flag stays, so earning it again is news, not quiet.
     [2] = function(db)
         if type(db.ach) == "table" and type(db.ach.got) == "table" then db.ach.got.dislikes = nil end
+    end,
+    -- 3 (2026-11-14, round 2): the card's once-only moves (playing dead, the wish's hop, the sulk) owed in one
+    -- list, char.owed, instead of a flag in each module's data. Today's not yet seen carry over.
+    [3] = function(db)
+        local day = ns.Today()
+        db.owed = type(db.owed) == "table" and db.owed or {}
+        local function Owe(key, move, on)
+            if type(key) == "string" and on == day then db.owed[key] = db.owed[key] or {}; db.owed[key][move] = on end
+        end
+        local s = db.sulk
+        if type(s) == "table" and not s.shown then Owe(s.key, "sulk", s.day) end
+        db.sulk = nil
+        local e = type(db.eggs) == "table" and db.eggs.dodsfall
+        if type(e) == "table" then
+            if not e.played then Owe(e.key, "dead", e.day) end
+            e.played = nil
+        end
+        local w = db.wish
+        if type(w) == "table" then
+            if w.done and not w.shown then Owe(w.pet, "joy", w.day) end
+            w.shown = nil
+        end
     end,
 }
 

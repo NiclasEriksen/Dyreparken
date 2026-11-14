@@ -83,7 +83,7 @@ function Try:Command(arg)
     elseif what == "wish" and id ~= "" then
         local w = ns.Wish:Today()
         if not w then return ns.Print("No adopted pet: no wish.") end
-        w.id, w.zone, w.done, w.shown = id, which, false, nil
+        w.id, w.zone, w.done = id, which, false
         ns.Wish:Arm()
         if ns.JournalUI then ns.JournalUI:Refresh() end
         return ns.Print(("Today's wish: %s%s."):format(id, which and (" (" .. which .. ")") or ""))

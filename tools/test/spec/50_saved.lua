@@ -1,7 +1,7 @@
 -- Saved data has a declared shape and an owner (Core/DB.lua): every key the
 -- code reads or writes in DyreparkenDB / DyreparkenCharDB is listed in the
 -- defaults, under the module that owns it, and only that module's file
--- assigns it (others go through the owner: Bonds:SetAnnounce, Wish:Shown ...).
+-- assigns it (others go through the owner: Bonds:SetAnnounce, Moves:Owe ...).
 -- Read from the source, since keys with a nil default don't exist at runtime.
 return function(test, H)
     local eq, ok = H.eq, H.ok
