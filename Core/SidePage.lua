@@ -147,7 +147,7 @@ function Proto:Build()
 end
 
 -- A counter box at the top, centered like the pet page's "Total Pets".
--- Returns the value font string.
+-- Returns the value font string and the box.
 function SidePage:CounterBox(p, label)
     local box = CreateFrame("Frame", nil, p.frame, SidePage.Template("InsetFrameTemplate3"))
     box:SetSize(150, 20)
@@ -157,7 +157,7 @@ function SidePage:CounterBox(p, label)
     box.label:SetText(label)
     local value = box:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     value:SetPoint("RIGHT", box, "RIGHT", -10, 0)
-    return value
+    return value, box
 end
 
 -- The inset below the portrait, with a scroll frame. Returns the scroll child.

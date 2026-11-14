@@ -32,6 +32,23 @@ return function(test, H)
         return table.concat(out, ",")
     end
 
+    test("sources: every kind in Data/Companions.lua has its word; a store or subscription pet says where", function()
+        local ns = World()
+        local missing = {}
+        for sid, d in pairs(ns.Companions.species) do
+            if d.s and not ns.Strings["source." .. d.s] then missing[#missing + 1] = sid .. " source." .. d.s end
+            if d.s == "promo" and not (d.w or ns.Strings["source.where." .. sid]) then
+                missing[#missing + 1] = sid .. " source.where." .. sid
+            end
+        end
+        for key in pairs(ns.Strings) do
+            local sid = key:match("^source%.where%.(%d+)$")
+            if sid and not ns.Companions.species[tonumber(sid)] then missing[#missing + 1] = key .. " (no such species)" end
+        end
+        table.sort(missing)
+        eq(table.concat(missing, ", "), "")
+    end)
+
     test("traits: words, tags, likes and opposites all exist", function()
         local ns = World()
         local P, S, KIND = ns.Personality, ns.Strings, ns.Activity.KIND

@@ -6,10 +6,12 @@ return function(test, H)
     -- A small journal: 4 cats, a farm bird, a rabbit, the panda.
     local function Fixture()
         return { build = 1, species = {
-            [40] = { a = true, t = { "cat" } }, [41] = { a = true, t = { "cat" } },
-            [42] = { a = true, t = { "cat" } }, [46] = { a = true, t = { "cat" } },
-            [84] = { a = true, t = { "farm", "bird" } }, [72] = { a = true, t = { "rabbit" } },
-            [5159] = { a = false },
+            [40] = { a = true, t = { "cat" }, s = "vendor", w = "Donni Anthania (Elwynn Forest)" },
+            [41] = { a = true, t = { "cat" } },
+            [42] = { a = true, t = { "cat" }, s = "drop" }, [46] = { a = true, t = { "cat" } },
+            [84] = { a = true, t = { "farm", "bird" } },
+            [72] = { a = true, t = { "rabbit" }, s = "quest", w = "Waskily Wabbits! (Dun Morogh)" },
+            [5159] = { a = false, s = "promo" }, -- (its words in Locale: source.where.5159)
         } }
     end
 
@@ -97,8 +99,8 @@ return function(test, H)
         ok(rabbit.free:IsShown(), "free, and Ola owns it: he could adopt it")
         -- Sorted by name; laid out in rows.
         eq(SpeciesOf(Cells(ola)[1]), 42, "Black Tabby Cat first")
-        match(Tip(ola, kitty), "^Cornish Rex Cat / Flyttet inn hos Kari Berg i dag / Bånd: Bekjent %(level 1%) / %S+ og %S+ · liker [^/]* / Klikk for å se kortet%.$", "the traits by name; no effect paragraphs")
-        match(Tip(ola, rabbit), "Trenger et hjem / .* / Du har dette dyret, og kan adoptere det%.")
+        match(Tip(ola, kitty), "^Cornish Rex Cat / Flyttet inn hos Kari Berg i dag / Bånd: Bekjent %(level 1%) / %S+ og %S+ · liker [^/]* / Klikk for å se kortet%.$", "the traits by name; no effect paragraphs; no source without data")
+        match(Tip(ola, rabbit), "Trenger et hjem / .* / Kilde: Oppdrag – Waskily Wabbits! %(Dun Morogh%) / Du har dette dyret, og kan adoptere det%.")
         match(Tip(ola, panda), "Flyttet inn hos deg i dag")
         no(Tip(ola, panda):find("Du har", 1, true), "no \"you have it too\" on your own")
         -- Per adopts the tabby while the page is open: it lights up.
@@ -121,6 +123,69 @@ return function(test, H)
         kari:Page("Parken"):Open()
         match(Tip(kari, Cell(kari, 5159)), "^Pepe / Panda Cub / Har bodd hos Ola Nord")
         no(Tip(kari, Cell(kari, 5159)):find("Du har", 1, true))
+    end)
+
+    test("tooltips say where a pet comes from: the kind, and where when known (names from the data, prose from Locale)", function()
+        local w, ola = Setup()
+        ola:OpenJournal({ sideTabs = 4 })
+        ola:Page("Parken"):Open()
+        match(Tip(ola, Cell(ola, 40)), " / Kilde: Selger – Donni Anthania %(Elwynn Forest%) / ")
+        match(Tip(ola, Cell(ola, 42)), " / Kilde: Drop / ")
+        match(Tip(ola, Cell(ola, 5159)), " / Kilde: Kampanje – Blizzard%-butikken: Skyborne Epic Pack eller Warcraft Forever Collection / ")
+    end)
+
+    test("search and filters: what doesn't match is dimmed in place; names, owners, families and sources match", function()
+        local w, ola, kari = Setup()
+        ola:Slash("adopter panda")
+        kari:Slash("adopter")
+        w:Run(5)
+        ola:OpenJournal({ sideTabs = 4 })
+        local page = ola:Page("Parken"):Open()
+        local P, f = ola.ns.ParkPage, page.frame
+        local function Lit()
+            local list = {}
+            for _, c in ipairs(Cells(ola)) do
+                if not (c.icon.desaturated and c.icon.alpha == P.DIM) then list[#list + 1] = SpeciesOf(c) end
+            end
+            table.sort(list)
+            return table.concat(list, " ")
+        end
+        eq(Lit(), "40 41 42 46 72 84 5159", "no filter: the map as it was")
+        eq(f.matches.text, "")
+        ola:Type(f.search, "DONNI")
+        eq(Lit(), "40", "a vendor's name, any case")
+        eq(#Cells(ola), 7, "dimmed in place, not hidden")
+        eq(f.matches.text, "1 treff")
+        no(f.search.Instructions:IsShown(), "the template's own handler still runs")
+        no(Cell(ola, 5159).mine:IsShown(), "a dimmed one shows no glow")
+        ola:Type(f.search, "kari")
+        eq(Lit(), "41", "who has it")
+        ola:Type(f.search, " selger ")
+        eq(Lit(), "40", "the source's kind, in Norwegian; spaces around don't count")
+        ola:Type(f.search, P.Fold(ola.ns.AchTexts.generic.families.rabbit))
+        eq(Lit(), "72", "a family")
+        ola:Type(f.search, "")
+        eq(Lit(), "40 41 42 46 72 84 5159")
+        ok(f.search.Instructions:IsShown())
+        -- The toggles: no home; no home and yours.
+        ola:Labeled("Trenger et hjem"):Click()
+        eq(Lit(), "40 42 46 72 84", "nobody has adopted them")
+        eq(f.matches.text, "5 treff")
+        ola:Labeled("Kan adopteres"):Click()
+        eq(Lit(), "40 72", "and Ola owns them")
+        ola:Labeled("Trenger et hjem"):Click()
+        eq(Lit(), "40 72", "adoptable alone means the same")
+        ola:Type(f.search, "wabbit")
+        eq(Lit(), "72", "search and toggles together")
+        -- Kari lets go of hers while the page is open: the filter follows.
+        ola:Type(f.search, "")
+        ola:Labeled("Kan adopteres"):Click()
+        ola:Labeled("Trenger et hjem"):Click()
+        kari:Slash("gislipp")
+        w:Run(5)
+        eq(Lit(), "40 41 42 46 72 84")
+        match(Tip(ola, Cell(ola, 72)), "^Snowshoe Rabbit", "a tooltip still works on a match")
+        eq(P.Fold("ÆØÅ Kari"), "æøå kari")
     end)
 
     test("records: longest friendship, most popular family, newest arrival", function()

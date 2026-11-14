@@ -6,96 +6,99 @@ local _, ns = ...
 -- Every companion species in Forever's pet journal: build 70790, export of 2026-11-06.
 --   a = counts toward achievements (curation availability yes, event or limited)
 --   t = our tags: the families
+--   s = how it's got (curation: vendor, quest, drop, crafted, event, promo, other; unknown: nobody knows yet)
+--   w = where: the names in the curation's detail (npc, quest, item, zone); free text is in Locale/nb.lua
+--       instead (source.where.<species id>)
 ns.Companions = {
     build = 70790,
     species = {
-        [39] = { a = true, t = { "mechanical" } }, -- Mechanical Squirrel
-        [40] = { a = true, t = { "cat" } }, -- Bombay
-        [41] = { a = true, t = { "cat" } }, -- Cornish Rex
-        [42] = { a = true, t = { "cat" } }, -- Black Tabby
-        [43] = { a = true, t = { "cat" } }, -- Orange Tabby
-        [44] = { a = true, t = { "cat" } }, -- Siamese
-        [45] = { a = true, t = { "cat" } }, -- Silver Tabby
-        [46] = { a = true, t = { "cat" } }, -- White Kitten
-        [47] = { a = true, t = { "bird", "parrot", "pirate" } }, -- Cockatiel
-        [49] = { a = true, t = { "bird", "parrot", "pirate" } }, -- Hyacinth Macaw
-        [50] = { a = true, t = { "bird", "parrot", "pirate" } }, -- Green Wing Macaw
-        [51] = { a = true, t = { "bird", "parrot", "pirate" } }, -- Senegal
-        [52] = { a = true, t = { "bird", "chicken", "farm" } }, -- Ancona Chicken
-        [55] = { a = true, t = { "bug" } }, -- Cockroach
-        [56] = { a = true, t = { "dragon", "whelp" } }, -- Dark Whelpling
-        [57] = { a = true, t = { "dragon", "whelp" } }, -- Azure Whelpling
-        [58] = { a = true, t = { "dragon", "whelp" } }, -- Crimson Whelpling
-        [59] = { a = true, t = { "dragon", "whelp" } }, -- Emerald Whelpling
-        [64] = { a = true, t = { "frog" } }, -- Wood Frog
-        [65] = { a = true, t = { "frog" } }, -- Tree Frog
-        [67] = { a = true, t = { "bird", "owl" } }, -- Hawk Owl
-        [68] = { a = true, t = { "bird", "owl" } }, -- Great Horned Owl
-        [70] = { a = true, t = { "rodent" } }, -- Brown Prairie Dog
-        [72] = { a = true, t = { "rabbit" } }, -- Snowshoe Rabbit
-        [74] = { a = true, t = { "snake" } }, -- Albino Snake
-        [75] = { a = true, t = { "snake" } }, -- Black Kingsnake
-        [77] = { a = true, t = { "snake" } }, -- Brown Snake
-        [78] = { a = true, t = { "snake" } }, -- Crimson Snake
-        [83] = { a = true, t = { "chicken", "mechanical" } }, -- Mechanical Chicken
-        [85] = { a = true, t = { "mechanical" } }, -- Tiny Walking Bomb
-        [87] = { a = true, t = { "dragon" } }, -- Sprite Darter Hatchling
-        [89] = { a = true, t = { "wolf" } }, -- Worg Pup
-        [90] = { a = true, t = { "bug" } }, -- Smolderweb Hatchling
-        [95] = { a = true, t = { "frog", "mechanical" } }, -- Lifelike Toad
-        [106] = { a = true, t = { "event", "frog" } }, -- Jubling
-        [114] = { a = true, t = { "ooze" } }, -- Disgusting Oozeling
-        [116] = { a = true, t = { "mechanical" } }, -- Tranquil Mechanical Yeti
-        [117] = { a = true, t = { "event" } }, -- Tiny Snowman
-        [118] = { a = true, t = { "event", "farm" } }, -- Winter Reindeer
-        [119] = { a = true, t = { "event" } }, -- Father Winter's Helper
-        [120] = { a = true, t = { "event" } }, -- Winter's Little Helper
-        [122] = { a = true, t = { "event" } }, -- Peddlefeet
-        [125] = { a = true, t = { "event", "reptile" } }, -- Speedy
-        [126] = { a = true, t = { "event", "farm" } }, -- Mr. Wiggles
-        [127] = { a = true, t = { "event", "rodent" } }, -- Whiskers the Rat
-        [128] = { a = true, t = { "event", "spirit" } }, -- Spirit of Summer
-        [162] = { a = true, t = { "event", "plant" } }, -- Sinister Squashling
-        [341] = { a = true, t = { "event", "lantern" } }, -- Lunar Lantern
-        [342] = { a = true, t = { "event", "lantern" } }, -- Festival Lantern
-        [1563] = { a = false, t = { "dragon" } }, -- Bronze Whelpling
-        [1927] = { a = true, t = { "cat" } }, -- White Tiger Cub
-        [4180] = { a = true, t = { "rabbit" } }, -- Arctic Hare
-        [5004] = { a = true, t = { "bird", "chicken", "farm" } }, -- Prairie Chicken
-        [5005] = { a = true, t = { "frog" } }, -- Musical Gustjumper
-        [5006] = { a = true, t = { "cat" } }, -- Corrupted Kitten
-        [5008] = { a = false, t = { "demon" } }, -- Mini Uber Diablo
-        [5018] = { a = true, t = { "wolf" } }, -- Snowy Wolf Pup
-        [5069] = { a = false, t = { "bird", "chicken", "farm" } }, -- Wild Chicken
-        [5075] = { a = true, t = { "ooze" } }, -- Excitable Slime
-        [5094] = { a = true, t = { "snake" } }, -- Bitter Baitling
-        [5121] = { a = true, t = { "wolf" } }, -- Prairie Wolf Pup
-        [5122] = { a = true, t = { "bear" } }, -- Spectral Bear Cub
-        [5135] = { a = true, t = { "rodent" } }, -- Shadowgale Squirrel
-        [5136] = { a = true, t = { "bug" } }, -- Weevil K. Neevil
-        [5138] = { a = true, t = { "plant" } }, -- Pachimari
-        [5139] = { a = false, t = { "bird" } }, -- Galestrider Chick
-        [5151] = { a = true, t = { "bug" } }, -- Plagued Cockroach
-        [5152] = { a = true, t = { "bug" } }, -- Undercity Cockroach
-        [5153] = { a = true, t = { "snake" } }, -- Jungle Boa
-        [5154] = { a = true, t = { "rodent" } }, -- Brown Ground Squirrel
-        [5155] = { a = true, t = { "rodent" } }, -- Red Ground Squirrel
-        [5157] = { a = true, t = { "rabbit" } }, -- Brown Rabbit
-        [5158] = { a = true, t = { "bird", "owl" } }, -- Eagle Owl
-        [5159] = { a = true, t = { "bear" } }, -- Panda Cub
-        [5160] = { a = true, t = { "demon" } }, -- Zergling
-        [5161] = { a = true, t = { "demon" } }, -- Mini Diablo
-        [5162] = { a = true, t = { "reptile" } }, -- Baby Crocolisk
-        [5163] = { a = false, t = { "spirit" } }, -- Shen'dorei Wisp
-        [5167] = { a = true, t = { "bird" } }, -- Condor Hatchling
-        [5172] = { a = true, t = { "bird" } }, -- Tallstrider Hatchling
-        [5174] = { a = false, t = { "demon" } }, -- Minfernal
-        [5176] = { a = true, t = { "farm" } }, -- Minimule
-        [5179] = { a = true, t = { "murloc" } }, -- Azurky
-        [5183] = { a = false, t = { "snake" } }, -- Spawn of Grubthor
-        [5200] = { a = false, t = { "plant" } }, -- Viridian Lashling
-        [5201] = { a = false, t = { "plant" } }, -- Frosty Lashling
-        [5202] = { a = false, t = { "plant" } }, -- Wilted Lashling
-        [5203] = { a = false, t = { "plant" } }, -- Flowery Lashling
+        [39] = { a = true, t = { "mechanical" }, s = "crafted", w = "Mechanical Squirrel" }, -- Mechanical Squirrel
+        [40] = { a = true, t = { "cat" }, s = "vendor", w = "Donni Anthania (Elwynn Forest)" }, -- Bombay
+        [41] = { a = true, t = { "cat" }, s = "vendor", w = "Donni Anthania (Elwynn Forest)" }, -- Cornish Rex
+        [42] = { a = true, t = { "cat" }, s = "drop" }, -- Black Tabby
+        [43] = { a = true, t = { "cat" }, s = "vendor", w = "Donni Anthania (Elwynn Forest)" }, -- Orange Tabby
+        [44] = { a = true, t = { "cat" }, s = "drop", w = "Cookie (The Deadmines)" }, -- Siamese
+        [45] = { a = true, t = { "cat" }, s = "vendor", w = "Donni Anthania (Elwynn Forest)" }, -- Silver Tabby
+        [46] = { a = true, t = { "cat" }, s = "vendor" }, -- White Kitten
+        [47] = { a = true, t = { "bird", "parrot", "pirate" }, s = "vendor", w = "Narkk (Stranglethorn Vale)" }, -- Cockatiel
+        [49] = { a = true, t = { "bird", "parrot", "pirate" }, s = "drop", w = "Stranglethorn Vale" }, -- Hyacinth Macaw
+        [50] = { a = true, t = { "bird", "parrot", "pirate" }, s = "drop", w = "Defias Pirate (The Deadmines)" }, -- Green Wing Macaw
+        [51] = { a = true, t = { "bird", "parrot", "pirate" }, s = "vendor", w = "Narkk (Stranglethorn Vale)" }, -- Senegal
+        [52] = { a = true, t = { "bird", "chicken", "farm" }, s = "vendor", w = "Magus Tirth (Thousand Needles)" }, -- Ancona Chicken
+        [55] = { a = true, t = { "bug" }, s = "vendor", w = "Jeremiah Payson (Undercity)" }, -- Cockroach
+        [56] = { a = true, t = { "dragon", "whelp" }, s = "drop" }, -- Dark Whelpling
+        [57] = { a = true, t = { "dragon", "whelp" }, s = "other" }, -- Azure Whelpling
+        [58] = { a = true, t = { "dragon", "whelp" }, s = "drop", w = "Wetlands" }, -- Crimson Whelpling
+        [59] = { a = true, t = { "dragon", "whelp" }, s = "drop", w = "Dreaming Whelp (Swamp of Sorrows)" }, -- Emerald Whelpling
+        [64] = { a = true, t = { "frog" }, s = "vendor", w = "Flik" }, -- Wood Frog
+        [65] = { a = true, t = { "frog" }, s = "vendor", w = "Flik" }, -- Tree Frog
+        [67] = { a = true, t = { "bird", "owl" }, s = "vendor", w = "Shylenai (Darnassus)" }, -- Hawk Owl
+        [68] = { a = true, t = { "bird", "owl" }, s = "vendor", w = "Shylenai (Darnassus)" }, -- Great Horned Owl
+        [70] = { a = true, t = { "rodent" }, s = "vendor", w = "Halpa (Thunder Bluff)" }, -- Brown Prairie Dog
+        [72] = { a = true, t = { "rabbit" }, s = "quest", w = "Waskily Wabbits! (Dun Morogh)" }, -- Snowshoe Rabbit
+        [74] = { a = true, t = { "snake" }, s = "other" }, -- Albino Snake
+        [75] = { a = true, t = { "snake" }, s = "vendor", w = "Xan'tish (Orgrimmar)" }, -- Black Kingsnake
+        [77] = { a = true, t = { "snake" }, s = "vendor", w = "Xan'tish (Orgrimmar)" }, -- Brown Snake
+        [78] = { a = true, t = { "snake" }, s = "vendor", w = "Xan'tish (Orgrimmar)" }, -- Crimson Snake
+        [83] = { a = true, t = { "chicken", "mechanical" }, s = "quest", w = "An OOX of Your Own" }, -- Mechanical Chicken
+        [85] = { a = true, t = { "mechanical" }, s = "crafted", w = "Pet Bombling" }, -- Tiny Walking Bomb
+        [87] = { a = true, t = { "dragon" }, s = "quest", w = "Becoming a Parent" }, -- Sprite Darter Hatchling
+        [89] = { a = true, t = { "wolf" }, s = "quest" }, -- Worg Pup
+        [90] = { a = true, t = { "bug" }, s = "quest" }, -- Smolderweb Hatchling
+        [95] = { a = true, t = { "frog", "mechanical" }, s = "crafted", w = "Lifelike Mechanical Toad" }, -- Lifelike Toad
+        [106] = { a = true, t = { "event", "frog" }, s = "event" }, -- Jubling
+        [114] = { a = true, t = { "ooze" }, s = "drop", w = "Oozing Bag" }, -- Disgusting Oozeling
+        [116] = { a = true, t = { "mechanical" }, s = "crafted", w = "Tranquil Mechanical Yeti" }, -- Tranquil Mechanical Yeti
+        [117] = { a = true, t = { "event" }, s = "event", w = "Gaily Wrapped Present" }, -- Tiny Snowman
+        [118] = { a = true, t = { "event", "farm" }, s = "event", w = "Holiday" }, -- Winter Reindeer
+        [119] = { a = true, t = { "event" }, s = "event", w = "Gaily Wrapped Present" }, -- Father Winter's Helper
+        [120] = { a = true, t = { "event" }, s = "event", w = "Gaily Wrapped Present" }, -- Winter's Little Helper
+        [122] = { a = true, t = { "event" }, s = "event" }, -- Peddlefeet
+        [125] = { a = true, t = { "event", "reptile" }, s = "event" }, -- Speedy
+        [126] = { a = true, t = { "event", "farm" }, s = "event" }, -- Mr. Wiggles
+        [127] = { a = true, t = { "event", "rodent" }, s = "event" }, -- Whiskers the Rat
+        [128] = { a = true, t = { "event", "spirit" }, s = "event", w = "A Light in Dark Places" }, -- Spirit of Summer
+        [162] = { a = true, t = { "event", "plant" }, s = "event" }, -- Sinister Squashling
+        [341] = { a = true, t = { "event", "lantern" }, s = "event" }, -- Lunar Lantern
+        [342] = { a = true, t = { "event", "lantern" }, s = "event" }, -- Festival Lantern
+        [1563] = { a = false, t = { "dragon" }, s = "other", w = "Tiny Bronze Whelpling" }, -- Bronze Whelpling
+        [1927] = { a = true, t = { "cat" }, s = "vendor", w = "Black Market Auction House" }, -- White Tiger Cub
+        [4180] = { a = true, t = { "rabbit" }, s = "vendor", w = "Yarlyn Amberstill (Dun Morogh)" }, -- Arctic Hare
+        [5004] = { a = true, t = { "bird", "chicken", "farm" }, s = "drop", w = "Farm Chicken Egg (Westfall)" }, -- Prairie Chicken
+        [5005] = { a = true, t = { "frog" }, s = "other" }, -- Musical Gustjumper
+        [5006] = { a = true, t = { "cat" }, s = "other" }, -- Corrupted Kitten
+        [5008] = { a = false, t = { "demon" }, s = "other", w = "Uber Diablo Stone" }, -- Mini Uber Diablo
+        [5018] = { a = true, t = { "wolf" }, s = "other" }, -- Snowy Wolf Pup
+        [5069] = { a = false, t = { "bird", "chicken", "farm" }, s = "unknown" }, -- Wild Chicken
+        [5075] = { a = true, t = { "ooze" }, s = "quest", w = "WRIGGLE." }, -- Excitable Slime
+        [5094] = { a = true, t = { "snake" }, s = "vendor", w = "Jang (Stranglethorn Vale)" }, -- Bitter Baitling
+        [5121] = { a = true, t = { "wolf" }, s = "vendor", w = "Mayhoa Skyhoof (Orgrimmar)" }, -- Prairie Wolf Pup
+        [5122] = { a = true, t = { "bear" }, s = "other" }, -- Spectral Bear Cub
+        [5135] = { a = true, t = { "rodent" }, s = "vendor", w = "Vayn Moongaze (Zephras Isle)" }, -- Shadowgale Squirrel
+        [5136] = { a = true, t = { "bug" }, s = "quest", w = "My Little Friends" }, -- Weevil K. Neevil
+        [5138] = { a = true, t = { "plant" }, s = "promo" }, -- Pachimari
+        [5139] = { a = false, t = { "bird" }, s = "unknown" }, -- Galestrider Chick
+        [5151] = { a = true, t = { "bug" }, s = "vendor", w = "Jeremiah Payson (Undercity)" }, -- Plagued Cockroach
+        [5152] = { a = true, t = { "bug" }, s = "vendor", w = "Jeremiah Payson (Undercity)" }, -- Undercity Cockroach
+        [5153] = { a = true, t = { "snake" }, s = "vendor", w = "Xan'tish (Orgrimmar)" }, -- Jungle Boa
+        [5154] = { a = true, t = { "rodent" }, s = "vendor", w = "Halpa (Thunder Bluff)" }, -- Brown Ground Squirrel
+        [5155] = { a = true, t = { "rodent" }, s = "vendor", w = "Halpa (Thunder Bluff)" }, -- Red Ground Squirrel
+        [5157] = { a = true, t = { "rabbit" }, s = "vendor", w = "Yarlyn Amberstill (Dun Morogh)" }, -- Brown Rabbit
+        [5158] = { a = true, t = { "bird", "owl" }, s = "other", w = "Shylenai (Darnassus)" }, -- Eagle Owl
+        [5159] = { a = true, t = { "bear" }, s = "promo" }, -- Panda Cub
+        [5160] = { a = true, t = { "demon" }, s = "promo" }, -- Zergling
+        [5161] = { a = true, t = { "demon" }, s = "promo" }, -- Mini Diablo
+        [5162] = { a = true, t = { "reptile" }, s = "drop", w = "Sewer Beast (Stormwind City)" }, -- Baby Crocolisk
+        [5163] = { a = false, t = { "spirit" }, s = "unknown" }, -- Shen'dorei Wisp
+        [5167] = { a = true, t = { "bird" }, s = "drop", w = "Lord Condar (Loch Modan)" }, -- Condor Hatchling
+        [5172] = { a = true, t = { "bird" }, s = "drop", w = "Strider Clutchmother (Darkshore)" }, -- Tallstrider Hatchling
+        [5174] = { a = false, t = { "demon" }, s = "unknown" }, -- Minfernal
+        [5176] = { a = true, t = { "farm" }, s = "vendor" }, -- Minimule
+        [5179] = { a = true, t = { "murloc" }, s = "promo" }, -- Azurky
+        [5183] = { a = false, t = { "snake" }, s = "unknown" }, -- Spawn of Grubthor
+        [5200] = { a = false, t = { "plant" }, s = "unknown" }, -- Viridian Lashling
+        [5201] = { a = false, t = { "plant" }, s = "unknown" }, -- Frosty Lashling
+        [5202] = { a = false, t = { "plant" }, s = "unknown" }, -- Wilted Lashling
+        [5203] = { a = false, t = { "plant" }, s = "unknown" }, -- Flowery Lashling
     },
 }

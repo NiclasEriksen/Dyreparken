@@ -195,7 +195,17 @@ end
 function Frame:GetParent() return self.parent end
 function Frame:SetParent(p) self.parent = p end
 function Frame:GetName() return self.frameName end
-function Frame:SetText(t) self.text = t end
+function Frame:SetText(t)
+    self.text = t
+    -- (an EditBox's SetText fires OnTextChanged, userInput false, as the client's does)
+    if self.type == "EditBox" and self.scripts.OnTextChanged then Invoke(self.client, self.scripts.OnTextChanged, self, false) end
+end
+-- EditBox (c:Type types into one, as the player)
+function Frame:SetAutoFocus(v) self.autoFocus = v and true or false end
+function Frame:SetMaxLetters(n) self.maxLetters = n end
+function Frame:SetFocus() self.focus = true end
+function Frame:ClearFocus() self.focus = false end
+function Frame:HasFocus() return self.focus == true end
 function Frame:GetText() return self.text end
 function Frame:Enable() self.enabled = true end
 function Frame:Disable() self.enabled = false end

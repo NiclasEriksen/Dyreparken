@@ -313,6 +313,14 @@ end
 
 function Client:Card() return self.ns.JournalUI:Card() end
 
+-- Types text into an EditBox as the player (OnTextChanged with userInput true; a keypress).
+function Client:Type(box, text)
+    assert(box.type == "EditBox", "not an EditBox")
+    if box.maxLetters then text = text:sub(1, box.maxLetters) end
+    box.text = text
+    if box.scripts.OnTextChanged then H.Hardware(self, box.scripts.OnTextChanged, box, true) end
+end
+
 -- The last StaticPopup shown; Accept types `text` into its edit box.
 function Client:PopupAccept(text, viaEnter)
     local p = assert(self.popup, "no popup shown")

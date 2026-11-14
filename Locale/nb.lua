@@ -866,6 +866,34 @@ L["park.click.pets"] = "Åpne Pets-fanen, så kan du klikke her for å se kortet
 -- (2026-11-13: a draft) A click on an icon in combat.
 L["park.combat_hint"] = "Kortet til {pet} kommer når kampen er over."
 L["park.legend"] = "I farger: har et hjem.  Grå: trenger et hjem.  {icon} Du kan adoptere det."
+-- The search and the filters (2026-11-14): what doesn't match is dimmed in place.
+L["park.search"] = "Søk"
+L["park.search.tip"] = "Søk etter navn, kallenavn, hvem det bor hos, familie eller hvor det fås."
+L["park.matches"] = "{n} treff"
+L["park.filter.free"] = "Trenger et hjem"
+L["park.filter.free.tip"] = "Bare dyr ingen i guilden har adoptert."
+L["park.filter.adopt"] = "Kan adopteres"
+L["park.filter.adopt.tip"] = "Bare dyr du har selv og ingen har adoptert: dem kan du adoptere nå."
+-- Where a pet comes from (Data/Companions.lua: s, w), in its tooltip. {where}: names from the game (NPC, quest,
+-- item, zone), in English like the client's.
+L["source.line"] = "Kilde: {how}"
+L["source.line.where"] = "Kilde: {how} – {where}"
+L["source.vendor"] = "Selger"
+L["source.quest"] = "Oppdrag"
+L["source.drop"] = "Drop"
+L["source.crafted"] = "Håndverk"
+L["source.event"] = "Høytid"
+L["source.promo"] = "Kampanje"
+L["source.other"] = "Annet"
+L["source.unknown"] = "Ukjent"
+-- Where, for the sources the data has only in English prose (by species id).
+L["source.where.5005"] = "Zephras Isle: /sing til en frosk, og snakk med frosken som dukker opp"
+L["source.where.5122"] = "Legacy Track: 25 Legacy Points"
+L["source.where.5138"] = "Blizzard-butikken: Skyborne Epic Pack eller Warcraft Forever Collection"
+L["source.where.5159"] = "Blizzard-butikken: Skyborne Epic Pack eller Warcraft Forever Collection"
+L["source.where.5160"] = "Blizzard-butikken: Skyborne Epic Pack eller Warcraft Forever Collection"
+L["source.where.5161"] = "Blizzard-butikken: Skyborne Epic Pack eller Warcraft Forever Collection"
+L["source.where.5179"] = "belønning for 12 måneders abonnement"
 
 ------------------------------------------------------------------------------
 -- Achievements (moved here from Achievements/Texts.lua, 2026-11-08)

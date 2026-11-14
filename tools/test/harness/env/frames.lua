@@ -58,6 +58,17 @@ return function(c, env, S)
                 end
             end)
         end
+        -- SearchBoxTemplate (the pet journal's search): its instruction text and clear button as children,
+        -- and its own OnTextChanged, which hides the instruction while there's text (Blizzard's, so secure).
+        if template == "SearchBoxTemplate" then
+            f.Instructions = f:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+            f.clearButton = env.CreateFrame("Button", nil, f)
+            f.scripts.OnTextChanged = P.SecureFn(function(self)
+                local empty = (self.text or "") == ""
+                self.Instructions:SetShown(empty)
+                self.clearButton:SetShown(not empty)
+            end)
+        end
         -- PortraitFrameMixin, mixed in (a plain field, like the real client).
         if template == "ButtonFrameTemplate" then f.SetTitle = function(self, t) self.titleText = t end end
         -- A model scene of our own (ModelSceneMixinTemplate, as on Forever: /dp probe api petframe):
