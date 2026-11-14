@@ -237,4 +237,18 @@ return function(test, H)
         w:Run(6)
         ok(Said(ola, "sjalusi"), "said anyway")
     end)
+
+    test("a rare row on its way isn't decided again: Moonkin twice in one fight is one line after it", function()
+        local w, ola, R = Setup("DRUID")
+        ola.state.spellNames[17] = "Moonkin Form"
+        w:Run(30)
+        ola.ns.Moments:Say({ text = "Hm.", key = PANDA, why = "another line" }) -- (a line on its way: RARE_SKIP's roll)
+        ola:Dice(0)
+        ola.state.combat = true; ola:Fire("PLAYER_REGEN_DISABLED")
+        Cast(ola, 17); Cast(ola, 17)
+        ok(ola:Log("kjempeugle: said today")[1], "the second: already on its way")
+        ola.state.combat = false; ola:Fire("PLAYER_REGEN_ENABLED")
+        w:Run(5)
+        eq(ola.ns.DB.char.reacts.kjempeugle.n, 1)
+    end)
 end

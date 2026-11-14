@@ -33,8 +33,11 @@ Moments.BUDGETS = {
 
 local onTheWay = 0 -- lines decided and not yet said
 local why       -- the newest one's reason (/dp state)
+local queued = {} -- m.id -> true while that moment is on its way (it isn't decided twice: a rare reaction in a long fight)
 
 function Moments:Pending() return onTheWay > 0 and why or nil end
+-- This moment (its id) is on its way already.
+function Moments:Queued(id) return id ~= nil and queued[id] == true end
 
 -- A budget's cooldown is over and no line is on its way.
 function Moments:Ready(budget)
@@ -50,16 +53,20 @@ function Moments:Left(budget)
     return at and math.max(0, at + b.every - ns.Now()) or 0
 end
 
--- Say text for key after a delay. m: { text, key, why (for the log), delay (a DELAY name), budget (spent as
--- it's said; nil for a rare one), bubble (the pet frame's: say, dislike...), afterFight, said = fn() }.
+-- Say text for key after a delay. m: { text, key, why (for the log), id (Queued's), delay (a DELAY name),
+-- budget (spent as it's said; nil for a rare one), bubble (the pet frame's: say, dislike...), afterFight,
+-- said = fn() }.
 function Moments:Say(m)
+    -- (a delay name we lack waits as an egg's: a throw here would leave the slot taken all session)
+    local span = self.DELAY[m.delay or "egg"] or self.DELAY.egg
     onTheWay, why = onTheWay + 1, m.why
+    if m.id then queued[m.id] = true end
     local function Wait()
-        local span = self.DELAY[m.delay or "egg"]
         local wait = span[1] + ns.random() * (span[2] - span[1])
         ns.Log("Moments", "%s, in %d s", tostring(m.why), wait)
         C_Timer.After(wait, function()
             onTheWay = math.max(0, onTheWay - 1)
+            if m.id then queued[m.id] = nil end
             if m.budget then self.BUDGETS[m.budget].set(ns.Now()) end
             -- (chatLines off hides the line only: what it found still counts)
             ns.PetSays(m.text, m.key, m.bubble or "say")

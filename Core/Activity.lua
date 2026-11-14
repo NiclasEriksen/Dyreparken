@@ -241,9 +241,16 @@ local function State(on)
     end
     if ns.Events:Has("PLAYER_REGEN_DISABLED", STATE) then return end
     fighting = ns.InCombat() == true
+    local grouped = Plain(IsInGroup()) == true
     ns.Events:On("PLAYER_REGEN_DISABLED", STATE, function() fighting = true; Update() end)
     ns.Events:On("PLAYER_REGEN_ENABLED", STATE, function() fighting = false; Update() end)
-    ns.Events:On("GROUP_ROSTER_UPDATE", STATE, function() Update() end)
+    -- (a raid's roster comes in bursts: only joining or leaving a group in a fight changes what's heard)
+    ns.Events:On("GROUP_ROSTER_UPDATE", STATE, function()
+        local now = Plain(IsInGroup()) == true
+        if now == grouped then return end
+        grouped = now
+        if fighting then Update() end
+    end)
 end
 
 -- Register the game events the wanted sources need, and only those.

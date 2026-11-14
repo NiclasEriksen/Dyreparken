@@ -136,7 +136,8 @@ function Reactions:Ready() return ns.Moments:Ready("react") end
 -- The row's line, said a moment later (after the fight, if in one); what it uses up is saved as it's said.
 function Reactions:Say(row, key, text, rare)
     local today = ns.Today()
-    ns.Moments:Say({ text = text, key = key, why = ("react %s %s"):format(row.id, key), delay = row.delay or "now",
+    ns.Moments:Say({ text = text, key = key, why = ("react %s %s"):format(row.id, key), id = "react:" .. row.id,
+        delay = row.delay or "now",
         budget = not rare and "react" or nil, afterFight = true, said = function()
             local got = ns.Moments.Count(ns.DB.char.reacts, row.id, key, text, "react:" .. row.id, today)
             if got.n == 1 then ns.Bus:Fire("REACT_FOUND", row.id) end
@@ -148,7 +149,7 @@ end
 function Reactions:Try(row, s, key)
     if row.calm and s.combat then return "in a fight" end
     if not key then return "no pet out" end
-    if ns.Moments.SaidToday(ns.DB.char.reacts, row.id) then return "said today" end
+    if ns.Moments.SaidToday(ns.DB.char.reacts, row.id) or ns.Moments:Queued("react:" .. row.id) then return "said today" end
     local vars
     if row.test then vars = row.test(s, row, key) else vars = self.ByNature(row, key) end
     if not vars then return "not its moment" end

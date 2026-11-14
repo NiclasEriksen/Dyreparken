@@ -440,6 +440,9 @@ local Rescan = ns.Debounce(2, function()
     g.story = g.story or {}
     local now = ns.Now()
     for key in pairs(keys) do ScanPet(g, key, now) end
+    -- (and today's pet of the day, as Scan does: past midnight a bond change may be all that comes)
+    local pick, holder = ns.Bonds:PetOfTheDay(now)
+    if pick then Add(g, pick, { t = now, k = "day", w = holder, v = ns.Today(now) }) end
     Story:Changed()
 end)
 ns.Bus:On("REGISTRY", function(keys)
