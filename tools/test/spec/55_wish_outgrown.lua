@@ -6,8 +6,8 @@ return function(test, H)
     local OWL = "s:68"
 
     -- Ola with her owl adopted and out, and today's wish the one given (made now, as at the day's start).
-    local function Setup(id, each)
-        local w, ola = H.Setup{ ola = { 68, 40 }, settle = "bond", each = each }
+    local function Setup(id, each, kari)
+        local w, ola, k = H.Setup{ ola = { 68, 40 }, kari = kari, settle = "bond", each = each }
         ola:Slash("adopter owl")
         w:Run(5)
         eq(ola.ns.Registry:MyPet(), OWL)
@@ -18,7 +18,7 @@ return function(test, H)
         ola.ns.DB.char.places[OWL] = { m1429 = true }
         ola.state.explored = { ["Elwynn Forest"] = true }
         ola:OpenJournal()
-        return w, ola, ola.ns.Wish
+        return w, ola, ola.ns.Wish, k
     end
     local function Earned(ola) local e = ola.ns.Registry:Life(OWL, "Ola Nord"); return e and e.p or 0 end
 
@@ -149,64 +149,56 @@ return function(test, H)
         no(W:Watching()); no(Any())
         eq(W:Today().id, "herb")
     end)
-    -- A friend's gathering (2026-11-15, the user): a party member mining near you does a mining wish.
-    test("a gathering wish: a party member's gathering nearby does it, with its own line; the wish only", function()
-        local w, ola, W = Setup("mine")
+    -- A friend's gathering (2026-11-15, the user): a party member mining near you does a mining wish. By
+    -- their Dyreparken's GATHER on the party (their casts are secret to us on Forever).
+    test("a gathering wish: a party member's gathering nearby does it, by message, with its own line; the wish only", function()
+        local w, ola, W, kari = Setup("mine", nil, { 40 })
         eq(W:Today().id, "mine")
-        no(W:Listening(), "alone: nobody's casts listened to")
-        -- Mining's casts by others secret (the likely answer, Blizzard's docs): not listened to, for nothing.
-        w:SetGroup({ "Ola Nord", "Kari Berg" }); ola:Fire("GROUP_ROSTER_UPDATE")
-        no(W:Listening(), "a party member's mining would come secret")
-        ok(ola:Log("Mining's casts by others: secrecy 2")[1])
-        -- Never secret (Enum.SecrecyLevel 0): listened to.
-        ola.state.castSecrecy = { Mining = 0 }
-        ola:Reload(); w:Run(20)
-        ola.ns.Wish.For = function() return "mine" end
-        ola:Summon(68)
-        W = ola.ns.Wish
-        W:Today()
-        ok(W:Listening(), "in a party, with a gathering wish open")
-        local function Cast(id) ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "party1", "x", id); w:Run(1) end
-        Cast(2366) -- (herbs: not the wish)
-        no(W:Today().done)
+        local function Mine(c, id) c:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", id or 2575); w:Run(2) end
+        Mine(kari)
+        eq(w:Sent("GATHER"), 0, "alone: nobody to tell")
+        w:SetGroup({ "Ola Nord", "Kari Berg" })
+        Mine(kari, 2366) -- (herbs: not the wish)
+        eq(w:Sent("GATHER"), 1); no(W:Today().done)
+        w:Run(W.GATHER_EVERY)
         w.apart = { ["Kari Berg"] = true }
-        Cast(2575)
+        Mine(kari)
         no(W:Today().done, "too far away")
         w.apart = nil
+        w:Run(W.GATHER_EVERY)
         ola:Summon(40)
-        Cast(2575)
+        Mine(kari)
         no(W:Today().done, "the owl isn't out")
         ola:Summon(68)
+        Mine(kari)
+        eq(w:Sent("GATHER"), 3, "one a kind every GATHER_EVERY seconds")
+        w:Run(W.GATHER_EVERY)
         local before = Earned(ola)
-        Cast(2575)
+        Mine(kari)
         ok(W:Today().done)
         ok(ola:Printed("Great Horned Owl fikk se Kari Berg gjøre det, og ønsket ble oppfylt", true))
         eq(Earned(ola) - before, 10)
         eq((ola.ns.Activity:Count("mine")), 0, "not your activity")
-        no(W:Listening(), "done: nobody's casts")
-        -- Another day: not in a fight, not in a raid.
+        -- Another day: not in a fight, not from outside the party, not in a raid.
         w:SkipDays(1)
         ola.ns.DB.char.wish = nil
         W:Today()
-        ok(W:Listening())
-        ola:Fire("PLAYER_REGEN_DISABLED") -- (as the client: before InCombatLockdown says so)
-        no(W:Listening(), "a fight starting")
-        ola:Fire("PLAYER_REGEN_ENABLED")
-        ok(W:Listening())
         ola:EnterCombat()
-        no(W:Listening(), "in a fight")
+        w:Run(W.GATHER_EVERY); Mine(kari)
+        no(W:Today().done, "in a fight")
         ola:LeaveCombat()
-        ok(W:Listening())
+        w:InjectMessage("Per Hansen", { k = "GATHER", p = ola.ns.PROTOCOL, g = "mine" }, "PARTY")
+        w:Run(1)
+        no(W:Today().done, "not in our party")
+        w:InjectMessage("Kari Berg", { k = "GATHER", p = ola.ns.PROTOCOL, g = { "mine" } }, "PARTY")
+        w:Run(1)
+        no(W:Today().done, "a malformed kind")
         w:SetGroup({ "Ola Nord", "Kari Berg", "Per Hansen", "Liv Lund", "Siv Dahl", "Tor Eng" })
-        ola:Fire("GROUP_ROSTER_UPDATE")
-        no(W:Listening(), "a raid: too many to listen to")
-        -- A wish that isn't gathering: nothing.
-        w:SetGroup({ "Ola Nord", "Kari Berg" }); ola:Fire("GROUP_ROSTER_UPDATE")
-        ok(W:Listening())
-        ola.ns.Wish.For = function() return "explore" end
-        w:SkipDays(1)
-        ola.ns.DB.char.wish = nil
-        W:Today()
-        no(W:Listening(), "an explore wish")
+        local sent = w:Sent("GATHER")
+        w:Run(W.GATHER_EVERY); Mine(kari)
+        eq(w:Sent("GATHER"), sent, "a raid: nobody told")
+        w:SetGroup({ "Ola Nord", "Kari Berg" })
+        w:Run(W.GATHER_EVERY); Mine(kari)
+        ok(W:Today().done)
     end)
 end

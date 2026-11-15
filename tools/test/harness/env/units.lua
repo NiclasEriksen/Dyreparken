@@ -72,9 +72,6 @@ return function(c, env, S)
         local x = c.units[u]
         return x and x.who
     end
-    -- A spell's secrecy as a cast (Enum.SecrecyLevel: 0 never, 1 always, 2 contextual, the likely answer for
-    -- most spells): S.castSecrecy[spell name or id], else 2.
-    env.C_Secrets.GetSpellCastSecrecy = function(spell) return (S.castSecrecy or {})[spell] or 2 end
     env.C_Secrets.ShouldUnitIdentityBeSecret = function(u) return c.units[u] ~= nil and c.units[u].secret == true end
     env.UnitIsPlayer = function(u) local x = Who(u); return x ~= nil and x.player == true end
     env.UnitClass = function(u)

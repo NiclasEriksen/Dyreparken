@@ -82,19 +82,11 @@ function Playdate:Party(sender, mine)
 end
 
 -- Their unit in our group ("party2", "raid7"), or nil.
-local function UnitOf(sender)
-    local raid = IsInRaid()
-    local n = raid and GetNumGroupMembers() or GetNumSubgroupMembers()
-    for i = 1, n do
-        local unit = (raid and "raid" or "party") .. i
-        if ns.UnitKey(unit) == sender then return unit end
-    end
-end
+local UnitOf = ns.GroupUnit
 
 -- Close enough to play (2026-11-11, the user: "play date works on way too long distances, it should only
--- trigger when they're in range of us"): UnitInRange, a group member within about 40 yards; where it
--- can't say (another instance, say), whether the client shows them at all (UnitIsVisible).
--- Both exist on Forever (/dp probe api); what they answer there is logged until seen.
+-- trigger when they're in range of us"): within about 40 yards, ns.UnitNear (UnitDistanceSquared, else
+-- the older checks).
 function Playdate:Near(sender)
     local unit = UnitOf(sender)
     if not unit then return false end

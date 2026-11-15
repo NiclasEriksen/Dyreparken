@@ -239,8 +239,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    give the pet that's out 25 points once per character, by the spell taught (SPELLS_CHANGED) or the
                    quest's id; what was had at the first look isn't new; a trainer visit, a dual-spec switch, a talent
                    reset and the tenth levels are eggs only; read its header), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card; a gathering wish also
-                   by a party member's gathering within ~40 yards, the wish only (Wish:Party: party units' casts, only while
-                   such a wish is open, in a party, out of combat); wishes in a row, char.wishes, with achievements at 7 and 30 in a row and 100 in all), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
+                   by a party member's gathering within ~40 yards, the wish only (their Dyreparken's GATHER on PARTY, a new
+                   kind without a protocol bump: their casts are secret to us; in a party, out of combat); wishes in a row, char.wishes, with achievements at 7 and 30 in a row and 100 in all), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
                    cheer, a jump with you (every pet: canJump), playing dead the day of the three-deaths egg; a move a moment earns the pet is owed once,
                    Moves:Owe(key, "dead"|"joy"|"sulk"), char.owed (an egg's `move`); which animation per species: Data/PetMoves.lua; every step list comes from the pure planner Moves.Plan, the stages only play plans), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
                    congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Story (a pet's story: a local

@@ -490,6 +490,16 @@ function ns.UnitKey(unit)
     return first
 end
 
+-- A group member's unit ("party2", "raid7") by "First Surname", or nil (Playdate, Wish).
+function ns.GroupUnit(name)
+    local raid = IsInRaid()
+    local n = raid and GetNumGroupMembers() or GetNumSubgroupMembers()
+    for i = 1, n do
+        local unit = (raid and "raid" or "party") .. i
+        if ns.UnitKey(unit) == name then return unit end
+    end
+end
+
 -- Everyone in our group as "First Surname", us included (empty when solo).
 function ns.GroupKeys()
     local list = {}

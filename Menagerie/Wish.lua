@@ -357,55 +357,38 @@ Wish.WATCH = WATCH
 -- someone in party mined an ore nearby?"): a gathering wish comes true when a party member mines, picks
 -- herbs, skins or fishes within about 40 yards (ns.UnitNear) while your adopted pet is out; its own line
 -- names them. The wish only: not your activity (no like points, counters or achievements). Party only,
--- out of combat: the four party units' casts are listened to only then (a raid's 40 would cost too much),
--- and only while such a wish is open. Anyone's casts: they need no Dyreparken.
+-- out of combat.
+-- By message, not by their casts: a party member's casts are secret on Forever unless the spell is flagged
+-- never secret (Blizzard's API docs for 70938: SecretWhenUnitSpellCastRestricted), so listening to them
+-- would hear nothing. So each Dyreparken in a party tells it "I gathered" (GATHER on PARTY, the user the
+-- same day: "only in party"), which only friends with the addon do. A new kind and no X-Protocol bump
+-- (the user: "it shouldn't hinder syncing"): older clients drop kinds they don't know (spec 52).
 ------------------------------------------------------------------------------
-Wish.GATHER = { mine = "Mining", herb = "Herb Gathering", skin = "Skinning", fish = "Fishing" }
--- A party member's cast is secret unless its spell is never secret (Blizzard's API docs for 70938:
--- SecretWhenUnitSpellCastRestricted, "if the unit ... is not the player or their pet"; C_Secrets.GetSpellCastSecrecy,
--- Enum.SecrecyLevel NeverSecret 0). So the party is listened to only for a spell the client says is never
--- secret: else every cast would come secret, for nothing (logged once a session per spell).
-local secrecy = {}
-function Wish.Readable(kind)
-    local spell = Wish.GATHER[kind]
-    if secrecy[kind] == nil then
-        local api = rawget(_G, "C_Secrets")
-        local ok, level = pcall(function() return api and api.GetSpellCastSecrecy and api.GetSpellCastSecrecy(spell) end)
-        level = ok and ns.Plain(level) or nil
-        secrecy[kind] = level == nil or level == 0 -- (no such call: no secrets to fear)
-        ns.Log("Wish", "%s's casts by others: secrecy %s", spell, tostring(level))
-    end
-    return secrecy[kind]
+Wish.GATHER = { mine = true, herb = true, skin = true, fish = true }
+Wish.GATHER_EVERY = 20 -- seconds between two GATHERs of one kind (a fishing cast is ~20 s; a node's few)
+local told = {} -- kind -> GetTime() it was last told
+
+-- Ours: told the party, a party and not a raid (where nobody listens), at most one a kind per GATHER_EVERY.
+function Wish:Gathered(kind)
+    if not Wish.GATHER[kind] or not ns.Plain(IsInGroup()) or ns.Plain(IsInRaid()) then return end
+    local now = GetTime()
+    if told[kind] and now - told[kind] < self.GATHER_EVERY then return end
+    told[kind] = now
+    ns.Comm:Send("GATHER", { g = kind }, "PARTY")
 end
-local PARTY = { "party1", "party2", "party3", "party4" }
-local listening = false
--- In a fight, by the events themselves: InCombatLockdown is still false while REGEN_DISABLED's handlers
--- run (code review 2026-11-15: the party stayed listened to through every fight; as Activity's `fighting`).
-local fighting = false
-local function OnPartyCast(_, _, unit, _, spellID)
+
+-- Theirs: a party member near us gathered (untrusted: any kind, anyone; only a party's member counts).
+function Wish:Heard(sender, kind)
     local w = Pending(armed)
-    if not (w and Wish.GATHER[w.id]) then return end
-    if ns.IsSecret(spellID) then ns.Log("Wish", "%s cast: secret", tostring(unit)); return end
-    if ns.Activity.GatherKind(spellID) ~= w.id then return end
-    if ns.Pets:OutKey() ~= w.pet then ns.Log("Wish", "%s gathered %s, the pet isn't out", unit, w.id); return end
+    if not (w and Wish.GATHER[w.id] and kind == w.id) then return end
+    if ns.Plain(IsInRaid()) or ns.InCombat() then return end
+    local unit = ns.GroupUnit(sender)
+    if not unit then return end
+    if ns.Pets:OutKey() ~= w.pet then ns.Log("Wish", "%s gathered %s, the pet isn't out", sender, kind); return end
     if not ns.UnitNear(unit, "wish") then return end
-    local who = ns.UnitKey(unit) or ns.L["wish.friend.someone"]
-    ns.Log("Wish", "%s gathered %s near us: the wish", tostring(who), w.id)
-    Wish:Grant(w, "wish.granted.friend", "wish.granted.friend.full", { who = who })
+    ns.Log("Wish", "%s gathered %s near us: the wish", sender, kind)
+    self:Grant(w, "wish.granted.friend", "wish.granted.friend.full", { who = sender })
 end
--- Listen to the party's casts now or not: a gathering wish open, in a party (not a raid), out of combat.
-function Wish:Party()
-    local want = armed and Wish.GATHER[armed] and Pending(armed) and ns.Plain(IsInGroup()) and not ns.Plain(IsInRaid())
-        and not fighting and Wish.Readable(armed) and true or false
-    if want == listening then return end
-    listening = want
-    for _, unit in ipairs(PARTY) do
-        if want then ns.Events:On("UNIT_SPELLCAST_SUCCEEDED", WATCH, OnPartyCast, unit)
-        else ns.Events:Off("UNIT_SPELLCAST_SUCCEEDED", WATCH, unit) end
-    end
-    ns.Log("Wish", "party's gathering %s", want and "watched" or "not watched")
-end
-function Wish:Listening() return listening end
 
 -- What today's wish needs watched, while it isn't done: its activity (a like is watched by the bond
 -- already, but a campfire or company from the guild isn't), an explore's other ways, a trip's zone.
@@ -416,20 +399,12 @@ function Wish:Arm()
     if want == armed then return end
     armed = want
     ns.Events:OffAll(WATCH)
-    listening = false -- (its party units went with the rest)
     ns.Activity:WantOnly(WATCH, (want and ns.Activity.KIND[want]) and { [want] = true } or {})
     if want == "explore" then
         ns.Events:On("UI_INFO_MESSAGE", WATCH, OnDiscovered)
         ns.Events:On("CHAT_MSG_SYSTEM", WATCH, OnDiscovered)
     end
     if want == "explore" or want == "zone" then ns.Events:On("ZONE_CHANGED_NEW_AREA", WATCH, OnZone) end
-    if want and Wish.GATHER[want] then
-        fighting = ns.InCombat()
-        ns.Events:On("GROUP_ROSTER_UPDATE", WATCH, function() Wish:Party() end)
-        ns.Events:On("PLAYER_REGEN_DISABLED", WATCH, function() fighting = true; Wish:Party() end)
-        ns.Events:On("PLAYER_REGEN_ENABLED", WATCH, function() fighting = false; Wish:Party() end)
-        self:Party()
-    end
     ns.Log("Wish", "watch %s", tostring(want))
 end
 -- Whether today's wish has events of its own watched (an explore's, a trip's).
@@ -467,8 +442,10 @@ function Wish:Init()
     -- (OnActivity checks the pet out is today's wisher: your adopted pet.)
     ns.Bus:On("ACTIVITY", function(id, _, key)
         if Wish.COMPANY[id] then ns.DB.char.company = ns.Now() end
+        if Wish.GATHER[id] then Wish:Gathered(id) end
         Wish:OnActivity(id, key)
     end)
+    ns.Comm:Register("GATHER", function(msg, sender) Wish:Heard(sender, msg.g) end, "GROUP")
     -- (the company's activities heard always: what the social wishes are offered by)
     for id in pairs(Wish.COMPANY) do ns.Activity:Want(id, Wish.COMPANY) end
     self:Arm() -- (a wish made before a /reload)

@@ -1100,7 +1100,6 @@ L["wish.granted.full"] = "{pet} fikk ønsket sitt oppfylt: {activity}!" -- (a fu
 -- A party member's gathering nearby (Wish.GATHER): {who} is their name.
 L["wish.granted.friend"] = "{pet} fikk se {who} gjøre det, og ønsket ble oppfylt: {activity}! (+{n} båndpoeng)"
 L["wish.granted.friend.full"] = "{pet} fikk se {who} gjøre det, og ønsket ble oppfylt: {activity}!"
-L["wish.friend.someone"] = "en venn"
 -- (2026-11-13: drafts, for the user to edit) A wish come true by itself (Wish:Auto): everything explored and
 -- seen together, or every profession at its cap.
 L["wish.auto.explore"] = "{pet} har sett hver krok av verden sammen med deg, og ønsker seg bare å være med deg i dag. Ønsket er oppfylt! (+{n} båndpoeng)"
