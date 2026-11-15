@@ -252,6 +252,10 @@ return function(test, H)
         local turn = 0
         for _, step in ipairs(Park.SWING) do turn = turn + step[1] end
         eq(turn, 0, "back where it was")
+        for _, g in ipairs(cats.wobble) do
+            -- (each about its own top edge: an offset origin flung the mark off sideways in game)
+            for _, an in ipairs(g.anims) do eq(an.origin[1], "TOP"); eq(an.origin[2], 0); eq(an.origin[3], 0) end
+        end
         match(ola:TipOf(cats).text, "Klikk igjen for å vise alle%.$")
         cats:Click()
         eq(page.frame.matches.text, "")

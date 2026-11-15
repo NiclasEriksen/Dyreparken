@@ -632,9 +632,10 @@ function Park.NewSign(family)
     ns.SetTip(sg, "ANCHOR_BOTTOMRIGHT", function(self) return Park.SignLines(self.family) end)
     sg:HookScript("OnEnter", function(self) Park:Highlight(self.family) end)
     sg:HookScript("OnLeave", function() Park:Highlight(nil) end)
-    -- A click: it swings on its post a moment (the user, 2026-11-15), the board and its mark together,
-    -- about the board's top edge.
-    sg.wobble = { Park.Swing(board, 0), Park.Swing(sg.mark, Park.SIGN_H / 2 + 1 - (Park.SIGN_H - 3) / 2) }
+    -- A click: it swings on its post a moment (the user, 2026-11-15), the board and its mark together, each
+    -- about its own top edge (the mark's is 2 px under the board's: near enough). An origin offset from the
+    -- mark's top to the board's flung the mark off sideways in game, the user's look 2026-11-15.
+    sg.wobble = { Park.Swing(board), Park.Swing(sg.mark) }
     sg:SetScript("OnClick", function(self)
         for _, g in ipairs(self.wobble) do g:Stop(); g:Play() end
         Park:ShowFamily(self.family)
@@ -643,15 +644,15 @@ function Park.NewSign(family)
     return sg
 end
 
--- A swing back and forth that comes to rest where it started (the steps add up to nothing), about a
--- point dy px above the region's top edge (the board's top, for the mark inside it).
+-- A swing back and forth that comes to rest where it started (the steps add up to nothing), about the
+-- region's top edge.
 Park.SWING = { { 10, 0.08 }, { -16, 0.16 }, { 10, 0.14 }, { -4, 0.12 } }
-function Park.Swing(region, dy)
+function Park.Swing(region)
     local g = region:CreateAnimationGroup()
     for i, step in ipairs(Park.SWING) do
         local a = g:CreateAnimation("Rotation")
         a:SetDegrees(step[1]); a:SetDuration(step[2]); a:SetOrder(i); a:SetSmoothing("IN_OUT")
-        a:SetOrigin("TOP", 0, dy)
+        a:SetOrigin("TOP", 0, 0)
     end
     return g
 end
