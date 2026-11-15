@@ -15,7 +15,7 @@ local _, ns = ...
 --
 -- Three tiers (2026-11-12, the user, from the log: 79% of what could speak was held back, and the
 -- midnight egg's ten minutes lost to a campfire line):
---   rare       never held back by the 45 minutes: `always` eggs (holidays, milestones, a roll, a duel,
+--   rare       never held back by the 45 minutes, nor spending them (2026-11-15): `always` eggs (holidays, milestones, a roll, a duel,
 --              a new flight path) and the clock's (midnight, 13:37, the early morning, Friday taco,
 --              Saturday sweets, Monday): once a day each, and their window is the rarity.
 --   discovery  a dislike's first time (DISLIKE_CHANCE): finding it is a goal with an achievement.
@@ -49,12 +49,13 @@ local pending = { eggs = {} }
 
 function Quirks:Ready() return ns.Moments:Ready("quirk") end
 
--- Decided now, said after the delay (Moments:Say); every quirk line spends the 45 minutes as it's said.
+-- Decided now, said after the delay (Moments:Say); a quirk line spends the 45 minutes as it's said, except
+-- a rare egg's (2026-11-15, the user: as a rare reaction, it no longer holds back the day's common eggs).
 -- said(): saves what it used up, and what follows the line. On the pet frame a dislike its own way, an egg
 -- a plain remark.
-function Quirks:Say(text, why, kind, said, delay, key, bubble)
-    ns.Moments:Say({ text = text, key = key, why = why, delay = delay or kind, budget = "quirk", said = said,
-        bubble = bubble or (kind == "dislike" and "dislike" or "say") })
+function Quirks:Say(text, why, kind, said, delay, key, bubble, rare)
+    ns.Moments:Say({ text = text, key = key, why = why, delay = delay or kind, budget = not rare and "quirk" or nil,
+        said = said, bubble = bubble or (kind == "dislike" and "dislike" or "say") })
 end
 
 ------------------------------------------------------------------------------
@@ -92,7 +93,8 @@ end
 -- Easter eggs: { id, on = activity (or "seen": a companion under the mouse),
 -- chance (default 1), test = fn(ctx) -> vars or nil }. ctx: key, name (the
 -- pet's), id, extra, t, family (set), today (the activity's count today), egg.
--- `always`: not held back by the quirks' 45 minutes (rare by nature, and a day late is lost).
+-- `always`: not held back by the quirks' 45 minutes, nor spending them (rare by nature, and a day late is lost).
+-- `fight`: about the fight just over: unsaid if it ended with your death.
 -- `traits`, `families`: an egg that speaks by the pet's nature (Quirks.ByNature),
 -- in this order, first match wins. `watch = false`: its activity isn't watched for it
 -- (the rest are: Quirks.WATCH is built from the eggs). `on` must be an activity in
@@ -342,7 +344,7 @@ Quirks.EGGS = {
     { id = "vinger", on = "taxi", chance = 0.3,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
     -- More likely for a boss this pet hasn't seen fall (Bond:First notes those; either may hear it first).
-    { id = "trofe", on = "boss", chance = function(ctx)
+    { id = "trofe", on = "boss", fight = true, chance = function(ctx)
         local seen = ns.DB.char.firsts[ctx.key]
         local new = not (seen and seen[ctx.extra]) or (ns.Bond.justFirst == ctx.key .. "\31" .. tostring(ctx.extra)
             and ns.Now() - (ns.Bond.justFirstAt or 0) <= 1) -- (this very kill)
@@ -403,10 +405,10 @@ Quirks.EGGS = {
         test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Bad luck in a fight (2026-11-14, the user): five swings missed in a row, three spells resisted in a row
     -- (Activity: solo, only yours). Rare, said after the fight; by nature.
-    { id = "bom", delay = "now", on = "misses", always = true,
+    { id = "bom", delay = "now", on = "misses", always = true, fight = true,
         traits = { "skoyer", "rampete", "kjaelen", "eventyrlysten", "latsabb" },
         test = function(ctx) return Quirks.ByNature(ctx) end },
-    { id = "motstand", delay = "now", on = "resisted", always = true,
+    { id = "motstand", delay = "now", on = "resisted", always = true, fight = true,
         traits = { "skoyer", "oppdager", "kjaelen", "ordensdyr" },
         test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
@@ -465,6 +467,9 @@ function Quirks:Egg(on, key, extra, seen)
     -- with the 45 minutes free, so at most one of those.
     local any, held = false, false
     local M = ns.Moments
+    -- (a fight's egg after a fight that ended with your death: unsaid, as the reactions; the user, 2026-11-15.
+    -- Its activity comes once the fight is over, so you lie there now.)
+    local dead = ns.Plain(UnitIsDeadOrGhost("player")) == true
     for _, e in ipairs(list) do
         local had = ns.DB.char.eggs[e.id]
         local done = (had and had.day == today) or pending.eggs[e.id] == today
@@ -472,7 +477,9 @@ function Quirks:Egg(on, key, extra, seen)
         if not e.always and not done and M:Pending() and M:Left("quirk") == 0 then held = true end
         local chance = e.chance
         if type(chance) == "function" then chance = chance(ctx) end -- (false or nil: no roll, the test decides)
-        if (e.always or self:Ready()) and not done
+        if dead and e.fight then
+            ns.Log("Quirks", "egg %s: unsaid, the fight ended with your death", e.id)
+        elseif (e.always or self:Ready()) and not done
             and (not chance or ns.random() < chance) then
             ctx.egg = e
             local vars = e.test(ctx)
@@ -486,7 +493,7 @@ function Quirks:Egg(on, key, extra, seen)
                     if e.move then ns.Moves:Owe(key, e.move) end -- (on its card, once: playing dead)
                     if got.n == 1 then ns.Bus:Fire("EGG_FOUND", e.id) end
                     if cheer and ns.Moves then ns.Moves:Cheer(key) end -- (on its card and the pet frame)
-                end, e.delay or (e.on == "day" and "day" or nil), key, e.bubble)
+                end, e.delay or (e.on == "day" and "day" or nil), key, e.bubble, e.always)
                 any = true
             end
         end

@@ -44,6 +44,24 @@ return function(test, H)
         eq(ola.ns.DB.char.eggs.bom.n, 1)
     end)
 
+    -- The same rule as the reactions (2026-11-15, the user): a fight that ended with your death says nothing
+    -- about it; and a rare egg spends none of the quirks' 45 minutes.
+    test("a fight that ended with your death: its egg unsaid; a rare egg leaves the 45 minutes free", function()
+        local w, ola = Setup()
+        for _ = 1, 5 do Hit(ola, "MISS") end
+        ola.state.dead = true
+        After(w, ola)
+        no(Said(ola, "egg.bom"), "dead")
+        ok(ola:Log("egg bom: unsaid")[1])
+        eq(ola.ns.DB.char.eggs.bom, nil)
+        ola.state.dead = false
+        ola.state.combat = true; ola:Fire("PLAYER_REGEN_DISABLED")
+        for _ = 1, 5 do Hit(ola, "MISS") end
+        After(w, ola)
+        ok(Said(ola, "egg.bom"))
+        eq(ola.ns.Moments:Left("quirk"), 0, "rare: nothing spent")
+    end)
+
     test("three spells resisted in a row, by its nature; a spell's hit between them starts over", function()
         local w, ola = Setup({ "skoyer", "glupsk" })
         Hit(ola, "RESIST", 16); Hit(ola, "RESIST", 16)
