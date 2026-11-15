@@ -126,7 +126,9 @@ Decor.KINDS = {
     rain = { tex = "rain", path = "rise", sway = 6, size = { 14, 18 }, dur = { 2.5, 3.5 } },
     -- 2026-11-15: Parken's family signs got marks that read at 12 px; the cards' ambience shares them.
     snake = { tex = "snake", path = "drift", tilt = 20, size = { 14, 20 }, dur = { 7, 10 } },
-    cheese = { tex = "cheese", path = "twinkle", y = { 20, 90 }, grow = 1, size = { 12, 16 }, dur = { 3, 5 } },
+    -- (wandering about, as the yarn and gears do: in place near the bottom it read as two fixed spots blinking,
+    -- 2026-11-15, the user)
+    cheese = { tex = "cheese", path = "drift", tilt = 15, size = { 12, 18 }, dur = { 7, 10 } },
     horseshoe = { tex = "horseshoe", path = "twinkle", y = { 20, 90 }, grow = 1, flap = 0.2, size = { 12, 16 }, dur = { 3, 5 } },
     lilypad = { tex = "lilypad", path = "twinkle", y = { 10, 60 }, grow = 1, size = { 14, 20 }, dur = { 4, 6 } },
     egg = { tex = "egg", path = "twinkle", y = { 20, 80 }, grow = 1, size = { 10, 14 }, dur = { 3, 5 } },
