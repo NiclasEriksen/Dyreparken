@@ -2,7 +2,7 @@
 local ns = select(2, ...)
 
 -- Addon messaging. One prefix; every message is a table
---   { k = kind, p = PROTOCOL, ... }
+--   { k = kind, p = its protocol (Wire.Stamp: the floor, or the one a newer kind came with), ... }
 -- serialized with LibSerialize, compressed with LibDeflate, encoded for the
 -- addon channel, then split into <=255 byte chunks, sent straight to the
 -- server by our own outbox, paced to its throttle (10 msgs per prefix, +1/s;
@@ -27,8 +27,9 @@ local ns = select(2, ...)
 -- Handlers: ns.Comm:Register(kind, fn(msg, sender, channel), from, fields); several
 -- modules may listen to the same kind (HELLO: Version and Sync). from:
 -- "GUILD" or "GROUP" (party or raid): a message of that kind arriving on any
--- other channel never reaches fn. Only HELLO gets through with another
--- protocol (versions can be compared); its handlers check msg.p themselves.
+-- other channel never reaches fn. A message stamped outside our window (Wire.Compatible:
+-- X-Protocol-Floor to X-Protocol) is dropped, except HELLO (versions can be compared); its
+-- handlers check msg.p themselves.
 -- fields: { name = check } with a check named in Wire.CHECKS ("key",
 -- "table", "version"): a message whose field fails it is dropped (and
 -- logged) before fn runs, so handlers needn't check shapes by hand.
@@ -166,7 +167,7 @@ function Comm:Send(kind, msg, channel, target)
     if channel == "GUILD" and not IsInGuild() then return false end
     -- The server refuses these outside a group (NotInGroup); say so to the caller.
     if (channel == "PARTY" or channel == "RAID") and not IsInGroup() then return false end
-    msg.k, msg.p = kind, ns.PROTOCOL
+    msg.k, msg.p = kind, ns.Wire.Stamp(kind)
     local data = Encode(msg)
     local n = #data
     if n > CHUNK * LIMITS.MAX_PARTS then
@@ -201,7 +202,7 @@ local function Dispatch(data, sender, channel)
         ns.Log("Comm", "bad message from %s", sender)
         return
     end
-    if msg.p ~= ns.PROTOCOL then
+    if not ns.Wire.Compatible(msg.p) then
         ns.Bus:Fire("PROTOCOL_MISMATCH", sender, msg.p, msg, channel)
         if msg.k ~= "HELLO" then return end -- HELLO is always readable, so versions can be compared
     end

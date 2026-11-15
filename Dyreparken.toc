@@ -4,7 +4,8 @@
 ## Author: Hjelp
 ## Version: @project-version@
 ## X-Flavor: forever
-## X-Protocol: 10
+## X-Protocol: 11
+## X-Protocol-Floor: 10
 ## SavedVariables: DyreparkenDB, DyreparkenDebugDB
 ## SavedVariablesPerCharacter: DyreparkenCharDB
 ## Category: Collections
@@ -44,6 +45,7 @@ Data\Zones.lua
 Menagerie\Pets.lua
 Menagerie\Registry.lua
 Menagerie\Sync.lua
+Menagerie\Owners.lua
 Menagerie\Summon.lua
 Menagerie\Report.lua
 Menagerie\Card.lua

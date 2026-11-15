@@ -39,7 +39,7 @@ return function(test, H)
         eq(got[2].msg.list[200], big[200])
         eq(got[3].msg.x, 3)
         ok((w.chunks - c0) > 4, "big message was split")
-        eq(got[1].msg.p, b.ns.PROTOCOL)
+        eq(got[1].msg.p, b.ns.PROTOCOL_FLOOR, "a kind with no protocol of its own goes out at the floor")
     end)
 
     test("chunks from two senders, or two channels, don't mix", function()

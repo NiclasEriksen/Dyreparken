@@ -315,6 +315,9 @@ local function BuildRows()
         local lines = { { card.fullName, 1, 0.82, 0 } }
         if card.fullName ~= card.species then lines[2] = { card.species, 1, 1, 1 } end
         lines[#lines + 1] = { card.home, 1, 1, 1, true }
+        -- Who else in the guild has one (Owners, 2026-11-15, the user)
+        local others = ns.Owners:Line(card.key)
+        if others then lines[#lines + 1] = { others, 0.8, 0.76, 0.66, true } end
         return lines
     end)
     -- Its personality: the traits, then what it likes.
@@ -477,6 +480,7 @@ local function OnJournalLoaded()
         JournalUI:ShowPending()
     end)
     ns.Bus:On("REGISTRY", function(keys) JournalUI:Refresh(keys) end)
+    ns.Bus:On("OWNERS", function() JournalUI:Refresh() end) -- (a personality may be known now)
     ns.Bus:On("SIDEPAGE", function(open)
         if open then
             ns.Card:Pause(card) -- (every widget's pause or stop: Card.lua)

@@ -274,8 +274,9 @@ return function(test, H)
         ola.env.PetJournal_UpdatePetCard(c)
         eq(card.personality.text, ""); eq(card.likes.text, "")
     end)
-    test("a personality is a surprise until you collect the pet or a guildmate adopts it", function()
-        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 84 } }
+    -- (since X-Protocol 11, a guildmate who owns it is enough: Owners)
+    test("a personality is a surprise until you or a guildmate have the pet", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
         local P = ola.ns.Personality
         no(P:Known("s:84")); ok(P:Known(PANDA))
         eq(P:Line("s:84"), "Ukjent personlighet")
@@ -287,11 +288,11 @@ return function(test, H)
         local specs = ola.ns.Decor:Specs("s:84", 0, w.t)
         for _, sp in ipairs(specs) do no(sp.kind == "leaf", "no trait particles") end
         match(ola:TipOf(card.personalityHit).text, "overraskelse")
-        -- Kari adopts it: now the whole guild knows it.
-        kari:Slash("adopter chicken")
-        w:Run(3)
+        -- Kari finds one: now the whole guild knows it, the card at once.
+        kari:GivePet(84)
+        kari:Fire("NEW_PET_ADDED", kari:GuidOf(84))
+        w:Run(ola.ns.Config.OWN_LEARN_DELAY + 1)
         ok(P:Known("s:84"))
-        card = ola:SelectPet(84)
         eq(card.personality.text, "Grønnfinger og Nattugle")
     end)
 end

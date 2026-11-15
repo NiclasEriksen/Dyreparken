@@ -4,7 +4,7 @@
 -- test's world (Fixture, Companions, Traits, Dice, QuirksNow), read what it printed (Said,
 -- Printed, Log) and set the player's state (Set, EnterCombat, Mount, Move...).
 local H, P = ...
-local ADDON, TOC, Load, CopyTable = P.ADDON, P.TOC, P.Load, P.CopyTable
+local ADDON, TOC, TOCAt, Load, CopyTable = P.ADDON, P.TOC, P.TOCAt, P.Load, P.CopyTable
 local Hardware, World = P.Hardware, P.World
 
 ------------------------------------------------------------------------------
@@ -18,7 +18,7 @@ local function SpeciesName(sid) return H.SPECIES[sid] or ("Species " .. tostring
 
 -- opts: guild (name or false), pets ({ speciesID, ... }), summoned (speciesID),
 --   realm (adds "-Realm" to the sender name on the wire), version (TOC Version),
---   protocol (X-Protocol), trial (can't send addon messages), addons ({ "AutoCompanion" }),
+--   protocol (X-Protocol), floor (X-Protocol-Floor; a protocol given alone is its own floor), trial (can't send addon messages), addons ({ "AutoCompanion" }),
 --   login (false: create offline), debug (false: debug log off),
 --   patch (function(env, c): change the stub API before the addon loads),
 --   rank (guild rank index: 0 guild master, 1 officer, default 3 member),
@@ -26,17 +26,22 @@ local function SpeciesName(sid) return H.SPECIES[sid] or ("Species " .. tostring
 --   fixture (function(ns, c): change the addon's data after its files load, before ADDON_LOADED,
 --   at every login; see Client:Fixture),
 --   release (true: a packaged release: the TOC without its #@do-not-package@ blocks, so no Dev/
---   files, and a release's version, so ns.DEV is false)
+--   files, and a release's version, so ns.DEV is false),
+--   from (a release tag, "v0.7.1": that release's own code from git, as packaged, with its version and
+--   protocol: an older client, to test that newer ones still get along with it; the stubs are today's)
 function World:AddClient(name, opts)
     opts = opts or {}
+    local toc = opts.from and TOCAt(opts.from)
     assert(not self.byName[name], "duplicate client " .. name)
     local first, surname = name:match("^(%S+)%s*(.*)$")
     local c = setmetatable({
         world = self, name = name, first = first, surname = surname,
         wireName = opts.realm and (name .. "-" .. opts.realm) or name,
         guild = opts.guild == nil and self.guildName or (opts.guild or nil),
-        version = opts.version or (opts.release and "9.9.9") or TOC.meta.Version, release = opts.release,
-        protocol = opts.protocol or TOC.meta["X-Protocol"],
+        version = opts.version or opts.from or (opts.release and "9.9.9") or TOC.meta.Version,
+        release = opts.release or opts.from ~= nil, from = opts.from, toc = toc or TOC,
+        protocol = opts.protocol or (toc or TOC).meta["X-Protocol"],
+        floor = opts.floor or (not opts.protocol and (toc or TOC).meta["X-Protocol-Floor"]) or nil,
         trial = opts.trial, addons = opts.addons or {}, saved = {}, online = false,
         pets = {}, errors = {}, printed = {},
         state = { stand = 0, auras = {}, instance = "none" },
@@ -125,13 +130,13 @@ function Client:Login()
         __index = function(_, k)
             -- Libraries probe for their own globals; only the addon's reads count.
             local src = debug.getinfo(2, "S").source
-            if not src:find("^@Libs/") then c.missingGlobals[k] = true end
+            if not src:find("^@[^@]-Libs/") then c.missingGlobals[k] = true end -- (a release's: "@v0.7.1/Libs/")
         end,
         __newindex = function(t, k, v) c.newGlobals[k] = true; rawset(t, k, v) end,
     })
     self.env, self.ns = env, {}
-    for _, path in ipairs(self.release and TOC.release or TOC.files) do
-        Load(env, path, ADDON, self.ns)
+    for _, path in ipairs(self.release and self.toc.release or self.toc.files) do
+        Load(env, path, self.from, ADDON, self.ns)
         if path == "Core/Init.lua" then
             self:CheckBus() -- (before any module listens)
             self.ns.STRICT = true -- (our own bugs throw here; in the game they're logged: Registry:WriteOwn)

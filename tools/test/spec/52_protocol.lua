@@ -11,9 +11,12 @@
 --
 -- A kind that's only new passes (older clients drop kinds they don't know); a changed one doesn't.
 -- When it fails: if the change is meant, bump `## X-Protocol` in Dyreparken.toc and add the
--- printed fingerprint below under the new number (keep the old ones: they're the history). A
--- bump means older clients ignore every message from newer ones (Comm), so a guild on mixed
--- versions syncs in two halves until everyone updates. If it isn't meant, undo the change.
+-- printed fingerprint below under the new number (keep the old ones: they're the history). Since
+-- X-Protocol 11 a bump alone doesn't split the guild: messages go out stamped with the floor
+-- (`## X-Protocol-Floor`) unless their kind is newer (Wire.SINCE), and older clients down to the
+-- floor read them. A changed kind gets a new name; raising the floor instead means older clients
+-- ignore every message from newer ones (Comm), and a guild on mixed versions syncs in two halves
+-- until everyone updates. If it isn't meant, undo the change.
 return function(test, H)
     local eq, ok = H.eq, H.ok
 
@@ -117,6 +120,70 @@ digest n=ns:5159<31>Ola Nord<31>1793500050<31>Bambus<31>
 digest b=bs:5159<31>Ola Nord<31>3
 bond dayroom=85
 ]],
+        -- 11 (2026-11-15): who owns which pets (Owners: OWN, OWN_SYNC, the HELLO's `o`, OWNS_MAX and OWNS_LEN),
+        -- and the protocol window: the floor (X-Protocol-Floor, 10) and the newer kinds' stamps (Wire.SINCE),
+        -- so a 0.7 client still reads every kind it knows. The floor, since and owns lines are new with it.
+        [11] = [[
+kind ACH from=GUILD fields=a:table
+kind ACH_EARNED from=GUILD fields=a:table
+kind BOND from=GUILD fields=e:table,pet:key
+kind BOND_REQ from=GUILD fields=pet:key
+kind GATHER from=GROUP fields=
+kind HELLO from=GUILD fields=
+kind HELLO from=GUILD fields=
+kind HELLO from=nil fields=
+kind LAPSE from=GUILD fields=l:table
+kind NICK from=GUILD fields=e:table,pet:key
+kind OWN from=GUILD fields=e:table
+kind OWN_SYNC from=GUILD fields=o:table
+kind PET_REQ from=GROUP fields=
+kind PLAY from=GROUP fields=pet:key
+kind SYNC from=GUILD fields=
+kind UPD from=GUILD fields=r:table
+kind VER from=nil fields=v:version
+kind VER_REQ from=nil fields=
+limit ACH_ID_LEN=64
+limit ACH_ID_PATTERN=^guild:[%w:_]+$
+limit DAY=86400
+limit GUILD_UNKNOWN_MAX=64
+limit KEY_LEN=64
+limit LAPSES_MAX=1000
+limit LIFE_SPARE_DAYS=3
+limit MAX_PARTS=64
+limit MAX_RAW=524288
+limit NAME_LEN=48
+limit NICK_BYTES_PER_CHAR=4
+limit OWNS_LEN=4096
+limit OWNS_MAX=512
+limit VERSION_LEN=32
+config BOND_DAILY_MAX=75
+config BOND_EPOCH=1793487600
+config CLOCK_SLACK=300
+config NICKNAME_MAX_LEN=20
+config SYNC_MAX_ENTRIES=2000
+level 1=0
+level 2=100
+level 3=270
+level 4=530
+level 5=900
+level 6=1440
+level 7=2250
+store r part=1 nested=false count=true
+store l part=1 nested=false count=true
+store a part=1 nested=false count=false
+store n part=2 nested=true count=true
+store b part=3 nested=true count=true
+digest r=cOla Nord<31>1793500010<31>1793500000<31>s:5159
+digest l=lOla Nord<31>1793500020
+digest a=aguild:family:cat<31>1793500030<31>1793500040
+digest n=ns:5159<31>Ola Nord<31>1793500050<31>Bambus<31>
+digest b=bs:5159<31>Ola Nord<31>3
+bond dayroom=85
+protocol floor=10
+since OWN=11
+since OWN_SYNC=11
+digest owns=Ola Nord<31>1793500070<31>40,5159
+]],
     }
 
     local CONFIG = { "BOND_DAILY_MAX", "BOND_EPOCH", "CLOCK_SLACK", "NICKNAME_MAX_LEN", "SYNC_MAX_ENTRIES" }
@@ -156,6 +223,14 @@ bond dayroom=85
             lines[#lines + 1] = ("digest %s=%s"):format(row.wire, (line:gsub("[%z\1-\31]", function(ch) return ("<%d>"):format(ch:byte()) end)))
         end
         lines[#lines + 1] = ("bond dayroom=%d"):format(ns.Wire.DayRoom())
+        -- (X-Protocol 11: the window, the newer kinds' stamps, the owners' digest line)
+        lines[#lines + 1] = ("protocol floor=%s"):format(tostring(ns.PROTOCOL_FLOOR))
+        local since = {}
+        for kind, p in pairs(ns.Wire.SINCE) do since[#since + 1] = ("since %s=%d"):format(kind, p) end
+        table.sort(since)
+        for _, l in ipairs(since) do lines[#lines + 1] = l end
+        lines[#lines + 1] = ("digest owns=%s"):format((ns.Owners.DigestLine("Ola Nord", { at = 1793500070, s = "40,5159" })
+            :gsub("[%z\1-\31]", function(ch) return ("<%d>"):format(ch:byte()) end)))
         return table.concat(lines, "\n") .. "\n"
     end
 

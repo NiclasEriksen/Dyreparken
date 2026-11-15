@@ -20,7 +20,9 @@ quirks. When you learn something new about the client, add it there with the dat
   with `GetPetInfoBySpeciesID` / `GetOwnedPetIDs` instead. The test harness throws if the addon calls a setter.
 - Treat every addon message as untrusted input.
 - Keep backwards compatibility from 0.1.0 on. Until then, breaking changes are fine. Saved data changes go
-  through `MIGRATIONS` in `Core/DB.lua`. Wire changes bump `X-Protocol` in the TOC (`52_protocol.lua` fails until they do).
+  through `MIGRATIONS` in `Core/DB.lua`. Wire changes bump `X-Protocol` in the TOC (`52_protocol.lua` fails until they do). Since X-Protocol 11 a
+  bump keeps older clients syncing down to `X-Protocol-Floor` (10): a new kind goes in `Wire.SINCE`, a changed one gets
+  a new name; only raising the floor splits the guild.
 - Comments explain *why* (game quirks, decisions), not what.
 
 ## Verify
@@ -133,7 +135,7 @@ and refuses the push if it fails.
   ones with one of those words. `.pkgmeta` has `manual-changelog: CHANGELOG.md`.
 - `.pkgmeta` lists the dev files left out of the zip: tools, docs, CLAUDE.md, README.md, .claude, .luarc.json, .github,
   .githooks, Dev (whose TOC lines sit in a `#@do-not-package@` block).
-- Any wire format change bumps `X-Protocol`. Any saved data change adds a migration (see Working rules).
+- Any wire format change bumps `X-Protocol` (the floor stays, see Working rules). Any saved data change adds a migration (see Working rules).
 
 ## Layout
 
@@ -149,7 +151,9 @@ Core/Init.lua      ns, Config tunables, Bus (internal events, each declared in B
                    ns.L / ns.T / ns.Fill: the strings (below)
 Core/Wire.lua      what peers accept, in one place: Wire.LIMITS (key, name, version and id lengths, MAX_PARTS, MAX_RAW,
                    the bond cap, the lapses' cap, unknown guild achievement ids) and the primitive checks (Time, Since,
-                   Name, Key, Version, Nick, AchId, DayRoom, LifeCap, and CHECKS for Comm's field specs). A change here (or to a Config value that feeds
+                   Name, Key, Version, Nick, AchId, Owned, DayRoom, LifeCap, and CHECKS for Comm's field specs), the protocol
+                   window (SINCE: the kinds newer than the floor; Stamp: a kind's protocol on the wire; Compatible: what
+                   we read, floor to ours). A change here (or to a Config value that feeds
                    validation) bumps X-Protocol; tools/test/spec/52_protocol.lua fails until it does
 Locale/nb.lua      EVERY text players read, Norwegian, keyed ("card.home.today" = "Flyttet inn hos {who} i dag"),
                    grouped by area; named {placeholders}; the achievement texts (ns.AchTexts) at its end. Loads right
@@ -200,6 +204,10 @@ Data/Traits.lua    every species' two personality traits, PINNED for good (decid
 Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, probes), Registry (reservation data model, members only,
                    merge + holder rules: read its header first; Status: mine/taken/free; NameOf/NameFor: what a pet is called), Sync (HELLO digest, SYNC/UPD/NICK/BOND/LAPSE, guild channel only;
                    the digest and SYNC also carry guild achievements),
+                   Owners (2026-11-15, X-Protocol 11: who in the guild owns which pets, g.owns[member] = { at, s = "40,5159" },
+                   written by each member, only growing; its own digest in HELLO's `o` and a lazy paged OWN_SYNC, OWN when
+                   ours changes; not in the registry's digest, so 0.7 clients sync as before; Of/Any/Others/Line also count
+                   holders and bond carers; Personality:Known and Parken's question marks read it; read its header),
                    Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (only answers 0.2.x clients' PET_REQ; /dp rapport is gone),
                    JournalList (the journal's list: markers, bond rings, nicknames, tooltips), CardActions (the card's
                    Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring),
@@ -269,7 +277,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    groups only, timelines in steps (never Alpha delays inside a step), one playing group per region
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
                    come home instead), stopped when hidden),
-                   ParkPage ("Parken", the park map SidePage: records, every journal companion as a round portrait (Pets:Portrait, also
+                   ParkPage ("Parken", the park map SidePage: records, every journal companion as a round portrait (or a question
+                   mark for one nobody in the guild has: Owners, Park.Unknown; a click wiggles it) (Pets:Portrait, also
                    the list's icons) in a ring of its holder's bond level, grouped by family into tinted enclosures on a grained ground (Media turf, one tile over four cells) with wooden fences (one on each line between two), a sign on
                    each (its family's mark; hover: name and homes; click: only that family), the pointer's family lit (and its sign), the
                    empty cells a fenced garden (lawn, tree, pond, flowers, stump; a click on a piece: a hop and a few particles, one in eight a surprise of its own, Park.GARDEN, nothing saved or told; every piece clicked within 15 s: the whole garden at once; by the clock and calendar, Park.Weather: the season's lawn, darker with fireflies at night, snow in December, autumn's orange leaves; /dp probe garden <hour> [month] to look)
@@ -321,7 +330,9 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    leaves Dev/ out), after every module, so each file can extend the one it probes. Shipped code never
                    calls into Dev/: a dev tool changes the card through an override hook a release leaves nil
                    (Moves.override, Decor.override, Scenes.override, BondTrack.override). The tests load it all; a
-                   client made with { release = true } loads the release's files only (spec/48_release.lua).
+                   client made with { release = true } loads the release's files only (spec/48_release.lua), and one
+                   made with { from = "v0.7.1" } runs that release's own code from git (an older client: spec/65_owners.lua;
+                   CI's checkout fetches the tags for it).
                    Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
                    lift|moves|gains|api|sense|perf|garden] and /dp debug, only when ns.DEV); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); Try (/dp try egg|react|dislike|line|wish:
                    a line now, by nature, nothing counted); Perf (/dp probe perf: calls and time per
@@ -438,7 +449,7 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   once a day each, counted in char.eggs. Lines: Locale dislike.<activity>.N and egg.<id>.N. No player birthdays
   (we don't know them).
 - **A personality is a surprise** (2026-11-09): traits, likes and trait particles show only for a pet you've
-  collected or that someone in the guild has adopted (`Personality:Known`); otherwise "Ukjent personlighet".
+  collected or that someone in the guild has (adopted until 2026-11-15, owned since: Owners) (`Personality:Known`); otherwise "Ukjent personlighet".
 - **Sync hardening** (code review 2026-11-09): SYNC goes in three parts (records, names, bonds), peers hold back
   theirs when one starts arriving; a part with more than Config.SYNC_MAX_ENTRIES is refused whole; pet keys must be
   "s:<id>" or "n:<name>"; bonds can't start before Config.BOND_EPOCH and hold at most Registry.LifeCap (Wire.DayRoom,
@@ -507,6 +518,15 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
 - Players are keyed as `"First Surname"` and guilds by name: **no realms**, because Forever moves players between
   realms invisibly. See docs/FOREVER_API.md.
 - The pet key is `s:<speciesID>`. Forever returns real species IDs (see docs/FOREVER_API.md).
+
+- **Who owns what, X-Protocol 11** (2026-11-15, the user: "essential for many of the features I have planned"; Menagerie/
+  Owners.lua): each member's owned species go to the guild, lazily, and pets are assumed kept for good (a list only
+  grows). Older clients keep syncing (the user): the protocol is per kind now (X-Protocol-Floor 10; Wire.SINCE, Stamp,
+  Compatible), so a 0.7 client reads every kind it knows and drops OWN and OWN_SYNC. Parken shows a pet nobody in the
+  guild has as a small question mark (no ring, no name in its tooltip, a wiggle on a click, not on the stage, not found
+  by a search; "Skjul ukjente dyr", on by default, turns it off). The card's home line tooltip names the others who
+  have it (not you or the holder): two by name, from three a count. A pet someone in the guild owns has a known
+  personality (Personality:Known). A non-member's list is dropped, not held (the next OWN_SYNC brings it again).
 
 ## Open questions (ask the user before deciding)
 

@@ -135,6 +135,7 @@ local function Roster()
     local known = ns.Guild.known
     if known and known[ns.PlayerKey()] then return known end
 end
+Registry.Roster = Roster -- (Owners judges its store by the same roster)
 
 -- May this author's entry be stored? from: who sent it on the guild channel
 -- (a member, or the server wouldn't have passed it on).
@@ -143,6 +144,7 @@ local function Admit(author, from)
     local roster = Roster()
     return not roster or roster[author] ~= nil
 end
+Registry.Admit = Admit
 
 -- Entries by someone the roster doesn't list, until the next one judges them.
 local held = {}

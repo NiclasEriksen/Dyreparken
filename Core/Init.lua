@@ -18,9 +18,14 @@ do
     ns.DEV = v == "" or v:find("@", 1, true) ~= nil
     ns.VERSION = ns.DEV and "dev" or v
 end
--- Wire protocol version. Bump on breaking message format changes; peers with
--- a different protocol are ignored (a guildmate's newer version tells us to update, once: Version.lua).
+-- Wire protocol version, and the oldest one we still talk to (X-Protocol-Floor, 2026-11-15: X-Protocol 11
+-- added who owns which pets, and the guild had to keep syncing with 0.7 meanwhile). Each message is stamped
+-- with the protocol its kind came with (Wire.Stamp), never below the floor, and taken from anyone between
+-- the floor and ours (Wire.Compatible): an older client still reads every kind it knows, and drops the
+-- newer ones as kinds it doesn't. Peers outside the window are ignored (a guildmate's newer version
+-- tells us to update, once: Version.lua). No floor in the TOC: the protocol is its own floor.
 ns.PROTOCOL = tonumber(GetMeta and GetMeta(addonName, "X-Protocol")) or 1
+ns.PROTOCOL_FLOOR = math.min(tonumber(GetMeta and GetMeta(addonName, "X-Protocol-Floor")) or ns.PROTOCOL, ns.PROTOCOL)
 
 ------------------------------------------------------------------------------
 -- Strings players read: Locale/nb.lua (loaded right after this file) fills
@@ -298,6 +303,13 @@ ns.Config = {
     SYNC_GAP = 30,                -- seconds between two SYNCs of ours, at least
     SYNC_HOLD = 30,               -- seconds ours waits for someone else's SYNC that started arriving
     SYNC_MAX_HOLD = 120,          -- ... and however often it's held, it goes this long after it was scheduled
+    -- Who owns what (Owners.lua): lazier than the registry's, and local too.
+    OWN_DELAY = { 5, 20 },        -- seconds before our OWN_SYNC answers a HELLO, at random (after the registry's SYNC)
+    OWN_GAP = 60,                 -- seconds between two OWN_SYNCs of ours, at least
+    OWN_HOLD = 20,                -- seconds ours waits while someone else's OWN_SYNC is arriving ...
+    OWN_MAX_HOLD = 180,           -- ... and however often it's held, it goes this long after it was scheduled
+    OWN_PER_PART = 25,            -- members per OWN_SYNC part (a part of 25 big collections is ~15 chunks)
+    OWN_LEARN_DELAY = 5,          -- seconds after a pet is learned before we tell the guild (a few at once: one OWN)
     BOND_ASK_GAP = 1.5,           -- seconds between two BOND_REQs of ours (flicking through cards)
     BOND_ANSWERS = 10,            -- BOND answers one asker gets from us ...
     BOND_ANSWER_WINDOW = 60,      -- ... per this many seconds ...
@@ -329,6 +341,7 @@ ns.Bus.EVENTS = {
     ACTIVITY = "id, n, key, mine, extra: an activity counted; key the pet out (or nil), mine whether it's yours adopted (Activity)",
     SIDEPAGE = "open: one of our Collections pages opened (true) or closed (false) (SidePage)",
     -- The registry and the pet that's out
+    OWNERS = "(none): who in the guild owns which pets changed (Owners)",
     REGISTRY = "keys: the guild registry changed, ours or a peer's; keys { [petKey] = true } if only those pets' bonds did, else nil (Registry)",
     MY_RECORD = "me, record: this character's adoption record was written (Registry)",
     MY_NAME = "key, entry: this character named or renamed a pet (Registry)",

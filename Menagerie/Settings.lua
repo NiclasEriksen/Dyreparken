@@ -18,6 +18,7 @@ local ns = select(2, ...)
 --   petFrame       the pet frame on screen (off by default; placed and sized in Edit Mode: PetFrame.lua)
 --   petFrameArt    its background and border (off by default: it floats)
 --   petFrameCombat hidden in combat; petFrameFade faded to petFrameAlpha (0.25) when nothing happens (2026-11-11)
+--   hideUnknown    Parken shows a pet nobody in the guild has as a question mark (2026-11-15, on by default)
 -- Modules read them with Settings:On(key) / Settings:Get(key).
 ---@class Dyreparken.Settings
 local Settings = {}
@@ -75,6 +76,9 @@ local ROWS = {
     { head = "settings.head.chat" },
     { key = "settings.chatter", steps = Settings.CHATTER_STEPS, setting = "chatter" },
     { key = "settings.hearts", setting = "worldHearts" },
+    { head = "settings.head.park" },
+    { key = "settings.hideunknown", setting = "hideUnknown",
+        set = function(v) Set("hideUnknown", v); ns.ParkPage:Refresh() end },
     { column = 2 }, -- (2026-11-11: one column had outgrown the page)
     { head = "settings.head.card" },
     { key = "settings.particles", choices = { "all", "few", "none" }, setting = "cardParticles" },

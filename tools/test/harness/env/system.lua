@@ -28,9 +28,25 @@ return function(c, env, S)
             if name ~= ADDON then return nil end
             if k == "Version" then return c.version end
             if k == "X-Protocol" then return c.protocol end
+            if k == "X-Protocol-Floor" then return c.floor end
             return TOC.meta[k]
         end,
         IsAddOnLoaded = function(n) return c.loaded[n] or false end,
+    }
+    -- Blizzard's options panel (Esc > Options > AddOns; on Forever: docs/FOREVER_API.md). A category is
+    -- a canvas frame with a name; the panel shows it when picked (c:OpenOptions).
+    c.optionCategories = {}
+    env.Settings = {
+        RegisterCanvasLayoutCategory = function(frame, name)
+            assert(type(frame) == "table" and type(name) == "string", "RegisterCanvasLayoutCategory(frame, name)")
+            local cat = { frame = frame, name = name, ID = #c.optionCategories + 1 }
+            function cat:GetID() return self.ID end
+            return cat
+        end,
+        RegisterAddOnCategory = function(cat)
+            assert(type(cat) == "table" and cat.frame, "RegisterAddOnCategory(category)")
+            c.optionCategories[#c.optionCategories + 1] = cat
+        end,
     }
 
 end

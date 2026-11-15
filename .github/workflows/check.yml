@@ -13,6 +13,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # the tags: a test runs a v0.7.1 client from git (spec/65_owners.lua)
       - name: Install LuaJIT and luacheck
         run: sudo apt-get update -qq && sudo apt-get install -y -qq luajit lua-check
       - name: Install the Lua language server

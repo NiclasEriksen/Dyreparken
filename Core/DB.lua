@@ -61,6 +61,7 @@ local GUILD_DEFAULTS = {
     lapses = {},  -- [owner] = time their record lapsed
     names = {},   -- [petKey] = { [namer] = nickname entry }
     life = {},    -- [petKey] = { [carer] = bond entry }
+    owns = {},    -- [member] = { at, s = "40,5159" }: the pets they own (Menagerie/Owners.lua)
     ach = {},     -- guild achievements earned
     achSeen = {}, -- guild achievements looked at
     born = nil,   -- the guild's first adoption we know of: the park's birthday (Bonds:ParkBorn)

@@ -1,6 +1,8 @@
 -- The wire, pinned: what a SYNC and a HELLO carry for a fixed world (written before Sync.TABLES
 -- replaced the hand-listed stores, 2026-11-12), so a refactor can't change what peers see. The
--- digest changed with X-Protocol 10 (a claim's line carries its date and pet too).
+-- digest changed with X-Protocol 10 (a claim's line carries its date and pet too). X-Protocol 11 added
+-- the HELLO's `o` (who owns what: Owners.lua), and a message is stamped with the floor (10) unless its
+-- kind is newer (Wire.Stamp): every message here is one a 0.7 client reads as it did.
 -- The real bytes depend on table order (LibSerialize walks pairs, which differs between runs
 -- and clients), so the pin is each decoded message written out with sorted keys: the same
 -- content, the same types, the same layout in parts.
@@ -8,7 +10,7 @@ return function(test, H)
     local eq = H.eq
 
     -- Sorted keys (numbers before strings), typed values: one text for one content.
-    -- (proto: the message's own protocol shows as PROTOCOL, so a bump alone doesn't touch the pin)
+    -- (proto: the floor shows as FLOOR, so a bump alone doesn't touch the pin)
     local function Dump(v, proto)
         local t = type(v)
         if t == "string" then return ("%q"):format(v) end
@@ -22,7 +24,7 @@ return function(test, H)
         end)
         local out = {}
         for _, k in ipairs(keys) do
-            out[#out + 1] = "[" .. Dump(k) .. "]=" .. ((proto and k == "p" and v[k] == proto) and "PROTOCOL" or Dump(v[k]))
+            out[#out + 1] = "[" .. Dump(k) .. "]=" .. ((proto and k == "p" and v[k] == proto) and "FLOOR" or Dump(v[k]))
         end
         return "{" .. table.concat(out, ",") .. "}"
     end
@@ -56,10 +58,10 @@ return function(test, H)
     end
 
     local PINNED = {
-        [==[HELLO {["d"]=0,["k"]="HELLO",["p"]=PROTOCOL,["v"]="dev"}]==],
-        [==[SYNC {["a"]={["guild:family:cat"]={["ann"]=1790000070,["at"]=1790000060},["guild:future:x"]={["at"]=1790000061}},["i"]=1,["k"]="SYNC",["l"]={["Gammel Kar"]=1790000050},["of"]=3,["p"]=PROTOCOL,["r"]={["Bo Berg"]={["at"]=1790000005,["ts"]=1790000030},["Gammel Kar"]={["at"]=1790000001,["k"]="s:40",["ts"]=1790000002},["Liv Lund"]={["at"]=1790000011,["k"]="s:46",["ts"]=1790000021},["Per Hansen"]={["at"]=1790000010,["k"]="s:5159",["ts"]=1790000020}}}]==],
-        [==[SYNC {["i"]=2,["k"]="SYNC",["n"]={["s:46"]={["Bo Berg"]={["at"]=1790000003,["n"]="Pus",["x"]=true}},["s:5159"]={["Per Hansen"]={["at"]=1790000025,["n"]="Bambus"}}},["of"]=3,["p"]=PROTOCOL}]==],
-        [==[SYNC {["b"]={["s:46"]={["Liv Lund"]={["f"]=1790000000,["p"]=20,["t"]=1790000040}},["s:5159"]={["Per Hansen"]={["f"]=1790000000,["p"]=120,["t"]=1790000040}}},["d"]=2218613292,["i"]=3,["k"]="SYNC",["of"]=3,["p"]=PROTOCOL}]==],
+        [==[HELLO {["d"]=0,["k"]="HELLO",["o"]=1329530320,["p"]=FLOOR,["v"]="dev"}]==],
+        [==[SYNC {["a"]={["guild:family:cat"]={["ann"]=1790000070,["at"]=1790000060},["guild:future:x"]={["at"]=1790000061}},["i"]=1,["k"]="SYNC",["l"]={["Gammel Kar"]=1790000050},["of"]=3,["p"]=FLOOR,["r"]={["Bo Berg"]={["at"]=1790000005,["ts"]=1790000030},["Gammel Kar"]={["at"]=1790000001,["k"]="s:40",["ts"]=1790000002},["Liv Lund"]={["at"]=1790000011,["k"]="s:46",["ts"]=1790000021},["Per Hansen"]={["at"]=1790000010,["k"]="s:5159",["ts"]=1790000020}}}]==],
+        [==[SYNC {["i"]=2,["k"]="SYNC",["n"]={["s:46"]={["Bo Berg"]={["at"]=1790000003,["n"]="Pus",["x"]=true}},["s:5159"]={["Per Hansen"]={["at"]=1790000025,["n"]="Bambus"}}},["of"]=3,["p"]=FLOOR}]==],
+        [==[SYNC {["b"]={["s:46"]={["Liv Lund"]={["f"]=1790000000,["p"]=20,["t"]=1790000040}},["s:5159"]={["Per Hansen"]={["f"]=1790000000,["p"]=120,["t"]=1790000040}}},["d"]=2218613292,["i"]=3,["k"]="SYNC",["of"]=3,["p"]=FLOOR}]==],
         [==[digest 2218613292]==],
     }
 
@@ -69,7 +71,7 @@ return function(test, H)
         for i = m + 1, #w.wire do
             local x = w.wire[i]
             if (x.kind == "SYNC" and x.from == "Ola Nord") or (x.kind == "HELLO" and x.from == "Kari Berg") then
-                seen[#seen + 1] = x.kind .. " " .. Dump(x.msg, ola.ns.PROTOCOL)
+                seen[#seen + 1] = x.kind .. " " .. Dump(x.msg, ola.ns.PROTOCOL_FLOOR)
             end
         end
         seen[#seen + 1] = "digest " .. Dump(ola.ns.Sync:Digest())

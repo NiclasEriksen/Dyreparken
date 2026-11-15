@@ -40,8 +40,12 @@ local ns = select(2, ...)
 -- (Park.filter.family; again: all; its mark is the card's ambience, Decor.Mark); the pointer's family brightens its tint (Park.Highlight); a family the
 -- filter leaves empty fades its tint; the grid's empty cells are a bit of park (Park.DECOR: a pond, trees...).
 --
--- Everything comes from the registry; nothing is sent. We can't know which
--- pets other members own (that isn't synced), so there's no "nobody has it".
+-- Unknown pets (2026-11-15, the user): a pet nobody in the guild owns (Owners:Any, X-Protocol 11) is a small
+-- question mark in its place, not a dark portrait ("the park will look less noisy"); its tooltip names
+-- nothing, a click wiggles it (a tease), and the stage and the search pass it by. "Skjul ukjente dyr" in
+-- the settings (hideUnknown, on by default) shows them as before.
+--
+-- Everything comes from the registry and Owners; nothing is sent.
 -- Loads after Achievements/Page.lua, so its tab comes second.
 ---@class Dyreparken.ParkPage
 ---@field override? { hour: integer, month: integer } the garden's hour and month (Dev/: /dp probe garden; a release leaves it nil)
@@ -101,6 +105,11 @@ function Park.Haystack(key)
     return Park.Fold(table.concat(parts, "\31"))
 end
 
+-- A pet nobody in the guild has, shown as a question mark (the header).
+function Park.Unknown(key)
+    return ns.Settings:On("hideUnknown") and not ns.Owners:Any(key)
+end
+
 -- Whether a pet passes the filter (owned: Pets:Owned()).
 -- A pet's enclosure: its first family (as its ring's), else "default".
 function Park.FamilyOf(key) return ns.Scenes:Families(key)[1] or "default" end
@@ -112,6 +121,7 @@ function Park.Matches(key, filter, owned)
     if (filter.free or filter.adopt) and owner then return false end
     if filter.adopt and not (owned or ns.Pets:Owned())[key] then return false end
     local text = filter.text or ""
+    if text ~= "" and Park.Unknown(key) then return false end -- (a search must not tell which "?" is which)
     return text == "" or Park.Haystack(key):find(text, 1, true) ~= nil
 end
 
@@ -165,10 +175,16 @@ end
 -- An icon's tooltip: the pet's nickname over its species, then the list's lines (JournalList.PetLines),
 -- then whether you could adopt it and what a click does.
 function Park.Lines(key)
+    if Park.Unknown(key) then
+        return { { ns.L["park.unknown"], 0.6, 0.6, 0.6 }, { ns.L["park.unknown.tip"], 1, 1, 1, true } }
+    end
     local nick = ns.Registry:Nickname(key)
     local lines = { { nick or ns.Pets:NameOfKey(key) } }
     if nick then lines[2] = { ns.Pets:NameOfKey(key), 0.7, 0.7, 0.7 } end
     for _, l in ipairs(ns.JournalList.PetLines(key, "park.free")) do lines[#lines + 1] = l end
+    -- Who else has one, as under the card's home line (Owners:Line; 2026-11-15, the user)
+    local others = ns.Owners:Line(key)
+    if others then lines[#lines + 1] = { others, 0.8, 0.76, 0.66, true } end
     local source = Park.Source(key)
     if source then lines[#lines + 1] = { source, 0.6, 0.8, 1 } end
     local owner = ns.Registry:Holder(key)
@@ -281,15 +297,47 @@ local function NewCell()
     c.free:SetTexture(READY)
     c.free:SetSize(14, 14)
     c.free:SetPoint("BOTTOMRIGHT", c.ring, "BOTTOMRIGHT", 2, -2)
+    Park.Mystery(c)
     -- Below the icon: ANCHOR_RIGHT grew upwards over the page's header from the top rows (UX review 2026-11-11).
     ns.SetTip(c, "ANCHOR_BOTTOMRIGHT", function(self) return Park.Lines(self.key) end)
-    c:SetScript("OnClick", function(self) Park:Show(self.key) end)
+    c:SetScript("OnClick", function(self)
+        if self.unknown then Park.Wiggle(self) else Park:Show(self.key) end
+    end)
     -- (hooked: SetTip's own OnEnter shows the tooltip)
-    c:HookScript("OnEnter", function(self) Park:Spot(self.key); Park:Highlight(self.family) end)
+    c:HookScript("OnEnter", function(self)
+        if not self.unknown then Park:Spot(self.key) end
+        Park:Highlight(self.family)
+    end)
     c:HookScript("OnLeave", function() Park:SpotBack(); Park:Highlight(nil) end)
     Park.Trail(c)
     cells[#cells + 1] = c
     return c
+end
+
+-- An unknown pet's question mark, and its wiggle when clicked: a quick shake side to side, steps that come
+-- home (no BOUNCE), on the mark alone.
+Park.MYSTERY_COLOR = { 0.85, 0.78, 0.6, 0.75 }
+Park.WIGGLE = { 3, -6, 6, -5, 2 } -- pixels, each step relative: they add up to nothing
+Park.WIGGLE_STEP = 0.05
+function Park.Mystery(c)
+    local q = c:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    q:SetPoint("CENTER")
+    q:SetText("?")
+    local col = Park.MYSTERY_COLOR
+    q:SetTextColor(col[1], col[2], col[3])
+    q:Hide()
+    local g = q:CreateAnimationGroup()
+    g:SetLooping("NONE")
+    for i, dx in ipairs(Park.WIGGLE) do
+        local a = g:CreateAnimation("Translation")
+        a:SetOffset(dx, 0); a:SetDuration(Park.WIGGLE_STEP); a:SetOrder(i); a:SetSmoothing("IN_OUT")
+    end
+    q.wiggle = g
+    c.mystery = q
+end
+function Park.Wiggle(c)
+    c.mystery.wiggle:Stop()
+    c.mystery.wiggle:Play()
 end
 
 -- Your own pet's cell (2026-11-15, the user): now and then a few paw prints walk out of it, a new way each
@@ -449,6 +497,7 @@ local function Redraw()
         ns.Pets:Portrait(c.icon, it.key)
         local owner = R:Holder(it.key)
         local match = not filtering or Park.Matches(it.key, nil, owned)
+        c.unknown = Park.Unknown(it.key)
         Park.Ring(c, it.key, owner, match) -- (after match: before it, every ring was drawn as filtered out)
         local g = groups[it.family]
         if match then matches = matches + 1; g.matches = g.matches + 1 end
@@ -456,6 +505,9 @@ local function Redraw()
         c.match = match
         c.icon:SetDesaturated(owner == nil or not match)
         c.icon:SetAlpha(not match and Park.DIM or owner and 1 or 0.55)
+        c.icon:SetShown(not c.unknown); c.disc:SetShown(not c.unknown)
+        c.mystery:SetShown(c.unknown)
+        c.mystery:SetAlpha(match and Park.MYSTERY_COLOR[4] or Park.DIM)
         c.mine:SetShown(owner == me and match)
         Park.Walk(c, owner == me and match)
         c.free:SetShown(owner == nil and owned[it.key] ~= nil and match)
@@ -506,6 +558,7 @@ local function Redraw()
     for i = n + 1, #plots do plots[i]:Hide() end
     child:SetHeight(top + rows * CELL + 8)
     Park:Spot(spot.hover or (ns.Bonds:PetOfTheDay()), true)
+    legend:SetText(Park.Legend())
     page.summary:SetText(("%d/%d"):format(homes, #keys))
     page.matches:SetText(filtering and ns.T("park.matches", { n = matches }) or "")
 end
@@ -856,6 +909,7 @@ function Park.Ring(c, key, owner, match)
     local mine = owner ~= nil and owner == ns.PlayerKey()
     local col = mine and { ns.Scenes.GOLD[1], ns.Scenes.GOLD[2], ns.Scenes.GOLD[3], 1 }
         or owner and Park.RingColor(Park.FamilyOf(key), level)
+    if c.unknown then col = nil end -- (a question mark has no ring: nobody holds it)
     c.ring:SetShown(col ~= nil)
     local glint = col ~= nil and not mine and match and level >= Park.GLINT_AT
     local sheen = col ~= nil and not mine and match and level >= Park.SHEEN_AT
@@ -1048,7 +1102,7 @@ local function Build(p)
     records:SetJustifyH("LEFT")
     legend = child:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     legend:SetTextColor(0.8, 0.76, 0.66) -- (the disabled grey was hard to read, UX review 2026-11-11)
-    legend:SetText(ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) }))
+    legend:SetText(Park.Legend())
     BuildSpot(inset)
 end
 
@@ -1059,6 +1113,13 @@ sp = ns.SidePage:New({
     build = Build,
     refresh = Redraw,
 })
+
+-- The line over the map: what the colors mean, and the question mark while unknown pets are hidden.
+function Park.Legend()
+    local text = ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) })
+    if ns.Settings:On("hideUnknown") then text = text .. "  " .. ns.L["park.legend.unknown"] end
+    return text
+end
 
 function Park:Open() sp:Open() end
 function Park:IsOpen() return sp:IsOpen() end
@@ -1076,3 +1137,4 @@ function Park:Bonds(keys)
 end
 
 ns.Bus:On("REGISTRY", function(keys) if keys then Park:Bonds(keys) else Park:Refresh() end end)
+ns.Bus:On("OWNERS", function() Park:Refresh() end)

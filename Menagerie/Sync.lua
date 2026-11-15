@@ -4,7 +4,7 @@ local ns = select(2, ...)
 -- Keeping the registry the same on every client.
 --
 -- Messages (all on GUILD):
---   HELLO  { v, d }        login announcement (Version.lua) with our digest
+--   HELLO  { v, d, o }     login announcement (Version.lua) with our digest (o: Owners.lua's, its own sync)
 --   SYNC   { r, l, n, b, a, d, i, of } full state, in parts (i of of), each
 --                          well under what receivers accept (Wire.LIMITS.MAX_PARTS):
 --                          1: r[owner] = record, l[owner] = lapse,
@@ -270,7 +270,7 @@ end
 function Sync:Init()
     -- (HELLO gets through with any protocol: Version compares them; we don't)
     ns.Comm:Register("HELLO", function(msg)
-        if msg.p == ns.PROTOCOL and msg.d ~= Sync:Digest() then Schedule() end
+        if ns.Wire.Compatible(msg.p) and msg.d ~= Sync:Digest() then Schedule() end
     end, "GUILD")
     ns.Comm:Register("SYNC", function(msg, sender, channel)
         if TooBig(msg) then

@@ -31,7 +31,24 @@ Wire.LIMITS = {
     LIFE_SPARE_DAYS = 3,        -- ... plus the day it began and spare ones (2 until X-Protocol 10: a feat's 25 on a
                                 --     full day didn't always fit)
     LAPSES_MAX = 1000,          -- lapses kept at most, the oldest going first (Registry: TrimLapses; X-Protocol 10)
+    OWNS_MAX = 512,             -- species in one member's list of owned pets (Owners; X-Protocol 11) ...
+    OWNS_LEN = 4096,            -- ... and its bytes
 }
+
+-- The kinds newer than the floor (ns.PROTOCOL_FLOOR, Core/Init.lua), by the protocol they came with. A
+-- kind's stamp on the wire is that, or the floor (Wire.Stamp), so a client between the floor and that
+-- protocol drops it as a kind it doesn't know, and reads the rest as before. A changed kind can't be
+-- stamped anew (an older peer still takes the old stamp from older clients): it gets a new name, or the
+-- floor goes up and the guild syncs in two halves until everyone updates.
+Wire.SINCE = {
+    OWN = 11,
+    OWN_SYNC = 11,
+}
+function Wire.Stamp(kind) return math.max(Wire.SINCE[kind] or 0, ns.PROTOCOL_FLOOR) end
+-- A message's protocol we read: from the floor to ours.
+function Wire.Compatible(p)
+    return type(p) == "number" and p >= ns.PROTOCOL_FLOOR and p <= ns.PROTOCOL
+end
 local L = Wire.LIMITS
 local Config = ns.Config
 
@@ -111,6 +128,23 @@ end
 -- and the migrations use it too, so every copy agrees.
 function Wire.LifeCap(f, t)
     return (math.floor((t - f) / L.DAY) + L.LIFE_SPARE_DAYS) * Wire.DayRoom()
+end
+
+-- A member's owned pets on the wire (Owners): their species ids, ascending, comma-separated ("40,5159"),
+-- at most OWNS_MAX of them. Ascending and with no zeros in front, so one set has one spelling and digests
+-- agree; empty is fine (nothing yet).
+function Wire.Owned(s)
+    if type(s) ~= "string" or #s > L.OWNS_LEN or s:find("[^%d,]") then return false end
+    if s == "" then return true end
+    local last, n = 0, 0
+    for id in (s .. ","):gmatch("([^,]*),") do
+        if not id:find("^[1-9]%d?%d?%d?%d?%d?%d?$") then return false end
+        local v = tonumber(id)
+        if v <= last then return false end
+        last, n = v, n + 1
+        if n > L.OWNS_MAX then return false end
+    end
+    return true
 end
 
 -- Field checks for Comm:Register's field specs, by name (names, not

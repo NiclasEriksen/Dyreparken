@@ -64,36 +64,63 @@ local function Source(path)
     return sources[path]
 end
 
+-- A file as a release tag had it (git show), for a client of that release (Client opts.from): the
+-- real old code, to test that newer clients still get along with it.
+local function SourceAt(tag, path)
+    local id = tag .. ":" .. path
+    if not sources[id] then
+        assert(tag:find("^v[%w%.%-]+$"), "a release tag: " .. tostring(tag))
+        local p = assert(io.popen(("git show '%s:%s' 2>/dev/null"):format(tag, path), "r"))
+        local text = p:read("*a")
+        p:close()
+        assert(text ~= "", ("%s isn't in git (a shallow clone without tags? fetch-depth: 0)"):format(id))
+        sources[id] = text
+    end
+    return sources[id]
+end
+
 -- files: every file, as a git checkout loads them; release: without the
 -- #@do-not-package@ blocks, which the packager strips (Dev/).
-local TOC = { files = {}, release = {}, meta = {} }
-local packaged = true
-for line in Source(ADDON .. ".toc"):gmatch("[^\r\n]+") do
-    local k, v = line:match("^##%s*([^:]+):%s*(.-)%s*$")
-    if k then
-        TOC.meta[k] = v
-    elseif line:match("^#@do%-not%-package@") then
-        packaged = false
-    elseif line:match("^#@end%-do%-not%-package@") then
-        packaged = true
-    elseif not line:match("^%s*#") and line:match("%S") then
-        local path = (line:gsub("\\", "/"))
-        TOC.files[#TOC.files + 1] = path
-        if packaged then TOC.release[#TOC.release + 1] = path end
+local function ParseTOC(text)
+    local toc = { files = {}, release = {}, meta = {} }
+    local packaged = true
+    for line in text:gmatch("[^\r\n]+") do
+        local k, v = line:match("^##%s*([^:]+):%s*(.-)%s*$")
+        if k then
+            toc.meta[k] = v
+        elseif line:match("^#@do%-not%-package@") then
+            packaged = false
+        elseif line:match("^#@end%-do%-not%-package@") then
+            packaged = true
+        elseif not line:match("^%s*#") and line:match("%S") then
+            local path = (line:gsub("\\", "/"))
+            toc.files[#toc.files + 1] = path
+            if packaged then toc.release[#toc.release + 1] = path end
+        end
     end
+    assert(packaged, "a #@do-not-package@ block without its end")
+    return toc
 end
-assert(packaged, "a #@do-not-package@ block without its end")
+local TOC = ParseTOC(Source(ADDON .. ".toc"))
 H.TOC = TOC
+local tocs = {}
+local function TOCAt(tag)
+    tocs[tag] = tocs[tag] or ParseTOC(SourceAt(tag, ADDON .. ".toc"))
+    return tocs[tag]
+end
 
 -- Compiled once per path, then loaded from bytecode: every login loads every file, and
 -- compiling them again was most of the suite's time. The line info survives, so coverage
--- and error messages are the same.
+-- and error messages are the same. tag: a release's copy (SourceAt), named "@<tag>/<path>" so
+-- coverage never counts it as ours.
 local compiled = {}
-local function Load(env, path, ...)
-    if not compiled[path] then
-        compiled[path] = string.dump(assert(loadstring(Source(path), "@" .. path)))
+local function Load(env, path, tag, ...)
+    local id = tag and (tag .. "/" .. path) or path
+    if not compiled[id] then
+        local text = tag and SourceAt(tag, path) or Source(path)
+        compiled[id] = string.dump(assert(loadstring(text, "@" .. id)))
     end
-    local chunk = assert(loadstring(compiled[path], "@" .. path))
+    local chunk = assert(loadstring(compiled[id], "@" .. id))
     setfenv(chunk, env)
     return chunk(...)
 end
@@ -161,4 +188,4 @@ function H.Encode(msg)
 end
 
 P.ADDON, P.LATENCY, P.KNOWN_EVENTS = ADDON, LATENCY, KNOWN_EVENTS
-P.Source, P.TOC, P.Load, P.NewEnv, P.CopyTable, P.DecodeWire = Source, TOC, Load, NewEnv, CopyTable, DecodeWire
+P.Source, P.TOC, P.TOCAt, P.Load, P.NewEnv, P.CopyTable, P.DecodeWire = Source, TOC, TOCAt, Load, NewEnv, CopyTable, DecodeWire

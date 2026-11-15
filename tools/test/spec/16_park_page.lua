@@ -15,12 +15,15 @@ return function(test, H)
         } }
     end
 
-    local function Setup()
+    -- (hidden: true keeps "Skjul ukjente dyr" on, the default: 46 and 84, which nobody has, are question
+    -- marks. The older tests look at every portrait: off.)
+    local function Setup(hidden)
         local w = H.World({ members = H.FOLK }) -- (only members' adoptions are kept)
         local cs = {}
         for _, m in ipairs({ { "Ola Nord", { 5159, 40, 72 } }, { "Kari Berg", { 41 } }, { "Per Hansen", { 42 } } }) do
             local c = w:AddClient(m[1], { pets = m[2] })
             c:Companions(Fixture().species)
+            if not hidden then c.ns.DB.global.settings.hideUnknown = false end
             cs[#cs + 1] = c
         end
         w:Run(20)
@@ -657,5 +660,63 @@ return function(test, H)
         eq(ola.selectedSpecies, 72, "closed: not yet")
         ola:OpenJournal(); w:Run(0.1)
         eq(ola.selectedSpecies, 40, "opened: the card")
+    end)
+
+    -- Unknown pets (2026-11-15, the user): nobody in the guild has 46 or 84.
+    test("a pet nobody in the guild has is a question mark: no name, a wiggle, no stage; the setting shows it", function()
+        local w, ola, kari = Setup(true)
+        ola:OpenJournal({ sideTabs = 4 })
+        local page = ola:Page("Parken"):Open()
+        local f = page.frame
+        local function Marks()
+            return page:Frames(function(fr)
+                for _, fs in ipairs(fr.fontStrings) do if fs.shown and fs.text == "?" then return true end end
+            end)
+        end
+        local function Mark(cell)
+            for _, fs in ipairs(cell.fontStrings) do if fs.text == "?" then return fs end end
+        end
+        eq(#Marks(), 2, "the White Kitten and the Westfall Chicken")
+        eq(#Cells(ola), 5, "no portrait for them")
+        -- A known one's tooltip names who else has it, as the card's home line does.
+        match(Tip(ola, Cell(ola, 41)), "Kari Berg har dette dyret%.")
+        local bombay = Tip(ola, Cell(ola, 40))
+        no(bombay:find("Berg har", 1, true) or bombay:find("Hansen har", 1, true), "only Ola has a Bombay")
+        ok(page:Text("?: ingen har det ennå."), "the legend")
+        local cell = Marks()[1]
+        local tip = Tip(ola, cell)
+        eq(tip, "??? / Ingen i guilden har funnet dette dyret ennå.")
+        for _, sid in ipairs({ 46, 84 }) do no(tip:find(H.SPECIES[sid], 1, true), "no name") end
+        -- Hover: the stage passes it by. Click: it wiggles, and stays in the park.
+        cell.scripts.OnEnter(cell)
+        no(page:Text("White Kitten")); no(page:Text("Westfall Chicken"))
+        cell.scripts.OnLeave(cell)
+        cell:Click()
+        ok(page:IsOpen(), "no card: nothing to show")
+        local g = Mark(cell).animGroups[1]
+        ok(g:IsPlaying(), "a wiggle")
+        local sum = 0
+        for _, a in ipairs(g.anims) do sum = sum + a.offset[1] end
+        eq(sum, 0, "it comes home")
+        -- A search by name can't tell which is which.
+        ola:Type(f.search, "kitten")
+        eq(f.matches.text, "0 treff")
+        ola:Type(f.search, "")
+        -- Kari finds a chicken: the park shows it, at once.
+        kari:GivePet(84)
+        kari:Fire("NEW_PET_ADDED", kari:GuidOf(84))
+        w:Run(ola.ns.Config.OWN_LEARN_DELAY + 1)
+        eq(#Marks(), 1)
+        ok(Cell(ola, 84), "its portrait")
+        -- "Skjul ukjente dyr" off: the White Kitten's portrait too, and the legend says nothing of marks.
+        ola.ns.Settings.cog:Click()
+        local box = ola:Page("Innstillinger"):Labeled("Skjul ukjente dyr")
+        ok(box:GetChecked(), "on by default")
+        box:Click()
+        eq(ola.env.DyreparkenDB.settings.hideUnknown, false)
+        page:Open()
+        eq(#Marks(), 0)
+        eq(#Cells(ola), 7)
+        no(page:Text("ingen har det"))
     end)
 end

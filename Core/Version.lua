@@ -73,8 +73,9 @@ function Version:Init()
 end
 
 function Version:Hello()
-    -- d: registry digest, so peers can tell whether we need a sync (Sync.lua).
-    if IsInGuild() then ns.Comm:Send("HELLO", { v = ns.VERSION, d = ns.Sync:Digest() }, "GUILD") end
+    -- d: registry digest, so peers can tell whether we need a sync (Sync.lua); o: who owns what (Owners.lua,
+    -- X-Protocol 11; a 0.7 client reads the rest as before).
+    if IsInGuild() then ns.Comm:Send("HELLO", { v = ns.VERSION, d = ns.Sync:Digest(), o = ns.Owners:Digest() }, "GUILD") end
 end
 
 ns.Start("loaded", function() Version:Init() end)
