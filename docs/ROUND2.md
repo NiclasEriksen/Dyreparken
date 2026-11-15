@@ -75,3 +75,7 @@ No wire or saved-data change is planned (no X-Protocol bump; migrations only if 
   (AFK sleep on the pet frame, naps), the pet frame's secure button left over an empty spot when the frame
   hides mid-fight, and Summon's verify re-call after a slow summon. Seen in game the same day (the user): the
   Collections key binding works in combat, and so does a click on the pet frame.
+- After the round (2026-11-15, the user): the pet frame shows the pet kept out (Med deg) while mounted or on a
+  flight path, hidden while dead; a fight that ended with your death drops its reaction; Parken's look
+  (portraits, rings by family and bond with a glint and shine, today's pet on a stage with its own Moves
+  stage for the lift), the list's portraits; check.sh scans for unknown lowercase globals. Released as 0.7.0.
