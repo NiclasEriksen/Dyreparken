@@ -125,6 +125,53 @@ return function(test, H)
         no(Tip(kari, Cell(kari, 5159)):find("Du har", 1, true))
     end)
 
+    -- Enclosures (2026-11-15, the user): each family one piece of the grid, fenced where it meets another.
+    test("enclosures: the path through the grid goes cell to cell, so every family is one piece", function()
+        local w, ola = Setup()
+        local Park = ola.ns.ParkPage
+        for cols = 1, 21 do
+            local n = cols * Park.BAND * 3 + 2
+            local path, seen = Park.Path(cols, n), {}
+            eq(#path, n)
+            for i, p in ipairs(path) do
+                ok(p[1] >= 0 and p[1] < cols, "inside")
+                local id = p[1] .. ":" .. p[2]
+                no(seen[id], "each cell once"); seen[id] = true
+                if i > 1 then
+                    local q = path[i - 1]
+                    eq(math.abs(p[1] - q[1]) + math.abs(p[2] - q[2]), 1, ("next to the one before (%d columns, cell %d)"):format(cols, i))
+                end
+            end
+            -- Filled band by band: no row used before the one above it is full.
+            local rows = {}
+            for _, p in ipairs(path) do rows[p[2]] = (rows[p[2]] or 0) + 1 end
+            for r = 0, math.floor((n - 1) / (cols * Park.BAND)) * Park.BAND - 1 do eq(rows[r], cols) end
+        end
+        local f = Park.Fences({ [0] = { [0] = "cat", [1] = "cat" }, [1] = { [0] = "farm" } }, 0, 0)
+        eq(f.right, false); eq(f.bottom, true); eq(f.top, true); eq(f.left, true)
+    end)
+
+    test("enclosures on the map: a family's cells side by side, its tint under them, a fence where it ends", function()
+        local w, ola = Setup()
+        ola:OpenJournal({ sideTabs = 4 })
+        ola:Page("Parken"):Open()
+        -- By family (Scenes.ORDER: cats, rabbits, farm), the panda (none) last; by name within one.
+        local cat = { Cell(ola, 40), Cell(ola, 41), Cell(ola, 42), Cell(ola, 46) }
+        for _, c in ipairs(cat) do eq(c.family, "cat") end
+        eq(Cell(ola, 72).family, "rabbit"); eq(Cell(ola, 84).family, "farm"); eq(Cell(ola, 5159).family, "default")
+        -- The four cats: a block, fenced outside, open between them (3 rows deep: a column and one more).
+        local open = 0
+        for _, c in ipairs(cat) do
+            for _, t in pairs(c.fences) do if not t:IsShown() then open = open + 1 end end
+            eq(c.pen.vertexColor[4], ola.ns.ParkPage.PEN_ALPHA, "its tint")
+        end
+        eq(open, 6, "three shared sides, open from both cells")
+        local rabbit = Cell(ola, 72)
+        local shown = 0
+        for _, t in pairs(rabbit.fences) do if t:IsShown() then shown = shown + 1 end end
+        eq(shown, 4, "a family of one: fenced all round")
+    end)
+
     test("portraits in rings: the family's color, deeper with the bond, a glint and a shine higher up; none for a free one, gold for yours", function()
         local w, ola, kari = Setup()
         ola:Slash("adopter panda")

@@ -28,6 +28,13 @@ local ns = select(2, ...)
 -- mouse takes its place while hovered. A click there opens its card, as an icon's does. The stage's
 -- camera runs only a moment after a change (as the pet frame's: PF:Camera), so an open park costs nothing.
 --
+-- Enclosures (2026-11-15, the user: "group pets by families, with dynamic enclosures ... stacked together
+-- like tetris with irregular borders if needed. Almost like a flood fill"): still one grid, but each family
+-- (its first, as its ring's: Scenes:Families) is a run of cells along one path through it (Park.Path), so
+-- every family is one piece, its own shape; a tint of its color under its cells and a fence on every
+-- edge it shares with another family or the outside (Park.Fences). In Scenes.ORDER, those without a family
+-- last; by name within one.
+--
 -- Everything comes from the registry; nothing is sent. We can't know which
 -- pets other members own (that isn't synced), so there's no "nobody has it".
 -- Loads after Achievements/Page.lua, so its tab comes second.
@@ -225,6 +232,21 @@ local function NewCell()
     c.glint:SetPoint("CENTER", c, "TOPRIGHT", -6, -6)
     c.glint:SetAlpha(0)
     c.glint.pulse = Park.Glint(c.glint)
+    -- Its share of the family's enclosure (Park.Pen): the cell's whole square, beyond the icon.
+    c.pen = c:CreateTexture(nil, "BACKGROUND", nil, -8)
+    c.pen:SetColorTexture(1, 1, 1, 1)
+    c.pen:SetSize(CELL, CELL)
+    c.pen:SetPoint("CENTER")
+    c.fences = {}
+    local half, w = CELL / 2, Park.FENCE
+    for side, p in pairs({ top = { "TOP", 0, half }, bottom = { "BOTTOM", 0, -half }, left = { "LEFT", -half, 0 },
+        right = { "RIGHT", half, 0 } }) do
+        local t = c:CreateTexture(nil, "BACKGROUND", nil, -7)
+        t:SetColorTexture(1, 1, 1, 1)
+        if side == "top" or side == "bottom" then t:SetSize(CELL, w) else t:SetSize(w, CELL) end
+        t:SetPoint(p[1], c, "CENTER", p[2], p[3])
+        c.fences[side] = t
+    end
     c.free = c:CreateTexture(nil, "OVERLAY", nil, 2)
     c.free:SetTexture(READY)
     c.free:SetSize(14, 14)
@@ -239,16 +261,67 @@ local function NewCell()
     return c
 end
 
--- Every journal species as a pet key, sorted by name.
+-- Every journal species as a pet key with its family (its first, or "default"), by family
+-- (Scenes.ORDER, "default" last), then by name.
 local function AllKeys()
-    local list = {}
+    local list, rank = {}, {}
+    for i, f in ipairs(ns.Scenes.ORDER) do rank[f] = i end
     local data = ns.Companions and ns.Companions.species
     for sid in pairs(data or {}) do
         local key = ns.Pets:KeyOfSpecies(sid)
-        list[#list + 1] = { key = key, name = ns.Pets:NameOfKey(key) or "" }
+        local family = ns.Scenes:Families(key)[1] or "default"
+        list[#list + 1] = { key = key, name = ns.Pets:NameOfKey(key) or "", family = family,
+            rank = rank[family] or #ns.Scenes.ORDER + 1 }
     end
-    table.sort(list, function(a, b) return a.name < b.name or (a.name == b.name and a.key < b.key) end)
+    table.sort(list, function(a, b)
+        if a.rank ~= b.rank then return a.rank < b.rank end
+        return a.name < b.name or (a.name == b.name and a.key < b.key)
+    end)
     return list
+end
+
+-- The path through the grid the families are laid along: { { col, row }, ... } (from 0), each cell next
+-- to the one before it, so a run of cells is always one piece. Bands BAND rows high, the first left to
+-- right, the next back, and so on; in a band, column by column, down, up, down (shapes about three
+-- deep: the families' pieces come out as blocks and L's and steps, not long strips). With an even number of
+-- columns, a band's last two are taken row by row instead, so it still ends at the bottom of its outer
+-- column, above where the next band starts (BAND odd for that).
+Park.BAND = 3
+function Park.Path(cols, n)
+    local path, band = {}, Park.BAND
+    local b = 0
+    while #path < n do
+        local top = b * band
+        local rtl = b % 2 == 1
+        local function Col(i) return rtl and cols - 1 - i or i end
+        local single = cols % 2 == 1 and cols or cols - 2
+        for i = 0, single - 1 do
+            for j = 0, band - 1 do
+                local r = i % 2 == 0 and j or band - 1 - j
+                path[#path + 1] = { Col(i), top + r }
+            end
+        end
+        if cols % 2 == 0 then -- (the last two, row by row: inner, outer; outer, inner; ...)
+            for j = 0, band - 1 do
+                local a, z = Col(single), Col(single + 1)
+                if j % 2 == 1 then a, z = z, a end
+                path[#path + 1] = { a, top + j }
+                path[#path + 1] = { z, top + j }
+            end
+        end
+        b = b + 1
+    end
+    for i = #path, n + 1, -1 do path[i] = nil end
+    return path
+end
+
+-- For each cell of a laid-out grid ({ [row] = { [col] = family } }), which of its four sides have a fence:
+-- { top, bottom, left, right } true where the cell beyond is another family's or nobody's.
+function Park.Fences(grid, col, row)
+    local mine = grid[row] and grid[row][col]
+    local function Other(c, r) return not (grid[r] and grid[r][c] == mine) end
+    return { top = Other(col, row - 1), bottom = Other(col, row + 1), left = Other(col - 1, row),
+        right = Other(col + 1, row) }
 end
 
 local function Redraw()
@@ -265,6 +338,13 @@ local function Redraw()
     local homes, matches = 0, 0
     local filtering = Park.Filtering()
     local keys = AllKeys()
+    local path, grid, rows = Park.Path(cols, #keys), {}, 0
+    for i, it in ipairs(keys) do
+        local col, row = path[i][1], path[i][2]
+        grid[row] = grid[row] or {}
+        grid[row][col] = it.family
+        rows = math.max(rows, row + 1)
+    end
     for i, it in ipairs(keys) do
         local c = cells[i] or NewCell()
         c.key = it.key
@@ -279,16 +359,32 @@ local function Redraw()
         c.mine:SetShown(owner == me and match)
         c.free:SetShown(owner == nil and owned[it.key] ~= nil and match)
         if owner then homes = homes + 1 end
-        local col, row = (i - 1) % cols, math.floor((i - 1) / cols)
+        local col, row = path[i][1], path[i][2]
+        c.family = it.family
+        Park.Pen(c, it.family, Park.Fences(grid, col, row))
         c:ClearAllPoints()
-        c:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL, -(top + row * CELL))
+        local gap = (CELL - ICON_SIZE) / 2 -- (the icon centered in its cell: the pen and fences are the cell's)
+        c:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL + gap, -(top + row * CELL + gap))
         c:Show()
     end
     for i = #keys + 1, #cells do cells[i]:Hide() end
-    child:SetHeight(top + math.ceil(#keys / cols) * CELL + 8)
+    child:SetHeight(top + rows * CELL + 8)
     Park:Spot(spot.hover or (ns.Bonds:PetOfTheDay()), true)
     page.summary:SetText(("%d/%d"):format(homes, #keys))
     page.matches:SetText(filtering and ns.T("park.matches", { n = matches }) or "")
+end
+
+-- A cell's share of its family's enclosure: the tint under it, the fence on the sides given. The fence
+-- in the family's color as a ring at level 4 (Park.RingColor), the tint a wash of it; FENCE px a side,
+-- so two families' fences side by side read as one thicker line.
+Park.FENCE, Park.PEN_ALPHA, Park.FENCE_ALPHA = 2, 0.14, 0.85
+function Park.Pen(c, family, fences)
+    local col = Park.RingColor(family, 4)
+    c.pen:SetVertexColor(col[1], col[2], col[3], Park.PEN_ALPHA)
+    for side, t in pairs(c.fences) do
+        t:SetShown(fences[side] == true)
+        t:SetVertexColor(col[1], col[2], col[3], Park.FENCE_ALPHA)
+    end
 end
 
 -- A cell's ring (2026-11-15, the user): an adopted pet's family color at every level, paler at the first
