@@ -42,8 +42,9 @@ local ns = select(2, ...)
 local Park = {}
 ns.ParkPage = Park
 
--- (36 until the enclosures, 2026-11-15: their fences ran over the faces' rims; 32 leaves a pixel)
-local CELL, ICON_SIZE = 40, 32
+-- (36 until the enclosures, 2026-11-15: their fences ran over the faces' rims; a wooden fence on the line
+-- between two cells, 2 px into each, leaves a pixel at 34)
+local CELL, ICON_SIZE = 40, 34
 local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
 local sp, page, child, records, legend, spot
@@ -236,11 +237,28 @@ local function NewCell()
     -- Its share of the family's enclosure (Park.Pen): the cell's whole square, beyond the icon.
     c.pen = c:CreateTexture(nil, "BACKGROUND", nil, -8)
     c.pen:SetColorTexture(1, 1, 1, 1)
-    c.fences = {}
-    for _, side in ipairs({ "top", "bottom", "left", "right" }) do
-        local t = c:CreateTexture(nil, "BACKGROUND", nil, -7)
-        t:SetColorTexture(1, 1, 1, 1)
-        c.fences[side] = t
+    c.pen:SetSize(CELL, CELL)
+    c.pen:SetPoint("CENTER")
+    -- Its fences (Park.Fences): a rail on the line, half in this cell and half in the next (clear of the face
+    -- by a pixel), a post at each end (its corners, where the round face doesn't reach).
+    local h, t = CELL / 2, Park.FENCE
+    c.fences, c.posts = {}, {}
+    for side, at in pairs({ top = { 0, h }, bottom = { 0, -h }, left = { -h, 0 }, right = { h, 0 } }) do
+        local r = c:CreateTexture(nil, "BACKGROUND", nil, -6)
+        r:SetTexture(ns.Icon("plank"), "REPEAT", "CLAMP")
+        local across = side == "top" or side == "bottom"
+        r:SetSize(across and CELL or t, across and t or CELL)
+        r:SetPoint("CENTER", c, "CENTER", at[1], at[2])
+        local n = CELL / Park.PLANK -- (tiles along it; on the sides turned a quarter: grain along the rail)
+        if across then r:SetTexCoord(0, n, 0, 1) else r:SetTexCoord(0, 1, n, 1, 0, 0, n, 0) end
+        c.fences[side] = r
+    end
+    for corner, at in pairs({ tl = { -h, h }, tr = { h, h }, bl = { -h, -h }, br = { h, -h } }) do
+        local p = c:CreateTexture(nil, "BACKGROUND", nil, -5)
+        p:SetTexture(ns.Icon("post"))
+        p:SetSize(Park.POST, Park.POST)
+        p:SetPoint("CENTER", c, "CENTER", at[1], at[2])
+        c.posts[corner] = p
     end
     c.free = c:CreateTexture(nil, "OVERLAY", nil, 2)
     c.free:SetTexture(READY)
@@ -310,36 +328,17 @@ function Park.Path(cols, n)
     return path
 end
 
--- A cell's fences in a laid-out grid ({ [row] = { [col] = family } }): { top, bottom, left, right }, each
--- false (the cell beyond is the same family's) or { a, b }, how its two ends (left and right; top and
--- bottom) sit: Park.MARGIN in at an outer corner (it meets the other side's fence there), 0 where the
--- fence goes straight on into the next cell, and past the edge by the margin and the fence's width at an
--- inner corner, to meet the fence of the cell around it. The fences stand MARGIN inside the cell, so two
--- families' pens have a dark path between them instead of two lines side by side (the user's first look,
--- 2026-11-15).
+-- Which of a cell's sides it fences in a laid-out grid ({ [row] = { [col] = family } }): { top, bottom, left,
+-- right }. One fence on each line between two families, as between paddocks (the user's look, 2026-11-15: two
+-- lines side by side were busy): the cell below or right of a line draws it (its top, its left), and a cell
+-- draws its bottom and right only where nobody is beyond (the map's edge, an empty cell).
 local STEP = { top = { 0, -1 }, bottom = { 0, 1 }, left = { -1, 0 }, right = { 1, 0 } }
-local ENDS = { top = { "left", "right" }, bottom = { "left", "right" }, left = { "top", "bottom" },
-    right = { "top", "bottom" } }
 function Park.Fences(grid, col, row)
     local mine = grid[row] and grid[row][col]
-    local function Fenced(c, r, side)
-        local d = STEP[side]
-        return not (grid[r + d[2]] and grid[r + d[2]][c + d[1]] == mine)
-    end
     local out = {}
-    for side in pairs(STEP) do
-        if Fenced(col, row, side) then
-            local ends = {}
-            for i, toward in ipairs(ENDS[side]) do
-                local d = STEP[toward]
-                if Fenced(col, row, toward) then ends[i] = Park.MARGIN
-                elseif Fenced(col + d[1], row + d[2], side) then ends[i] = 0
-                else ends[i] = -(Park.MARGIN + Park.FENCE) end
-            end
-            out[side] = ends
-        else
-            out[side] = false
-        end
+    for side, d in pairs(STEP) do
+        local beyond = grid[row + d[2]] and grid[row + d[2]][col + d[1]]
+        if side == "top" or side == "left" then out[side] = beyond ~= mine else out[side] = beyond == nil end
     end
     return out
 end
@@ -394,35 +393,17 @@ local function Redraw()
     page.matches:SetText(filtering and ns.T("park.matches", { n = matches }) or "")
 end
 
--- A cell's share of its family's enclosure: the tint under it, the fences (Park.Fences) on its sides. The
--- fence in the family's color as a ring at level 4 (Park.RingColor), the tint a wash of it, both MARGIN
--- in from a fenced side.
-Park.MARGIN, Park.FENCE, Park.PEN_ALPHA, Park.FENCE_ALPHA = 1, 2, 0.14, 0.8
+-- A cell's share of its family's enclosure: the tint of its family's color under it (Park.RingColor at
+-- level 4), its fences in wood (Media/Particles/plank, post: tools/draw_particles.py), and a post at every
+-- end of one. FENCE px thick on the line, a tile of the plank every PLANK px along it.
+Park.FENCE, Park.POST, Park.PLANK, Park.PEN_ALPHA = 4, 6, 32, 0.2
 function Park.Pen(c, family, fences)
     local col = Park.RingColor(family, 4)
-    local h, m, w = CELL / 2, Park.MARGIN, Park.FENCE
-    local function In(side) return fences[side] and m or 0 end
-    c.pen:ClearAllPoints()
-    c.pen:SetPoint("TOPLEFT", c, "CENTER", -h + In("left"), h - In("top"))
-    c.pen:SetPoint("BOTTOMRIGHT", c, "CENTER", h - In("right"), -h + In("bottom"))
     c.pen:SetVertexColor(col[1], col[2], col[3], Park.PEN_ALPHA)
-    for side, t in pairs(c.fences) do
-        local f = fences[side]
-        t:SetShown(f ~= false)
-        if f then
-            t:ClearAllPoints()
-            if side == "top" or side == "bottom" then
-                local y = side == "top" and h - m or -h + m + w
-                t:SetPoint("TOPLEFT", c, "CENTER", -h + f[1], y)
-                t:SetPoint("BOTTOMRIGHT", c, "CENTER", h - f[2], y - w)
-            else
-                local x = side == "left" and -h + m or h - m - w
-                t:SetPoint("TOPLEFT", c, "CENTER", x, h - f[1])
-                t:SetPoint("BOTTOMRIGHT", c, "CENTER", x + w, -h + f[2])
-            end
-            t:SetVertexColor(col[1], col[2], col[3], Park.FENCE_ALPHA)
-        end
-    end
+    for side, t in pairs(c.fences) do t:SetShown(fences[side] == true) end
+    local f = fences
+    c.posts.tl:SetShown(f.top or f.left); c.posts.tr:SetShown(f.top or f.right)
+    c.posts.bl:SetShown(f.bottom or f.left); c.posts.br:SetShown(f.bottom or f.right)
 end
 
 -- A cell's ring (2026-11-15, the user): an adopted pet's family color at every level, paler at the first

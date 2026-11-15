@@ -268,7 +268,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
                    come home instead), stopped when hidden),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as a round portrait (Pets:Portrait, also
-                   the list's icons) in a ring of its holder's bond level, grouped by family into fenced, tinted enclosures
+                   the list's icons) in a ring of its holder's bond level, grouped by family into tinted enclosures with wooden fences (one on each line between two)
                    along one path through the grid (Park.Path: each family one piece), a click opens its card on the Pets page (also pets you
                    don't own); under the map a stage with today's pet, or the one hovered, as a live model (Pets:LoadModel);
                    loads after Achievements/Page.lua so its tab comes second),
@@ -304,7 +304,8 @@ Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble,
                    and since 2026-11-09 feather, ember, gear, wisp, coin, grain, seed, clover, zee, speech, crumb, cloud,
                    pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home; cake, Cake.lua;
                    since 2026-11-12 the pet frame's bubbles speechblank, thought, shout and rain, the families' yarn
-                   (cats), petal (plants), shell (murlocs), and the traits' banana, mask, sun, badge):
+                   (cats), petal (plants), shell (murlocs), and the traits' banana, mask, sun, badge; 2026-11-15 Parken's
+                   fences, plank and post, in color, not white):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
 Games/Framework.lua game definitions, lifecycle, UI stash/restore, history

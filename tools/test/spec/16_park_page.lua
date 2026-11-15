@@ -147,17 +147,28 @@ return function(test, H)
             for _, p in ipairs(path) do rows[p[2]] = (rows[p[2]] or 0) + 1 end
             for r = 0, math.floor((n - 1) / (cols * Park.BAND)) * Park.BAND - 1 do eq(rows[r], cols) end
         end
-        -- An L of cats: (0,0) (1,0) (1,1); a farm bird at (0,1), in the bend.
-        local grid = { [0] = { [0] = "cat", [1] = "cat" }, [1] = { [0] = "farm", [1] = "cat" } }
-        local m, wd = Park.MARGIN, Park.FENCE
-        local function E(v) return v and (v[1] .. "," .. v[2]) or false end
-        local f = Park.Fences(grid, 0, 0)
-        eq(f.right, false, "open to its own kind")
-        eq(E(f.top), m .. ",0", "an outer corner at the left; straight on into the next cat's top")
-        eq(E(f.left), m .. "," .. m, "outer corners at both ends")
-        eq(E(f.bottom), m .. "," .. -(m + wd), "the inner corner: past the edge, to meet the fence around it")
-        local g = Park.Fences(grid, 1, 1)
-        eq(g.top, false); eq(E(g.left), -(m + wd) .. "," .. m, "the bend, from below")
+        -- One fence on every line between two families, and on the edge of the map; none inside a family.
+        local grid, path = {}, Park.Path(7, 40)
+        for i, p in ipairs(path) do
+            grid[p[2]] = grid[p[2]] or {}
+            grid[p[2]][p[1]] = ({ "cat", "farm", "owl", "bug" })[math.floor((i - 1) / 9) % 4 + 1] -- (runs of 9)
+        end
+        local drawn = {}
+        for i, p in ipairs(path) do
+            local f = Park.Fences(grid, p[1], p[2])
+            if f.top then drawn["h" .. p[1] .. ":" .. p[2]] = (drawn["h" .. p[1] .. ":" .. p[2]] or 0) + 1 end
+            if f.left then drawn["v" .. p[1] .. ":" .. p[2]] = (drawn["v" .. p[1] .. ":" .. p[2]] or 0) + 1 end
+            if f.bottom then drawn["h" .. p[1] .. ":" .. (p[2] + 1)] = (drawn["h" .. p[1] .. ":" .. (p[2] + 1)] or 0) + 1 end
+            if f.right then drawn["v" .. (p[1] + 1) .. ":" .. p[2]] = (drawn["v" .. (p[1] + 1) .. ":" .. p[2]] or 0) + 1 end
+        end
+        local function At(c, r) return grid[r] and grid[r][c] end
+        for _, p in ipairs(path) do
+            local c, r = p[1], p[2]
+            for _, e in ipairs({ { "h" .. c .. ":" .. r, At(c, r - 1) }, { "h" .. c .. ":" .. (r + 1), At(c, r + 1) },
+                { "v" .. c .. ":" .. r, At(c - 1, r) }, { "v" .. (c + 1) .. ":" .. r, At(c + 1, r) } }) do
+                eq(drawn[e[1]], e[2] ~= grid[r][c] and 1 or nil, "line " .. e[1])
+            end
+        end
     end)
 
     test("enclosures on the map: a family's cells side by side, its tint under them, a fence where it ends", function()
@@ -168,17 +179,14 @@ return function(test, H)
         local cat = { Cell(ola, 40), Cell(ola, 41), Cell(ola, 42), Cell(ola, 46) }
         for _, c in ipairs(cat) do eq(c.family, "cat") end
         eq(Cell(ola, 72).family, "rabbit"); eq(Cell(ola, 84).family, "farm"); eq(Cell(ola, 5159).family, "default")
-        -- The four cats: a block, fenced outside, open between them (3 rows deep: a column and one more).
-        local open = 0
-        for _, c in ipairs(cat) do
-            for _, t in pairs(c.fences) do if not t:IsShown() then open = open + 1 end end
-            eq(c.pen.vertexColor[4], ola.ns.ParkPage.PEN_ALPHA, "its tint")
-        end
-        eq(open, 6, "three shared sides, open from both cells")
-        local rabbit = Cell(ola, 72)
-        local shown = 0
-        for _, t in pairs(rabbit.fences) do if t:IsShown() then shown = shown + 1 end end
-        eq(shown, 4, "a family of one: fenced all round")
+        -- The four cats down the first column and one on: their tint; the second (Bombay) fenced only on its
+        -- left, the map's edge (above and below are cats; right, the rabbits draw that line).
+        for _, c in ipairs(cat) do eq(c.pen.vertexColor[4], ola.ns.ParkPage.PEN_ALPHA, "its tint") end
+        local bombay = Cell(ola, 40)
+        ok(bombay.fences.left:IsShown()); no(bombay.fences.top:IsShown()); no(bombay.fences.bottom:IsShown())
+        no(bombay.fences.right:IsShown())
+        ok(bombay.posts.tl:IsShown()); ok(bombay.posts.bl:IsShown()); no(bombay.posts.tr:IsShown())
+        eq(bombay.fences.left.tex, ola.ns.Icon("plank"))
     end)
 
     test("portraits in rings: the family's color, deeper with the bond, a glint and a shine higher up; none for a free one, gold for yours", function()

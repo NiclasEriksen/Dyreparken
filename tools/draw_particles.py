@@ -594,6 +594,60 @@ BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 
 
+# Wood (2026-11-15, Parken's fences: the user, "a wooden textured fence"): in color, not white to tint,
+# so its grain shows. A rail (64x16, repeats along its length) and a post's top (16x16).
+def plank():
+    """A rail: brown, lit along its top edge, shaded along the bottom, grain in long wavy streaks and a knot.
+    Seamless left to right (every wave and the knot's falloff repeat over the 64 px)."""
+    w, h = 64, 16
+    img = Image.new("RGBA", (w, h))
+    px = img.load()
+    base = (128, 88, 52)
+    for y in range(h):
+        for x in range(w):
+            t = x / w * 2 * math.pi
+            v = y / (h - 1)
+            grain = math.sin(v * 9.5 + 0.9 * math.sin(t) + 0.4 * math.sin(3 * t + 1.3))
+            grain = 0.11 * grain + 0.05 * math.sin(v * 31 + 2 * math.sin(2 * t))
+            dx = min(abs(x - 40), w - abs(x - 40)) / 5.0
+            knot = 0.22 * math.exp(-(dx * dx + ((y - 8) / 2.6) ** 2))
+            light = 1.0 + grain - knot
+            if y <= 1: light += 0.32 - 0.12 * y      # the top edge, in the light
+            if y >= h - 2: light -= 0.3 + 0.1 * (y - (h - 2))  # the bottom, in shade
+            px[x, y] = tuple(max(0, min(255, int(c * light))) for c in base) + (255,)
+    return img
+
+
+def post():
+    """A post's top, seen from above: a darker square with a lit bevel, rings of the trunk."""
+    n = 16
+    img = Image.new("RGBA", (n, n))
+    px = img.load()
+    base = (104, 70, 40)
+    for y in range(n):
+        for x in range(n):
+            r = math.hypot(x - 7.5, y - 7.5)
+            light = 1.0 + 0.08 * math.sin(r * 2.2)
+            if x <= 1 or y <= 1: light += 0.3
+            if x >= n - 2 or y >= n - 2: light -= 0.35
+            px[x, y] = tuple(max(0, min(255, int(c * light))) for c in base) + (255,)
+    return img
+
+
+COLORED = {"plank": plank, "post": post}
+
+
+def write_rgba(path, img):
+    w, h = img.size
+    header = struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, w, h, 32, 8)
+    p = img.load()
+    rows = []
+    for y in range(h - 1, -1, -1):
+        rows.append(b"".join(struct.pack("BBBB", p[x, y][2], p[x, y][1], p[x, y][0], p[x, y][3]) for x in range(w)))
+    with open(path, "wb") as f:
+        f.write(header + b"".join(rows))
+
+
 def write_tga(path, mask):
     w, h = mask.size
     header = struct.pack("<BBBHHBHHHHBB", 0, 0, 2, 0, 0, 0, 0, 0, w, h, 32, 8)
@@ -617,6 +671,10 @@ def main(only=None):
         mask = big.resize((SIZE, SIZE), Image.LANCZOS)
         sheet.paste(Image.new("RGBA", (SIZE, SIZE), (255, 255, 255, 255)), (i * SIZE, 0), mask)
         print("wrote", name)
+    for name, fn in COLORED.items():
+        if not only or name in only:
+            write_rgba(os.path.join(OUT, name + ".tga"), fn())
+            print("wrote", name)
     return sheet
 
 
