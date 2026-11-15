@@ -172,7 +172,8 @@ Core/SidePage.lua  our pages of the Collections window: a side tab each under Bl
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp; Norwegian
                    only); ns.Commands.Add for Dev/Commands.lua. A release never logs (Debug:Init turns a saved log off)
-Data/Companions.lua GENERATED (tools/companions/build.py --lua; the tools stay out of git; a new companion:
+Data/Companions.lua GENERATED (tools/companions/build.py --lua; per build, tools/companions/wago.py first: Forever's
+                   tables from wago.tools, no game needed; the tools stay out of git; a new companion:
                    tools/companions/add.py, see "Adding a companion" in tools/companions/README.md): every journal species, whether
                    it counts toward achievements (a), and its tags/families (t). Don't edit by hand.
 Data/PetMoves.lua  which animation each pet uses for each reaction on the card (sleep, sit, happy, cheer, dead): a
