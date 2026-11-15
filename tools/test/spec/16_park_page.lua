@@ -205,16 +205,20 @@ return function(test, H)
         eq(Park.FamilyName("spirit"), "Ånder"); eq(Park.FamilyName("default"), "Andre dyr")
         -- On its first corner: the cats' first cell's top left.
         local first = Cell(ola, 42) -- (Black Tabby: the first by name)
-        eq(cats.points[1][4], first.points[1][4], "at its corner"); eq(cats.points[1][5], first.points[1][5])
+        eq(cats.points[1][4], first.points[1][4] + Park.SIGN_IN[1], "leaning in from its corner")
+        eq(cats.points[1][5], first.points[1][5] - Park.SIGN_IN[2])
         eq(first.size[1], 40, "the whole cell takes the mouse, between the faces too")
         -- Hovered (the sign or a cat): the cats' tint brighter, the others' as they were.
         cats.scripts.OnEnter(cats)
         eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_LIT); eq(Cell(ola, 72).pen.vertexColor[4], Park.PEN_ALPHA)
+        ok(cats.lit:IsShown(), "its sign lit too")
         cats.scripts.OnLeave(cats)
+        no(cats.lit:IsShown())
         eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_ALPHA)
         local rabbit = Cell(ola, 72)
         rabbit.scripts.OnEnter(rabbit)
         eq(rabbit.pen.vertexColor[4], Park.PEN_LIT, "a pet lights its own family"); eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_ALPHA)
+        no(cats.lit:IsShown())
         rabbit.scripts.OnLeave(rabbit)
         -- A click: the cats only; the others dimmed, their tints faint, their signs too; again, all.
         cats:Click()
@@ -230,16 +234,17 @@ return function(test, H)
         eq(Cell(ola, 84).pen.vertexColor[4], Park.PEN_EMPTY, "no farm animal matches")
         eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_ALPHA, "a cat does")
         Park.filter.text = ""; Park:Refresh()
-        -- The grid's empty cells: a bit of park, in order (a pond first), as many as Park.DECOR has.
-        local pieces = {}
-        for _, t in ipairs(first:GetParent().textures) do if t.piece and t.shown then pieces[#pieces + 1] = t.piece end end
-        eq(#pieces, #Park.DECOR, "a small journal on a wide page: the rest stays empty")
-        eq(pieces[1], "pond")
-        local grass = 0
-        for _, t in ipairs(first:GetParent().textures) do
-            if t.shown and t.color and t.color[4] == Park.LAWN[4] and t.color[2] == Park.LAWN[2] then grass = grass + 1 end
+        -- The grid's empty cells: the garden, a pen of its own with its lawn and fences, a piece on the first few.
+        local plots = page:Frames(function(f) return f.art ~= nil and f.pen ~= nil end)
+        ok(#plots > #Park.DECOR, "every empty cell")
+        local pieces, fenced = 0, 0
+        for _, pl in ipairs(plots) do
+            if pl.art:IsShown() then pieces = pieces + 1 end
+            eq(pl.pen.vertexColor[4], Park.LAWN[4])
+            for _, t in pairs(pl.fences) do if t:IsShown() then fenced = fenced + 1 end end
         end
-        ok(grass > #Park.DECOR, "a lawn under every empty cell, past the pieces too")
+        eq(pieces, #Park.DECOR, "a small journal on a wide page: the rest is lawn")
+        ok(fenced > 0, "fenced like the others")
     end)
 
     test("portraits in rings: the family's color, deeper with the bond, a glint and a shine higher up; none for a free one, gold for yours", function()

@@ -54,7 +54,7 @@ local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
 local sp, page, child, records, legend, spot
 local cells = {}
-local signs, decor, lawn = {}, {}, {} -- family -> its sign; the empty cells' pieces, in order; their grass
+local signs, plots = {}, {} -- family -> its sign; the garden's cells, in order
 local spotT, cameraT = ns.Timers(), ns.Timers()
 -- (200 until 2026-11-15: the six rows of the map then overflowed by a few pixels, and a scrollbar showed
 -- with nothing to scroll)
@@ -204,6 +204,35 @@ function Park:Show(key)
     ns.JournalUI:ShowSpecies(sid)
 end
 
+-- A cell's share of an enclosure on frame c (a pet's cell, or a plot of the garden): its tint (Park.Pen)
+-- over the whole square, and its fences (Park.Fences): a rail on the line, half in this cell and half in
+-- the next (clear of the face by a pixel), a post at each end (its corners, where the round face doesn't reach).
+function Park.Enclosure(c)
+    c.pen = c:CreateTexture(nil, "BACKGROUND", nil, -8)
+    c.pen:SetColorTexture(1, 1, 1, 1)
+    c.pen:SetSize(CELL, CELL)
+    c.pen:SetPoint("CENTER")
+    local h, t = CELL / 2, Park.FENCE
+    c.fences, c.posts = {}, {}
+    for side, at in pairs({ top = { 0, h }, bottom = { 0, -h }, left = { -h, 0 }, right = { h, 0 } }) do
+        local r = c:CreateTexture(nil, "BACKGROUND", nil, -6)
+        r:SetTexture(ns.Icon("plank"), "REPEAT", "CLAMP")
+        local across = side == "top" or side == "bottom"
+        r:SetSize(across and CELL or t, across and t or CELL)
+        r:SetPoint("CENTER", c, "CENTER", at[1], at[2])
+        local n = CELL / Park.PLANK -- (tiles along it; on the sides turned a quarter: grain along the rail)
+        if across then r:SetTexCoord(0, n, 0, 1) else r:SetTexCoord(0, 1, n, 1, 0, 0, n, 0) end
+        c.fences[side] = r
+    end
+    for corner, at in pairs({ tl = { -h, h }, tr = { h, h }, bl = { -h, -h }, br = { h, -h } }) do
+        local p = c:CreateTexture(nil, "BACKGROUND", nil, -5)
+        p:SetTexture(ns.Icon("post"))
+        p:SetSize(Park.POST, Park.POST)
+        p:SetPoint("CENTER", c, "CENTER", at[1], at[2])
+        c.posts[corner] = p
+    end
+end
+
 local ROUND = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local function NewCell()
     local c = CreateFrame("Button", nil, child)
@@ -246,32 +275,7 @@ local function NewCell()
     c.glint:SetPoint("CENTER", c.ring, "TOPRIGHT", -6, -6)
     c.glint:SetAlpha(0)
     c.glint.pulse = Park.Glint(c.glint)
-    -- Its share of the family's enclosure (Park.Pen): the cell's whole square, beyond the icon.
-    c.pen = c:CreateTexture(nil, "BACKGROUND", nil, -8)
-    c.pen:SetColorTexture(1, 1, 1, 1)
-    c.pen:SetSize(CELL, CELL)
-    c.pen:SetPoint("CENTER")
-    -- Its fences (Park.Fences): a rail on the line, half in this cell and half in the next (clear of the face
-    -- by a pixel), a post at each end (its corners, where the round face doesn't reach).
-    local h, t = CELL / 2, Park.FENCE
-    c.fences, c.posts = {}, {}
-    for side, at in pairs({ top = { 0, h }, bottom = { 0, -h }, left = { -h, 0 }, right = { h, 0 } }) do
-        local r = c:CreateTexture(nil, "BACKGROUND", nil, -6)
-        r:SetTexture(ns.Icon("plank"), "REPEAT", "CLAMP")
-        local across = side == "top" or side == "bottom"
-        r:SetSize(across and CELL or t, across and t or CELL)
-        r:SetPoint("CENTER", c, "CENTER", at[1], at[2])
-        local n = CELL / Park.PLANK -- (tiles along it; on the sides turned a quarter: grain along the rail)
-        if across then r:SetTexCoord(0, n, 0, 1) else r:SetTexCoord(0, 1, n, 1, 0, 0, n, 0) end
-        c.fences[side] = r
-    end
-    for corner, at in pairs({ tl = { -h, h }, tr = { h, h }, bl = { -h, -h }, br = { h, -h } }) do
-        local p = c:CreateTexture(nil, "BACKGROUND", nil, -5)
-        p:SetTexture(ns.Icon("post"))
-        p:SetSize(Park.POST, Park.POST)
-        p:SetPoint("CENTER", c, "CENTER", at[1], at[2])
-        c.posts[corner] = p
-    end
+    Park.Enclosure(c)
     c.free = c:CreateTexture(nil, "OVERLAY", nil, 2)
     c.free:SetTexture(READY)
     c.free:SetSize(14, 14)
@@ -382,6 +386,12 @@ local function Redraw()
         if row < g.row or (row == g.row and col < g.col) then g.col, g.row = col, row end
         g.n = g.n + 1
     end
+    for row = 0, rows - 1 do -- (the garden: every cell no pet has, so the pets' fences meet its own)
+        for col = 0, cols - 1 do
+            grid[row] = grid[row] or {}
+            if grid[row][col] == nil then grid[row][col] = "garden" end
+        end
+    end
     for i, it in ipairs(keys) do
         local c = cells[i] or NewCell()
         c.key = it.key
@@ -412,43 +422,33 @@ local function Redraw()
     for family, g in pairs(groups) do
         local sg = signs[family] or Park.NewSign(family)
         sg:ClearAllPoints()
-        sg:SetPoint("CENTER", child, "TOPLEFT", 8 + g.col * CELL, -(top + g.row * CELL))
+        -- (leaning into its enclosure from the corner post, so it's plain whose it is: on the post it sat as
+        -- much on the neighbors', the user's look 2026-11-15)
+        sg:SetPoint("CENTER", child, "TOPLEFT", 8 + g.col * CELL + Park.SIGN_IN[1], -(top + g.row * CELL + Park.SIGN_IN[2]))
         sg.chosen:SetShown(Park.filter.family == family)
         sg:SetAlpha(filtering and g.matches == 0 and 0.45 or 1)
         sg:Show()
     end
     for family, sg in pairs(signs) do if not groups[family] then sg:Hide() end end
-    -- The empty cells: a bit of park, a lawn under all of them (an enclosure's tint, in grass green: the
-    -- pieces alone read as loose icons, the user's look 2026-11-15) and a piece on the first few.
-    local n, k = 0, 0
+    -- The empty cells: the park's garden, a pen of its own (its lawn the tint, its fences as the others':
+    -- loose pieces on bare ground read as clumsy, the user's look 2026-11-15), a piece on the first few.
+    local n = 0
     for row = 0, rows - 1 do
         for col = 0, cols - 1 do
-            if not (grid[row] and grid[row][col]) then
-                k = k + 1
-                local x, y = 8 + col * CELL + CELL / 2, -(top + row * CELL + CELL / 2)
-                local g = lawn[k] or child:CreateTexture(nil, "BACKGROUND", nil, -8)
-                lawn[k] = g
-                g:SetColorTexture(Park.LAWN[1], Park.LAWN[2], Park.LAWN[3], Park.LAWN[4])
-                g:SetSize(CELL, CELL)
-                g:ClearAllPoints()
-                g:SetPoint("CENTER", child, "TOPLEFT", x, y)
-                g:Show()
-                if n < #Park.DECOR then
-                    n = n + 1
-                    local t = decor[n] or child:CreateTexture(nil, "BACKGROUND", nil, -4)
-                    decor[n] = t
-                    t.piece = Park.DECOR[n]
-                    t:SetTexture(ns.Icon(t.piece))
-                    t:SetSize(CELL, CELL)
-                    t:ClearAllPoints()
-                    t:SetPoint("CENTER", child, "TOPLEFT", x, y)
-                    t:Show()
-                end
+            if grid[row][col] == "garden" then
+                n = n + 1
+                local pl = plots[n] or Park.NewPlot()
+                pl:ClearAllPoints()
+                pl:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL, -(top + row * CELL))
+                Park.Pen(pl, "garden", Park.Fences(grid, col, row))
+                pl.piece = Park.DECOR[n]
+                pl.art:SetShown(pl.piece ~= nil)
+                if pl.piece then pl.art:SetTexture(ns.Icon(pl.piece)) end
+                pl:Show()
             end
         end
     end
-    for i = n + 1, #decor do decor[i]:Hide() end
-    for i = k + 1, #lawn do lawn[i]:Hide() end
+    for i = n + 1, #plots do plots[i]:Hide() end
     child:SetHeight(top + rows * CELL + 8)
     Park:Spot(spot.hover or (ns.Bonds:PetOfTheDay()), true)
     page.summary:SetText(("%d/%d"):format(homes, #keys))
@@ -460,9 +460,9 @@ end
 -- end of one. FENCE px thick on the line, a tile of the plank every PLANK px along it.
 Park.FENCE, Park.POST, Park.PLANK, Park.PEN_ALPHA = 4, 6, 32, 0.2
 function Park.Pen(c, family, fences)
-    local col = Park.RingColor(family, 4)
+    local col = family == "garden" and Park.LAWN or Park.RingColor(family, 4)
     c.penColor = col
-    c.pen:SetVertexColor(col[1], col[2], col[3], Park.PEN_ALPHA)
+    c.pen:SetVertexColor(col[1], col[2], col[3], family == "garden" and col[4] or Park.PEN_ALPHA)
     for side, t in pairs(c.fences) do t:SetShown(fences[side] == true) end
     local f = fences
     c.posts.tl:SetShown(f.top or f.left); c.posts.tr:SetShown(f.top or f.right)
@@ -484,20 +484,22 @@ function Park:Highlight(family)
             c.pen:SetVertexColor(col[1], col[2], col[3], a)
         end
     end
+    for fam, sg in pairs(signs) do sg.lit:SetShown(family == fam) end
 end
 
 -- A family's mark on its sign: a particle in a color of its own (as its card's ambience, Decor.FAMILY).
 Park.SIGN = {
     dragon = { "ember", 1, 0.55, 0.15 }, demon = { "ember", 0.5, 1, 0.2 }, mechanical = { "gear", 0.8, 0.85, 0.9 },
     pirate = { "coin", 1, 0.82, 0.3 }, murloc = { "shell", 1, 0.85, 0.75 }, owl = { "moon", 0.95, 0.9, 0.7 },
-    frog = { "drop", 0.6, 1, 0.4 }, snake = { "pebble", 0.95, 0.8, 0.5 }, reptile = { "leaf", 0.6, 0.8, 0.55 },
+    frog = { "lilypad", 0.45, 0.9, 0.35 }, snake = { "snake", 0.95, 0.8, 0.5 }, reptile = { "egg", 0.7, 0.88, 0.6 },
     spirit = { "wisp", 0.7, 0.75, 1 }, ooze = { "bubble", 0.55, 1, 0.35 }, bear = { "leaf", 0.55, 0.85, 0.35 },
     wolf = { "paw", 0.85, 0.88, 0.95 }, cat = { "yarn", 0.95, 0.55, 0.6 }, bug = { "butterfly", 1, 0.9, 0.35 },
-    plant = { "petal", 1, 0.75, 0.85 }, rabbit = { "clover", 0.5, 0.9, 0.45 }, rodent = { "seed", 0.85, 0.7, 0.45 },
-    farm = { "grain", 0.95, 0.8, 0.4 }, bird = { "feather", 0.95, 0.95, 1 }, festive = { "star", 1, 0.85, 0.3 },
+    plant = { "petal", 1, 0.75, 0.85 }, rabbit = { "clover", 0.5, 0.9, 0.45 }, rodent = { "cheese", 1, 0.85, 0.35 },
+    farm = { "horseshoe", 0.85, 0.85, 0.9 }, bird = { "feather", 0.95, 0.95, 1 }, festive = { "star", 1, 0.85, 0.3 },
     default = { "paw", 1, 0.9, 0.7 },
 }
 Park.SIGN_W, Park.SIGN_H = 20, 15
+Park.SIGN_IN = { 9, 6 } -- px right of and below its corner post
 
 -- A family's name as a title ("Katter"), its Norwegian letters too.
 local CAP = { ["å"] = "Å", ["ø"] = "Ø", ["æ"] = "Æ" }
@@ -539,6 +541,14 @@ function Park.NewSign(family)
     sg.chosen:SetSize(Park.SIGN_W + 14, Park.SIGN_W + 14)
     sg.chosen:SetPoint("CENTER")
     sg.chosen:Hide()
+    -- Its enclosure under the mouse: a soft light round it (Park:Highlight).
+    sg.lit = sg:CreateTexture(nil, "BACKGROUND", nil, 1)
+    sg.lit:SetTexture(ns.Icon("dot"))
+    sg.lit:SetBlendMode("ADD")
+    sg.lit:SetVertexColor(1, 0.9, 0.7, 0.55)
+    sg.lit:SetSize(Park.SIGN_W + 16, Park.SIGN_H + 16)
+    sg.lit:SetPoint("CENTER")
+    sg.lit:Hide()
     sg.family = family
     ns.SetTip(sg, "ANCHOR_BOTTOMRIGHT", function(self) return Park.SignLines(self.family) end)
     sg:HookScript("OnEnter", function(self) Park:Highlight(self.family) end)
@@ -556,8 +566,20 @@ end
 
 -- The grid's empty cells, in order (a bit of park where the last band ends); the rest, past these, stay
 -- empty (a small journal on a wide page would be all trees).
-Park.DECOR = { "pond", "tree", "flowers", "bench", "bush", "tree", "flowers" }
-Park.LAWN = { 0.3, 0.55, 0.22, 0.22 } -- (r, g, b, a: the lawn under them)
+Park.DECOR = { "tree", "pond", "flowers", "bush", "stump", "tree", "flowers" }
+Park.LAWN = { 0.3, 0.55, 0.22, 0.22 } -- (r, g, b, a: its tint)
+
+-- A cell of the garden: its share of the pen, and a piece of art (Park.DECOR) in the middle. No mouse.
+function Park.NewPlot()
+    local pl = CreateFrame("Frame", nil, child)
+    pl:SetSize(CELL, CELL)
+    Park.Enclosure(pl)
+    pl.art = pl:CreateTexture(nil, "ARTWORK")
+    pl.art:SetSize(CELL - 6, CELL - 6)
+    pl.art:SetPoint("CENTER")
+    plots[#plots + 1] = pl
+    return pl
+end
 
 -- A cell's ring (2026-11-15, the user): an adopted pet's family color at every level, paler at the first
 -- and deeper and brighter as its holder's bond grows (Park.RingColor), a glint from GLINT_AT and a shine

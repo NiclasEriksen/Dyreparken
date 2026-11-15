@@ -582,6 +582,75 @@ def badge():
     return m
 
 
+# Parken's family signs (2026-11-15): marks that read at 12 px, where the cards' ambience particles didn't.
+def snake():
+    """A snake in an S, a head with a forked tongue."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    for i in range(140):
+        t = i / 139
+        y = 0.72 - 1.44 * t
+        x = 0.36 * math.sin(t * 2 * math.pi + 0.3)
+        r = 0.2 * (1 - 0.5 * t) + 0.06
+        ellipse(d, x, y, r, r)
+    ellipse(d, 0.36 * math.sin(0.3), 0.74, 0.24, 0.19)
+    poly(d, [(0.09, 0.9), (0.15, 0.9), (0.02, 1.0)])
+    return m
+
+
+def cheese():
+    """A wedge of cheese with holes."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    poly(d, [(-0.8, -0.45), (0.8, -0.45), (0.8, 0.15), (-0.8, -0.05)])
+    poly(d, [(-0.8, -0.05), (0.8, 0.15), (0.45, 0.55)])
+    for cx, cy, r in ((-0.35, -0.22, 0.11), (0.25, -0.12, 0.14), (0.55, -0.32, 0.08), (0.0, 0.18, 0.08)):
+        ellipse(d, cx, cy, r, r, 0)
+    return m
+
+
+def horseshoe():
+    """A horseshoe, open end down, with nail holes."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    outer, inner = [], []
+    for i in range(121):
+        a = math.pi * (-0.15 + 1.3 * i / 120)
+        outer.append((0.72 * math.cos(a), 0.05 + 0.78 * math.sin(a)))
+        inner.append((0.4 * math.cos(a), 0.05 + 0.46 * math.sin(a)))
+    poly(d, outer + inner[::-1])
+    poly(d, [(0.4, -0.12), (0.72, -0.12), (0.7, -0.6), (0.44, -0.6)])
+    poly(d, [(-0.4, -0.12), (-0.72, -0.12), (-0.7, -0.6), (-0.44, -0.6)])
+    for a in (0.15, 0.4, 0.6, 0.85):
+        t = math.pi * a
+        ellipse(d, 0.56 * math.cos(t), 0.05 + 0.62 * math.sin(t), 0.05, 0.05, 0)
+    return m
+
+
+def lilypad():
+    """A lily pad, a notch cut in, a flower on it."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    ellipse(d, 0, -0.08, 0.82, 0.7)
+    poly(d, [(0.05, -0.08), (0.9, 0.04), (0.9, -0.22)], fill=0)
+    for k in range(6):
+        a = k * math.pi / 3
+        ellipse(d, -0.25 + 0.17 * math.cos(a), 0.12 + 0.17 * math.sin(a), 0.12, 0.12, 120)
+    ellipse(d, -0.25, 0.12, 0.08, 0.08, 255)
+    return m
+
+
+def egg():
+    """An egg with speckles (the reptiles: crocolisks and their kin hatch from them)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    pts = []
+    for i in range(120):
+        t = i / 120 * 2 * math.pi
+        y = 0.82 * math.sin(t)
+        x = 0.6 * math.cos(t) * (1 - 0.18 * math.sin(t))
+        pts.append((x, y - 0.04))
+    poly(d, pts)
+    for cx, cy, r in ((-0.2, 0.3, 0.08), (0.18, 0.1, 0.1), (-0.15, -0.3, 0.07), (0.25, -0.4, 0.06)):
+        ellipse(d, cx, cy, r, r, 110)
+    return m
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
           "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays,
           "feather": feather, "ember": ember, "gear": gear, "wisp": wisp, "coin": coin, "grain": grain,
@@ -589,7 +658,8 @@ SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble"
           "pebble": pebble, "chevron": chevron, "bolt": bolt, "halo": halo, "sword": sword, "drop": drop,
           "butterfly": butterfly, "mist": mist, "house": house, "cake": cake, "crown": crown,
           "speechblank": speechblank, "thought": thought, "shout": shout, "rain": rain, "yarn": yarn, "petal": petal,
-          "shell": shell, "banana": banana, "mask": mask, "sun": sun, "badge": badge}
+          "shell": shell, "banana": banana, "mask": mask, "sun": sun, "badge": badge,
+          "snake": snake, "cheese": cheese, "horseshoe": horseshoe, "lilypad": lilypad, "egg": egg}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 
@@ -705,39 +775,33 @@ def pond():
 
 
 def flowers():
-    """A patch of grass and flowers."""
+    """Three little clusters of flowers on leaves, no ground under them (a patch read as a blot, 2026-11-15)."""
     img = _rgba_canvas(); d = ImageDraw.Draw(img)
-    _ell(d, 0, -0.05, 0.7, 0.5, (60, 104, 46, 200))
-    import random
-    rnd = random.Random(7)
-    colors = [(235, 90, 90, 255), (250, 210, 80, 255), (170, 120, 230, 255), (250, 250, 250, 255)]
-    for k in range(9):
-        x, y = rnd.uniform(-0.5, 0.5), rnd.uniform(-0.35, 0.3)
-        c = colors[k % len(colors)]
-        for a in range(5):
-            t = a / 5 * 2 * math.pi
-            _ell(d, x + 0.07 * math.cos(t), y + 0.07 * math.sin(t), 0.055, 0.055, c)
-        _ell(d, x, y, 0.04, 0.04, (250, 230, 120, 255))
+    for (x, y), c in (((-0.38, 0.22), (235, 96, 96, 255)), ((0.32, 0.3), (250, 210, 80, 255)),
+                      ((0.0, -0.32), (186, 136, 236, 255))):
+        for a in (-0.9, 0.9):
+            _ell(d, x + 0.16 * math.cos(a - math.pi / 2), y - 0.12, 0.12, 0.06, (64, 120, 52, 255))
+        for k in range(5):
+            t = k / 5 * 2 * math.pi + 0.3
+            _ell(d, x + 0.1 * math.cos(t), y + 0.1 * math.sin(t), 0.075, 0.075, c)
+        _ell(d, x, y, 0.05, 0.05, (250, 236, 150, 255))
     return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
 
 
-def bench():
-    """A park bench seen from above: three slats on two legs, its shadow."""
+def stump():
+    """A tree stump from above: bark round a cut face with its rings, a small shadow."""
     img = _rgba_canvas(); d = ImageDraw.Draw(img)
-    def rect(x0, y0, x1, y1, fill):
-        (a, b), (c, e) = P(x0, y1), P(x1, y0)
-        d.rectangle([a, b, c, e], fill=fill)
-    rect(-0.66, -0.36, 0.74, 0.24, (0, 0, 0, 80))
-    for y in (0.22, 0.02, -0.18):
-        rect(-0.72, y - 0.14, 0.68, y, (146, 100, 58, 255))
-        rect(-0.72, y - 0.03, 0.68, y, (182, 132, 84, 255))
-    for x in (-0.55, 0.45):
-        rect(x, -0.38, x + 0.1, 0.26, (70, 46, 26, 255))
+    _ell(d, 0.08, -0.08, 0.66, 0.62, (0, 0, 0, 80))
+    _ell(d, 0, 0, 0.62, 0.6, (84, 56, 32, 255))
+    _ell(d, 0, 0, 0.52, 0.5, (196, 156, 104, 255))
+    for r in (0.4, 0.28, 0.16):
+        (x0, y1), (x1, y0) = P(-r, -r * 0.95), P(r, r * 0.95)
+        d.ellipse([x0, y0, x1, y1], outline=(150, 112, 70, 255), width=SS)
     return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
 
 
 COLORED = {"plank": plank, "post": post, "sign": sign, "tree": tree, "bush": bush, "pond": pond,
-           "flowers": flowers, "bench": bench}
+           "flowers": flowers, "stump": stump}
 
 
 def write_rgba(path, img):
