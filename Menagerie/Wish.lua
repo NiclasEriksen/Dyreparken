@@ -379,6 +379,9 @@ function Wish.Readable(kind)
 end
 local PARTY = { "party1", "party2", "party3", "party4" }
 local listening = false
+-- In a fight, by the events themselves: InCombatLockdown is still false while REGEN_DISABLED's handlers
+-- run (code review 2026-11-15: the party stayed listened to through every fight; as Activity's `fighting`).
+local fighting = false
 local function OnPartyCast(_, _, unit, _, spellID)
     local w = Pending(armed)
     if not (w and Wish.GATHER[w.id]) then return end
@@ -393,7 +396,7 @@ end
 -- Listen to the party's casts now or not: a gathering wish open, in a party (not a raid), out of combat.
 function Wish:Party()
     local want = armed and Wish.GATHER[armed] and Pending(armed) and ns.Plain(IsInGroup()) and not ns.Plain(IsInRaid())
-        and not ns.InCombat() and Wish.Readable(armed) and true or false
+        and not fighting and Wish.Readable(armed) and true or false
     if want == listening then return end
     listening = want
     for _, unit in ipairs(PARTY) do
@@ -421,10 +424,10 @@ function Wish:Arm()
     end
     if want == "explore" or want == "zone" then ns.Events:On("ZONE_CHANGED_NEW_AREA", WATCH, OnZone) end
     if want and Wish.GATHER[want] then
-        local function Again() Wish:Party() end
-        for _, e in ipairs({ "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
-            ns.Events:On(e, WATCH, Again)
-        end
+        fighting = ns.InCombat()
+        ns.Events:On("GROUP_ROSTER_UPDATE", WATCH, function() Wish:Party() end)
+        ns.Events:On("PLAYER_REGEN_DISABLED", WATCH, function() fighting = true; Wish:Party() end)
+        ns.Events:On("PLAYER_REGEN_ENABLED", WATCH, function() fighting = false; Wish:Party() end)
         self:Party()
     end
     ns.Log("Wish", "watch %s", tostring(want))
