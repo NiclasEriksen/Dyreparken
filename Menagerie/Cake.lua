@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The anniversary cake (2026-11-09, docs/IDEAS.md): on an adopted pet's
 -- milestone day (1 month, 100 days, every year with its carer; the same
@@ -9,6 +10,7 @@ local _, ns = ...
 -- while it shows. A click on a guildmate's cake congratulates them in guild
 -- chat (2026-11-10; the click is the hardware event Forever wants): once a
 -- day per pet, and only with announcing on (/dp kunngjør).
+---@class Dyreparken.Cake
 local Cake = {}
 ns.Cake = Cake
 

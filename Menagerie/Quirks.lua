@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Quirks (2026-11-09): flavor with no effect on anything. The more little
 -- surprises, the better, but quietly: at most one quirk line every 45 minutes
@@ -24,6 +25,7 @@ local _, ns = ...
 --              boss trophy (more likely for a boss new to the pet), wings, the cat and the fish, the chatter.
 -- Lines: Locale/nb.lua, dislike.<activity>.N and egg.<id>.N (one is picked).
 -- The activities they need are watched like the bond's (Activity:Want).
+---@class Dyreparken.Quirks
 local Quirks = {}
 ns.Quirks = Quirks
 
@@ -249,6 +251,7 @@ Quirks.EGGS = {
     -- lips; else by the side yours is on.
     { id = "hakkebakke", on = "playdate", always = true, chance = 0.5, traits = { "venneflokk", "roverdyr" },
         test = function(ctx)
+            ---@type { key: string, owner: string }|false
             local other = type(ctx.extra) == "table" and ctx.extra
             local side = other and Quirks.Hunt(ns.Scenes:Families(ctx.key), ns.Scenes:Families(other.key))
             if not side then return nil end

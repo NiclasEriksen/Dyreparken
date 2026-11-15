@@ -74,6 +74,9 @@ waits 30 s after login, the quest path doesn't.
 
 ## Lua practices
 
+Done 2026-11-15: 1 and 2 (luacheck, its globals from the stubs: tools/lint_config.lua), 3 and 4 (LuaLS headless,
+`---@class` on ns and every module: tools/types.lua). Both in check.sh and CI. Left: 5.
+
 Dyreparken already does better than common practice on the harness (many clients, lossy network,
 taint/protected frames), the wire contract test, field validation, coverage floors in CI, events only while
 needed, a stripped release with a test, and Locale. Cheap improvements, in order:

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Sensors (docs/CLASS_INTERACTIONS.md, part 1; built 2026-11-14, the user: "start building the sensors for
 -- the class interactions"): moments that each describe what happened as a small table, the subject, for the
@@ -23,6 +24,7 @@ local _, ns = ...
 -- DORMANT unless wanted (Sense:Want(kind, owner) / :Drop): a sensor's events are registered only while some
 -- consumer wants it, and the glance's tooltip post-call returns at once. Each fires Bus "SENSE" (kind, subject).
 -- What's secret (a unit in combat: no GUID, its name secret; auras in combat) gives no subject at all.
+---@class Dyreparken.Sense
 local Sense = {}
 ns.Sense = Sense
 local Plain = ns.Plain

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The pet on the card moves (2026-11-10, docs/IDEAS.md "Animating the pet on
 -- demand"; what plays is in docs/FOREVER_API.md):
@@ -27,6 +28,14 @@ local _, ns = ...
 -- our pages covering the card cancel them (the sulk turns back then too).
 -- The research probes (/dp probe anim, pos) and the editors' hook are in
 -- Dev/MovesProbe.lua, which a release doesn't have.
+---@class Dyreparken.Moves
+---@field Update fun(self, card, key) the card's stage's (made at the end of this file)
+---@field Sequence fun(self, ...)
+---@field Cuddle fun(self, key)
+---@field Try fun(self, key, what, whole)
+---@field Stop fun(self)
+---@field Relift fun(self)
+---@field override? table Dev/MovesProbe.lua's editors (a release leaves it nil)
 local Moves = {}
 ns.Moves = Moves
 

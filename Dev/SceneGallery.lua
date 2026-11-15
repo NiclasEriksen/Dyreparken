@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- A development tool: every candidate picture that exists on this client,
 -- as thumbnails, to pick one per slot.
@@ -9,6 +10,7 @@ local _, ns = ...
 -- Choose a slot at the top, then click a thumbnail; right-click clears the
 -- slots that use it. The picks are read from SavedVariables and made the
 -- defaults in code.
+---@class Dyreparken.SceneGallery
 local Gallery = {}
 ns.SceneGallery = Gallery
 

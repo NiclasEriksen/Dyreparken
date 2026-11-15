@@ -1,10 +1,12 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Companions we don't know (2026-11-14, the user: "notify the user when they spot/learn a companion that's not
 -- in our list, so they can tell me so we can add it"): a species not in Data/Companions.lua, seen under the
 -- mouse (Tooltip's COMPANION_SEEN), learned (NEW_PET_ADDED), or already owned at login. One chat line per
 -- species per account, ever (DyreparkenDB.unlisted), with its name and species id and who to tell
 -- (Config.REPORT_TO). Forever adds pets the journal hides (Azurky, 2026-11-09), so a few will turn up.
+---@class Dyreparken.Unlisted
 local Unlisted = {}
 ns.Unlisted = Unlisted
 

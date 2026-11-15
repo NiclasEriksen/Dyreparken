@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 local L = ns.L
 
 -- Every text players read, in Norwegian (bokmål). Edit freely: the code only

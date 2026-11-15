@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Party games framework.
 --
@@ -29,6 +30,7 @@ local _, ns = ...
 -- Building blocks (TODO, add as games need them): countdown, timer, scoreboard,
 -- item-count tracking (BAG_UPDATE_DELAYED, only while a game runs), zone/area
 -- check, raid warnings.
+---@class Dyreparken.Games
 local Games = { defs = {}, active = nil }
 ns.Games = Games
 

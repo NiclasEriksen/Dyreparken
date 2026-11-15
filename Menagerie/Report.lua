@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The answering half of the old /dp rapport (who in the group has no
 -- companion out). The command was removed on 2026-11-09, when the addon
@@ -6,6 +7,7 @@ local _, ns = ...
 -- still on 0.2.x can run it, so we keep answering them: PET_REQ on the
 -- group channel -> PET { out } on the same channel, at most once per
 -- MayReply window.
+---@class Dyreparken.Report
 local Report = {}
 ns.Report = Report
 

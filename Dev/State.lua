@@ -1,10 +1,12 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- /dp state (2026-11-14, the user: "we both need better tools to log / test in game"): why nothing is said
 -- right now, at a glance. The pet out and its day of points, the cooldowns of the quirk lines and the
 -- reactions and what's on its way, what was said today, today's wish, and what the addon listens to.
 -- A few lines in chat; the whole of it in the debug log too (/dp state, then /reload, tools/log.lua -m State).
 if not ns.DEV then return end
+---@class Dyreparken.State
 local State = {}
 ns.State = State
 

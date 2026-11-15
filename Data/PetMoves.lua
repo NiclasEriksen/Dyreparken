@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- How the pet on the journal card moves (Menagerie/Moves.lua). EDIT BY HAND.
 --

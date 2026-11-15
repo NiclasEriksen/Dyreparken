@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- /dp try (2026-11-14, the user: "we both need better tools to log / test in game"): a line now, to see its
 -- text and its move in game without waiting for its moment. Nothing is counted or spent (no egg found, no
@@ -12,6 +13,7 @@ local _, ns = ...
 --   /dp try wish <id> [zone]      today's wish becomes this one (not done yet), the card redrawn
 -- A {placeholder} the moment would fill shows as <name>.
 if not ns.DEV then return end
+---@class Dyreparken.Try
 local Try = {}
 ns.Try = Try
 

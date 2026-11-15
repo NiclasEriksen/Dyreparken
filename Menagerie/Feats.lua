@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Feats (2026-11-12, the user, for 0.5): a character's big moments, shared with the pet that's out.
 --
@@ -26,6 +27,7 @@ local _, ns = ...
 -- be real (the spellbook arriving late): those are taken as already had.
 -- The IDs are Classic's (Forever uses them: 189, 582, 596 in the log) and Forever's where known
 -- (docs/IDEAS.md, 2026-11-12; /dp probe api feats reads them in the client).
+---@class Dyreparken.Feats
 local Feats = {}
 ns.Feats = Feats
 

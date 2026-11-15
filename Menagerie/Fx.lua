@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Little bursts of the card's particles outside the journal (2026-11-09).
 --
@@ -17,6 +18,7 @@ local _, ns = ...
 -- between bursts. The same engine plays the card's bursts (Fx:Emit: the bond's
 -- celebration, a cuddle's ripple and hearts, the paw badge's ring) on the card's
 -- own layer, a pool per parent.
+---@class Dyreparken.Fx
 local Fx = {}
 ns.Fx = Fx
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Moments (2026-11-14, round 2: docs/ROUND2.md 3.1): what Quirks' eggs and dislikes and the class reactions
 -- (Reactions.lua) share, once. A moment is a line your pet says a little after something happened:
@@ -19,6 +20,7 @@ local _, ns = ...
 --
 -- What a moment uses up (the cooldown, the day, a find) is saved when it's said, not when it's decided: a
 -- /reload in the delay used to spend it unsaid (code review 2026-11-10).
+---@class Dyreparken.Moments
 local Moments = {}
 ns.Moments = Moments
 

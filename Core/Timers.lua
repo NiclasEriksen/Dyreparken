@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Cancellable timers (docs/REFACTOR.md, Phase 4). C_Timer.After can't be taken back, so every
 -- module that needed to wrote its own token guard ("if self.token ~= token then return end"), and

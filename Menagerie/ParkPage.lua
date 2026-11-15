@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- "Parken": the park map, a page of the Collections window (a SidePage,
 -- see Core/SidePage.lua), next to the achievements.
@@ -30,6 +31,7 @@ local _, ns = ...
 -- Everything comes from the registry; nothing is sent. We can't know which
 -- pets other members own (that isn't synced), so there's no "nobody has it".
 -- Loads after Achievements/Page.lua, so its tab comes second.
+---@class Dyreparken.ParkPage
 local Park = {}
 ns.ParkPage = Park
 

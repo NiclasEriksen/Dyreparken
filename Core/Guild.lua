@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Guild roster snapshot, for "has this owner left / gone inactive?".
 --
@@ -18,6 +19,7 @@ local _, ns = ...
 --
 -- (unverified on Forever) roster name format and GetGuildRosterLastOnline;
 -- `/dp probe` logs the first rows.
+---@class Dyreparken.Guild
 local Guild = { members = {}, complete = false, at = 0 }
 ns.Guild = Guild
 

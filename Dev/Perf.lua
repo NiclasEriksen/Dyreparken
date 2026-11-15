@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- /dp probe perf (2026-11-14, the user: better tools in game; the review that found 0.6.2's sensors hearing
 -- every unit's casts): calls and time per event handler (by event and the module listening), Bus event and
@@ -7,6 +8,7 @@ local _, ns = ...
 -- shows them), the addon's average and peak frame time too. A handler's time includes what it calls: the
 -- Bus's and the sources' rows are inside their events' rows.
 if not ns.DEV then return end
+---@class Dyreparken.Perf
 local Perf = { rows = {} }
 ns.Perf = Perf
 

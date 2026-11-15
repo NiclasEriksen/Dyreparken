@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The bond (bånd) between a member and the companion they care for
 -- (docs/PET_LIFE.md). Points grow and never shrink; they pause while you're
@@ -21,6 +22,7 @@ local _, ns = ...
 -- Bond is data: it prints nothing. What players read about it is Bonds.lua's,
 -- from the Bus: BOND_LEVEL (key, level, name), BOND_FULL (key), BOND_LINE
 -- (key, text: a liked thing's flavor, a wish, a first, a playdate).
+---@class Dyreparken.Bond
 local Bond = {}
 ns.Bond = Bond
 

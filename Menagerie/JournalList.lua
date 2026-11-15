@@ -1,10 +1,12 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The pet journal's list (JournalUI wires it): a marker on each button
 -- (heart = yours, paw = someone else's, ring = yours to adopt), the bond
 -- level in a ring, the nickname after the name, a gold paw on the pet kept
 -- out, and who cares for it in the button's tooltip. Per-button state lives
 -- in our own weak tables, never on Blizzard's frames (taint).
+---@class Dyreparken.JournalList
 local JournalList = {}
 ns.JournalList = JournalList
 

@@ -1,9 +1,13 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The journal's layout probes (development only, never packaged:
 -- #@do-not-package@ in the TOC): /dp probe card and /dp probe tabs. They
 -- extend ns.JournalUI and ns.AchPage.
-local JournalUI, Page = ns.JournalUI, ns.AchPage
+---@class Dyreparken.JournalUI
+local JournalUI = ns.JournalUI
+---@class Dyreparken.AchPage
+local Page = ns.AchPage
 
 -- /dp probe card: what Blizzard's pet card is made of on Forever (2026-11-08:
 -- to hide its title row, the pet's icon and name at the top, we need its

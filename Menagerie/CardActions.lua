@@ -1,9 +1,11 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The card's buttons, right of Blizzard's Summon button (which on Forever
 -- sits at the journal's bottom left, under the list): Adopter / Gi slipp and
 -- Kallenavn, and the popups they open. The popups' Accept is the click that
 -- allows the guild chat post (Bonds:Announce).
+---@class Dyreparken.CardActions
 local CardActions = {}
 ns.CardActions = CardActions
 

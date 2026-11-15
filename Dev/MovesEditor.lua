@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- /dp probe moves (development, 2026-11-10): a window to step through every
 -- companion on the pet card and pick, for each part of each reaction (lying
@@ -16,6 +17,7 @@ local _, ns = ...
 -- DyreparkenDB.movePicks (species id -> { part = id or false, sleepAt = n }), to be
 -- read from the SavedVariables and written into the file. While open, the card
 -- uses the picks (Moves:For).
+---@class Dyreparken.MovesEditor
 local Editor = {}
 ns.MovesEditor = Editor
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Creatures in the world, as our families (docs/CLASS_INTERACTIONS.md, part 1.4), EDITED BY HAND: what a
 -- hunter's pet, a warlock's demon or a beast under the mouse is to our pets (kin, prey, a hunter: Quirks.PREY).

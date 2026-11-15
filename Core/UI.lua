@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- A small UI kit for our frames (docs/REFACTOR.md, Phase 4): pieces that were written out
 -- once per module. Tooltips are in Init.lua (ns.SetTip, ns.ShowTip), animations in Anim.lua.

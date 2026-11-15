@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The settings page (2026-11-10): a page of the Collections window like
 -- Parken and Prestasjoner (Core/SidePage.lua), but with no side tab: a small
@@ -17,6 +18,7 @@ local _, ns = ...
 --   petFrameArt    its background and border (off by default: it floats)
 --   petFrameCombat hidden in combat; petFrameFade faded to petFrameAlpha (0.25) when nothing happens (2026-11-11)
 -- Modules read them with Settings:On(key) / Settings:Get(key).
+---@class Dyreparken.Settings
 local Settings = {}
 ns.Settings = Settings
 

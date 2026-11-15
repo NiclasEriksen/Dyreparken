@@ -15,5 +15,11 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install LuaJIT and luacheck
         run: sudo apt-get update -qq && sudo apt-get install -y -qq luajit lua-check
+      - name: Install the Lua language server
+        run: |
+          v=3.19.2
+          mkdir -p "$HOME/luals" && cd "$HOME/luals"
+          curl -sSL "https://github.com/LuaLS/lua-language-server/releases/download/$v/lua-language-server-$v-linux-x64.tar.gz" | tar xz
+          echo "$HOME/luals/bin" >> "$GITHUB_PATH"
       - name: Run checks
         run: tools/check.sh

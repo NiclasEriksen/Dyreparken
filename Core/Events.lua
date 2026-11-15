@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- One frame for every game event (and one per unit, for a unit's events only). Modules
 -- subscribe with ns.Events:On and unsubscribe with :Off; a frame only stays registered for
@@ -6,6 +7,7 @@ local _, ns = ...
 --
 -- Registering an event the client doesn't know throws on Forever and would
 -- abort the file, so registration is pcall'd and reported once.
+---@class Dyreparken.Events
 local Events = {}
 ns.Events = Events
 

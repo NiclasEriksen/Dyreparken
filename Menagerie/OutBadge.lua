@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- "Med deg" (2026-11-09): which pet auto-summon keeps out, as a round paw
 -- badge at the top right of the pet's box. It replaced a plain "Hold ute"
@@ -9,6 +10,7 @@ local _, ns = ...
 -- from Parken, Dagens dyr), a dim "Ikke samlet" in its place (2026-11-09:
 -- nothing said whose pet you were looking at); greyed while AutoCompanion
 -- does the summoning.
+---@class Dyreparken.OutBadge
 local OutBadge = {}
 ns.OutBadge = OutBadge
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Keeping the registry the same on every client.
 --
@@ -32,6 +33,7 @@ local _, ns = ...
 -- monotonically, so this settles after a round or two.
 --
 -- Everything is idle between logins and edits: no timers, no polling.
+---@class Dyreparken.Sync
 local Sync = {}
 ns.Sync = Sync
 
@@ -98,6 +100,7 @@ function Sync:Digest()
     for _, row in ipairs(Sync.TABLES) do
         for k, v in pairs(row.source()) do
             if row.nested then
+                ---@diagnostic disable-next-line: redundant-parameter (the rows' digests differ: nested ones take an author)
                 for author, e in pairs(v) do parts[#parts + 1] = row.digest(k, author, e) end
             else
                 parts[#parts + 1] = row.digest(k, v)
@@ -242,6 +245,7 @@ local function MergeAll(msg, from)
                 for key, byKey in pairs(t) do
                     if type(byKey) == "table" then
                         for author, e in pairs(byKey) do
+                            ---@diagnostic disable-next-line: redundant-parameter (as above: a nested row's merge)
                             if row.merge(key, author, e, from) and row.registry then Changed(row, key) end
                         end
                     end

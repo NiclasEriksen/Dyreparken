@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Backgrounds behind the companion on the pet card, by family (our tags in
 -- Data/Companions.lua). Each family lists candidate textures, best first;
@@ -6,6 +7,8 @@ local _, ns = ...
 -- art Forever ships is unknown (2026-11-08), so these are guesses until
 -- `/dp probe bg` has listed them and they've been looked at in game
 -- (`/dp probe bg <n>` previews one on the card).
+---@class Dyreparken.Scenes
+---@field override? any a dev tool's hook (Dev/; a release leaves it nil)
 local Scenes = {}
 ns.Scenes = Scenes
 

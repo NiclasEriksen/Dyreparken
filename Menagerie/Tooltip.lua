@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Reservation info on companion tooltips in the world.
 --
@@ -31,6 +32,7 @@ local _, ns = ...
 -- companion targeted answers it.
 --
 -- Skipped in combat: tooltip text and unit data can be secret values then.
+---@class Dyreparken.Tooltip
 local Tooltip = {}
 ns.Tooltip = Tooltip
 

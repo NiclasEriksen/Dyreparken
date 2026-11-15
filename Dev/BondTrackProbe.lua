@@ -1,7 +1,9 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The bond track's previews (development only, never packaged:
 -- #@do-not-package@ in the TOC). They extend ns.BondTrack.
+---@class Dyreparken.BondTrack
 local Track = ns.BondTrack
 
 -- /dp probe gains [n n ...]: the gains animation on the card's pet as if these

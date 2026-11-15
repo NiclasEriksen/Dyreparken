@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Playdates (2026-11-09): in a group with a guildmate who has their pet out,
 -- both pets get Config.BOND_PLAY_POINTS (at the pet's rate) and a line, once
@@ -12,6 +13,7 @@ local _, ns = ...
 -- Guild members only (the roster must say so); the group channels only.
 -- GROUP_ROSTER_UPDATE stays registered: it's how we learn we've joined, and
 -- the handler returns at once outside a group or with no pet out.
+---@class Dyreparken.Playdate
 local Playdate = {}
 ns.Playdate = Playdate
 

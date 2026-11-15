@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The pet and the damage meter (0.5, 2026-11-12, the user; probed: docs/FOREVER_API.md, docs/IDEAS.md).
 --
@@ -10,6 +11,7 @@ local _, ns = ...
 -- How (no polling: one read per boss kill): Activity's "boss" comes after combat with the pet that was out;
 -- READ_AFTER seconds later the meter's Current session (type 1) is that boss fight alone, in plain numbers,
 -- its sources sorted highest first, ours marked isLocalPlayer. In combat it's all secret, so never then.
+---@class Dyreparken.Meter
 local Meter = {}
 ns.Meter = Meter
 

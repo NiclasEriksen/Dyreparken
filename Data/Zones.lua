@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Zones and what they are to our pets, one row each (2026-11-14, round 2: docs/ROUND2.md 3.3; they were six
 -- lists in five files, a capital's faction in two). EDITED BY HAND. Names are GetZoneText's (enUS, the classic

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Every species' minor like and minor dislike (Menagerie/Personality.lua: unlocked by your own bond with
 -- the pet, the like at level 4, the dislike at level 6), pinned: a species keeps them for good (decided

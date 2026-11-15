@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Integration with the game's companion window (Collections > Pets).
 --
@@ -21,6 +22,7 @@ local _, ns = ...
 --
 -- Wording (decided 2026-11-06): companions are adopted and cared for, never
 -- "reserved" or "claimed" in anything players read.
+---@class Dyreparken.JournalUI
 local JournalUI = {}
 ns.JournalUI = JournalUI
 

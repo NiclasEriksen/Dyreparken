@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- A bond bar: the card's (BondTrack.lua) and the pet frame's (PetFrame.lua). The fill from the
 -- tier's dark to its bright, and the gains since you last looked (2026-11-10, the user: "feedback
@@ -11,6 +12,7 @@ local _, ns = ...
 --   bar:Stop()                         -- the growth ends where it was going, the numbers go
 --
 -- (bar.numbers is the pool of rising numbers: the tests read it.)
+---@class Dyreparken.BondBar
 local BondBar = {}
 ns.BondBar = BondBar
 

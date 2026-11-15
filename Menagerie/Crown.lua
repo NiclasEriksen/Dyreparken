@@ -1,9 +1,11 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The pet of the day's crown (2026-11-10, in place of a halo over its head:
 -- the client can't tell where a pet's head is on its card, /dp probe pos): a
 -- small gold crown at the card's top left, beside the cake when there is one.
 -- Hovering it says so.
+---@class Dyreparken.Crown
 local Crown = {}
 ns.Crown = Crown
 

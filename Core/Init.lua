@@ -1,4 +1,8 @@
-local addonName, ns = ...
+---@class Dyreparken.name
+local addonName = ...
+---@class Dyreparken
+---@field STRICT? boolean set by the tests: our own bugs throw (Registry:WriteOwn)
+local ns = select(2, ...)
 
 -- Shared namespace. Every module hangs off ns; nothing is global except the
 -- SavedVariables and the slash command. Keeps us clear of the 200-locals limit.

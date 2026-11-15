@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The pet joins your fights (2026-11-12, the user: "it looks like the pet is trying to be part of combat,
 -- not necessarily that it's accurate"). On the pet frame only (the card is shut in a fight), now and then:
@@ -12,6 +13,7 @@ local _, ns = ...
 --
 -- Cheap: nothing at all out of combat but the two combat events; in a fight, UNIT_COMBAT for the target
 -- only and your casts (ns.Events' unit hubs), and only while the pet frame shows a pet that joins in.
+---@class Dyreparken.Fight
 local Fight = {}
 ns.Fight = Fight
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Developer commands, English: only in a git checkout (ns.DEV). The file
 -- isn't packaged (#@do-not-package@ in the TOC), and a checkout given a
@@ -46,6 +47,7 @@ for _, p in ipairs(PROBES) do usage[#usage + 1] = p[3] and (p[1] .. " " .. p[3])
 Add("probe", "probe [" .. table.concat(usage, "|") .. "] - dump API info to the debug log (development)", function(arg)
     local word, rest = (arg or ""):match("^(%S*)%s*(.-)$")
     for _, p in ipairs(PROBES) do
+        ---@diagnostic disable-next-line: redundant-parameter (some probes take the rest of the line)
         if p[1] == word then return p[2](rest ~= "" and rest or nil) end
     end
     ns.Pets:Probe()

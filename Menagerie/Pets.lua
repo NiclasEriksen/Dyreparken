@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Read-only access to the player's companion collection (C_PetJournal).
 --
@@ -9,6 +10,7 @@ local _, ns = ...
 --     Locale independent, unlike the name.
 --   * Fallback "n:<speciesName>" only if a client ever returns no ID.
 -- Forever has no pet battles, caging or trading: one copy per companion.
+---@class Dyreparken.Pets
 local Pets = {}
 ns.Pets = Pets
 

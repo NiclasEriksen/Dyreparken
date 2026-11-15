@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The achievements page of the Collections window (a SidePage, see
 -- Core/SidePage.lua for the tab, covering and leaving).
@@ -7,6 +8,7 @@ local _, ns = ...
 -- description, a progress bar or the date earned, and a Del button on what
 -- you can share (Ach:Shareable; a click, so Forever lets it post to guild
 -- chat). Hovering a row lists the pets behind it (Ach:Details).
+---@class Dyreparken.AchPage
 local Page = {}
 ns.AchPage = Page
 

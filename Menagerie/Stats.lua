@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- What you and a pet have done together, on its card (2026-11-08): small
 -- chips at the top, an icon and a count each. "Days out together" first,
@@ -8,6 +9,7 @@ local _, ns = ...
 -- activity only while something watches it: the bond watches the common
 -- ones and your adopted pet's likes, so a pet you only had out now and then
 -- may show fewer kinds than you did with it. Hover a chip for what it counts.
+---@class Dyreparken.Stats
 local Stats = {}
 ns.Stats = Stats
 

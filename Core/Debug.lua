@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Debug log. When debug mode is on, lines go to a capped ring buffer in
 -- DyreparkenDebugDB, which the client writes to
@@ -13,6 +14,7 @@ local _, ns = ...
 -- 2500 animation plays a session, pushing out the rest); a muted module
 -- (/dp debug mute Moves, DyreparkenDebugDB.mute) logs nothing; and every login
 -- starts with a "Session" line, where tools/log.lua splits the log.
+---@class Dyreparken.Debug
 local Debug = { enabled = false }
 ns.Debug = Debug
 

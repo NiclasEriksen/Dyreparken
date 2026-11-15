@@ -1,4 +1,6 @@
-local addonName, ns = ...
+local addonName = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Bootstrap: runs the start-up phases (ns.Start in each module, Core/Init.lua).
 -- SavedVariables exist from ADDON_LOADED on; the guild and group are only

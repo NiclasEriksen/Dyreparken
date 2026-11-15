@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The activity engine: game events become activities ("boss", "quest",
 -- "day", ...) that the bond score, achievements and pet stories all listen
@@ -27,6 +28,7 @@ local _, ns = ...
 -- `mine` counts only what happened with your adopted companion out; `pets`
 -- counts per companion. Counted only while someone listens: an activity
 -- nobody wants isn't watched.
+---@class Dyreparken.Activity
 local Activity = {}
 ns.Activity = Activity
 

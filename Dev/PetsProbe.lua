@@ -1,7 +1,9 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The journal probes (/dp probe, /dp probe more, /dp probe ach): development
 -- only, never packaged (#@do-not-package@ in the TOC). They extend ns.Pets.
+---@class Dyreparken.Pets
 local Pets = ns.Pets
 
 local function Info(guid)

@@ -1,10 +1,15 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Decorations on the pet card (planned 2026-11-08): more as the bond grows,
 -- small touches from the pet's traits. Which art Forever ships for them was
 -- unknown, so it began as a probe: `/dp probe decor` and `frames` show the
 -- candidates that exist in a gallery to pick from (Dev/DecorProbe.lua, not
 -- in a release; the picks are written into this file).
+---@class Dyreparken.Decor
+---@field override? any a dev tool's hook (Dev/; a release leaves it nil)
+---@field show? any the galleries' pick (Dev/DecorProbe.lua)
+---@field preview? integer a previewed bond level (Dev/DecorProbe.lua)
 local Decor = {}
 ns.Decor = Decor
 

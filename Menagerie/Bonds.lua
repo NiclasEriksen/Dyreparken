@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The friendship between a member and their companion.
 --
@@ -21,6 +22,7 @@ local _, ns = ...
 -- the click or command that did it (guild chat needs a hardware event).
 -- Per character, on by default (/dp kunngjør). The same line isn't repeated
 -- within an hour, in case someone flips back and forth.
+---@class Dyreparken.Bonds
 local Bonds = {}
 ns.Bonds = Bonds
 

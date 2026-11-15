@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The pet card's widgets, each registered once (Phase 4 of docs/REFACTOR.md). A widget used to
 -- appear in up to four places: its Build in JournalUI, a line in its update list, a line in the
@@ -22,6 +23,7 @@ local _, ns = ...
 -- chips go under the decor's ribbon, the wish under the chips, the crown beside the cake, the
 -- cuddle needs the model the "rotate" step finds, and the bond's celebration cheers before the
 -- pet's pose (moves) is set.
+---@class Dyreparken.Card
 local Card = {}
 ns.Card = Card
 

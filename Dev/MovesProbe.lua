@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The research probes for the pet on the card (development only, never
 -- packaged: #@do-not-package@ in the TOC). They extend ns.Moves.
@@ -15,6 +16,7 @@ local _, ns = ...
 -- And the editors' hook: while /dp probe lift or moves is open, or /dp probe
 -- anim night is on, Moves.override (which a release never sets) puts their
 -- picks first (Moves:For), stands the pet (Moves:Rest) or makes it night.
+---@class Dyreparken.Moves
 local Moves = ns.Moves
 
 -- A method call that may not exist (a missing method, or our harness's

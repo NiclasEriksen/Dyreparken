@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- SavedVariables and their migrations.
 --
@@ -14,6 +15,7 @@ local _, ns = ...
 -- A schema with no migration step is kept as it is, never wiped (it was wiped
 -- until 0.1.0, which would now throw away every guild's registry for one
 -- missing step); the tests check the steps have no gaps.
+---@class Dyreparken.DB
 local DB = {}
 ns.DB = DB
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Achievement definitions: what it takes, not what it's called (Locale/nb.lua, ns.AchTexts).
 -- The order here is the order on the page and in lists.

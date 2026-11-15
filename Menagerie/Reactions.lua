@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Class reactions (docs/CLASS_INTERACTIONS.md; the first batch 2026-11-14, the user: "your own class: casts and
 -- forms", all nine classes, the 3-4 best rows each). Your pet, out with you, reacts to what your class does: a
@@ -14,6 +15,7 @@ local _, ns = ...
 -- char.reactAt), beside the eggs' 45; rare ones always. Each row once a day. Something done in a fight is said
 -- after it. No line while another is on its way, an egg's either (Moments.lua).
 -- Lines: Locale/nb.lua, react.<id>.N and react.<id>.<trait|family>.N.
+---@class Dyreparken.Reactions
 local Reactions = {}
 ns.Reactions = Reactions
 

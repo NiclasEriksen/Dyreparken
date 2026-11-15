@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- /dp probe lift (development, 2026-11-10): a small window to step through
 -- every companion on the pet card and set how far up or down it stands
@@ -6,6 +7,7 @@ local _, ns = ...
 -- the file's is saved in DyreparkenDB.liftPicks (species id -> lift), to be
 -- read from the SavedVariables and written into Data/PetMoves.lua. While the
 -- window is open the card uses the picks (Moves:For); closed, the file's again.
+---@class Dyreparken.LiftEditor
 local Editor = {}
 ns.LiftEditor = Editor
 

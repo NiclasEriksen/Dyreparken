@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- What peers accept from the wire, in one place (2026-11-12; until then the
 -- limits sat in five files, and "bump X-Protocol when one changes" was a rule
@@ -12,6 +13,7 @@ local _, ns = ...
 --
 -- Primitive checks only. A store's entries (a claim, a naming, a bond) are
 -- checked in Registry, built from these.
+---@class Dyreparken.Wire
 local Wire = {}
 ns.Wire = Wire
 

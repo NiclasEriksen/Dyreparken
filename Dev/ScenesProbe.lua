@@ -1,8 +1,10 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The backgrounds' probe (development only, never packaged: #@do-not-package@
 -- in the TOC). It extends ns.Scenes. /dp probe bg <n> shows a candidate on
 -- every card through Scenes.override, which a release never sets.
+---@class Dyreparken.Scenes
 local Scenes = ns.Scenes
 local EJ = "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-"
 

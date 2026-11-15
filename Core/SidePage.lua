@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Our own pages of the Collections window (achievements, the park map).
 --
@@ -30,6 +31,7 @@ local _, ns = ...
 -- tab = false: no side tab or fallback button (something else opens it: the
 -- settings' cog).
 -- build fills p.frame (the cover, background already set); refresh redraws.
+---@class Dyreparken.SidePage
 local SidePage = {}
 ns.SidePage = SidePage
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- A pet's story (2026-11-10, docs/PET_LIFE.md stage 5): a short timeline of
 -- its life in the guild, as this client sees it. Local only, nothing on the
@@ -23,6 +24,7 @@ local _, ns = ...
 --
 -- Shown from a small book button on the card (only when there's a story),
 -- as a panel right of the Collections window, newest first.
+---@class Dyreparken.Story
 local Story = {}
 ns.Story = Story
 

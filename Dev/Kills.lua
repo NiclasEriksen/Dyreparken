@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Research probes (debug log only). What's settled lives in Core/Activity.lua
 -- now, which logs every activity with its pet while the debug log is on:
@@ -10,6 +11,7 @@ local _, ns = ...
 -- `/dp probe life`: which events, functions and chat formats the traits
 -- read exist, and the context a trait's moment sees.
 -- `/dp probe world`: companions' nameplates (at the end of the file).
+---@class Dyreparken.Kills
 local Kills = {}
 ns.Kills = Kills
 

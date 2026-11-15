@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The bond on the pet card (2026-11-08): the part of the card people look at
 -- to see how far they've come, so it should feel like progress.
@@ -12,6 +13,8 @@ local _, ns = ...
 -- on its card yet: a flash of light, a burst of sparks and hearts, the
 -- level's name rising over the pet, a sound. Seen levels are kept per pet
 -- (char.bondSeen), so it happens once, the next time you look.
+---@class Dyreparken.BondTrack
+---@field override? any a dev tool's hook (Dev/; a release leaves it nil)
 local Track = {}
 ns.BondTrack = Track
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The game's own holidays (2026-11-11, the user: "go by ingame events as well"): from the
 -- calendar, today's events read once a day. The calendar loads them a moment after
@@ -8,6 +9,7 @@ local _, ns = ...
 -- too often, the user), the weekly Stranglethorn fishing contest, and the Call to Arms
 -- battleground weekends. They count like our own holidays (Personality.Holiday): Festglad's
 -- day, its confetti, and an easter egg each (Quirks).
+---@class Dyreparken.Holidays
 local Holidays = {}
 ns.Holidays = Holidays
 

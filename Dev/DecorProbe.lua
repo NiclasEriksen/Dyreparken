@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The decorations' probes and previews (development only, never packaged:
 -- #@do-not-package@ in the TOC). They extend ns.Decor:
@@ -7,6 +8,7 @@ local _, ns = ...
 --   /dp probe level <n> the card dressed as that bond level
 -- While a gallery or a level preview is open, Decor.override (which a
 -- release never sets) dresses the card, and BondTrack.override shows the level.
+---@class Dyreparken.Decor
 local Decor = ns.Decor
 
 -- Our own particles first in their slots.

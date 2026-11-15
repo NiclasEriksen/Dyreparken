@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Our own Lua errors into the debug log (2026-11-14, the user: "we both need better tools to log / test in
 -- game"): read with the rest of the log, in order and with their stack, instead of from a screenshot.
@@ -6,6 +7,7 @@ local _, ns = ...
 -- tells EventRegistry "BugGrabber.BugGrabbed" with the error's id; without it, a handler of ours goes in
 -- front of the one there. Only errors that name a file of ours; the first of each in full, then a count.
 if not ns.DEV then return end
+---@class Dyreparken.Errors
 local Errors = { seen = {}, count = 0 }
 ns.Errors = Errors
 

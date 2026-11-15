@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Every species' two personality traits (Menagerie/Personality.lua), pinned:
 -- a species keeps them for good, whatever traits are added later (decided

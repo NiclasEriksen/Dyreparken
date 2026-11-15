@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Version awareness.
 --  * On login we send HELLO to the guild with our version and protocol.
@@ -8,6 +9,7 @@ local _, ns = ...
 --    whisper or a party's message could print a forged notice and, remembered, silence the real ones).
 --  * VER_REQ: clients on 0.2.x can ask the guild/group for versions (the
 --    command was removed 2026-11-09); we still answer VER on that channel.
+---@class Dyreparken.Version
 local Version = { seen = {} } -- seen[player] = version
 ns.Version = Version
 

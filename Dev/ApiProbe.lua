@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- /dp probe api (development, 2026-11-11): what this client really has, instead of
 -- guessing. The user: "we're going to run a bunch of probes determining what
@@ -37,6 +38,7 @@ local _, ns = ...
 --               not, the sources, your place), saved; and from then on, this session, every DAMAGE_METER_*
 --               event and each combat's end logged with the same read ("meter ..." lines in the log).
 --               Retail's docs: the data is SecretWhenInCombat; out of combat it should read.
+---@class Dyreparken.ApiProbe
 local Api = {}
 ns.ApiProbe = Api
 

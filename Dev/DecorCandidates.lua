@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- GENERATED from the retail atlas list (Ketho/BlizzardInterfaceResources, AtlasInfo.lua, 2026-11-08) by
 -- name, for /dp probe decor (Dev/DecorProbe.lua): candidates per slot, best guesses first. Development only:

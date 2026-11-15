@@ -1,8 +1,10 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The activity engine's sources (Core/Activity.lua), by area: what in the game counts as each activity in
 -- Activity.KINDS. Split from the engine 2026-11-14 (round 2: docs/ROUND2.md 3.4). A source:
 -- Activity:Source({ id, events, unit, when, filter, hook, start, available }), read the engine's header.
+---@class Dyreparken.Activity
 local Activity = ns.Activity
 local Today, Plain = ns.Today, ns.Plain
 local PetNow = Activity.PetNow -- (the companion out: key, and whether it's the adopted one)

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Today's wish (2026-11-08): each day your adopted pet wishes for one thing
 -- it likes. Done with it out, the wish brings Config.BOND_WISH_POINTS (past
@@ -13,6 +14,7 @@ local _, ns = ...
 -- Streaks (2026-11-11, the user): every day a wish comes true counts, whichever adopted pet
 -- wished it (char.wishes); a day without one ends the run. Shown on the line from two days in a
 -- row; achievements at 7 and 30 in a row and 100 in all.
+---@class Dyreparken.Wish
 local Wish = {}
 ns.Wish = Wish
 
@@ -268,6 +270,7 @@ function Wish.SeenAll(key)
     local seen = {}
     for place in pairs(ns.DB.char.places[key] or {}) do
         local map = tonumber(place:match("^m(%d+)$"))
+        ---@type { name: string }?
         local info = map and C_Map and C_Map.GetMapInfo and Call(C_Map.GetMapInfo, map)
         local name = info and ns.Plain(info.name) or place:match("^z(.+)$")
         if name then seen[name] = true end

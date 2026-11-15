@@ -28,8 +28,9 @@ quirks. When you learn something new about the client, add it there with the dat
 - `tools/check.sh` runs the TOC↔file check, a Lua 5.1 syntax check (luajit), a scan for 5.2+ syntax, a scan for
   reads of unknown lowercase globals (a misspelt or undeclared local; the known ones are listed in it),
   luacheck (its config from the harness's stubs, `tools/lint_config.lua`: a client API must be stubbed before lint takes
-  it; one read only behind an existence check goes in its OPTIONAL list; `-- luacheck: ignore NNN (why)` for a meant one), and
-  the test suite with coverage floors (~50 s). `tools/check.sh --quick` skips coverage (~5 s). The runner
+  it; one read only behind an existence check goes in its OPTIONAL list; `-- luacheck: ignore NNN (why)` for a meant one),
+  the Lua language server headless (fields and arguments: `ns.Bodn`, `ns.Wish:Grnat()`, an argument too many; value
+  types are off in .luarc.json), and the test suite with coverage floors (~50 s). `tools/check.sh --quick` skips coverage (~5 s). The runner
   uses every core (`--jobs=N`; one process for a filter or `-v`): coverage alone made a run ~9x slower.
 - The game can't run from here. For in-game checks, ask the user to `/reload` and run `/dp debug on`, then
   `/dp probe` or the feature. Then read the log at
@@ -39,6 +40,12 @@ quirks. When you learn something new about the client, add it there with the dat
   text, `--summary`, `--errors`, `--dump api.glance`). Each login writes a `Session` line; a line repeated right
   after itself becomes " (xN)"; `/dp debug mute <Module>` silences a noisy one. Our own Lua errors go into the log
   with their stack (Dev/Errors.lua, through BugGrabber), and `--errors` also reads BugGrabber's saved ones.
+
+**Types** (2026-11-15): every file starts `---@class Dyreparken` / `local ns = select(2, ...)` (one class in parts), and
+a module's table has its class: `---@class Dyreparken.Wish` above `local Wish = {}` (`ns.Wish = Wish`), and above
+`local X = ns.X` in a file that adds to it (Core/Sources.lua, Dev/). `luajit tools/types.lua` writes the namespace's
+fields to tools/types/ns.lua (check.sh does). Fields set elsewhere or at run time: `---@field` under the class line
+(Moves' card methods, the dev hooks). `---@diagnostic disable-next-line: <code> (why)` for a meant exception.
 
 ## Testing
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- A companion's personality (docs/PET_LIFE.md): what it likes doing with you,
 -- and two traits. It belongs to the species, so every client agrees without
@@ -20,6 +21,7 @@ local _, ns = ...
 -- change (decided 2026-11-08). For a species not in there, two from its id,
 -- never a pair that contradicts itself (Flokkdyr and Einstøing); that pick
 -- moves when traits are added, which is why it's pinned.
+---@class Dyreparken.Personality
 local Personality = {}
 ns.Personality = Personality
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The pet frame (2026-11-11, the user): the pet that's out, on screen, with its name and your bond
 -- with it. Optional, off by default (Settings: petFrame), on a transparent background. Only to look
@@ -26,6 +27,7 @@ local _, ns = ...
 --
 -- Dormant while off: no frame, no events. On: COMPANION_UPDATE (debounced: it fires for every
 -- companion nearby), pet battles and death, to follow the pet; Bus BOND for the bar, ACTIVE_PET.
+---@class Dyreparken.PetFrame
 local PF = {}
 ns.PetFrame = PF
 

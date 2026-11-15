@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Pet it on the card (2026-11-08): a click on the pet (not a drag, which
 -- turns the model) answers quietly where you clicked: a ripple, a few small
@@ -7,6 +8,7 @@ local _, ns = ...
 -- text (a speech bubble read badly, the user decided). Once a day it's a
 -- cuddle for the bond too (the activity "cuddle", as /pet would be), when
 -- the card shows a pet of yours that's out (any pet, adopted or not: the user, 2026-11-12).
+---@class Dyreparken.Cuddle
 local Cuddle = {}
 ns.Cuddle = Cuddle
 

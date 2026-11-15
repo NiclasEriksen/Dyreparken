@@ -1,8 +1,10 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Animation pieces shared by the pet card (Decor, BondTrack, Cuddle). What
 -- the client taught us (docs/FOREVER_API.md, 2026-11-08): no BOUNCE loops
 -- (they blink where they turn), and one playing group per region.
+---@class Dyreparken.Anim
 local Anim = {}
 ns.Anim = Anim
 

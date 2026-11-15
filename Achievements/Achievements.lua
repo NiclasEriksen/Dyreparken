@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Achievements: evaluation, saved state, notices, sharing, and guild sync.
 -- The plan and its decisions are in docs/ACHIEVEMENTS.md.
@@ -46,6 +47,7 @@ local _, ns = ...
 -- Dormant: checks run at login, when a pet is learned (NEW_PET_ADDED), when
 -- the journal opens, when your own adoption changes, and (debounced) when
 -- the registry changes. No polling.
+---@class Dyreparken.Achievements
 local Ach = {}
 ns.Achievements = Ach
 

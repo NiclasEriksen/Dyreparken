@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- The guild's companion reservations.
 --
@@ -62,6 +63,7 @@ local _, ns = ...
 -- lapses, which are about people who left: a returning member's own client
 -- still has its old claim, and only the lapse stops it taking the pet back.
 -- Lapses have a cap of their own instead (Wire.LIMITS.LAPSES_MAX).
+---@class Dyreparken.Registry
 local Registry = {}
 ns.Registry = Registry
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Auto-summon the reserved companion when none is out.
 --
@@ -29,6 +30,7 @@ local _, ns = ...
 --  * Food/drink buffs are found by spell name (the client's language), via
 --    C_UnitAuras.GetAuraDataBySpellName; auras can be secret, so a secret or
 --    unreadable answer counts as "busy".
+---@class Dyreparken.Summon
 local Summon = {}
 ns.Summon = Summon
 

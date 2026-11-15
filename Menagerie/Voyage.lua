@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Zeppelins and boats (0.5, 2026-11-12, the user: "tie into fear of flying / love of flying like flight paths do";
 -- the richer kind, boats too). The client has no API for being on a transport; /dp probe api transport showed what
@@ -15,6 +16,7 @@ local _, ns = ...
 -- from Ratchet reads "Durotar" halfway (2026-11-14, the user: a friend's pet said zeppelin lines on the boat to
 -- Booty Bay), so Durotar to Stranglethorn is either kind. A pair both kinds list is decided by where you are on
 -- the map of the end in SPLIT (Grom'gol's tower is in the north of Stranglethorn, Booty Bay at its southern tip).
+---@class Dyreparken.Voyage
 local Voyage = {}
 ns.Voyage = Voyage
 

@@ -1,4 +1,5 @@
-local _, ns = ...
+---@class Dyreparken
+local ns = select(2, ...)
 
 -- Addon messaging. One prefix; every message is a table
 --   { k = kind, p = PROTOCOL, ... }
@@ -37,6 +38,7 @@ local _, ns = ...
 --  * SendAddonMessage may return AddOnMessageLockdown (11); when it applies
 --    isn't documented. We log result codes so we can find out.
 --  * Anyone can send anything: treat every message as untrusted input.
+---@class Dyreparken.Comm
 local Comm = {}
 ns.Comm = Comm
 

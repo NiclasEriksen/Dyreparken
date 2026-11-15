@@ -9,7 +9,10 @@
 #     reads as nil there, silently (2026-11-15: Parken's rings read `match` before it was declared).
 #  5. luacheck (2026-11-15), its config built from the harness's stubs (tools/lint_config.lua): writes to
 #     globals, reads of globals and C_* fields the stubs lack (GetZonetext, C_PetJournal.GetPetInfoBySpeciesId).
-#  6. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
+#  6. The Lua language server, headless (2026-11-15): the namespace's fields and modules' methods
+#     (tools/types.lua writes tools/types/ns.lua from the code), arguments past a function's. Types of values
+#     are left out (.luarc.json: our `a and b or c` idioms read as mismatches).
+#  7. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
 #     Coverage floors: Menagerie 95%, Achievements 95%, Core 90%. Games has none on purpose (see CLAUDE.md).
 set -u
 quick=0
@@ -64,6 +67,28 @@ if command -v luacheck >/dev/null; then
     fi
 else
     echo "LINT: luacheck not installed (Arch: pacman -S luacheck; Debian/Ubuntu: apt install lua-check)"; fail=1
+fi
+
+if command -v lua-language-server >/dev/null; then
+    luajit tools/types.lua || { echo "TYPES: tools/types.lua failed"; fail=1; }
+    log=$(mktemp -d)
+    out=$(lua-language-server --check="$PWD" --checklevel=Warning --logpath="$log" --check_format=json 2>&1)
+    if ! grep -qE "no problems found|complete, 0 problems" <<<"$out"; then
+        if [[ -f $log/check.json ]]; then
+            # (one line a problem: file:line code message; its lines count from 0)
+            python3 -I -c 'import json, sys
+for f, ds in sorted(json.load(open(sys.argv[1])).items()):
+    for d in ds:
+        print("%s:%d %s %s" % (f.split("Dyreparken/")[-1], d["range"]["start"]["line"] + 1, d["code"], d["message"].splitlines()[0]))' \
+                "$log/check.json" | head -40 | sed 's/^/TYPES: /'
+        else
+            echo "$out" | tail -5 | sed 's/^/TYPES: /'
+        fi
+        fail=1
+    fi
+    rm -rf "$log"
+else
+    echo "TYPES: lua-language-server not installed (Arch: pacman -S lua-language-server; CI: its release)"; fail=1
 fi
 
 if [[ $fail -eq 0 ]]; then
