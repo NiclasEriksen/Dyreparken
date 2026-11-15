@@ -382,6 +382,18 @@ local function BuildSpot(inset)
     spot.hint:SetPoint("CENTER")
     spot.hint:SetText(ns.L["park.spot.hint"])
     spot:SetScript("OnClick", function(self) if self.key then Park:Show(self.key) end end)
+    -- A stage of Moves, as the pet frame has (2026-11-15, the user: "a good portion of the pets are rendered
+    -- way too high up or even low"): each pet's lift (Data/PetMoves.lua, found by eye on the card) and its
+    -- pose; the day's moments stay the card's. Stopped while the park is hidden.
+    spot.stage = ns.Moves.NewStage("park", {
+        moments = false,
+        private = true, -- (its own scene: nothing else stands it up)
+        actor = function() return spot.actor end,
+        scene = function() return spot.scene end,
+        anchor = function() return spot end,
+    })
+    spot:SetScript("OnHide", function() spot.stage:Update(spot, nil) end)
+    spot:SetScript("OnShow", function() if spot.key then spot.stage:Update(spot, spot.key) end end)
     -- The template's camera runs on every frame drawn: only a moment after a change (PF:Camera).
     local ok, fn = pcall(scene.GetScript, scene, "OnUpdate")
     spot.update = ok and type(fn) == "function" and fn or nil
@@ -413,11 +425,13 @@ function Park:Spot(key, again)
     for _, t in ipairs({ spot.today, spot.name, spot.species, spot.text }) do t:SetShown(key ~= nil) end
     spot.scene:SetShown(key ~= nil)
     spot.card.floor:Hide() -- (the card's shadow under the feet: placed for the card's model only)
-    if not key then return end
+    if not key then spot.stage:Update(spot, nil); return end
     if changed then
+        spot.stage:Update(spot, nil) -- (the last pet's pose ends)
         spot.actor = ns.Pets:LoadModel(spot.scene, key, function()
             ns.Call(spot.scene, "SetViewInsets", unpack(Park.VIEW))
         end)
+        spot.stage:Update(spot, key) -- (its lift and pose)
         Camera()
     end
     spot.today:SetText(key == today and ("|T%s:16|t %s"):format(ns.Icon("crown"), ns.L["park.spot.today"]) or "")

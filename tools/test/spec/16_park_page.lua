@@ -190,6 +190,9 @@ return function(test, H)
         eq(likes, 1, "its personality once (it was twice: 2026-11-15)")
         local scene = P.spot.scene
         eq(scene.actor.display, 20000 + 41, "its model")
+        local lift = ola.ns.Moves:For("s:41", "lift")
+        ok(lift and lift ~= 0, "the cat has a lift")
+        eq(scene.actor.pos[3], lift, "lifted as on the card (Data/PetMoves.lua)")
         eq(scene.scripts.OnUpdate, nil, "its camera still a while after: an open park costs nothing")
         -- Under the mouse: the rabbit; the mouse gone, today's pet again in a moment.
         local rabbit = Cell(ola, 72)
