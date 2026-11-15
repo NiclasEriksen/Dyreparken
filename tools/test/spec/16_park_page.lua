@@ -264,6 +264,40 @@ return function(test, H)
         ok(fenced > 0, "fenced like the others")
     end)
 
+    -- The user, 2026-11-15: "hidden details, like clicking a bush triggers an effect"; a rare surprise too.
+    test("the garden's secrets: a click on a piece, a hop and a few particles; now and then a surprise", function()
+        local w, ola = Setup()
+        ola:OpenJournal({ sideTabs = 4 })
+        local page = ola:Page("Parken")
+        page:Open()
+        local Park = ola.ns.ParkPage
+        for _, piece in ipairs(Park.DECOR) do
+            local g = Park.GARDEN[piece]
+            ok(g, piece .. ": its secret")
+            for _, b in ipairs({ g, unpack(g.surprise or {}) }) do ok(ola.ns.Decor.KINDS[b.kind], piece .. ": " .. b.kind) end
+        end
+        local plots = page:Frames(function(f) return f.art ~= nil and f.pen ~= nil end)
+        local tree, lawn
+        for _, pl in ipairs(plots) do
+            if pl.piece == "tree" and not tree then tree = pl end
+            if not pl.piece then lawn = pl end
+        end
+        eq(lawn.mouse, false, "bare lawn: the mouse goes through")
+        ola:Dice(0.99)
+        ola:Press(tree)
+        eq(ola.ns.Fx:Playing(tree, "garden"), Park.GARDEN.tree.n, "its leaves")
+        ok(tree.hop:IsPlaying())
+        ola:Press(tree)
+        eq(ola.ns.Fx:Playing(tree, "garden"), Park.GARDEN.tree.n, "again at once: nothing more")
+        w:Run(1); ola.ns.Fx:Stop(tree, "garden") -- (the harness plays no animation out by itself)
+        ola:Dice(0)
+        ola:Press(tree)
+        local n = Park.GARDEN.tree.n
+        for _, b in ipairs(Park.GARDEN.tree.surprise) do n = n + b.n end
+        eq(ola.ns.Fx:Playing(tree, "garden"), n, "the surprise: a bird takes off")
+        eq(#ola:Log("the tree's surprise"), 1)
+    end)
+
     test("portraits in rings: the family's color, deeper with the bond, a glint and a shine higher up; none for a free one, gold for yours", function()
         local w, ola, kari = Setup()
         ola:Slash("adopter panda")

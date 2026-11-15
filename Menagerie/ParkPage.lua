@@ -443,6 +443,7 @@ local function Redraw()
                 Park.Pen(pl, "garden", Park.Fences(grid, col, row), col, row)
                 pl.piece = Park.DECOR[n]
                 pl.art:SetShown(pl.piece ~= nil)
+                pl:EnableMouse(pl.piece ~= nil) -- (bare lawn: the mouse goes through)
                 if pl.piece then pl.art:SetTexture(ns.Icon(pl.piece)) end
                 pl:Show()
             end
@@ -569,14 +570,63 @@ end
 Park.DECOR = { "tree", "pond", "flowers", "bush", "stump", "tree", "flowers" }
 Park.LAWN = { 0.3, 0.55, 0.22, 0.22 } -- (r, g, b, a: its tint)
 
--- A cell of the garden: its share of the pen, and a piece of art (Park.DECOR) in the middle. No mouse.
+-- The garden's secrets (2026-11-15, the user: "hidden details, like clicking a bush triggers an effect, so it
+-- comes alive more"; "effects + a rare surprise"): a click on a piece makes it give a little hop and a few of
+-- the card's particles; one in SURPRISE_ONE a surprise of its own. Nothing tells you, nothing is saved.
+-- A piece: { kind, n, color } (Decor.KINDS, as Fx:Burst takes them), and its surprise, the same.
+local GREEN, BROWN = { 0.55, 0.8, 0.3 }, { 0.62, 0.45, 0.28 }
+Park.GARDEN = {
+    tree = { kind = "leaf", n = 5, color = GREEN, -- a bird takes off: feathers, a song
+        surprise = { { kind = "feather", n = 3, color = { 0.95, 0.85, 0.7 } }, { kind = "note", n = 3, color = { 1, 0.85, 0.4 } } } },
+    bush = { kind = "leaf", n = 4, color = GREEN, -- a butterfly was resting in it
+        surprise = { { kind = "butterfly", n = 2, color = { 1, 0.75, 0.3 } } } },
+    pond = { kind = "bubble", n = 4, color = { 0.6, 0.85, 1 }, -- a frog sings (as the Musical Gustjumper's do)
+        surprise = { { kind = "lilypad", n = 2, color = { 0.45, 0.8, 0.4 } }, { kind = "note", n = 4, color = { 0.5, 1, 0.6 } } } },
+    flowers = { kind = "petal", n = 5, color = { 1, 0.7, 0.85 },
+        surprise = { { kind = "butterfly", n = 3, color = { 0.6, 0.8, 1 } } } },
+    stump = { kind = "crumb", n = 4, color = BROWN, -- a squirrel's hidden stash
+        surprise = { { kind = "seed", n = 6, color = { 0.8, 0.6, 0.35 } }, { kind = "paw", n = 2, color = BROWN } } },
+}
+Park.SURPRISE_ONE = 8
+Park.POKE_AGAIN = 0.4 -- seconds: a click sooner on the same piece does nothing (no wall of particles)
+
+-- What a click on a piece gives: its bursts, and whether it was the surprise (pure: the tests read it).
+function Park.Poke(piece, roll)
+    local g = Park.GARDEN[piece]
+    if not g then return {}, false end
+    local out = { { kind = g.kind, n = g.n, color = g.color } }
+    local surprise = roll ~= nil and roll < 1 / Park.SURPRISE_ONE
+    if surprise then for _, b in ipairs(g.surprise or {}) do out[#out + 1] = b end end
+    return out, surprise
+end
+
+-- A cell of the garden: its share of the pen, and a piece of art (Park.DECOR) in the middle; a click on the
+-- piece: Park.Poke.
 function Park.NewPlot()
-    local pl = CreateFrame("Frame", nil, child)
+    local pl = CreateFrame("Button", nil, child)
     pl:SetSize(CELL, CELL)
     Park.Enclosure(pl)
     pl.art = pl:CreateTexture(nil, "ARTWORK")
     pl.art:SetSize(CELL - 6, CELL - 6)
     pl.art:SetPoint("CENTER")
+    -- (a hop: up a little and back, from its middle)
+    local hop = pl.art:CreateAnimationGroup()
+    ns.Anim.Scale(hop, 1, 1.15, 0.1, 1, "OUT")
+    ns.Anim.Scale(hop, 1.15, 1 / 1.15, 0.25, 2, "IN_OUT")
+    pl.hop = hop
+    pl:SetScript("OnClick", function(self)
+        if not self.piece then return end
+        local now = GetTime()
+        if self.pokedAt and now - self.pokedAt < Park.POKE_AGAIN then return end
+        self.pokedAt = now
+        local bursts, surprise = Park.Poke(self.piece, ns.random())
+        self.hop:Stop(); self.hop:Play()
+        for i, b in ipairs(bursts) do
+            ns.Fx:Burst({ self, "CENTER", 0, 0 }, b.kind, { n = b.n, color = b.color, size = i == 1 and 0.7 or 0.8,
+                spread = 24, rise = 36, parent = self, level = self:GetFrameLevel() + 5, tag = "garden" })
+        end
+        if surprise then ns.Log("Park", "the %s's surprise", self.piece) end
+    end)
     plots[#plots + 1] = pl
     return pl
 end

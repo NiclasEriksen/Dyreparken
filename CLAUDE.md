@@ -271,7 +271,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as a round portrait (Pets:Portrait, also
                    the list's icons) in a ring of its holder's bond level, grouped by family into tinted enclosures on a grained ground (Media turf, one tile over four cells) with wooden fences (one on each line between two), a sign on
                    each (its family's mark; hover: name and homes; click: only that family), the pointer's family lit (and its sign), the
-                   empty cells a fenced garden (lawn, tree, pond, flowers, stump)
+                   empty cells a fenced garden (lawn, tree, pond, flowers, stump; a click on a piece: a hop and a few particles, one in eight a surprise of its own, Park.GARDEN, nothing saved or told)
                    along one path through the grid (Park.Path: each family one piece), a click opens its card on the Pets page (also pets you
                    don't own); under the map a stage with today's pet, or the one hovered, as a live model (Pets:LoadModel);
                    loads after Achievements/Page.lua so its tab comes second),
