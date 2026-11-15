@@ -286,6 +286,11 @@ return function(test, H)
         ola:Dice(0.99)
         ola:Press(tree)
         eq(ola.ns.Fx:Playing(tree, "garden"), Park.GARDEN.tree.n, "its leaves")
+        -- (tossed up out of the tree first, then settling a little: straight down read as too heavy)
+        local leaf
+        for _, f in ipairs(ola:Frames(function(f) return f.anim and f.anim.up and f:IsShown() end, tree)) do leaf = f end
+        ok(leaf.anim.up.offset[2] > 0, "up first")
+        ok(leaf.anim.drift.offset[2] < 0 and -leaf.anim.drift.offset[2] < leaf.anim.up.offset[2], "then down, less")
         ok(tree.hop:IsPlaying())
         ola:Press(tree)
         eq(ola.ns.Fx:Playing(tree, "garden"), Park.GARDEN.tree.n, "again at once: nothing more")

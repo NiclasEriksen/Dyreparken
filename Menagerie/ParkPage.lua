@@ -623,7 +623,7 @@ function Park.NewPlot()
         self.hop:Stop(); self.hop:Play()
         for i, b in ipairs(bursts) do
             ns.Fx:Burst({ self, "CENTER", 0, 0 }, b.kind, { n = b.n, color = b.color, size = i == 1 and 0.7 or 0.8,
-                spread = 24, rise = 36, parent = self, level = self:GetFrameLevel() + 5, tag = "garden" })
+                spread = 24, rise = 36, pop = true, parent = self, level = self:GetFrameLevel() + 5, tag = "garden" })
         end
         if surprise then ns.Log("Park", "the %s's surprise", self.piece) end
     end)

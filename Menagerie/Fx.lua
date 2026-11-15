@@ -145,13 +145,15 @@ function Fx:Playing(parent, tag)
 end
 
 -- A burst of n particles of a kind (Decor.KINDS) from a point: anchor =
--- { frame, point, x, y }. o: n, color, alpha, size (scale), spread, rise (px);
+-- { frame, point, x, y }. o: n, color, alpha, size (scale), spread, rise (px); pop: what falls is
+-- tossed up first and settles a little (Parken's garden: straight down read as too heavy, the user 2026-11-15);
 -- parent, level, tag (as Emit's).
 function Fx:Burst(anchor, kind, o)
     local k = ns.Decor.KINDS[kind]
     if not k then return end
     local n, size, spread, rise = o.n or 5, o.size or 1, o.spread or 30, o.rise or 50
     local fall = k.path == "fall" and -1 or 1 -- feathers and leaves drift down
+    local pop = o.pop and fall < 0
     local shrink = k.path == "burst" and 0.4 or 0.8
     local list = {}
     for i = 1, n do
@@ -160,8 +162,8 @@ function Fx:Burst(anchor, kind, o)
         local dx = math.random(-spread, spread)
         list[i] = { tex = ns.Icon(k.tex), add = k.add, color = o.color, alpha = o.alpha, size = s, x = x, y = y,
             delay = 0.01 + (i - 1) * 0.08,
-            up = { dx * 0.4, fall * rise * 0.5, 0.4, "OUT" }, fadeIn = { 0, 1, 0.25 },
-            drift = { dx * 0.6, fall * rise * 0.5, 1.1 }, fadeOut = { 1, 0, 1.1 }, grow = { shrink, 1.1 } }
+            up = { dx * 0.4, (pop and 0.5 or fall * 0.5) * rise, 0.4, "OUT" }, fadeIn = { 0, 1, 0.25 },
+            drift = { dx * 0.6, fall * rise * (pop and 0.2 or 0.5), 1.1 }, fadeOut = { 1, 0, 1.1 }, grow = { shrink, 1.1 } }
     end
     return self:Emit({ parent = o.parent, level = o.level, tag = o.tag, anchor = anchor }, list)
 end
