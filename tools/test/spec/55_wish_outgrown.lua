@@ -149,4 +149,50 @@ return function(test, H)
         no(W:Watching()); no(Any())
         eq(W:Today().id, "herb")
     end)
+    -- A friend's gathering (2026-11-15, the user): a party member mining near you does a mining wish.
+    test("a gathering wish: a party member's gathering nearby does it, with its own line; the wish only", function()
+        local w, ola, W = Setup("mine")
+        eq(W:Today().id, "mine")
+        no(W:Listening(), "alone: nobody's casts listened to")
+        w:SetGroup({ "Ola Nord", "Kari Berg" }); ola:Fire("GROUP_ROSTER_UPDATE")
+        ok(W:Listening(), "in a party, with a gathering wish open")
+        local function Cast(id) ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "party1", "x", id); w:Run(1) end
+        Cast(2366) -- (herbs: not the wish)
+        no(W:Today().done)
+        w.apart = { ["Kari Berg"] = true }
+        Cast(2575)
+        no(W:Today().done, "too far away")
+        w.apart = nil
+        ola:Summon(40)
+        Cast(2575)
+        no(W:Today().done, "the owl isn't out")
+        ola:Summon(68)
+        local before = Earned(ola)
+        Cast(2575)
+        ok(W:Today().done)
+        ok(ola:Printed("Great Horned Owl fikk se Kari Berg gjøre det, og ønsket ble oppfylt", true))
+        eq(Earned(ola) - before, 10)
+        eq((ola.ns.Activity:Count("mine")), 0, "not your activity")
+        no(W:Listening(), "done: nobody's casts")
+        -- Another day: not in a fight, not in a raid.
+        w:SkipDays(1)
+        ola.ns.DB.char.wish = nil
+        W:Today()
+        ok(W:Listening())
+        ola:EnterCombat()
+        no(W:Listening(), "in a fight")
+        ola:LeaveCombat()
+        ok(W:Listening())
+        w:SetGroup({ "Ola Nord", "Kari Berg", "Per Hansen", "Liv Lund", "Siv Dahl", "Tor Eng" })
+        ola:Fire("GROUP_ROSTER_UPDATE")
+        no(W:Listening(), "a raid: too many to listen to")
+        -- A wish that isn't gathering: nothing.
+        w:SetGroup({ "Ola Nord", "Kari Berg" }); ola:Fire("GROUP_ROSTER_UPDATE")
+        ok(W:Listening())
+        ola.ns.Wish.For = function() return "explore" end
+        w:SkipDays(1)
+        ola.ns.DB.char.wish = nil
+        W:Today()
+        no(W:Listening(), "an explore wish")
+    end)
 end

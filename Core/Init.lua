@@ -458,6 +458,20 @@ function ns.NormalizeName(name)
     return name
 end
 
+-- A group member within about 40 yards (UnitInRange, where it can check), else whether the client shows
+-- them at all (UnitIsVisible: another instance, say). Both exist on Forever; their answers are logged
+-- (why) until seen. Playdates and a friend's gathering for a wish.
+function ns.UnitNear(unit, why)
+    local okR, inRange, checked = pcall(function() return UnitInRange(unit) end)
+    inRange, checked = okR and ns.Plain(inRange), okR and ns.Plain(checked)
+    local okV, visible = pcall(function() return UnitIsVisible(unit) end)
+    visible = okV and ns.Plain(visible)
+    ns.Log("Bond", "%s range: %s (%s) in range %s, checked %s, visible %s", tostring(why), tostring(ns.UnitKey(unit)), unit,
+        tostring(inRange), tostring(checked), tostring(visible))
+    if checked then return inRange and true or false end
+    return visible and true or false
+end
+
 -- "First Surname" for a group unit (UnitName's second value is the surname).
 function ns.UnitKey(unit)
     local first, surname = UnitName(unit)

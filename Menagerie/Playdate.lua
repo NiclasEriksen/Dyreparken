@@ -98,14 +98,7 @@ end
 function Playdate:Near(sender)
     local unit = UnitOf(sender)
     if not unit then return false end
-    local okR, inRange, checked = pcall(function() return UnitInRange(unit) end)
-    inRange, checked = okR and ns.Plain(inRange), okR and ns.Plain(checked)
-    local okV, visible = pcall(function() return UnitIsVisible(unit) end)
-    visible = okV and ns.Plain(visible)
-    ns.Log("Bond", "playdate range: %s (%s) in range %s, checked %s, visible %s", sender, unit,
-        tostring(inRange), tostring(checked), tostring(visible))
-    if checked then return inRange and true or false end
-    return visible and true or false
+    return ns.UnitNear(unit, "playdate")
 end
 
 -- Someone in our group has a pet out.

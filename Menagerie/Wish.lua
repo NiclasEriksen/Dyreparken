@@ -198,13 +198,15 @@ end
 
 -- The wish comes true: its points (Bond.REWARDS.wish), its line (textKey, and fullKey for a full day;
 -- the usual one by default) and the day in the streak.
-function Wish:Grant(w, textKey, fullKey)
+-- vars: more for the line ({ who } for a friend's).
+function Wish:Grant(w, textKey, fullKey, vars)
     textKey, fullKey = textKey or "wish.granted", fullKey or "wish.granted.full"
     w.done = true
     if ns.Moves then ns.Moves:Owe(w.pet, "joy") end -- (a happy hop on its card, once)
     self:Arm()
-    ns.Bond:Reward("wish", w.pet, ns.Bond.Line(textKey, fullKey, { pet = ns.Registry:NameOf(w.pet),
-        activity = Wish.Noun(w) }))
+    local all = { pet = ns.Registry:NameOf(w.pet), activity = Wish.Noun(w) }
+    for k, v in pairs(vars or {}) do all[k] = v end
+    ns.Bond:Reward("wish", w.pet, ns.Bond.Line(textKey, fullKey, all))
     self:Count(w.day)
 end
 
@@ -325,6 +327,7 @@ local function Explored(how)
 end
 local WATCH = { name = "Wish" } -- (our owner key for ns.Events and Activity:Want)
 local armed = false -- the wish watched for: its id, or false
+
 local function Pending(id)
     local w = Wish:Today() -- (past midnight: the new day's wish, which arms or drops these)
     return w and not w.done and w.id == id and w
@@ -349,6 +352,42 @@ local function OnZone()
 end
 Wish.WATCH = WATCH
 
+------------------------------------------------------------------------------
+-- A friend's gathering (2026-11-15, the user: "my pet wishes for mining, which I don't have, but maybe if
+-- someone in party mined an ore nearby?"): a gathering wish comes true when a party member mines, picks
+-- herbs, skins or fishes within about 40 yards (ns.UnitNear) while your adopted pet is out; its own line
+-- names them. The wish only: not your activity (no like points, counters or achievements). Party only,
+-- out of combat: the four party units' casts are listened to only then (a raid's 40 would cost too much),
+-- and only while such a wish is open. Anyone's casts: they need no Dyreparken.
+------------------------------------------------------------------------------
+Wish.GATHER = { mine = true, herb = true, skin = true, fish = true }
+local PARTY = { "party1", "party2", "party3", "party4" }
+local listening = false
+local function OnPartyCast(_, _, unit, _, spellID)
+    local w = Pending(armed)
+    if not (w and Wish.GATHER[w.id]) then return end
+    if ns.IsSecret(spellID) then ns.Log("Wish", "%s cast: secret", tostring(unit)); return end
+    if ns.Activity.GatherKind(spellID) ~= w.id then return end
+    if ns.Pets:OutKey() ~= w.pet then ns.Log("Wish", "%s gathered %s, the pet isn't out", unit, w.id); return end
+    if not ns.UnitNear(unit, "wish") then return end
+    local who = ns.UnitKey(unit) or ns.L["wish.friend.someone"]
+    ns.Log("Wish", "%s gathered %s near us: the wish", tostring(who), w.id)
+    Wish:Grant(w, "wish.granted.friend", "wish.granted.friend.full", { who = who })
+end
+-- Listen to the party's casts now or not: a gathering wish open, in a party (not a raid), out of combat.
+function Wish:Party()
+    local want = armed and Wish.GATHER[armed] and Pending(armed) and ns.Plain(IsInGroup()) and not ns.Plain(IsInRaid())
+        and not ns.InCombat() and true or false
+    if want == listening then return end
+    listening = want
+    for _, unit in ipairs(PARTY) do
+        if want then ns.Events:On("UNIT_SPELLCAST_SUCCEEDED", WATCH, OnPartyCast, unit)
+        else ns.Events:Off("UNIT_SPELLCAST_SUCCEEDED", WATCH, unit) end
+    end
+    ns.Log("Wish", "party's gathering %s", want and "watched" or "not watched")
+end
+function Wish:Listening() return listening end
+
 -- What today's wish needs watched, while it isn't done: its activity (a like is watched by the bond
 -- already, but a campfire or company from the guild isn't), an explore's other ways, a trip's zone.
 -- Nothing otherwise.
@@ -358,12 +397,20 @@ function Wish:Arm()
     if want == armed then return end
     armed = want
     ns.Events:OffAll(WATCH)
+    listening = false -- (its party units went with the rest)
     ns.Activity:WantOnly(WATCH, (want and ns.Activity.KIND[want]) and { [want] = true } or {})
     if want == "explore" then
         ns.Events:On("UI_INFO_MESSAGE", WATCH, OnDiscovered)
         ns.Events:On("CHAT_MSG_SYSTEM", WATCH, OnDiscovered)
     end
     if want == "explore" or want == "zone" then ns.Events:On("ZONE_CHANGED_NEW_AREA", WATCH, OnZone) end
+    if want and Wish.GATHER[want] then
+        local function Again() Wish:Party() end
+        for _, e in ipairs({ "GROUP_ROSTER_UPDATE", "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED" }) do
+            ns.Events:On(e, WATCH, Again)
+        end
+        self:Party()
+    end
     ns.Log("Wish", "watch %s", tostring(want))
 end
 -- Whether today's wish has events of its own watched (an explore's, a trip's).
