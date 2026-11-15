@@ -57,7 +57,8 @@ local Call = ns.Call
 
 function PF:Enabled() return ns.Settings:Get("petFrame") == true end
 
--- The pet the frame shows now, on screen (not hidden for a fight by petFrameCombat), or nil: Fight's.
+-- The pet the frame shows now, on screen, or nil: Fight's. With petFrameCombat on, nil: the frame hides in
+-- every fight Fight would act in (and at a fight's start before it has hidden).
 function PF:ShownPet()
     if not (self.on and self.frame and self.frame:IsShown() and self.key) or self.combatOn then return nil end
     return self.key
@@ -516,9 +517,11 @@ end
 
 function PF:Said(key, kind, text)
     local f = self.frame
-    if not (f and f:IsShown() and key and key == self.key) then return end
-    local k = self.SAY_KINDS[kind] or self.SAY_KINDS.say
+    if not (key and key == self.key) then return end
+    -- (kept for its tooltip even while it's hidden for a fight: code review 2026-11-15)
     self.said, self.saidAt = text, GetTime()
+    if not (f and f:IsShown()) then return end
+    local k = self.SAY_KINDS[kind] or self.SAY_KINDS.say
     local now = GetTime()
     if self.bubbleUntil and now < self.bubbleUntil and k.rank < self.bubbleRank then return end -- (a lesser one waits its turn: not at all)
     self.bubbleUntil, self.bubbleRank = now + self.SAY_FOR, k.rank

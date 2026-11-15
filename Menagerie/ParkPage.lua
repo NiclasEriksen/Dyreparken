@@ -21,8 +21,8 @@ local _, ns = ...
 --
 -- Portraits and the spotlight (2026-11-15, the user picked them): each pet is its own face, a round
 -- portrait drawn from its model (Pets:Portrait; a third of the journal's icons were cages, crates and
--- whistles), in a ring of its holder's bond level (the card's tier colors: Scenes.Tier, the family's
--- below silver), a gold glow on yours. Under the map, a stage: today's pet (Bonds:PetOfTheDay) as a
+-- whistles), in a ring of its family's color, deeper as its holder's bond grows, with a glint and a
+-- shine at the higher levels (Park.Ring), gold with a glow on yours. Under the map, a stage: today's pet (Bonds:PetOfTheDay) as a
 -- live model on its card's backdrop (Scenes), with its name, home and personality; the pet under the
 -- mouse takes its place while hovered. A click there opens its card, as an icon's does. The stage's
 -- camera runs only a moment after a change (as the pet frame's: PF:Camera), so an open park costs nothing.
@@ -295,7 +295,8 @@ end
 -- glow). None for a pet that needs a home. Fainter when the filter leaves it out.
 Park.GLINT_AT, Park.SHEEN_AT = 3, 5
 -- A glint now and then (2026-11-15, the user: a steady twinkle "seems permanent / not random enough"): a
--- wait of GLINT_WAIT seconds picked anew each time (ns.random), a quick flash, gone again. Animation only:
+-- wait of GLINT_WAIT seconds picked anew each time (math.random: a look, not a chance, Init's ns.random note),
+-- a quick flash, gone again. Animation only:
 -- nothing runs while the park is hidden.
 Park.GLINT_WAIT = { 3, 14 }
 function Park.Glint(tex)
@@ -306,7 +307,7 @@ function Park.Glint(tex)
     ns.Anim.Fade(g, 1, 0, 0.6, 3)
     local function Again()
         local span = Park.GLINT_WAIT
-        wait:SetDuration(span[1] + ns.random() * (span[2] - span[1]))
+        wait:SetDuration(span[1] + math.random() * (span[2] - span[1]))
         g:Play()
     end
     g:SetScript("OnFinished", function() if tex:IsShown() then Again() end end)
@@ -392,8 +393,14 @@ local function BuildSpot(inset)
         scene = function() return spot.scene end,
         anchor = function() return spot end,
     })
-    spot:SetScript("OnHide", function() spot.stage:Update(spot, nil) end)
-    spot:SetScript("OnShow", function() if spot.key then spot.stage:Update(spot, spot.key) end end)
+    -- (and the way back to today's pet ends: a click on an icon closes the park as the mouse leaves it,
+    -- and the stage got a pet while hidden, its stage following it unseen: code review 2026-11-15)
+    spot:SetScript("OnHide", function() spotT:Cancel(); spot.hover = nil; spot.stage:Update(spot, nil) end)
+    -- Shown again: today's pet (one left hovered as it hid would linger), posed anew.
+    spot:SetScript("OnShow", function()
+        local today = (ns.Bonds:PetOfTheDay())
+        if today ~= spot.key then Park:Spot(today) elseif spot.key then spot.stage:Update(spot, spot.key) end
+    end)
     -- The template's camera runs on every frame drawn: only a moment after a change (PF:Camera).
     local ok, fn = pcall(scene.GetScript, scene, "OnUpdate")
     spot.update = ok and type(fn) == "function" and fn or nil
@@ -457,7 +464,7 @@ end
 -- The mouse left an icon: today's pet again, in a moment (the next icon's hover cancels it).
 function Park:SpotBack()
     spotT:After(self.SPOT_BACK, function()
-        if spot then spot.hover = nil; Park:Spot((ns.Bonds:PetOfTheDay())) end
+        if spot and spot:IsVisible() then spot.hover = nil; Park:Spot((ns.Bonds:PetOfTheDay())) end
     end)
 end
 

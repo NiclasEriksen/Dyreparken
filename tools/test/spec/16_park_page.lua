@@ -158,9 +158,9 @@ return function(test, H)
         ok(kit.glint:IsShown(), "a glint"); ok(kit.glint.pulse:IsPlaying(), "on its way")
         -- Now and then: a new wait after each flash, within GLINT_WAIT.
         local g, span = kit.glint.pulse, P.GLINT_WAIT
-        ola:Dice(0.5); g:Finish()
+        g:Finish()
         ok(g:IsPlaying(), "again")
-        eq(g.wait.duration, span[1] + 0.5 * (span[2] - span[1]), "after a wait picked at random")
+        ok(g.wait.duration >= span[1] and g.wait.duration <= span[2], "after a wait within GLINT_WAIT")
         ok(kit.sheen:IsShown(), "and a shine")
         no(panda.glint:IsShown(), "your own: its gold glow instead")
         -- A whole redraw (an adoption, the page opened again) keeps them so.
@@ -208,6 +208,15 @@ return function(test, H)
         eq(scene.actor.display, 20000 + 72, "not at once (the next icon may come)")
         w:Run(P.SPOT_BACK)
         eq(scene.actor.display, 20000 + 41, "today's pet again")
+        -- Hovered, then the park closed (a click on the icon): it doesn't change pets unseen.
+        rabbit.scripts.OnEnter(rabbit)
+        eq(scene.actor.display, 20000 + 72)
+        rabbit.scripts.OnLeave(rabbit)
+        P.spot:Hide()
+        w:Run(P.SPOT_BACK + 0.5)
+        eq(scene.actor.display, 20000 + 72, "hidden: left as it was")
+        P.spot:Show()
+        eq(scene.actor.display, 20000 + 41, "shown again: today's pet")
         -- A click on the stage: its card.
         P.spot:Click()
         no(P:IsOpen())
