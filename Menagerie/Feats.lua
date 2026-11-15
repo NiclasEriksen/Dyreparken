@@ -245,7 +245,9 @@ function Feats:OnFeat(id, key)
     local line = f.line or "spell"
     local vars = { pet = name, what = rec.what, totem = f.totem and ns.L["feat.totem." .. f.totem],
         n = math.ceil(ns.Config.BOND_FEAT_POINTS * ns.Bond:Rate(key)) }
-    ns.Bond:Reward("feat", key, ns.T("feat." .. line, vars))
+    -- (Bond.Line: the points really given, which the bond's cap can cut; none left, the line without them.
+    -- Code review 2026-11-15: a fixed "+25" could claim points it didn't give, as the wish's once did.)
+    ns.Bond:Reward("feat", key, ns.Bond.Line("feat." .. line, "feat." .. line .. ".full", vars))
     ns.Story:Mine(key, "feat", ns.T("feat.story." .. line, vars), id)
     ns.Bus:Fire("FEAT", id, key)
 end

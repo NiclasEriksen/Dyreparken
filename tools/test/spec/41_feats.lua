@@ -61,6 +61,14 @@ return function(test, H)
         -- Within the wire's cap all the same: a peer takes it.
         local e = ola.ns.Registry:Life(PANDA, "Ola Nord")
         ok(ola.ns.Registry.ValidLife(e))
+        -- At the wire's cap (room for less, or none): the line says what was given, not a fixed +25
+        -- (code review 2026-11-15).
+        e.p = e.p + B:Room(PANDA) - 10
+        Learn(w, ola, 712)
+        ok(ola:Printed("var med da du lærte Summon Succubus! %(%+10 båndpoeng%)"), "the 10 it had room for")
+        e.p = e.p + B:Room(PANDA)
+        Learn(w, ola, 71)
+        ok(ola:Printed("var med da du lærte Defensive Stance!$"), "none left: no points in the line")
     end)
 
     test("what a character had when we first looked isn't new, and a flood at once isn't feats", function()
@@ -220,7 +228,7 @@ return function(test, H)
         local seen = {}
         for _, f in ipairs(F.LIST) do
             local line = f.line or "spell"
-            ok(S["feat." .. line], f.id); ok(S["feat.story." .. line], f.id)
+            ok(S["feat." .. line], f.id); ok(S["feat." .. line .. ".full"], f.id); ok(S["feat.story." .. line], f.id)
             if f.totem then ok(S["feat.totem." .. f.totem], f.id) end
             ok(f.spells or f.quests or f.level, f.id .. " can be seen")
             for _, q in ipairs(f.quests or {}) do
