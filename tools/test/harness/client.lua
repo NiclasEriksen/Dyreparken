@@ -375,7 +375,9 @@ end
 function Client:Set(k, v) self.state[k] = v; return self end
 
 -- Combat: lockdown starts, the secure state drivers ([combat] hide...) apply, then the event.
-function Client:EnterCombat() self.state.combat = true; self:Drive(); self:Fire("PLAYER_REGEN_DISABLED") end
+-- As the client: PLAYER_REGEN_DISABLED's handlers run before the lockdown starts (InCombatLockdown still
+-- false in them: code review 2026-11-15, Wish's party listening stayed on through fights unseen here).
+function Client:EnterCombat() self:Fire("PLAYER_REGEN_DISABLED"); self.state.combat = true; self:Drive() end
 function Client:LeaveCombat() self.state.combat = false; self:Drive(); self:Fire("PLAYER_REGEN_ENABLED") end
 -- Secure state drivers (RegisterStateDriver(frame, "visibility", "[combat] hide; show")), applied by
 -- Blizzard's code: secure. Conditions known here: combat, nocombat; else the stub throws.
