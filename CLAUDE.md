@@ -269,7 +269,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
                    come home instead), stopped when hidden),
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as a round portrait (Pets:Portrait, also
-                   the list's icons) in a ring of its holder's bond level, grouped by family into tinted enclosures with wooden fences (one on each line between two), a sign on
+                   the list's icons) in a ring of its holder's bond level, grouped by family into tinted enclosures on a grained ground (Media turf, one tile over four cells) with wooden fences (one on each line between two), a sign on
                    each (its family's mark; hover: name and homes; click: only that family), the pointer's family lit (and its sign), the
                    empty cells a fenced garden (lawn, tree, pond, flowers, stump)
                    along one path through the grid (Park.Path: each family one piece), a click opens its card on the Pets page (also pets you
@@ -308,7 +308,7 @@ Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble,
                    pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home; cake, Cake.lua;
                    since 2026-11-12 the pet frame's bubbles speechblank, thought, shout and rain, the families' yarn
                    (cats), petal (plants), shell (murlocs), and the traits' banana, mask, sun, badge; 2026-11-15 Parken's
-                   fences, plank and post, its sign, tree, bush, pond, flowers and stump, in color, not white; the signs'
+                   fences, plank and post, its sign, tree, bush, pond, flowers and stump, in color, not white, and the pens' ground, turf (a seamless grain, near white, tinted); the signs'
                    marks snake, cheese, horseshoe, lilypad, egg):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.

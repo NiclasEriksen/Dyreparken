@@ -209,7 +209,7 @@ end
 -- the next (clear of the face by a pixel), a post at each end (its corners, where the round face doesn't reach).
 function Park.Enclosure(c)
     c.pen = c:CreateTexture(nil, "BACKGROUND", nil, -8)
-    c.pen:SetColorTexture(1, 1, 1, 1)
+    c.pen:SetTexture(ns.Icon("turf"))
     c.pen:SetSize(CELL, CELL)
     c.pen:SetPoint("CENTER")
     local h, t = CELL / 2, Park.FENCE
@@ -410,7 +410,7 @@ local function Redraw()
         if owner then homes = homes + 1 end
         local col, row = path[i][1], path[i][2]
         c.family = it.family
-        Park.Pen(c, it.family, Park.Fences(grid, col, row))
+        Park.Pen(c, it.family, Park.Fences(grid, col, row), col, row)
         c:ClearAllPoints()
         c:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL, -(top + row * CELL))
         c:Show()
@@ -440,7 +440,7 @@ local function Redraw()
                 local pl = plots[n] or Park.NewPlot()
                 pl:ClearAllPoints()
                 pl:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL, -(top + row * CELL))
-                Park.Pen(pl, "garden", Park.Fences(grid, col, row))
+                Park.Pen(pl, "garden", Park.Fences(grid, col, row), col, row)
                 pl.piece = Park.DECOR[n]
                 pl.art:SetShown(pl.piece ~= nil)
                 if pl.piece then pl.art:SetTexture(ns.Icon(pl.piece)) end
@@ -459,7 +459,17 @@ end
 -- level 4), its fences in wood (Media/Particles/plank, post: tools/draw_particles.py), and a post at every
 -- end of one. FENCE px thick on the line, a tile of the plank every PLANK px along it.
 Park.FENCE, Park.POST, Park.PLANK, Park.PEN_ALPHA = 4, 6, 32, 0.2
-function Park.Pen(c, family, fences)
+-- The ground's grain (Media/Particles/turf, 2026-11-15, the user: "the flat color is a bit too clean for a
+-- zoo"): one seamless tile over TURF_CELLS cells each way, each cell its own part of it by its place on the
+-- map, so the grain runs on across cells with no seams.
+Park.TURF_CELLS = 4
+function Park.Grain(col, row)
+    local n = Park.TURF_CELLS
+    local u, v = (col % n) / n, (row % n) / n
+    return u, u + 1 / n, v, v + 1 / n
+end
+function Park.Pen(c, family, fences, col, row)
+    c.pen:SetTexCoord(Park.Grain(col or 0, row or 0))
     local col = family == "garden" and Park.LAWN or Park.RingColor(family, 4)
     c.penColor = col
     c.pen:SetVertexColor(col[1], col[2], col[3], family == "garden" and col[4] or Park.PEN_ALPHA)
@@ -614,7 +624,7 @@ function Park.Ring(c, key, owner, match)
     local level = owner and select(2, ns.Bond:Of(key)) or 0
     local mine = owner ~= nil and owner == ns.PlayerKey()
     local col = mine and { ns.Scenes.GOLD[1], ns.Scenes.GOLD[2], ns.Scenes.GOLD[3], 1 }
-        or owner and Park.RingColor(ns.Scenes:Families(key)[1] or "default", level)
+        or owner and Park.RingColor(Park.FamilyOf(key), level)
     c.ring:SetShown(col ~= nil)
     local glint = col ~= nil and not mine and match and level >= Park.GLINT_AT
     local sheen = col ~= nil and not mine and match and level >= Park.SHEEN_AT

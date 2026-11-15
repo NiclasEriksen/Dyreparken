@@ -800,8 +800,41 @@ def stump():
     return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
 
 
+TURF = 128  # px: one tile of Parken's pens, laid over TURF_CELLS cells each way (ParkPage, Park.Grain)
+
+
+def _wrap_noise(rnd, n, size):
+    """Smooth noise from an n x n grid of random values that tiles seamlessly at size px."""
+    small = Image.new("L", (n, n))
+    small.putdata([rnd.randrange(256) for _ in range(n * n)])
+    tiled = Image.new("L", (n * 3, n * 3))
+    for i in range(3):
+        for j in range(3):
+            tiled.paste(small, (i * n, j * n))
+    big = tiled.resize((size * 3, size * 3), Image.BICUBIC)
+    return big.crop((size, size, size * 2, size * 2))
+
+
+def turf():
+    """The pens' ground (2026-11-15, the user: "some grain / texture without being too noisy"): near white,
+    tinted by the family's color, with soft patches, smaller blotches and a fine grain; tiles seamlessly."""
+    import random
+    rnd = random.Random(1515)
+    layers = [(_wrap_noise(rnd, 4, TURF), 0.10), (_wrap_noise(rnd, 16, TURF), 0.07),
+              (_wrap_noise(rnd, TURF, TURF), 0.07)]
+    px = [l.load() for l, _ in layers]
+    img = Image.new("RGBA", (TURF, TURF)); out = img.load()
+    for y in range(TURF):
+        for x in range(TURF):
+            dark = sum(w * p[x, y] / 255 for p, (_, w) in zip(px, layers))
+            c = max(0, min(255, round(255 * (1 - dark))))
+            # (in the alpha too: at the pens' faint tint, a change of color alone barely shows)
+            out[x, y] = (c, c, c, max(0, min(255, round(255 * (1 - 2.2 * dark)))))
+    return img
+
+
 COLORED = {"plank": plank, "post": post, "sign": sign, "tree": tree, "bush": bush, "pond": pond,
-           "flowers": flowers, "stump": stump}
+           "flowers": flowers, "stump": stump, "turf": turf}
 
 
 def write_rgba(path, img):

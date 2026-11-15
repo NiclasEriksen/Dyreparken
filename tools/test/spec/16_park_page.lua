@@ -187,6 +187,16 @@ return function(test, H)
         no(bombay.fences.right:IsShown())
         ok(bombay.posts.tl:IsShown()); ok(bombay.posts.bl:IsShown()); no(bombay.posts.tr:IsShown())
         eq(bombay.fences.left.tex, ola.ns.Icon("plank"))
+        -- The ground's grain: one tile over TURF_CELLS cells each way, each cell its part by its place, so the
+        -- grain runs on from cell to cell (a cell's right edge is the next one's left) and the tile repeats.
+        local Park = ola.ns.ParkPage
+        eq(bombay.pen.tex, ola.ns.Icon("turf"))
+        eq(#bombay.pen.texCoord, 4)
+        local n = Park.TURF_CELLS
+        local a, b = { Park.Grain(0, 0) }, { Park.Grain(1, 0) }
+        eq(a[1], 0); eq(a[2], b[1], "on to the right"); eq(a[4], ({ Park.Grain(0, 1) })[3], "on down")
+        eq(Park.Grain(n, n), Park.Grain(0, 0), "the tile again")
+        eq(({ Park.Grain(n - 1, 0) })[2], 1)
     end)
 
     test("enclosures' signs: the family's mark, its homes on hover, a click shows only it; the pointer lights its family", function()
