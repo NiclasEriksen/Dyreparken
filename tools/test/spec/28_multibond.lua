@@ -299,7 +299,12 @@ return function(test, H)
         w:Run(5)
         eq(ola:Points(PANDA), 0, "far away: no playdate")
         eq(kari:Points("s:40"), 0, "for either")
-        ok(ola:Log("playdate range: Kari Berg %(party1%) in range false")[1])
+        ok(ola:Log("playdate range: Kari Berg %(party1%) 500 yards")[1], "by its distance")
+        -- Where the client can't tell a distance (an instance): UnitInRange, else whether it shows them.
+        w.noDistance = true
+        ola.ns.UnitNear("party1", "test")
+        ok(ola:Log("test range: Kari Berg %(party1%) in range false, checked true")[1], "the range check instead")
+        w.noDistance = nil
         -- Together again (an announcement after a summon): it happens.
         w.apart = nil
         w:Run(601)

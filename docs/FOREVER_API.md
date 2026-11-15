@@ -141,6 +141,12 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - Journal: `Blizzard_Collections` is load-on-demand. Frame names are above. The ScrollBox button layout is still
   unverified: check with `/fstack`.
 - `C_PetJournal.SetCustomName` exists. We still use our own synced nicknames.
+- **Blizzard's own API docs for Forever** (found 2026-11-15): github.com/Gethe/wow-ui-source, branch `forever`, a
+  commit per build (70790 ... 70938), with `Blizzard_APIDocumentationGenerated` (every function and event, and its
+  `Secret*` flags). From it, 70938: `UnitInRange` returns are always secret (`SecretReturns`), `UnitDistanceSquared`
+  isn't (ns.UnitNear uses it first); `UNIT_SPELLCAST_SUCCEEDED` is `SecretWhenUnitSpellCastRestricted` ("secret if the
+  unit ... is not the player or their pet", unless the spell is flagged never secret: `C_Secrets.GetSpellCastSecrecy`,
+  Enum.SecrecyLevel 0 never, 1 always, 2 contextual); `UnitName` is `SecretWhenUnitNameIdentityRestricted`.
 - `SetPortraitTextureFromCreatureDisplayID(texture, displayID)` exists (the API probe's globals, 2026-11-15).
   The park and the list draw each pet's face with it from `GetPetInfoBySpeciesID`'s 12th return (Pets:Portrait).
   Unverified in game: whether every species draws (a model not loaded yet may come up blank), and whether the

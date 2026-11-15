@@ -35,6 +35,15 @@ return function(c, env, S)
         local apart = w.apart and (w.apart[name] or w.apart[c.name])
         return not apart, true
     end
+    -- Distance to a group member (not secret on Forever, by its API docs): w.apart puts them far away;
+    -- w.noDistance: the client can't check (an instance, as in retail), so the callers fall back.
+    env.UnitDistanceSquared = function(u)
+        local first, surname = UnitNameOf(u)
+        if not (first and InGroup(u)) or w.noDistance then return 0, false end
+        local name = surname and surname ~= "" and (first .. " " .. surname) or first
+        local apart = w.apart and (w.apart[name] or w.apart[c.name])
+        return apart and 250000 or 100, true
+    end
     env.UnitIsVisible = function(u)
         local first = UnitNameOf(u)
         return first ~= nil
@@ -63,6 +72,9 @@ return function(c, env, S)
         local x = c.units[u]
         return x and x.who
     end
+    -- A spell's secrecy as a cast (Enum.SecrecyLevel: 0 never, 1 always, 2 contextual, the likely answer for
+    -- most spells): S.castSecrecy[spell name or id], else 2.
+    env.C_Secrets.GetSpellCastSecrecy = function(spell) return (S.castSecrecy or {})[spell] or 2 end
     env.C_Secrets.ShouldUnitIdentityBeSecret = function(u) return c.units[u] ~= nil and c.units[u].secret == true end
     env.UnitIsPlayer = function(u) local x = Who(u); return x ~= nil and x.player == true end
     env.UnitClass = function(u)

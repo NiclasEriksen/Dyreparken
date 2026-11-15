@@ -360,7 +360,23 @@ Wish.WATCH = WATCH
 -- out of combat: the four party units' casts are listened to only then (a raid's 40 would cost too much),
 -- and only while such a wish is open. Anyone's casts: they need no Dyreparken.
 ------------------------------------------------------------------------------
-Wish.GATHER = { mine = true, herb = true, skin = true, fish = true }
+Wish.GATHER = { mine = "Mining", herb = "Herb Gathering", skin = "Skinning", fish = "Fishing" }
+-- A party member's cast is secret unless its spell is never secret (Blizzard's API docs for 70938:
+-- SecretWhenUnitSpellCastRestricted, "if the unit ... is not the player or their pet"; C_Secrets.GetSpellCastSecrecy,
+-- Enum.SecrecyLevel NeverSecret 0). So the party is listened to only for a spell the client says is never
+-- secret: else every cast would come secret, for nothing (logged once a session per spell).
+local secrecy = {}
+function Wish.Readable(kind)
+    local spell = Wish.GATHER[kind]
+    if secrecy[kind] == nil then
+        local api = rawget(_G, "C_Secrets")
+        local ok, level = pcall(function() return api and api.GetSpellCastSecrecy and api.GetSpellCastSecrecy(spell) end)
+        level = ok and ns.Plain(level) or nil
+        secrecy[kind] = level == nil or level == 0 -- (no such call: no secrets to fear)
+        ns.Log("Wish", "%s's casts by others: secrecy %s", spell, tostring(level))
+    end
+    return secrecy[kind]
+end
 local PARTY = { "party1", "party2", "party3", "party4" }
 local listening = false
 local function OnPartyCast(_, _, unit, _, spellID)
@@ -377,7 +393,7 @@ end
 -- Listen to the party's casts now or not: a gathering wish open, in a party (not a raid), out of combat.
 function Wish:Party()
     local want = armed and Wish.GATHER[armed] and Pending(armed) and ns.Plain(IsInGroup()) and not ns.Plain(IsInRaid())
-        and not ns.InCombat() and true or false
+        and not ns.InCombat() and Wish.Readable(armed) and true or false
     if want == listening then return end
     listening = want
     for _, unit in ipairs(PARTY) do

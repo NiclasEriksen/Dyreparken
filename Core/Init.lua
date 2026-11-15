@@ -458,10 +458,18 @@ function ns.NormalizeName(name)
     return name
 end
 
--- A group member within about 40 yards (UnitInRange, where it can check), else whether the client shows
--- them at all (UnitIsVisible: another instance, say). Both exist on Forever; their answers are logged
--- (why) until seen. Playdates and a friend's gathering for a wish.
+-- A group member within NEAR_YARDS: UnitDistanceSquared where it could check (not secret on Forever, by
+-- Blizzard's own API docs for 1.60.1 70938: Gethe/wow-ui-source, branch forever), else UnitInRange (its
+-- returns are always secret there, so in practice:) else whether the client shows them at all
+-- (UnitIsVisible). The answers are logged (why). Playdates and a friend's gathering for a wish.
+ns.NEAR_YARDS = 40
 function ns.UnitNear(unit, why)
+    local okD, d2, checkedD = pcall(function() return UnitDistanceSquared(unit) end)
+    d2, checkedD = okD and ns.Plain(d2), okD and ns.Plain(checkedD)
+    if checkedD and type(d2) == "number" then
+        ns.Log("Bond", "%s range: %s (%s) %.0f yards", tostring(why), tostring(ns.UnitKey(unit)), unit, math.sqrt(d2))
+        return d2 <= ns.NEAR_YARDS * ns.NEAR_YARDS
+    end
     local okR, inRange, checked = pcall(function() return UnitInRange(unit) end)
     inRange, checked = okR and ns.Plain(inRange), okR and ns.Plain(checked)
     local okV, visible = pcall(function() return UnitIsVisible(unit) end)

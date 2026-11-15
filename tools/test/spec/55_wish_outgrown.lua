@@ -154,7 +154,17 @@ return function(test, H)
         local w, ola, W = Setup("mine")
         eq(W:Today().id, "mine")
         no(W:Listening(), "alone: nobody's casts listened to")
+        -- Mining's casts by others secret (the likely answer, Blizzard's docs): not listened to, for nothing.
         w:SetGroup({ "Ola Nord", "Kari Berg" }); ola:Fire("GROUP_ROSTER_UPDATE")
+        no(W:Listening(), "a party member's mining would come secret")
+        ok(ola:Log("Mining's casts by others: secrecy 2")[1])
+        -- Never secret (Enum.SecrecyLevel 0): listened to.
+        ola.state.castSecrecy = { Mining = 0 }
+        ola:Reload(); w:Run(20)
+        ola.ns.Wish.For = function() return "mine" end
+        ola:Summon(68)
+        W = ola.ns.Wish
+        W:Today()
         ok(W:Listening(), "in a party, with a gathering wish open")
         local function Cast(id) ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "party1", "x", id); w:Run(1) end
         Cast(2366) -- (herbs: not the wish)
