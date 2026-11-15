@@ -267,8 +267,8 @@ local function Redraw()
         c.key = it.key
         ns.Pets:Portrait(c.icon, it.key)
         local owner = R:Holder(it.key)
-        Park.Ring(c, it.key, owner, match)
         local match = not filtering or Park.Matches(it.key, nil, owned)
+        Park.Ring(c, it.key, owner, match) -- (after match: before it, every ring was drawn as filtered out)
         if match then matches = matches + 1 end
         c.match = match
         c.icon:SetDesaturated(owner == nil or not match)

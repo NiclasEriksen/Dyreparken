@@ -140,6 +140,7 @@ return function(test, H)
         local P = ola.ns.ParkPage
         eq(kitty.ring.vertexColor[2], P.RingColor("cat", 1)[2], "level 1: the family's color, lifted")
         ok(kitty.ring:IsShown()); no(kitty.glint:IsShown(), "no glint yet")
+        eq(kitty.ring.vertexColor[4], P.RingColor("cat", 1)[4], "at full strength, not as filtered out")
         eq(panda.ring.vertexColor[1], ola.ns.Scenes.GOLD[1], "your own: gold")
         -- Deeper and brighter along the levels.
         local one, seven = P.RingColor("cat", 1), P.RingColor("cat", 7)
@@ -157,6 +158,10 @@ return function(test, H)
         ok(kit.glint:IsShown(), "a glint"); ok(kit.glint.pulse:IsPlaying(), "twinkling")
         ok(kit.sheen:IsShown(), "and a shine")
         no(panda.glint:IsShown(), "your own: its gold glow instead")
+        -- A whole redraw (an adoption, the page opened again) keeps them so.
+        ola.ns.ParkPage:Refresh()
+        ok(Cell(ola, 41).glint:IsShown(), "after a redraw too")
+        eq(Cell(ola, 41).ring.vertexColor[4], P.RingColor("cat", level)[4])
         -- No portrait call: the journal's icon, round as well.
         ola.env.SetPortraitTextureFromCreatureDisplayID = nil
         ola.ns.ParkPage:Refresh()
