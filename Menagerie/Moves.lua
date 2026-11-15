@@ -732,8 +732,12 @@ function Moves.NewStage(name, opts)
             ok = Call(actor, "SetAnimation", id)
         end
         own = false
-        ns.Log("Moves", "%s %s: play %d%s%s%s", name, tostring(shown.key), id, pose and (" at %.2f"):format(pose) or "",
-            again and " (again)" or "", ok and "" or " REFUSED")
+        -- (in a fight, the pet frame's moves are each a plan line already; their plays, a cower's 4 and 0 every
+        -- second, were half the log's ring, 2026-11-15)
+        if not (ok and name == "frame" and ns.Fight:Joined()) then
+            ns.Log("Moves", "%s %s: play %d%s%s%s", name, tostring(shown.key), id, pose and (" at %.2f"):format(pose) or "",
+                again and " (again)" or "", ok and "" or " REFUSED")
+        end
         timers:After(Moves.RECHECK, function()
             if shown.playing ~= id then return end
             local now = Actor()

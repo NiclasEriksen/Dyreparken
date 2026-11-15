@@ -211,12 +211,13 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    reactions (the class ones read them: Reactions.lua; race and faction ones don't exist yet): glance (a unit under the mouse), cast, form, buff, pet, group,
                    flag, zone, emote; each fires Bus "SENSE" (kind, subject), registered only while wanted
                    (Sense:Want/Drop), nothing from secret units; Sense.Match for rows; Data/Creatures.lua maps
-                   creature family ids to our families, edited by hand; /dp probe sense logs them all)
+                   creature family ids to our families, edited by hand, and a beast's or critter's name words when it
+                   has none (Forever's own creatures, 2026-11-15); /dp probe sense logs them all)
                    Unlisted (2026-11-14: a companion not in Data/Companions.lua, seen under the mouse, learned
                    or owned at login, is told once per account in chat, with its species id and who to tell,
                    Config.REPORT_TO; DyreparkenDB.unlisted keeps them, the developer's list to add),
                    Reactions (2026-11-14: your pet reacts to what your class does, read from the sensors: rows in
-                   Reactions.ROWS by class and spell name (Forever's spell ids differ), lines by nature
+                   Reactions.ROWS by class (or race: a Tauren's War Stomp; UnitRace's file name, undead "Scourge") and spell name (Forever's spell ids differ), lines by nature
                    (react.<id>.<trait|family>.N), once a day each, common ones at most one every 20 minutes
                    (char.reactAt, beside Quirks' 45), rare ones always (with another line on its way, half the
                    time: RARE_SKIP), a fight's after it; counted in char.reacts

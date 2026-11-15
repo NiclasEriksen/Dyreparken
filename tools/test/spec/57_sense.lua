@@ -93,7 +93,14 @@ return function(test, H)
             guid = "Creature-0-1-2-3-3907-AA" } }
         eq(Last("glance").kind, "totem"); eq(Last("glance").npc, 3907)
         ola:Hover{ companion = false, who = { name = "Rabbit", type = { "Critter", 8 }, guid = "Creature-0-1-2-3-721-AB" } }
-        eq(Last("glance").kind, "critter")
+        eq(Last("glance").kind, "critter"); eq(Last("glance").families[1], "rabbit", "no family: by its name")
+        -- Forever's own beasts have no family: their name's words give one (Data/Creatures.lua); never a humanoid's.
+        ola:Hover{ companion = false, who = { name = "Plains Hawk", type = { "Beast", 1 }, guid = "Creature-0-1-2-3-264850-AC" } }
+        eq(Last("glance").families[1], "bird")
+        ola:Hover{ companion = false, who = { name = "Jumbo Crawfish", type = { "Humanoid", 7 }, guid = "Creature-0-1-2-3-258588-AD" } }
+        eq(Last("glance").families, nil, "a humanoid: not by name")
+        ola:Hover{ companion = false, who = { name = "Batwing Ratcatcher", type = { "Beast", 1 }, guid = "Creature-0-1-2-3-9-AE" } }
+        eq(Last("glance").families, nil, "whole words only")
         -- A guildmate's companion.
         ola:Hover{ species = 40, owner = "Kari Berg" }
         s = Last("glance")
@@ -156,6 +163,10 @@ return function(test, H)
         ola:Fire("GROUP_ROSTER_UPDATE")
         eq(Count("group"), 1, "a change only")
         eq(#Last("group").members, 1); eq(Last("group").members[1].key, "Kari Berg")
+        -- A member whose name hasn't loaded reads "Unknown" (UNKNOWNOBJECT): no key, not a player called Unknown.
+        w:SetGroup({ "Ola Nord", "Kari Berg", "Unknown" })
+        ola:Fire("GROUP_ROSTER_UPDATE")
+        eq(#Last("group").members, 2); eq(Last("group").members[2].key, nil)
         -- Zones: your capital, the enemy's, a goblin town, a battleground.
         ola.state.faction = "Horde"
         ola.state.zone = "Orgrimmar"

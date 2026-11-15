@@ -106,6 +106,9 @@ function Sense.Glance(unit, lines)
     local _, familyId = Read(UnitCreatureFamily, unit)
     s.family, s.familyId = (Read(UnitCreatureFamily, unit)), familyId
     s.families = Families(familyId)
+    if not s.families and (typeId == Sense.TYPE.beast or typeId == Sense.TYPE.critter) then
+        s.families = ns.Creatures.ByName(s.name) -- (Forever's own creatures have no family)
+    end
     local owner, how = Sense.Owner(lines)
     if Read(UnitIsPlayer, unit) == true then
         s.kind = "player"

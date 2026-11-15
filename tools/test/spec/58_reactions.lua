@@ -209,9 +209,11 @@ return function(test, H)
         local w, ola = H.Setup{ ola = { 5159 } }
         local ns = ola.ns
         local CLASSES = { WARRIOR = 0, ROGUE = 0, HUNTER = 0, WARLOCK = 0, MAGE = 0, PRIEST = 0, PALADIN = 0, DRUID = 0, SHAMAN = 0 }
+        local RACES = { Human = true, Dwarf = true, NightElf = true, Gnome = true, Orc = true, Scourge = true, Tauren = true,
+            Troll = true }
         for _, row in ipairs(ns.Reactions.ROWS) do
-            ok(CLASSES[row.class], row.id .. ": a class")
-            CLASSES[row.class] = CLASSES[row.class] + 1
+            ok(CLASSES[row.class] or (row.class == nil and RACES[row.race]), row.id .. ": a class or a race")
+            if row.class then CLASSES[row.class] = CLASSES[row.class] + 1 end
             ok(row.spells or row.starts or row.ends, row.id .. ": a name to match")
             if row.id ~= "demonen" then ok(#ns.Variants("react." .. row.id) >= 2, row.id .. ": two lines at least") end
             for _, x in ipairs(row.traits or {}) do ok(ns.Strings["react." .. row.id .. "." .. x .. ".1"], row.id .. "." .. x) end
@@ -224,6 +226,31 @@ return function(test, H)
         ok(ns.Strings["react.totemhage.1"])
         match(ns.L["react.krigsrop.1"], "{pet}")
     end)
+    test("a shaman's Purge and Ancestral Spirit (rare: past the 20 minutes); a Tauren's War Stomp, whatever the class", function()
+        local w, ola, R = Setup("SHAMAN")
+        ola.state.spellNames = { [370] = "Purge", [2008] = "Ancestral Spirit", [20549] = "War Stomp" }
+        Cast(ola, 370)
+        w:Run(5)
+        ok(Said(ola, "renselse"), "Purge")
+        Cast(ola, 2008)
+        w:Run(5)
+        ok(Said(ola, "forfedre"), "Ancestral Spirit, rare: the 20 minutes don't hold it back")
+        -- Said today: the log says so once a row a day, not at every cast (a shaman's totems wrote it hundreds of times).
+        Cast(ola, 370); Cast(ola, 370); Cast(ola, 370)
+        eq(#ola:Log("renselse: said today"), 1)
+        -- War Stomp is the Tauren's: a Human shaman doesn't even watch for it, a Tauren warrior does.
+        ola.ns.DB.char.reactAt = nil
+        Cast(ola, 20549)
+        w:Run(5)
+        no(Said(ola, "krigsstamp"), "a Human")
+        ola.state.class, ola.state.race = "WARRIOR", "Tauren"
+        R:Watch()
+        ola.ns.DB.char.reactAt = nil
+        Cast(ola, 20549)
+        w:Run(5)
+        ok(Said(ola, "krigsstamp"), "a Tauren warrior")
+    end)
+
     test("one line on its way at a time, an egg's or a reaction's (Moments); one held back waits its turn", function()
         local w, ola = Setup("WARRIOR")
         w:Run(30) -- (the day's visit and its eggs first)

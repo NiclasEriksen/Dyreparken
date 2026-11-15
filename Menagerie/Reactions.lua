@@ -6,7 +6,7 @@ local ns = select(2, ...)
 -- warrior's Battle Shout, a hunter's Feign Death, a mage's sheep. Flavor only, like Quirks' eggs, and read
 -- from the sensors (Sense.lua): only those your class's rows need are wanted.
 --
--- A row: id (permanent: char.reacts, a pet's story and the achievements to come count them), class, on (a
+-- A row: id (permanent: char.reacts, a pet's story and the achievements to come count them), class or race, on (a
 -- sensor), spells / starts / ends (a cast's or buff's name: exactly, or how it starts or ends; names, not ids:
 -- Forever has ids of its own), test (fn(subject, row, key) -> vars or nil; vars._key a line of its own), calm (only
 -- when it happened out of combat), rare, chance, traits / families (lines by nature, the first the pet has),
@@ -30,6 +30,7 @@ Reactions.TOTEMS, Reactions.TOTEM_SPAN = 4, 30 -- a whole garden: four totems wi
 local now = GetTime
 -- What a row needs to remember a moment (this session): the times of a warrior's stances, a paladin's bubble.
 local times = { stance = {}, totem = {} }
+local quiet = {} -- row id -> the day its "said today" was logged
 local function Within(list, span, n)
     local t = now()
     while list[1] and t - list[1].t > span do table.remove(list, 1) end
@@ -110,6 +111,14 @@ Reactions.ROWS = {
         end },
     { id = "totemer", class = "SHAMAN", on = "cast", ends = { " Totem" }, traits = { "handverker" }, families = { "cat" } },
     { id = "astral", class = "SHAMAN", on = "cast", spells = { "Astral Recall" }, traits = { "hjemlengsel" } },
+    -- (2026-11-15, from a shaman's evening in the log: the spells cast most with nothing to say; the heals left
+    -- out, cast too often to stay fun)
+    { id = "forfedre", class = "SHAMAN", on = "cast", spells = { "Ancestral Spirit" }, rare = true, traits = { "trofast" },
+        families = { "spirit" } },
+    { id = "renselse", class = "SHAMAN", on = "cast", spells = { "Purge" }, traits = { "skoyer", "rampete" } },
+    -- Race: a row with a race and no class is every class's of that race (UnitRace's second, the client's
+    -- English file name: Forever's undead are "Scourge", /dp probe sense 2026-11-15)
+    { id = "krigsstamp", race = "Tauren", on = "cast", spells = { "War Stomp" }, traits = { "hoppetass" }, families = { "rabbit", "rodent" } },
 }
 local byId = {}
 for _, r in ipairs(Reactions.ROWS) do
@@ -192,6 +201,10 @@ function Reactions:OnSense(kind, s)
     for _, row in ipairs(self.mine or {}) do
         if row.on == kind and Named(row, s.name) then
             local why = self:Try(row, s, key)
+            -- ("said today" once a row a day: every totem after the first wrote it twice, 2026-11-15)
+            if why == "said today" then
+                if quiet[row.id] == ns.Today() then why = nil else quiet[row.id] = ns.Today() end
+            end
             if why then ns.Log("Reactions", "%s: %s (%s)", row.id, why, tostring(s.name)) end
         end
     end
@@ -200,10 +213,11 @@ end
 -- Your class's rows, and the sensors they need (wanted for good: the ones that cost nothing until used).
 function Reactions:Watch()
     local class = ns.Plain(select(2, UnitClass("player")))
+    local race = ns.Plain(select(2, UnitRace("player")))
     self.mine = {}
     local want = {}
     for _, row in ipairs(self.ROWS) do
-        if row.class == nil or row.class == class then
+        if (row.class == nil or row.class == class) and (row.race == nil or row.race == race) then
             self.mine[#self.mine + 1] = row
             want[row.on] = true
         end

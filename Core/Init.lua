@@ -489,7 +489,8 @@ function ns.UnitKey(unit)
     local first, surname = UnitName(unit)
     -- Unit names can be secret values (docs/FOREVER_API.md): unreadable is unknown.
     if ns.IsSecret(first) or ns.IsSecret(surname) then return nil end
-    if not first then return nil end
+    -- (a member whose name hasn't loaded reads "Unknown", UNKNOWNOBJECT: seen in the group sensor, 2026-11-15)
+    if not first or first == "" or first == UNKNOWNOBJECT then return nil end
     if surname and surname ~= "" then return ns.NormalizeName(first .. " " .. surname) end
     return first
 end

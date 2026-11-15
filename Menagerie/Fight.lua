@@ -117,6 +117,8 @@ function Fight:Stop()
     ns.Events:OffAll(FIGHTING)
     key = nil
 end
+-- The pet frame's pet is in this fight with you (from PLAYER_REGEN_DISABLED, when InCombatLockdown is still false).
+function Fight:Joined() return key ~= nil end
 
 -- While the pet frame is on (PetFrame:On/Off): the fights' start and end.
 function Fight:Watch(on)
