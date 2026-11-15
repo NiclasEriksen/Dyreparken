@@ -201,6 +201,13 @@ return function(test, H)
         local cats
         for _, sg in ipairs(signs) do if sg.family == "cat" then cats = sg end end
         eq(cats.mark.tex, ola.ns.Icon("yarn"))
+        -- Every family's mark is its card's ambience (one row in Decor.FAMILY), a shape, not a dot.
+        for _, f in ipairs(ola.ns.Scenes.ORDER) do
+            local tex = ola.ns.Decor.Mark(f)
+            ok(tex ~= ola.ns.Icon("dot"), f .. ": a shape of its own")
+            local spec = ola.ns.Decor.FAMILY[f]
+            if not spec.mark then eq(tex, ola.ns.Icon(ola.ns.Decor.KINDS[spec.kind].tex), f .. ": its ambience's") end
+        end
         eq(ola:TipOf(cats).text, "Katter / 1 av 4 har et hjem / Klikk for å vise bare dem.")
         eq(Park.FamilyName("spirit"), "Ånder"); eq(Park.FamilyName("default"), "Andre dyr")
         -- On its first corner: the cats' first cell's top left.

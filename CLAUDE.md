@@ -259,7 +259,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits (every trait has some; those with a moment show only then) and the date, and
-                   each family's ambience, always (Decor.FAMILY: feathers, embers, gears, fireflies...); each kind with its
+                   each family's ambience, always (Decor.FAMILY: feathers, embers, gears, lily pads...; the same row gives its
+                   mark on Parken's sign, Decor.Mark); each kind with its
                    own motion (sway, spin, tilt, throb, flap) and path (rise, fall, burst, twinkle, steps, drift, wind);
                    the everyday ones scaled by bond level (Decor.DENSITY, a curve: 45% at 1 to 130% at 7, tuned by eye);
                    a border per family (Decor.FAMILY_ART, picked with /dp probe frames), corners the same for all (wood, filigree

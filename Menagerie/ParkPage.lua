@@ -37,7 +37,7 @@ local ns = select(2, ...)
 --
 -- The enclosures' extras (2026-11-15, the user: "I like all 5"): a wooden sign on each one's first corner
 -- with its family's mark (Park.SIGN), its name and homes on hover, a click shows only that family
--- (Park.filter.family; again: all); the pointer's family brightens its tint (Park.Highlight); a family the
+-- (Park.filter.family; again: all; its mark is the card's ambience, Decor.Mark); the pointer's family brightens its tint (Park.Highlight); a family the
 -- filter leaves empty fades its tint; the grid's empty cells are a bit of park (Park.DECOR: a pond, trees...).
 --
 -- Everything comes from the registry; nothing is sent. We can't know which
@@ -487,19 +487,8 @@ function Park:Highlight(family)
     for fam, sg in pairs(signs) do sg.lit:SetShown(family == fam) end
 end
 
--- A family's mark on its sign: a particle in a color of its own (as its card's ambience, Decor.FAMILY).
-Park.SIGN = {
-    dragon = { "ember", 1, 0.55, 0.15 }, demon = { "ember", 0.5, 1, 0.2 }, mechanical = { "gear", 0.8, 0.85, 0.9 },
-    pirate = { "coin", 1, 0.82, 0.3 }, murloc = { "shell", 1, 0.85, 0.75 }, owl = { "moon", 0.95, 0.9, 0.7 },
-    frog = { "lilypad", 0.45, 0.9, 0.35 }, snake = { "snake", 0.95, 0.8, 0.5 }, reptile = { "egg", 0.7, 0.88, 0.6 },
-    spirit = { "wisp", 0.7, 0.75, 1 }, ooze = { "bubble", 0.55, 1, 0.35 }, bear = { "leaf", 0.55, 0.85, 0.35 },
-    wolf = { "paw", 0.85, 0.88, 0.95 }, cat = { "yarn", 0.95, 0.55, 0.6 }, bug = { "butterfly", 1, 0.9, 0.35 },
-    plant = { "petal", 1, 0.75, 0.85 }, rabbit = { "clover", 0.5, 0.9, 0.45 }, rodent = { "cheese", 1, 0.85, 0.35 },
-    farm = { "horseshoe", 0.85, 0.85, 0.9 }, bird = { "feather", 0.95, 0.95, 1 }, festive = { "star", 1, 0.85, 0.3 },
-    default = { "paw", 1, 0.9, 0.7 },
-}
 Park.SIGN_W, Park.SIGN_H = 20, 15
-Park.SIGN_IN = { 9, 6 } -- px right of and below its corner post
+Park.SIGN_IN = { 4, 3 } -- px right of and below its corner post: on it, leaning into its own pen
 
 -- A family's name as a title ("Katter"), its Norwegian letters too.
 local CAP = { ["å"] = "Å", ["ø"] = "Ø", ["æ"] = "Æ" }
@@ -527,10 +516,11 @@ function Park.NewSign(family)
     board:SetTexture(ns.Icon("sign"))
     board:SetTexCoord(0, 1, 4 / 32, 28 / 32) -- (the board on its 32x32)
     board:SetAllPoints()
-    local spec = Park.SIGN[family] or Park.SIGN.default
+    -- (its mark: the family's ambience on its card, Decor.FAMILY, so the two match)
+    local tex, r, g, b = ns.Decor.Mark(family)
     sg.mark = sg:CreateTexture(nil, "OVERLAY")
-    sg.mark:SetTexture(ns.Icon(spec[1]))
-    sg.mark:SetVertexColor(spec[2], spec[3], spec[4], 1)
+    sg.mark:SetTexture(tex)
+    sg.mark:SetVertexColor(r, g, b, 1)
     sg.mark:SetSize(Park.SIGN_H - 3, Park.SIGN_H - 3)
     sg.mark:SetPoint("CENTER", 0, -1)
     -- The family shown alone: a gold glow round its sign.

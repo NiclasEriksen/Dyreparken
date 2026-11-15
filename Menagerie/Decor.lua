@@ -124,6 +124,12 @@ Decor.KINDS = {
     sun = { tex = "sun", path = "twinkle", y = { 230, 300 }, spin = 20, add = true, size = { 18, 26 }, dur = { 4, 6 } },
     badge = { tex = "badge", path = "twinkle", spin = 10, size = { 12, 18 }, dur = { 2.5, 4 } },
     rain = { tex = "rain", path = "rise", sway = 6, size = { 14, 18 }, dur = { 2.5, 3.5 } },
+    -- 2026-11-15: Parken's family signs got marks that read at 12 px; the cards' ambience shares them.
+    snake = { tex = "snake", path = "drift", tilt = 20, size = { 14, 20 }, dur = { 7, 10 } },
+    cheese = { tex = "cheese", path = "twinkle", y = { 20, 90 }, grow = 1, size = { 12, 16 }, dur = { 3, 5 } },
+    horseshoe = { tex = "horseshoe", path = "twinkle", y = { 20, 90 }, grow = 1, flap = 0.2, size = { 12, 16 }, dur = { 3, 5 } },
+    lilypad = { tex = "lilypad", path = "twinkle", y = { 10, 60 }, grow = 1, size = { 14, 20 }, dur = { 4, 6 } },
+    egg = { tex = "egg", path = "twinkle", y = { 20, 80 }, grow = 1, size = { 10, 14 }, dur = { 3, 5 } },
 }
 
 -- Particles per trait: { kind, how many, color, alpha }. "when" limits it to
@@ -176,30 +182,41 @@ Decor.TRAITS = {
 
 -- Every pet's family (Scenes:Families, the first one; else default) has an
 -- ambience of its own, always, softer than the traits' (decided 2026-11-09).
+-- Each family's ambience on its card, and its mark (Parken's sign, ParkPage): one row, so they match
+-- (2026-11-15, the user). The mark is the ambience's own particle in its color, or `mark` = { texture, r, g, b }
+-- where the ambience isn't a shape of its own (mist, lights, motes: dots).
 Decor.FAMILY = {
     bird = { kind = "feather", n = 3, color = { 0.95, 0.95, 1 } },
     owl = { kind = "feather", n = 3, color = { 0.75, 0.65, 0.55 } },
     cat = { kind = "yarn", n = 2, color = { 0.95, 0.55, 0.6 } }, -- (2026-11-12: a ball of yarn; motes before)
-    farm = { kind = "grain", n = 3, color = { 0.95, 0.8, 0.4 } },
+    farm = { kind = "horseshoe", n = 3, color = { 0.85, 0.85, 0.9 } }, -- (2026-11-15: horseshoes; grain before)
     rabbit = { kind = "clover", n = 3, color = { 0.5, 0.85, 0.45 } },
-    frog = { kind = "firefly", n = 5, color = { 0.75, 1, 0.4 } },
-    snake = { kind = "sand", n = 8, color = { 0.95, 0.8, 0.5 } },
+    frog = { kind = "lilypad", n = 3, color = { 0.45, 0.9, 0.35 } }, -- (2026-11-15: lily pads; fireflies before)
+    snake = { kind = "snake", n = 3, color = { 0.95, 0.8, 0.5 } }, -- (2026-11-15: a snake; blowing sand before)
     mechanical = { kind = "gear", n = 3, color = { 0.75, 0.8, 0.85 } },
     dragon = { kind = "ember", n = 6, color = { 1, 0.55, 0.15 } },
     pirate = { kind = "coin", n = 3, color = { 1, 0.82, 0.3 } },
-    bug = { kind = "firefly", n = 5, color = { 1, 0.9, 0.35 } },
-    rodent = { kind = "seed", n = 3, color = { 0.8, 0.65, 0.45 } },
-    wolf = { kind = "mist", n = 3, color = { 0.8, 0.85, 0.95 }, alpha = 0.35 },
+    bug = { kind = "butterfly", n = 3, color = { 1, 0.9, 0.35 } }, -- (2026-11-15: butterflies; fireflies before)
+    rodent = { kind = "cheese", n = 3, color = { 1, 0.85, 0.35 } }, -- (2026-11-15: cheese; seeds before)
+    wolf = { kind = "mist", n = 3, color = { 0.8, 0.85, 0.95 }, alpha = 0.35, mark = { "paw", 0.85, 0.88, 0.95 } },
     plant = { kind = "petal", n = 4, color = { 1, 0.75, 0.85 } }, -- (2026-11-12: petals; motes before)
-    festive = { kind = "lights", n = 6, color = "rainbow" },
+    festive = { kind = "lights", n = 6, color = "rainbow", mark = { "star", 1, 0.85, 0.3 } },
     demon = { kind = "ember", n = 6, color = { 0.5, 1, 0.2 } },
     ooze = { kind = "bubble", n = 4, color = { 0.55, 1, 0.35 } },
     spirit = { kind = "wisp", n = 4, color = { 0.7, 0.75, 1 } },
     bear = { kind = "leaf", n = 3, color = { 0.55, 0.75, 0.35 } }, -- (2026-11-10: bamboo for the panda, the forest)
-    reptile = { kind = "bubble", n = 3, color = { 0.6, 0.8, 0.55 } }, -- (2026-11-10: the swamp)
+    reptile = { kind = "egg", n = 3, color = { 0.7, 0.88, 0.6 } }, -- (2026-11-15: eggs; swamp bubbles before)
     murloc = { kind = "shell", n = 3, color = { 1, 0.85, 0.75 } }, -- (2026-11-12: shells on the coast; bubbles before)
-    default = { kind = "mote", n = 5, color = { 1, 0.9, 0.7 } },
+    default = { kind = "mote", n = 5, color = { 1, 0.9, 0.7 }, mark = { "paw", 1, 0.9, 0.7 } },
 }
+
+-- A family's mark: texture, r, g, b (Parken's signs).
+function Decor.Mark(family)
+    local spec = Decor.FAMILY[family] or Decor.FAMILY.default
+    if spec.mark then return ns.Icon(spec.mark[1]), spec.mark[2], spec.mark[3], spec.mark[4] end
+    local c = spec.color
+    return ns.Icon(Decor.KINDS[spec.kind].tex), c[1], c[2], c[3]
+end
 Decor.FAMILY_ALPHA = 0.7 -- the ambience stays behind the traits
 for _, spec in pairs(Decor.FAMILY) do spec.alpha = spec.alpha or Decor.FAMILY_ALPHA end
 local RAINBOW = { { 1, 0.35, 0.35 }, { 1, 0.8, 0.25 }, { 0.4, 0.85, 0.4 }, { 0.35, 0.65, 1 }, { 0.85, 0.45, 1 } }
