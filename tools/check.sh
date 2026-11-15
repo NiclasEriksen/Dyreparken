@@ -5,7 +5,9 @@
 #  1. Every file in the TOC exists, and every addon .lua is listed in the TOC.
 #  2. Lua 5.1 syntax (luajit parses 5.1; it also accepts goto, so we grep for that).
 #  3. Constructs WoW's Lua 5.1 lacks: goto/labels, //, bitwise operators.
-#  4. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
+#  4. No read of a lowercase global but the known ones (Lua's and the client's): a misspelt or out-of-order local
+#     reads as nil there, silently (2026-11-15: Parken's rings read `match` before it was declared).
+#  5. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
 #     Coverage floors: Menagerie 95%, Achievements 95%, Core 90%. Games has none on purpose (see CLAUDE.md).
 set -u
 quick=0
@@ -37,6 +39,18 @@ for f in $own; do
         | grep -nE '\bgoto\b|::[A-Za-z_]+::|//|[^~<>=]~[^=]|<<|>>|[^&]&[^&]|\|' \
         | sed "s#^#LUA51: $f:#")
     [[ -n "$hits" ]] && { echo "$hits"; fail=1; }
+done
+
+# The lowercase globals the addon may read (Lua 5.1's, and the client's own lowercase functions).
+known=" ipairs pairs tostring tonumber type math table string pcall error assert select next unpack rawget rawset
+ setmetatable getmetatable _G date time hooksecurefunc geterrorhandler seterrorhandler debugstack issecretvalue
+ issecrettable debugprofilestop wipe strtrim strsplit format tinsert tremove "
+known=" $(echo $known) " # (one line: the list's line breaks as spaces)
+for f in $own; do
+    [[ $f == ./tools/* ]] && continue
+    while IFS= read -r g; do
+        [[ $known == *" $g "* ]] || { echo "GLOBAL: $f reads \"$g\" (a misspelt or undeclared local? else add it to check.sh's known)"; fail=1; }
+    done < <(luajit -bl "$f" 2>/dev/null | grep 'GGET' | grep -o '"[a-z_][A-Za-z0-9_]*"$' | tr -d '"' | sort -u)
 done
 
 if [[ $fail -eq 0 ]]; then
