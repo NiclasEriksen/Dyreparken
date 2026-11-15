@@ -261,7 +261,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    the list's icons) in a ring of its holder's bond level, a click opens its card on the Pets page (also pets you
                    don't own); under the map a stage with today's pet, or the one hovered, as a live model (Pets:LoadModel);
                    loads after Achievements/Page.lua so its tab comes second),
-                   PetFrame (the pet that's out on screen, else the one kept out (Med deg: mounted, on a flight path), none while
+                   PetFrame (the pet that's out on screen; mounted or on a flight path the last one out, else the one kept out (Med deg), none while
                    you're dead, optional and off by default: its own ModelScene with the card's view
                    insets, a stage of Moves so it moves 1:1 as on the card (and asleep while you're AFK, a rare line as it
                    wakes: Quirks' egg vaken), name and a slim bond bar with the rising numbers;

@@ -19,7 +19,9 @@ local _, ns = ...
 -- Which pet (PF:Pet): the one that's out, else the one you keep out ("Med deg", auto-summon on), so it
 -- stays on screen while you're mounted or on a flight path, where the game puts it away and its lines
 -- still come (2026-11-14, the user: "we want it to show on flight paths and mounted, as they have
--- reactions then also"). None while you're dead or a ghost: hidden for now (the user: "we'll think of
+-- reactions then also"). While you're mounted or on a flight path it's the last pet that was out, if one
+-- was (2026-11-15, the user: a pet summoned by hand no longer turns into the Med deg one as you mount).
+-- None while you're dead or a ghost: hidden for now (the user: "we'll think of
 -- a creative way to use the frame during corpse runs later"), nor in a pet battle.
 --
 -- Dormant while off: no frame, no events. On: COMPANION_UPDATE (debounced: it fires for every
@@ -356,7 +358,15 @@ end
 -- The pet the frame shows: see the header.
 function PF:Pet()
     if self.battle or ns.Plain(UnitIsDeadOrGhost("player")) then return nil end
-    return ns.Pets:OutKey() or ns.Summon:ActiveKey()
+    local out = ns.Pets:OutKey()
+    if out then self.lastOut = out; return out end
+    -- (put away by the game as you mounted or took off: still that one; else nothing was out then)
+    if ns.Plain(IsMounted()) or ns.Plain(UnitOnTaxi("player")) then
+        if self.lastOut then return self.lastOut end
+    else
+        self.lastOut = nil
+    end
+    return ns.Summon:ActiveKey()
 end
 
 -- Show what should show now: the pet that's out (or Edit Mode's empty frame), or nothing.

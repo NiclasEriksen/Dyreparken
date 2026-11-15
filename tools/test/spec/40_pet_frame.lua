@@ -409,6 +409,11 @@ return function(test, H)
         -- Another pet out by hand: that one, as before.
         ola:Summon(46); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
         eq(PF.actor.display, 20000 + 46)
+        -- Mounted with it: still that one (2026-11-15, the user), not the one you keep out.
+        ola:Mount(); ola:Summon(nil); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
+        eq(PF.actor.display, 20000 + 46, "mounted: the last pet out")
+        ola:Dismount(); w:Run(2) -- (past auto-summon's look after landing: the cat is out)
+        eq(PF.actor.display, 20000 + 46)
         ola:Summon(nil); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
         eq(PF.actor.display, 20000 + 5159, "back to the one you keep out")
         -- Dead, and as a ghost: hidden; alive again: back.
