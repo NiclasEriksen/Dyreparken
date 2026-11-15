@@ -139,7 +139,9 @@ return function(c, env, S)
     env.IsPlayerSpell = function(id) return S.spells ~= nil and S.spells[id] == true end
     env.IsSpellKnown = function(id) return S.spells ~= nil and S.spells[id] == true end
     env.GetNumUnspentTalents = function() return S.unspent or 0 end
-    env.C_Item = { GetItemCount = function(id) return S.items and S.items[id] or 0 end } -- (S.items: id -> count in the bags)
+    env.C_Item = { GetItemCount = function(id) return S.items and S.items[id] or 0 end, -- (S.items: id -> count in the bags)
+        -- (S.itemSpells: id -> the spell's name; an item not cached yet: nil, as the client)
+        GetItemSpell = function(id) local name = S.itemSpells and S.itemSpells[id]; if name then return name, 1 end end }
     -- Talents as on Forever (retail's system, Classic trees): S.config the active loadout's id,
     -- S.talents { [nodeID] = rank } its ranks, in one tree.
     env.C_ClassTalents = { GetActiveConfigID = function() return S.config end }

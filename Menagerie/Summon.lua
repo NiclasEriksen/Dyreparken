@@ -34,7 +34,7 @@ ns.Summon = Summon
 
 local RETRY_EVERY, RETRY_FOR = 3, 60
 -- Busy states whose end is a trigger (PLAYER_REGEN_ENABLED, dismounting, PLAYER_ALIVE/UNGHOST): no retries.
-Summon.WAITS_FOR = { combat = true, mounted = true, dead = true }
+Summon.WAITS_FOR = { combat = true, mounted = true, dead = true, familiar = true }
 local MAX_ATTEMPTS = 3 -- actual summon calls per trigger; each failure shows an error
 
 function Summon:Deferring()
@@ -117,6 +117,37 @@ local function Eating()
     return false
 end
 
+-- A mage's familiar (2026-11-15, the user: "when they use a scroll to summon a familiar (for a buff), our
+-- autosummon replaces it and they lose the buff"): Forever's Scrolls of Rat, Frog and Cat Familiar
+-- (items, mage only; wowhead's Forever companion items) put out a companion that isn't a journal pet,
+-- so it reads as none out, and ours replaced it. While its buff is on you, nothing is summoned; its end
+-- is a trigger (UNIT_AURA on you, only while one is out). By the scroll's spell name as the client has
+-- it (C_Item.GetItemSpell), else the English one. Unverified in game: that the buff has the spell's name.
+Summon.FAMILIARS = { [275069] = "Rat Familiar", [277483] = "Frog Familiar", [277493] = "Cat Familiar" }
+local familiarNames
+local function FamiliarNames()
+    if familiarNames then return familiarNames end
+    local names, all = {}, true
+    for item, english in pairs(Summon.FAMILIARS) do
+        names[english] = true
+        local ok, name = pcall(function() return C_Item and C_Item.GetItemSpell and C_Item.GetItemSpell(item) end)
+        name = ok and ns.Plain(name)
+        if type(name) == "string" and name ~= "" then names[name] = true else all = false end
+    end
+    if all then familiarNames = names end -- (an item not cached yet: asked again next time)
+    return names
+end
+-- The familiar's buff on you: its name, else nil. A secret answer: none (we can't tell; summoning is
+-- what we did before).
+function Summon.Familiar()
+    local byName = C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName
+    if not byName then return nil end
+    for name in pairs(FamiliarNames()) do
+        local ok, data = pcall(byName, "player", name, "HELPFUL")
+        if ok and data and not ns.IsSecret(data) then return name end
+    end
+end
+
 -- Stand state: AutoCompanion treats 0 and 7 as standing, anything else as
 -- sitting/lying. (Forever has no UnitStandState: /dp probe api, 2026-11-11. Kept for a later client.)
 local function Sitting()
@@ -136,6 +167,7 @@ local function Busy()
     if Truthy(UnitCastingInfo("player")) or Truthy(UnitChannelInfo("player")) then return "casting" end
     if Sitting() then return "sitting" end
     if Eating() then return "eating" end
+    if Summon.Familiar() then return "familiar" end
     local _, kind = IsInInstance()
     if kind == "pvp" or kind == "arena" then return "pvp" end
     return nil
@@ -166,6 +198,7 @@ function Summon:Check(reason)
     local busy = Busy()
     if busy then
         ns.Log("Summon", "busy: %s", busy)
+        if busy == "familiar" then self:WatchFamiliar() end
         -- PvP is a place, not a moment: don't keep polling there. Nor for what ends in a trigger.
         if busy ~= "pvp" and not Summon.WAITS_FOR[busy] then self:Retry(reason) end
         return
@@ -181,6 +214,17 @@ function Summon:Check(reason)
     C_PetJournal.SummonPetByGUID(guid)
     -- Verify, and retry if the cooldown or something else refused it.
     self:Retry("verify")
+end
+
+-- While a familiar is out: its buff's end brings ours back (one UNIT_AURA hub on you, only meanwhile).
+local FAMILIAR = { name = "SummonFamiliar" }
+function Summon:WatchFamiliar()
+    if ns.Events:Has("UNIT_AURA", FAMILIAR, "player") then return end
+    ns.Events:On("UNIT_AURA", FAMILIAR, function()
+        if ns.InCombat() or Summon.Familiar() then return end
+        ns.Events:Off("UNIT_AURA", FAMILIAR, "player")
+        Summon:Check("familiar")
+    end, "player")
 end
 
 function Summon:Retry(reason)

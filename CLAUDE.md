@@ -467,7 +467,7 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
 - **The active pet** (2026-11-09): auto-summon keeps out one pet of yours, adopted or not, picked with the "Med deg" paw badge on
   its card (char.activePet; adopting a pet makes it the active one, turns auto-summon on and swaps it in; clicking the badge again turns auto-summon off).
 - Auto-summon only when idle: not in combat, mounted, on a taxi, flying, dead, stealthed, sitting, eating/drinking,
-  casting/channeling, or in a battleground/arena. At most 3 tries per trigger. Toggled by the "Med deg" badge on the card (Menagerie/OutBadge.lua; the list shows a gold paw on the active pet). It never replaces a pet you summoned yourself, except right after you pick a pet on its card: that swaps it in. It doesn't watch
+  casting/channeling, in a battleground/arena, or while a mage's familiar from a scroll is out (its buff on you, 2026-11-15: not a journal pet, and replacing it took the buff). At most 3 tries per trigger. Toggled by the "Med deg" badge on the card (Menagerie/OutBadge.lua; the list shows a gold paw on the active pet). It never replaces a pet you summoned yourself, except right after you pick a pet on its card: that swaps it in. It doesn't watch
   `COMPANION_UPDATE` (that fires for every nearby companion), so a pet you dismiss comes back only at the next
   trigger: loading screen, leaving combat, dismounting, or claiming.
 - The summon clank (sound files 567569, 568424) is muted for 2.5 s after any `SummonPetByGUID` call, per character,

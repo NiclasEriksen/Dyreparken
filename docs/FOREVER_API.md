@@ -148,6 +148,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   unit ... is not the player or their pet", unless the spell is flagged never secret: `C_Secrets.GetSpellCastSecrecy`,
   Enum.SecrecyLevel 0 never, 1 always, 2 contextual; so the party gathering wish goes by a GATHER message from the
   party member's Dyreparken, not their casts); `UnitName` is `SecretWhenUnitNameIdentityRestricted`.
+- **Mage familiars** (2026-11-15, the user): Scrolls of Rat, Frog and Cat Familiar (items 275069, 277483, 277493,
+  mage only) put out a companion with a buff; replacing it with a journal pet takes the buff. Not a journal pet, so
+  `GetSummonedPetGUID` presumably reads none. Summon holds while a buff named as the scroll's spell
+  (`C_Item.GetItemSpell`) or "Rat/Frog/Cat Familiar" is on you. Unverified: the buff's real name.
 - `SetPortraitTextureFromCreatureDisplayID(texture, displayID)` exists (the API probe's globals, 2026-11-15).
   The park and the list draw each pet's face with it from `GetPetInfoBySpeciesID`'s 12th return (Pets:Portrait).
   Unverified in game: whether every species draws (a model not loaded yet may come up blank), and whether the
