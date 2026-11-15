@@ -205,7 +205,8 @@ return function(test, H)
         eq(Park.FamilyName("spirit"), "Ånder"); eq(Park.FamilyName("default"), "Andre dyr")
         -- On its first corner: the cats' first cell's top left.
         local first = Cell(ola, 42) -- (Black Tabby: the first by name)
-        eq(cats.points[1][4] + 0, first.points[1][4] - 3, "at its corner, by the cell's gap"); eq(cats.points[1][5], first.points[1][5] + 3)
+        eq(cats.points[1][4], first.points[1][4], "at its corner"); eq(cats.points[1][5], first.points[1][5])
+        eq(first.size[1], 40, "the whole cell takes the mouse, between the faces too")
         -- Hovered (the sign or a cat): the cats' tint brighter, the others' as they were.
         cats.scripts.OnEnter(cats)
         eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_LIT); eq(Cell(ola, 72).pen.vertexColor[4], Park.PEN_ALPHA)

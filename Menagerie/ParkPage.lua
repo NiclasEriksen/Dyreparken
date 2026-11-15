@@ -207,7 +207,9 @@ end
 local ROUND = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
 local function NewCell()
     local c = CreateFrame("Button", nil, child)
-    c:SetSize(ICON_SIZE, ICON_SIZE)
+    -- The whole cell takes the mouse, the face drawn in its middle: between two faces is still the enclosure
+    -- (2026-11-15, the user: it didn't light up "if you hover between the pets").
+    c:SetSize(CELL, CELL)
     -- Three round layers, each cut by its own mask: the ring (a colored disc, its edge showing), a dark disc,
     -- the face. (Our soft ring particle vanished at this size: seen 2026-11-15.)
     local function Round(layer, sub, size)
@@ -241,7 +243,7 @@ local function NewCell()
     c.glint = c:CreateTexture(nil, "OVERLAY", nil, 3)
     c.glint:SetTexture(ns.Icon("sparkle"))
     c.glint:SetBlendMode("ADD")
-    c.glint:SetPoint("CENTER", c, "TOPRIGHT", -6, -6)
+    c.glint:SetPoint("CENTER", c.ring, "TOPRIGHT", -6, -6)
     c.glint:SetAlpha(0)
     c.glint.pulse = Park.Glint(c.glint)
     -- Its share of the family's enclosure (Park.Pen): the cell's whole square, beyond the icon.
@@ -273,7 +275,7 @@ local function NewCell()
     c.free = c:CreateTexture(nil, "OVERLAY", nil, 2)
     c.free:SetTexture(READY)
     c.free:SetSize(14, 14)
-    c.free:SetPoint("BOTTOMRIGHT", c, "BOTTOMRIGHT", 2, -2)
+    c.free:SetPoint("BOTTOMRIGHT", c.ring, "BOTTOMRIGHT", 2, -2)
     -- Below the icon: ANCHOR_RIGHT grew upwards over the page's header from the top rows (UX review 2026-11-11).
     ns.SetTip(c, "ANCHOR_BOTTOMRIGHT", function(self) return Park.Lines(self.key) end)
     c:SetScript("OnClick", function(self) Park:Show(self.key) end)
@@ -400,8 +402,7 @@ local function Redraw()
         c.family = it.family
         Park.Pen(c, it.family, Park.Fences(grid, col, row))
         c:ClearAllPoints()
-        local gap = (CELL - ICON_SIZE) / 2 -- (the icon centered in its cell: the pen and fences are the cell's)
-        c:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL + gap, -(top + row * CELL + gap))
+        c:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL, -(top + row * CELL))
         c:Show()
     end
     for i = #keys + 1, #cells do cells[i]:Hide() end
