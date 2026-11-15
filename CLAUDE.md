@@ -271,8 +271,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    ParkPage ("Parken", the park map SidePage: records, every journal companion as a round portrait (Pets:Portrait, also
                    the list's icons) in a ring of its holder's bond level, grouped by family into tinted enclosures on a grained ground (Media turf, one tile over four cells) with wooden fences (one on each line between two), a sign on
                    each (its family's mark; hover: name and homes; click: only that family), the pointer's family lit (and its sign), the
-                   empty cells a fenced garden (lawn, tree, pond, flowers, stump; a click on a piece: a hop and a few particles, one in eight a surprise of its own, Park.GARDEN, nothing saved or told)
-                   along one path through the grid (Park.Path: each family one piece), a click opens its card on the Pets page (also pets you
+                   empty cells a fenced garden (lawn, tree, pond, flowers, stump; a click on a piece: a hop and a few particles, one in eight a surprise of its own, Park.GARDEN, nothing saved or told; every piece clicked within 15 s: the whole garden at once; by the clock and calendar, Park.Weather: the season's lawn, darker with fireflies at night, snow in December, autumn's orange leaves; /dp probe garden <hour> [month] to look)
+                   along one path through the grid (Park.Path: each family one piece; a sign clicked swings on its post, the chosen one bigger and gilded; your own pet's cell sends out paw prints now and then), a click opens its card on the Pets page (also pets you
                    don't own); under the map a stage with today's pet, or the one hovered, as a live model (Pets:LoadModel);
                    loads after Achievements/Page.lua so its tab comes second),
                    PetFrame (the pet that's out on screen; mounted or on a flight path the last one out, else the one kept out (Med deg), none while
@@ -320,7 +320,7 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    (Moves.override, Decor.override, Scenes.override, BondTrack.override). The tests load it all; a
                    client made with { release = true } loads the release's files only (spec/48_release.lua).
                    Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
-                   lift|moves|gains|api|sense|perf] and /dp debug, only when ns.DEV); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); Try (/dp try egg|react|dislike|line|wish:
+                   lift|moves|gains|api|sense|perf|garden] and /dp debug, only when ns.DEV); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); Try (/dp try egg|react|dislike|line|wish:
                    a line now, by nature, nothing counted); Perf (/dp probe perf: calls and time per
                    handler, through ns.profile, the one hook Events, Bus and Activity check; a release leaves it nil); PetsProbe (/dp probe, more, ach);
                    MovesProbe (/dp probe anim and pos, the editors' Moves.override); DecorProbe (/dp probe decor,

@@ -94,6 +94,9 @@ return function(test, H)
         local panda, kitty, tabby, rabbit = Cell(ola, 5159), Cell(ola, 41), Cell(ola, 42), Cell(ola, 72)
         no(panda.icon.desaturated); ok(panda.mine:IsShown(), "yours")
         no(kitty.icon.desaturated); no(kitty.mine:IsShown())
+        -- Yours: now and then paw prints walk out of its cell (the user, 2026-11-15); nobody else's.
+        ok(panda.trail:IsShown()); ok(panda.trail.paws[1].walk:IsPlaying())
+        no(kitty.trail:IsShown())
         ok(tabby.icon.desaturated, "free: grey"); eq(tabby.icon.alpha, 0.55)
         no(tabby.free:IsShown(), "Ola doesn't own it")
         ok(rabbit.free:IsShown(), "free, and Ola owns it: he could adopt it")
@@ -242,9 +245,17 @@ return function(test, H)
         eq(page.frame.matches.text, "4 treff")
         eq(Cell(ola, 72).icon.alpha, Park.DIM); eq(Cell(ola, 72).pen.vertexColor[4], Park.PEN_EMPTY)
         ok(cats.chosen:IsShown())
+        -- Chosen: bigger by its size (not a scale: that would move it off its post), its board gilded; and
+        -- a click swings it on its post, coming to rest where it was.
+        eq(cats.size[1], Park.SIGN_W * Park.CHOSEN_SCALE); eq(cats.board.vertexColor[1], Park.CHOSEN_TINT[1])
+        for _, g in ipairs(cats.wobble) do ok(g:IsPlaying(), "it swings") end
+        local turn = 0
+        for _, step in ipairs(Park.SWING) do turn = turn + step[1] end
+        eq(turn, 0, "back where it was")
         match(ola:TipOf(cats).text, "Klikk igjen for å vise alle%.$")
         cats:Click()
         eq(page.frame.matches.text, "")
+        eq(cats.size[1], Park.SIGN_W); no(cats.chosen:IsShown())
         eq(Cell(ola, 72).icon.alpha, 0.55, "back: free, not filtered out")
         -- The search, too: a family it leaves empty fades.
         Park.filter.text = "tabby"; Park:Refresh()
@@ -301,6 +312,65 @@ return function(test, H)
         for _, b in ipairs(Park.GARDEN.tree.surprise) do n = n + b.n end
         eq(ola.ns.Fx:Playing(tree, "garden"), n, "the surprise: a bird takes off")
         eq(#ola:Log("the tree's surprise"), 1)
+    end)
+
+    -- The user, 2026-11-15: "Oh yes I like it": every piece clicked within a short while, the whole garden goes off.
+    test("the garden's hidden extra: every piece clicked in a short while, and they all burst at once", function()
+        local w, ola = Setup()
+        ola:OpenJournal({ sideTabs = 4 })
+        local page = ola:Page("Parken")
+        page:Open()
+        local Park = ola.ns.ParkPage
+        local byPiece, all = {}, {}
+        for _, pl in ipairs(page:Frames(function(f) return f.art ~= nil and f.pen ~= nil end)) do
+            if pl.piece then byPiece[pl.piece] = byPiece[pl.piece] or pl; all[#all + 1] = pl end
+        end
+        ola:Dice(0.99)
+        local kinds = {}
+        for piece in pairs(byPiece) do kinds[#kinds + 1] = piece end
+        table.sort(kinds)
+        -- All but one, then a wait too long: the first ones are forgotten.
+        for i = 1, #kinds - 1 do ola:Press(byPiece[kinds[i]]); w:Run(1) end
+        w:Run(Park.ALL_WITHIN + 1)
+        ola:Press(byPiece[kinds[#kinds]])
+        eq(#ola:Log("the whole garden"), 0, "too slow")
+        for _, pl in ipairs(all) do ola.ns.Fx:Stop(pl, "garden") end
+        for i = 1, #kinds - 1 do ola:Press(byPiece[kinds[i]]); w:Run(1) end
+        eq(#ola:Log("the whole garden"), 1, "every piece within the while")
+        for _, pl in ipairs(all) do
+            ok(ola.ns.Fx:Playing(pl, "garden") > Park.GARDEN[pl.piece].n, pl.piece .. ": its surprise too")
+        end
+    end)
+
+    test("the garden by the clock and the calendar: night's fireflies, December's snow, the season's lawn and leaves", function()
+        local w, ola = Setup()
+        local Park = ola.ns.ParkPage
+        w:SetDate(2026, 10, 15, 23) -- an autumn night
+        ola:OpenJournal({ sideTabs = 4 })
+        local page = ola:Page("Parken")
+        page:Open()
+        local plots = page:Frames(function(f) return f.art ~= nil and f.pen ~= nil end)
+        local lawn = Park.LAWNS.autumn
+        for _, pl in ipairs(plots) do
+            ok(pl.firefly:IsShown()); no(pl.snow:IsShown())
+            eq(pl.pen.vertexColor[2], lawn[2] * Park.NIGHT_DIM, "autumn's lawn, darker at night")
+        end
+        local leaves = Park.Poke("tree", 0.99, Park.Weather())
+        eq(leaves[1].kind, "leaf"); eq(leaves[1].color, Park.AUTUMN)
+        page.frame:Hide()
+        w:SetDate(2026, 12, 3, 12) -- a December day
+        page:Open()
+        for _, pl in ipairs(plots) do
+            no(pl.firefly:IsShown()); ok(pl.snow:IsShown()); ok(pl.snow.fall:IsPlaying())
+            eq(pl.pen.vertexColor[2], Park.LAWNS.winter[2])
+        end
+        eq(Park.Poke("bush", 0.99, Park.Weather())[1].kind, "snow", "winter: snow off the bushes")
+        eq(Park.Poke("pond", 0.99, Park.Weather())[1].kind, "bubble")
+        page.frame:Hide()
+        w:SetDate(2027, 7, 1, 12)
+        page:Open()
+        no(plots[1].snow:IsShown()); no(plots[1].firefly:IsShown())
+        eq(Park.Poke("tree", 0.99, Park.Weather())[1].color, Park.GARDEN.tree.color)
     end)
 
     test("portraits in rings: the family's color, deeper with the bond, a glint and a shine higher up; none for a free one, gold for yours", function()

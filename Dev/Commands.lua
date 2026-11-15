@@ -31,7 +31,22 @@ local PROBES = {
     { "api", function(a) ns.ApiProbe:Run(a) end, "[section|clear]" },
     { "sense", function(a) ns.Commands.Sense(a) end, "[off]" },
     { "perf", function(a) ns.Perf:Command(a) end, "[on|off|show]" },
+    { "garden", function(a) ns.Commands.Garden(a) end, "<hour> [month]|off" },
 }
+
+-- /dp probe garden: Parken's garden at another hour and month (night's fireflies, December's snow, the
+-- seasons' lawns), through ParkPage.override, which a release leaves nil; off: the clock again.
+function ns.Commands.Garden(arg)
+    local hour, month = (arg or ""):match("^(%d+)%s*(%d*)$")
+    local Park = ns.ParkPage
+    if hour then
+        Park.override = { hour = tonumber(hour) % 24, month = tonumber(month) or tonumber(date("%m")) }
+    else
+        Park.override = nil
+    end
+    ns.Print(("garden: %s"):format(Park.override and ("hour %d, month %d"):format(Park.override.hour, Park.override.month) or "the clock"))
+    if Park.Refresh then Park:Refresh() end
+end
 
 -- /dp probe sense: every sensor (Menagerie/Sense.lua) on for this session, each subject to the debug log
 -- ("Sense <kind> ..."); off turns them off again.

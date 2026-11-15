@@ -44,6 +44,7 @@ local ns = select(2, ...)
 -- pets other members own (that isn't synced), so there's no "nobody has it".
 -- Loads after Achievements/Page.lua, so its tab comes second.
 ---@class Dyreparken.ParkPage
+---@field override? { hour: integer, month: integer } the garden's hour and month (Dev/: /dp probe garden; a release leaves it nil)
 local Park = {}
 ns.ParkPage = Park
 
@@ -286,8 +287,58 @@ local function NewCell()
     -- (hooked: SetTip's own OnEnter shows the tooltip)
     c:HookScript("OnEnter", function(self) Park:Spot(self.key); Park:Highlight(self.family) end)
     c:HookScript("OnLeave", function() Park:SpotBack(); Park:Highlight(nil) end)
+    Park.Trail(c)
     cells[#cells + 1] = c
     return c
+end
+
+-- Your own pet's cell (2026-11-15, the user): now and then a few paw prints walk out of it, a new way each
+-- time, and fade. Animation only, on a frame over the cells (they lead onto the neighbors'): nothing runs
+-- while the park is hidden or the pet isn't yours.
+Park.PAWS, Park.PAWS_WAIT, Park.PAW_STEP = 3, { 8, 25 }, 0.35
+function Park.Trail(c)
+    local trail = CreateFrame("Frame", nil, c)
+    trail:SetAllPoints()
+    trail:SetFrameLevel(c:GetFrameLevel() + 3)
+    trail:Hide()
+    trail.paws = {}
+    for i = 1, Park.PAWS do
+        local paw = trail:CreateTexture(nil, "OVERLAY")
+        paw:SetTexture(ns.Icon("paw"))
+        paw:SetVertexColor(1, 0.85, 0.45, 0.85)
+        paw:SetSize(9, 9)
+        paw:SetAlpha(0)
+        local g = paw:CreateAnimationGroup()
+        g.wait = ns.Anim.Fade(g, 0, 0, 1, 1) -- (the pause, set before each play)
+        ns.Anim.Fade(g, 0, 1, 0.15, 2)
+        ns.Anim.Fade(g, 1, 1, 0.6, 3)
+        ns.Anim.Fade(g, 1, 0, 0.9, 4)
+        paw.walk = g
+        trail.paws[i] = paw
+    end
+    function trail.Again()
+        local span = Park.PAWS_WAIT
+        local base = span[1] + math.random() * (span[2] - span[1])
+        local a = math.random() * 2 * math.pi -- (the way it goes: a look, not a chance, so math.random)
+        for i, paw in ipairs(trail.paws) do
+            local r, side = 13 + i * 8, (i % 2 == 0 and 3 or -3)
+            paw:ClearAllPoints()
+            paw:SetPoint("CENTER", trail, "CENTER", math.cos(a) * r - math.sin(a) * side, math.sin(a) * r + math.cos(a) * side)
+            paw:SetRotation(a - math.pi / 2)
+            paw.walk.wait:SetDuration(base + (i - 1) * Park.PAW_STEP)
+            paw.walk:Stop(); paw.walk:Play()
+        end
+    end
+    trail.paws[Park.PAWS].walk:SetScript("OnFinished", function() if trail:IsShown() then trail.Again() end end)
+    c.trail = trail
+end
+function Park.Walk(c, on)
+    local trail = c.trail
+    if on and not trail:IsShown() then trail:Show(); trail.Again()
+    elseif not on and trail:IsShown() then
+        trail:Hide()
+        for _, paw in ipairs(trail.paws) do paw.walk:Stop() end
+    end
 end
 
 -- Every journal species as a pet key with its family (its first, or "default"), by family
@@ -406,6 +457,7 @@ local function Redraw()
         c.icon:SetDesaturated(owner == nil or not match)
         c.icon:SetAlpha(not match and Park.DIM or owner and 1 or 0.55)
         c.mine:SetShown(owner == me and match)
+        Park.Walk(c, owner == me and match)
         c.free:SetShown(owner == nil and owned[it.key] ~= nil and match)
         if owner then homes = homes + 1 end
         local col, row = path[i][1], path[i][2]
@@ -425,7 +477,7 @@ local function Redraw()
         -- (leaning into its enclosure from the corner post, so it's plain whose it is: on the post it sat as
         -- much on the neighbors', the user's look 2026-11-15)
         sg:SetPoint("CENTER", child, "TOPLEFT", 8 + g.col * CELL + Park.SIGN_IN[1], -(top + g.row * CELL + Park.SIGN_IN[2]))
-        sg.chosen:SetShown(Park.filter.family == family)
+        Park.Choose(sg, Park.filter.family == family)
         sg:SetAlpha(filtering and g.matches == 0 and 0.45 or 1)
         sg:Show()
     end
@@ -433,6 +485,7 @@ local function Redraw()
     -- The empty cells: the park's garden, a pen of its own (its lawn the tint, its fences as the others':
     -- loose pieces on bare ground read as clumsy, the user's look 2026-11-15), a piece on the first few.
     local n = 0
+    local weather = Park.Weather()
     for row = 0, rows - 1 do
         for col = 0, cols - 1 do
             if grid[row][col] == "garden" then
@@ -444,6 +497,7 @@ local function Redraw()
                 pl.piece = Park.DECOR[n]
                 pl.art:SetShown(pl.piece ~= nil)
                 pl:EnableMouse(pl.piece ~= nil) -- (bare lawn: the mouse goes through)
+                Park.Sky(pl, weather)
                 if pl.piece then pl.art:SetTexture(ns.Icon(pl.piece)) end
                 pl:Show()
             end
@@ -478,6 +532,28 @@ function Park.Pen(c, family, fences, col, row)
     local f = fences
     c.posts.tl:SetShown(f.top or f.left); c.posts.tr:SetShown(f.top or f.right)
     c.posts.bl:SetShown(f.bottom or f.left); c.posts.br:SetShown(f.bottom or f.right)
+end
+
+-- A garden cell's weather: its lawn, a firefly at night, snow in December (each somewhere in the cell).
+function Park.Sky(pl, w)
+    pl.penColor = w.lawn
+    pl.pen:SetVertexColor(w.lawn[1], w.lawn[2], w.lawn[3], w.lawn[4])
+    pl.firefly:SetShown(w.night)
+    if w.night then
+        pl.firefly:ClearAllPoints()
+        pl.firefly:SetPoint("CENTER", pl, "CENTER", math.random(-14, 14), math.random(-14, 14))
+        if not pl.firefly.pulse:IsPlaying() then pl.firefly.pulse.Again() end
+    else
+        pl.firefly.pulse:Stop()
+    end
+    pl.snow:SetShown(w.snow)
+    if w.snow then
+        pl.snow:ClearAllPoints()
+        pl.snow:SetPoint("TOP", pl, "TOP", math.random(-14, 14), -2)
+        pl.snow.fall:Stop(); pl.snow.fall:Play()
+    else
+        pl.snow.fall:Stop()
+    end
 end
 
 -- The tints: the pointer's family (lit) brighter, a family the filter leaves with nothing fainter.
@@ -527,6 +603,7 @@ function Park.NewSign(family)
     board:SetTexture(ns.Icon("sign"))
     board:SetTexCoord(0, 1, 4 / 32, 28 / 32) -- (the board on its 32x32)
     board:SetAllPoints()
+    sg.board = board
     -- (its mark: the family's ambience on its card, Decor.FAMILY, so the two match)
     local tex, r, g, b = ns.Decor.Mark(family)
     sg.mark = sg:CreateTexture(nil, "OVERLAY")
@@ -534,12 +611,13 @@ function Park.NewSign(family)
     sg.mark:SetVertexColor(r, g, b, 1)
     sg.mark:SetSize(Park.SIGN_H - 3, Park.SIGN_H - 3)
     sg.mark:SetPoint("CENTER", 0, -1)
-    -- The family shown alone: a gold glow round its sign.
+    -- The family shown alone: its sign a little bigger, its board gilded, a soft warm light behind it (a gold
+    -- ring round it until 2026-11-15, the user: "a bit too much"). Park.Choose.
     sg.chosen = sg:CreateTexture(nil, "BACKGROUND")
-    sg.chosen:SetTexture(ns.Icon("ring"))
+    sg.chosen:SetTexture(ns.Icon("dot"))
     sg.chosen:SetBlendMode("ADD")
-    sg.chosen:SetVertexColor(1, 0.82, 0.2, 0.9)
-    sg.chosen:SetSize(Park.SIGN_W + 14, Park.SIGN_W + 14)
+    sg.chosen:SetVertexColor(1, 0.8, 0.35, 0.6)
+    sg.chosen:SetSize(Park.SIGN_W + 12, Park.SIGN_H + 12)
     sg.chosen:SetPoint("CENTER")
     sg.chosen:Hide()
     -- Its enclosure under the mouse: a soft light round it (Park:Highlight).
@@ -554,9 +632,38 @@ function Park.NewSign(family)
     ns.SetTip(sg, "ANCHOR_BOTTOMRIGHT", function(self) return Park.SignLines(self.family) end)
     sg:HookScript("OnEnter", function(self) Park:Highlight(self.family) end)
     sg:HookScript("OnLeave", function() Park:Highlight(nil) end)
-    sg:SetScript("OnClick", function(self) Park:ShowFamily(self.family) end)
+    -- A click: it swings on its post a moment (the user, 2026-11-15), the board and its mark together,
+    -- about the board's top edge.
+    sg.wobble = { Park.Swing(board, 0), Park.Swing(sg.mark, Park.SIGN_H / 2 + 1 - (Park.SIGN_H - 3) / 2) }
+    sg:SetScript("OnClick", function(self)
+        for _, g in ipairs(self.wobble) do g:Stop(); g:Play() end
+        Park:ShowFamily(self.family)
+    end)
     signs[family] = sg
     return sg
+end
+
+-- A swing back and forth that comes to rest where it started (the steps add up to nothing), about a
+-- point dy px above the region's top edge (the board's top, for the mark inside it).
+Park.SWING = { { 10, 0.08 }, { -16, 0.16 }, { 10, 0.14 }, { -4, 0.12 } }
+function Park.Swing(region, dy)
+    local g = region:CreateAnimationGroup()
+    for i, step in ipairs(Park.SWING) do
+        local a = g:CreateAnimation("Rotation")
+        a:SetDegrees(step[1]); a:SetDuration(step[2]); a:SetOrder(i); a:SetSmoothing("IN_OUT")
+        a:SetOrigin("TOP", 0, dy)
+    end
+    return g
+end
+
+Park.CHOSEN_SCALE, Park.CHOSEN_TINT = 1.2, { 1, 0.85, 0.5 }
+function Park.Choose(sg, on)
+    sg.chosen:SetShown(on)
+    -- (bigger by its size, not SetScale: a scale would move its anchor's offsets too, off its post)
+    local k = on and Park.CHOSEN_SCALE or 1
+    sg:SetSize(Park.SIGN_W * k, Park.SIGN_H * k)
+    local t = on and Park.CHOSEN_TINT or { 1, 1, 1 }
+    sg.board:SetVertexColor(t[1], t[2], t[3], 1)
 end
 
 -- A sign clicked: only that family (dimmed in place, as the other filters); clicked again, all.
@@ -588,20 +695,86 @@ Park.GARDEN = {
         surprise = { { kind = "seed", n = 6, color = { 0.8, 0.6, 0.35 } }, { kind = "paw", n = 2, color = BROWN } } },
 }
 Park.SURPRISE_ONE = 8
+
+-- The garden by the clock and the calendar (2026-11-15, the user): the lawn by the season, darker at night
+-- (Scenes' sky: evening's dusk and night), fireflies at night, snow falling in December (Decor.DATES'
+-- snow); in autumn the trees and bushes give orange leaves, in winter snow. The player's clock, as the card's
+-- light. Park.override (Dev/: /dp probe garden) sets the hour and month to look at.
+Park.LAWNS = { spring = { 0.32, 0.6, 0.24 }, summer = { 0.3, 0.55, 0.22 }, autumn = { 0.55, 0.48, 0.2 },
+    winter = { 0.72, 0.8, 0.9 } }
+Park.SEASONS = { "winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn",
+    "autumn", "autumn", "winter" }
+Park.NIGHT_DIM = 0.55
+function Park.Weather(t)
+    local d = date("*t", t or ns.Now())
+    local o = Park.override
+    local hour, month = o and o.hour or d.hour, o and o.month or d.month
+    local sky = ns.Scenes:Sky(hour)[2]
+    local w = { season = Park.SEASONS[month], night = sky == "natt" or sky == "skumring", snow = month == 12 }
+    local c, dim = Park.LAWNS[w.season], w.night and Park.NIGHT_DIM or 1
+    w.lawn = { c[1] * dim, c[2] * dim, c[3] * dim, Park.LAWN[4] }
+    return w
+end
+Park.AUTUMN = { 0.95, 0.55, 0.2 }
 Park.POKE_AGAIN = 0.4 -- seconds: a click sooner on the same piece does nothing (no wall of particles)
 
 -- What a click on a piece gives: its bursts, and whether it was the surprise (pure: the tests read it).
-function Park.Poke(piece, roll)
+function Park.Poke(piece, roll, weather)
     local g = Park.GARDEN[piece]
     if not g then return {}, false end
-    local out = { { kind = g.kind, n = g.n, color = g.color } }
+    local first = { kind = g.kind, n = g.n, color = g.color }
+    local season = weather and weather.season
+    if g.kind == "leaf" and season == "winter" then first = { kind = "snow", n = g.n, color = { 1, 1, 1 } }
+    elseif g.kind == "leaf" and season == "autumn" then first.color = Park.AUTUMN end
+    local out = { first }
     local surprise = roll ~= nil and roll < 1 / Park.SURPRISE_ONE
     if surprise then for _, b in ipairs(g.surprise or {}) do out[#out + 1] = b end end
     return out, surprise
 end
 
+Park.FIREFLY_WAIT, Park.SNOW_FALL = { 2, 9 }, 5
+
+-- A click on a piece: a hop and its bursts (Park.Poke), and the hidden extra: every piece in the garden
+-- clicked within ALL_WITHIN seconds, and the whole garden goes off at once, every piece's surprise.
+Park.ALL_WITHIN = 15
+local found = {} -- piece -> when it was last clicked (GetTime)
+function Park.AllFound(seen, pieces, now)
+    if not next(pieces) then return false end
+    for piece in pairs(pieces) do
+        if not (seen[piece] and now - seen[piece] <= Park.ALL_WITHIN) then return false end
+    end
+    return true
+end
+local function Burst(pl, bursts)
+    pl.hop:Stop(); pl.hop:Play()
+    for i, b in ipairs(bursts) do
+        ns.Fx:Burst({ pl, "CENTER", 0, 0 }, b.kind, { n = b.n, color = b.color, size = i == 1 and 0.7 or 0.8,
+            spread = 24, rise = 36, pop = true, parent = pl, level = pl:GetFrameLevel() + 5, tag = "garden" })
+    end
+end
+function Park:PokePlot(pl)
+    if not pl.piece then return end
+    local now = GetTime()
+    if pl.pokedAt and now - pl.pokedAt < Park.POKE_AGAIN then return end
+    pl.pokedAt = now
+    local weather = Park.Weather()
+    local bursts, surprise = Park.Poke(pl.piece, ns.random(), weather)
+    Burst(pl, bursts)
+    if surprise then ns.Log("Park", "the %s's surprise", pl.piece) end
+    found[pl.piece] = now
+    local pieces = {}
+    for _, p in ipairs(plots) do if p:IsShown() and p.piece then pieces[p.piece] = true end end
+    if Park.AllFound(found, pieces, now) then
+        for k in pairs(found) do found[k] = nil end
+        ns.Log("Park", "the whole garden")
+        for _, p in ipairs(plots) do
+            if p:IsShown() and p.piece then Burst(p, (Park.Poke(p.piece, 0, weather))) end
+        end
+    end
+end
+
 -- A cell of the garden: its share of the pen, and a piece of art (Park.DECOR) in the middle; a click on the
--- piece: Park.Poke.
+-- piece: Park:PokePlot.
 function Park.NewPlot()
     local pl = CreateFrame("Button", nil, child)
     pl:SetSize(CELL, CELL)
@@ -614,19 +787,26 @@ function Park.NewPlot()
     ns.Anim.Scale(hop, 1, 1.15, 0.1, 1, "OUT")
     ns.Anim.Scale(hop, 1.15, 1 / 1.15, 0.25, 2, "IN_OUT")
     pl.hop = hop
-    pl:SetScript("OnClick", function(self)
-        if not self.piece then return end
-        local now = GetTime()
-        if self.pokedAt and now - self.pokedAt < Park.POKE_AGAIN then return end
-        self.pokedAt = now
-        local bursts, surprise = Park.Poke(self.piece, ns.random())
-        self.hop:Stop(); self.hop:Play()
-        for i, b in ipairs(bursts) do
-            ns.Fx:Burst({ self, "CENTER", 0, 0 }, b.kind, { n = b.n, color = b.color, size = i == 1 and 0.7 or 0.8,
-                spread = 24, rise = 36, pop = true, parent = self, level = self:GetFrameLevel() + 5, tag = "garden" })
-        end
-        if surprise then ns.Log("Park", "the %s's surprise", self.piece) end
-    end)
+    -- At night a firefly now and then (Park.Glint's flash, a wait of its own), and in December a snowflake
+    -- falling through, over and over: animation only, stopped while hidden.
+    pl.firefly = pl:CreateTexture(nil, "OVERLAY")
+    pl.firefly:SetTexture(ns.Icon("dot"))
+    pl.firefly:SetBlendMode("ADD")
+    pl.firefly:SetVertexColor(0.85, 1, 0.45, 1)
+    pl.firefly:SetSize(7, 7)
+    pl.firefly:SetAlpha(0)
+    pl.firefly.pulse = Park.Glint(pl.firefly, Park.FIREFLY_WAIT)
+    pl.snow = pl:CreateTexture(nil, "OVERLAY")
+    pl.snow:SetTexture(ns.Icon("snowflake"))
+    pl.snow:SetSize(7, 7)
+    pl.snow:SetAlpha(0)
+    local fall = pl.snow:CreateAnimationGroup()
+    fall:SetLooping("REPEAT")
+    local drop = fall:CreateAnimation("Translation"); drop:SetOffset(0, -(CELL - 8)); drop:SetDuration(Park.SNOW_FALL); drop:SetOrder(1)
+    ns.Anim.Fade(fall, 0, 0.9, Park.SNOW_FALL * 0.25, 1)
+    local melt = ns.Anim.Fade(fall, 0.9, 0, Park.SNOW_FALL * 0.3, 1); melt:SetStartDelay(Park.SNOW_FALL * 0.7)
+    pl.snow.fall = fall
+    pl:SetScript("OnClick", function(self) Park:PokePlot(self) end)
     plots[#plots + 1] = pl
     return pl
 end
@@ -641,14 +821,14 @@ Park.GLINT_AT, Park.SHEEN_AT = 3, 5
 -- a quick flash, gone again. Animation only:
 -- nothing runs while the park is hidden.
 Park.GLINT_WAIT = { 3, 14 }
-function Park.Glint(tex)
+function Park.Glint(tex, waitSpan)
     local g = tex:CreateAnimationGroup()
     local wait = g:CreateAnimation("Alpha") -- (a step that changes nothing: the pause, set before each play)
     wait:SetFromAlpha(0); wait:SetToAlpha(0); wait:SetOrder(1)
     ns.Anim.Fade(g, 0, 1, 0.18, 2)
     ns.Anim.Fade(g, 1, 0, 0.6, 3)
     local function Again()
-        local span = Park.GLINT_WAIT
+        local span = waitSpan or Park.GLINT_WAIT
         wait:SetDuration(span[1] + math.random() * (span[2] - span[1]))
         g:Play()
     end
