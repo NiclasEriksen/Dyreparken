@@ -49,9 +49,12 @@ end
 -- (code review 2026-11-10).
 function Wire.Since(t) return Wire.Time(t) and t >= Config.BOND_EPOCH end
 
--- Player keys from the wire: "First Surname", within reason.
+-- Player keys from the wire: "First Surname", within reason. No "|" or line break (2026-11-15, the user):
+-- a name reaches the chat, where "|" is an escape code. No X-Protocol bump, as with migration 10's checks:
+-- no real name has one, so only forgeries fail it, and peers that still take them keep them only until
+-- their next complete roster (Registry:Prune: a forged name is no member).
 function Wire.Name(s)
-    return type(s) == "string" and s ~= "" and #s <= L.NAME_LEN
+    return type(s) == "string" and s ~= "" and #s <= L.NAME_LEN and not s:find("[|\n\r]")
 end
 
 -- A pet key as Pets.lua makes them: "s:<species id>", or "n:<name>" for a

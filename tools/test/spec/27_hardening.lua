@@ -162,6 +162,10 @@ return function(test, H)
         ok(R:MergeRecord("Per Hansen", { k = "s:40", at = now, ts = now }))
         ok(R:MergeRecord("Liv Lund", { k = "n:Some Pet", at = now, ts = now }), "a pet without a species id")
         ok(R:MergeRecord("Bo Berg", { at = now, ts = now }), "released: no key")
+        -- A player's name reaches the chat: no escape codes in it (no real name has a "|").
+        no(R:MergeRecord("Per |cffff0000Hansen", { k = "s:41", at = now, ts = now }))
+        no(R:MergeName(KITTEN, "Per |TInterface\\Icons\\x:0|t", { n = "X", at = now }))
+        no(R:MergeLife(KITTEN, "Per\nHansen", { p = 1, f = now, t = now }))
     end)
 
     test("a SYNC with more entries than any guild has is refused whole", function()
