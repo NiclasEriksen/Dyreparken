@@ -90,7 +90,7 @@ ns.Companions = {
         [5160] = { a = true, t = { "demon" }, s = "promo" }, -- Zergling
         [5161] = { a = true, t = { "demon" }, s = "promo" }, -- Mini Diablo
         [5162] = { a = true, t = { "reptile" }, s = "drop", w = "Sewer Beast (Stormwind City)" }, -- Baby Crocolisk
-        [5163] = { a = false, t = { "spirit" }, s = "unknown" }, -- Shen'dorei Wisp
+        [5163] = { a = true, t = { "spirit" }, s = "promo" }, -- Shen'dorei Wisp
         [5167] = { a = true, t = { "bird" }, s = "drop", w = "Lord Condar (Loch Modan)" }, -- Condor Hatchling
         [5172] = { a = true, t = { "bird" }, s = "drop", w = "Strider Clutchmother (Darkshore)" }, -- Tallstrider Hatchling
         [5174] = { a = false, t = { "demon" }, s = "unknown" }, -- Minfernal

@@ -1158,6 +1158,7 @@ L["source.where.5138"] = "Blizzard-butikken: Skyborne Epic Pack eller Warcraft F
 L["source.where.5159"] = "Blizzard-butikken: Skyborne Epic Pack eller Warcraft Forever Collection"
 L["source.where.5160"] = "Blizzard-butikken: Skyborne Epic Pack eller Warcraft Forever Collection"
 L["source.where.5161"] = "Blizzard-butikken: Skyborne Epic Pack eller Warcraft Forever Collection"
+L["source.where.5163"] = "Blizzard-butikken eller en kampanje"
 L["source.where.5179"] = "belønning for 12 måneders abonnement"
 
 ------------------------------------------------------------------------------
