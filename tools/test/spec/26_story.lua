@@ -29,8 +29,8 @@ return function(test, H)
         ok(card.stats:IsShown())
         local chips = Shown(card.stats)
         eq(#chips, 3)
-        eq(chips[1].id, "day"); eq(chips[1].count.text, 1)
-        eq(chips[2].id, "herb"); eq(chips[2].count.text, 3)
+        eq(chips[1].id, "day"); eq(chips[1].count.text, "1")
+        eq(chips[2].id, "herb"); eq(chips[2].count.text, "3")
         eq(chips[3].id, "boss")
         eq(chips[2].icon.tex, "Interface\\Icons\\Trade_Herbalism")
         eq(ola:TipOf(chips[2])[1], "3 herbs sammen med Panda Cub")
@@ -61,6 +61,24 @@ return function(test, H)
         c.speciesID, c.petID = nil, nil
         ola.env.PetJournal_UpdatePetCard(c)
         no(card.stats:IsShown())
+    end)
+
+    test("a chip's count is short from 1000 on (1,1k), and its tooltip says it in full", function()
+        local w, ola = Setup()
+        local S = ola.ns.Stats
+        for n, short in pairs({ [0] = "0", [999] = "999", [1000] = "1k", [1100] = "1,1k", [1140] = "1,1k",
+            [1999] = "1,9k", [9999] = "9,9k", [10000] = "10k", [12345] = "12k", [999999] = "999k",
+            [1000000] = "1M", [2500000] = "2,5M" }) do
+            eq(S.Short(n), short, n)
+        end
+        ola.ns.Activity:CheckDay()
+        ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
+        ola.ns.DB.char.activity.herb.pets[PANDA] = 1140
+        local card = ola:SelectPet(5159)
+        local herb
+        for _, chip in ipairs(Shown(card.stats)) do if chip.id == "herb" then herb = chip end end
+        eq(herb.count.text, "1,1k")
+        eq(ola:TipOf(herb)[1], "1140 herbs sammen med Panda Cub")
     end)
 
     test("today's wish: one of its likes, the same all day; doing it brings 10 points once", function()

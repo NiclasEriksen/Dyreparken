@@ -73,6 +73,19 @@ function Stats:RoundToday(key, id)
     return r and r.day == ns.Today() and r.m or nil
 end
 
+-- A chip's count, short from 1000 on (2026-11-15, the user: "1.1k for 1140, and the real number on
+-- mouseover", the tooltip's): one decimal below 10k, none above; rounded down, so a chip never claims a
+-- round number not yet reached (999 stays 999, 1999 is 1,9k, not 2k).
+function Stats.Short(n)
+    if n < 1000 then return tostring(n) end
+    local key, size = "stats.short.k", 1000
+    if n >= 1000000 then key, size = "stats.short.M", 1000000 end
+    local tenths = math.floor(n * 10 / size) -- (tenths as a whole number: no float edge at 1100 or 1999)
+    local text = tenths < 100 and ("%d.%d"):format(math.floor(tenths / 10), tenths % 10) or tostring(math.floor(tenths / 10))
+    text = text:gsub("%.0$", "")
+    return ns.T(key, { n = (text:gsub("%.", ns.L["stats.decimal"])) })
+end
+
 -- A chip's tooltip: n of activity id with the pet, a round number today, the last place found.
 function Stats.Lines(key, id, n)
     local pet = ns.Registry:NameOf(key)
@@ -129,7 +142,7 @@ function Stats:Update(card, key)
         if s then
             chip.id, chip.n = s.id, s.n
             chip.icon:SetTexture(Icon(s.id))
-            chip.count:SetText(s.n)
+            chip.count:SetText(Stats.Short(s.n))
             local round = self:RoundToday(key, s.id)
             chip.ring:SetShown(round ~= nil)
             if round then chip.count:SetTextColor(1, 0.82, 0) else chip.count:SetTextColor(1, 1, 1) end

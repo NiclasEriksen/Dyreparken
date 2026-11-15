@@ -972,6 +972,10 @@ L["stats.days"] = "{n} dager ute sammen med {pet}"
 L["stats.days_one"] = "1 dag ute sammen med {pet}"
 L["stats.tip"] = "{n} {what} sammen med {pet}"
 L["stats.last_place"] = "Sist oppdaget sammen: {place}"
+-- (a chip's count from 1000 on, Stats.Short: "1,1k"; the tooltip says it in full)
+L["stats.short.k"] = "{n}k"
+L["stats.short.M"] = "{n}M"
+L["stats.decimal"] = ","
 L["stats.round"] = "Rundt tall i dag: {m}!"
 
 ------------------------------------------------------------------------------
