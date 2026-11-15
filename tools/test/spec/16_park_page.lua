@@ -189,6 +189,53 @@ return function(test, H)
         eq(bombay.fences.left.tex, ola.ns.Icon("plank"))
     end)
 
+    test("enclosures' signs: the family's mark, its homes on hover, a click shows only it; the pointer lights its family", function()
+        local w, ola, kari = Setup()
+        kari:Slash("adopter")
+        w:Run(5)
+        ola:OpenJournal({ sideTabs = 4 })
+        local page = ola:Page("Parken"):Open()
+        local Park = ola.ns.ParkPage
+        local signs = page:Frames(function(f) return f.family ~= nil and f.mark ~= nil end)
+        eq(#signs, 4, "cats, rabbits, farm, the rest")
+        local cats
+        for _, sg in ipairs(signs) do if sg.family == "cat" then cats = sg end end
+        eq(cats.mark.tex, ola.ns.Icon("yarn"))
+        eq(ola:TipOf(cats).text, "Katter / 1 av 4 har et hjem / Klikk for å vise bare dem.")
+        eq(Park.FamilyName("spirit"), "Ånder"); eq(Park.FamilyName("default"), "Andre dyr")
+        -- On its first corner: the cats' first cell's top left.
+        local first = Cell(ola, 42) -- (Black Tabby: the first by name)
+        eq(cats.points[1][4] + 0, first.points[1][4] - 3, "at its corner, by the cell's gap"); eq(cats.points[1][5], first.points[1][5] + 3)
+        -- Hovered (the sign or a cat): the cats' tint brighter, the others' as they were.
+        cats.scripts.OnEnter(cats)
+        eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_LIT); eq(Cell(ola, 72).pen.vertexColor[4], Park.PEN_ALPHA)
+        cats.scripts.OnLeave(cats)
+        eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_ALPHA)
+        local rabbit = Cell(ola, 72)
+        rabbit.scripts.OnEnter(rabbit)
+        eq(rabbit.pen.vertexColor[4], Park.PEN_LIT, "a pet lights its own family"); eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_ALPHA)
+        rabbit.scripts.OnLeave(rabbit)
+        -- A click: the cats only; the others dimmed, their tints faint, their signs too; again, all.
+        cats:Click()
+        eq(page.frame.matches.text, "4 treff")
+        eq(Cell(ola, 72).icon.alpha, Park.DIM); eq(Cell(ola, 72).pen.vertexColor[4], Park.PEN_EMPTY)
+        ok(cats.chosen:IsShown())
+        match(ola:TipOf(cats).text, "Klikk igjen for å vise alle%.$")
+        cats:Click()
+        eq(page.frame.matches.text, "")
+        eq(Cell(ola, 72).icon.alpha, 0.55, "back: free, not filtered out")
+        -- The search, too: a family it leaves empty fades.
+        Park.filter.text = "tabby"; Park:Refresh()
+        eq(Cell(ola, 84).pen.vertexColor[4], Park.PEN_EMPTY, "no farm animal matches")
+        eq(Cell(ola, 41).pen.vertexColor[4], Park.PEN_ALPHA, "a cat does")
+        Park.filter.text = ""; Park:Refresh()
+        -- The grid's empty cells: a bit of park, in order (a pond first), as many as Park.DECOR has.
+        local pieces = {}
+        for _, t in ipairs(first:GetParent().textures) do if t.piece and t.shown then pieces[#pieces + 1] = t.piece end end
+        eq(#pieces, #Park.DECOR, "a small journal on a wide page: the rest stays empty")
+        eq(pieces[1], "pond")
+    end)
+
     test("portraits in rings: the family's color, deeper with the bond, a glint and a shine higher up; none for a free one, gold for yours", function()
         local w, ola, kari = Setup()
         ola:Slash("adopter panda")

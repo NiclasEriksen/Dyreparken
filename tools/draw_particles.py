@@ -634,7 +634,110 @@ def post():
     return img
 
 
-COLORED = {"plank": plank, "post": post}
+def _rgba_canvas(n=64):
+    return Image.new("RGBA", (n * SS, n * SS), (0, 0, 0, 0))
+
+
+def _shrink(img, n=64):
+    return img.resize((n, n), Image.LANCZOS)
+
+
+def _q(v):  # -1..1 (y up) to the 4x canvas
+    return P(v[0], v[1])
+
+
+def _ell(d, cx, cy, rx, ry, fill):
+    (x0, y1), (x1, y0) = P(cx - rx, cy - ry), P(cx + rx, cy + ry)
+    d.ellipse([x0, y0, x1, y1], fill=fill)
+
+
+def sign():
+    """A little wooden sign board (Parken's family signs): planks, a dark rim, two nail heads. 32x24 on 32x32."""
+    w, h = 32, 24
+    img = Image.new("RGBA", (w * SS, h * SS), (0, 0, 0, 0))
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([0, 0, w * SS - 1, h * SS - 1], radius=3 * SS, fill=(62, 40, 22, 255))
+    d.rounded_rectangle([2 * SS, 2 * SS, (w - 2) * SS - 1, (h - 2) * SS - 1], radius=2 * SS, fill=(150, 104, 62, 255))
+    d.line([2 * SS, h * SS // 2, (w - 2) * SS, h * SS // 2], fill=(112, 76, 44, 255), width=SS)  # two planks
+    for y in range(3 * SS, (h - 3) * SS, 3 * SS):
+        d.line([3 * SS, y, (w - 3) * SS, y + SS], fill=(138, 95, 56, 255), width=1)
+    d.line([2 * SS, 2 * SS, (w - 2) * SS, 2 * SS], fill=(186, 140, 92, 255), width=SS)  # lit top
+    for x in (4, w - 5):
+        d.ellipse([x * SS - SS, 4 * SS - SS, x * SS + SS, 4 * SS + SS], fill=(70, 66, 60, 255))
+    out = Image.new("RGBA", (32, 32), (0, 0, 0, 0))  # (on a 32x32: a texture's sides a power of two)
+    out.paste(img.resize((w, h), Image.LANCZOS), (0, 4))
+    return out
+
+
+def tree():
+    """A round tree seen from above: a shadow, a crown in three greens, a light side."""
+    img = _rgba_canvas(); d = ImageDraw.Draw(img)
+    _ell(d, 0.08, -0.1, 0.78, 0.74, (0, 0, 0, 90))
+    _ell(d, 0, 0, 0.74, 0.72, (38, 82, 34, 255))
+    for cx, cy, r in ((-0.3, 0.25, 0.36), (0.28, 0.22, 0.38), (0.0, -0.25, 0.4), (-0.28, -0.12, 0.3), (0.3, -0.2, 0.3)):
+        _ell(d, cx, cy, r, r, (56, 112, 44, 255))
+    for cx, cy, r in ((-0.32, 0.32, 0.18), (0.18, 0.34, 0.16), (-0.1, 0.05, 0.14)):
+        _ell(d, cx, cy, r, r, (96, 150, 64, 255))
+    return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.5)))
+
+
+def bush():
+    """A low bush with a few flowers."""
+    img = _rgba_canvas(); d = ImageDraw.Draw(img)
+    _ell(d, 0.06, -0.3, 0.7, 0.36, (0, 0, 0, 80))
+    for cx, cy, r in ((-0.38, -0.1, 0.32), (0.0, 0.05, 0.4), (0.38, -0.1, 0.32)):
+        _ell(d, cx, cy, r, r * 0.85, (50, 100, 42, 255))
+    for cx, cy in ((-0.4, 0.05), (0.05, 0.25), (0.35, 0.02), (-0.1, -0.08)):
+        _ell(d, cx, cy, 0.07, 0.07, (240, 200, 220, 255))
+    return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.4)))
+
+
+def pond():
+    """A small pond: a stony rim, water darker in the middle, a glint and a lily pad."""
+    img = _rgba_canvas(); d = ImageDraw.Draw(img)
+    _ell(d, 0, 0, 0.86, 0.66, (112, 104, 90, 255))
+    _ell(d, 0, 0, 0.76, 0.56, (52, 96, 128, 255))
+    _ell(d, 0.05, -0.05, 0.5, 0.34, (36, 72, 104, 255))
+    _ell(d, -0.35, 0.22, 0.2, 0.06, (170, 210, 230, 200))
+    _ell(d, 0.35, -0.12, 0.17, 0.13, (70, 140, 60, 255))
+    _ell(d, 0.34, -0.08, 0.04, 0.04, (240, 220, 240, 255))
+    return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.4)))
+
+
+def flowers():
+    """A patch of grass and flowers."""
+    img = _rgba_canvas(); d = ImageDraw.Draw(img)
+    _ell(d, 0, -0.05, 0.7, 0.5, (60, 104, 46, 200))
+    import random
+    rnd = random.Random(7)
+    colors = [(235, 90, 90, 255), (250, 210, 80, 255), (170, 120, 230, 255), (250, 250, 250, 255)]
+    for k in range(9):
+        x, y = rnd.uniform(-0.5, 0.5), rnd.uniform(-0.35, 0.3)
+        c = colors[k % len(colors)]
+        for a in range(5):
+            t = a / 5 * 2 * math.pi
+            _ell(d, x + 0.07 * math.cos(t), y + 0.07 * math.sin(t), 0.055, 0.055, c)
+        _ell(d, x, y, 0.04, 0.04, (250, 230, 120, 255))
+    return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
+
+
+def bench():
+    """A park bench seen from above: three slats on two legs, its shadow."""
+    img = _rgba_canvas(); d = ImageDraw.Draw(img)
+    def rect(x0, y0, x1, y1, fill):
+        (a, b), (c, e) = P(x0, y1), P(x1, y0)
+        d.rectangle([a, b, c, e], fill=fill)
+    rect(-0.66, -0.36, 0.74, 0.24, (0, 0, 0, 80))
+    for y in (0.22, 0.02, -0.18):
+        rect(-0.72, y - 0.14, 0.68, y, (146, 100, 58, 255))
+        rect(-0.72, y - 0.03, 0.68, y, (182, 132, 84, 255))
+    for x in (-0.55, 0.45):
+        rect(x, -0.38, x + 0.1, 0.26, (70, 46, 26, 255))
+    return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
+
+
+COLORED = {"plank": plank, "post": post, "sign": sign, "tree": tree, "bush": bush, "pond": pond,
+           "flowers": flowers, "bench": bench}
 
 
 def write_rgba(path, img):

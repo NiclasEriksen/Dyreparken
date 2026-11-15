@@ -35,6 +35,11 @@ local ns = select(2, ...)
 -- edge it shares with another family or the outside (Park.Fences). In Scenes.ORDER, those without a family
 -- last; by name within one.
 --
+-- The enclosures' extras (2026-11-15, the user: "I like all 5"): a wooden sign on each one's first corner
+-- with its family's mark (Park.SIGN), its name and homes on hover, a click shows only that family
+-- (Park.filter.family; again: all); the pointer's family brightens its tint (Park.Highlight); a family the
+-- filter leaves empty fades its tint; the grid's empty cells are a bit of park (Park.DECOR: a pond, trees...).
+--
 -- Everything comes from the registry; nothing is sent. We can't know which
 -- pets other members own (that isn't synced), so there's no "nobody has it".
 -- Loads after Achievements/Page.lua, so its tab comes second.
@@ -49,6 +54,7 @@ local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
 local sp, page, child, records, legend, spot
 local cells = {}
+local signs, decor = {}, {} -- family -> its sign; the empty cells' pieces, in order
 local spotT, cameraT = ns.Timers(), ns.Timers()
 -- (200 until 2026-11-15: the six rows of the map then overflowed by a few pixels, and a scrollbar showed
 -- with nothing to scroll)
@@ -60,7 +66,7 @@ Park.VIEW = { 0, 0, 54, -68 } -- (its box the same 190 px as on the 200 px stage
 Park.SPOT_BACK = 1       -- seconds after the mouse leaves an icon, today's pet again
 Park.CAMERA_FOR = 2      -- the stage's camera runs this long after a change (PF.CAMERA_FOR)
 -- The filter: { text = lower-cased search, free = bool, adopt = bool }, for this session.
-Park.filter = { text = "", free = false, adopt = false }
+Park.filter = { text = "", free = false, adopt = false, family = nil } -- (family: a sign clicked)
 Park.DIM = 0.12
 
 -- Lower case, the Norwegian letters too (string.lower leaves UTF-8's alone).
@@ -95,8 +101,12 @@ function Park.Haystack(key)
 end
 
 -- Whether a pet passes the filter (owned: Pets:Owned()).
+-- A pet's enclosure: its first family (as its ring's), else "default".
+function Park.FamilyOf(key) return ns.Scenes:Families(key)[1] or "default" end
+
 function Park.Matches(key, filter, owned)
     filter = filter or Park.filter
+    if filter.family and Park.FamilyOf(key) ~= filter.family then return false end
     local owner = ns.Registry:Holder(key)
     if (filter.free or filter.adopt) and owner then return false end
     if filter.adopt and not (owned or ns.Pets:Owned())[key] then return false end
@@ -106,7 +116,7 @@ end
 
 function Park.Filtering(filter)
     filter = filter or Park.filter
-    return filter.free or filter.adopt or (filter.text or "") ~= ""
+    return filter.free or filter.adopt or (filter.text or "") ~= "" or filter.family ~= nil
 end
 
 
@@ -268,8 +278,8 @@ local function NewCell()
     ns.SetTip(c, "ANCHOR_BOTTOMRIGHT", function(self) return Park.Lines(self.key) end)
     c:SetScript("OnClick", function(self) Park:Show(self.key) end)
     -- (hooked: SetTip's own OnEnter shows the tooltip)
-    c:HookScript("OnEnter", function(self) Park:Spot(self.key) end)
-    c:HookScript("OnLeave", function() Park:SpotBack() end)
+    c:HookScript("OnEnter", function(self) Park:Spot(self.key); Park:Highlight(self.family) end)
+    c:HookScript("OnLeave", function() Park:SpotBack(); Park:Highlight(nil) end)
     cells[#cells + 1] = c
     return c
 end
@@ -282,7 +292,7 @@ local function AllKeys()
     local data = ns.Companions and ns.Companions.species
     for sid in pairs(data or {}) do
         local key = ns.Pets:KeyOfSpecies(sid)
-        local family = ns.Scenes:Families(key)[1] or "default"
+        local family = Park.FamilyOf(key)
         list[#list + 1] = { key = key, name = ns.Pets:NameOfKey(key) or "", family = family,
             rank = rank[family] or #ns.Scenes.ORDER + 1 }
     end
@@ -358,11 +368,17 @@ local function Redraw()
     local filtering = Park.Filtering()
     local keys = AllKeys()
     local path, grid, rows = Park.Path(cols, #keys), {}, 0
+    local groups = {} -- family -> { n, homes, matches, col, row (its first cell: the top row, then the left) }
+    Park.groups = groups
     for i, it in ipairs(keys) do
         local col, row = path[i][1], path[i][2]
         grid[row] = grid[row] or {}
         grid[row][col] = it.family
         rows = math.max(rows, row + 1)
+        local g = groups[it.family]
+        if not g then g = { n = 0, homes = 0, matches = 0, col = col, row = row }; groups[it.family] = g end
+        if row < g.row or (row == g.row and col < g.col) then g.col, g.row = col, row end
+        g.n = g.n + 1
     end
     for i, it in ipairs(keys) do
         local c = cells[i] or NewCell()
@@ -371,7 +387,9 @@ local function Redraw()
         local owner = R:Holder(it.key)
         local match = not filtering or Park.Matches(it.key, nil, owned)
         Park.Ring(c, it.key, owner, match) -- (after match: before it, every ring was drawn as filtered out)
-        if match then matches = matches + 1 end
+        local g = groups[it.family]
+        if match then matches = matches + 1; g.matches = g.matches + 1 end
+        if owner then g.homes = g.homes + 1 end
         c.match = match
         c.icon:SetDesaturated(owner == nil or not match)
         c.icon:SetAlpha(not match and Park.DIM or owner and 1 or 0.55)
@@ -387,6 +405,37 @@ local function Redraw()
         c:Show()
     end
     for i = #keys + 1, #cells do cells[i]:Hide() end
+    Park.filtering = filtering
+    Park:Highlight(Park.lit) -- (the tints, now the groups' matches are known)
+    -- Signs, at each enclosure's first corner (on its post).
+    for family, g in pairs(groups) do
+        local sg = signs[family] or Park.NewSign(family)
+        sg:ClearAllPoints()
+        sg:SetPoint("CENTER", child, "TOPLEFT", 8 + g.col * CELL, -(top + g.row * CELL))
+        sg.chosen:SetShown(Park.filter.family == family)
+        sg:SetAlpha(filtering and g.matches == 0 and 0.45 or 1)
+        sg:Show()
+    end
+    for family, sg in pairs(signs) do if not groups[family] then sg:Hide() end end
+    -- The empty cells: a bit of park.
+    local n = 0
+    for row = 0, rows - 1 do
+        for col = 0, cols - 1 do
+            if not (grid[row] and grid[row][col]) and n < #Park.DECOR then
+                n = n + 1
+                local t = decor[n] or child:CreateTexture(nil, "BACKGROUND", nil, -4)
+                decor[n] = t
+                local piece = Park.DECOR[n]
+                t:SetTexture(ns.Icon(piece))
+                t:SetSize(CELL - 4, CELL - 4)
+                t:ClearAllPoints()
+                t:SetPoint("CENTER", child, "TOPLEFT", 8 + col * CELL + CELL / 2, -(top + row * CELL + CELL / 2))
+                t.piece = piece
+                t:Show()
+            end
+        end
+    end
+    for i = n + 1, #decor do decor[i]:Hide() end
     child:SetHeight(top + rows * CELL + 8)
     Park:Spot(spot.hover or (ns.Bonds:PetOfTheDay()), true)
     page.summary:SetText(("%d/%d"):format(homes, #keys))
@@ -399,12 +448,102 @@ end
 Park.FENCE, Park.POST, Park.PLANK, Park.PEN_ALPHA = 4, 6, 32, 0.2
 function Park.Pen(c, family, fences)
     local col = Park.RingColor(family, 4)
+    c.penColor = col
     c.pen:SetVertexColor(col[1], col[2], col[3], Park.PEN_ALPHA)
     for side, t in pairs(c.fences) do t:SetShown(fences[side] == true) end
     local f = fences
     c.posts.tl:SetShown(f.top or f.left); c.posts.tr:SetShown(f.top or f.right)
     c.posts.bl:SetShown(f.bottom or f.left); c.posts.br:SetShown(f.bottom or f.right)
 end
+
+-- The tints: the pointer's family (lit) brighter, a family the filter leaves with nothing fainter.
+Park.PEN_LIT, Park.PEN_EMPTY = 0.38, 0.06
+function Park:Highlight(family)
+    self.lit = family
+    local groups = self.groups or {}
+    for _, c in ipairs(cells) do
+        if c:IsShown() and c.penColor then
+            local g = groups[c.family]
+            local a = Park.PEN_ALPHA
+            if self.filtering and g and g.matches == 0 then a = Park.PEN_EMPTY
+            elseif family and c.family == family then a = Park.PEN_LIT end
+            local col = c.penColor
+            c.pen:SetVertexColor(col[1], col[2], col[3], a)
+        end
+    end
+end
+
+-- A family's mark on its sign: a particle in a color of its own (as its card's ambience, Decor.FAMILY).
+Park.SIGN = {
+    dragon = { "ember", 1, 0.55, 0.15 }, demon = { "ember", 0.5, 1, 0.2 }, mechanical = { "gear", 0.8, 0.85, 0.9 },
+    pirate = { "coin", 1, 0.82, 0.3 }, murloc = { "shell", 1, 0.85, 0.75 }, owl = { "moon", 0.95, 0.9, 0.7 },
+    frog = { "drop", 0.6, 1, 0.4 }, snake = { "pebble", 0.95, 0.8, 0.5 }, reptile = { "leaf", 0.6, 0.8, 0.55 },
+    spirit = { "wisp", 0.7, 0.75, 1 }, ooze = { "bubble", 0.55, 1, 0.35 }, bear = { "leaf", 0.55, 0.85, 0.35 },
+    wolf = { "paw", 0.85, 0.88, 0.95 }, cat = { "yarn", 0.95, 0.55, 0.6 }, bug = { "butterfly", 1, 0.9, 0.35 },
+    plant = { "petal", 1, 0.75, 0.85 }, rabbit = { "clover", 0.5, 0.9, 0.45 }, rodent = { "seed", 0.85, 0.7, 0.45 },
+    farm = { "grain", 0.95, 0.8, 0.4 }, bird = { "feather", 0.95, 0.95, 1 }, festive = { "star", 1, 0.85, 0.3 },
+    default = { "paw", 1, 0.9, 0.7 },
+}
+Park.SIGN_W, Park.SIGN_H = 20, 15
+
+-- A family's name as a title ("Katter"), its Norwegian letters too.
+local CAP = { ["å"] = "Å", ["ø"] = "Ø", ["æ"] = "Æ" }
+function Park.FamilyName(family)
+    local name = family == "default" and ns.L["park.family.default"] or ns.AchTexts.generic.families[family] or family
+    local first = name:match("^[\195][\128-\191]") or name:sub(1, 1)
+    return (CAP[first] or first:upper()) .. name:sub(#first + 1)
+end
+
+-- Its sign's tooltip: the name, its homes, what a click does.
+function Park.SignLines(family)
+    local g = Park.groups and Park.groups[family] or { n = 0, homes = 0 }
+    return {
+        { Park.FamilyName(family) },
+        { ns.T("park.sign.homes", { homes = g.homes, n = g.n }), 1, 1, 1 },
+        { ns.L[Park.filter.family == family and "park.sign.all" or "park.sign.show"], 0.6, 0.6, 0.6, true },
+    }
+end
+
+function Park.NewSign(family)
+    local sg = CreateFrame("Button", nil, child)
+    sg:SetSize(Park.SIGN_W, Park.SIGN_H)
+    sg:SetFrameLevel(child:GetFrameLevel() + 5) -- (over the cells: it sits on their corner)
+    local board = sg:CreateTexture(nil, "ARTWORK")
+    board:SetTexture(ns.Icon("sign"))
+    board:SetTexCoord(0, 1, 4 / 32, 28 / 32) -- (the board on its 32x32)
+    board:SetAllPoints()
+    local spec = Park.SIGN[family] or Park.SIGN.default
+    sg.mark = sg:CreateTexture(nil, "OVERLAY")
+    sg.mark:SetTexture(ns.Icon(spec[1]))
+    sg.mark:SetVertexColor(spec[2], spec[3], spec[4], 1)
+    sg.mark:SetSize(Park.SIGN_H - 3, Park.SIGN_H - 3)
+    sg.mark:SetPoint("CENTER", 0, -1)
+    -- The family shown alone: a gold glow round its sign.
+    sg.chosen = sg:CreateTexture(nil, "BACKGROUND")
+    sg.chosen:SetTexture(ns.Icon("ring"))
+    sg.chosen:SetBlendMode("ADD")
+    sg.chosen:SetVertexColor(1, 0.82, 0.2, 0.9)
+    sg.chosen:SetSize(Park.SIGN_W + 14, Park.SIGN_W + 14)
+    sg.chosen:SetPoint("CENTER")
+    sg.chosen:Hide()
+    sg.family = family
+    ns.SetTip(sg, "ANCHOR_BOTTOMRIGHT", function(self) return Park.SignLines(self.family) end)
+    sg:HookScript("OnEnter", function(self) Park:Highlight(self.family) end)
+    sg:HookScript("OnLeave", function() Park:Highlight(nil) end)
+    sg:SetScript("OnClick", function(self) Park:ShowFamily(self.family) end)
+    signs[family] = sg
+    return sg
+end
+
+-- A sign clicked: only that family (dimmed in place, as the other filters); clicked again, all.
+function Park:ShowFamily(family)
+    self.filter.family = self.filter.family ~= family and family or nil
+    self:Refresh()
+end
+
+-- The grid's empty cells, in order (a bit of park where the last band ends); the rest, past these, stay
+-- empty (a small journal on a wide page would be all trees).
+Park.DECOR = { "pond", "tree", "flowers", "bench", "bush", "tree", "flowers" }
 
 -- A cell's ring (2026-11-15, the user): an adopted pet's family color at every level, paler at the first
 -- and deeper and brighter as its holder's bond grows (Park.RingColor), a glint from GLINT_AT and a shine
