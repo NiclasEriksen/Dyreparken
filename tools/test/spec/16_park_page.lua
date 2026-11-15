@@ -234,6 +234,11 @@ return function(test, H)
         for _, t in ipairs(first:GetParent().textures) do if t.piece and t.shown then pieces[#pieces + 1] = t.piece end end
         eq(#pieces, #Park.DECOR, "a small journal on a wide page: the rest stays empty")
         eq(pieces[1], "pond")
+        local grass = 0
+        for _, t in ipairs(first:GetParent().textures) do
+            if t.shown and t.color and t.color[4] == Park.LAWN[4] and t.color[2] == Park.LAWN[2] then grass = grass + 1 end
+        end
+        ok(grass > #Park.DECOR, "a lawn under every empty cell, past the pieces too")
     end)
 
     test("portraits in rings: the family's color, deeper with the bond, a glint and a shine higher up; none for a free one, gold for yours", function()

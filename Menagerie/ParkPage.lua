@@ -54,7 +54,7 @@ local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
 local sp, page, child, records, legend, spot
 local cells = {}
-local signs, decor = {}, {} -- family -> its sign; the empty cells' pieces, in order
+local signs, decor, lawn = {}, {}, {} -- family -> its sign; the empty cells' pieces, in order; their grass
 local spotT, cameraT = ns.Timers(), ns.Timers()
 -- (200 until 2026-11-15: the six rows of the map then overflowed by a few pixels, and a scrollbar showed
 -- with nothing to scroll)
@@ -417,25 +417,37 @@ local function Redraw()
         sg:Show()
     end
     for family, sg in pairs(signs) do if not groups[family] then sg:Hide() end end
-    -- The empty cells: a bit of park.
-    local n = 0
+    -- The empty cells: a bit of park, a lawn under all of them (an enclosure's tint, in grass green: the
+    -- pieces alone read as loose icons, the user's look 2026-11-15) and a piece on the first few.
+    local n, k = 0, 0
     for row = 0, rows - 1 do
         for col = 0, cols - 1 do
-            if not (grid[row] and grid[row][col]) and n < #Park.DECOR then
-                n = n + 1
-                local t = decor[n] or child:CreateTexture(nil, "BACKGROUND", nil, -4)
-                decor[n] = t
-                local piece = Park.DECOR[n]
-                t:SetTexture(ns.Icon(piece))
-                t:SetSize(CELL - 4, CELL - 4)
-                t:ClearAllPoints()
-                t:SetPoint("CENTER", child, "TOPLEFT", 8 + col * CELL + CELL / 2, -(top + row * CELL + CELL / 2))
-                t.piece = piece
-                t:Show()
+            if not (grid[row] and grid[row][col]) then
+                k = k + 1
+                local x, y = 8 + col * CELL + CELL / 2, -(top + row * CELL + CELL / 2)
+                local g = lawn[k] or child:CreateTexture(nil, "BACKGROUND", nil, -8)
+                lawn[k] = g
+                g:SetColorTexture(Park.LAWN[1], Park.LAWN[2], Park.LAWN[3], Park.LAWN[4])
+                g:SetSize(CELL, CELL)
+                g:ClearAllPoints()
+                g:SetPoint("CENTER", child, "TOPLEFT", x, y)
+                g:Show()
+                if n < #Park.DECOR then
+                    n = n + 1
+                    local t = decor[n] or child:CreateTexture(nil, "BACKGROUND", nil, -4)
+                    decor[n] = t
+                    t.piece = Park.DECOR[n]
+                    t:SetTexture(ns.Icon(t.piece))
+                    t:SetSize(CELL, CELL)
+                    t:ClearAllPoints()
+                    t:SetPoint("CENTER", child, "TOPLEFT", x, y)
+                    t:Show()
+                end
             end
         end
     end
     for i = n + 1, #decor do decor[i]:Hide() end
+    for i = k + 1, #lawn do lawn[i]:Hide() end
     child:SetHeight(top + rows * CELL + 8)
     Park:Spot(spot.hover or (ns.Bonds:PetOfTheDay()), true)
     page.summary:SetText(("%d/%d"):format(homes, #keys))
@@ -544,6 +556,7 @@ end
 -- The grid's empty cells, in order (a bit of park where the last band ends); the rest, past these, stay
 -- empty (a small journal on a wide page would be all trees).
 Park.DECOR = { "pond", "tree", "flowers", "bench", "bush", "tree", "flowers" }
+Park.LAWN = { 0.3, 0.55, 0.22, 0.22 } -- (r, g, b, a: the lawn under them)
 
 -- A cell's ring (2026-11-15, the user): an adopted pet's family color at every level, paler at the first
 -- and deeper and brighter as its holder's bond grows (Park.RingColor), a glint from GLINT_AT and a shine
