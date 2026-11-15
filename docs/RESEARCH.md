@@ -65,8 +65,9 @@ waits 30 s after login, the quest path doesn't.
 - **wago.tools has Forever** (product `wowf`, builds to 1.60.1.70938). CSV per table and build:
   `https://wago.tools/db2/BattlePetSpecies/csv?build=1.60.1.70938`, and `Creature`, `CreatureDisplayInfo`,
   `CreatureXDisplayInfo`. Names, display ids, icons, flags, per build, no scraping. Its source text is empty, so
-  how a pet is got stays ours (curation.csv). 122 species at 70938 (our README says 119); the only new one,
-  5163 Shen'dorei Wisp, is already in our data.
+  how a pet is got stays ours (curation.csv). 122 species at 70938 (our README says 119). Against the in-game export
+  of 70790 (tools/companions/wago.py): every known species the same; three it never listed, 1248 Blossoming
+  Ancient, 4630 Gill'el and 5080 Pinky (store and hidden flags, no source text), left out until seen in game.
 - Other Forever projects run a "DB2 watch" GitHub Action that diffs tables per build and opens a PR
   (github.com/timemir/pagle-addon issues 490/678, github.com/cjber/tweaks-forever PR 484): a model for
   tools/companions/build.py.

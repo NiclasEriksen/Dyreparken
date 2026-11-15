@@ -128,8 +128,11 @@ end
 -- (seen in game, 2026-11-15, the user).
 Summon.FAMILIARS = { [275069] = "Rat Familiar", [277483] = "Frog Familiar", [277493] = "Cat Familiar" }
 local familiarNames
+local namesTries = 0
+Summon.NAME_TRIES = 5 -- asks of the client for the scrolls' spell names: uncached on most characters for good
 local function FamiliarNames()
     if familiarNames then return familiarNames end
+    namesTries = namesTries + 1
     local names, all = {}, true
     for item, english in pairs(Summon.FAMILIARS) do
         names[english] = true
@@ -137,7 +140,8 @@ local function FamiliarNames()
         name = ok and ns.Plain(name)
         if type(name) == "string" and name ~= "" then names[name] = true else all = false end
     end
-    if all then familiarNames = names end -- (an item not cached yet: asked again next time)
+    -- (an item not cached yet: asked again next time, a few times; then the English names do)
+    if all or namesTries >= Summon.NAME_TRIES then familiarNames = names end
     return names
 end
 -- The familiar's buff on you: its name, else nil. A secret answer: none (we can't tell; summoning is
@@ -224,9 +228,10 @@ local FAMILIAR = { name = "SummonFamiliar" }
 function Summon:WatchFamiliar()
     if ns.Events:Has("UNIT_AURA", FAMILIAR, "player") then return end
     ns.Events:On("UNIT_AURA", FAMILIAR, function()
-        if ns.InCombat() or Summon.Familiar() then return end
+        if Summon.Familiar() then return end
         ns.Events:Off("UNIT_AURA", FAMILIAR, "player")
-        Summon:Check("familiar")
+        -- (gone in a fight: the fight's end is a trigger of its own, which summons)
+        if not ns.InCombat() then Summon:Check("familiar") end
     end, "player")
 end
 

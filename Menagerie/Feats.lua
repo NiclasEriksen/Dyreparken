@@ -192,6 +192,7 @@ function Feats:Got(f, spell, quest)
     local what = self:What(f, spell, quest)
     -- Owed until rewarded if a pet was out, or might have been (unreadable in a fight).
     Record(f.id, false, what, ns.InCombat() or ns.Pets:OutKey() ~= nil)
+    self:WatchOwed()
     self.lastAt = GetTime()
     ns.Log("Feats", "%s: %s", f.id, tostring(what))
     ns.Activity:Emit("feat", 1, f.id)
@@ -248,10 +249,17 @@ function Feats:OnFeat(id, key)
     local f, rec = self.BY_ID[id], ns.DB.char.feats[id]
     if not (f and rec) or rec.key then return end
     if not key then
-        if rec.owed then return ns.Log("Feats", "%s: no pet out now, owed", id) end
+        -- Owed only while you're dead: you died in the fight, and the companion went with you. Alive after
+        -- it with no pet out, none was (in the fight we couldn't tell): done (code review 2026-11-15).
+        if rec.owed and ns.Plain(UnitIsDeadOrGhost("player")) then
+            return ns.Log("Feats", "%s: no pet out now, owed", id)
+        end
+        rec.owed = nil
+        self:WatchOwed()
         return ns.Log("Feats", "%s with no pet out: no reward", id)
     end
     rec.key, rec.owed = key, nil
+    self:WatchOwed()
     local name = ns.Registry:NameOf(key)
     local line = f.line or "spell"
     local vars = { pet = name, what = rec.what, totem = f.totem and ns.L["feat.totem." .. f.totem],
@@ -391,12 +399,22 @@ function Feats.PaySoon()
     if Owed() then C_Timer.After(Feats.PAY_AFTER, function() Feats:PayOwed() end) end
 end
 
+-- Coming back to life pays what's owed: those events only while something is (the hook can't be undone, but
+-- costs a table walk only).
+function Feats:WatchOwed()
+    if Owed() then
+        ns.Events:On("PLAYER_ALIVE", Feats, Feats.PaySoon)
+        ns.Events:On("PLAYER_UNGHOST", Feats, Feats.PaySoon)
+    else
+        ns.Events:Off("PLAYER_ALIVE", Feats)
+        ns.Events:Off("PLAYER_UNGHOST", Feats)
+    end
+end
+
 function Feats:Init()
     ns.Activity:Want("feat", Feats)
-    -- (a hook stays, but costs a table walk only; the events come once a death)
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Feats.PaySoon() end)
-    ns.Events:On("PLAYER_ALIVE", Feats, Feats.PaySoon)
-    ns.Events:On("PLAYER_UNGHOST", Feats, Feats.PaySoon)
+    self:WatchOwed()
     ns.Bus:On("ACTIVITY", function(id, _, key, _, extra) if id == "feat" then Feats:OnFeat(extra, key) end end)
     C_Timer.After(self.FIRST_LOOK, function() Feats:FirstLook() end)
 end

@@ -121,6 +121,17 @@ return function(test, H)
         c.state.auras = {}
         c:Fire("UNIT_AURA", "player"); w:Run(1)
         eq(c.summoned, PANDA_GUID(c), "its buff gone: ours")
+        -- Gone in a fight: the watch ends then, and the fight's end summons (code review 2026-11-15).
+        c:Summon(nil); c.state.auras = { ["Cat Familiar"] = true }
+        c:Zone(); w:Run(5)
+        c:EnterCombat()
+        c.state.auras = {}
+        c:Fire("UNIT_AURA", "player"); w:Run(1)
+        c:LeaveCombat(); w:Run(5)
+        eq(c.summoned, PANDA_GUID(c), "after the fight")
+        local n = #c:Log("check %(familiar%)")
+        c:Fire("UNIT_AURA", "player"); w:Run(5)
+        eq(#c:Log("check %(familiar%)"), n, "the watch ended with the buff")
     end)
 
     test("secret values count as busy", function()
