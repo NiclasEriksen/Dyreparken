@@ -22,8 +22,14 @@ for _, f in ipairs(files) do
     end
     for name, rhs in text:gmatch("\nns%.([%a_][%w_]*)%s*=%s*([^\n]*)") do
         local loc = rhs:match("^([%a_][%w_]*)%s*$")
-        local class = loc and text:find("%-%-%-@class Dyreparken%." .. name .. "\nlocal " .. loc .. " =") and
-            ("Dyreparken." .. name)
+        local class
+        -- (its class line, then any ---@field lines, then `local <loc> =`)
+        local at = loc and select(2, text:find("%-%-%-@class Dyreparken%." .. name .. "\n"))
+        if at then
+            local rest = text:sub(at + 1)
+            while rest:match("^%-%-%-@") do rest = rest:gsub("^[^\n]*\n", "", 1) end
+            if rest:sub(1, #("local " .. loc .. " =")) == "local " .. loc .. " =" then class = "Dyreparken." .. name end
+        end
         if not fields[name] then order[#order + 1] = name end
         if class or not fields[name] then fields[name] = { class or "any", f } end
     end
