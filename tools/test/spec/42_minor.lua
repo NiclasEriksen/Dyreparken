@@ -66,6 +66,16 @@ return function(test, H)
         card = ola:SelectPet(5159)
         match(card.likes.text, "|cff8c8475" .. P.NOUN.pvp .. "|r", "dimmed")
         match(card.likes.text, "|cff8c8475" .. P.NOUN.nap .. "|r", "the minor like too")
+        -- The list's tooltip and the park's stage too, dimmed the same (2026-11-15, the user: they left them out).
+        local pline = P:Line(PANDA)
+        match(pline, "|cff8c8475" .. P.NOUN.nap .. "|r", "the minor like in the shared line")
+        match(pline, "liker ikke [^·]*|cff8c8475" .. P.NOUN.pvp, "the dislike seen, minor")
+        ola:OpenJournal({ sideTabs = 4 })
+        local Park = ola.ns.ParkPage
+        ola:Page("Parken"):Open()
+        Park:Spot(PANDA)
+        match(Park.spot.text.text, "|cff8c8475" .. P.NOUN.nap .. "|r|cff", "on the stage, back to the line's color after it")
+        ola:SelectPet(5159)
         -- The tooltip: the minor ones in their own, dimmer lines.
         local tip = ola:TipOf(card.personalityHit).text
         match(tip, "Liker også litt: " .. P.NOUN.nap)

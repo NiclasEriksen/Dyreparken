@@ -417,7 +417,7 @@ L["effect.activity.nap"] = "/afk i en by eller et vertshus med dyret ute"
 L["effect.activity.hearth"] = "Hearthstone, Astral Recall eller Teleport: Moonglade med dyret ute"
 L["effect.activity.jump"] = "Hvert tiende hopp med dyret ute"
 L["effect.activity.explore"] = "Hvert nytt sted dyret ser sammen med deg"
-L["personality.line"] = "{traits} · liker {likes}"
+L["personality.line"] = "{traits} · {likes}"                   -- {likes}: "liker mining · liker ikke flyturer"
 
 ------------------------------------------------------------------------------
 -- Quirks (Menagerie/Quirks.lua): no effect, only flavor, at most one line an

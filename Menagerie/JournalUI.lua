@@ -51,9 +51,6 @@ local COLUMN = NAME_RIGHT -- (the name's room, for the font step-down)
 JournalUI.ROW_Y = ROW_Y
 local MODEL_LIFT = 34 -- the model's bottom, above the panel: clear of the turn buttons
 local NAME_FONTS = { "GameFontNormalHuge", "GameFontNormalLarge", "GameFontNormal" } -- the name, biggest first
--- A minor like or dislike in the likes line (Personality.lua: unlocked by your bond), dimmer than the
--- line's own color (0.8, 0.76, 0.66): lesser (the user, 2026-11-12).
-local MINOR = "|cff8c8475"
 -- The panel's width once laid out (nil before).
 local function panel_width(c) return c.panel and c.panel:GetWidth() end
 
@@ -157,19 +154,8 @@ local function UpdateCard()
     card.fullName, card.species, card.home = nick or species, species, text -- for the hover
     if ns.Personality:Known(key) then
         card.personality:SetText(ns.Personality:Names(key))
-        local P = ns.Personality
-        local likes, dislikes = P:LikedWords(key), nil
-        local minorBad
-        dislikes, minorBad = P:DislikedWords(key)
-        -- The minor ones (unlocked by your bond, Personality.lua) in the same line, dimmed: lesser.
-        local minorLike = P:MinorLike(key)
-        if minorLike then likes[#likes + 1] = MINOR .. P.NOUN[minorLike] .. "|r" end
-        for _, w in ipairs(minorBad) do dislikes[#dislikes + 1] = MINOR .. w .. "|r" end
-        local parts = {}
-        if #likes > 0 then parts[1] = ns.T("card.likes", { list = ns.Join(likes) }) end
-        if #dislikes > 0 then parts[#parts + 1] = ns.T("card.dislikes", { list = ns.Join(dislikes) }) end
-        local line = table.concat(parts, " · ")
-        card.likes:SetText(line:sub(1, 1):upper() .. line:sub(2))
+        -- (the minor ones, unlocked by your bond, in the same line, dimmed: Personality:LikesText)
+        card.likes:SetText(ns.Personality:LikesText(key, true))
     else -- a surprise until it's collected or adopted
         card.personality:SetText(ns.L["personality.unknown"])
         card.likes:SetText("")

@@ -406,9 +406,12 @@ local function Camera()
     cameraT:After(Park.CAMERA_FOR, function() spot.scene:SetScript("OnUpdate", nil) end)
 end
 
+-- A tooltip line { text, r, g, b } as colored text; a color inside it (a minor like, dimmed) goes back to
+-- the line's after its |r, not to the font's white.
 local function Colored(line)
     local r, g, b = line[2] or 1, line[3] or 1, line[4] or 1
-    return ("|cff%02x%02x%02x%s|r"):format(r * 255, g * 255, b * 255, line[1])
+    local color = ("|cff%02x%02x%02x"):format(r * 255, g * 255, b * 255)
+    return color .. line[1]:gsub("|r", "|r" .. color) .. "|r"
 end
 
 -- The stage shows key (nil: nobody's pet of the day yet, only the hint). again: its words anew (a redraw).

@@ -475,12 +475,34 @@ function Personality:Known(key)
     return ns.Pets:IsOwned(key) or ns.Registry:Holder(key) ~= nil
 end
 
--- "Kosete og Nattugle · liker herbs og quests" (or that it's unknown yet)
+-- A minor like or dislike in a likes line (unlocked by your bond), dimmer than the line's own color
+-- (the card's 0.8, 0.76, 0.66): lesser (the user, 2026-11-12).
+Personality.MINOR_COLOR = "|cff8c8475"
+
+-- What it likes and the dislikes seen so far, the minor ones once unlocked and dimmed: "liker mining og
+-- quests · liker ikke flyturer" (capital: "Liker ..."), or "" when it has none to show. The card, the
+-- park's stage and the tooltips (2026-11-15, the user: the stage and the tooltips left the minor ones out).
+function Personality:LikesText(key, capital)
+    local M = self.MINOR_COLOR
+    local likes = self:LikedWords(key)
+    local dislikes, minorBad = self:DislikedWords(key)
+    local minorLike = self:MinorLike(key)
+    if minorLike then likes[#likes + 1] = M .. self.NOUN[minorLike] .. "|r" end
+    for _, w in ipairs(minorBad) do dislikes[#dislikes + 1] = M .. w .. "|r" end
+    local parts = {}
+    if #likes > 0 then parts[1] = ns.T("card.likes", { list = Join(likes) }) end
+    if #dislikes > 0 then parts[#parts + 1] = ns.T("card.dislikes", { list = Join(dislikes) }) end
+    local line = table.concat(parts, " · ")
+    if capital then return (line:sub(1, 1):upper() .. line:sub(2)) end
+    return (line:sub(1, 1):lower() .. line:sub(2))
+end
+
+-- "Kosete og Nattugle · liker herbs og quests · liker ikke flyturer" (or that it's unknown yet)
 function Personality:Line(key)
     if not self:Known(key) then return ns.L["personality.unknown"] end
-    local words = self:LikedWords(key)
-    if #words == 0 then return self:Names(key) end
-    return ns.T("personality.line", { traits = self:Names(key), likes = Join(words) })
+    local likes = self:LikesText(key)
+    if likes == "" then return self:Names(key) end
+    return ns.T("personality.line", { traits = self:Names(key), likes = likes })
 end
 
 -- Both traits explained, for a tooltip: name, what it means, what it does.
