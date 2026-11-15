@@ -87,7 +87,7 @@ function Bonds:TellUnlocks(key, level)
     local name = ns.Registry:NameOf(key)
     if like and level >= C.MINOR_LIKE_LEVEL and not told[key].like then
         told[key].like = true
-        -- (always: a level reached, not a random line; chatLines is about those)
+        -- (always: a level reached, not a random line; chatter is about those)
         ns.PetSays(ns.T("unlock.like", { pet = name, what = P.NOUN[like] }), key, "major", true)
     end
     if dislike and level >= C.MINOR_DISLIKE_LEVEL and not told[key].dislike then
@@ -106,7 +106,7 @@ ns.Bus:On("BOND_LEVEL", function(key, level, name)
 end)
 ns.Bus:On("BOND_FULL", function(key) ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end)
 ns.Bus:On("BOND_LINE", function(key, text, kind)
-    if ns.Settings:On("chatLines") then ns.PrintGold(text) end
+    if ns.Settings:Chatty() then ns.PrintGold(text) end
     ns.Bus:Fire("PET_SAID", key, kind or "like", text)
 end)
 

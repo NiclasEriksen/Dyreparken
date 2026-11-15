@@ -210,7 +210,7 @@ local function AtChat()
 end
 
 function Fx:Line()
-    if not (ns.Settings:On("worldHearts") and ns.Settings:On("chatLines")) then return end
+    if not (ns.Settings:On("worldHearts") and ns.Settings:Chatty()) then return end
     self:Burst(AtChat(), "spark", { n = 4, color = { 1, 0.85, 0.4 }, size = 0.6, spread = 24, rise = 24 })
 end
 

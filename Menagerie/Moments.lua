@@ -7,7 +7,7 @@ local ns = select(2, ...)
 --   lines by nature  Moments.ByNature(prefix, row, key): the first of the row's traits the pet has with
 --                    lines of its own (<prefix>.<id>.<trait>.1), then its families', else the plain lines
 --   budgets          a cooldown each, saved in char (Moments.BUDGETS): the quirks' 45 minutes, the
---                    reactions' 20; a rare reaction or egg spends none (a rare egg did until 2026-11-15,
+--                    reactions' 20, scaled by "Småting i chatten" (Settings.CHATTER, Moments:Every); a rare reaction or egg spends none (a rare egg did until 2026-11-15,
 --                    holding back the day's common ones), every other quirk line the quirks'
 --   one at a time    one slot for every common line on its way: an egg and a reaction no longer speak
 --                    seconds apart (each module had its own, and neither saw the other's)
@@ -66,18 +66,27 @@ local function Drain()
     end
 end
 
--- A budget's cooldown is over and no line is on its way.
-function Moments:Ready(budget)
+-- A budget's cooldown is over and no line is on its way. egg: for an egg, which "Mye" never lets through
+-- sooner (Moments:Every).
+function Moments:Ready(budget, egg)
     if onTheWay > 0 then return false end
     local b = assert(self.BUDGETS[budget], "Moments: no budget " .. tostring(budget))
     local at = b.get()
-    return not at or ns.Now() - at >= b.every
+    return not at or ns.Now() - at >= self:Every(budget, egg)
 end
--- Seconds until a budget is free (0: free), for /dp state.
-function Moments:Left(budget)
+-- A budget's cooldown in seconds, as "Småting i chatten" makes it (Settings.CHATTER: 90 minutes, 15...).
+-- For an egg never shorter than the budget's own (2026-11-15, the user: "it shouldn't shorten the egg
+-- timer": "Mye" would have found eggs three times as fast); "Litt"'s longer one holds.
+function Moments:Every(budget, egg)
+    local f = ns.Settings.CHATTER[ns.Settings:Chatter()].every
+    if egg then f = math.max(1, f) end
+    return self.BUDGETS[budget].every * f
+end
+-- Seconds until a budget is free (0: free), for /dp state; egg as Ready's.
+function Moments:Left(budget, egg)
     local b = self.BUDGETS[budget]
     local at = b.get()
-    return at and math.max(0, at + b.every - ns.Now()) or 0
+    return at and math.max(0, at + self:Every(budget, egg) - ns.Now()) or 0
 end
 
 -- Say text for key after a delay. m: { text, key, why (for the log), id (Queued's), delay (a DELAY name),
@@ -95,7 +104,7 @@ function Moments:Say(m)
             onTheWay = math.max(0, onTheWay - 1)
             if m.id then queued[m.id] = nil end
             if m.budget then self.BUDGETS[m.budget].set(ns.Now()) end
-            -- (chatLines off hides the line only: what it found still counts)
+            -- (chatter "none" hides the line only: what it found still counts)
             ns.PetSays(m.text, m.key, m.bubble or "say")
             if m.said then m.said() end
             Drain()

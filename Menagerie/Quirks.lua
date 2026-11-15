@@ -49,7 +49,8 @@ local Pick = ns.PickLine
 -- The eggs decided and not yet said, by the day they're for (an egg isn't decided twice meanwhile).
 local pending = { eggs = {} }
 
-function Quirks:Ready() return ns.Moments:Ready("quirk") end
+-- egg: an egg's wait, which "Mye" doesn't shorten (Moments:Every); a dislike's does.
+function Quirks:Ready(egg) return ns.Moments:Ready("quirk", egg) end
 
 -- Decided now, said after the delay (Moments:Say); a quirk line spends the 45 minutes as it's said, except
 -- a rare egg's (2026-11-15, the user: as a rare reaction, it no longer holds back the day's common eggs).
@@ -76,7 +77,8 @@ function Quirks:Dislike(key, id, minor)
     if not first and not self:Ready() then return end
     local chance = minor and (first and self.MINOR_CHANCE or self.MINOR_AGAIN)
         or (first and self.DISLIKE_CHANCE or self.DISLIKE_AGAIN)
-    if ns.random() >= chance then return end
+    -- (a discovery counts toward an achievement, as an egg; a known one again is only a line)
+    if ns.random() >= ns.Settings:Chance(chance, first and "egg" or "flavor") then return end
     local name = ns.Registry:NameOf(key)
     local text = Pick("dislike." .. id, { pet = name })
     if not text then return end
@@ -316,10 +318,11 @@ Quirks.EGGS = {
     { id = "baalvarm", on = "campwarm", chance = 0.25, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.baalvarm.eventyr" }) end },
-    { id = "baal", on = "camp", chance = 0.6, test = function(ctx)
+    -- (fire and bag lower, 2026-11-15: a shaman's saves had all four camp eggs said on most days, a third of them)
+    { id = "baal", on = "camp", chance = 0.45, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.baal.eventyr" }) end },
-    { id = "sovepose", on = "rested", chance = 0.6, test = function(ctx)
+    { id = "sovepose", on = "rested", chance = 0.45, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.sovepose.eventyr" }) end },
     -- A lot of guild chat at once, for a pet that isn't a Pratsom (it would join in) (the user, 2026-11-11).
@@ -477,12 +480,13 @@ function Quirks:Egg(on, key, extra, seen)
         local had = ns.DB.char.eggs[e.id]
         local done = (had and had.day == today) or pending.eggs[e.id] == today
         -- (a common one held back only by another line on its way: this moment again after it)
-        if not e.always and not done and M:Pending() and M:Left("quirk") == 0 then held = true end
+        if not e.always and not done and M:Pending() and M:Left("quirk", true) == 0 then held = true end
         local chance = e.chance
         if type(chance) == "function" then chance = chance(ctx) end -- (false or nil: no roll, the test decides)
+        if chance then chance = ns.Settings:Chance(chance, "egg") end
         if dead and e.fight then
             ns.Log("Quirks", "egg %s: unsaid, the fight ended with your death", e.id)
-        elseif (e.always or self:Ready()) and not done
+        elseif (e.always or self:Ready(true)) and not done
             and (not chance or ns.random() < chance) then
             ctx.egg = e
             local vars = e.test(ctx)

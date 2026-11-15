@@ -47,15 +47,17 @@ return function(test, H)
         eq(ola.ns.DB.char.announce, false)
         Box(ola, "settings.achnotify"):Click()
         eq(ola.ns.DB.char.achNotify, false)
-        local lines = Box(ola, "settings.chatlines")
-        ok(lines:GetChecked()); lines:Click()
-        eq(ola.ns.DB.global.settings.chatLines, false, "the account's")
+        -- "Småting i chatten": a slider of four steps, the step's name beside it.
+        local chatter = ola:Frames(function(f) return f.row and f.row.steps ~= nil end)[1]
+        ok(chatter, "a slider"); eq(chatter.pct.text, "Vanlig")
+        chatter:SetValue(2); chatter.scripts.OnValueChanged(chatter, 2, true) -- (dragged)
+        eq(ola.ns.DB.global.settings.chatter, "few", "the account's"); eq(chatter.pct.text, "Litt")
         -- The tooltip says what it does, and which are per character.
         match(ola:TipOf(auto).text, "Gjelder bare denne karakteren")
         -- Shown again: as they are now.
         S:Close(); S:Open()
         no(Box(ola, "settings.autosummon"):GetChecked())
-        no(Box(ola, "settings.chatlines"):GetChecked())
+        eq(ola:Frames(function(f) return f.row and f.row.steps ~= nil end)[1].pct.text, "Litt")
     end)
 
     test("card particles: all, fewer or none", function()
@@ -108,7 +110,7 @@ return function(test, H)
         ola.ns.BondTrack:Celebrate(card, PANDA, 3)
         no(card.celebration.text:IsShown(), "no celebration")
         -- No easter eggs or bond lines in the chat.
-        ola.ns.DB.global.settings.chatLines = false
+        ola.ns.DB.global.settings.chatter = "none"
         ola:Dice(0)
         ola:QuirksNow()
         w:SetDate(2027, 3, 9, 13, 37)
@@ -124,6 +126,45 @@ return function(test, H)
         local shown = 0
         for _, p in ipairs(ola.ns.Fx.particles or {}) do if p:IsShown() then shown = shown + 1 end end
         eq(shown, 0)
+    end)
+
+    test("Småting i chatten: Litt doubles the cooldowns and halves every chance, Mye a third and more lines, eggs as they are", function()
+        local w, ola, S = Setup()
+        local M, set = ola.ns.Moments, ola.ns.DB.global.settings
+        local function Step(v) set.chatter = v end
+        eq(M:Every("quirk"), 2700); eq(M:Every("react"), 1200)
+        Step("few"); eq(M:Every("quirk"), 5400, "90 minutes"); eq(M:Every("quirk", true), 5400, "an egg's too"); eq(S:Chance(0.4, "flavor"), 0.2); eq(S:Chance(0.5, "egg"), 0.25)
+        Step("many"); eq(M:Every("quirk"), 900, "15 minutes"); eq(M:Every("react"), 400)
+        eq(M:Every("quirk", true), 2700, "but an egg's wait stays 45 minutes"); eq(M:Every("react", true), 1200)
+        ok(math.abs(S:Chance(0.4, "flavor") - 0.6) < 1e-9, "more lines"); eq(S:Chance(0.5, "egg"), 0.5, "eggs as they are")
+        eq(S:Chance(0.8, "flavor"), 1, "at most 1")
+        -- A line 20 minutes ago: on Mye a known dislike may speak again, a common egg still waits.
+        ola.ns.DB.char.quirkAt = ola.ns.Now() - 1200
+        ok(ola.ns.Quirks:Ready(), "a dislike: past 15 minutes"); no(ola.ns.Quirks:Ready(true), "an egg: not 45 yet")
+        Step("none"); eq(M:Every("quirk"), 2700, "none: as normal, the lines hidden"); no(S:Chatty())
+        Step("bogus"); eq(S:Chatter(), "normal")
+        -- In play: the midnight egg (a chance of 0.5) at a roll of 0.3 speaks on Vanlig, not on Litt.
+        ola:QuirksNow()
+        ola:Dice(0.3)
+        Step("few")
+        w:SetDate(2027, 3, 9, 0, 5)
+        ola.ns.Activity:Emit("herb")
+        w:RunTimers()
+        eq(ola:Eggs("midnatt"), 0, "Litt: 0.25")
+        Step("normal")
+        ola.ns.Activity:Emit("herb")
+        w:RunTimers()
+        eq(ola:Eggs("midnatt"), 1, "Vanlig: 0.5")
+    end)
+
+    test("migration 14: Småting i chatten off becomes Ingenting, on becomes Vanlig", function()
+        local w = H.World()
+        for _, v in ipairs({ { false, "none" }, { true, "normal" } }) do
+            local c = w:AddClient(v[1] and "Kari Berg" or "Ola Nord", { login = false })
+            c.saved.DyreparkenDB = { schema = 13, settings = { chatLines = v[1], worldHearts = true } }
+            c:Login()
+            eq(c.env.DyreparkenDB.settings.chatter, v[2]); eq(c.env.DyreparkenDB.settings.chatLines, nil)
+        end
     end)
 
     test("the frame's art waits for the frame: greyed while it's off; the per-character sections say so", function()

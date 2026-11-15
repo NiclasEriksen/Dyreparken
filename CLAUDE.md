@@ -288,7 +288,9 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    JournalUI:ShowWhenOpen/AfterCombat; read the header of its click section); placed and sized (mouse
                    wheel) in Blizzard's Edit Mode, char.petFrame),
                    Settings (the settings page: a SidePage with no tab, opened by a cog in the pet journal's title
-                   bar; the four older per-character settings plus the account's DyreparkenDB.settings: chatLines (hides the lines only),
+                   bar; the four older per-character settings plus the account's DyreparkenDB.settings: chatter ("Småting i chatten", a slider of four steps, 2026-11-15: none hides the lines only; few doubles
+                   the waits and halves every chance; many a third of the waits (an egg's stays) and half again the lines' chances,
+                   not the eggs': Settings.CHATTER, Moments:Every; account migration 14 from chatLines),
                    worldHearts, cardParticles all/few/none, cardMoves, celebrate, and the pet frame's (petFrame, petFrameArt,
                    petFrameCombat, petFrameFade, petFrameAlpha); modules ask Settings:On(key)),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in

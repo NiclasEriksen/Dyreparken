@@ -19,7 +19,7 @@ local ns = select(2, ...)
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 13
+local SCHEMA = 14
 local CHAR_SCHEMA = 3
 DB.SCHEMA, DB.CHAR_SCHEMA = SCHEMA, CHAR_SCHEMA
 
@@ -41,7 +41,7 @@ local ACCOUNT_DEFAULTS = {
     unlisted = {}, -- [speciesID] = { t, how, name, owner }: companions not in Data/Companions.lua, told once
     -- [Settings]
     settings = { -- the account's settings
-        chatLines = true, worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,
+        chatter = "normal", worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,
         petFrame = false, petFrameArt = false, -- (the pet frame and its background and border: off unless chosen, PetFrame.lua)
         petFrameCombat = false, petFrameFade = false, petFrameAlpha = 0.25, -- (hidden in combat; faded when nothing happens, to this)
     },
@@ -281,6 +281,14 @@ local MIGRATIONS = {
             end
             if type(g.lapses) == "table" then R.TrimLapses(g.lapses) end
         end
+    end,
+    -- 14 (2026-11-15, the user): "Småting i chatten" is four steps now (Settings.CHATTER), not on/off:
+    -- off is "none" (the lines hidden, as before), on is "normal".
+    [14] = function(db)
+        local s = db.settings
+        if type(s) ~= "table" then return end
+        if s.chatLines == false then s.chatter = "none" end
+        s.chatLines = nil
     end,
 }
 DB.MIGRATIONS = MIGRATIONS

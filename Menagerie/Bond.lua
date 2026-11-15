@@ -445,7 +445,7 @@ function Bond:OnActivity(id, n, key)
     -- (its first time in a day, by chance; the user, 2026-11-12).
     if minor and capKey == id then
         per, cap = C.BOND_MINOR_POINTS, C.BOND_MINOR_CAP
-        if not d.got[capKey] and ns.random() < Bond.MINOR_FLAVOR then
+        if not d.got[capKey] and ns.random() < ns.Settings:Chance(Bond.MINOR_FLAVOR, "flavor") then
             flavor = P.FLAVOR[id] and ns.Fill(P.FLAVOR[id], { pet = name })
                 or ns.T("bond.liked", { pet = name, activity = P.NOUN[id] })
         end

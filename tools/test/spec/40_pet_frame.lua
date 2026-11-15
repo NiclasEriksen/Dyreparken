@@ -650,7 +650,7 @@ return function(test, H)
         local Set = ola.ns.Settings
         ola:OpenJournal()
         Set:Open()
-        local slider = ola:Page("Innstillinger"):Frames(function(f) return f.type == "Slider" end)[1]
+        local slider = ola:Page("Innstillinger"):Frames(function(f) return f.type == "Slider" and not f.row.steps end)[1]
         ok(slider, "a slider")
         eq(slider:GetValue(), 0.5)
         eq(slider.pct.text, "50%")

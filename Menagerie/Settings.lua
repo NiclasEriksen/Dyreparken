@@ -8,8 +8,9 @@ local ns = select(2, ...)
 -- The four older settings are per character (char: autoSummon,
 -- muteSummonSound, announce, achNotify) and keep their slash commands. The
 -- new ones are for the account (DyreparkenDB.settings, Core/DB.lua):
---   chatLines      the lines for easter eggs, dislikes, likes and firsts in the chat
---                  (off: they still happen and count, without a line; the user, 2026-11-10)
+--   chatter        how much the pet says in the chat (2026-11-15, the user; on/off until then, chatLines):
+--                  "none" (the lines still happen and count, without a line; the user, 2026-11-10), "few",
+--                  "normal", "many": Settings.CHATTER
 --   worldHearts    hearts over a hovered companion, sparkles at the chat window
 --   cardParticles  "all", "few" or "none" on the pet card
 --   cardMoves      the pet on the card moves (asleep, hops, walks...)
@@ -26,6 +27,31 @@ local L = ns.L
 
 function Settings:Get(key) return ns.DB.global.settings[key] end
 function Settings:On(key) return ns.DB.global.settings[key] ~= false end
+
+-- "Småting i chatten", its four steps (2026-11-15, the user): `every` scales the cooldowns between lines
+-- (Moments.BUDGETS: the quirks' 45 minutes, the reactions' 20), `egg` the chances of what's counted (eggs, a
+-- dislike's discovery, a rare reaction), `flavor` those of the lines that are only lines (a common reaction,
+-- a known dislike again, a minor like's line). "few": 90 minutes and half the chances, so fewer eggs found
+-- (the user: "that's their tradeoff"); "many": 15 minutes and more of the lines, the eggs as they are (their
+-- achievements stay as hard: an egg's wait stays 45 minutes too, Moments:Every). "none" counts as "normal",
+-- its lines hidden.
+Settings.CHATTER_STEPS = { "none", "few", "normal", "many" }
+Settings.CHATTER = {
+    none = { every = 1, egg = 1, flavor = 1 },
+    few = { every = 2, egg = 0.5, flavor = 0.5 },
+    normal = { every = 1, egg = 1, flavor = 1 },
+    many = { every = 1 / 3, egg = 1, flavor = 1.5 },
+}
+function Settings:Chatter()
+    local v = ns.DB.global.settings.chatter
+    return self.CHATTER[v] and v or "normal"
+end
+-- The chat lines show (any step but "none").
+function Settings:Chatty() return self:Chatter() ~= "none" end
+-- A chance as the step makes it (kind: "egg" or "flavor"), at most 1.
+function Settings:Chance(chance, kind)
+    return math.min(1, chance * self.CHATTER[self:Chatter()][kind])
+end
 
 local function Set(key, value)
     ns.DB.global.settings[key] = value
@@ -47,7 +73,7 @@ local ROWS = {
     { key = "settings.achnotify", get = function() return ns.DB.char.achNotify and true or false end,
         set = function(v) ns.Achievements:SetNotify(v, true) end, char = true },
     { head = "settings.head.chat" },
-    { key = "settings.chatlines", setting = "chatLines" },
+    { key = "settings.chatter", steps = Settings.CHATTER_STEPS, setting = "chatter" },
     { key = "settings.hearts", setting = "worldHearts" },
     { column = 2 }, -- (2026-11-11: one column had outgrown the page)
     { head = "settings.head.card" },
@@ -145,6 +171,31 @@ local function Build(p)
             s:SetScript("OnLeave", ns.HideTip)
             p.widgets[#p.widgets + 1] = { row = row, slider = s }
             y = y - 34
+        elseif row.steps then
+            -- A slider of named steps (2026-11-15: "Småting i chatten"), the step's name beside it.
+            local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            label:SetPoint("TOPLEFT", inset, at, x + 40, y - 6)
+            label:SetText(L[row.key])
+            y = y - 26
+            local s = CreateFrame("Slider", nil, inset, "OptionsSliderTemplate")
+            s:SetPoint("TOPLEFT", inset, at, x + 44, y - 4)
+            s:SetSize(COL_W - 150, 16)
+            s:SetOrientation("HORIZONTAL")
+            s:SetMinMaxValues(1, #row.steps)
+            s:SetValueStep(1)
+            s:SetObeyStepOnDrag(true)
+            s.pct = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            s.pct:SetPoint("LEFT", s, "RIGHT", 10, 0)
+            s.row, s.label = row, label
+            s:SetScript("OnValueChanged", function(self, v, user)
+                local step = row.steps[math.max(1, math.min(#row.steps, math.floor(v + 0.5)))]
+                self.pct:SetText(L[row.key .. "." .. step])
+                if user then Set(row.setting, step) end
+            end)
+            s:SetScript("OnEnter", Tip)
+            s:SetScript("OnLeave", ns.HideTip)
+            p.widgets[#p.widgets + 1] = { row = row, steps = s }
+            y = y - 34
         elseif row.choices then
             local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
             label:SetPoint("TOPLEFT", inset, at, x + 40, y - 6)
@@ -201,7 +252,12 @@ end
 
 local function Redraw(p)
     for _, w in ipairs(p.widgets or {}) do
-        if w.slider then
+        if w.steps then
+            local now = Settings:Chatter()
+            for i, step in ipairs(w.row.steps) do
+                if step == now then w.steps:SetValue(i); w.steps.pct:SetText(L[w.row.key .. "." .. step]) end
+            end
+        elseif w.slider then
             local on = not w.row.needs or w.row.needs()
             w.slider:SetValue(Settings:Get(w.row.setting) or 0.25)
             w.slider.pct:SetText(("%d%%"):format(math.floor((Settings:Get(w.row.setting) or 0.25) * 100 + 0.5)))

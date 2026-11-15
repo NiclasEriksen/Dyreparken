@@ -19,7 +19,8 @@ local ns = select(2, ...)
 local Reactions = {}
 ns.Reactions = Reactions
 
-Reactions.CHANCE = 0.5 -- a common row's line, when its moment comes (once a day each)
+-- (0.5 until 2026-11-15: a shaman's few rows spoke on most days, the same lines; "Mye" makes it 0.6)
+Reactions.CHANCE = 0.4 -- a common row's line, when its moment comes (once a day each)
 -- A rare row with another line on its way (an egg's, Moments): said anyway this often, else lost (2026-11-14, the
 -- user: "rare should have a chance to skip the one at a time rule, but only some of the time").
 Reactions.RARE_SKIP = 0.5
@@ -184,7 +185,9 @@ function Reactions:Speak(row, key, vars, again)
         return "a line on its way"
     end
     if not (rare or self:Ready()) then return "the 20 minutes" end
-    if not rare and ns.random() >= (row.chance or self.CHANCE) then return "the roll" end
+    -- (a rare one counts, as an egg: only "few" rolls for it, at its half)
+    local chance = rare and ns.Settings:Chance(1, "egg") or ns.Settings:Chance(row.chance or self.CHANCE, "flavor")
+    if chance < 1 and ns.random() >= chance then return "the roll" end
     local text = ns.PickLine(vars._key or ("react." .. row.id), setmetatable({ pet = ns.Registry:NameOf(key) }, { __index = vars }))
     if not text then return "no line" end
     self:Say(row, key, text, rare)
