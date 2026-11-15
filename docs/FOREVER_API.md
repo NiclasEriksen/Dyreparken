@@ -245,7 +245,7 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   0 Success (only means queued), 3 AddonMessageThrottle, 5 NotInGroup, 8 ChannelThrottle, 10 NotInGuild,
   11 AddOnMessageLockdown (when it applies is undocumented; log it if seen), 12 TargetOffline.
 - Throttle: **per prefix, 10 messages, +1 per second**, all chat types. The server may change these. Too much data
-  across prefixes can disconnect. Always send through ChatThrottleLib (we do, via `ns.Comm`).
+  across prefixes can disconnect. Always pace sends (`ns.Comm` paces its own outbox; ChatThrottleLib went 2026-11-12).
 - Chat types: PARTY, RAID, INSTANCE_CHAT, GUILD, OFFICER, WHISPER. No CHANNEL broadcast assumed.
 - **Trial and Veteran accounts can't send addon messages** on Forever (patch 1.60.1). They can still receive.
 - Messages are untrusted: anyone can send anything on our prefix. Validate types before use.

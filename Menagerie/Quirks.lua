@@ -92,7 +92,7 @@ end
 -- Easter eggs: { id, on = activity (or "seen": a companion under the mouse),
 -- chance (default 1), test = fn(ctx) -> vars or nil }. ctx: key, name (the
 -- pet's), id, extra, t, family (set), today (the activity's count today), egg.
--- `always`: not held back by the hour (rare by nature, and a day late is lost).
+-- `always`: not held back by the quirks' 45 minutes (rare by nature, and a day late is lost).
 -- `traits`, `families`: an egg that speaks by the pet's nature (Quirks.ByNature),
 -- in this order, first match wins. `watch = false`: its activity isn't watched for it
 -- (the rest are: Quirks.WATCH is built from the eggs). `on` must be an activity in
@@ -462,7 +462,7 @@ function Quirks:Egg(on, key, extra, seen)
     local today = ns.Today(ctx.t)
     -- Every `always` egg that's due says its line (one a day each: a round
     -- day on Christmas Eve isn't lost to the Christmas egg); the others only
-    -- with the hour free, so at most one of those.
+    -- with the 45 minutes free, so at most one of those.
     local any, held = false, false
     local M = ns.Moments
     for _, e in ipairs(list) do

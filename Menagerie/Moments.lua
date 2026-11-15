@@ -6,7 +6,8 @@ local _, ns = ...
 --   lines by nature  Moments.ByNature(prefix, row, key): the first of the row's traits the pet has with
 --                    lines of its own (<prefix>.<id>.<trait>.1), then its families', else the plain lines
 --   budgets          a cooldown each, saved in char (Moments.BUDGETS): the quirks' 45 minutes, the
---                    reactions' 20; a rare moment spends none
+--                    reactions' 20; a rare reaction spends none, a quirk line always spends the quirks'
+--                    (a rare egg too, as before Moments: it then holds back the common ones)
 --   one at a time    one slot for every common line on its way: an egg and a reaction no longer speak
 --                    seconds apart (each module had its own, and neither saw the other's)
 --   once a day       Moments.SaidToday(store, id), and Moments.Count(...) as it's said: store[id] (char.eggs,

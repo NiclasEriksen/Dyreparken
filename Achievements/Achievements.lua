@@ -25,7 +25,7 @@ local _, ns = ...
 -- NOTICES: Forever blocks guild chat from addons unless it comes from a
 -- keypress or click (docs/FOREVER_API.md). So a new achievement is sent to
 -- other addon users on the addon channel (ACH_EARNED), each prints one line,
--- and posting to guild chat is the player's choice: /dp ach share, or the
+-- and posting to guild chat is the player's choice: /dp prestasjoner del, or the
 -- Del button on the page (Page.lua).
 --
 -- GUILD ACHIEVEMENTS (scope "guild", ids "guild:...") come from the registry
@@ -635,7 +635,7 @@ function Ach:Shareable(id)
 end
 
 -- Post every earned, unshared achievement (or just `only`) to guild chat.
--- Only from a keypress or click (/dp ach share, the page's Del button):
+-- Only from a keypress or click (/dp prestasjoner del, the page's Del button):
 -- Forever blocks guild chat from anything else.
 function Ach:Share(only)
     if not IsInGuild() then return ns.Print(T().not_in_guild) end
@@ -685,7 +685,7 @@ function Ach:RowInfo(row)
     return self:Progress(row.def, row.have, row.need)
 end
 
--- /dp ach: the same list as the panel, in chat.
+-- /dp prestasjoner: the same list as the panel, in chat.
 function Ach:List()
     local rows, got = self:Rows(), 0
     local lines = {}

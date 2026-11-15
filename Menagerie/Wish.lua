@@ -1,8 +1,8 @@
 local _, ns = ...
 
 -- Today's wish (2026-11-08): each day your adopted pet wishes for one thing
--- it likes. Done with it out, the wish brings Config.BOND_WISH_POINTS (within
--- the day's limit), a line in chat, and a tick on its card. A reason to do
+-- it likes. Done with it out, the wish brings Config.BOND_WISH_POINTS (past
+-- the day's limit since 2026-11-13: Bond.REWARDS.wish `beyond`), a line in chat, and a tick on its card. A reason to do
 -- something with your pet today, not just have it out.
 --
 -- The wish is one of the pet's likes (Personality), picked from the date and

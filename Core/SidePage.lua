@@ -51,11 +51,6 @@ Proto.__index = Proto
 ------------------------------------------------------------------------------
 -- Finding the side tabs
 ------------------------------------------------------------------------------
--- What starts at or past the window's right edge. On Forever the tabs sit in
--- an unnamed strip as tall as the window (probed 2026-11-07); a frame at
--- least half the window's height is such a container (look inside, two
--- levels at most), anything smaller is a tab. Returns Blizzard's shown tabs
--- top to bottom.
 -- How far right the side tabs reach (Blizzard's and ours), or nil before layout.
 function SidePage:TabsRight()
     local right = host and host:GetRight()
@@ -65,6 +60,11 @@ function SidePage:TabsRight()
     return right
 end
 
+-- What starts at or past the window's right edge. On Forever the tabs sit in
+-- an unnamed strip as tall as the window (probed 2026-11-07); a frame at
+-- least half the window's height is such a container (look inside, two
+-- levels at most), anything smaller is a tab. Returns Blizzard's shown tabs
+-- top to bottom.
 function SidePage:SideTabs()
     local tabs = {}
     local right = host and host:GetRight()

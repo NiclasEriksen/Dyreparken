@@ -198,7 +198,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    to stop says still = true),
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
                    Sense (2026-11-14, docs/CLASS_INTERACTIONS.md part 1: sensors for the class, race and faction
-                   reactions, none of which exist yet: glance (a unit under the mouse), cast, form, buff, pet, group,
+                   reactions (the class ones read them: Reactions.lua; race and faction ones don't exist yet): glance (a unit under the mouse), cast, form, buff, pet, group,
                    flag, zone, emote; each fires Bus "SENSE" (kind, subject), registered only while wanted
                    (Sense:Want/Drop), nothing from secret units; Sense.Match for rows; Data/Creatures.lua maps
                    creature family ids to our families, edited by hand; /dp probe sense logs them all)
@@ -284,7 +284,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    guild announcements)
 Achievements/      Defs (ids, kinds;
                    ids are permanent), Achievements (evaluation, quiet first runs, ACH_EARNED notices,
-                   /dp ach share; guild ones synced with the registry, ACH), Page (the achievements SidePage;
+                   /dp prestasjoner del; guild ones synced with the registry, ACH), Page (the achievements SidePage;
                    Del per shareable one).
                    Plan and decisions:
                    docs/ACHIEVEMENTS.md (read it first). Planned next: bond, temperament and the activity engine,

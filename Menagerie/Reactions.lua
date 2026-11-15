@@ -157,7 +157,8 @@ function Reactions:Try(row, s, key)
 end
 
 -- What's left once the moment is the row's: the line on its way (then its turn after it: Moments:Later), the
--- budget, the roll. Why not, or nil when it speaks.
+-- budget, the roll (with another line on its way: after it, Moments:Later; a rare one sometimes at once,
+-- RARE_SKIP). Why not, or nil when it speaks.
 function Reactions:Speak(row, key, vars, again)
     local rare = row.rare
     local M = ns.Moments

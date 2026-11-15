@@ -36,8 +36,7 @@ local _, ns = ...
 -- icon: one candidate or a list, best first. A candidate is an icon name
 -- (under Interface\Icons\), a full path, or a file id (a number, from an
 -- icon database). The client shows the first one it has (Ach:Icon), so a
--- wrong guess never shows as a blank. `/dp ach icons` previews every
--- candidate in chat. Names are guesses at Forever's icons until previewed.
+-- wrong guess never shows as a blank. Names are guesses at Forever's icons until seen in game.
 local CARRIER = "INV_Box_PetCarrier_01"
 ns.AchDefs = {
     { id = "count:10", kind = "count", n = 10, cat = "collection", icon = { "INV_Box_Birdcage_01", "INV_Misc_PetBiscuit_01", CARRIER } },

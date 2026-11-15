@@ -15,7 +15,7 @@ do
     ns.VERSION = ns.DEV and "dev" or v
 end
 -- Wire protocol version. Bump on breaking message format changes; peers with
--- a different protocol are ignored (and told to update, once).
+-- a different protocol are ignored (a guildmate's newer version tells us to update, once: Version.lua).
 ns.PROTOCOL = tonumber(GetMeta and GetMeta(addonName, "X-Protocol")) or 1
 
 ------------------------------------------------------------------------------

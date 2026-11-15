@@ -28,7 +28,8 @@ local PUBLISH_AFTER = 1800 -- seconds
 
 -- Levels: { points needed, name }. A curve to 2250 for the top, each step
 -- longer than the last, with at most Config.BOND_DAILY_MAX (75) a day: 30
--- days to Sjelevenn at the very least (decided 2026-11-09). At 10 a day
+-- days to Sjelevenn at the very least (decided 2026-11-09; about 27 since the wish's 10 go past the
+-- day's 75, 2026-11-13, and fewer with feats). At 10 a day
 -- (the pet out, nothing else): Kamerat in 10 days, Venn 27, God venn 53,
 -- Bestevenn 90, Uatskillelig 144, Sjelevenn 225. A casual player (~45 a
 -- day): 3, 6, 12, 20, 32 and 50 days. Venn unlocks nicknames

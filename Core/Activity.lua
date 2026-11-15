@@ -2,7 +2,8 @@ local _, ns = ...
 
 -- The activity engine: game events become activities ("boss", "quest",
 -- "day", ...) that the bond score, achievements and pet stories all listen
--- to (docs/PET_LIFE.md). Nobody else registers these game events.
+-- to (docs/PET_LIFE.md). Others hear some of the same game events for their own ends (Fight, Wish's
+-- explore and party, Voyage), each through ns.Events.
 --
 -- A SOURCE is declared once (Activity:Source): the game events it reads, a
 -- filter that turns one event into a count (or nothing), and its id. The
