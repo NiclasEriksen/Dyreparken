@@ -100,6 +100,27 @@ function Client:OpenJournal(o)
     return P.Secure(self, self.ShowJournal, self, o)
 end
 
+-- Blizzard's options panel opened on an addon's category, by its name, as Esc > Options > AddOns does: the
+-- canvas goes into the panel and shows. Returns the canvas (nil: no such category). c:CloseOptions().
+function Client:OpenOptions(name)
+    local env = self.env
+    local panel = rawget(env, "SettingsPanel") or env.CreateFrame("Frame", "SettingsPanel")
+    panel:Show()
+    for _, cat in ipairs(self.optionCategories) do
+        if cat.name == name then
+            cat.frame:SetParent(panel)
+            cat.frame:SetAllPoints(panel)
+            cat.frame:Show()
+            return cat.frame
+        end
+    end
+end
+function Client:CloseOptions()
+    local panel = rawget(self.env, "SettingsPanel")
+    if panel then panel:Hide() end
+    for _, cat in ipairs(self.optionCategories) do cat.frame:Hide() end
+end
+
 -- Loads Blizzard_Collections (its frames, ADDON_LOADED) the first time; as secure as its caller.
 function Client:LoadCollections(o)
     o = o or {}

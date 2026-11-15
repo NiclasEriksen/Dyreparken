@@ -296,11 +296,14 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    hidden in Edit Mode; in combat a click toggles the window and the card waits for the fight's end:
                    JournalUI:ShowWhenOpen/AfterCombat; read the header of its click section); placed and sized (mouse
                    wheel) in Blizzard's Edit Mode, char.petFrame),
-                   Settings (the settings page: a SidePage with no tab, opened by a cog in the pet journal's title
-                   bar; the four older per-character settings plus the account's DyreparkenDB.settings: chatter ("Småting i chatten", a slider of four steps, 2026-11-15: none hides the lines only; few doubles
+                   Settings (the settings page: a SidePage with no tab, opened by a cog in the Collections window's title
+                   bar, shown on the pets, Parken, Prestasjoner and itself, "Tilbake" back to the page it came from
+                   (2026-11-15); the same rows, one column, in Blizzard's options too (Esc > Options > AddOns >
+                   Dyreparken: Settings.Canvas, a canvas category; c:OpenOptions in the tests); the four older per-character settings plus the account's DyreparkenDB.settings: chatter ("Småting i chatten", a slider of four steps, 2026-11-15: none hides the lines only; few doubles
                    the waits and halves every chance; many a third of the waits (an egg's stays) and half again the lines' chances,
                    not the eggs': Settings.CHATTER, Moments:Every; account migration 14 from chatLines),
-                   worldHearts, cardParticles all/few/none, cardMoves, celebrate, and the pet frame's (petFrame, petFrameArt,
+                   worldHearts, cardParticles all/few/none, cardMoves, celebrate, hideUnknown ("Skjul ukjente dyr", on by default: Parken's
+                   question marks), and the pet frame's (petFrame, petFrameArt,
                    petFrameCombat, petFrameFade, petFrameAlpha); modules ask Settings:On(key)),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in
                    g.life, see Registry.lua; docs/PET_LIFE.md. Data only, it prints nothing: BOND_LEVEL, BOND_FULL,

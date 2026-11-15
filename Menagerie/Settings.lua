@@ -3,7 +3,8 @@ local ns = select(2, ...)
 
 -- The settings page (2026-11-10): a page of the Collections window like
 -- Parken and Prestasjoner (Core/SidePage.lua), but with no side tab: a small
--- cog in the pet journal's title bar opens it, left of the close button.
+-- cog in the window's title bar opens it, left of the close button, on any of
+-- our pages (AttachCog). The same rows are in Blizzard's options too (Canvas).
 --
 -- The four older settings are per character (char: autoSummon,
 -- muteSummonSound, announce, achNotify) and keep their slash commands. The
@@ -119,26 +120,18 @@ end
 
 local function Tip(self) ns.ShowTip(self, "ANCHOR_RIGHT", Settings.Lines(self.row)) end
 
-local function Build(p)
-    local f = p.frame
-    local inset = CreateFrame("Frame", nil, f, ns.SidePage.Template("InsetFrameTemplate"))
-    inset:SetPoint("TOPLEFT", f, "TOPLEFT", 60, -50)
-    inset:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -60, 30)
-    -- Back to the pets (the user, 2026-11-10: else only closing the window left the page).
-    local back = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
-    back:SetSize(120, 22)
-    back:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 4)
-    back:SetText(L["settings.back"])
-    back:SetScript("OnClick", function() p:Close() end)
-    p.back = back
-    p.widgets = {}
+-- The rows into a frame (the page's inset, or the options panel's scroll child: Canvas), each row's widgets
+-- into `widgets`. one: a single column, for the options panel, narrower than the journal (its { column }
+-- row is passed by). Returns the height the rows took.
+local function Fill(inset, widgets, one)
     -- Two columns, each label within its own (2026-11-11, the user: "elements overlap and don't
     -- wrap"): wrapped at COL_W, the row as tall as its text.
     local COL_W = Settings.COL_W
     local y, x, at = -16, 0, "TOPLEFT"
+    local deepest = 0
     for i, row in ipairs(ROWS) do
         if row.column then
-            y, x, at = -16, 10, "TOP"
+            if not one then y, x, at = -16, 10, "TOP" end
         elseif row.head then
             if i > 1 and not ROWS[i - 1].column then y = y - 8 end -- (a little air before a heading)
             local h = inset:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
@@ -173,7 +166,7 @@ local function Build(p)
             end)
             s:SetScript("OnEnter", Tip)
             s:SetScript("OnLeave", ns.HideTip)
-            p.widgets[#p.widgets + 1] = { row = row, slider = s }
+            widgets[#widgets + 1] = { row = row, slider = s }
             y = y - 34
         elseif row.steps then
             -- A slider of named steps (2026-11-15: "Småting i chatten"), the step's name beside it.
@@ -198,7 +191,7 @@ local function Build(p)
             end)
             s:SetScript("OnEnter", Tip)
             s:SetScript("OnLeave", ns.HideTip)
-            p.widgets[#p.widgets + 1] = { row = row, steps = s }
+            widgets[#widgets + 1] = { row = row, steps = s }
             y = y - 34
         elseif row.choices then
             local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
@@ -228,7 +221,7 @@ local function Build(p)
                 w.buttons[#w.buttons + 1] = b
                 prev = b
             end
-            p.widgets[#p.widgets + 1] = w
+            widgets[#widgets + 1] = w
             y = y - 30
         else
             local b = CreateFrame("CheckButton", nil, inset, "UICheckButtonTemplate")
@@ -248,14 +241,36 @@ local function Build(p)
             end)
             b:SetScript("OnEnter", Tip)
             b:SetScript("OnLeave", ns.HideTip)
-            p.widgets[#p.widgets + 1] = { row = row, button = b }
+            widgets[#widgets + 1] = { row = row, button = b }
             y = y - math.max(30, b.label:GetStringHeight() + 16)
         end
+        deepest = math.min(deepest, y)
     end
+    return 16 - deepest
 end
 
-local function Redraw(p)
-    for _, w in ipairs(p.widgets or {}) do
+-- Where the page was opened from: one of our other pages (Parken, Prestasjoner), whose cog it was; "Tilbake"
+-- goes back there. nil: the pets.
+local from
+
+local function Build(p)
+    local f = p.frame
+    local inset = CreateFrame("Frame", nil, f, ns.SidePage.Template("InsetFrameTemplate"))
+    inset:SetPoint("TOPLEFT", f, "TOPLEFT", 60, -50)
+    inset:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -60, 30)
+    -- Back to where it was opened from (the user, 2026-11-10: else only closing the window left the page).
+    local back = CreateFrame("Button", nil, f, "UIPanelButtonTemplate")
+    back:SetSize(120, 22)
+    back:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -8, 4)
+    back:SetText(L["settings.back"])
+    back:SetScript("OnClick", function() Settings:Back() end)
+    p.back = back
+    p.widgets = {}
+    Fill(inset, p.widgets)
+end
+
+local function Draw(widgets)
+    for _, w in ipairs(widgets or {}) do
         if w.steps then
             local now = Settings:Chatter()
             for i, step in ipairs(w.row.steps) do
@@ -278,6 +293,10 @@ local function Redraw(p)
         end
     end
 end
+local canvas -- the options panel's page (Canvas), once built
+local function Redraw(p)
+    Draw(p.widgets)
+end
 
 local sp = ns.SidePage:New({
     id = "Settings",
@@ -291,9 +310,22 @@ local sp = ns.SidePage:New({
 function Settings:Open() sp:Open() end
 function Settings:Close() sp:Close() end
 function Settings:IsOpen() return sp:IsOpen() end
-function Settings:Refresh() sp:Refresh() end
+function Settings:Refresh()
+    sp:Refresh()
+    if canvas and canvas:IsVisible() then Draw(canvas.widgets) end
+end
 
--- The cog: in the title bar, left of the close button; only on the pet journal's page.
+-- Leave the page: back to the page it was opened from, or the pets.
+function Settings:Back()
+    local back = from
+    from = nil
+    if back and back ~= sp then back:Open() else sp:Close() end
+end
+
+-- The cog: in the title bar, left of the close button, wherever one of ours shows (2026-11-15, the user:
+-- "we have 3 different panels and settings only shows on one of them"): the pets, Parken, Prestasjoner, and
+-- this page. Not on Blizzard's other pages (Mounts, Toys...). A click on another of our pages opens this one
+-- over it, and "Tilbake" goes back there.
 function Settings:AttachCog(petJournal)
     local host = petJournal:GetParent() or petJournal
     local cog = ns.RoundBadge(host, 18, { icon = ns.Icon("gear"), color = { 0.9, 0.78, 0.5, 1 }, hover = { 1, 0.85, 0.5, 0.6 } })
@@ -302,11 +334,64 @@ function Settings:AttachCog(petJournal)
     else cog:SetPoint("TOPRIGHT", host, "TOPRIGHT", -28, -3) end
     cog:SetFrameLevel(host:GetFrameLevel() + 520) -- (over our pages, like the close button)
     cog:SetScript("OnClick", function()
-        if sp:IsOpen() then sp:Close() else sp:Open() end
+        if sp:IsOpen() then return Settings:Back() end
+        from = ns.SidePage:Current()
+        sp:Open()
     end)
     ns.SetTip(cog, "ANCHOR_BOTTOM", L["settings.title"])
-    cog:SetShown(petJournal:IsShown())
-    petJournal:HookScript("OnShow", function() cog:Show() end)
-    petJournal:HookScript("OnHide", function() cog:Hide() end)
+    local base = host:GetFrameLevel() + 520
+    local function Update()
+        cog:SetShown(petJournal:IsShown() or ns.SidePage:AnyOpen())
+        -- Over whatever an open page lifted: the window's title bar goes above our page (SidePage), and in the
+        -- game it covered the cog on Parken and Prestasjoner (2026-11-15, the user: "only visible on the pet
+        -- journal tab"), though the cog was shown.
+        local top = ns.SidePage:TopLevel()
+        cog:SetFrameLevel(math.max(base, (top or 0) + 5))
+        if not sp:IsOpen() then from = nil end -- (left some other way: a tab, the window closed)
+        ns.Log("Settings", "cog: shown %s, visible %s, level %d (lifted up to %s; pets %s, page %s)", tostring(cog:IsShown()),
+            tostring(cog:IsVisible()), cog:GetFrameLevel(), tostring(top), tostring(petJournal:IsShown()),
+            tostring(ns.SidePage:Current() and ns.SidePage:Current().def.id))
+    end
+    Update()
+    petJournal:HookScript("OnShow", Update)
+    petJournal:HookScript("OnHide", Update)
+    ns.Bus:On("SIDEPAGE", Update)
     self.cog = cog
 end
+
+-- The same settings in Blizzard's options (Esc > Options > AddOns, 2026-11-15, the user): the rows in one
+-- column, scrolling, on a canvas of our own (Settings.RegisterCanvasLayoutCategory: on Forever,
+-- docs/FOREVER_API.md). Built the first time it shows; the journal's page and this one read the same
+-- settings, and a change on either redraws both. Nothing protected in it, so it works in combat too.
+function Settings.Canvas()
+    local api = rawget(_G, "Settings") -- (Blizzard's; ours is the local `Settings`)
+    if type(api) ~= "table" or not (api.RegisterCanvasLayoutCategory and api.RegisterAddOnCategory) then
+        ns.Log("Settings", "no Settings API: not in the options panel")
+        return
+    end
+    local f = CreateFrame("Frame")
+    f:Hide()
+    f:SetScript("OnShow", function(self)
+        if not self.widgets then
+            local title = self:CreateFontString(nil, "OVERLAY", "GameFontHighlightHuge")
+            title:SetPoint("TOPLEFT", self, "TOPLEFT", 10, -15)
+            title:SetText(L["settings.options.title"])
+            local scroll = CreateFrame("ScrollFrame", nil, self, "UIPanelScrollFrameTemplate")
+            scroll.scrollBarHideable = true
+            scroll:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -46)
+            scroll:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -28, 8)
+            local child = CreateFrame("Frame", nil, scroll)
+            child:SetSize(Settings.COL_W + 20, 1)
+            scroll:SetScrollChild(child)
+            self.widgets = {}
+            child:SetHeight(Fill(child, self.widgets, true))
+        end
+        Draw(self.widgets)
+    end)
+    local category = api.RegisterCanvasLayoutCategory(f, L["settings.options.title"])
+    api.RegisterAddOnCategory(category)
+    canvas, Settings.category = f, category
+    return f
+end
+
+ns.Start("login", function() Settings.Canvas() end)

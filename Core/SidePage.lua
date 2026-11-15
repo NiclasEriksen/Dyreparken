@@ -268,6 +268,19 @@ function SidePage:AnyOpen()
     return false
 end
 
+-- The highest frame level among what an open page lifted (the window's border, title bar, close button), or
+-- nil when none is open: what must stay above it goes higher (the settings' cog).
+function SidePage:TopLevel()
+    local top
+    for f in pairs(lifted) do top = math.max(top or 0, f:GetFrameLevel()) end
+    return top
+end
+
+-- The page of ours that's open, or nil.
+function SidePage:Current()
+    for _, p in ipairs(pages) do if p:IsOpen() then return p end end
+end
+
 function SidePage:CloseAll(quiet)
     for _, p in ipairs(pages) do p:Close(quiet) end
 end

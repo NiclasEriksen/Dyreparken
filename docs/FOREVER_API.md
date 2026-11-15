@@ -90,7 +90,12 @@ checks the stub client lacks it. Add new finds there too.)
 - Registering an unknown event **throws** and aborts the file: `ns.Events:On` pcalls registration.
 - `GetMouseFoci()` returns a table (top region first).
 - `ReloadUI()` is protected (no Reload buttons); users type /reload.
-- Settings: `Settings.RegisterCanvasLayoutCategory` / `Settings.RegisterAddOnCategory` exist.
+- Settings: `Settings.RegisterCanvasLayoutCategory` / `Settings.RegisterAddOnCategory` exist. Used since 2026-11-15
+  (1.60.1, 70938): a canvas category of our own shows under Esc > Options > AddOns and works (Settings.Canvas).
+- Collections window frame levels (2026-11-15, 1.60.1, 70938): a frame of ours at the window's level + 520 (the
+  settings' cog) was covered once a SidePage lifted the window's title bar over its page (page level + 10 and up):
+  the title bar sits far enough above the border there to pass 520. What must stay on top goes above
+  `SidePage:TopLevel()` while a page is open.
 - The Addon Compartment TOC fields exist (`AddonCompartmentFunc` …); whether the button shows is unconfirmed.
 - The card's model scene (probed 2026-11-10, `/dp probe pos`): the actor has `GetPosition`/`SetPosition` (works:
   the pet visibly moves), `GetScale`, `GetActiveBoundingBox`, `GetMaxBoundingBox`, `SetYaw`; the scene has

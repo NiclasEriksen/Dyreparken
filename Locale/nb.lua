@@ -863,6 +863,7 @@ L["settings.title"] = "Innstillinger"
 L["settings.char"] = "Gjelder bare denne karakteren."
 L["settings.char.head"] = "(denne karakteren)"
 L["settings.back"] = "Tilbake"
+L["settings.options.title"] = "Dyreparken"        -- its name in Blizzard's options (Esc > Options > AddOns)
 L["settings.head.pet"] = "Dyret ditt"
 L["settings.head.guild"] = "Guilden"
 L["settings.head.chat"] = "Chatten og verden"

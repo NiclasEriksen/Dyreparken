@@ -183,4 +183,91 @@ return function(test, H)
         -- The particles are radio buttons.
         eq(Box(ola, "settings.particles.all").template, "UIRadioButtonTemplate")
     end)
+
+    -- 2026-11-15, the user: "we have 3 different panels and settings only shows on one of them".
+    test("the cog shows on all three of our pages, and Tilbake goes back to where it was opened", function()
+        local w, ola = H.Setup{ ola = { 5159, 40 } }
+        local S = ola.ns.Settings
+        ola:OpenJournal({ sideTabs = 4 })
+        local cog = S.cog
+        local park, ach = ola:Page("Parken"), ola:Page("Prestasjoner")
+        ok(cog:IsVisible(), "the pets")
+        -- (a title bar well above the border, as it may be on Forever: lifted over our page, it covered a cog
+        -- shown at a fixed level, seen in the game)
+        local CJ = ola.env.CollectionsJournal
+        CJ.TitleContainer.level = 40
+        park:Open()
+        ok(cog:IsVisible(), "Parken")
+        ok(cog:GetFrameLevel() > CJ.TitleContainer:GetFrameLevel(), "over the lifted title bar")
+        cog:Click()
+        ok(S:IsOpen()); ok(cog:IsVisible(), "the settings page itself")
+        ola:Page("Innstillinger"):Labeled("Tilbake"):Click()
+        ok(park:IsOpen(), "back to Parken")
+        ach:Open()
+        cog:Click()
+        cog:Click()
+        ok(ach:IsOpen(), "the cog again: back too")
+        -- Over Blizzard's Mounts page: only while one of ours covers it.
+        ola:ClickTab(1)
+        no(ach:IsOpen()); no(cog:IsVisible(), "Mounts: not ours")
+        park:Open()
+        ok(cog:IsVisible())
+        cog:Click()
+        ola:Page("Innstillinger"):Labeled("Tilbake"):Click()
+        ok(park:IsOpen())
+        -- Left by a tab: next time Tilbake goes to the pets.
+        cog:Click()
+        ola:ClickTab(2)
+        no(S:IsOpen())
+        cog:Click()
+        ola:Page("Innstillinger"):Labeled("Tilbake"):Click()
+        no(ola.ns.SidePage:AnyOpen(), "the pets")
+    end)
+
+    test("the same settings in Blizzard's options: one column, either place changes both", function()
+        local w, ola, S = Setup()
+        local canvas = ola:OpenOptions("Dyreparken")
+        ok(canvas, "Esc > Options > AddOns > Dyreparken")
+        local L = ola.ns.L
+        local box = ola:Labeled(L["settings.hideunknown"], canvas)
+        ok(box and box:GetChecked())
+        ok(ola:Visible(L["settings.head.frame"], canvas), "every section")
+        ok(ola:Labeled(L["settings.autosummon"], canvas), "the character's too")
+        -- One column: everything left-aligned under the first.
+        local lefts = {}
+        for _, row in ipairs(S.ROWS) do
+            if row.key and not row.slider and not row.steps and not row.choices then
+                local b = ola:Labeled(L[row.key], canvas)
+                lefts[b.points[1][3]] = true
+            end
+        end
+        no(lefts.TOP, "no second column")
+        -- A click redraws it: the frame's art waits for the frame, here as on the journal's page.
+        local art = ola:Labeled(L["settings.petframeart"], canvas)
+        no(art:IsEnabled())
+        ola:Labeled(L["settings.petframe"], canvas):Click()
+        ok(art:IsEnabled())
+        -- In combat too: nothing protected in it.
+        ola:EnterCombat()
+        box:Click()
+        ola:LeaveCombat()
+        eq(ola.env.DyreparkenDB.settings.hideUnknown, false)
+        ola:CloseOptions()
+        ola:OpenJournal()
+        S.cog:Click()
+        no(Box(ola, "settings.hideunknown"):GetChecked(), "the journal's page reads it")
+        Box(ola, "settings.hideunknown"):Click()
+        local again = ola:OpenOptions("Dyreparken")
+        eq(again, canvas)
+        ok(box:GetChecked(), "and the other way")
+        eq(#ola:Frames(function(f) return f.row == S.ROWS[2] end, canvas), 1, "built once")
+    end)
+
+    test("no options panel on a client without Blizzard's Settings API: the journal's page still works", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { patch = function(env) env.Settings = nil end })
+        w:Settle("hello")
+        eq(#ola.optionCategories, 0)
+        ok(#ola:Log("no Settings API") >= 1)
+    end)
 end
