@@ -3,8 +3,9 @@ local _, ns = ...
 -- Version awareness.
 --  * On login we send HELLO to the guild with our version and protocol.
 --    Peers on a newer version reply nothing; we learn from theirs.
---  * Seeing a newer version (or a different protocol) prints ONE line,
---    once per version, remembered in DyreparkenCharDB.warnedVersion.
+--  * Seeing a newer version from the guild prints ONE line, once per version, remembered in
+--    DyreparkenCharDB.warnedVersion. Only the guild channel counts (code review 2026-11-15: a stranger's
+--    whisper or a party's message could print a forged notice and, remembered, silence the real ones).
 --  * VER_REQ: clients on 0.2.x can ask the guild/group for versions (the
 --    command was removed 2026-11-09); we still answer VER on that channel.
 local Version = { seen = {} } -- seen[player] = version
@@ -53,8 +54,8 @@ function Version:Init()
     ns.Comm:Register("HELLO", function(msg, sender, channel)
         if channel == "GUILD" then NoteVersion(sender, msg.v) end
     end)
-    ns.Comm:Register("VER", function(msg, sender)
-        NoteVersion(sender, msg.v)
+    ns.Comm:Register("VER", function(msg, sender, channel)
+        if channel == "GUILD" then NoteVersion(sender, msg.v) end -- (checked here: Register's `from` would bump the protocol)
     end, nil, { v = "version" })
     -- Answer on the channel the request came from. (Whispers would be
     -- quieter, but whisper targets with surnames are unverified on Forever.)
@@ -64,7 +65,7 @@ function Version:Init()
         ns.Comm:Send("VER", { v = ns.VERSION }, channel)
     end)
     ns.Bus:On("PROTOCOL_MISMATCH", function(sender, theirs, msg, channel)
-        if msg.k == "HELLO" and channel ~= "GUILD" then return end
+        if channel ~= "GUILD" then return end -- (any kind: a forger outside the guild can't reach the notice)
         NoteVersion(sender, msg.v)
     end)
 end

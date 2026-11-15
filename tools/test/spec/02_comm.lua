@@ -255,6 +255,14 @@ return function(test, H)
         w:Run(3)
         no(me:Printed("En nyere versjon"), "not from outside the guild")
         eq(me.ns.DB.char.warnedVersion, nil)
+        -- Nor a VER, or any message on another protocol, from outside the guild (code review 2026-11-15: a
+        -- stranger's whisper printed a forged notice, remembered, and the real one later said nothing).
+        w:InjectMessage("Per Hansen", { k = "VER", p = P, v = "0.6.2" }, "WHISPER", "Ola Nord")
+        w:InjectMessage("Per Hansen", { k = "ZZZ", p = "1", v = "1.9.0" }, "WHISPER", "Ola Nord")
+        w:InjectMessage("Per Hansen", { k = "VER", p = P, v = "0.6.3" }, "PARTY")
+        w:Run(3)
+        no(me:Printed("En nyere versjon"), "nothing from outside the guild")
+        eq(me.ns.DB.char.warnedVersion, nil)
         -- Far ahead of ours: no real release, not remembered (it would hide every real one).
         for _, v in ipairs({ "999.0", "2.0.0", "3.1.0" }) do
             w:InjectMessage("Per Hansen", { k = "HELLO", p = P, v = v }, "GUILD")
