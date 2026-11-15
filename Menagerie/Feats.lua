@@ -5,7 +5,11 @@ local _, ns = ...
 --   A feat (Feats.LIST): a major class quest's reward (a stance, a demon, a form, a totem, an epic
 --   mount...), learning to ride, and level 60. BOND_FEAT_POINTS (25) once per character, only with a
 --   pet out (the user: "only with a pet out"), past the day's 75, not counted in it (Bond.REWARDS.feat.beyond); a line in chat and a moment in
---   the pet's story. Done without a pet out, it's done: no reward later.
+--   the pet's story. Done without a pet out, it's done: no reward later. Done with a pet out (or in a fight,
+--   where we can't tell) and lost before the reward (you died in the fight, a /reload, a disconnect: the
+--   reward waits for the fight's end, and a dead player has no pet out), it's owed (rec.owed) and given the
+--   next time a pet is out (2026-11-15, the user: "reward later"): after the first look at login, after a
+--   summon, after coming back to life.
 --   Flavor only (Quirks' eggs, no points; the user): a trainer visit, a dual-spec switch, a talent
 --   reset, and the levels 10 to 50 (egg.kake, likelier the higher the level).
 --
@@ -121,8 +125,8 @@ function Feats:Look()
     return found
 end
 
-local function Record(id, before, what)
-    ns.DB.char.feats[id] = { t = ns.Now(), before = before or nil, what = what }
+local function Record(id, before, what, owed)
+    ns.DB.char.feats[id] = { t = ns.Now(), before = before or nil, what = what, owed = owed or nil }
 end
 
 -- Done before we looked, by its quests' completed flags (they work on Forever: /dp probe api feats,
@@ -153,6 +157,7 @@ function Feats:FirstLook()
         if not Done(f.id) and self:HadBefore(f) then Record(f.id, true) end
     end
     ready = true
+    Feats.PaySoon() -- (one lost to a /reload or a disconnect last session)
     Feats.unspent = Feats.Unspent()
     Feats.ranks = Feats.Ranks()
     ns.Log("Feats", "first look: %d feats already had", self:Count())
@@ -183,7 +188,8 @@ end
 function Feats:Got(f, spell, quest)
     if Done(f.id) then return end
     local what = self:What(f, spell, quest)
-    Record(f.id, false, what)
+    -- Owed until rewarded if a pet was out, or might have been (unreadable in a fight).
+    Record(f.id, false, what, ns.InCombat() or ns.Pets:OutKey() ~= nil)
     self.lastAt = GetTime()
     ns.Log("Feats", "%s: %s", f.id, tostring(what))
     ns.Activity:Emit("feat", 1, f.id)
@@ -238,9 +244,12 @@ ns.Activity:Source({ id = "feat", events = { "SPELLS_CHANGED", "QUEST_TURNED_IN"
 -- The reward, with the pet that was out (Activity's ACTIVITY carries it).
 function Feats:OnFeat(id, key)
     local f, rec = self.BY_ID[id], ns.DB.char.feats[id]
-    if not (f and rec) then return end
-    if not key then return ns.Log("Feats", "%s with no pet out: no reward", id) end
-    rec.key = key
+    if not (f and rec) or rec.key then return end
+    if not key then
+        if rec.owed then return ns.Log("Feats", "%s: no pet out now, owed", id) end
+        return ns.Log("Feats", "%s with no pet out: no reward", id)
+    end
+    rec.key, rec.owed = key, nil
     local name = ns.Registry:NameOf(key)
     local line = f.line or "spell"
     local vars = { pet = name, what = rec.what, totem = f.totem and ns.L["feat.totem." .. f.totem],
@@ -357,8 +366,35 @@ ns.Activity:Source({ id = "respec", events = { "SPELLS_CHANGED", "TRAIT_CONFIG_U
         return 1, n
     end })
 
+-- Owed feats (Feats:OnFeat) given to the pet out now, if one is. Cheap when none are owed.
+function Feats:PayOwed()
+    if not ready then return end
+    if ns.InCombat() then return ns.Events:OutOfCombat(function() Feats:PayOwed() end) end
+    local key = ns.Pets:OutKey()
+    if not key then return end
+    for _, f in ipairs(self.LIST) do
+        local rec = ns.DB.char.feats[f.id]
+        if rec and rec.owed and not rec.key then
+            ns.Log("Feats", "%s: owed, given now", f.id)
+            self:OnFeat(f.id, key)
+        end
+    end
+end
+local function Owed()
+    for _, rec in pairs(ns.DB.char.feats) do if rec.owed and not rec.key then return true end end
+    return false
+end
+Feats.PAY_AFTER = 3 -- seconds after a summon or coming back to life: the companion is out by then
+function Feats.PaySoon()
+    if Owed() then C_Timer.After(Feats.PAY_AFTER, function() Feats:PayOwed() end) end
+end
+
 function Feats:Init()
     ns.Activity:Want("feat", Feats)
+    -- (a hook stays, but costs a table walk only; the events come once a death)
+    hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Feats.PaySoon() end)
+    ns.Events:On("PLAYER_ALIVE", Feats, Feats.PaySoon)
+    ns.Events:On("PLAYER_UNGHOST", Feats, Feats.PaySoon)
     ns.Bus:On("ACTIVITY", function(id, _, key, _, extra) if id == "feat" then Feats:OnFeat(extra, key) end end)
     C_Timer.After(self.FIRST_LOOK, function() Feats:FirstLook() end)
 end
