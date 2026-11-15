@@ -49,7 +49,6 @@ local _, ns = ...
 local Ach = {}
 ns.Achievements = Ach
 
-local DAY = 86400
 
 -- Guild records of ids we don't know (a newer version's, or junk) we store
 -- at most Wire.LIMITS.GUILD_UNKNOWN_MAX. Ours are always stored: there are only as many

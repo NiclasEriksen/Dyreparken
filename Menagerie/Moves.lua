@@ -44,7 +44,7 @@ function Moves:Actor()
         if ok and actor then return actor, "tag " .. tag end
     end
     local ok, actor = pcall(function()
-        for a in scene:EnumerateActiveActors() do return a end
+        for a in scene:EnumerateActiveActors() do return a end -- luacheck: ignore 512 (the first one only)
     end)
     if ok and actor then return actor, "first active actor" end
     return nil, "no actor in the scene"

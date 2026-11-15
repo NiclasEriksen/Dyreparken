@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Install LuaJIT
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq luajit
+      - name: Install LuaJIT and luacheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq luajit lua-check
       - name: Run checks
         run: tools/check.sh

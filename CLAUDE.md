@@ -26,7 +26,9 @@ quirks. When you learn something new about the client, add it there with the dat
 ## Verify
 
 - `tools/check.sh` runs the TOC↔file check, a Lua 5.1 syntax check (luajit), a scan for 5.2+ syntax, a scan for
-  reads of unknown lowercase globals (a misspelt or undeclared local; the known ones are listed in it), and
+  reads of unknown lowercase globals (a misspelt or undeclared local; the known ones are listed in it),
+  luacheck (its config from the harness's stubs, `tools/lint_config.lua`: a client API must be stubbed before lint takes
+  it; one read only behind an existence check goes in its OPTIONAL list; `-- luacheck: ignore NNN (why)` for a meant one), and
   the test suite with coverage floors (~50 s). `tools/check.sh --quick` skips coverage (~5 s). The runner
   uses every core (`--jobs=N`; one process for a filter or `-v`): coverage alone made a run ~9x slower.
 - The game can't run from here. For in-game checks, ask the user to `/reload` and run `/dp debug on`, then

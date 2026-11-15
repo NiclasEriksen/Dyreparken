@@ -312,7 +312,7 @@ end
 -- false if `added` was the one to go.
 function Registry.TrimLapses(lapses, added)
     local list = {}
-    for owner, t in pairs(lapses) do list[#list + 1] = owner end
+    for owner in pairs(lapses) do list[#list + 1] = owner end
     local max = ns.Wire.LIMITS.LAPSES_MAX
     if #list <= max then return true end
     table.sort(list, function(a, b)
@@ -733,7 +733,7 @@ function Registry:SetNickname(nick)
     if not clear and not self:CanNickname(r) then
         return false, ns.T("nick.locked", { level = ns.Bond.LEVELS[Config.NICKNAME_LEVEL][2], n = Config.NICKNAME_LEVEL })
     end
-    local ok, clean = true, nil
+    local ok, clean
     if not clear then
         ok, clean = self:ValidNickname(nick)
         if not ok then return false, clean end

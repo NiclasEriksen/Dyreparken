@@ -7,7 +7,9 @@
 #  3. Constructs WoW's Lua 5.1 lacks: goto/labels, //, bitwise operators.
 #  4. No read of a lowercase global but the known ones (Lua's and the client's): a misspelt or out-of-order local
 #     reads as nil there, silently (2026-11-15: Parken's rings read `match` before it was declared).
-#  5. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
+#  5. luacheck (2026-11-15), its config built from the harness's stubs (tools/lint_config.lua): writes to
+#     globals, reads of globals and C_* fields the stubs lack (GetZonetext, C_PetJournal.GetPetInfoBySpeciesId).
+#  6. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
 #     Coverage floors: Menagerie 95%, Achievements 95%, Core 90%. Games has none on purpose (see CLAUDE.md).
 set -u
 quick=0
@@ -52,6 +54,17 @@ for f in $own; do
         [[ $known == *" $g "* ]] || { echo "GLOBAL: $f reads \"$g\" (a misspelt or undeclared local? else add it to check.sh's known)"; fail=1; }
     done < <(luajit -bl "$f" 2>/dev/null | grep 'GGET' | grep -o '"[a-z_][A-Za-z0-9_]*"$' | tr -d '"' | sort -u)
 done
+
+if command -v luacheck >/dev/null; then
+    rc=$(mktemp); trap 'rm -f "$rc"' EXIT
+    if luajit tools/lint_config.lua > "$rc"; then
+        out=$(luacheck --config "$rc" --formatter plain --codes --quiet . 2>&1) || { echo "$out" | sed 's/^/LINT: /'; fail=1; }
+    else
+        echo "LINT: tools/lint_config.lua failed"; fail=1
+    fi
+else
+    echo "LINT: luacheck not installed (Arch: pacman -S luacheck; Debian/Ubuntu: apt install lua-check)"; fail=1
+fi
 
 if [[ $fail -eq 0 ]]; then
     if [[ $quick -eq 1 ]]; then

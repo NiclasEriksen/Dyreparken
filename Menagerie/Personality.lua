@@ -311,7 +311,7 @@ function Personality:Of(key)
     local pick = sid and self.FAMILY_PICK[sid]
     local can = {}
     for _, act in ipairs(candidates) do can[act] = true end
-    if pick == false then -- (none: the species has enough)
+    if pick == false then -- luacheck: ignore 542 (none: the species has enough)
     elseif type(pick) == "table" then
         for _, act in ipairs(pick) do if can[act] then Add(act) end end
     elseif pick and can[pick] then
