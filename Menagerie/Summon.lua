@@ -124,7 +124,8 @@ end
 -- (items, mage only; wowhead's Forever companion items) put out a companion that isn't a journal pet,
 -- so it reads as none out, and ours replaced it. While its buff is on you, nothing is summoned; its end
 -- is a trigger (UNIT_AURA on you, only while one is out). By the scroll's spell name as the client has
--- it (C_Item.GetItemSpell), else the English one. Unverified in game: that the buff has the spell's name.
+-- it (C_Item.GetItemSpell), else the English one: the buffs are "Rat Familiar", "Frog Familiar", "Cat Familiar"
+-- (seen in game, 2026-11-15, the user).
 Summon.FAMILIARS = { [275069] = "Rat Familiar", [277483] = "Frog Familiar", [277493] = "Cat Familiar" }
 local familiarNames
 local function FamiliarNames()

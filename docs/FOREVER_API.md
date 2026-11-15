@@ -151,7 +151,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - **Mage familiars** (2026-11-15, the user): Scrolls of Rat, Frog and Cat Familiar (items 275069, 277483, 277493,
   mage only) put out a companion with a buff; replacing it with a journal pet takes the buff. Not a journal pet, so
   `GetSummonedPetGUID` presumably reads none. Summon holds while a buff named as the scroll's spell
-  (`C_Item.GetItemSpell`) or "Rat/Frog/Cat Familiar" is on you. Unverified: the buff's real name.
+  (`C_Item.GetItemSpell`) or "Rat/Frog/Cat Familiar" is on you. The buffs' names, seen in game (the user, 2026-11-15):
+  "Cat Familiar", "Frog Familiar", "Rat Familiar". A `/run` loop over `C_UnitAuras.GetAuraDataByIndex("player", i,
+  "HELPFUL")` printed nothing at all with one on (build 70938): the auras by index read as none from a macro, so read
+  them by name (`GetAuraDataBySpellName`), as Summon and Activity do.
 - `SetPortraitTextureFromCreatureDisplayID(texture, displayID)` exists (the API probe's globals, 2026-11-15).
   The park and the list draw each pet's face with it from `GetPetInfoBySpeciesID`'s 12th return (Pets:Portrait).
   Unverified in game: whether every species draws (a model not loaded yet may come up blank), and whether the
