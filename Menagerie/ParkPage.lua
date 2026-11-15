@@ -199,29 +199,30 @@ local function NewCell()
         t:AddMaskTexture(m)
         return t
     end
-    c.ring = Round("BACKGROUND", 0, ICON_SIZE + 2)
+    -- (a 2 px edge: 5 px was "a bit much", 2026-11-15, the user: thinner, the faces a little bigger)
+    c.ring = Round("BACKGROUND", 0, ICON_SIZE)
     c.ring:SetColorTexture(1, 1, 1, 1)
-    c.disc = Round("BACKGROUND", 1, ICON_SIZE - 8)
+    c.disc = Round("BACKGROUND", 1, ICON_SIZE - 4)
     c.disc:SetColorTexture(0.06, 0.05, 0.04, 1)
-    c.icon = Round("ARTWORK", 0, ICON_SIZE - 8) -- (a journal icon, where there's no portrait, round as well)
+    c.icon = Round("ARTWORK", 0, ICON_SIZE - 4) -- (a journal icon, where there's no portrait, round as well)
     c.mine = c:CreateTexture(nil, "OVERLAY", nil, 1)
     c.mine:SetTexture(ns.Icon("ring"))
     c.mine:SetBlendMode("ADD")
     c.mine:SetVertexColor(1, 0.82, 0.2, 0.9)
     c.mine:SetSize(ICON_SIZE + 10, ICON_SIZE + 10)
     c.mine:SetPoint("CENTER")
-    -- The ring's shine from level 5 (a soft glow in its color) and its glint from 3 (a twinkling sparkle,
-    -- each cell at its own pace so they don't blink together).
+    -- The ring's shine from level 5 (a soft glow in its color) and its glint from 3.
     c.sheen = c:CreateTexture(nil, "BACKGROUND", nil, -1)
     c.sheen:SetTexture(ns.Icon("ring"))
     c.sheen:SetBlendMode("ADD")
-    c.sheen:SetSize(ICON_SIZE + 10, ICON_SIZE + 10)
+    c.sheen:SetSize(ICON_SIZE + 8, ICON_SIZE + 8)
     c.sheen:SetPoint("CENTER")
     c.glint = c:CreateTexture(nil, "OVERLAY", nil, 3)
     c.glint:SetTexture(ns.Icon("sparkle"))
     c.glint:SetBlendMode("ADD")
     c.glint:SetPoint("CENTER", c, "TOPRIGHT", -6, -6)
-    c.glint.pulse = ns.Anim.Pulse(c.glint, 0.25, 1, 1.8 + (#cells % 7) * 0.25)
+    c.glint:SetAlpha(0)
+    c.glint.pulse = Park.Glint(c.glint)
     c.free = c:CreateTexture(nil, "OVERLAY", nil, 2)
     c.free:SetTexture(READY)
     c.free:SetSize(14, 14)
@@ -293,6 +294,26 @@ end
 -- from SHEEN_AT ("with a glint / something shiny for higher levels"); your own pet's in gold (with its
 -- glow). None for a pet that needs a home. Fainter when the filter leaves it out.
 Park.GLINT_AT, Park.SHEEN_AT = 3, 5
+-- A glint now and then (2026-11-15, the user: a steady twinkle "seems permanent / not random enough"): a
+-- wait of GLINT_WAIT seconds picked anew each time (ns.random), a quick flash, gone again. Animation only:
+-- nothing runs while the park is hidden.
+Park.GLINT_WAIT = { 3, 14 }
+function Park.Glint(tex)
+    local g = tex:CreateAnimationGroup()
+    local wait = g:CreateAnimation("Alpha") -- (a step that changes nothing: the pause, set before each play)
+    wait:SetFromAlpha(0); wait:SetToAlpha(0); wait:SetOrder(1)
+    ns.Anim.Fade(g, 0, 1, 0.18, 2)
+    ns.Anim.Fade(g, 1, 0, 0.6, 3)
+    local function Again()
+        local span = Park.GLINT_WAIT
+        wait:SetDuration(span[1] + ns.random() * (span[2] - span[1]))
+        g:Play()
+    end
+    g:SetScript("OnFinished", function() if tex:IsShown() then Again() end end)
+    g.Again, g.wait = Again, wait
+    return g
+end
+
 -- { r, g, b, a } for a family at a bond level: saturated (away from its grey) and brightened along the
 -- levels; the tints are made for the card's dark wash, so even level 1 is lifted.
 function Park.RingColor(family, level)
@@ -318,13 +339,13 @@ function Park.Ring(c, key, owner, match)
     if glint then
         local size = level >= Park.SHEEN_AT and 18 or 13
         c.glint:SetSize(size, size)
-        if not c.glint.pulse:IsPlaying() then c.glint.pulse:Play() end
+        if not c.glint.pulse:IsPlaying() then c.glint.pulse.Again() end
     else
         c.glint.pulse:Stop()
     end
     if not col then return end
     c.ring:SetVertexColor(col[1], col[2], col[3], match and col[4] or Park.DIM)
-    if sheen then c.sheen:SetVertexColor(col[1], col[2], col[3], 0.55) end
+    if sheen then c.sheen:SetVertexColor(col[1], col[2], col[3], 0.4) end
 end
 
 ------------------------------------------------------------------------------

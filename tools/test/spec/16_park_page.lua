@@ -155,7 +155,12 @@ return function(test, H)
         ok(level >= P.SHEEN_AT, "level " .. level)
         local kit = Cell(ola, 41)
         eq(kit.ring.vertexColor[2], P.RingColor("cat", level)[2], "a guildmate's bond: its ring, still the family's")
-        ok(kit.glint:IsShown(), "a glint"); ok(kit.glint.pulse:IsPlaying(), "twinkling")
+        ok(kit.glint:IsShown(), "a glint"); ok(kit.glint.pulse:IsPlaying(), "on its way")
+        -- Now and then: a new wait after each flash, within GLINT_WAIT.
+        local g, span = kit.glint.pulse, P.GLINT_WAIT
+        ola:Dice(0.5); g:Finish()
+        ok(g:IsPlaying(), "again")
+        eq(g.wait.duration, span[1] + 0.5 * (span[2] - span[1]), "after a wait picked at random")
         ok(kit.sheen:IsShown(), "and a shine")
         no(panda.glint:IsShown(), "your own: its gold glow instead")
         -- A whole redraw (an adoption, the page opened again) keeps them so.
