@@ -88,6 +88,8 @@ return function(test, H)
     test("the pet's moves off: it stands, even at night, and a click doesn't hop; the lift still applies", function()
         local w, ola, S = Setup()
         ola.ns.PetMoves.species[5159] = { lift = 0.2 }
+        ola.ns.PetModels = { card = {}, park = {}, frame = {} } -- (the lift, not placed by its feet: Data/PetScenes.lua's rows left out)
+        ola.ns.PetScenes = { card = {}, park = {}, frame = {} }
         w:SetDate(2027, 3, 2, 23)
         local actor = ola.petActor
         ola.ns.DB.global.settings.cardMoves = false

@@ -319,7 +319,7 @@ end
 -- Select a pet on the card, as the journal does.
 -- The card's model scene: each species has one (c.modelScenes[sid], default: one per
 -- height in c.modelHeights[sid], default 0), and the actor's height is the scene's. Like
--- Blizzard's TransitionToModelSceneID, the height is set only when the scene changes:
+-- Blizzard's TransitionToModelSceneID, the height (and the scale, c.sceneScales[scene], default 1) is set only when the scene changes:
 -- between two pets of one scene the actor stays where it was (2026-11-10).
 function Client:SelectPet(sid, byPetID)
     local card = self.env.PetJournalPetCard
@@ -331,6 +331,24 @@ function Client:SelectPet(sid, byPetID)
         if scene ~= model.sceneID then
             model.sceneID = scene
             actor.pos = { 0, 0, height }
+            -- (retail's ApplyFromModelSceneActorInfo: centered again, the scene's own scale, and scaled at once, the
+            -- old model still on)
+            if actor.UpdateScale then
+                actor.center = { false, false, true }
+                actor.requested = (self.sceneScales or {})[scene] or 1
+                actor:MarkScaleDirty(); actor:UpdateScale()
+            end
+        end
+        -- Another pet: Blizzard sets its model, then stands it (the log, 2026-11-15: SetModelByCreatureDisplayID,
+        -- then SetAnimation(0), before the card's update reaches us). It loads a moment later (H.NewActor).
+        if sid ~= self.cardSpecies and actor.SetModelByCreatureDisplayID then
+            local display = select(12, self.env.C_PetJournal.GetPetInfoBySpeciesID(sid))
+            if display then
+                P.Secure(self, function()
+                    actor:SetModelByCreatureDisplayID(display)
+                    actor:SetAnimation(0)
+                end)
+            end
         end
     end
     self.cardSpecies = sid

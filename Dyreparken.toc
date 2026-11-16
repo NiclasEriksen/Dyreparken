@@ -39,6 +39,8 @@ Data\Traits.lua
 Data\Unlocks.lua
 Data\PetMoves.lua
 Data\AnimLengths.lua
+Data\PetBoxes.lua
+Data\PetScenes.lua
 Data\Creatures.lua
 Data\Zones.lua
 
@@ -107,6 +109,7 @@ Dev\JournalProbe.lua
 Dev\Kills.lua
 Dev\SceneGallery.lua
 Dev\LiftEditor.lua
+Dev\PlaceEditor.lua
 Dev\MovesEditor.lua
 Dev\ApiProbe.lua
 Dev\Errors.lua

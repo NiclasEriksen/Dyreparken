@@ -38,9 +38,50 @@ function H.NewActor(client)
     function actor:SetScale(s) self.scale = s end
     function actor:GetActiveBoundingBox() return -0.3, -0.2, 0, 0.3, 0.2, 0.8 end
     function actor:GetYaw() return self.yaw or 0 end
-    function actor:OnModelLoaded() end -- (the mixin's: the client calls it once a model has loaded)
     function actor:SetYaw(y) self.yaw = y end
-    function actor:SetModelByCreatureDisplayID(id) self.display = id end
+    -- Loading and scaling as retail's ModelSceneActorMixin (Forever's actor has its methods, 2026-11-16): a
+    -- model set loads client.modelLoadDelay later (default 0.05 s; false: never says so), OnModelLoaded marks
+    -- the scale dirty and calls the loaded callback, and the next frame (0.01 s) UpdateScale scales it to the
+    -- box of the pose it plays then: lying (client.lyingAnims, default 1 6 99 100) LYING_SCALE times bigger,
+    -- as a lying box is flat; times its scene's requested scale (actor.requested). Then the size callback.
+    local LYING = client.lyingAnims or { [1] = true, [6] = true, [99] = true, [100] = true }
+    actor.LYING_SCALE = 1.4
+    -- Placed by its box's center on the up axis, as Forever's scenes do (2026-11-16: false, false, true).
+    actor.center = { false, false, true }
+    function actor:SetUseCenterForOrigin(x, y, z) self.center = { x and true or false, y and true or false, z and true or false } end
+    function actor:IsUsingCenterForOrigin() return unpack(self.center) end
+    function actor:SetAlpha(a) self.alpha = a end
+    function actor:GetAlpha() return self.alpha or 1 end
+    function actor:SetOnModelLoadedCallback(fn) self.onModelLoadedCallback = fn end
+    function actor:GetOnModelLoadedCallback() return self.onModelLoadedCallback end
+    function actor:SetOnSizeChangedCallback(fn) self.onSizeChangedCallback = fn end
+    function actor:GetOnSizeChangedCallback() return self.onSizeChangedCallback end
+    function actor:MarkScaleDirty() self.scaleDirty = true end
+    function actor:GetModelFileID() return self.display end
+    function actor:UpdateScale()
+        if not self.scaleDirty then return end
+        self.scaleDirty = false
+        self.scale = (self.requested or 1) * (LYING[self.anim] and self.LYING_SCALE or 1)
+        if self.onSizeChangedCallback then self.onSizeChangedCallback(self) end
+    end
+    function actor:OnModelLoaded()
+        self:MarkScaleDirty()
+        if self.onModelLoadedCallback then self.onModelLoadedCallback(self) end
+        client.world:Timer(client, 0.01, function() self:UpdateScale() end)
+    end
+    function actor:SetModelByCreatureDisplayID(id)
+        self.display = id
+        -- (as on Forever, 2026-11-16: scaled the moment it's set, after the hooks on the call, the size callback
+        -- with it, long before it loads)
+        self:MarkScaleDirty()
+        client.world:Timer(client, 0, function() self:UpdateScale() end)
+        local delay = client.modelLoadDelay
+        if delay == nil then delay = 0.05 end
+        if delay == false then return end
+        self.loads = (self.loads or 0) + 1
+        local n = self.loads
+        client.world:Timer(client, delay, function() if self.loads == n then self:OnModelLoaded() end end)
+    end
     function actor:HasAnimation(id)
         return (client.petAnims or { [0] = true, [756] = true, [770] = true })[id] == true
     end
@@ -418,6 +459,11 @@ function Region:SetShadowColor(r, g, b, a) self.shadowColor = { r, g, b, a } end
 function Region:GetFont() return self.fontPath or "Fonts\\FRIZQT__.TTF", self.fontSize or 16, self.fontFlags or "" end
 function Region:SetFont(path, size, flags) self.fontPath, self.fontSize, self.fontFlags = path, size, flags; return true end
 function Region:SetAlpha(a) self.alpha = a end
+-- (geometry only with r.geo, as frames; its scale its frame's)
+function Region:GetCenter()
+    if self.geo then return (self.geo.l + self.geo.r) / 2, (self.geo.t + self.geo.b) / 2 end
+end
+function Region:GetEffectiveScale() return self.owner and self.owner:GetEffectiveScale() or 1 end
 function Region:SetGradient(o, a, b) self.gradient = { o, a, b } end
 function Region:SetBlendMode(m) self.blend = m end
 -- The font in use, and the text's width estimated from it (px per character).

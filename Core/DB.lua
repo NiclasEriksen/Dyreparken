@@ -50,6 +50,8 @@ local ACCOUNT_DEFAULTS = {
     decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor
     -- [LiftEditor]
     liftPicks = {},  -- species id -> lift, set in /dp probe lift; to write into Data/PetMoves.lua
+    placePicks = {}, -- stage -> scene id -> { floor, size }, set in /dp probe place; to write into Data/PetScenes.lua
+    modelPicks = {}, -- stage -> model ("low high wide", Moves.ModelOf) -> { floor, size }: the same, per model
     -- [MovesEditor]
     movePicks = {},  -- species id -> { reaction = id or false, sleepAt = n }, from /dp probe moves
 }

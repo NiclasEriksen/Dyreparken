@@ -81,6 +81,9 @@ return function(c, env, S)
             function f:TransitionToModelSceneID(id) self.sceneID = id end
             function f:GetModelSceneID() return self.sceneID end
             function f:SetViewInsets(l, r, t, b) self.insets = { l, r, t, b } end
+            function f:GetViewInsets() return unpack(self.insets or { 0, 0, 0, 0 }) end
+            -- (as the card's: a straight line, 100 px a unit, 150 px up at 0)
+            function f:Project3DPointTo2D(x, y, z) return 200 + x * 100, 150 + z * 100, 1 end
             function f:EnableMouseWheel(v) self.wheel = v end
             function f:EnableMouse(v) self.mouse = v end
             function f:GetActorByTag(tag)
@@ -88,6 +91,25 @@ return function(c, env, S)
                 self.actor = self.actor or H.NewActor(c)
                 return self.actor
             end
+        end
+        -- A PlayerModel (Forever's, /dp probe api model): a display set loads client.modelLoadDelay later
+        -- (default 0.05 s; false: never says so) and calls OnModelLoaded; the animations set are recorded.
+        -- c.playerModels lists them.
+        if ftype == "PlayerModel" then
+            f.played = {}
+            c.playerModels = c.playerModels or {}
+            c.playerModels[#c.playerModels + 1] = f
+            function f:SetDisplayInfo(id)
+                self.display, self.loads = id, (self.loads or 0) + 1
+                local n, delay = self.loads, c.modelLoadDelay
+                if delay == nil then delay = 0.05 end
+                if delay == false then return end
+                w:Timer(c, delay, function()
+                    if self.loads == n and self.display == id and self.scripts.OnModelLoaded then self.scripts.OnModelLoaded(self) end
+                end)
+            end
+            function f:ClearModel() self.display = nil end
+            function f:SetAnimation(id) self.anim = id; self.played[#self.played + 1] = id end
         end
         -- Our side pages (Core/SidePage.lua names them Dyreparken<Id>Page): which one shows under
         -- which window title, so c:Page(title) finds a page by what the player reads.

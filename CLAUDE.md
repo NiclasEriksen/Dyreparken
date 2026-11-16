@@ -193,6 +193,12 @@ Data/PetMoves.lua  which animation each pet uses for each reaction on the card (
                    default and per-species overrides, EDITED BY HAND by the user (found by eye, /dp probe anim)
 Data/AnimLengths.lua GENERATED (luajit tools/anim_lengths.lua, from a /dp probe api lengths run): how long each
                    species' one-off moves play, so the card moves on when one ends (Moves:Length); else Moves.T. Don't edit
+Data/PetBoxes.lua  GENERATED (luajit tools/pet_boxes.lua, from a /dp probe api boxes run): every species' standing box
+                   and model scene. Don't edit
+Data/PetScenes.lua where pets stand and how tall (Moves.FRAMING: placed by their feet, 2026-11-16): ns.PetScenes per
+                   model scene, ns.PetModels per model (pets sharing one share their box in Data/PetBoxes.lua,
+                   Moves.ModelOf; a model's row goes first), per stage (park and frame fall back to the card's),
+                   EDITED BY HAND from /dp probe place (a model at a time)
 Data/Zones.lua     zones, one row each (level, faction, capital, climate, high, neutral, home families), EDITED BY
                    HAND: Personality's climates and cities, Quirks.HOME_ZONES, Wish.ZONES, Sense's capitals are views
 Data/Unlocks.lua   every species' minor like and minor dislike (your bond unlocks them at levels 4 and 6), PINNED
@@ -337,7 +343,8 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    made with { from = "v0.7.1" } runs that release's own code from git (an older client: spec/65_owners.lua;
                    CI's checkout fetches the tags for it).
                    Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
-                   lift|moves|gains|api|sense|perf|garden] and /dp debug, only when ns.DEV); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); Try (/dp try egg|react|dislike|line|wish:
+                   place|lift|moves|gains|api|sense|perf|garden] and /dp debug, only when ns.DEV; place: the
+                   per-scene floor and size editor, PlaceEditor.lua, picks in DyreparkenDB.placePicks); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); Try (/dp try egg|react|dislike|line|wish:
                    a line now, by nature, nothing counted); Perf (/dp probe perf: calls and time per
                    handler, through ns.profile, the one hook Events, Bus and Activity check; a release leaves it nil); PetsProbe (/dp probe, more, ach);
                    MovesProbe (/dp probe anim and pos, the editors' Moves.override); DecorProbe (/dp probe decor,

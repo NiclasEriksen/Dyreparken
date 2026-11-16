@@ -11,6 +11,10 @@ return function(test, H)
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true } -- (the panda lies down, is paused there, and sits, whatever the file says)
         ola.ns.PetMoves.default.sleepAt = 1.2 -- (the timings here, whatever the file says)
         ola.ns.Moves.SLEEP_AFTER = 0.6
+        ola.ns.Moves.WARM_STEP, ola.ns.Moves.AFTER_LOAD = 0.05, 0.1 -- (the warm-up within SLEEP_AFTER here too, as in game)
+        -- (no pet placed by its feet but where a test says: Data/PetScenes.lua's rows left out)
+        ola.ns.PetScenes = { card = {}, park = {}, frame = {} }
+        ola.ns.PetModels = { card = {}, park = {}, frame = {} }
         ola:Dice(1) -- (a click: its happy move, not now-and-then)
         w:SetDate(2027, 3, 2, hour)
         return w, ola, ola.petActor
@@ -116,10 +120,14 @@ return function(test, H)
         eq(actor.anim, 756, "PetBattleCustom0: the panda's joyful hop")
         w:Run(2.1)
         eq(actor.anim, 0)
-        -- A refresh of the same pet doesn't start it over: only what plays is put back.
+        -- A refresh of the same pet doesn't start it over, nor set what plays again (2026-11-16: a loop set
+        -- again plays as a one-off and the pet gets up).
         local n = #actor.played
         ola.ns.JournalUI:Refresh()
-        eq(#actor.played, n + 1); eq(actor.played[#actor.played], 0)
+        eq(#actor.played, n, "nothing set again")
+        actor:SetAnimation(756) -- (someone else's)
+        ola.ns.JournalUI:Refresh()
+        eq(actor.played[#actor.played], 0, "set from outside since: put back")
     end)
 
     test("at night it's asleep on the card; a click wakes it, and it stays awake", function()
@@ -262,7 +270,8 @@ return function(test, H)
 
     test("asleep, stood up by someone else (the journal, a model loading): lying down again", function()
         local w, ola, actor = Setup(23)
-        function actor:SetModelByCreatureDisplayID(id) self.anim, self.speed, self.offset = 0, nil, nil end
+        local load = actor.SetModelByCreatureDisplayID -- (it loads a moment later, as on Forever: the harness's)
+        function actor:SetModelByCreatureDisplayID(id) self.anim, self.speed, self.offset = 0, nil, nil; return load(self, id) end
         ola:SelectPet(5159)
         w:Run(1.81)
         eq(actor.anim, 6)
@@ -271,13 +280,16 @@ return function(test, H)
         w:Run(0.1)
         eq(actor.anim, 6, "put back at once"); eq(actor.offset, 1.2)
         eq(#ola:Log("Moves\tcard s:5159: SetAnimation%(0%) from outside, [%d.]+ s into our 6 %(held%)"), 1, "and logged, to learn what does it")
-        -- A model loaded anew: once it has settled (the camera frames it as it loads).
+        -- A model loaded anew: once it has loaded, standing while it scales, then lying again.
         w:Run(1) -- (past the 0.3 s recheck)
         actor:SetModelByCreatureDisplayID(1234)
-        w:Run(0.5)
+        w:Run(0.03)
         eq(actor.anim, 0, "not while it loads")
-        w:Run(0.2)
-        eq(actor.anim, 6, "lying again"); eq(actor.offset, 1.2)
+        local from = #actor.played
+        w:Run(0.1 + ola.ns.Moves.AFTER_LOAD + 0.01)
+        eq(actor.played[from + 1], 0, "loaded: standing as it scales")
+        eq(actor.anim, 6, "then lying again"); eq(actor.offset, 1.2)
+        eq(actor.scale, 1, "scaled standing, not lying")
         -- No fight with a client that insists: a few times per pet shown.
         local function Sixes(from) local n = 0; for i = from + 1, #actor.played do if actor.played[i] == 6 then n = n + 1 end end; return n end
         local before = #actor.played
@@ -767,7 +779,8 @@ return function(test, H)
         local w, ola, actor = Setup(23)
         ola.ns.PetMoves.species[46] = { sleepHold = false } -- (the kitten paused, not in a sleep loop)
         function actor:SetPaused(p) self.paused = p end
-        function actor:SetModelByCreatureDisplayID() self.anim = 0 end
+        local load = actor.SetModelByCreatureDisplayID
+        function actor:SetModelByCreatureDisplayID(id) self.anim = 0; return load(self, id) end
         ola:SelectPet(5159)
         w:Run(0.61)
         eq(actor.anim, 6, "lying down"); eq(actor.speed, nil)
@@ -787,7 +800,7 @@ return function(test, H)
         w:Run(0.61 + 1.2)
         eq(actor.paused, true, "the kitten asleep")
         actor:SetModelByCreatureDisplayID(1)
-        w:Run(ola.ns.Moves.SETTLE + 0.01)
+        w:Run(0.05 + ola.ns.Moves.AFTER_LOAD + 0.01)
         eq(actor.paused, false, "unpaused before it lies down again"); eq(actor.anim, 6)
         eq(actor.played[#actor.played - 1], 0, "standing first, so the client starts Dead over")
         w:Run(1.3)
@@ -991,6 +1004,291 @@ return function(test, H)
         eq(actor.anim, 0)
     end)
 
+    -- 2026-11-16 (the user: too big or too low, waking after a second or two, a cat lying down halfway, up and
+    -- down again): the model scales to the pose it plays as it loads, and stands up then.
+    local function Cat(ola) ola.ns.PetMoves.species[46] = { sleep = 99, sleepAt = 1.3, sleepHold = 100 } end
+
+    test("a new pet's model loading late: it stands until it has loaded, then lies down; scaled standing, and kept so", function()
+        local w, ola, actor = Setup(23)
+        local M = ola.ns.Moves
+        Cat(ola)
+        ola:SelectPet(5159); w:Run(3) -- (the card's actor watched by now)
+        ola.modelLoadDelay = 2.5
+        ola:SelectPet(46)
+        w:Run(M.SLEEP_AFTER + 0.5)
+        eq(actor.anim, 0, "still loading: standing past SLEEP_AFTER (it lay down here, and the load stood it up)")
+        w:Run(2.5 - M.SLEEP_AFTER - 0.5 - 0.1)
+        eq(actor.anim, 0, "still loading")
+        w:Run(0.1 + M.AFTER_LOAD + 0.05)
+        eq(actor.anim, 99, "loaded: then it lies down")
+        eq(actor.scale, 1, "scaled to its standing box")
+        w:Run(1.3)
+        eq(actor.anim, 99, "and sleeps (its lie-down runs on into its loop: Moves.CHAINS)")
+        ok(ola:Log("model loaded 2%.50 s after it was set %(loaded callback%)")[1])
+        -- Scaled again as it lies (its box flat: bigger, lower): kept as big as it was standing.
+        actor:MarkScaleDirty(); actor:UpdateScale()
+        eq(actor.scale, 1, "kept")
+        ok(ola:Log("scaled 1.40, kept at 1.00")[1])
+        -- And a scale set while it lay, with no size callback: put back before its next move.
+        actor.scale = 1.4
+        ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.scale, 1, "put back before the move")
+    end)
+
+    test("another pet in another scene: that scene's scale stays, the last pet's isn't kept over it", function()
+        local w, ola, actor = Setup(23)
+        Cat(ola)
+        ola.modelScenes = { [5159] = 1271, [46] = 1269 }
+        ola.sceneScales = { [1271] = 1, [1269] = 2 }
+        ola:SelectPet(5159); w:Run(3)
+        eq(actor.scale, 1)
+        ola:SelectPet(46)
+        ok(actor.scale ~= 1, "scaled for the kitten's scene as it changes (the panda's model still on, lying)")
+        no(ola:Log("kept at")[1], "not taken back to the panda's")
+        w:Run(4)
+        eq(actor.scale, 2, "and once its model has loaded")
+        eq(actor.anim, 99, "asleep (its lie-down runs on into its loop)")
+    end)
+
+    test("a cat asleep: its lie-down runs into its loop, never set; a refresh sets nothing, a put-back the loop", function()
+        local w, ola, actor = Setup(23)
+        Cat(ola)
+        ola:SelectPet(5159); w:Run(3)
+        ola:SelectPet(46)
+        w:Run(4)
+        local n100 = 0
+        for _, id in ipairs(actor.played) do if id == 100 then n100 = n100 + 1 end end
+        eq(n100, 0, "the loop never set: the stand before it is gone (2026-11-16)")
+        eq(actor.anim, 99)
+        local n = #actor.played
+        ola.ns.JournalUI:Refresh()
+        eq(#actor.played, n, "a refresh (a guildmate's BOND) sets nothing")
+        actor:SetAnimation(0) -- (someone else stood it up)
+        ola.ns.JournalUI:Refresh()
+        eq(actor.anim, 100, "put back into its loop, not lying down all over again")
+    end)
+
+    test("a model that never says it has loaded: posed after LOAD_MAX, as before; one that loads after that, posed again", function()
+        local w, ola, actor = Setup(23)
+        local M = ola.ns.Moves
+        Cat(ola)
+        ola:SelectPet(5159); w:Run(3)
+        ola.modelLoadDelay = false
+        ola:SelectPet(46)
+        w:Run(M.LOAD_MAX - 0.1)
+        eq(actor.anim, 0, "waiting for it")
+        w:Run(0.1 + M.AFTER_LOAD + 0.01)
+        eq(actor.anim, 99, "no signal: down anyway")
+        ok(ola:Log("%(no signal%)")[1])
+        w:Run(2)
+        eq(actor.anim, 99, "asleep (its lie-down runs on into its loop)")
+        -- Its model set again under it, and loading: standing as it scales, then asleep again.
+        ola.modelLoadDelay = 0.2
+        local from = #actor.played
+        actor:SetModelByCreatureDisplayID(20046)
+        w:Run(0.2 + M.AFTER_LOAD + 0.15)
+        eq(actor.played[from + 1], 0, "loaded (the engine stands it up): standing as it scales")
+        eq(actor.anim, 100, "then asleep again in its loop")
+        eq(actor.scale, 1)
+    end)
+
+    test("Blizzard's own callbacks on the actor: left alone; it waits LOAD_MAX, and no scale is kept", function()
+        local w, ola, actor = Setup(23)
+        local M = ola.ns.Moves
+        Cat(ola)
+        local theirs = function() end
+        actor:SetOnModelLoadedCallback(theirs); actor:SetOnSizeChangedCallback(theirs)
+        ola:SelectPet(5159); w:Run(3)
+        eq(actor:GetOnModelLoadedCallback(), theirs, "theirs kept"); eq(actor:GetOnSizeChangedCallback(), theirs)
+        ok(ola:Log("loaded callback Blizzard's, size callback Blizzard's")[1])
+        ola:SelectPet(46)
+        w:Run(M.LOAD_MAX - 0.2)
+        eq(actor.anim, 0, "no signal yet: standing")
+        w:Run(0.2 + M.AFTER_LOAD + 2)
+        eq(actor.anim, 99, "then asleep")
+        no(ola:Log("card s:46: scale [%d.]+, standing")[1], "a load nobody confirmed: its scale not kept")
+        actor.scale = 3; ola.ns.Cuddle:Pet(ola:Card())
+        eq(actor.scale, 3, "the engine's, left alone")
+    end)
+
+    test("a size callback the moment a model is set isn't its load (Forever): the pose waits for the loaded callback", function()
+        local w, ola, actor = Setup(23)
+        local M = ola.ns.Moves
+        Cat(ola)
+        ola:SelectPet(5159); w:Run(3)
+        ola.modelLoadDelay = 1.5
+        ola:SelectPet(46)
+        no(ola:Log("model loaded")[1], "scaled as it was set: not loaded")
+        w:Run(1.4)
+        no(ola:Log("model loaded")[1])
+        w:Run(0.2)
+        ok(ola:Log("model loaded 1%.50 s after it was set %(loaded callback%)")[1])
+        ok(ola:Log("card s:46 loaded: scene")[1], "what the actor says of itself, logged")
+    end)
+
+    test("the moves a new pet plays next are played first on a hidden model of it; the pose waits for them", function()
+        local w, ola, actor = Setup(23)
+        local M = ola.ns.Moves
+        Cat(ola)
+        ola:SelectPet(5159); w:Run(3)
+        ola:SelectPet(46)
+        local model
+        for _, m in ipairs(ola.playerModels or {}) do if m.display == 20046 then model = m end end
+        ok(model, "a hidden model of the kitten")
+        eq(model.alpha, 0, "unseen")
+        local from = #model.played
+        local warmFirst
+        local real = actor.SetAnimation
+        function actor:SetAnimation(id, ...)
+            if id == 99 and warmFirst == nil then
+                warmFirst = model.played[from + 1] == 99 and model.played[from + 2] == 100
+            end
+            return real(self, id, ...)
+        end
+        w:Run(M.SLEEP_AFTER + 0.5)
+        eq(warmFirst, true, "its lie-down and sleep played there before the card plays them")
+        ok(#model.played > from + 2, "then its other moves")
+        ok(model:IsShown(), "kept while it shows (its moves stay loaded)")
+        ola:CloseJournal()
+        eq(model.display, nil, "the journal closed: let go")
+        no(model:IsShown())
+    end)
+
+    -- 2026-11-16 (the user: half the pets too big, too small, too high or too low): placed by its feet, per scene.
+    local function Scenes(ola)
+        ola.modelScenes = { [5159] = 1705, [46] = 1269, [5160] = 1269, [5161] = 1272 }
+        ola.ns.PetBoxes = {} -- (the test's own, not Data/PetBoxes.lua's)
+        ola.ns.PetBoxes[46] = { scene = 1269, low = 0, high = 0.8, wide = 0.6 }
+        ola.ns.PetBoxes[5160] = { scene = 1269, low = 0, high = 0.4, wide = 0.3 }
+        ola.ns.PetScenes.card[1269] = { floor = 0.2, size = 2 }
+    end
+
+    test("placed by its feet in its scene (FRAMING): at once, its scene's floor and size; its pose never moves it", function()
+        local w, ola, actor = Setup(23)
+        Cat(ola); Scenes(ola)
+        ola:SelectPet(5159); w:Run(3)
+        eq(select(3, actor:IsUsingCenterForOrigin()), true, "a scene with no floor set: as Blizzard has it")
+        ola:SelectPet(46)
+        eq(select(3, actor:IsUsingCenterForOrigin()), false, "its feet are what's placed, not a box's middle")
+        eq(actor.scale, 2 / 0.8, "as tall as its scene's size, at once")
+        eq(actor.pos[3], 0.2, "its feet on the scene's floor")
+        ok(ola:Log("card s:46: placed in scene 1269, scale 2%.50 at z 0%.20")[1])
+        w:Run(3)
+        eq(actor.anim, 99, "asleep")
+        eq(actor.pos[3], 0.2, "lying down never moved it"); eq(actor.scale, 2.5)
+        actor:MarkScaleDirty(); actor:UpdateScale() -- (the engine scaling it again: a model loading)
+        eq(actor.scale, 2.5, "kept")
+        ola.modelLoadDelay = 1
+        actor:SetModelByCreatureDisplayID(20046) -- (loading again, and scaled meanwhile)
+        actor:MarkScaleDirty(); actor:UpdateScale()
+        eq(actor.scale, 2.5, "kept while it loads too: a placed pet's scale doesn't hang on a load")
+        w:Run(2)
+        ola.modelLoadDelay = nil
+        -- Another pet in the same scene: the same floor, its own size from its own box.
+        ola:SelectPet(5160)
+        eq(actor.scale, 2 / 0.4); eq(actor.pos[3], 0.2)
+        -- Wider than WIDE times its height: by its width. Hovering (its lowest point over its origin): its
+        -- origin on the floor. Reaching below its origin: that point on the floor.
+        ola.ns.PetBoxes[46] = { scene = 1269, low = 0, high = 0.5, wide = 3 }
+        ola:SelectPet(5159); ola:SelectPet(46)
+        ok(math.abs(actor.scale - 2 * 1.6 / 3) < 1e-9, "by its width: " .. actor.scale)
+        ola.ns.PetBoxes[46] = { scene = 1269, low = 0.4, high = 1.2, wide = 0.6 }
+        ola:SelectPet(5159); ola:SelectPet(46)
+        eq(actor.pos[3], 0.2, "a whelp hovers over the floor, and lies on it")
+        ola.ns.PetBoxes[46] = { scene = 1269, low = -0.1, high = 0.7, wide = 0.6 }
+        ola:SelectPet(5159); ola:SelectPet(46)
+        ok(math.abs(actor.pos[3] - (0.2 + 2.5 * 0.1)) < 1e-9, "its lowest point on the floor: " .. actor.pos[3])
+        -- With its moves off, placed the same.
+        ola.ns.DB.global.settings.cardMoves = false
+        ola:SelectPet(5159); ola:SelectPet(46)
+        eq(select(3, actor:IsUsingCenterForOrigin()), false)
+        ok(math.abs(actor.pos[3] - 0.45) < 1e-9)
+        -- Off: as Blizzard has it.
+        ola.ns.DB.global.settings.cardMoves = true
+        ola.ns.Moves.FRAMING = false
+        ola:SelectPet(5159); ola:SelectPet(46)
+        eq(select(3, actor:IsUsingCenterForOrigin()), true)
+    end)
+
+    test("a pet not in Data/PetBoxes.lua: measured the first time it stands loaded, then placed", function()
+        local w, ola, actor = Setup(14)
+        Scenes(ola)
+        ola.ns.PetBoxes[46] = nil
+        ola:SelectPet(5159); w:Run(3)
+        ola:SelectPet(46)
+        eq(select(3, actor:IsUsingCenterForOrigin()), true, "no box yet: as Blizzard has it")
+        w:Run(0.05 + ola.ns.Moves.AFTER_LOAD + 0.1)
+        ok(ola:Log("card s:46: its box measured standing, 0%.000 to 0%.800, 0%.600 wide")[1])
+        eq(select(3, actor:IsUsingCenterForOrigin()), false, "then placed")
+        eq(actor.scale, 2 / 0.8); eq(actor.pos[3], 0.2)
+    end)
+
+    test("/dp probe place: a model at a time (pets sharing one together), floor and size by slider; picks saved", function()
+        local w, ola, actor = Setup(14)
+        Scenes(ola)
+        ola.ns.PetBoxes[5160] = { scene = 1269, low = 0, high = 0.8, wide = 0.6 } -- (the kitten's model)
+        ola.ns.PetBoxes[5161] = { scene = 1269, low = 0, high = 0.4, wide = 0.3 }
+        ola.modelScenes[5161] = 1269
+        ola:SelectPet(46); w:Run(1)
+        local E = ola.ns.PlaceEditor
+        ola:Slash("probe place")
+        ok(E.frame:IsShown())
+        local m = E:Model()
+        eq(table.concat(m.sids, " "), "46 5160", "the pets that share the kitten's model, together")
+        match(E.frame.value.text, "card scene", "not set: its scene's row")
+        E:Set("floor", 0.3); E:Set("size", 1.6)
+        local pick = ola.ns.DB.global.modelPicks.card[ola.ns.Moves.ModelOf(ola.ns.PetBoxes[46])]
+        eq(pick.floor, 0.3); eq(pick.size, 1.6)
+        eq(actor.pos[3], 0.3, "the pet on the card follows"); eq(actor.scale, 1.6 / 0.8)
+        match(E.frame.saved.text, "1 changed")
+        -- The model's other pet: the same, at once; a pet of another model in the scene: its scene's row still.
+        E:Show(E.index, E.pet + 1)
+        eq(ola.cardSpecies, 5160); eq(actor.pos[3], 0.3); eq(actor.scale, 2)
+        ola:SelectPet(5161)
+        eq(actor.pos[3], 0.2, "another model: its scene's floor"); eq(actor.scale, 2 / 0.4)
+        -- Closed: the file's (the scene's row); written into the file: no longer a change.
+        E:Toggle()
+        no(E.frame:IsShown())
+        ola:SelectPet(46)
+        eq(actor.pos[3], 0.2)
+        ola.ns.PetModels.card[ola.ns.Moves.ModelOf(ola.ns.PetBoxes[46])] = { floor = 0.3, size = 1.6 }
+        ola:SelectPet(5159); ola:SelectPet(46)
+        eq(actor.pos[3], 0.3, "the model's row goes before its scene's")
+        E:Toggle()
+        eq(next(ola.ns.DB.global.modelPicks.card), nil)
+        E:Toggle()
+    end)
+
+    test("every pet has its standing box, and its scene a floor on the card; every model row is a model", function()
+        local _, ola = H.Setup{ ola = { 5159 } }
+        local ns, M = ola.ns, ola.ns.Moves
+        local models = {}
+        for sid in pairs(ns.Companions.species) do
+            local box = ns.PetBoxes[sid]
+            ok(box, sid .. ": no box in Data/PetBoxes.lua (/dp probe api boxes " .. sid .. ", then tools/pet_boxes.lua)")
+            if box then
+                models[M.ModelOf(box)] = true
+                ok(M:FitFor("card", box, box.scene), sid .. ": scene " .. box.scene .. " has no floor (Data/PetScenes.lua)")
+            end
+        end
+        for stage, rows in pairs(ns.PetModels) do
+            for model in pairs(rows) do ok(models[model], stage .. " row " .. model .. ": no pet has that model") end
+        end
+        eq(M.ModelOf({ low = -0.0001, high = 0.4421, wide = 0.531 }), "0.000 0.442 0.531", "a hair below zero is zero")
+    end)
+
+    test("/dp probe api boxes: every species' standing box and scene, for tools/pet_boxes.lua", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("probe api boxes 5159 46")
+        w:Run(10)
+        local boxes = ola.env.DyreparkenDebugDB.petBoxes
+        eq(boxes[5159].scene, 1271); eq(boxes[5159].low, 0); eq(boxes[5159].high, 0.8); eq(boxes[5159].wide, 0.6)
+        eq(boxes[5159].how, "loaded", "read once the model said it had loaded")
+        ok(boxes[46] and boxes[46].high, "each one asked for")
+        ok(ola:Printed("boxes done, 2 species", true))
+        eq(ola.ns.Moves.measured[46], boxes[46], "and placed from at once, this session")
+    end)
+
     test("research: when the card's model says it has loaded, logged", function()
         local w, ola = H.Setup{ ola = { 5159 }, journal = true }
         ola:Slash("debug on")
@@ -1082,12 +1380,22 @@ return function(test, H)
         eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 100")
         -- A lie-down never plays past its own end, or the pet stands up for a moment before its loop
         -- (2026-11-14: the cats' 99 is 1.34 s, sleepAt was 1.4). The panda's 99 is measured at 1.5 s.
+        -- (A lie-down that doesn't run into its loop by itself: Moves.CHAINS off here.)
+        local chains = ola.ns.Moves.CHAINS
+        ola.ns.Moves.CHAINS = {}
         ola.ns.PetMoves.species[5159] = { sleep = 99, sleepAt = 1.6, sleepHold = 100 }
         eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 99/1.45 100", "cut just before the lie-down ends")
         eq(Show(P.Try(PANDA, "sleep")), "99/1.45 100! =stand")
         eq(Show(P.Try(PANDA, "sleepHold", true)), "99/1.45 100/3 0/1.4 0! =stand")
         ola.ns.PetMoves.species[5159] = { sleep = 99, sleepAt = 0.9, sleepHold = 100 }
         eq(Show(P.Hold(PANDA, "sleep", true)), "0/0.6 99/0.9 100", "sleepAt when it's shorter")
+        -- One that does (SleepDown 99 into Sleep 100, 2026-11-16): the loop is never set, the lie-down runs on.
+        ola.ns.Moves.CHAINS = chains
+        local plan = P.Hold(PANDA, "sleep", true)
+        eq(Show(plan), "0/0.6 99", "lying down, on into its own loop")
+        eq(plan[2].shows, 100, "the loop is what shows after it")
+        eq(Show(P.Try(PANDA, "sleep")), "99! =stand")
+        ok(Show(P.Try(PANDA, "sleepHold", true)):find("^99/[%d.]+ 0/1.4 0! =stand$"), Show(P.Try(PANDA, "sleepHold", true)))
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true }
         -- Its pose: a Latsabb sits; the day of three deaths it plays dead (not on a stage without
         -- moments: the pet frame).

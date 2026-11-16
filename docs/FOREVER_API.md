@@ -143,6 +143,11 @@ From AutoCompanion (written for Forever, in this AddOns folder):
 - Summoning is blocked in combat. There's a short companion-only cooldown (~1.1 s, up to 2.5 s) that starts
   when the pet appears; acting inside it gives "Ability is not ready yet".
 - Summon sound file IDs on Forever: 567569, 568424 (AutoCompanion mutes them).
+- Parken's garden sounds (2026-11-16, unverified in game): `PlaySoundFile(fileID, "SFX")` with ids from the
+  community listfile (wowdev/wow-listfile): the classic bag sounds 567552 pickupherb, 567553 putdownherb, 567555
+  pickupwater_liquid01, 567566 putdownwoodsmall, 567576 pickupwoodsmall, a footstep splash 540262, and the newer
+  fx_birdchirps_small 1067029-1067038 (may not be on Forever). A piece tries its list until one says it will play. `PlaySoundFile` takes no volume: a soft one is played twice
+  in the same frame to be louder (water, plants), and the chirps go on the "Ambience" channel to be softer (by ear, the user).
 - Journal: `Blizzard_Collections` is load-on-demand. Frame names are above. The ScrollBox button layout is still
   unverified: check with `/fstack`.
 - `C_PetJournal.SetCustomName` exists. We still use our own synced nicknames.
@@ -480,6 +485,46 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   1840-1842 Call to Arms (battlegrounds). No Children's Week, Brewfest or Pilgrim's Bounty. Used by Menagerie/Holidays.lua.
 - **The card's model never says it has loaded**: a hook on the actor's `OnModelLoaded` (the mixin's method) logged
   nothing over a whole session of cards, so SETTLE and SLEEP_AFTER stay guesses (2026-11-11).
+  2026-11-16 (build 1.60.1): the actor has retail's `ModelSceneActorMixin` methods (/dp probe api: `MarkScaleDirty`,
+  `UpdateScale`, `CalculateNormalizedScale`, `Get/SetNormalizedScaleAggressiveness`, `Get/SetRequestedScale`,
+  `Get/SetOnModelLoadedCallback`, `Get/SetOnSizeChangedCallback`, `IsGeoReady`, `OnUpdate`). In retail's code
+  (Gethe/wow-ui-source, Blizzard_SharedXML/ModelSceneActorMixin.lua) `OnModelLoaded` marks the scale dirty and
+  calls `onModelLoadedCallback`. The actor's `OnUpdate` then runs `UpdateScale`: requested scale × a normalized
+  scale from **`GetActiveBoundingBox`, the box of the pose playing at that moment**, then `onSizeChangedCallback`.
+  `ApplyFromModelSceneActorInfo` (a scene transition) marks it dirty and scales at once. So a model that loads
+  while the pet lies down is scaled to a flat box (too big, too low), and one shown mid-walk to a long one (too
+  small, as seen 2026-11-10). The hook found nothing because the native handler seems to be bound to the method
+  before an addon can hook it. Moves sets its own callbacks where none is set (on the card too, the user's
+  call) and waits for them. **Verified the same day**: Blizzard leaves both callbacks empty on the card's actor,
+  and on our own scenes' actors too. **The size callback is not a load**: it fires the moment a model is set
+  (0.00 s in 36 swaps of 38), and the loaded callback 0.01 to 0.2 s later. Taken as the load, it pinned the scale
+  of a model not loaded yet, and kept it against the engine's (half the pets too big, small, high or low). A
+  scene change also rescales the actor before the next model is set, with the old model still on.
+- **A scene places its pet by its box's center, up and down** (2026-11-16, build 1.60.1, the Moves log's actor
+  line): `IsUsingCenterForOrigin()` answers `false, false, true` (a cat in scene 1269: position z 0.9,
+  requested scale 7, aggressiveness 1, standing box z 0 to 0.686). So the box's middle, not the feet, sits at
+  the scene's height. A taller model's feet are lower, and a pose that changes the box (lying down, a whelp
+  flapping) moves the pet up or down. With the pet's moves off, the user still saw "positions all wrong". That's
+  also why the 2026-11-10 projected box missed the pet by a different amount for each one. The box it centers
+  on isn't the one `GetActiveBoundingBox` reports: worked out from that box, a kitten's feet were 80 units off.
+- **`Project3DPointTo2D` on a pet's model scene** (2026-11-16, build 1.60.1, the card at UI scale 0.64): it
+  answers in the scene's units times its effective scale, from its bottom left (every pet's middle at x 127.68
+  = 199.5 × 0.64). Placing pets by it was right in scene 1271 (the prairie dog's feet on the shadow) and far off
+  in 1269 and 1705 (the kitten went out of sight), so it can't be trusted to place pets. Moves.FRAMING places
+  them by their feet with a floor and a size per scene set by eye instead (Data/PetScenes.lua, `/dp probe
+  place`), from each species' standing box (Data/PetBoxes.lua, `/dp probe api boxes`).
+- **SleepDown (99) runs on into Sleep (100) by itself** (2026-11-16, the user: a cat's `/dp probe anim 99`
+  "stays asleep"). Setting 100 a frame before 99 ended still showed the cat standing for a moment. So a
+  99/100 pet's sleep is 99 alone (Moves.CHAINS).
+- **A loop set again on a refresh**: the card set its pet's sleep loop again on every card refresh (a guildmate's
+  BOND), and a loop set again plays as a one-off (2026-11-11 above). Since 2026-11-16 a refresh puts back only a
+  frozen pose, or what someone else set since.
+- **An animation's own data loads the first time it plays** (2026-11-16, the user, build 1.60.1): the moves
+  editor's "Hele" sleep on a cat stuttered the first time (lay down halfway, stood up, snapped into the loop) and
+  played smoothly the second time; after swapping to another pet and back, the first try stuttered again. So a
+  model's animations stream in as they're first played, and a swap lets them go. Moves plays them first on a
+  hidden PlayerModel of the same pet (alpha 0, 1 px). That warms the card's actor too, so the model cache
+  is shared (the user, the same day: "Hele" looked good the first time).
 - **The built-in damage meter, `C_DamageMeter`** (2026-11-12, build 1.60.1, `/dp probe api meter`, solo fights):
   - Readable **out of combat** in plain numbers: a second after PLAYER_REGEN_ENABLED every session read fine
     (names, totalAmount, amountPerSecond, maxAmount, durationSeconds). **In combat** the amounts, names and the

@@ -298,6 +298,7 @@ end
 function PF:Load(key)
     local actor, sceneID, display = ns.Pets:LoadModel(self.scene, key, function() PF:Insets() end)
     self.actor = actor
+    self.stage:Loading() -- (its load watched: the pose waits for it)
     ns.Log("PetFrame", "%s: scene %s, actor %s, display %s", key, tostring(sceneID), tostring(actor ~= nil), tostring(display))
 end
 

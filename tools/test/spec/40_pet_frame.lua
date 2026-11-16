@@ -14,6 +14,7 @@ return function(test, H)
         ola:Slash("adopter panda"); w:Run(5)
         ola.ns.PetMoves.species[5159] = { sleepHold = false, sleepUp = false, canSit = true } -- (the panda pauses)
         ola.ns.Moves.SLEEP_AFTER = 0.6
+        ola.ns.Moves.WARM_STEP, ola.ns.Moves.AFTER_LOAD = 0.05, 0.1 -- (the warm-up within SLEEP_AFTER here too, as in game)
         w:SetDate(2027, 3, 2, hour or 14)
         local PF = ola.ns.PetFrame
         if on ~= false then ola.ns.DB.global.settings.petFrame = true; PF:Apply() end
@@ -59,14 +60,30 @@ return function(test, H)
         -- By day, the pet you keep out walks while you move.
         local w2, kari, PF2 = Setup(14)
         kari:Move()
+        eq(PF2.actor.anim, 0, "not while its model loads (walking then, it's scaled small)")
+        w2:Run(0.25)
         eq(PF2.actor.anim, 4, "walking with you")
         kari:Halt(); w2:Run(0.31)
         eq(PF2.actor.anim, 0)
     end)
 
+    test("placed by its feet as on the card: the card's floor and size for its scene, unless the frame has its own", function()
+        local w, ola = H.Setup{ ola = { 5159, 46 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        ola.ns.PetBoxes[5159] = { scene = 1271, low = 0, high = 0.5, wide = 0.4 }
+        ola.ns.PetScenes.card[1271] = { floor = -0.2, size = 1.5 }
+        ola.ns.DB.global.settings.petFrame = true; ola.ns.PetFrame:Apply()
+        local actor = ola.ns.PetFrame.actor
+        eq(actor.scale, 3); eq(actor.pos[3], -0.2, "the card's row")
+        ola.ns.PetScenes.frame[1271] = { floor = 0.1, size = 1 }
+        ola.ns.PetFrame.stage:Relift()
+        eq(actor.scale, 2); eq(actor.pos[3], 0.1, "its own row")
+    end)
+
     test("the pet's moves turned off in the settings: the frame's pet stops at once, and moves again when on", function()
         local w, ola, PF = Setup(14)
         ola:OpenJournal()
+        w:Run(0.25) -- (its model loaded)
         ola:Move()
         eq(PF.actor.anim, 4, "walking with you")
         ola.ns.Settings:Open()
@@ -139,7 +156,7 @@ return function(test, H)
         env.CollectionsMicroButton:Disable()
         ola:Press(b); w:Run(0.1)
         no(env.CollectionsJournal:IsShown())
-        eq(ola:CountPrinted("Åpne kjæledyrsamlingen, så viser jeg kortet til Panda Cub."), 1)
+        eq(ola:CountPrinted(ola.ns.T("petframe.open_hint", { pet = "Panda Cub" })), 1)
     end)
 
     -- The harness catches the old way: our own ToggleCollectionsJournal, then the key binding in combat.
@@ -183,7 +200,7 @@ return function(test, H)
         ok(env.CollectionsJournal:IsShown(), "opened ...")
         no(env.PetJournal:IsVisible(), "... on its last page, Mounts")
         eq(ola.insecureCJ, nil)
-        eq(ola:CountPrinted("Bytt til Pets-fanen, så viser jeg kortet til Panda Cub."), 1, "the hint")
+        eq(ola:CountPrinted(ola.ns.T("petframe.tab_hint", { pet = "Panda Cub" })), 1, "the hint")
         ola:ClickTab(2); w:Run(0.1)
         eq(env.PetJournalPetCard.speciesID, 5159, "the pending card")
         -- Open on Mounts already: not closed (a micro button click would), a hint, the card on Pets.
@@ -214,7 +231,7 @@ return function(test, H)
         no(f:IsUserPlaced(), "not in the client's layout cache: the spot is ours (char.petFrame)")
         -- Sized with the mouse wheel, between half and double; the label says how big.
         ok(f.click.wheel, "the wheel, only in Edit Mode")
-        eq(f.edit.label.text, "Dyreparken: dyret ditt\nDra for å flytte, rull for størrelse (100%)")
+        eq(f.edit.label.text, ola.ns.T("petframe.edit", { pct = 100 }))
         for _ = 1, 4 do f.click.scripts.OnMouseWheel(f.click, 1) end
         eq(f:GetScale(), 1.2)
         ok(f.edit.label.text:find("(120%)", 1, true))
@@ -248,7 +265,7 @@ return function(test, H)
         ola:Press(b); w:Run(0.1)
         ok(env.PetJournal:IsVisible(), "opened, by Blizzard's code")
         eq(env.PetJournalPetCard.speciesID, nil, "no card in combat")
-        eq(ola:CountPrinted("Kortet til Panda Cub kommer når kampen er over."), 1, "a hint")
+        eq(ola:CountPrinted(ola.ns.T("petframe.combat_hint", { pet = "Panda Cub" })), 1, "a hint")
         ola:LeaveCombat(); w:Run(0.1)
         eq(env.PetJournalPetCard.speciesID, 5159, "the card, once the fight is over")
         eq(ola.insecureCJ, nil)
@@ -312,12 +329,12 @@ return function(test, H)
         f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.1)
         no(env.PetJournal:IsVisible(), "open on Mounts: left there")
         eq(ola.toggled, nil); eq(ola.insecureCJ, nil)
-        eq(ola:CountPrinted("Bytt til Pets-fanen, så viser jeg kortet til Panda Cub."), 1)
+        eq(ola:CountPrinted(ola.ns.T("petframe.tab_hint", { pet = "Panda Cub" })), 1)
         ola:CloseJournal()
         w:Run(11)
         for _ = 1, 3 do f.click.scripts.OnClick(f.click, "LeftButton"); w:Run(0.5) end
         eq(ola.toggled, nil, "never toggled")
-        eq(ola:CountPrinted("Åpne kjæledyrsamlingen, så viser jeg kortet til Panda Cub."), 1, "one hint a burst")
+        eq(ola:CountPrinted(ola.ns.T("petframe.open_hint", { pet = "Panda Cub" })), 1, "one hint a burst")
         env.PetJournalPetCard.speciesID = nil
         ola:OpenJournal()
         ola:ClickTab(2); w:Run(0.1)

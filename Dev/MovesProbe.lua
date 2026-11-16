@@ -329,10 +329,27 @@ function OVERRIDE.For(sid, what)
     end
 end
 
+-- While /dp probe place is open: its picks for a stage's scene (DyreparkenDB.placePicks) and model
+-- (modelPicks) go first (Moves:FitFor asks for the stage's, then the card's).
+function OVERRIDE.Scene(stage, scene)
+    local picks = Moves.placeEditing and ns.DB.global.placePicks[stage]
+    return picks and picks[scene] or nil
+end
+function OVERRIDE.Model(stage, model)
+    local picks = Moves.placeEditing and ns.DB.global.modelPicks[stage]
+    return picks and picks[model] or nil
+end
+
 function Moves:SyncOverride()
     OVERRIDE.rest = self.movesEditing and "stand" or nil -- (the moves editor plays what you try)
     OVERRIDE.night = self.night
-    self.override = (self.liftEditing or self.movesEditing or self.night) and OVERRIDE or nil
+    self.override = (self.liftEditing or self.movesEditing or self.night or self.placeEditing) and OVERRIDE or nil
+end
+
+-- /dp probe place (PlaceEditor.lua): its picks first while it's open.
+function Moves:SetPlaceEditing(on)
+    self.placeEditing = on or nil
+    self:SyncOverride()
 end
 
 -- /dp probe lift (LiftEditor.lua): its picks first while it's open.

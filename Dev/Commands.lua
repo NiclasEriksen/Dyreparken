@@ -25,6 +25,7 @@ local PROBES = {
     { "anim", function(a) ns.Moves:Probe(a) end, "[list|all|custom|stop|night|sleep <id> [s]|blend none|anim|<id|name> [speed] [offset]]" },
     { "ach", function(a) ns.Pets:ProbeAch(a) end, "[post|now|group|groupnow]" },
     { "pos", function(a) ns.Moves:ProbePos(a) end, "[box|x|y|z <delta>|scale <n>|reset]" },
+    { "place", function() ns.PlaceEditor:Toggle() end },
     { "lift", function() ns.LiftEditor:Toggle() end },
     { "moves", function() ns.MovesEditor:Toggle() end },
     { "gains", function(a) ns.BondTrack:PreviewGains(a) end, "[n n ...]" },

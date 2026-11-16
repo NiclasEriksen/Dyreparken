@@ -105,7 +105,87 @@ Moves.MOOD = {
 -- the same on a card open a while lay still. The model seems to load (and its animation
 -- start) later than our clock says.
 Moves.SLEEP_AFTER = 2
+-- A new model's load, waited for (2026-11-16, the user: pets too big or too low, waking up after a second
+-- or two, a cat lying down halfway, standing up and snapping into its sleep; "it keeps coming back").
+-- Retail's ModelSceneActorMixin, which Forever's actor has (/dp probe api: UpdateScale, MarkScaleDirty,
+-- SetOnModelLoadedCallback): a model's load marks its scale dirty, and the next frame scales it to the box
+-- of the pose it plays THEN; and the engine stands it up. A fixed SLEEP_AFTER lost both whenever a model
+-- took longer: scaled lying down (too big, too low) and stood up mid lie-down or asleep. So the stage
+-- that starts a new model's pose stands until the model says it has loaded (its loaded callback, else
+-- IsGeoReady going true, looked at every LOAD_POLL), AFTER_LOAD more, and SLEEP_AFTER's seconds at least;
+-- LOAD_MAX at most. Then its scale is worked out once standing, and kept (Pin), if the load was confirmed.
+Moves.LOAD_MAX = 3
+Moves.LOAD_POLL = 0.1
+Moves.AFTER_LOAD = 0.3
+-- Each animation's own data loads the first time it plays on a model, and again after a swap (2026-11-16,
+-- the user: the moves editor's "Hele" stuttered the first time, then played well, and again after another
+-- pet): the first lie-down stopped halfway and snapped. So a hidden PlayerModel of the same pet plays them
+-- first, one every WARM_STEP, while the pet stands, to have them loaded before it shows them (Warm).
+Moves.WARM_STEP = 0.15
+Moves.WARM_MAX = 1.5 -- (its own load: at most this long before it plays them anyway)
+Moves.WARM = { "sleep", "sleepHold", "sleepUp", "happy", "happyToo", "cheer", "sitDown", "sit", "sitUp", "walk", "run",
+    "dead", "jumpStart", "jump", "jumpEnd" }
 Moves.HAPPY_TOO_CHANCE = 1 / 3 -- a click plays happyToo instead of happy this often
+
+-- Placing a pet ourselves (2026-11-16, the user: "half of them either is scaled wrong or positioned wrong,
+-- and it feels cheap"; whelps too high and too low, cats sharing one model at different heights, the hare
+-- too big). The log: each scene places the model by the CENTER of some box of its own on the up axis
+-- (IsUsingCenterForOrigin false, false, true; not the box GetActiveBoundingBox reports), so its feet land
+-- anywhere, and move as its pose changes; and its scale fits its biggest side, from whatever pose played as
+-- it loaded. The lifts found by eye made up for one pose of one pet. Working it out on screen
+-- (Project3DPointTo2D) was right in some scenes and far off in others, so (the user's pick, the same day):
+-- the model's own origin (its feet) is placed, never its center, and every scene (a camera of its own, the
+-- same for all its pets) has a floor and a size, set once by eye (Data/PetScenes.lua, /dp probe place). A
+-- pet stands `size` tall there (its standing box, Data/PetBoxes.lua from /dp probe api boxes, else measured
+-- the first time it stands), or WIDE times that wide if it's wider; a pet hovering over the ground (a whelp)
+-- has its origin on the floor, so it lies on it asleep. A scene with no floor set yet: as Blizzard has it,
+-- with the old lifts.
+Moves.FRAMING = true
+Moves.WIDE = 1.6
+local measured = {} -- species id -> its box, measured standing this session (not in Data/PetBoxes.lua)
+Moves.measured = measured
+-- A species' standing box { scene, low, high, wide } (model units: its lowest and highest point, its widest
+-- side), or nil.
+function Moves:Box(sid)
+    return sid and (ns.PetBoxes and ns.PetBoxes[sid] or measured[sid]) or nil
+end
+-- A model, by its standing box (pets that share a model share a box: the cats, the parrots, the whelps).
+-- (Each to three decimals, a "-0.000" as "0.000": a box read again can come out a hair either side of zero,
+-- 2026-11-16, the chickens' picks.)
+local function Third(v)
+    local text = ("%.3f"):format(v)
+    return text == "-0.000" and "0.000" or text
+end
+function Moves.ModelOf(box)
+    return Third(box.low) .. " " .. Third(box.high) .. " " .. Third(box.wide)
+end
+-- Where a pet with this box stands on a stage, in this scene { floor, size }, and from where: the stage's row
+-- for its model, else for its scene, else the card's for its model, else for its scene (Data/PetScenes.lua);
+-- the editor's picks first while it's open. nil: not set.
+---@return { floor: number, size: number }|nil, string|nil
+function Moves:FitFor(stage, box, scene)
+    local o, model = self.override, Moves.ModelOf(box)
+    for i, st in ipairs({ stage, "card" }) do
+        if i == 1 or st ~= stage then
+            local pick = o and o.Model and o.Model(st, model)
+            if pick then return pick, st .. " model" end
+            local rows = ns.PetModels and ns.PetModels[st]
+            if rows and rows[model] then return rows[model], st .. " model" end
+            pick = scene and o and o.Scene and o.Scene(st, scene)
+            if pick then return pick, st .. " scene" end
+            rows = ns.PetScenes and ns.PetScenes[st]
+            if scene and rows and rows[scene] then return rows[scene], st .. " scene" end
+        end
+    end
+    return nil
+end
+-- How big and how high a pet stands, for a box and a scene's fit: scale, z.
+function Moves.Fit(box, fit)
+    local h = box.high - box.low
+    if h <= 1e-3 then return nil end
+    local scale = math.min(fit.size / h, fit.size * Moves.WIDE / math.max(box.wide or 0, 1e-3))
+    return scale, fit.floor - scale * math.min(box.low, 0)
+end
 Moves.T = { down = 1.2, up = 1.4, happy = 2, cheer = 2.5, dead = 4, attack = 1.5, cower = 1.5 } -- how long each one-off plays
 
 -- How long a one-off plays on this pet: as measured (Data/AnimLengths.lua, /dp probe lengths), else
@@ -317,6 +397,13 @@ end
 -- their 99 plays 1.34 s and sleepAt was 1.4 (set by eye before lengths were measured), so the one-off
 -- ended, the cat stood, and the loop blended in from standing. A frame early, the loop blends from lying.
 Plan.LIE_MARGIN = 0.05
+-- A lie-down the model follows with its own sleep loop (2026-11-16, the user: a cat's SleepDown (99) played
+-- alone "stays asleep"): the M2's next animation. Then the loop isn't set at all: switching to it a frame
+-- before the lie-down ended still showed the cat standing for a moment first. The step plays the lie-down
+-- and says the loop shows after it (shows: what a put-back plays).
+Moves.CHAINS = { [99] = 100 }
+local function Chains(id, hold) return id ~= nil and hold ~= nil and Moves.CHAINS[id] == hold end
+Plan.Chains = Chains
 local function LieDown(key, id, at)
     local len = Moves:Length(key, id)
     at = at or Moves:Length(key, id, Moves.T.down)
@@ -379,6 +466,10 @@ function Plan.Rest(key, t, noMoments, woken)
 end
 function Moves:Rest(key, t, noMoments) return Plan.Rest(key, t, noMoments) end
 
+-- Standing first, at least t seconds and until a new model has loaded (the stage's load step: Moves.LOAD_MAX).
+local function Standing(t) return { STAND, t, load = true } end
+Plan.Standing = Standing
+
 -- Into a pose and holding it (the last step is held). fresh: the pet was just put on the stage.
 function Plan.Hold(key, mode, fresh)
     if mode == "sleep" then
@@ -388,7 +479,7 @@ function Plan.Hold(key, mode, fresh)
         -- and the held pose still comes. Paused there, which needs the model loaded first
         -- (SLEEP_AFTER: a model still loading would stand it up again).
         if not hold then
-            return { { STAND, Moves.SLEEP_AFTER }, { id, at or 0 }, { id, nil, at or 0 } }
+            return { Standing(Moves.SLEEP_AFTER), { id, at or 0 }, { id, nil, at or 0 } }
         end
         -- A pet with a sleep loop of its own (sleepHold) is asleep already when its card opens
         -- (the user, 2026-11-11): a loop needs no timing. (Sleep starts only as a card opens: once
@@ -401,10 +492,11 @@ function Plan.Hold(key, mode, fresh)
         -- loads, as the lie-down sleepers do (SLEEP_AFTER), then sleeps; the same pet sleeps at once.
         -- (And now that it stands first, it lies down before the loop, as a pet with a lie-down of its
         -- own should: 2026-11-11, the user: "lacking the get up / down animations".)
-        return List({ STAND, Moves.SLEEP_AFTER }, id and id ~= hold and { id, LieDown(key, id, at) }, { hold })
+        if Chains(id, hold) then return { Standing(Moves.SLEEP_AFTER), { id, shows = hold } } end
+        return List(Standing(Moves.SLEEP_AFTER), id and id ~= hold and { id, LieDown(key, id, at) }, { hold })
     end
     if mode == "sit" then
-        return List({ STAND, Moves.SIT_AFTER }, Once(key, For(key, "sitDown"), Moves.T.down), { For(key, "sit") })
+        return List(Standing(Moves.SIT_AFTER), Once(key, For(key, "sitDown"), Moves.T.down), { For(key, "sit") })
     end
     if mode == "dead" then
         -- Lying still for a while: paused just before its fall ends, where it's measured
@@ -412,7 +504,7 @@ function Plan.Hold(key, mode, fresh)
         local id = For(key, "dead")
         local len = Moves:Length(key, id)
         local pose = len and math.max(0.1, len - 0.05) or nil
-        return { { STAND, Moves.SETTLE },
+        return { Standing(Moves.SETTLE),
             { id, math.max(Moves.T.dead, (len or 0) + 1), pose, on = function() Moves:Paid(key, "dead") end },
             { STAND } }
     end
@@ -420,7 +512,7 @@ function Plan.Hold(key, mode, fresh)
     -- model to its size as it loads, and a walking one is bigger, so a pet shown mid-walk
     -- came out at two thirds of its size (scale 13.4 instead of 19.5) until loaded again.
     local walk = Moves:MotionId(key)
-    if walk then return { { STAND, Moves.SETTLE }, { walk } } end
+    if walk then return { Standing(Moves.SETTLE), { walk } } end
     return { { STAND } }
 end
 
@@ -444,7 +536,7 @@ function Plan.Pose(key, o)
             on = joy and function() Moves:Paid(key, "joy") end or nil }
     end
     if #front > 0 then
-        table.insert(front, 1, { STAND, Moves.SETTLE })
+        table.insert(front, 1, Standing(Moves.SETTLE))
         for i = #front, 1, -1 do table.insert(plan, 1, front[i]) end
     end
     plan.mode, plan.why = mode, "pose " .. tostring(mode)
@@ -562,6 +654,7 @@ local function Part(key, what)
     if what == "sleep" then
         local id, at, hold = For(key, "sleep"), For(key, "sleepAt") or 0, For(key, "sleepHold")
         if not id then return nil end
+        if Chains(id, hold) then return { { id, shows = hold, keep = true } } end
         return { { id, hold and id ~= hold and LieDown(key, id, at) or at }, hold and { hold, keep = true } or { id, nil, at } }
     end
     local id = For(key, what)
@@ -573,6 +666,11 @@ local function Whole(key, reaction)
     local plan
     if reaction:find("^sleep") then
         local id, at, hold = For(key, "sleep"), For(key, "sleepAt") or 0, For(key, "sleepHold")
+        if Chains(id, hold) then -- (lying down into its loop, a while asleep, then up)
+            plan = List({ id, Moves:Length(key, id, Moves.T.down) + Moves.TRY_HOLD }, Once(key, For(key, "sleepUp"), Moves.T.up))
+            plan[#plan + 1] = { STAND, keep = true }
+            return plan
+        end
         plan = List(id and { id, hold and id ~= hold and LieDown(key, id, at) or at },
             hold and { hold, Moves.TRY_HOLD } or id and { id, Moves.TRY_HOLD, at },
             Once(key, For(key, "sleepUp"), Moves.T.up))
@@ -631,6 +729,7 @@ function Moves.NewStage(name, opts)
     local stage = setmetatable({ name = name, shown = shown }, { __index = Moves })
 
     local function Actor() return opts.actor() end
+    stage.ActorNow = Actor -- (Dev/PlaceEditor.lua)
     -- The once-a-day moments (the sulk, playing dead, the wish's hop) are the card's: a stage with
     -- moments = false (the pet frame) leaves them to it (code review 2026-11-11: else the frame
     -- spent them hours later, at its next pose).
@@ -640,29 +739,280 @@ function Moves.NewStage(name, opts)
 
     local Play, Lift, Run, Turn, Mood
 
+    ---------------------------------------------------------------------------
+    -- A new model loading, and its scale (Moves.LOAD_MAX's comment). load: the model being loaded
+    -- ({ at, notReady }), nil once it has (or the wait ran out). setAt: when the model now on was set (nil:
+    -- not seen). confirmed: a real signal said this model has loaded (only then is its scale worth keeping).
+    -- waiting: the load step's go-on, once the model has loaded and the warm-up is done. pinned: the scale it
+    -- had standing, { scale, model, scene }.
+    -- 2026-11-16, the second log: the size callback is NOT a load. It fired the moment a model was set (0.00 s,
+    -- 36 swaps of 38), the loaded callback 0.01 to 0.2 s later, so the scale was pinned from a model not loaded
+    -- yet, and Keep fought the engine's real one ("scaled 13.83, kept at 19.48"): half the pets came out too
+    -- big, too small, too high or too low. Only the loaded callback (or IsGeoReady going true) counts now.
+    local loadT, warmT = ns.Timers(), ns.Timers()
+    local load, waiting, pinned, warming, setAt, confirmed
+    local readyAt = 0 -- (when the model last loaded or warmed up: AFTER_LOAD runs from it)
+    local function Ready() return load == nil and not warming end
+    local function GoOn()
+        if not (Ready() and waiting) then return end
+        local go = waiting
+        waiting = nil
+        go()
+    end
+
+    -- The scene the actor is in now (its own scale comes with it: retail's ApplyFromModelSceneActorInfo).
+    local function SceneID()
+        local ok, id = Call(opts.scene() or {}, "GetModelSceneID")
+        return ok and id or nil
+    end
+    -- What the actor says of itself (research, 2026-11-16: cats sharing one model stood at different heights,
+    -- whelps too high and too low, a hare too big): logged at each load and pin, only with the log on.
+    local function Describe(when)
+        if not ns.Debug.enabled then return end
+        local actor = Actor()
+        if not actor then return end
+        local function V(m) local r = { Call(actor, m) }; if not r[1] then return "-" end
+            for i = 2, #r do r[i] = type(r[i]) == "number" and ("%.3f"):format(r[i]) or tostring(r[i]) end
+            return table.concat(r, ",", 2)
+        end
+        ns.Log("Moves", "%s %s %s: scene %s, model %s, pos %s, scale %s (requested %s, aggressive %s), center %s, box %s, max %s",
+            name, tostring(shown.key or shown.still), when, tostring(SceneID()), V("GetModelFileID"), V("GetPosition"), V("GetScale"),
+            V("GetRequestedScale"), V("GetNormalizedScaleAggressiveness"), V("IsUsingCenterForOrigin"),
+            V("GetActiveBoundingBox"), V("GetMaxBoundingBox"))
+    end
+    -- The pet shown, with its moves on (shown.key) or off (shown.still).
+    local function Shown() return shown.key or shown.still end
+
+    -- Placed by its feet in its scene (Moves.FRAMING's comment), at once: true if it was. placed: { key, scene,
+    -- scale, z }; pinned keeps its scale against the engine's (a model loading scales it again).
+    local placed
+    local function Place(key)
+        local actor, scene = Actor(), SceneID()
+        local box = Moves.FRAMING and Moves:Box(ns.Pets:SpeciesOfKey(key)) or nil
+        local fit, from
+        if box then fit, from = Moves:FitFor(name, box, scene) end
+        local scale, z
+        if box and fit then scale, z = Moves.Fit(box, fit) end
+        if not (actor and fit and scale) then placed = nil; return false end
+        local okP, x, y, now = Call(actor, "GetPosition")
+        local okS, was = Call(actor, "GetScale")
+        Call(actor, "SetUseCenterForOrigin", false, false, false)
+        if not (okS and was == scale) then Call(actor, "SetScale", scale) end
+        if okP and now ~= z then Call(actor, "SetPosition", x, y, z) end
+        local p = placed
+        if not (p and p.key == key and p.scene == scene and p.scale == scale and p.z == z) then
+            ns.Log("Moves", "%s %s: placed in scene %s, scale %.2f at z %.2f (floor %.2f, size %.2f: %s)", name, key,
+                tostring(scene), scale, z, fit.floor, fit.size, tostring(from))
+        end
+        placed = { key = key, scene = scene, scale = scale, z = z }
+        pinned = { scale = scale, key = key, scene = scene }
+        return true
+    end
+
+    -- Standing now, its model loaded: its box measured, if Data/PetBoxes.lua doesn't have it (then placed),
+    -- else its scale worked out standing (the box of the pose it plays: retail's UpdateScale) and kept, for
+    -- this pet in this scene. Only for a model known to have loaded: else it was the box of nothing yet.
+    local function Pin()
+        local actor, key = Actor(), Shown()
+        if not (actor and key) then return end
+        local sid = ns.Pets:SpeciesOfKey(key)
+        -- (once the load is over, by its signal or the wait: on the card the loaded callback seldom comes)
+        if Moves.FRAMING and sid and not (ns.PetBoxes and ns.PetBoxes[sid]) and not load then
+            local okB, x1, y1, z1, x2, y2, z2 = Call(actor, "GetActiveBoundingBox")
+            if okB and type(z1) == "number" and z2 - z1 > 1e-3 then
+                measured[sid] = { scene = SceneID(), low = z1, high = z2, wide = math.max(x2 - x1, y2 - y1) }
+                ns.Log("Moves", "%s %s: its box measured standing, %.3f to %.3f, %.3f wide", name, key, z1, z2,
+                    math.max(x2 - x1, y2 - y1))
+            end
+        end
+        if Place(key) then return end
+        pinned = nil
+        if not confirmed then return end
+        if Call(actor, "MarkScaleDirty") then Call(actor, "UpdateScale") end
+        local okS, s = Call(actor, "GetScale")
+        if not (okS and type(s) == "number") then return end
+        pinned = { scale = s, key = key, scene = SceneID() }
+        ns.Log("Moves", "%s %s: scale %.2f, standing", name, key, s)
+        Describe("pinned")
+    end
+    -- Scaled again (a size callback, or before a move): back to the scale it had standing, for the same pet
+    -- in the same scene. (2026-11-16, the first log: the card moving to the next pet's scene scaled it there,
+    -- the old model still on, and Keep took that back: another scene, another scale, never kept.) While a
+    -- model loads, only a placed pet's: its scale doesn't hang on the load.
+    local function Keep()
+        local p, actor = pinned, Actor()
+        if not (p and actor) or (load and not placed) then return end
+        if p.key ~= Shown() or SceneID() ~= p.scene then pinned = nil; return end
+        local okS, s = Call(actor, "GetScale")
+        if okS and type(s) == "number" and math.abs(s - p.scale) > 1e-3 then
+            Call(actor, "SetScale", p.scale)
+            ns.Log("Moves", "%s %s: scaled %.2f, kept at %.2f", name, tostring(p.key), s, p.scale)
+        end
+    end
+
+    -- A signal about the model (how: "loaded callback", "geo ready", or "no signal": the wait ran out).
+    local function Loaded(how)
+        local real = how ~= "no signal"
+        if real and confirmed then return end -- (said already)
+        if not (load or (real and setAt)) then return end
+        local was = load
+        ns.Log("Moves", "%s %s: model loaded %.2f s after it was set (%s)%s", name, tostring(shown.key),
+            setAt and GetTime() - setAt or -1, how, was and "" or ", after the wait")
+        if real then confirmed = true end
+        load = nil
+        loadT:Cancel()
+        readyAt = GetTime()
+        local key = Shown()
+        if key then Lift(key) end
+        if real then Describe("loaded") end
+        -- Standing now (a pose with no wait: by day): measured and placed a moment later (Pin).
+        if key and (shown.playing == STAND or shown.playing == nil) and not waiting then
+            loadT:After(Moves.AFTER_LOAD, function()
+                if Shown() == key and (shown.playing == STAND or shown.playing == nil) then Pin() end
+            end)
+        end
+        if was and waiting then return GoOn() end
+        if not real then return end
+        -- Loaded after the pet was posed (the wait ran out, or a model loaded anew under a held pose): the
+        -- engine stands it up and scales it to what it plays. Standing, its scale, then its pose again.
+        -- (also a walk with you that waited for the load: stage:Repose)
+        if not key or shown.reposed >= Moves.REPOSE then return end
+        if not (shown.playing and shown.playing ~= STAND) and not Moves:MotionId(key) then return end
+        shown.reposed = shown.reposed + 1
+        local mode, id, pose, last = shown.mode, shown.playing, shown.pose, shown.last
+        if not last then timers:Cancel() end -- (mid-plan: posed anew below)
+        Play(STAND) -- (standing as it scales: the next frame's UpdateScale)
+        timers:After(Moves.AFTER_LOAD, function()
+            if shown.key ~= key then return end
+            Pin()
+            if last then -- (the step that stays, put back; standing: as things are now, a walk stopped meanwhile)
+                if not pose then
+                    local again
+                    mode, id, again = Plan.Settle(key, shown.mode or mode, id, not moments)
+                    if again then return Run(key, again) end
+                    shown.mode = mode
+                end
+                return Play(id, true, pose)
+            end
+            local plan = Plan.Pose(key, { mode = mode, noMoments = not moments })
+            plan.why = "loaded late: " .. tostring(mode) .. " again"
+            Run(key, plan)
+        end)
+    end
+
+    -- A model was set on the actor: watched until it has loaded (LOAD_MAX at most).
+    local function BeginLoad()
+        loadT:Cancel()
+        confirmed = false
+        if not placed then pinned = nil end -- (a placed pet's scale holds through a load; another pet's Place replaces it)
+        setAt = GetTime()
+        local l = { at = setAt }
+        load = l
+        local n = math.max(1, math.floor(Moves.LOAD_MAX / Moves.LOAD_POLL + 0.5))
+        loadT:Every(Moves.LOAD_POLL, n, function(i)
+            if load ~= l then return loadT:Cancel() end
+            -- (IsGeoReady counts only once seen false: right after a swap it may still answer for the old one)
+            local okG, geo = Call(Actor() or {}, "IsGeoReady")
+            if okG and geo == false then l.notReady = true
+            elseif okG and geo and l.notReady then return Loaded("geo ready") end
+            if i >= n then Loaded("no signal") end
+        end)
+    end
+
+    -- The pet's moves, played first on a hidden model of the same pet (Moves.WARM_STEP's comment). need:
+    -- the ids the pose plays next (the load step waits for these); then the pet's other moves.
+    local warm = {}
+    local function StopWarm()
+        warmT:Cancel()
+        warming = nil
+        if warm.model and warm.display then warm.model:ClearModel(); warm.model:Hide() end
+        warm.display = nil
+    end
+    local function Warm(key, need)
+        warmT:Cancel()
+        warming = nil
+        local sid = ns.Pets:SpeciesOfKey(key)
+        local display = sid and select(12, C_PetJournal.GetPetInfoBySpeciesID(sid))
+        if not display then return end
+        local ids, seen, gate = {}, { [STAND] = true }, 0
+        local function Add(id) if id and not seen[id] then seen[id] = true; ids[#ids + 1] = id end end
+        for _, id in ipairs(need) do Add(id) end
+        gate = #ids
+        for _, what in ipairs(Moves.WARM) do Add(Moves:For(key, what)) end
+        if #ids == 0 then return end
+        if not warm.model then
+            local ok, m = pcall(CreateFrame, "PlayerModel", nil, UIParent)
+            if not (ok and m) then return end
+            m:SetSize(1, 1)
+            m:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
+            m:SetAlpha(0)
+            m:SetScript("OnModelLoaded", function() if warm.go then warm.go() end end)
+            warm.model = m
+        end
+        local m = warm.model
+        if gate > 0 then warming = true end
+        local started = false
+        local function Go()
+            if started then return end
+            started = true
+            warm.go = nil
+            warmT:Every(Moves.WARM_STEP, #ids, function(i)
+                m:SetAnimation(ids[i])
+                if i == gate then
+                    warming = nil
+                    readyAt = GetTime()
+                    ns.Log("Moves", "%s %s: warmed %d moves", name, key, gate)
+                    GoOn()
+                end
+            end)
+        end
+        m:Show()
+        if warm.display == display then return Go() end -- (loaded already: the same pet again)
+        warm.display, warm.go = display, Go
+        m:SetDisplayInfo(display)
+        warmT:After(Moves.WARM_MAX, Go) -- (if it never says it has loaded)
+    end
+
+    -- The load step (Plan.Standing): s[2] seconds at least, and until the model has loaded and the moves
+    -- it plays next are warm, AFTER_LOAD after that; then its scale is pinned, standing.
+    local function LoadStep(s, nextStep)
+        local started = GetTime()
+        waiting = function()
+            local due = math.max(started + (s[2] or 0), readyAt + Moves.AFTER_LOAD) - GetTime()
+            timers:After(math.max(0, due), function() Pin(); nextStep() end)
+        end
+        GoOn()
+    end
+
     -- 2026-11-10: about one time in three a held pose stood up again by itself
     -- right away, and GetAnimation (it only echoes what was set) can't tell. So
     -- we watch the actor: anything else that sets an animation or loads a model
     -- while a pose is held is logged, and the pose put back (after a model, once
-    -- it has settled), at most Moves.REPOSE times per pet shown.
+    -- it has loaded: Loaded), at most Moves.REPOSE times per pet shown.
     local function Outside(what, arg)
         ns.Log("Moves", "%s %s: %s(%s) from outside, %.2f s into our %s%s", name, tostring(shown.key), what, tostring(arg),
             shown.since and GetTime() - shown.since or -1, tostring(shown.playing), shown.pose and " (held)" or "")
-        if what ~= "SetAnimation" then shown.modelAt = GetTime() end
         shown.touched = true -- (a refresh may put our pose back now: Update)
-        if what ~= "SetAnimation" and shown.key then -- (a model loaded anew: its height again, once it has settled)
-            local key = shown.key
-            timers:After(Moves.SETTLE, function() if shown.key == key then Lift(key) end end)
+        if what ~= "SetAnimation" then
+            if shown.key then -- (its height again in a moment, whether or not the load says so)
+                local key = shown.key
+                timers:After(Moves.SETTLE, function() if shown.key == key then Lift(key) end end)
+            end
+            return BeginLoad()
         end
         if not shown.pose or shown.reposed >= Moves.REPOSE then return end
         shown.reposed = shown.reposed + 1
         local id, pose = shown.playing, shown.pose
-        timers:After(what == "SetAnimation" and 0 or Moves.SETTLE, function()
+        timers:After(0, function()
             if shown.playing == id and shown.pose == pose then Play(id, true, pose) end
         end)
     end
+    -- Watched once per actor. Its two callbacks (retail's mixin calls them: a model loaded, scaled again)
+    -- only where nobody has set one (the user, 2026-11-16: on Blizzard's card actor too, then); a hook on
+    -- its OnModelLoaded never fired (2026-11-11), the method seems bound before an addon can hook it.
+    -- true: watched just now (a model set before this went unseen).
     local function Watch(actor)
-        if hooked[actor] then return end
+        if hooked[actor] then return false end
         hooked[actor] = true
         for _, m in ipairs({ "SetAnimation", "SetModelByCreatureDisplayID", "SetModelByFileID" }) do
             local ok, fn = pcall(function() return actor[m] end)
@@ -670,14 +1020,22 @@ function Moves.NewStage(name, opts)
                 hooksecurefunc(actor, m, function(_, arg) if not own then Outside(m, arg) end end)
             end
         end
-        -- Research (2026-11-11, /dp probe api: the actor has an OnModelLoaded and IsLoaded): when does a
-        -- model on the card say it has loaded? Logged, to replace SETTLE and SLEEP_AFTER's guesses.
-        local ok, fn = pcall(function() return actor.OnModelLoaded end)
-        if ok and type(fn) == "function" then
-            hooksecurefunc(actor, "OnModelLoaded", function()
-                ns.Log("Moves", "model loaded %s after it was set", shown.modelAt and ("%.2f s"):format(GetTime() - shown.modelAt) or "?")
-            end)
+        local okL, onLoaded = Call(actor, "GetOnModelLoadedCallback")
+        if okL and onLoaded == nil then
+            Call(actor, "SetOnModelLoadedCallback", function() Loaded("loaded callback") end)
         end
+        local okS, onSize = Call(actor, "GetOnSizeChangedCallback")
+        if okS and onSize == nil then
+            Call(actor, "SetOnSizeChangedCallback", function() Keep() end) -- (not a load: Loaded's comment)
+        end
+        ns.Log("Moves", "%s: watching its actor (loaded callback %s, size callback %s)", name,
+            okL and (onLoaded == nil and "ours" or "Blizzard's") or "none", okS and (onSize == nil and "ours" or "Blizzard's") or "none")
+        return true
+    end
+    -- A stage of our own just set a model (Pets:LoadModel): watched from now if it wasn't.
+    function stage:Loading()
+        local actor = Actor()
+        if actor and Watch(actor) then BeginLoad() end
     end
 
     -- A held pose by pausing the actor (2026-11-10): frozen with speed 0 at an
@@ -715,6 +1073,7 @@ function Moves.NewStage(name, opts)
         if not actor then return end
         Watch(actor)
         Unpause(actor)
+        Keep() -- (scaled to another pose since: as it was standing)
         if pose and Has(actor, "SetPaused") then return PlayPaused(actor, id, pose) end
         shown.playing, shown.pose = id, pose
         shown.since = GetTime()
@@ -762,6 +1121,7 @@ function Moves.NewStage(name, opts)
                 tostring(shown.mode))
         end
         timers:Cancel()
+        waiting = nil
         shown.reposed = 0
         local function Step(i)
             local s = steps[i]
@@ -776,8 +1136,10 @@ function Moves.NewStage(name, opts)
                 shown.mode = mode
             end
             Play(id, nil, s[3])
+            if s.shows then shown.playing = s.shows end -- (the loop the model goes on into: what's put back)
             if s.yaw then Turn(s.yaw, s[2]) end
             if s.mood then Mood(s.mood, (s[2] or 0) + Moves.TURN) end
+            if s.load and not shown.last then return LoadStep(s, function() Step(i + 1) end) end
             if s[2] then timers:After(s[2], function() Step(i + 1) end) end
         end
         Step(1)
@@ -799,7 +1161,9 @@ function Moves.NewStage(name, opts)
         if not key then return end
         local plan, id = Plan.Repose(key, shown, not moments)
         if plan then return Run(key, plan) end
-        if id then Play(id) end
+        -- (not while its model loads: walking then, it came out at two thirds of its size, 2026-11-10;
+        -- it goes with you once loaded: Loaded)
+        if id and not load then Play(id) end
     end
 
     -- You jumped (Plan.Jump).
@@ -826,6 +1190,7 @@ function Moves.NewStage(name, opts)
         return key -- (no scene ids: by pet)
     end
     Lift = function(key)
+        if Place(key) then return end -- (placed by its feet in its scene: FRAMING)
         local actor = Actor()
         local ok, x, y, z = Call(actor or {}, "GetPosition")
         if not (ok and type(z) == "number") then return end
@@ -848,7 +1213,8 @@ function Moves.NewStage(name, opts)
 
     -- The card's pet at its own height again, then lifted as For says now (the lift editor).
     function stage:Relift()
-        if shown.key then Lift(shown.key) end
+        local key = shown.key or shown.still
+        if key then Lift(key) end
     end
 
     -- A mood over the pet (Plan.Sulk's step.mood), on the stage's own layer (Fx), for `secs`.
@@ -901,14 +1267,25 @@ function Moves.NewStage(name, opts)
 
     -- A card widget (the card's widgets (ns.Card)): the pet's pose, once per pet shown.
     function stage:Update(card, key)
-        -- The pet's moves turned off (Settings: cardMoves): it just stands, on its shadow.
+        -- The pet's moves turned off (Settings: cardMoves): it just stands, on its shadow. Only its pose
+        -- stops: its model's load and where it's placed go on (2026-11-16: the full stop wiped them, and
+        -- /dp probe place found no pet anywhere). shown.still: the pet it shows so.
         if key and not ns.Settings:On("cardMoves") then
             local was = shown.key or shown.playing
-            self:Update(card, nil)
-            if was then Play(STAND); shown.playing = nil end -- (out of a held pose, once)
+            self.want = nil
+            Moves:FollowAll()
+            UnSulk()
+            timers:Cancel()
+            waiting = nil
+            local actor = Actor()
+            if actor then Unpause(actor) end
+            shown.key, shown.mode, shown.pose, shown.last, shown.still = nil, nil, nil, nil, key
+            if was then Play(STAND) end -- (out of a held pose, once)
+            shown.playing = nil
             Lift(key)
             return
         end
+        shown.still = nil
         self.want = key -- (Moves:FollowAll: which pets the stages show)
         Moves:FollowAll()
         if not key then
@@ -916,8 +1293,11 @@ function Moves.NewStage(name, opts)
             local actor = Actor()
             if actor then Unpause(actor) end -- (a paused actor would stay so for Blizzard's next pet)
             -- (nothing held either: a model loading on a closed card isn't posed again)
-            shown.key, shown.mode, shown.playing, shown.pose, shown.last = nil, nil, nil, nil, nil
+            shown.key, shown.mode, shown.playing, shown.pose, shown.last, shown.still = nil, nil, nil, nil, nil, nil
             timers:Cancel()
+            waiting, load, pinned, confirmed, setAt, placed = nil, nil, nil, nil, nil, nil
+            loadT:Cancel()
+            StopWarm()
             return
         end
         local mode = Rest(key)
@@ -928,11 +1308,14 @@ function Moves.NewStage(name, opts)
             -- Paused where it lies: nothing to put back. (Played again, the client ignored the
             -- Dead it was already on, so unpaused it got up, and the pause caught it standing: 2026-11-10.)
             if shown.paused then return end
-            -- On a stage of our own (opts.private: the pet frame), only if something else has set the
-            -- actor since: played again, the client starts the move over (2026-11-12: refreshed by
-            -- every companion nearby, the frame's sleeping pet lay down again every 20 s). The card's
-            -- Blizzard stands up unseen now and then (2026-11-10), so there it's always put back.
-            if shown.playing and shown.last and (shown.touched or not opts.private) then
+            -- Only if something else has set the actor since: played again, the client starts the move
+            -- over (2026-11-12: refreshed by every companion nearby, the frame's sleeping pet lay down again
+            -- every 20 s), and a loop set again plays as a one-off and the pet gets up (2026-11-11). On the
+            -- card a frozen pose (held at an offset) is put back anyway: Blizzard stood it up unseen now and
+            -- then (2026-11-10). (Until 2026-11-16 the card's loops were set again on every refresh, a
+            -- guildmate's BOND message: one way the user saw pets "exit their sleep after a second or two".
+            -- What stood them up unseen was mostly a model loading late: Loaded puts them back now.)
+            if shown.playing and shown.last and (shown.touched or (shown.pose and not opts.private)) then
                 ns.Log("Moves", "%s %s: refresh, %s again", name, key, tostring(shown.playing))
                 Play(shown.playing, true, shown.pose)
             end
@@ -947,7 +1330,13 @@ function Moves.NewStage(name, opts)
                 tostring(Moves:For(key, "sleep")), tostring(Moves:For(key, "sleepAt")), tostring(Moves:For(key, "sleepHold")))
         end
         if key ~= shown.key then UnSulk() end -- (the same pet in another pose turns round first: Run)
-        local plan = Plan.Pose(key, { mode = mode, fresh = key ~= shown.key, cheer = shown.cheerFor == key, noMoments = not moments })
+        local fresh = key ~= shown.key
+        local plan = Plan.Pose(key, { mode = mode, fresh = fresh, cheer = shown.cheerFor == key, noMoments = not moments })
+        if fresh then -- (what it plays after standing, warm before it does: Warm)
+            local need = {}
+            for _, st in ipairs(plan) do if st[1] ~= STAND then need[#need + 1] = st[1] end end
+            Warm(key, need)
+        end
         shown.key, shown.cheerFor = key, nil
         Run(key, plan)
         Lift(key)     -- at once (2026-11-10: a moment later read as a jump) ...

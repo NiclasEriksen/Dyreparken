@@ -26,6 +26,9 @@ local ns = select(2, ...)
 --               puts it back), for Data/Holidays.lua
 --   lengths     how long every species' one-off moves play (all species, a few minutes), into
 --               DyreparkenDebugDB.animLengths for tools/anim_lengths.lua -> Data/AnimLengths.lua
+--   boxes       (2026-11-16) every species' standing box and model scene, in a hidden model scene of our own
+--               (about half a second each), into DyreparkenDebugDB.petBoxes for tools/pet_boxes.lua ->
+--               Data/PetBoxes.lua (Moves.FRAMING); "boxes <ids>": only those
 --   petframe    (2026-11-11, groundwork for the on-screen pet frame) a test frame in the middle of the
 --               screen: our own model scene with the pet that's out, as the journal card builds it.
 --               Left-click: its happy move; right-click: close. Logs each step, and whether Edit Mode
@@ -556,6 +559,70 @@ function S.holidays(out)
     end
     Month(0)
     return ("asked; %d months, %d s each"):format(Api.MONTHS, Api.MONTH_WAIT)
+end
+
+-- Every species' standing box (2026-11-16, Moves.FRAMING: pets placed by their feet, per scene): its model in a
+-- model scene of our own, out of sight, as the card builds it (its scene, the "unwrapped" actor); once the model
+-- says it has loaded (else after BOX_WAIT), standing a moment, its active box read. One at a time.
+Api.BOX_WAIT, Api.BOX_STAND = 3, 0.3
+function S.boxes(out, arg)
+    local queue = {}
+    for id in (arg or ""):gmatch("%d+") do queue[#queue + 1] = tonumber(id) end
+    if #queue == 0 then for sid in pairs(ns.Companions.species) do queue[#queue + 1] = sid end end
+    table.sort(queue)
+    local saved = {}
+    DyreparkenDebugDB.petBoxes = saved
+    out.species, out.done = #queue, 0
+    local f = CreateFrame("ModelScene", nil, UIParent, "ModelSceneMixinTemplate")
+    f:SetSize(200, 200)
+    f:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", 0, 0)
+    f:SetAlpha(0)
+    f:EnableMouse(false)
+    local function Next()
+        local sid = table.remove(queue, 1)
+        if not sid then
+            f:Hide()
+            ns.Log("Api", "boxes: done, %d species", out.done)
+            return ns.Print(("api probe: boxes done, %d species; /reload, then luajit tools/pet_boxes.lua"):format(out.done))
+        end
+        local okS, scene = pcall(C_PetJournal.GetPetModelSceneInfoBySpeciesID, sid)
+        scene = okS and scene or nil
+        local display = Pack(pcall(C_PetJournal.GetPetInfoBySpeciesID, sid))[13]
+        if type(scene) ~= "number" or not display then
+            saved[sid] = { error = "no scene or display" }
+            return Next()
+        end
+        pcall(f.TransitionToModelSceneID, f, scene, rawget(_G, "CAMERA_TRANSITION_TYPE_IMMEDIATE") or 1,
+            rawget(_G, "CAMERA_MODIFICATION_TYPE_DISCARD") or 1, true)
+        local okA, actor = pcall(f.GetActorByTag, f, "unwrapped")
+        if not (okA and actor) then
+            saved[sid] = { error = "no actor" }
+            return Next()
+        end
+        local done = false
+        local function Read(how)
+            if done then return end
+            done = true
+            pcall(actor.SetAnimation, actor, 0)
+            C_Timer.After(Api.BOX_STAND, function()
+                local b = Pack(pcall(actor.GetActiveBoundingBox, actor))
+                if b[1] and type(b[4]) == "number" then
+                    saved[sid] = { scene = scene, low = b[4], high = b[7], wide = math.max(b[5] - b[2], b[6] - b[3]), how = how }
+                    ns.Moves.measured[sid] = saved[sid] -- (placed from it at once this session: /dp probe place)
+                else
+                    saved[sid] = { scene = scene, error = "no box" }
+                end
+                out.done = out.done + 1
+                if out.done % 10 == 0 then ns.Print(("api probe: boxes %d / %d"):format(out.done, out.species)) end
+                Next()
+            end)
+        end
+        pcall(actor.SetOnModelLoadedCallback, actor, function() Read("loaded") end)
+        pcall(actor.SetModelByCreatureDisplayID, actor, display)
+        C_Timer.After(Api.BOX_WAIT, function() Read("timeout") end)
+    end
+    Next()
+    return ("%d species, about %d s"):format(#queue, math.ceil(#queue * 0.5))
 end
 
 -- How long every species' one-off moves play, by OnAnimFinished on invisible PlayerModels, a few at a
@@ -1387,7 +1454,7 @@ function Api:Run(arg)
     rest = rest ~= "" and rest or nil
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], petframe, meter, feats, transport, combat, glance, legacy)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], boxes [ids], petframe, meter, feats, transport, combat, glance, legacy)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out, rest)
