@@ -61,6 +61,11 @@ return function(test, H)
         eq(d.border.atlas, "loottoast-itemborder-gold")
         eq(table.concat(d.border.slice, ","), "18,18,18,18", "nine-sliced around the card")
         eq(d.border.sliceMode, 0)
+        -- Set again the next time, the same pet and art too (2026-11-16: now and then it showed unsliced, stretched
+        -- over the whole card, its corners gone, until another pet).
+        d.border.slice, d.border.sliceMode, d.border.atlas = nil, nil, nil
+        D:Stop(card); Level(2)
+        eq(d.border.atlas, "loottoast-itemborder-gold"); eq(table.concat(d.border.slice, ","), "18,18,18,18"); eq(d.border.sliceMode, 0)
         for i = 1, 4 do no(d.edges[i]:IsShown(), "no drawn edges where it slices"); ok(d.wash[i]:IsShown(), "a wash") end
         ok(d.border.desaturated)
         eq(Color(d.border)[1], math.min(1, cat[1] * 1.7), "in the family's color")

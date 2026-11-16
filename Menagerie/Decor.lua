@@ -606,17 +606,19 @@ function Decor:Apply(card, key, level, color)
     d.rays:Hide(); d.ribbon:Hide(); d.ribbonText:Hide()
     d.used = 0
     if not key then return end
-    local arts = table.concat(art, ";")
-    if d.art ~= arts then -- the family's frame, the glow, the ribbon
-        d.art = arts
-        if d.sliced then
-            SetArt(d.border, art[1])
-            d.border:SetTextureSliceMargins(18, 18, 18, 18)
-        end
-        for point, t in pairs(d.corners) do SetArt(t, art[2], point:find("RIGHT") ~= nil, point:find("BOTTOM") ~= nil) end
-        for _, t in ipairs(d.glows) do SetArt(t, art[3]) end
-        SetArt(d.ribbon, art[4])
+    -- The family's frame, the corners, the glow, the ribbon: set again each time, not only when they change
+    -- (2026-11-16, the user's screenshot: now and then the frame showed stretched whole over the card, unsliced,
+    -- and the corners missing, until another pet; the cause unknown, maybe a texture not loaded yet when its
+    -- slices were set. Apply only gets this far when something changed, so it costs little.)
+    if d.sliced then
+        SetArt(d.border, art[1])
+        d.border:SetTextureSliceMode(Enum.UITextureSliceMode.Stretched)
+        d.border:SetTextureSliceMargins(18, 18, 18, 18)
     end
+    ns.Log("Decor", "art %s, corners %s, level %d, sliced %s", art[1], art[2], level, tostring(d.sliced))
+    for point, t in pairs(d.corners) do SetArt(t, art[2], point:find("RIGHT") ~= nil, point:find("BOTTOM") ~= nil) end
+    for _, t in ipairs(d.glows) do SetArt(t, art[3]) end
+    SetArt(d.ribbon, art[4])
     color = color or GOLD
     local gold = Gold(level)
     if Reward(level, "border") then
