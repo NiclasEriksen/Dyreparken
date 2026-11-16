@@ -16,7 +16,8 @@ local ns = select(2, ...)
 --
 -- A search box and two toggles (2026-11-14, the user): "Trenger et hjem" (nobody has adopted it) and "Kan
 -- adopteres" (that, and you own it). What doesn't match is dimmed in place, not hidden, so the park keeps
--- its shape (the user). The search reads a pet's name, nickname, who has it and its families; not its source
+-- its shape (the user). The search reads a pet's name, nickname, who has it (from the start of the name only,
+-- 2026-11-16) and its families; not its source
 -- (2026-11-14, the user: searching it was a mistake). The tooltip says where a pet comes from
 -- (Data/Companions.lua: s, w).
 --
@@ -67,7 +68,16 @@ Park.SPOT_H = 180        -- the stage under the map
 Park.SCENE_W = 280       -- its model's part, at the left
 -- The model's view in the stage: the pet frame's (0, 0, 84, -50 on 170 px) a third larger, so the pet
 -- stands as there, bigger (2026-11-15, the first look: small and off to the side). Tuned by eye.
-Park.VIEW = { 0, 0, 54, -68 } -- (its box the same 190 px as on the 200 px stage: the pet as big)
+-- (2026-11-16, the user: the pets "lowered (slightly)" once they stood on their feet: the view 10 lower, as tall)
+Park.VIEW = { 0, 0, 64, -78 } -- (its box the same 190 px as on the 200 px stage: the pet as big)
+-- The card's shadow under the pet (2026-11-16, the user: "add the same shadow from the pet journal"): pets
+-- stand on their feet now, every scene's floor set by eye on the card's shadow (Data/PetScenes.lua), so here
+-- too they all stand on one line. Where it is, by eye from the user's screenshots: feet 27 to 33 up the
+-- scene, a kitten lying 60 wide (worked out from the card's view it came out three times too big and far too
+-- high: "way too big and just looks silly"); then up to meet them, the pets 10 lower (the user: "the model
+-- lowered (slightly) and the shadow moved further up"). Centered under the pet: y is its middle, up from the
+-- scene's bottom.
+Park.SHADOW = { y = 40, w = 90, h = 16 }
 Park.SPOT_BACK = 1       -- seconds after the mouse leaves an icon, today's pet again
 Park.CAMERA_FOR = 2      -- the stage's camera runs this long after a change (PF.CAMERA_FOR)
 -- The filter: { text = lower-cased search, free = bool, adopt = bool }, for this session.
@@ -93,11 +103,11 @@ function Park.Source(key)
     return ns.T("source.line", { how = how })
 end
 
--- Everything the search looks through for a pet, folded.
+-- Everything the search looks through for a pet anywhere in it, folded: its name, nickname and families. Who
+-- has it is matched only from the start of their name (Park.Matches).
 function Park.Haystack(key)
     local parts = { ns.Pets:NameOfKey(key) or "" }
     parts[#parts + 1] = ns.Registry:Nickname(key) or ""
-    parts[#parts + 1] = ns.Registry:Holder(key) or ""
     local sid = ns.Pets:SpeciesOfKey(key)
     local data = sid and ns.Companions and ns.Companions.species and ns.Companions.species[sid]
     local names = ns.AchTexts.generic.families
@@ -110,10 +120,10 @@ function Park.Unknown(key)
     return ns.Settings:On("hideUnknown") and not ns.Owners:Any(key)
 end
 
--- Whether a pet passes the filter (owned: Pets:Owned()).
 -- A pet's enclosure: its first family (as its ring's), else "default".
 function Park.FamilyOf(key) return ns.Scenes:Families(key)[1] or "default" end
 
+-- Whether a pet passes the filter (owned: Pets:Owned()).
 function Park.Matches(key, filter, owned)
     filter = filter or Park.filter
     if filter.family and Park.FamilyOf(key) ~= filter.family then return false end
@@ -122,15 +132,16 @@ function Park.Matches(key, filter, owned)
     if filter.adopt and not (owned or ns.Pets:Owned())[key] then return false end
     local text = filter.text or ""
     if text ~= "" and Park.Unknown(key) then return false end -- (a search must not tell which "?" is which)
-    return text == "" or Park.Haystack(key):find(text, 1, true) ~= nil
+    if text == "" or Park.Haystack(key):find(text, 1, true) then return true end
+    -- Who has it, only from the start of their name (2026-11-16, the user: "as" found the prairie dog by its
+    -- holder Hjelp Plask; "only from the first name on (e.g. not 'pla')"): "hj", "hjelp pl" find it.
+    return owner ~= nil and Park.Fold(owner):sub(1, #text) == text
 end
 
 function Park.Filtering(filter)
     filter = filter or Park.filter
     return filter.free or filter.adopt or (filter.text or "") ~= "" or filter.family ~= nil
 end
-
-
 
 -- The park's records as lines, from the current holders.
 function Park:Records(now)
@@ -494,7 +505,9 @@ local function Redraw()
     for i, it in ipairs(keys) do
         local c = cells[i] or NewCell()
         c.key = it.key
-        ns.Pets:Portrait(c.icon, it.key)
+        -- Its face drawn only as the cell gets its pet (the performance pass, 2026-11-16: every redraw drew a
+        -- portrait for every pet, on every letter typed in the search, every filter, every guildmate's change).
+        if c.drawn ~= it.key then ns.Pets:Portrait(c.icon, it.key); c.drawn = it.key end
         local owner = R:Holder(it.key)
         local match = not filtering or Park.Matches(it.key, nil, owned)
         c.unknown = Park.Unknown(it.key)
@@ -521,7 +534,7 @@ local function Redraw()
     end
     for i = #keys + 1, #cells do cells[i]:Hide() end
     Park.filtering = filtering
-    Park:Highlight(Park.lit) -- (the tints, now the groups' matches are known)
+    Park:Highlight(Park.lit, true) -- (the tints, now the groups' matches are known)
     -- Signs, at each enclosure's first corner (on its post).
     for family, g in pairs(groups) do
         local sg = signs[family] or Park.NewSign(family)
@@ -588,30 +601,39 @@ function Park.Pen(c, family, fences, col, row)
 end
 
 -- A garden cell's weather: its lawn, a firefly at night, snow in December (each somewhere in the cell).
+-- (Placed only as they come: a redraw, every letter typed in the search, moved the fireflies and started the
+-- snow over, the performance pass 2026-11-16.)
 function Park.Sky(pl, w)
     pl.penColor = w.lawn
     pl.pen:SetVertexColor(w.lawn[1], w.lawn[2], w.lawn[3], w.lawn[4])
-    pl.firefly:SetShown(w.night)
-    if w.night then
+    if w.night and not pl.night then
         pl.firefly:ClearAllPoints()
         pl.firefly:SetPoint("CENTER", pl, "CENTER", math.random(-14, 14), math.random(-14, 14))
+    end
+    pl.night = w.night
+    pl.firefly:SetShown(w.night)
+    if w.night then
         if not pl.firefly.pulse:IsPlaying() then pl.firefly.pulse.Again() end
     else
         pl.firefly.pulse:Stop()
     end
-    pl.snow:SetShown(w.snow)
-    if w.snow then
+    if w.snow and not (pl.snowing and pl.snow.fall:IsPlaying()) then
         pl.snow:ClearAllPoints()
         pl.snow:SetPoint("TOP", pl, "TOP", math.random(-14, 14), -2)
         pl.snow.fall:Stop(); pl.snow.fall:Play()
-    else
+    elseif not w.snow then
         pl.snow.fall:Stop()
     end
+    pl.snowing = w.snow
+    pl.snow:SetShown(w.snow)
 end
 
 -- The tints: the pointer's family (lit) brighter, a family the filter leaves with nothing fainter.
 Park.PEN_LIT, Park.PEN_EMPTY = 0.38, 0.06
-function Park:Highlight(family)
+-- (again: the tints anew though the pointer's family is the same, after a redraw; else only on a change: from
+-- one pet to the next in an enclosure, leave and enter each repainted every cell, the performance pass)
+function Park:Highlight(family, again)
+    if family == self.lit and not again then return end
     self.lit = family
     local groups = self.groups or {}
     for _, c in ipairs(cells) do
@@ -750,6 +772,41 @@ Park.GARDEN = {
 }
 Park.SURPRISE_ONE = 8
 
+-- And a sound (2026-11-16, the user: "soft subtle pleasant ones ... soft knock on wood on the stump, herb pick
+-- sound on the flowers"): the game's own files, by id (the community listfile), the first of a piece's that
+-- plays (PlaySoundFile says whether it will: a file Forever lacks is passed by). Mostly the classic bags'
+-- pick-up and put-down sounds: short, quiet, made for a click. The tree's surprise, a bird taking off, chirps
+-- (one of ten, by chance: a look, so math.random; newer files, so maybe not on Forever: then nothing).
+-- PlaySoundFile has no volume, so (2026-11-16, the user: "the water and plant sounds are a little too soft,
+-- and the birds a tiny bit too loud") a soft one plays twice at once (`times`: the same file started in the
+-- same frame adds up, about twice as loud), and the birds go on the Ambience channel (their slider: by
+-- default 0.6 of the SFX one's 1.0; the user's 0.5 to 0.55).
+Park.SOUNDS = {
+    stump = { 567566, 567576 },                -- putdownwoodsmall, pickupwoodsmall: a soft knock
+    flowers = { 567552, times = 2 },           -- pickupherb
+    bush = { 567553, 567552, times = 2 },      -- putdownherb: a rustle of leaves
+    tree = { 567553, 567552, times = 2 },      -- (the same)
+    pond = { 540262, 567555, times = 2 },      -- footstepssmallwatera: a little splash; else pickupwater_liquid01
+}
+Park.SURPRISE_SOUNDS = { tree = { 1067029, 1067030, 1067031, 1067032, 1067033, 1067034, 1067035, 1067036, 1067037,
+    1067038, channel = "Ambience" } }
+-- The first of these that plays, from the start (or from a place by chance: shuffled), on the list's
+-- channel, its `times`; its id, or nil.
+function Park.Sound(ids, shuffled)
+    if not ids or #ids == 0 then return nil end
+    local channel = ids.channel or "SFX"
+    local start = shuffled and math.random(#ids) or 1
+    for i = 0, #ids - 1 do
+        local id = ids[(start - 1 + i) % #ids + 1]
+        local ok, plays = pcall(PlaySoundFile, id, channel)
+        if ok and plays then
+            for _ = 2, ids.times or 1 do pcall(PlaySoundFile, id, channel) end
+            return id
+        end
+    end
+    return nil
+end
+
 -- The garden by the clock and the calendar (2026-11-15, the user): the lawn by the season, darker at night
 -- (Scenes' sky: evening's dusk and night), fireflies at night, snow falling in December (Decor.DATES'
 -- snow); in autumn the trees and bushes give orange leaves, in winter snow. The player's clock, as the card's
@@ -814,6 +871,8 @@ function Park:PokePlot(pl)
     local weather = Park.Weather()
     local bursts, surprise = Park.Poke(pl.piece, ns.random(), weather)
     Burst(pl, bursts)
+    Park.Sound(Park.SOUNDS[pl.piece])
+    if surprise then Park.Sound(Park.SURPRISE_SOUNDS[pl.piece], true) end
     if surprise then ns.Log("Park", "the %s's surprise", pl.piece) end
     found[pl.piece] = now
     local pieces = {}
@@ -821,6 +880,7 @@ function Park:PokePlot(pl)
     if Park.AllFound(found, pieces, now) then
         for k in pairs(found) do found[k] = nil end
         ns.Log("Park", "the whole garden")
+        Park.Sound(Park.SURPRISE_SOUNDS.tree, true) -- (one sound for it all, not one a piece at once)
         for _, p in ipairs(plots) do
             if p:IsShown() and p.piece then Burst(p, (Park.Poke(p.piece, 0, weather))) end
         end
@@ -944,6 +1004,9 @@ local function BuildSpot(inset)
     scene:SetSize(Park.SCENE_W, Park.SPOT_H - 4)
     scene:SetPoint("BOTTOMLEFT", spot, "BOTTOMLEFT", 10, 2)
     spot.scene = scene
+    spot.card.floor:ClearAllPoints()
+    spot.card.floor:SetPoint("CENTER", scene, "BOTTOM", 0, Park.SHADOW.y)
+    spot.card.floor:SetSize(Park.SHADOW.w, Park.SHADOW.h)
     spot.today = spot:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 24, -18)
     spot.name = spot:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
@@ -961,8 +1024,9 @@ local function BuildSpot(inset)
     spot.hint:SetText(ns.L["park.spot.hint"])
     spot:SetScript("OnClick", function(self) if self.key then Park:Show(self.key) end end)
     -- A stage of Moves, as the pet frame has (2026-11-15, the user: "a good portion of the pets are rendered
-    -- way too high up or even low"): each pet's lift (Data/PetMoves.lua, found by eye on the card) and its
-    -- pose; the day's moments stay the card's. Stopped while the park is hidden.
+    -- way too high up or even low"): each pet placed by its feet as on the card (Moves.FRAMING, Data/PetScenes.lua:
+    -- the card's rows, or the park's own) and its pose; the day's moments stay the card's. Stopped while the park
+    -- is hidden.
     spot.stage = ns.Moves.NewStage("park", {
         moments = false,
         private = true, -- (its own scene: nothing else stands it up)
@@ -1011,13 +1075,13 @@ function Park:Spot(key, again)
     spot.hint:SetShown(key == nil)
     for _, t in ipairs({ spot.today, spot.name, spot.species, spot.text }) do t:SetShown(key ~= nil) end
     spot.scene:SetShown(key ~= nil)
-    spot.card.floor:Hide() -- (the card's shadow under the feet: placed for the card's model only)
     if not key then spot.stage:Update(spot, nil); return end
     if changed then
         spot.stage:Update(spot, nil) -- (the last pet's pose ends)
         spot.actor = ns.Pets:LoadModel(spot.scene, key, function()
             ns.Call(spot.scene, "SetViewInsets", unpack(Park.VIEW))
         end)
+        spot.stage:Loading() -- (its load watched: the pose waits for it)
         spot.stage:Update(spot, key) -- (its lift and pose)
         Camera()
     end

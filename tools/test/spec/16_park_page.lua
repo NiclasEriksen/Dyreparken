@@ -31,10 +31,12 @@ return function(test, H)
     end
 
     -- The park's icons as the player sees them: shown on the page, each with a species' portrait (the
-    -- harness's GetPetInfoBySpeciesID gives species sid the display 20000 + sid).
+    -- harness's GetPetInfoBySpeciesID gives species sid the display 20000 + sid), or on a client without
+    -- portraits its journal icon (the file 1000 + sid).
     local function SpeciesOf(f)
         for _, t in ipairs(f.textures) do
             if t.shown and type(t.portrait) == "number" and H.SPECIES[t.portrait - 20000] then return t.portrait - 20000 end
+            if t.shown and t.mask and type(t.tex) == "number" and H.SPECIES[t.tex - 1000] then return t.tex - 1000 end
         end
     end
     local function Cells(c) return c:Page("Parken"):Frames(SpeciesOf) end
@@ -105,8 +107,8 @@ return function(test, H)
         ok(rabbit.free:IsShown(), "free, and Ola owns it: he could adopt it")
         -- Sorted by name; laid out in rows.
         eq(SpeciesOf(Cells(ola)[1]), 42, "Black Tabby Cat first")
-        match(Tip(ola, kitty), "^Cornish Rex Cat / Flyttet inn hos Kari Berg i dag / Bånd: Bekjent %(level 1%) / %S+ og %S+ · liker [^/]* / Klikk for å se kortet%.$", "the traits by name; no effect paragraphs; no source without data")
-        match(Tip(ola, rabbit), "Trenger et hjem / .* / Kilde: Oppdrag – Waskily Wabbits! %(Dun Morogh%) / Du har dette dyret, og kan adoptere det%.")
+        match(Tip(ola, kitty), "^Cornish Rex Cat / Flyttet inn hos Kari Berg i dag / Bånd: Bekjent %(level 1%) / %S+ og %S+ · liker [^/]* / Klikk for å se dyret%.$", "the traits by name; no effect paragraphs; no source without data")
+        match(Tip(ola, rabbit), "Trenger et hjem / .* / Kilde: Quest – Waskily Wabbits! %(Dun Morogh%) / Du har dette dyret, og kan adoptere det%.")
         match(Tip(ola, panda), "Flyttet inn hos deg i dag")
         no(Tip(ola, panda):find("Du har", 1, true), "no \"you have it too\" on your own")
         -- Per adopts the tabby while the page is open: it lights up.
@@ -224,7 +226,7 @@ return function(test, H)
             local spec = ola.ns.Decor.FAMILY[f]
             if not spec.mark then eq(tex, ola.ns.Icon(ola.ns.Decor.KINDS[spec.kind].tex), f .. ": its ambience's") end
         end
-        eq(ola:TipOf(cats).text, "Katter / 1 av 4 har et hjem / Klikk for å vise bare dem.")
+        eq(ola:TipOf(cats).text, "Katter / 1 av 4 har et hjem / " .. ola.ns.L["park.sign.show"])
         eq(Park.FamilyName("spirit"), "Ånder"); eq(Park.FamilyName("default"), "Andre dyr")
         -- On its first corner: the cats' first cell's top left.
         local first = Cell(ola, 42) -- (Black Tabby: the first by name)
@@ -319,6 +321,29 @@ return function(test, H)
         for _, b in ipairs(Park.GARDEN.tree.surprise) do n = n + b.n end
         eq(ola.ns.Fx:Playing(tree, "garden"), n, "the surprise: a bird takes off")
         eq(#ola:Log("the tree's surprise"), 1)
+        -- A sound with each click (2026-11-16): the piece's, and a chirp for the bird.
+        local heard = ola.soundFiles
+        eq(heard[1], Park.SOUNDS.tree[1], "a rustle of leaves")
+        eq(heard[2], Park.SOUNDS.tree[1], "twice at once, to be heard (PlaySoundFile has no volume)")
+        eq(ola.soundChannels[1], "SFX")
+        eq(#heard, 5, "once a click: again at once was nothing, so no sound either; the surprise's chirp")
+        local chirps = {}
+        for _, id in ipairs(Park.SURPRISE_SOUNDS.tree) do chirps[id] = true end
+        ok(chirps[heard[5]], "a bird's chirp")
+        eq(ola.soundChannels[5], "Ambience", "the birds a little softer, on the ambience's slider")
+        -- A file the client lacks: the next one; none at all: silence, no error.
+        local stump
+        for _, pl in ipairs(plots) do if pl.piece == "stump" then stump = pl end end
+        ola.missingSounds = { [Park.SOUNDS.stump[1]] = true }
+        ola:Dice(0.99)
+        ola:Press(stump)
+        eq(heard[#heard], Park.SOUNDS.stump[2], "the next one that plays")
+        ok(heard[#heard - 1] ~= Park.SOUNDS.stump[2], "the knock only once: loud enough")
+        for _, id in ipairs(Park.SOUNDS.stump) do ola.missingSounds[id] = true end
+        local before = #heard
+        w:Run(1)
+        ola:Press(stump)
+        eq(#ola.soundFiles, before, "none plays: silence")
     end)
 
     -- The user, 2026-11-15: "Oh yes I like it": every piece clicked within a short while, the whole garden goes off.
@@ -342,8 +367,11 @@ return function(test, H)
         ola:Press(byPiece[kinds[#kinds]])
         eq(#ola:Log("the whole garden"), 0, "too slow")
         for _, pl in ipairs(all) do ola.ns.Fx:Stop(pl, "garden") end
-        for i = 1, #kinds - 1 do ola:Press(byPiece[kinds[i]]); w:Run(1) end
+        local before = #(ola.soundFiles or {})
+        local want = 1
+        for i = 1, #kinds - 1 do ola:Press(byPiece[kinds[i]]); w:Run(1); want = want + (Park.SOUNDS[kinds[i]].times or 1) end
         eq(#ola:Log("the whole garden"), 1, "every piece within the while")
+        eq(#ola.soundFiles - before, want, "a sound a click, and one chirp for the whole garden, not one a piece")
         for _, pl in ipairs(all) do
             ok(ola.ns.Fx:Playing(pl, "garden") > Park.GARDEN[pl.piece].n, pl.piece .. ": its surprise too")
         end
@@ -362,6 +390,12 @@ return function(test, H)
             ok(pl.firefly:IsShown()); no(pl.snow:IsShown())
             eq(pl.pen.vertexColor[2], lawn[2] * Park.NIGHT_DIM, "autumn's lawn, darker at night")
         end
+        -- A redraw (a letter typed in the search) leaves them where they are (2026-11-16, the performance pass:
+        -- every redraw moved the fireflies and started the snow over).
+        local at = plots[1].firefly.points[1]
+        ola:Type(page.frame.search, "k")
+        eq(plots[1].firefly.points[1], at, "the firefly stays put")
+        ola:Type(page.frame.search, "")
         local leaves = Park.Poke("tree", 0.99, Park.Weather())
         eq(leaves[1].kind, "leaf"); eq(leaves[1].color, Park.AUTUMN)
         page.frame:Hide()
@@ -371,6 +405,10 @@ return function(test, H)
             no(pl.firefly:IsShown()); ok(pl.snow:IsShown()); ok(pl.snow.fall:IsPlaying())
             eq(pl.pen.vertexColor[2], Park.LAWNS.winter[2])
         end
+        local plays = plots[1].snow.fall.plays
+        ola:Type(page.frame.search, "k")
+        eq(plots[1].snow.fall.plays, plays, "the snow falls on, not started over")
+        ola:Type(page.frame.search, "")
         eq(Park.Poke("bush", 0.99, Park.Weather())[1].kind, "snow", "winter: snow off the bushes")
         eq(Park.Poke("pond", 0.99, Park.Weather())[1].kind, "bubble")
         page.frame:Hide()
@@ -422,11 +460,22 @@ return function(test, H)
         ola.ns.ParkPage:Refresh()
         ok(Cell(ola, 41).glint:IsShown(), "after a redraw too")
         eq(Cell(ola, 41).ring.vertexColor[4], P.RingColor("cat", level)[4])
-        -- No portrait call: the journal's icon, round as well.
-        ola.env.SetPortraitTextureFromCreatureDisplayID = nil
+        -- A redraw draws no portrait again: each is drawn as its cell gets its pet (2026-11-16, the performance
+        -- pass: every redraw drew all of them, on every letter typed in the search).
+        local drawn, draw = 0, ola.env.SetPortraitTextureFromCreatureDisplayID
+        ola.env.SetPortraitTextureFromCreatureDisplayID = function(...) drawn = drawn + 1; return draw(...) end
         ola.ns.ParkPage:Refresh()
-        eq(kitty.icon.tex, 1000 + 41, "the same cell, its journal icon")
-        eq(kitty.icon.portrait, nil)
+        ola:Type(ola:Page("Parken").frame.search, "kat")
+        eq(drawn, 0, "a redraw, a search: no portrait drawn again")
+        ola.env.SetPortraitTextureFromCreatureDisplayID = draw
+        -- A client with no portrait call: the journal's icon, round as well.
+        local w2, other = Setup()
+        w2:Run(5)
+        other.env.SetPortraitTextureFromCreatureDisplayID = nil
+        other:OpenJournal({ sideTabs = 4 })
+        other:Page("Parken"):Open()
+        eq(Cell(other, 41).icon.tex, 1000 + 41, "its journal icon")
+        eq(Cell(other, 41).icon.portrait, nil)
     end)
 
     test("the spotlight: today's pet on its card's backdrop, the one under the mouse while hovered, a click opens its card", function()
@@ -445,9 +494,13 @@ return function(test, H)
         eq(likes, 1, "its personality once (it was twice: 2026-11-15)")
         local scene = P.spot.scene
         eq(scene.actor.display, 20000 + 41, "its model")
-        local lift = ola.ns.Moves:For("s:41", "lift")
-        ok(lift and lift ~= 0, "the cat has a lift")
-        eq(scene.actor.pos[3], lift, "lifted as on the card (Data/PetMoves.lua)")
+        -- Placed by its feet, as on the card (Data/PetScenes.lua: its scene's floor; the stubs' scene is 1271).
+        eq(select(3, scene.actor:IsUsingCenterForOrigin()), false)
+        eq(scene.actor.pos[3], ola.ns.PetScenes.card[1271].floor, "its feet on its scene's floor")
+        -- The card's shadow under it, where the card's lands in this view.
+        local floor = P.spot.card.floor
+        ok(floor:IsShown(), "a shadow under the pet")
+        eq(floor.points[1][2], scene); eq(floor.points[1][5], P.SHADOW.y)
         eq(scene.scripts.OnUpdate, nil, "its camera still a while after: an open park costs nothing")
         -- Under the mouse: the rabbit; the mouse gone, today's pet again in a moment.
         local rabbit = Cell(ola, 72)
@@ -515,6 +568,14 @@ return function(test, H)
         eq(Lit(), "41", "who has it")
         ola:Type(f.search, " kari ")
         eq(Lit(), "41", "spaces around don't count")
+        ola:Type(f.search, "kari b")
+        eq(Lit(), "41", "the whole name, from its start")
+        ola:Type(f.search, "ka")
+        ok(Lit():find("41"), "from the start of the name")
+        ola:Type(f.search, "berg")
+        eq(Lit(), "", "not the surname alone (2026-11-16: \"as\" found the user's pet by Hjelp Plask)")
+        ola:Type(f.search, "ari")
+        eq(Lit(), "", "nor the middle of a name")
         ola:Type(f.search, "donni")
         eq(Lit(), "", "not the source (the user: searching it was a mistake)")
         ola:Type(f.search, "selger")
@@ -525,19 +586,19 @@ return function(test, H)
         eq(Lit(), "40 41 42 46 72 84 5159")
         ok(f.search.Instructions:IsShown())
         -- The toggles: no home; no home and yours.
-        ola:Labeled("Trenger et hjem"):Click()
+        ola:Labeled(ola.ns.L["park.filter.free"]):Click()
         eq(Lit(), "40 42 46 72 84", "nobody has adopted them")
         eq(f.matches.text, "5 treff")
         ola:Labeled("Kan adopteres"):Click()
         eq(Lit(), "40 72", "and Ola owns them")
-        ola:Labeled("Trenger et hjem"):Click()
+        ola:Labeled(ola.ns.L["park.filter.free"]):Click()
         eq(Lit(), "40 72", "adoptable alone means the same")
         ola:Type(f.search, "snowshoe")
         eq(Lit(), "72", "search and toggles together")
         -- Kari lets go of hers while the page is open: the filter follows.
         ola:Type(f.search, "")
         ola:Labeled("Kan adopteres"):Click()
-        ola:Labeled("Trenger et hjem"):Click()
+        ola:Labeled(ola.ns.L["park.filter.free"]):Click()
         kari:Slash("gislipp")
         w:Run(5)
         eq(Lit(), "40 41 42 46 72 84")
@@ -616,7 +677,7 @@ return function(test, H)
         park.tab:Click()
         ok(P:IsOpen())
         local cell = Cell(ola, 41)
-        match(Tip(ola, cell), "Klikk for å se kortet%.")
+        match(Tip(ola, cell), "Klikk for å se dyret%.")
         cell:Click()
         no(P:IsOpen(), "back on the Pets page")
         eq(ola.selectedSpecies, nil, "not in the list: Forever's selection does nothing")
@@ -646,7 +707,7 @@ return function(test, H)
         for _ = 1, 3 do Cell(ola, 72):Click() end
         ok(P:IsOpen(), "still in the park")
         eq(ola.selectedSpecies, nil, "no card in combat")
-        eq(ola:CountPrinted("Kortet til " .. ola.ns.Pets:NameOfKey("s:72") .. " kommer når kampen er over."), 1,
+        eq(ola:CountPrinted(ola.ns.T("park.combat_hint", { pet = ola.ns.Pets:NameOfKey("s:72") })), 1,
             "a hint, once a burst")
         ola:LeaveCombat(); w:Run(0.1)
         no(P:IsOpen(), "back on the Pets page ...")

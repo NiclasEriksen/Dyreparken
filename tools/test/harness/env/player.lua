@@ -132,6 +132,18 @@ return function(c, env, S)
         c.sounds[#c.sounds + 1] = id
         return true
     end
+    -- A sound file by its id: recorded in c.soundFiles (its channel in c.soundChannels); one in
+    -- c.missingSounds won't play (false, as the client's willPlay for a file it lacks).
+    local CHANNELS = { Master = true, SFX = true, Music = true, Ambience = true, Dialog = true, Talking_Head = true }
+    env.PlaySoundFile = function(id, channel)
+        assert(channel == nil or CHANNELS[channel], "PlaySoundFile: no channel " .. tostring(channel))
+        if c.missingSounds and c.missingSounds[id] then return false end
+        c.soundFiles = c.soundFiles or {}
+        c.soundChannels = c.soundChannels or {}
+        c.soundFiles[#c.soundFiles + 1] = id
+        c.soundChannels[#c.soundFiles] = channel or "SFX"
+        return true, #c.soundFiles
+    end
     env.C_Spell = { GetSpellName = function(id) return S.spellNames and S.spellNames[id] end,
         -- (6603 Attack: true while auto-attack is on; the global IsCurrentSpell doesn't exist on Forever)
         IsCurrentSpell = function(id) return id == 6603 and S.attacking or false end }
