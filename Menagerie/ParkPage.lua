@@ -1254,10 +1254,9 @@ function Park:Spot(key, again)
     spot.name:SetText(nick or ns.Pets:NameOfKey(key))
     spot.species:SetText(nick and ns.Pets:NameOfKey(key) or "")
     local lines = {}
-    -- (the home, the bond, the personality: the icons' tooltip lines)
+    -- (the home, the bond, the personality: the icons' tooltip lines; not where it comes from, 2026-11-16, the
+    -- user: with many likes and a long source "the text gets too long vertically", and the tooltip has it)
     for _, l in ipairs(ns.JournalList.PetLines(key, "park.free")) do lines[#lines + 1] = Colored(l) end
-    local source = Park.Source(key)
-    if source then lines[#lines + 1] = Colored({ source, 0.6, 0.8, 1 }) end
     spot.text:SetText(table.concat(lines, "\n"))
     -- The words centered beside the pet (from the top they left the stage's lower half empty, 2026-11-15).
     local h = spot.today:GetStringHeight() + 6 + spot.name:GetStringHeight() + 4 + spot.species:GetStringHeight()
