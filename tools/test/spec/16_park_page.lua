@@ -48,6 +48,112 @@ return function(test, H)
         return c:TipOf(cell).text
     end
 
+    -- The user, 2026-11-16: "a bunch new ones added over the next few months ... the Parken layout also: it
+    -- has to be dynamic and expand vertically as it grows." The map is as wide as the page and as many rows
+    -- deep as it takes; the scroll frame scrolls it.
+    -- Parken with the small journal and `extra` more species: its pets' cells, the scrolled area's height and
+    -- width, the right edge of the last column; and its garden: { col, row, piece } a cell.
+    local function Map(extra)
+        local w = H.World({ members = H.FOLK })
+        local ola = w:AddClient("Ola Nord", { pets = { 5159, 40 } })
+        local species = Fixture().species
+        local families = { "cat", "bird", "rabbit", "frog", "dragon", "plant" }
+        for i = 1, extra do species[9000 + i] = { a = true, t = { families[i % #families + 1] } } end
+        ola:Companions(species)
+        ola.ns.DB.global.settings.hideUnknown = false
+        w:Run(20)
+        ola:OpenJournal({ sideTabs = 4 })
+        ola:Page("Parken"):Open()
+        local child
+        local seen, n, right, cells = {}, 0, 0, {}
+        for _, f in ipairs(ola:Page("Parken"):Frames(function(f) return f.key ~= nil and f.free ~= nil end)) do
+            local pt = f.points[1]
+            child = pt[2]
+            local at = pt[4] .. "," .. pt[5]
+            no(seen[at], "two pets in one cell: " .. at)
+            seen[at] = true
+            n = n + 1
+            right = math.max(right, pt[4] + 40)
+            cells[#cells + 1] = { (pt[4] - 8) / 40, -pt[5] / 40, family = f.family }
+            ok(-pt[5] + 40 <= child.size[2], "inside the scrolled area")
+        end
+        local garden = {}
+        for _, pl in ipairs(ola:Page("Parken"):Frames(function(f) return f.art ~= nil and f.pen ~= nil end)) do
+            local pt = pl.points[1]
+            garden[#garden + 1] = { (pt[4] - 8) / 40, pl.piece }
+            garden[#garden].y, garden[#garden].row = pt[5], -pt[5] / 40
+            ok(-pt[5] + 40 <= child.size[2], "the garden inside the scrolled area too")
+        end
+        return n, child.size[2], child.size[1], right, garden, cells
+    end
+
+    test("the map grows down with the journal: every pet a cell of its own, the page as wide, the scroll deeper", function()
+        local n, h, wide, right = Map(0)
+        eq(n, 7)
+        local n2, h2, wide2, right2 = Map(150)
+        eq(n2, 157, "every pet shown")
+        eq(wide2, wide, "as wide")
+        ok(right2 <= wide2, "no column past the page's edge")
+        ok(h2 >= h + math.floor(150 / math.floor((wide - 8) / 40)) * 40, "deeper, a row for every page width of pets")
+    end)
+
+    -- The user, 2026-11-16: "make sure there's minimum space available for the decorations, and maybe try to
+    -- place those more towards the centre"; then, seeing a whole band of garden at the bottom: "a little
+    -- ridiculous (big), and not towards the middle of the cluster".
+    test("the garden: always GARDEN_CELLS cells with every piece, in among the pets near the middle; the families whole", function()
+        local _, _, wide = Map(0)
+        local cols = math.floor((wide - 8) / 40)
+        local band = cols * 3
+        local Park
+        do local w = H.World({ members = H.FOLK }); Park = w:AddClient("Ola Nord").ns.ParkPage end
+        for _, pets in ipairs({ 7, band, band - 3, band * 2, band * 2 - 8, band + 20, band * 4 + 5 }) do
+            local _, _, _, _, garden, cells = Map(pets - 7)
+            eq(#garden, Park.GARDEN_CELLS, pets .. " pets: the garden's cells")
+            local placed = {}
+            for _, g in ipairs(garden) do if g[2] then placed[g[2]] = (placed[g[2]] or 0) + 1 end end
+            for _, piece in ipairs(Park.DECOR) do ok(placed[piece], pets .. " pets: the " .. piece) end
+            -- Near the middle of the map: its middle column within a third of the map's from the map's.
+            local x, y, top, bottom = 0, 0, math.huge, -math.huge
+            for _, c in ipairs(cells) do top = math.min(top, c[2]); bottom = math.max(bottom, c[2]) end
+            for _, g in ipairs(garden) do x, y = x + g[1], y + g.row end
+            x, y = x / #garden, y / #garden
+            ok(math.abs(x - (cols - 1) / 2) <= cols / 3, pets .. " pets: across, " .. x .. " of " .. cols)
+            if bottom - top >= 5 then
+                ok(y > top and y < bottom, pets .. " pets: down, " .. y .. " between " .. top .. " and " .. bottom)
+            end
+            -- Its pieces on the cells nearest its own middle: no bare cell nearer it than one with a piece.
+            local function D(g) return (g[1] - x) ^ 2 + (g.row - y) ^ 2 end
+            local far = -1
+            for _, g in ipairs(garden) do if g[2] then far = math.max(far, D(g)) end end
+            for _, g in ipairs(garden) do
+                if not g[2] then ok(D(g) >= far - 1e-9, pets .. " pets: bare lawn nearer the middle than a piece") end
+            end
+            -- Every family's cells in one piece (side by side), the garden in between them.
+            local at, seen = {}, {}
+            for _, c in ipairs(cells) do at[c[1] .. "," .. c[2]] = c.family end
+            for _, c in ipairs(cells) do
+                if not seen[c.family] then
+                    seen[c.family] = true
+                    local n, reached, stack = 0, { [c[1] .. "," .. c[2]] = true }, { c }
+                    for _, d in ipairs(cells) do if d.family == c.family then n = n + 1 end end
+                    local got = 0
+                    while #stack > 0 do
+                        local e = table.remove(stack)
+                        got = got + 1
+                        for _, s in ipairs({ { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }) do
+                            local k = (e[1] + s[1]) .. "," .. (e[2] + s[2])
+                            if at[k] == c.family and not reached[k] then
+                                reached[k] = true
+                                stack[#stack + 1] = { e[1] + s[1], e[2] + s[2] }
+                            end
+                        end
+                    end
+                    eq(got, n, pets .. " pets: the " .. c.family .. " in one piece")
+                end
+            end
+        end
+    end)
+
     test("its tab comes under ours; our two pages take turns", function()
         local w, ola = Setup()
         ola:OpenJournal({ sideTabs = 4 })
@@ -377,6 +483,23 @@ return function(test, H)
         end
     end)
 
+    test("every garden piece has its art, its particles and its sound; its surprise's sound too if it has one", function()
+        local w, ola = Setup()
+        local Park = ola.ns.ParkPage
+        local seen = {}
+        for _, piece in ipairs(Park.DECOR) do
+            if not seen[piece] then
+                seen[piece] = true
+                local file = io.open((ola.ns.Icon(piece):gsub("^Interface\\AddOns\\Dyreparken\\", ""):gsub("\\", "/")) .. ".tga", "rb")
+                ok(file, piece .. ": Media/Particles/" .. piece .. ".tga (tools/draw_particles.py)")
+                if file then file:close() end
+                ok(Park.GARDEN[piece] and Park.GARDEN[piece].n > 0, piece .. ": its particles")
+                ok(Park.SOUNDS[piece] and #Park.SOUNDS[piece] > 0, piece .. ": its sound")
+            end
+        end
+        for piece in pairs(Park.SURPRISE_SOUNDS) do ok(Park.GARDEN[piece], piece .. ": a surprise's sound for a piece") end
+    end)
+
     test("the garden by the clock and the calendar: night's fireflies, December's snow, the season's lawn and leaves", function()
         local w, ola = Setup()
         local Park = ola.ns.ParkPage
@@ -386,10 +509,14 @@ return function(test, H)
         page:Open()
         local plots = page:Frames(function(f) return f.art ~= nil and f.pen ~= nil end)
         local lawn = Park.LAWNS.autumn
+        local lamps = 0
         for _, pl in ipairs(plots) do
             ok(pl.firefly:IsShown()); no(pl.snow:IsShown())
             eq(pl.pen.vertexColor[2], lawn[2] * Park.NIGHT_DIM, "autumn's lawn, darker at night")
+            eq(pl.lamp:IsShown(), pl.piece == "bench", "the bench's lamp lit, nothing else")
+            if pl.lamp:IsShown() then lamps = lamps + 1 end
         end
+        eq(lamps, 1, "the bench's lamp, lit at night (2026-11-16)")
         -- A redraw (a letter typed in the search) leaves them where they are (2026-11-16, the performance pass:
         -- every redraw moved the fireflies and started the snow over).
         local at = plots[1].firefly.points[1]
@@ -402,14 +529,14 @@ return function(test, H)
         w:SetDate(2026, 12, 3, 12) -- a December day
         page:Open()
         for _, pl in ipairs(plots) do
-            no(pl.firefly:IsShown()); ok(pl.snow:IsShown()); ok(pl.snow.fall:IsPlaying())
+            no(pl.firefly:IsShown()); ok(pl.snow:IsShown()); ok(pl.snow.fall:IsPlaying()); no(pl.lamp:IsShown(), "no lamp by day")
             eq(pl.pen.vertexColor[2], Park.LAWNS.winter[2])
         end
         local plays = plots[1].snow.fall.plays
         ola:Type(page.frame.search, "k")
         eq(plots[1].snow.fall.plays, plays, "the snow falls on, not started over")
         ola:Type(page.frame.search, "")
-        eq(Park.Poke("bush", 0.99, Park.Weather())[1].kind, "snow", "winter: snow off the bushes")
+        eq(Park.Poke("tree", 0.99, Park.Weather())[1].kind, "snow", "winter: snow off the trees")
         eq(Park.Poke("pond", 0.99, Park.Weather())[1].kind, "bubble")
         page.frame:Hide()
         w:SetDate(2027, 7, 1, 12)
@@ -642,8 +769,30 @@ return function(test, H)
         -- Shown on the page.
         ola:OpenJournal({ sideTabs = 4 })
         local page = ola:Page("Parken"):Open()
-        ok(page:Text("Lengste vennskap"))
-        ok(page:Text("Du kan adoptere det"))
+        -- The stage fenced as the pens are (2026-11-16, the user): four rails, a post at each corner and along them.
+        local fence = ola.ns.ParkPage.spot.fence
+        for _, side in ipairs({ "top", "bottom", "left", "right" }) do
+            ok(fence.rails[side]:IsShown(), side); eq(fence.rails[side].tex, ola.ns.Icon("plank"))
+        end
+        fence.scripts.OnSizeChanged(fence, 680, 156)
+        local posts, corners = 0, 0
+        for _, p in ipairs(fence.posts) do
+            if p:IsShown() then
+                posts = posts + 1
+                local x, y = p.points[1][4], p.points[1][5]
+                if (x == 2 or x == 678) and (y == -2 or y == -154) then corners = corners + 1 end
+            end
+        end
+        eq(corners, 4, "a post at each corner, once"); eq(posts, 2 * 9 + 2 * 1, "about every two cells")
+        -- On the stage's side (2026-11-16, the user: moved in from over the map, "shorter texts, with longer on
+        -- hover"): a label and a short value each, the full line in the tooltip; the legend under them.
+        local row = page:Row("Lengste vennskap")
+        ok(row, "the records on the stage")
+        ok(page:Text("Mjau hos Kari Berg"), "short: who and where")
+        match(ola:TipOf(row).text, "Lengste vennskap:|r Mjau hos Kari Berg, i ", "in full on hover")
+        ok(page:Text("Mest populære familie")); ok(page:Text("katter (2)"))
+        ok(page:Text("Kan adopteres", ola.ns.ParkPage.spot), "the legend")
+        no(page:Text("Lengste vennskap:"), "not over the map any more")
     end)
 
     test("no companion data: an empty map, no errors", function()
@@ -743,7 +892,9 @@ return function(test, H)
         match(Tip(ola, Cell(ola, 41)), "Kari Berg har dette dyret%.")
         local bombay = Tip(ola, Cell(ola, 40))
         no(bombay:find("Berg har", 1, true) or bombay:find("Hansen har", 1, true), "only Ola has a Bombay")
-        ok(page:Text("?: ingen har det ennå."), "the legend")
+        local legend = select(2, ola:Visible(ola.ns.L["park.legend.short.unknown"], page.frame))
+        ok(legend, "the legend, on the stage's side")
+        match(ola:TipOf(legend).text, "%?: ingen har det ennå%.", "in full on hover")
         local cell = Marks()[1]
         local tip = Tip(ola, cell)
         eq(tip, "??? / Ingen i guilden har funnet dette dyret ennå.")
@@ -778,6 +929,6 @@ return function(test, H)
         page:Open()
         eq(#Marks(), 0)
         eq(#Cells(ola), 7)
-        no(page:Text("ingen har det"))
+        no(page:Text(ola.ns.L["park.legend.short.unknown"]))
     end)
 end

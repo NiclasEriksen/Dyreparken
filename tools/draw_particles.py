@@ -775,32 +775,97 @@ def pond():
 
 
 def flowers():
-    """Three little clusters of flowers on leaves, no ground under them (a patch read as a blot, 2026-11-15)."""
+    """Three clusters of flowers, each on a rosette of broad leaves (2026-11-16, the user: "could use some grass
+    around it", then fine blades "just look hairy"; a patch of ground under them read as a blot, 2026-11-15)."""
     img = _rgba_canvas(); d = ImageDraw.Draw(img)
-    for (x, y), c in (((-0.38, 0.22), (235, 96, 96, 255)), ((0.32, 0.3), (250, 210, 80, 255)),
-                      ((0.0, -0.32), (186, 136, 236, 255))):
-        for a in (-0.9, 0.9):
-            _ell(d, x + 0.16 * math.cos(a - math.pi / 2), y - 0.12, 0.12, 0.06, (64, 120, 52, 255))
+    spots = (((-0.4, 0.3), (235, 96, 96, 255)), ((0.42, 0.26), (250, 210, 80, 255)), ((0.02, -0.38), (186, 136, 236, 255)))
+    for i, ((x, y), _) in enumerate(spots):  # the leaves: six pointed ovals round each cluster, two greens
+        for k in range(6):
+            t = k / 6 * 2 * math.pi + i * 0.5
+            cx, cy = x + 0.27 * math.cos(t), y + 0.27 * math.sin(t)
+            g = (62, 118, 46, 255) if k % 2 else (92, 150, 60, 255)
+            d.polygon([_q(v) for v in oval(cx, cy, 0.22, 0.1, t)], fill=g)
+    for (x, y), c in spots:
         for k in range(5):
             t = k / 5 * 2 * math.pi + 0.3
-            _ell(d, x + 0.1 * math.cos(t), y + 0.1 * math.sin(t), 0.075, 0.075, c)
-        _ell(d, x, y, 0.05, 0.05, (250, 236, 150, 255))
+            _ell(d, x + 0.15 * math.cos(t), y + 0.15 * math.sin(t), 0.12, 0.12, c)
+        _ell(d, x, y, 0.08, 0.08, (250, 236, 150, 255))
+    return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
+
+def signpost():
+    """A wooden signpost with three arrows (to the families' pens), a little shadow at its foot. As big on its
+    cell as the other pieces (2026-11-16, the user: "the scale of the different elements is a bit wonky")."""
+    img = _rgba_canvas(); d = ImageDraw.Draw(img)
+    _ell(d, 0.06, -0.84, 0.4, 0.11, (0, 0, 0, 90))
+    d.rectangle([*_q((-0.08, 0.7)), *_q((0.08, -0.86))], fill=(98, 66, 38, 255))
+    d.rectangle([*_q((-0.08, 0.7)), *_q((-0.02, -0.86))], fill=(140, 100, 60, 255))
+    for y, right, w, c in ((0.46, True, 0.78, (182, 132, 80)), (0.1, False, 0.72, (160, 114, 68)), (-0.26, True, 0.62, (182, 132, 80))):
+        s = 1 if right else -1
+        x0, x1 = -0.16 * s, (w - 0.16) * s
+        pts = [(x0, y + 0.14), (x1, y + 0.14), (x1 + 0.17 * s, y), (x1, y - 0.14), (x0, y - 0.14)]
+        d.polygon([_q(v) for v in pts], fill=(62, 40, 22, 255))
+        inner = [(x0 + 0.04 * s, y + 0.1), (x1, y + 0.1), (x1 + 0.12 * s, y), (x1, y - 0.1), (x0 + 0.04 * s, y - 0.1)]
+        d.polygon([_q(v) for v in inner], fill=c + (255,))
+    _ell(d, 0, 0.74, 0.1, 0.07, (70, 48, 28, 255))  # its cap
+    return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
+
+
+def bench():
+    """A park bench under a lamp post, filling its cell like the tree (the lamp's light at night is a glow the
+    addon lays over its head: ParkPage, Park.LAMP)."""
+    img = _rgba_canvas(); d = ImageDraw.Draw(img)
+    _ell(d, -0.14, -0.7, 0.8, 0.14, (0, 0, 0, 90))
+    for x in (-0.84, 0.44):  # legs
+        d.rectangle([*_q((x, -0.18)), *_q((x + 0.09, -0.7))], fill=(54, 46, 40, 255))
+    d.rectangle([*_q((-0.9, 0.24)), *_q((0.56, 0.06))], fill=(120, 80, 46, 255))  # the back rail
+    d.rectangle([*_q((-0.9, 0.24)), *_q((0.56, 0.18))], fill=(166, 116, 68, 255))
+    for k in range(3):  # the seat slats
+        y = -0.06 - k * 0.14
+        d.rectangle([*_q((-0.94 + k * 0.03, y)), *_q((0.6 - k * 0.03, y - 0.1))], fill=(156 - k * 14, 106 - k * 9, 62 - k * 5, 255))
+    d.rectangle([*_q((0.76, 0.66)), *_q((0.84, -0.74))], fill=(40, 40, 44, 255))  # the lamp post
+    _ell(d, 0.8, -0.76, 0.13, 0.05, (40, 40, 44, 255))
+    d.polygon([_q(v) for v in ((0.66, 0.66), (0.94, 0.66), (0.9, 0.9), (0.7, 0.9))], fill=(40, 40, 44, 255))
+    d.rectangle([*_q((0.72, 0.86)), *_q((0.88, 0.69))], fill=(250, 220, 140, 255))
+    d.polygon([_q(v) for v in ((0.64, 0.92), (0.96, 0.92), (0.8, 0.99))], fill=(40, 40, 44, 255))
+    return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
+
+
+def trough():
+    """A wooden feeding trough heaped with hay and a few carrots (2026-11-16, the user: the barrow "reads poorly,
+    make it a trough"): the keepers' round of the pens."""
+    img = _rgba_canvas(); d = ImageDraw.Draw(img)
+    _ell(d, 0.04, -0.52, 0.86, 0.16, (0, 0, 0, 90))
+    for x in (-0.7, 0.62):  # legs
+        d.rectangle([*_q((x, -0.2)), *_q((x + 0.1, -0.56))], fill=(80, 54, 30, 255))
+    # The box: a wide trapezoid of planks, a darker inside, the lit rim.
+    d.polygon([_q(v) for v in ((-0.9, 0.18), (0.9, 0.18), (0.76, -0.32), (-0.76, -0.32))], fill=(122, 82, 46, 255))
+    d.line([*_q((-0.84, -0.06)), *_q((0.84, -0.06))], fill=(96, 64, 36, 255), width=SS)
+    d.polygon([_q(v) for v in ((-0.82, 0.18), (0.82, 0.18), (0.78, 0.08), (-0.78, 0.08))], fill=(70, 46, 26, 255))
+    # The hay heaped over its rim, a few strands, two carrots.
+    _ell(d, -0.02, 0.22, 0.78, 0.2, (214, 180, 92, 255))
+    _ell(d, -0.2, 0.3, 0.4, 0.13, (236, 206, 118, 255))
+    _ell(d, 0.3, 0.27, 0.3, 0.1, (226, 194, 104, 255))
+    for x0, y0, x1, y1 in ((-0.6, 0.24, -0.4, 0.4), (-0.1, 0.38, 0.1, 0.24), (0.4, 0.22, 0.6, 0.36)):
+        d.line([*_q((x0, y0)), *_q((x1, y1))], fill=(178, 144, 68, 255), width=SS)
+    for x, a in ((0.18, 0.5), (0.52, -0.3)):
+        tip = (x + 0.22 * math.cos(a), 0.3 + 0.22 * math.sin(a))
+        d.polygon([_q(v) for v in ((x, 0.36), (x, 0.24), tip)], fill=(236, 120, 40, 255))
+        d.line([*_q((x, 0.3)), *_q((x - 0.1, 0.4))], fill=(80, 150, 60, 255), width=int(SS * 1.5))
+    # The front planks' lit edge.
+    d.line([*_q((-0.76, -0.32)), *_q((0.76, -0.32))], fill=(150, 104, 62, 255), width=SS)
     return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
 
 
 def stump():
     """A tree stump from above: bark round a cut face with its rings, a small shadow."""
     img = _rgba_canvas(); d = ImageDraw.Draw(img)
-    _ell(d, 0.08, -0.08, 0.66, 0.62, (0, 0, 0, 80))
-    _ell(d, 0, 0, 0.62, 0.6, (84, 56, 32, 255))
-    _ell(d, 0, 0, 0.52, 0.5, (196, 156, 104, 255))
-    for r in (0.4, 0.28, 0.16):
+    _ell(d, 0.08, -0.08, 0.8, 0.76, (0, 0, 0, 80))  # (as big as the tree, 2026-11-16: the scale was "wonky")
+    _ell(d, 0, 0, 0.76, 0.74, (84, 56, 32, 255))
+    _ell(d, 0, 0, 0.64, 0.62, (196, 156, 104, 255))
+    for r in (0.5, 0.36, 0.2):
         (x0, y1), (x1, y0) = P(-r, -r * 0.95), P(r, r * 0.95)
         d.ellipse([x0, y0, x1, y1], outline=(150, 112, 70, 255), width=SS)
     return _shrink(img.filter(ImageFilter.GaussianBlur(SS * 0.3)))
-
-
-TURF = 128  # px: one tile of Parken's pens, laid over TURF_CELLS cells each way (ParkPage, Park.Grain)
 
 
 def _wrap_noise(rnd, n, size):
@@ -834,7 +899,8 @@ def turf():
 
 
 COLORED = {"plank": plank, "post": post, "sign": sign, "tree": tree, "bush": bush, "pond": pond,
-           "flowers": flowers, "stump": stump, "turf": turf}
+           "flowers": flowers, "stump": stump, "turf": turf, "signpost": signpost, "bench": bench,
+           "trough": trough}
 
 
 def write_rgba(path, img):

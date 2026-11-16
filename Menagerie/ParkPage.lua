@@ -4,8 +4,7 @@ local ns = select(2, ...)
 -- "Parken": the park map, a page of the Collections window (a SidePage,
 -- see Core/SidePage.lua), next to the achievements.
 --
--- At the top, the park's records: the longest friendship, the most popular
--- family, the newest arrival. Below, every companion in Forever's journal
+-- Every companion in Forever's journal
 -- (Data/Companions.lua) as an icon: in color when it has a home, grey when
 -- it's looking for one, a gold glow on yours, and a green tick on free ones
 -- you own (you could adopt them). Hovering one tells its story; a click opens
@@ -58,18 +57,22 @@ ns.ParkPage = Park
 local CELL, ICON_SIZE = 40, 34
 local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
 
-local sp, page, child, records, legend, spot
+local sp, page, child, spot
 local cells = {}
 local signs, plots = {}, {} -- family -> its sign; the garden's cells, in order
 local spotT, cameraT = ns.Timers(), ns.Timers()
 -- (200 until 2026-11-15: the six rows of the map then overflowed by a few pixels, and a scrollbar showed
 -- with nothing to scroll)
-Park.SPOT_H = 180        -- the stage under the map
-Park.SCENE_W = 280       -- its model's part, at the left
+-- (180 until 2026-11-16, the user: "shrink the highlight stage by 10-15% to make more room for the map": 13%
+-- smaller, its view and shadow with it, so the pet stands as before, a little smaller)
+Park.SPOT_H = 156        -- the stage under the map
+Park.SCENE_W = 230       -- its model's part, at the left
+Park.SIDE_W = 200        -- the guild's records and the legend, at the right (2026-11-16, the user: moved in from over the map)
 -- The model's view in the stage: the pet frame's (0, 0, 84, -50 on 170 px) a third larger, so the pet
 -- stands as there, bigger (2026-11-15, the first look: small and off to the side). Tuned by eye.
--- (2026-11-16, the user: the pets "lowered (slightly)" once they stood on their feet: the view 10 lower, as tall)
-Park.VIEW = { 0, 0, 64, -78 } -- (its box the same 190 px as on the 200 px stage: the pet as big)
+-- (2026-11-16, the user: the pets "lowered (slightly)" once they stood on their feet: the view 10 lower, as tall;
+-- then all of it 13% smaller with the stage: 64, -78 on 180 px)
+Park.VIEW = { 0, 0, 56, -68 }
 -- The card's shadow under the pet (2026-11-16, the user: "add the same shadow from the pet journal"): pets
 -- stand on their feet now, every scene's floor set by eye on the card's shadow (Data/PetScenes.lua), so here
 -- too they all stand on one line. Where it is, by eye from the user's screenshots: feet 27 to 33 up the
@@ -77,7 +80,7 @@ Park.VIEW = { 0, 0, 64, -78 } -- (its box the same 190 px as on the 200 px stage
 -- high: "way too big and just looks silly"); then up to meet them, the pets 10 lower (the user: "the model
 -- lowered (slightly) and the shadow moved further up"). Centered under the pet: y is its middle, up from the
 -- scene's bottom.
-Park.SHADOW = { y = 40, w = 90, h = 16 }
+Park.SHADOW = { y = 35, w = 78, h = 14 } -- (40, 90, 16 on the 180 px stage)
 Park.SPOT_BACK = 1       -- seconds after the mouse leaves an icon, today's pet again
 Park.CAMERA_FOR = 2      -- the stage's camera runs this long after a change (PF.CAMERA_FOR)
 -- The filter: { text = lower-cased search, free = bool, adopt = bool }, for this session.
@@ -163,22 +166,31 @@ function Park:Records(now)
             if names[tag] then families[tag] = (families[tag] or 0) + 1 end
         end
     end
-    if not oldest then return { ns.L["park.empty"] } end
-    local lines = {}
-    lines[1] = ns.T("park.oldest", { pet = ns.Registry:NameOf(oldest.key), owner = oldest.owner,
-        time = ns.CaredFor(oldest.at, now) })
+    if not oldest then return { ns.L["park.empty"], short = { { ns.L["park.rec.empty"], "", ns.L["park.empty"] } } } end
+    -- The lines, and for the stage's side a short form of each: { label, value, the line in full (its tooltip) }.
+    local lines, short = {}, {}
+    lines.short = short
+    local function Add(label, value, line)
+        lines[#lines + 1] = line
+        short[#short + 1] = { ns.L[label], value, line }
+    end
+    local oldName = ns.Registry:NameOf(oldest.key)
+    Add("park.rec.oldest", ns.T("park.rec.who", { pet = oldName, owner = oldest.owner }),
+        ns.T("park.oldest", { pet = oldName, owner = oldest.owner, time = ns.CaredFor(oldest.at, now) }))
     local best, bestN
     for tag, n in pairs(families) do
         if not best or n > bestN or (n == bestN and names[tag] < names[best]) then best, bestN = tag, n end
     end
     if best then
-        lines[#lines + 1] = ns.T("park.family", { family = names[best], n = bestN })
+        Add("park.rec.family", ns.T("park.rec.families", { family = names[best], n = bestN }),
+            ns.T("park.family", { family = names[best], n = bestN }))
     end
     -- With one pet in the park, it's both the oldest and the newest: once is enough.
     if newest.key ~= oldest.key then
         local home = ns.Home(newest.owner, newest.at, now)
-        lines[#lines + 1] = ns.T("park.newest", { pet = ns.Registry:NameOf(newest.key),
-            home = home:sub(1, 1):lower() .. home:sub(2) })
+        local newName = ns.Registry:NameOf(newest.key)
+        Add("park.rec.newest", ns.T("park.rec.who", { pet = newName, owner = newest.owner }),
+            ns.T("park.newest", { pet = newName, home = home:sub(1, 1):lower() .. home:sub(2) }))
     end
     return lines
 end
@@ -471,36 +483,29 @@ end
 
 local function Redraw()
     local R = ns.Registry
-    local lines = Park:Records()
-    records:SetText(table.concat(lines, "\n"))
-    local top = 8 + records:GetStringHeight() + 8
-    legend:ClearAllPoints()
-    legend:SetPoint("TOPLEFT", child, "TOPLEFT", 8, -top)
-    top = top + 22
+    Park:Side(Park:Records())
+    local top = 8
     local width = child:GetWidth() or 659
     local cols = math.max(1, math.floor((width - 8) / CELL))
     local owned, me = ns.Pets:Owned(), ns.PlayerKey()
     local homes, matches = 0, 0
     local filtering = Park.Filtering()
     local keys = AllKeys()
-    local path, grid, rows = Park.Path(cols, #keys), {}, 0
+    local families = {}
+    for i, it in ipairs(keys) do families[i] = it.family end
+    local path, gardenCells, rows = Park.Layout(cols, families)
+    local grid = {}
+    for r = 0, rows - 1 do grid[r] = {} end
+    for _, at in ipairs(gardenCells) do grid[at[2]][at[1]] = "garden" end
     local groups = {} -- family -> { n, homes, matches, col, row (its first cell: the top row, then the left) }
     Park.groups = groups
     for i, it in ipairs(keys) do
         local col, row = path[i][1], path[i][2]
-        grid[row] = grid[row] or {}
         grid[row][col] = it.family
-        rows = math.max(rows, row + 1)
         local g = groups[it.family]
         if not g then g = { n = 0, homes = 0, matches = 0, col = col, row = row }; groups[it.family] = g end
         if row < g.row or (row == g.row and col < g.col) then g.col, g.row = col, row end
         g.n = g.n + 1
-    end
-    for row = 0, rows - 1 do -- (the garden: every cell no pet has, so the pets' fences meet its own)
-        for col = 0, cols - 1 do
-            grid[row] = grid[row] or {}
-            if grid[row][col] == nil then grid[row][col] = "garden" end
-        end
     end
     for i, it in ipairs(keys) do
         local c = cells[i] or NewCell()
@@ -548,30 +553,28 @@ local function Redraw()
     end
     for family, sg in pairs(signs) do if not groups[family] then sg:Hide() end end
     -- The empty cells: the park's garden, a pen of its own (its lawn the tint, its fences as the others':
-    -- loose pieces on bare ground read as clumsy, the user's look 2026-11-15), a piece on the first few.
+    -- loose pieces on bare ground read as clumsy, the user's look 2026-11-15), its pieces toward the middle.
+    local free = gardenCells
+    local pieces = Park.Middle(free)
     local n = 0
     local weather = Park.Weather()
-    for row = 0, rows - 1 do
-        for col = 0, cols - 1 do
-            if grid[row][col] == "garden" then
-                n = n + 1
-                local pl = plots[n] or Park.NewPlot()
-                pl:ClearAllPoints()
-                pl:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL, -(top + row * CELL))
-                Park.Pen(pl, "garden", Park.Fences(grid, col, row), col, row)
-                pl.piece = Park.DECOR[n]
-                pl.art:SetShown(pl.piece ~= nil)
-                pl:EnableMouse(pl.piece ~= nil) -- (bare lawn: the mouse goes through)
-                Park.Sky(pl, weather)
-                if pl.piece then pl.art:SetTexture(ns.Icon(pl.piece)) end
-                pl:Show()
-            end
-        end
+    for _, at in ipairs(free) do
+        local col, row = at[1], at[2]
+        n = n + 1
+        local pl = plots[n] or Park.NewPlot()
+        pl:ClearAllPoints()
+        pl:SetPoint("TOPLEFT", child, "TOPLEFT", 8 + col * CELL, -(top + row * CELL))
+        Park.Pen(pl, "garden", Park.Fences(grid, col, row), col, row)
+        pl.piece = pieces[n]
+        pl.art:SetShown(pl.piece ~= nil)
+        pl:EnableMouse(pl.piece ~= nil) -- (bare lawn: the mouse goes through)
+        Park.Sky(pl, weather)
+        if pl.piece then pl.art:SetTexture(ns.Icon(pl.piece)) end
+        pl:Show()
     end
     for i = n + 1, #plots do plots[i]:Hide() end
     child:SetHeight(top + rows * CELL + 8)
     Park:Spot(spot.hover or (ns.Bonds:PetOfTheDay()), true)
-    legend:SetText(Park.Legend())
     page.summary:SetText(("%d/%d"):format(homes, #keys))
     page.matches:SetText(filtering and ns.T("park.matches", { n = matches }) or "")
 end
@@ -600,7 +603,8 @@ function Park.Pen(c, family, fences, col, row)
     c.posts.bl:SetShown(f.bottom or f.left); c.posts.br:SetShown(f.bottom or f.right)
 end
 
--- A garden cell's weather: its lawn, a firefly at night, snow in December (each somewhere in the cell).
+-- A garden cell's weather: its lawn, a firefly at night (and the bench's lamp lit), snow in December (each
+-- somewhere in the cell).
 -- (Placed only as they come: a redraw, every letter typed in the search, moved the fireflies and started the
 -- snow over, the performance pass 2026-11-16.)
 function Park.Sky(pl, w)
@@ -625,7 +629,7 @@ function Park.Sky(pl, w)
         pl.snow.fall:Stop()
     end
     pl.snowing = w.snow
-    pl.snow:SetShown(w.snow)
+    pl.snow:SetShown(w.snow)    pl.lamp:SetShown(w.night and pl.piece == "bench") -- (its lamp lit from dusk on)
 end
 
 -- The tints: the pointer's family (lit) brighter, a family the filter leaves with nothing fainter.
@@ -748,9 +752,67 @@ function Park:ShowFamily(family)
     self:Refresh()
 end
 
--- The grid's empty cells, in order (a bit of park where the last band ends); the rest, past these, stay
--- empty (a small journal on a wide page would be all trees).
-Park.DECOR = { "tree", "pond", "flowers", "bush", "stump", "tree", "flowers" }
+-- The garden's pieces, on its cells nearest its middle (Park.Middle); the rest is lawn.
+-- (2026-11-16, the user: "a little generic ... more Dyreparken/Zoo/Sabeltann related, while also preserving the
+-- green space / common area look": a zoo walk's signpost, bench under a lamp and feed trough came; the big tree,
+-- the pond, the flowers and the stump stayed, the bush and the second tree went. A pirate ship on the pond
+-- "reads poorly", and so did a feed barrow. In this order nearest the garden's middle.)
+Park.DECOR = { "tree", "pond", "flowers", "bench", "signpost", "trough", "stump" }
+-- The garden: GARDEN_CELLS cells, always, in among the pets nearest the map's middle (Park.Layout; 2026-11-16, the
+-- user: "minimum space available for the decorations", then, seeing a whole band of it, "a little ridiculous
+-- (big), and not towards the middle of the cluster").
+Park.GARDEN_CELLS = 9
+
+-- Where everything goes, for pets of these families in order (families[i]) on a map cols wide: each pet's cell
+-- ({ col, row } by index), the garden's cells, and the rows. The garden is a run of the path (Park.Path) like a
+-- family's, so the families stay whole: it goes in between two families (or before the first, after the last),
+-- wherever its cells' middle comes nearest the map's. Cells past the last pet stay empty.
+function Park.Layout(cols, families)
+    local n, G = #families, Park.GARDEN_CELLS
+    local path = Park.Path(cols, n + G)
+    local rows = 0
+    for _, at in ipairs(path) do rows = math.max(rows, at[2] + 1) end
+    local mc, mr = (cols - 1) / 2, (rows - 1) / 2
+    local best, bestD
+    for b = 0, n do
+        if b == 0 or b == n or families[b] ~= families[b + 1] then
+            local x, y = 0, 0
+            for i = b + 1, b + G do x, y = x + path[i][1], y + path[i][2] end
+            x, y = x / G - mc, (y / G - mr) * 1.5 -- (a band's rows count more: across, the map is wide)
+            local d = x * x + y * y
+            if not bestD or d < bestD - 1e-9 then best, bestD = b, d end
+        end
+    end
+    local place, garden = {}, {}
+    for i = 1, n do place[i] = path[i <= best and i or i + G] end
+    for i = best + 1, best + G do garden[#garden + 1] = path[i] end
+    table.sort(garden, function(a, b) return a[2] < b[2] or (a[2] == b[2] and a[1] < b[1]) end)
+    return place, garden, rows
+end
+
+-- Which garden cell gets which piece: { [i] = piece } over free (the garden's cells, { col, row }, in reading
+-- order). The pieces go, in DECOR's order, on the cells nearest the garden's own middle (2026-11-16, the user:
+-- "place those more towards the centre"; until then the first cells, at one end).
+function Park.Middle(free)
+    if #free == 0 then return {} end
+    local mc, mr = 0, 0
+    for _, at in ipairs(free) do mc, mr = mc + at[1], mr + at[2] end
+    mc, mr = mc / #free, mr / #free
+    local order = {}
+    for i = 1, #free do order[i] = i end
+    local function D(i) local c, r = free[i][1] - mc, free[i][2] - mr; return c * c + r * r end
+    table.sort(order, function(a, b)
+        local da, db = D(a), D(b)
+        if da ~= db then return da < db end
+        return a < b
+    end)
+    local out = {}
+    for k, piece in ipairs(Park.DECOR) do
+        if not order[k] then break end
+        out[order[k]] = piece
+    end
+    return out
+end
 Park.LAWN = { 0.3, 0.55, 0.22, 0.22 } -- (r, g, b, a: its tint)
 
 -- The garden's secrets (2026-11-15, the user: "hidden details, like clicking a bush triggers an effect, so it
@@ -759,18 +821,24 @@ Park.LAWN = { 0.3, 0.55, 0.22, 0.22 } -- (r, g, b, a: its tint)
 -- A piece: { kind, n, color } (Decor.KINDS, as Fx:Burst takes them), and its surprise, the same.
 local GREEN, BROWN = { 0.55, 0.8, 0.3 }, { 0.62, 0.45, 0.28 }
 Park.GARDEN = {
-    tree = { kind = "leaf", n = 5, color = GREEN, -- a bird takes off: feathers, a song
-        surprise = { { kind = "feather", n = 3, color = { 0.95, 0.85, 0.7 } }, { kind = "note", n = 3, color = { 1, 0.85, 0.4 } } } },
-    bush = { kind = "leaf", n = 4, color = GREEN, -- a butterfly was resting in it
-        surprise = { { kind = "butterfly", n = 2, color = { 1, 0.75, 0.3 } } } },
-    pond = { kind = "bubble", n = 4, color = { 0.6, 0.85, 1 }, -- a frog sings (as the Musical Gustjumper's do)
-        surprise = { { kind = "lilypad", n = 2, color = { 0.45, 0.8, 0.4 } }, { kind = "note", n = 4, color = { 0.5, 1, 0.6 } } } },
-    flowers = { kind = "petal", n = 5, color = { 1, 0.7, 0.85 },
-        surprise = { { kind = "butterfly", n = 3, color = { 0.6, 0.8, 1 } } } },
-    stump = { kind = "crumb", n = 4, color = BROWN, -- a squirrel's hidden stash
-        surprise = { { kind = "seed", n = 6, color = { 0.8, 0.6, 0.35 } }, { kind = "paw", n = 2, color = BROWN } } },
+    -- (about 40% fewer of everything, 2026-11-16, the user: "too many particles in the garden ... reduced by 30-50%")
+    tree = { kind = "leaf", n = 3, color = GREEN, -- a bird takes off: feathers, a song
+        surprise = { { kind = "feather", n = 2, color = { 0.95, 0.85, 0.7 } }, { kind = "note", n = 2, color = { 1, 0.85, 0.4 } } } },
+    pond = { kind = "bubble", n = 2, color = { 0.6, 0.85, 1 }, -- a frog sings (as the Musical Gustjumper's do)
+        surprise = { { kind = "lilypad", n = 1, color = { 0.45, 0.8, 0.4 } }, { kind = "note", n = 2, color = { 0.5, 1, 0.6 } } } },
+    signpost = { kind = "chevron", n = 2, color = { 0.85, 0.65, 0.4 }, -- the arrows all point somewhere new
+        surprise = { { kind = "chevron", n = 4, color = { 1, 0.85, 0.4 } } } },
+    bench = { kind = "crumb", n = 2, color = BROWN, -- someone fed the pigeons: one lands
+        surprise = { { kind = "feather", n = 2, color = { 0.75, 0.75, 0.8 } }, { kind = "crumb", n = 2, color = BROWN } } },
+    trough = { kind = "grain", n = 2, color = { 0.95, 0.8, 0.4 }, -- a hungry visitor follows the feed
+        surprise = { { kind = "paw", n = 3, color = BROWN } } },
+    flowers = { kind = "petal", n = 3, color = { 1, 0.7, 0.85 },
+        surprise = { { kind = "butterfly", n = 2, color = { 0.6, 0.8, 1 } } } },
+    stump = { kind = "crumb", n = 2, color = BROWN, -- a squirrel's hidden stash
+        surprise = { { kind = "seed", n = 4, color = { 0.8, 0.6, 0.35 } }, { kind = "paw", n = 1, color = BROWN } } },
 }
 Park.SURPRISE_ONE = 8
+Park.LAMP = { 14, 13, 18 } -- the bench's lamp head on its 34 px art (x, y from the middle), its glow's size
 
 -- And a sound (2026-11-16, the user: "soft subtle pleasant ones ... soft knock on wood on the stump, herb pick
 -- sound on the flowers"): the game's own files, by id (the community listfile), the first of a piece's that
@@ -784,28 +852,19 @@ Park.SURPRISE_ONE = 8
 Park.SOUNDS = {
     stump = { 567566, 567576 },                -- putdownwoodsmall, pickupwoodsmall: a soft knock
     flowers = { 567552, times = 2 },           -- pickupherb
-    bush = { 567553, 567552, times = 2 },      -- putdownherb: a rustle of leaves
-    tree = { 567553, 567552, times = 2 },      -- (the same)
+    tree = { 567553, 567552, times = 2 },      -- putdownherb: a rustle of leaves
     pond = { 540262, 567555, times = 2 },      -- footstepssmallwatera: a little splash; else pickupwater_liquid01
+    signpost = { 567558, 567576 },             -- pickupwoodlarge, pickupwoodsmall: a wooden knock
+    bench = { 567567, 567566 },                -- putdownwoodlarge, putdownwoodsmall
+    trough = { 567559, 567570 },               -- putdownbag, putdownfoodgeneric: a soft sack of feed
 }
-Park.SURPRISE_SOUNDS = { tree = { 1067029, 1067030, 1067031, 1067032, 1067033, 1067034, 1067035, 1067036, 1067037,
-    1067038, channel = "Ambience" } }
--- The first of these that plays, from the start (or from a place by chance: shuffled), on the list's
--- channel, its `times`; its id, or nil.
-function Park.Sound(ids, shuffled)
-    if not ids or #ids == 0 then return nil end
-    local channel = ids.channel or "SFX"
-    local start = shuffled and math.random(#ids) or 1
-    for i = 0, #ids - 1 do
-        local id = ids[(start - 1 + i) % #ids + 1]
-        local ok, plays = pcall(PlaySoundFile, id, channel)
-        if ok and plays then
-            for _ = 2, ids.times or 1 do pcall(PlaySoundFile, id, channel) end
-            return id
-        end
-    end
-    return nil
-end
+local CHIRPS = { 1067029, 1067030, 1067031, 1067032, 1067033, 1067034, 1067035, 1067036, 1067037, 1067038,
+    channel = "Ambience" }
+Park.SURPRISE_SOUNDS = {
+    tree = CHIRPS,
+    bench = CHIRPS, -- (the pigeon)
+}
+Park.Sound = ns.PlaySoundFiles -- (Core/Init.lua)
 
 -- The garden by the clock and the calendar (2026-11-15, the user): the lawn by the season, darker at night
 -- (Scenes' sky: evening's dusk and night), fireflies at night, snow falling in December (Decor.DATES'
@@ -910,6 +969,14 @@ function Park.NewPlot()
     pl.firefly:SetSize(7, 7)
     pl.firefly:SetAlpha(0)
     pl.firefly.pulse = Park.Glint(pl.firefly, Park.FIREFLY_WAIT)
+    -- The bench's lamp, lit at night (Park.LAMP: where its head is on the art, from the middle).
+    pl.lamp = pl:CreateTexture(nil, "OVERLAY")
+    pl.lamp:SetTexture(ns.Icon("dot"))
+    pl.lamp:SetBlendMode("ADD")
+    pl.lamp:SetVertexColor(1, 0.8, 0.4, 0.9)
+    pl.lamp:SetSize(Park.LAMP[3], Park.LAMP[3])
+    pl.lamp:SetPoint("CENTER", pl, "CENTER", Park.LAMP[1], Park.LAMP[2])
+    pl.lamp:Hide()
     pl.snow = pl:CreateTexture(nil, "OVERLAY")
     pl.snow:SetTexture(ns.Icon("snowflake"))
     pl.snow:SetSize(7, 7)
@@ -998,6 +1065,31 @@ local function BuildSpot(inset)
     spot:SetPoint("BOTTOMRIGHT", inset, "BOTTOMRIGHT", -4, 4)
     spot.card = {}
     ns.Scenes:Build(spot.card, spot) -- (the card's backdrop: its picture, tint, light of the hour, edges)
+    -- Fenced all round as the pens are (2026-11-16, the user: "frame the highlight panel with the same fence we
+    -- use for pens"): their rails and posts, over the backdrop's edge (Park.StageFence lays them to its size).
+    local fence = CreateFrame("Frame", nil, spot)
+    fence:SetAllPoints()
+    fence:SetFrameLevel(spot:GetFrameLevel() + 6)
+    fence.rails, fence.posts = {}, {}
+    local t = Park.STAGE_FENCE
+    for _, side in ipairs({ "top", "bottom", "left", "right" }) do
+        local r = fence:CreateTexture(nil, "ARTWORK", nil, 1)
+        r:SetTexture(ns.Icon("plank"), "REPEAT", "CLAMP")
+        local across = side == "top" or side == "bottom"
+        local edge = side:upper()
+        if across then
+            r:SetHeight(t)
+            r:SetPoint(edge .. "LEFT", fence, edge .. "LEFT", 0, 0)
+            r:SetPoint(edge .. "RIGHT", fence, edge .. "RIGHT", 0, 0)
+        else
+            r:SetWidth(t)
+            r:SetPoint("TOP" .. edge, fence, "TOP" .. edge, 0, 0)
+            r:SetPoint("BOTTOM" .. edge, fence, "BOTTOM" .. edge, 0, 0)
+        end
+        fence.rails[side] = r
+    end
+    fence:SetScript("OnSizeChanged", function(self, w, h) Park.StageFence(self, w, h) end)
+    spot.fence = fence
     local scene = CreateFrame("ModelScene", nil, spot, "ModelSceneMixinTemplate")
     ns.Call(scene, "EnableMouse", false)
     ns.Call(scene, "EnableMouseWheel", false)
@@ -1008,7 +1100,7 @@ local function BuildSpot(inset)
     spot.card.floor:SetPoint("CENTER", scene, "BOTTOM", 0, Park.SHADOW.y)
     spot.card.floor:SetSize(Park.SHADOW.w, Park.SHADOW.h)
     spot.today = spot:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 24, -18)
+    spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 16, -18)
     spot.name = spot:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     spot.name:SetPoint("TOPLEFT", spot.today, "BOTTOMLEFT", 0, -6)
     spot.name:SetShadowColor(0, 0, 0, 1); spot.name:SetShadowOffset(1, -1)
@@ -1016,7 +1108,47 @@ local function BuildSpot(inset)
     spot.species:SetPoint("TOPLEFT", spot.name, "BOTTOMLEFT", 0, -4)
     spot.text = spot:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     spot.text:SetPoint("TOPLEFT", spot.species, "BOTTOMLEFT", 0, -8)
-    spot.text:SetPoint("RIGHT", spot, "RIGHT", -16, 0)
+    -- The side: the guild's records (a short line each, the full one on hover) and the legend, past a thin line.
+    local side = CreateFrame("Frame", nil, spot)
+    side:SetPoint("TOPRIGHT", spot, "TOPRIGHT", -16, -14)
+    side:SetPoint("BOTTOMRIGHT", spot, "BOTTOMRIGHT", -16, 14) -- (clear of the stage's fence)
+    side:SetWidth(Park.SIDE_W)
+    side.rule = side:CreateTexture(nil, "ARTWORK")
+    side.rule:SetColorTexture(1, 0.85, 0.6, 0.18)
+    side.rule:SetWidth(1)
+    side.rule:SetPoint("TOPRIGHT", side, "TOPLEFT", -10, 0)
+    side.rule:SetPoint("BOTTOMRIGHT", side, "BOTTOMLEFT", -10, 0)
+    side.recs = {}
+    for i = 1, 3 do
+        local r = CreateFrame("Frame", nil, side)
+        r:SetSize(Park.SIDE_W, 30)
+        r:SetPoint("TOPLEFT", side, "TOPLEFT", 0, -(i - 1) * 32)
+        r.label = r:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+        r.label:SetPoint("TOPLEFT")
+        r.value = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        r.value:SetPoint("TOPLEFT", r.label, "BOTTOMLEFT", 0, -2)
+        r.value:SetWidth(Park.SIDE_W)
+        r.value:SetJustifyH("LEFT")
+        r.value:SetWordWrap(false)
+        r:EnableMouse(true)
+        r:SetScript("OnEnter", function(self) ns.ShowTip(self, "ANCHOR_TOP", { { self.tip or "", 1, 1, 1, true } }) end)
+        r:SetScript("OnLeave", ns.HideTip)
+        side.recs[i] = r
+    end
+    side.legend = CreateFrame("Frame", nil, side)
+    side.legend:SetPoint("BOTTOMLEFT")
+    side.legend:SetSize(Park.SIDE_W, 30)
+    side.legend.text = side.legend:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    side.legend.text:SetPoint("BOTTOMLEFT")
+    side.legend.text:SetWidth(Park.SIDE_W)
+    side.legend.text:SetJustifyH("LEFT")
+    side.legend.text:SetSpacing(3)
+    side.legend.text:SetTextColor(0.8, 0.76, 0.66) -- (the disabled grey was hard to read, UX review 2026-11-11)
+    side.legend:EnableMouse(true)
+    side.legend:SetScript("OnEnter", function(self) ns.ShowTip(self, "ANCHOR_TOP", { { Park.Legend(), 1, 1, 1, true } }) end)
+    side.legend:SetScript("OnLeave", ns.HideTip)
+    spot.side = side
+    spot.text:SetPoint("RIGHT", side.rule, "LEFT", -12, 0)
     spot.text:SetJustifyH("LEFT")
     spot.text:SetSpacing(3)
     spot.hint = spot:CreateFontString(nil, "OVERLAY", "GameFontDisable")
@@ -1045,6 +1177,38 @@ local function BuildSpot(inset)
     -- The template's camera runs on every frame drawn: only a moment after a change (PF:Camera).
     local ok, fn = pcall(scene.GetScript, scene, "OnUpdate")
     spot.update = ok and type(fn) == "function" and fn or nil
+end
+
+-- The stage's fence laid to its size (w x h): the rails' planks repeated along them, as the pens' are (a
+-- quarter turned on the sides), and a post at each corner and about every two cells along each side.
+Park.STAGE_FENCE = Park.FENCE -- (6 at first: "too thick and encroaches on the text a bit", the user, 2026-11-16)
+function Park.StageFence(f, w, h)
+    if not (w and h and w > 0 and h > 0) then return end
+    for side, r in pairs(f.rails) do
+        local across = side == "top" or side == "bottom"
+        local n = (across and w or h) / Park.PLANK
+        if across then r:SetTexCoord(0, n, 0, 1) else r:SetTexCoord(0, 1, n, 1, 0, 0, n, 0) end
+    end
+    local at, half = {}, Park.STAGE_FENCE / 2
+    local function Along(x0, y0, x1, y1, ends) -- (ends: its corners too; the sides' are the top's and bottom's)
+        local k = math.max(1, math.floor(math.max(math.abs(x1 - x0), math.abs(y1 - y0)) / (CELL * 2) + 0.5))
+        for i = ends and 0 or 1, ends and k or k - 1 do at[#at + 1] = { x0 + (x1 - x0) * i / k, y0 + (y1 - y0) * i / k } end
+    end
+    Along(half, -half, w - half, -half, true); Along(half, -(h - half), w - half, -(h - half), true)
+    Along(half, -half, half, -(h - half)); Along(w - half, -half, w - half, -(h - half))
+    for i, p in ipairs(at) do
+        local post = f.posts[i]
+        if not post then
+            post = f:CreateTexture(nil, "ARTWORK", nil, 2)
+            post:SetTexture(ns.Icon("post"))
+            post:SetSize(Park.POST, Park.POST)
+            f.posts[i] = post
+        end
+        post:ClearAllPoints()
+        post:SetPoint("CENTER", f, "TOPLEFT", p[1], p[2])
+        post:Show()
+    end
+    for i = #at + 1, #f.posts do f.posts[i]:Hide() end
 end
 
 local function Camera()
@@ -1099,7 +1263,21 @@ function Park:Spot(key, again)
     local h = spot.today:GetStringHeight() + 6 + spot.name:GetStringHeight() + 4 + spot.species:GetStringHeight()
         + 8 + spot.text:GetStringHeight()
     spot.today:ClearAllPoints()
-    spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 24, -math.max(10, (self.SPOT_H - h) / 2))
+    spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 16, -math.max(14, (self.SPOT_H - h) / 2))
+end
+
+-- The stage's side: the records' short lines (Park:Records(), its .short), the legend.
+function Park:Side(lines)
+    local side = spot and spot.side
+    if not side then return end
+    for i, r in ipairs(side.recs) do
+        local rec = lines.short and lines.short[i]
+        r:SetShown(rec ~= nil)
+        if rec then
+            r.label:SetText(rec[1]); r.value:SetText(rec[2]); r.tip = rec[3]
+        end
+    end
+    side.legend.text:SetText(Park.LegendShort())
 end
 
 -- The mouse left an icon: today's pet again, in a moment (the next icon's hover cancels it).
@@ -1160,13 +1338,6 @@ local function Build(p)
     page.adopt = Toggle(page, "adopt", page.free.label)
     local inset
     child, inset = ns.SidePage:ScrollInset(p, nil, Park.SPOT_H + 6)
-    records = child:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-    records:SetPoint("TOPLEFT", child, "TOPLEFT", 8, -8)
-    records:SetPoint("RIGHT", child, "RIGHT", -8, 0)
-    records:SetJustifyH("LEFT")
-    legend = child:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    legend:SetTextColor(0.8, 0.76, 0.66) -- (the disabled grey was hard to read, UX review 2026-11-11)
-    legend:SetText(Park.Legend())
     BuildSpot(inset)
 end
 
@@ -1178,10 +1349,18 @@ sp = ns.SidePage:New({
     refresh = Redraw,
 })
 
--- The line over the map: what the colors mean, and the question mark while unknown pets are hidden.
+-- What the map's marks mean, and the question mark while unknown pets are hidden: in full (the legend's
+-- tooltip), and short, two lines under the records on the stage's side.
 function Park.Legend()
     local text = ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) })
     if ns.Settings:On("hideUnknown") then text = text .. "  " .. ns.L["park.legend.unknown"] end
+    return text
+end
+function Park.LegendShort()
+    local function Dot(c) return ("|T%s:10:10:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(ns.Icon("dot"), c[1], c[2], c[3]) end
+    local text = ns.T("park.legend.short", { home = Dot({ 255, 200, 60 }), free = Dot({ 140, 140, 140 }),
+        icon = ("|T%s:12|t"):format(READY) })
+    if ns.Settings:On("hideUnknown") then text = text .. "   " .. ns.L["park.legend.short.unknown"] end
     return text
 end
 

@@ -120,6 +120,8 @@ and refuses the push if it fails.
   and `egg.<id>.<trait|family>.N`. Its activity is watched for it (Quirks.WATCH is built from the eggs). Ids are permanent.
 - **An activity**: a row in `Activity.KINDS`, a source, `activity.<id>`; `dislike.<id>.N` if anything can dislike it.
 - **A family**: in `Scenes.ORDER` and a row in each table the content spec names.
+- **A companion**: tools/companions/README.md, "Adding a companion" (its data, traits, moves' lengths, where it
+  stands, its sound row). Parken's map grows by itself (rows by the count; the garden Park.GARDEN_CELLS, near the middle).
 - Lines: `ns.PickLine(prefix, vars)`; a pet's own line: `ns.PetSays(text, key, kind)`.
 
 ## Releasing
@@ -199,6 +201,9 @@ Data/PetScenes.lua where pets stand and how tall (Moves.FRAMING: placed by their
                    model scene, ns.PetModels per model (pets sharing one share their box in Data/PetBoxes.lua,
                    Moves.ModelOf; a model's row goes first), per stage (park and frame fall back to the card's),
                    EDITED BY HAND from /dp probe place (a model at a time)
+Data/PetSounds.lua the pets' own sounds when clicked on the card (Cuddle; setting petSounds): sets of sound files,
+                   and a row per species (a set or false: quiet; every species needs one, 34_touches), EDITED BY HAND
+                   by ear (/dp probe sound); a new companion's row: tools/companions/README.md
 Data/Zones.lua     zones, one row each (level, faction, capital, climate, high, neutral, home families), EDITED BY
                    HAND: Personality's climates and cities, Quirks.HOME_ZONES, Wish.ZONES, Sense's capitals are views
 Data/Unlocks.lua   every species' minor like and minor dislike (your bond unlocks them at levels 4 and 6), PINNED
@@ -283,13 +288,13 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    groups only, timelines in steps (never Alpha delays inside a step), one playing group per region
                    (holder frame: path; inner frame: sway; texture: spin/tilt/throb), no BOUNCE loops (REPEAT steps that
                    come home instead), stopped when hidden),
-                   ParkPage ("Parken", the park map SidePage: records, every journal companion as a round portrait (or a question
+                   ParkPage ("Parken", the park map SidePage: every journal companion as a round portrait (or a question
                    mark for one nobody in the guild has: Owners, Park.Unknown; a click wiggles it) (Pets:Portrait, also
                    the list's icons) in a ring of its holder's bond level, grouped by family into tinted enclosures on a grained ground (Media turf, one tile over four cells) with wooden fences (one on each line between two), a sign on
                    each (its family's mark; hover: name and homes; click: only that family), the pointer's family lit (and its sign), the
-                   empty cells a fenced garden (lawn, tree, pond, flowers, stump; a click on a piece: a hop and a few particles, one in eight a surprise of its own, Park.GARDEN, nothing saved or told; every piece clicked within 15 s: the whole garden at once; by the clock and calendar, Park.Weather: the season's lawn, darker with fireflies at night, snow in December, autumn's orange leaves; /dp probe garden <hour> [month] to look)
+                   a fenced garden of Park.GARDEN_CELLS cells in among them (a run of the path between two families, nearest the map's middle: Park.Layout; its pieces nearest its own middle; lawn, tree, pond, flowers in grass, a bench under a lamp lit at night, signpost, feed trough, stump (2026-11-16: a zoo walk); a click on a piece: a hop and a few particles, one in eight a surprise of its own, Park.GARDEN, nothing saved or told; every piece clicked within 15 s: the whole garden at once; by the clock and calendar, Park.Weather: the season's lawn, darker with fireflies at night, snow in December, autumn's orange leaves; /dp probe garden <hour> [month] to look)
                    along one path through the grid (Park.Path: each family one piece; a sign clicked swings on its post, the chosen one bigger and gilded; your own pet's cell sends out paw prints now and then), a click opens its card on the Pets page (also pets you
-                   don't own); under the map a stage with today's pet, or the one hovered, as a live model (Pets:LoadModel);
+                   don't own); under the map a stage with today's pet, or the one hovered, as a live model (Pets:LoadModel), fenced as the pens are (Park.StageFence), and at its right the guild's records and the legend, short, in full on hover (Park:Side);
                    loads after Achievements/Page.lua so its tab comes second),
                    PetFrame (the pet that's out on screen; mounted or on a flight path the last one out, else the one kept out (Med deg), none while
                    you're dead, optional and off by default: its own ModelScene with the card's view
@@ -329,7 +334,7 @@ Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble,
                    pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home; cake, Cake.lua;
                    since 2026-11-12 the pet frame's bubbles speechblank, thought, shout and rain, the families' yarn
                    (cats), petal (plants), shell (murlocs), and the traits' banana, mask, sun, badge; 2026-11-15 Parken's
-                   fences, plank and post, its sign, tree, bush, pond, flowers and stump, in color, not white, and the pens' ground, turf (a seamless grain, near white, tinted); the signs'
+                   fences, plank and post, its sign, tree, bush, pond, flowers and stump (and since 2026-11-16 signpost, bench, trough; bush unused), in color, not white, and the pens' ground, turf (a seamless grain, near white, tinted); the signs'
                    marks snake, cheese, horseshoe, lilypad, egg):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.
@@ -343,7 +348,7 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    made with { from = "v0.7.1" } runs that release's own code from git (an older client: spec/65_owners.lua;
                    CI's checkout fetches the tags for it).
                    Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
-                   place|lift|moves|gains|api|sense|perf|garden] and /dp debug, only when ns.DEV; place: the
+                   place|lift|moves|gains|api|sense|perf|garden|sound] and /dp debug, only when ns.DEV; place: the
                    per-scene floor and size editor, PlaceEditor.lua, picks in DyreparkenDB.placePicks); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); Try (/dp try egg|react|dislike|line|wish:
                    a line now, by nature, nothing counted); Perf (/dp probe perf: calls and time per
                    handler, through ns.profile, the one hook Events, Bus and Activity check; a release leaves it nil); PetsProbe (/dp probe, more, ach);
