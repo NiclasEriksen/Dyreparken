@@ -16,6 +16,7 @@ local ns = select(2, ...)
 --   cardParticles  "all", "few" or "none" on the pet card
 --   cardMoves      the pet on the card moves (asleep, hops, walks...)
 --   celebrate      the bond level-up celebration on the card
+--   petSounds      a click on the pet on its card plays its own sound (2026-11-16, on by default: Cuddle)
 --   petFrame       the pet frame on screen (off by default; placed and sized in Edit Mode: PetFrame.lua)
 --   petFrameArt    its background and border (off by default: it floats)
 --   petFrameCombat hidden in combat; petFrameFade faded to petFrameAlpha (0.25) when nothing happens (2026-11-11)
@@ -87,6 +88,7 @@ local ROWS = {
     { key = "settings.moves", setting = "cardMoves",
         set = function(v) Set("cardMoves", v); ns.PetFrame:Apply() end },
     { key = "settings.celebrate", setting = "celebrate" },
+    { key = "settings.petsounds", setting = "petSounds" },
     { head = "settings.head.frame" },
     { key = "settings.petframe", get = function() return ns.PetFrame:Enabled() end,
         set = function(v) Set("petFrame", v); ns.PetFrame:Apply() end },

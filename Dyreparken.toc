@@ -41,6 +41,7 @@ Data\PetMoves.lua
 Data\AnimLengths.lua
 Data\PetBoxes.lua
 Data\PetScenes.lua
+Data\PetSounds.lua
 Data\Creatures.lua
 Data\Zones.lua
 

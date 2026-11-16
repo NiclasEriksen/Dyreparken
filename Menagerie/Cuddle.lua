@@ -4,7 +4,7 @@ local ns = select(2, ...)
 -- Pet it on the card (2026-11-08): a click on the pet (not a drag, which
 -- turns the model) answers quietly where you clicked: a ripple, a few small
 -- hearts rising (every other one the pet's own particle), and a warm glow
--- flaring under the pet; a soft sound. No
+-- flaring under the pet; a sound, its own (Data/PetSounds.lua) or a soft click. No
 -- text (a speech bubble read badly, the user decided). Once a day it's a
 -- cuddle for the bond too (the activity "cuddle", as /pet would be), when
 -- the card shows a pet of yours that's out (any pet, adopted or not: the user, 2026-11-12).
@@ -28,8 +28,21 @@ function Cuddle:OnPet(model, x, y)
     return fx >= a[1] and fx <= a[2] and fy >= a[3] and fy <= a[4]
 end
 local CLICK_PX, CLICK_S = 5, 0.4 -- a click: moved less than this, shorter than this
--- The sound: the first of these the client knows.
+-- The sound: the pet's own (Data/PetSounds.lua, 2026-11-16: the setting "petSounds"), at most one every
+-- SOUND_GAP seconds; else, and for a pet with none, the first of these soft clicks the client knows.
 Cuddle.SOUNDS = { "IG_CHARACTER_INFO_TAB", "IG_MAINMENU_OPTION_CHECKBOX_ON" }
+Cuddle.SOUND_GAP = 1.2
+
+-- The pet's own sound, if it has one and the setting is on: the file played, or nil.
+function Cuddle:PetSound(key)
+    if not ns.Settings:On("petSounds") then return nil end
+    if self.soundAt and GetTime() - self.soundAt < self.SOUND_GAP then return nil end
+    local P = ns.PetSounds
+    local set = P.SETS[P.SPECIES[ns.Pets:SpeciesOfKey(key) or 0] or ""]
+    local id = ns.PlaySoundFiles(set, true)
+    if id then self.soundAt = GetTime() end
+    return id
+end
 
 local OneShot, Fade = ns.Anim.OneShot, ns.Anim.Fade
 
@@ -126,7 +139,7 @@ function Cuddle:Pet(card, x, y)
     end
     d.hearts = ns.Fx:Emit(o, hearts)
     d.glow:Show(); d.glow.anim:Play()
-    ns.PlayFirstSound(self.SOUNDS)
+    if not self:PetSound(key) then ns.PlayFirstSound(self.SOUNDS) end
     ns.Moves:Cuddle(key) -- (wakes it, or a happy hop)
     -- Once a day, a cuddle for the bond: the pet that's out with you, any of yours.
     local today = ns.Today()

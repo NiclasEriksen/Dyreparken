@@ -34,6 +34,68 @@ return function(test, H)
         eq(ola.petActor.anim, 756, "and the hop plays on")
     end)
 
+    -- The user, 2026-11-16: "click-reactions to trigger a random sound suitable for that companion".
+    test("a click on the pet plays its own sound, one of its set; a soft click between, for a pet without one, or with the setting off", function()
+        local w, ola = Card(3, 2, 14)
+        local P = ola.ns.PetSounds
+        local card = ola:SelectPet(5159)
+        local set, mine = P.SETS.panda, {}
+        for _, id in ipairs(set) do mine[id] = true end
+        eq(P.SPECIES[5159], "panda")
+        local function Files() return #(ola.soundFiles or {}) end
+        local function Clicks() return #(ola.sounds or {}) end
+        ola.ns.Cuddle:Pet(card)
+        eq(Files(), 1); ok(mine[ola.soundFiles[1]], "the panda's")
+        eq(ola.soundChannels[1], "SFX")
+        eq(Clicks(), 0, "not the soft click as well")
+        -- Clicked again at once: the soft click, not another of its sounds on top.
+        ola.ns.Cuddle:Pet(card)
+        eq(Files(), 1); eq(Clicks(), 1)
+        -- Later, another: by chance, so over many clicks more than one of the set.
+        local heard = {}
+        for _ = 1, 30 do
+            w:Run(ola.ns.Cuddle.SOUND_GAP + 0.1)
+            ola.ns.Cuddle:Pet(card)
+            heard[ola.soundFiles[Files()]] = true
+        end
+        eq(Files(), 31)
+        local n = 0
+        for id in pairs(heard) do ok(mine[id]); n = n + 1 end
+        ok(n > 1, "a random one of its set")
+        -- None of its files on this client: the soft click.
+        ola.missingSounds = mine
+        w:Run(2); ola.ns.Cuddle:Pet(card)
+        eq(Files(), 31); eq(Clicks(), 2)
+        ola.missingSounds = nil
+        -- The setting off: only the soft click.
+        ola.ns.DB.global.settings.petSounds = false
+        w:Run(2); ola.ns.Cuddle:Pet(card)
+        eq(Files(), 31); eq(Clicks(), 3)
+        ola.ns.DB.global.settings.petSounds = true
+        -- A pet without a set: the soft click.
+        P.SPECIES[5159] = nil
+        w:Run(2); ola.ns.Cuddle:Pet(card)
+        eq(Files(), 31); eq(Clicks(), 4)
+    end)
+
+    test("the pets' sounds: every species in the journal's data has a row, a set of file ids or quiet", function()
+        local w, ola = H.Setup{ ola = { 40 } }
+        local P, species = ola.ns.PetSounds, ola.ns.Companions.species
+        local used = {}
+        for sid in pairs(species) do
+            ok(P.SPECIES[sid] ~= nil, "species " .. sid .. " has no row in Data/PetSounds.lua (a set's name, or false)")
+        end
+        for sid, name in pairs(P.SPECIES) do
+            ok(species[sid], "species " .. sid)
+            if name then ok(P.SETS[name], sid .. ": no set " .. tostring(name)); used[name] = true end
+        end
+        for name, set in pairs(P.SETS) do
+            ok(#set > 0, name)
+            for _, id in ipairs(set) do ok(type(id) == "number" and id > 0, name) end
+            ok(used[name], name .. ": no pet uses it")
+        end
+    end)
+
     test("a cuddle's hearts come with the pet's own particle", function()
         local w, ola = Card(3, 2, 14, { "dykker" })
         local card = ola:SelectPet(5159)

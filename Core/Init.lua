@@ -98,6 +98,25 @@ function ns.PlayFirstSound(names)
     return nil
 end
 
+-- Sound files by id (2026-11-16: Parken's garden, the pets' own sounds): the first of these that plays, from
+-- the start (or from a place by chance: shuffled, a look, so math.random), on the list's channel (`channel`,
+-- else SFX), `times` at once (PlaySoundFile has no volume: the same file started in one frame adds up); a file
+-- the client lacks is passed by (PlaySoundFile says whether it will play). Its id, or nil.
+function ns.PlaySoundFiles(ids, shuffled)
+    if not ids or #ids == 0 then return nil end
+    local channel = ids.channel or "SFX"
+    local start = shuffled and math.random(#ids) or 1
+    for i = 0, #ids - 1 do
+        local id = ids[(start - 1 + i) % #ids + 1]
+        local ok, plays = pcall(PlaySoundFile, id, channel)
+        if ok and plays then
+            for _ = 2, ids.times or 1 do pcall(PlaySoundFile, id, channel) end
+            return id
+        end
+    end
+    return nil
+end
+
 -- A method call that may not exist on this client (or on the harness's strict frames, where the
 -- lookup itself throws): ok, its results; false if obj or the method is missing or it errors.
 function ns.Call(obj, method, ...)

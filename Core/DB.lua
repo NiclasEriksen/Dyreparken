@@ -41,7 +41,7 @@ local ACCOUNT_DEFAULTS = {
     unlisted = {}, -- [speciesID] = { t, how, name, owner }: companions not in Data/Companions.lua, told once
     -- [Settings]
     settings = { -- the account's settings
-        chatter = "normal", worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true,
+        chatter = "normal", worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true, petSounds = true,
         petFrame = false, petFrameArt = false, -- (the pet frame and its background and border: off unless chosen, PetFrame.lua)
         petFrameCombat = false, petFrameFade = false, petFrameAlpha = 0.25, -- (hidden in combat; faded when nothing happens, to this)
     },

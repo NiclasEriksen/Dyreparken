@@ -33,7 +33,33 @@ local PROBES = {
     { "sense", function(a) ns.Commands.Sense(a) end, "[off]" },
     { "perf", function(a) ns.Perf:Command(a) end, "[on|off|show]" },
     { "garden", function(a) ns.Commands.Garden(a) end, "<hour> [month]|off" },
+    { "sound", function(a) ns.Commands.Sound(a) end, "[species id|set|quiet]" },
 }
+
+-- /dp probe sound: a pet's own sound (Data/PetSounds.lua), to check by ear: the card's pet (none given), a
+-- species id, or a set by name; each time another of its files. quiet: the species that have none.
+function ns.Commands.Sound(arg)
+    local P = ns.PetSounds
+    arg = arg and arg:match("^%s*(.-)%s*$") or ""
+    if arg == "quiet" then
+        local quiet = {}
+        for sid in pairs(ns.Companions.species) do
+            if not P.SPECIES[sid] then quiet[#quiet + 1] = ("%d %s"):format(sid, ns.Pets:NameOfKey("s:" .. sid) or "?") end
+        end
+        table.sort(quiet)
+        ns.Print(("sound: %d quiet: %s"):format(#quiet, table.concat(quiet, ", ")))
+        return
+    end
+    local sid = tonumber(arg)
+    if arg == "" then
+        local card = rawget(_G, "PetJournalPetCard")
+        sid = card and card.speciesID
+    end
+    local name = sid and P.SPECIES[sid] or (not sid and P.SETS[arg] and arg)
+    local id = name and ns.PlaySoundFiles(P.SETS[name], true)
+    ns.Print(("sound: %s %s: %s"):format(sid and ("species " .. sid) or "set", tostring(name),
+        id and ("file " .. id) or "nothing played"))
+end
 
 -- /dp probe garden: Parken's garden at another hour and month (night's fireflies, December's snow, the
 -- seasons' lawns), through ParkPage.override, which a release leaves nil; off: the clock again.
