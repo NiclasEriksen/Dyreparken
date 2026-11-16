@@ -63,6 +63,7 @@
 ---@field PetModels any Data/PetScenes.lua
 ---@field PetMoves any Data/PetMoves.lua
 ---@field PetScenes any Data/PetScenes.lua
+---@field PetSounds any Data/PetSounds.lua
 ---@field Pets Dyreparken.Pets Menagerie/Pets.lua
 ---@field PlaceEditor Dyreparken.PlaceEditor Dev/PlaceEditor.lua
 ---@field Playdate Dyreparken.Playdate Menagerie/Playdate.lua
