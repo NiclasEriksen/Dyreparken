@@ -182,7 +182,7 @@ return function(test, H)
         -- "All of them": 13 missing, 12 shown.
         match(Tooltip(ola, Row(P, "count:all")), "%.%.%. og 1 til$")
         -- A count tier lists nothing.
-        eq(Tooltip(ola, Row(P, "count:10")), "Ti små indianere\nHa 10 dyr.\n2/10")
+        eq(Tooltip(ola, Row(P, "count:10")), "Ti på taket\nHa 10 dyr.\n2/10")
         -- Earned: the date, no list.
         ola:GivePet(42); ola:GivePet(46)
         ola.ns.Achievements:Check("test")

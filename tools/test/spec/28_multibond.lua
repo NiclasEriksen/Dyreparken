@@ -89,7 +89,7 @@ return function(test, H)
         eq(b.label.text, "Kamerat", "the holder's bond"); eq(b.level.text, 2)
         eq(b.next.text, "Kari Berg sitt bånd")
         match(b.yours.text, "Ditt: Bekjent %(1%)$")
-        match(ola:TipOf(b).text, "Ditt eget bånd med dyret: Bekjent %(level 1%), 20 poeng%.")
+        match(ola:TipOf(b).text, "Ditt bånd med dyret: Bekjent %(level 1%), 20 poeng%.")
         match(card.decor.sig, "^s:46;2;", "the decorations follow the holder's bond")
         -- The list (only your own pets) keeps your progress.
         local lists = ola.ns.JournalList._badges

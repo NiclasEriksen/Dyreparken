@@ -117,7 +117,7 @@ return function(test, H)
         ola.state.professions[4][2] = 225
         ola:SelectPet(68)
         ok(W:Today().done)
-        ok(ola:Printed("Du har lært alt trenerne kan lære deg nå, og Great Horned Owl er stolt av deg. Ønsket er oppfylt! (+10 båndpoeng)", true))
+        ok(ola:Printed("Du har lært alt trenerne kan lære deg, og Great Horned Owl er stolt av deg. Ønsket er oppfylt! (+10 båndpoeng)", true))
         eq(ola.ns.DB.char.wishes.n, 1)
         no(W:Watching(), "never the explore events")
     end)
