@@ -320,6 +320,13 @@ local function Flavor(d, key, text)
     ns.Bus:Fire("BOND_LINE", key, text, "like")
 end
 
+-- The line for a liked activity: one of its own (activity.<id>.flavor and its variants, ns.Lines), else
+-- the plain "koste seg med ...".
+function Bond.LikedLine(id, name)
+    return ns.PickLine("activity." .. id .. ".flavor", { pet = name })
+        or ns.T("bond.liked", { pet = name, activity = ns.Personality.NOUN[id] })
+end
+
 -- The rewards beyond activities, each a line and points (Config names: read
 -- when given, so a tunable change applies at once). once: at most one a day
 -- per pet. lines: at most that many lines a day per pet (the points go on).
@@ -425,8 +432,7 @@ function Bond:OnActivity(id, n, key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then
         per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
-        flavor = P.FLAVOR[id] and ns.Fill(P.FLAVOR[id], { pet = name })
-            or ns.T("bond.liked", { pet = name, activity = P.NOUN[id] })
+        flavor = Bond.LikedLine(id, name)
         -- Home by name (2026-11-10): the inn you're bound to (GetBindLocation works on Forever: /dp probe api, 2026-11-11).
         local home = id == "hearth" and type(GetBindLocation) == "function" and ns.Plain(GetBindLocation())
         if type(home) == "string" and home ~= "" then flavor = ns.T("activity.hearth.flavor_home", { pet = name, home = home }) end
@@ -436,7 +442,7 @@ function Bond:OnActivity(id, n, key)
         for _, t in ipairs(ok and P:Fitting(key, ctx) or {}) do
             if (d.got["trait:" .. t.id] or 0) < Scaled(C.BOND_TRAIT_CAP) then -- (at the pet's rate, as the room below)
                 capKey, per, cap = "trait:" .. t.id, C.BOND_LIKED_POINTS, C.BOND_TRAIT_CAP
-                flavor = ns.Fill(t.flavor, { pet = name })
+                flavor = ns.PickLine("trait." .. t.id .. ".flavor", { pet = name })
                 break
             end
         end
@@ -446,8 +452,7 @@ function Bond:OnActivity(id, n, key)
     if minor and capKey == id then
         per, cap = C.BOND_MINOR_POINTS, C.BOND_MINOR_CAP
         if not d.got[capKey] and ns.random() < ns.Settings:Chance(Bond.MINOR_FLAVOR, "flavor") then
-            flavor = P.FLAVOR[id] and ns.Fill(P.FLAVOR[id], { pet = name })
-                or ns.T("bond.liked", { pet = name, activity = P.NOUN[id] })
+            flavor = Bond.LikedLine(id, name)
         end
     end
     per, cap = Scaled(per), Scaled(cap)
@@ -456,6 +461,8 @@ function Bond:OnActivity(id, n, key)
     local other = capKey == id and not likes[id] and not minor
     if other then room = math.min(room, Scaled(C.BOND_OTHER_TOTAL) - (d.got.other or 0)) end
     if room <= 0 then return nil end
+    -- A small rep gain (a kill's few points) gives its points quietly; the day's line waits for a big one.
+    if id == "rep" and (ns.Activity.gained.rep or 0) < C.REP_LINE_MIN then flavor = nil end
     local points = math.min(per * n, room)
     d.got[capKey] = (d.got[capKey] or 0) + points
     if other then d.got.other = (d.got.other or 0) + points end

@@ -351,6 +351,7 @@ function Activity.FormatPattern(fmt)
     return pat
 end
 -- together: lines within this many seconds of the last one counted are the same gain.
+Activity.gained = {} -- id -> the biggest number in its last gain's chat lines (rep: how much)
 local function ChatSource(id, event, global, together)
     local pattern, last
     Activity:Source({ id = id, events = { event },
@@ -359,12 +360,20 @@ local function ChatSource(id, event, global, together)
             text = Plain(text)
             pattern = pattern or Activity.FormatPattern(_G[global])
             if type(text) ~= "string" or not pattern then return nil end
-            local name = text:match(pattern)
+            local name, amount = text:match(pattern)
             if not name then return nil end
+            if not together then return 1, name end
+            -- One gain's lines (a quest's several factions) are one activity, said once they're all in, with
+            -- the biggest of them (Activity.gained: Bond says nothing of a small rep gain, 2026-11-17).
+            amount = tonumber(amount) or 0
             local now = GetTime()
-            if together and last and now - last < together then return nil end
-            last = now
-            return 1, name
+            if last and now - last < together then
+                Activity.gained[id] = math.max(Activity.gained[id] or 0, amount)
+                return nil
+            end
+            last, Activity.gained[id] = now, amount
+            C_Timer.After(together, function() Activity:Emit(id, 1, name) end)
+            return nil
         end })
 end
 -- Your own roll of 1-100 (2026-11-10, the user: "Hjelp Plask rolls 1 (1-100)"), by

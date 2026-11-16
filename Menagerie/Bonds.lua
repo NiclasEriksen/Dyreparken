@@ -242,12 +242,11 @@ function Bonds:PatText()
 end
 
 -- The pet answers a pat in its family's voice, for you only (2026-11-10):
--- Locale voice.<family>; a family without one says nothing.
+-- Locale voice.<family> (and its variants, ns.Lines); a family without one says nothing.
 function Bonds:Voice(key, name)
     for _, family in ipairs(key and ns.Scenes:Families(key) or {}) do
-        if ns.Strings["voice." .. family] then
-            return ns.T("voice." .. family, { pet = name })
-        end
+        local line = ns.PickLine("voice." .. family, { pet = name })
+        if line then return line end
     end
 end
 

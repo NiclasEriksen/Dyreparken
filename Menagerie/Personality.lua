@@ -27,15 +27,13 @@ ns.Personality = Personality
 
 local L = ns.L
 
--- Activities (Activity.KINDS) as players read them: the noun, the line for
--- the first liked one of the day, and how it reads in a trait's effect,
+-- Activities (Activity.KINDS) as players read them: the noun, and how it reads in a trait's effect,
 -- where "X med kjæledyret ute" doesn't say enough (Locale/nb.lua: activity.*,
 -- effect.activity.*; each only where it's written).
-Personality.NOUN, Personality.FLAVOR, Personality.EFFECT = {}, {}, {}
+Personality.NOUN, Personality.EFFECT = {}, {}
 for _, k in ipairs(ns.Activity.KINDS) do
     local id, S = k.id, ns.Strings
     Personality.NOUN[id] = L["activity." .. id]
-    if S["activity." .. id .. ".flavor"] then Personality.FLAVOR[id] = L["activity." .. id .. ".flavor"] end
     if S["effect.activity." .. id] then Personality.EFFECT[id] = L["effect.activity." .. id] end
 end
 

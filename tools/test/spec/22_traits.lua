@@ -162,7 +162,7 @@ return function(test, H)
         local start = ola:Points(PANDA)
         Chat(ola, "CHAT_MSG_TEXT_EMOTE", "You dance with Panda Cub.", ola.env.UnitGUID("player"))
         eq(ola:Points(PANDA), start + 5)
-        ok(ola:Printed("Panda Cub danset med deg!", true))
+        ok(ola:PrintedLine("activity.dance.flavor", { pet = "Panda Cub" }))
         eq(P:Line(PANDA), "Dansefot og Kosete · liker herbs, fisking, dansing og kos")
         eq(P:Effect(P.ById("kjaelen")), "/pet, /hug eller /cuddle på dyret gir 5 båndpoeng (opptil 25 om dagen), mot 1 ellers.")
         -- Let go, it's still the pet kept out (Hold ute): still watched. Unticked: dropped; the
@@ -211,6 +211,24 @@ return function(test, H)
         for _, chip in ipairs(card.stats.chips) do if chip:IsShown() and chip.id == "dive" then found = chip end end
         ok(found, "a dive chip"); eq(found.icon.tex, "Interface\\Icons\\Spell_Shadow_DemonBreath")
     end)
+    test("a liked rep gain: points for any, a line in chat only from REP_LINE_MIN", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Traits{ "diplomat", "kosete" }
+        ola:Slash("adopter panda")
+        w:Run(40)
+        ola:ClearPrinted()
+        local start = ola:Points(PANDA)
+        ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with Stormwind increased by 25.")
+        w:Run(ola.ns.Activity.REP_TOGETHER + 0.1)
+        ok(ola:Points(PANDA) > start, "a liked gain, small: its points")
+        no(ola:PrintedLine("activity.rep.flavor", { pet = "Panda Cub" }), "but nothing said")
+        w:Run(ola.ns.Activity.REP_TOGETHER + 0.1)
+        ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with Stormwind increased by 20.")
+        ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with Ironforge increased by " .. ola.ns.Config.REP_LINE_MIN .. ".")
+        w:Run(ola.ns.Activity.REP_TOGETHER + 0.1)
+        ok(ola:PrintedLine("activity.rep.flavor", { pet = "Panda Cub" }), "a big one (the biggest of one gain's lines)")
+    end)
+
     test("skill-ups and reputation, read from the client's own chat lines", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         local A = ola.ns.Activity
@@ -221,18 +239,16 @@ return function(test, H)
         ola:Fire("CHAT_MSG_SKILL", "Your skill in Swords is now Journeyman.") -- not a skill-up
         ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with Stormwind increased by 25.")
         ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Your Stormwind reputation has decreased by 25.")
+        eq(A:Count("rep"), 0, "a gain waits for the rest of its lines")
+        w:Run(A.REP_TOGETHER + 0.1)
         eq(table.concat(seen, ","), "skill:Swords,rep:Stormwind")
         eq(A:Count("skill"), 1); eq(A:Count("rep"), 1)
         -- One quest, several factions at once (Steamwheedle, 2026-11-12): one gain; a later one counts.
         for _, f in ipairs({ "Booty Bay", "Everlook", "Gadgetzan", "Ratchet" }) do
             ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with " .. f .. " increased by 75.")
         end
-        eq(A:Count("rep"), 1, "within moments of Stormwind's: the same gain")
         w:Run(A.REP_TOGETHER + 0.1)
-        for _, f in ipairs({ "Booty Bay", "Everlook", "Gadgetzan", "Ratchet" }) do
-            ola:Fire("CHAT_MSG_COMBAT_FACTION_CHANGE", "Reputation with " .. f .. " increased by 75.")
-        end
-        eq(A:Count("rep"), 2, "the next quest's: one more")
+        eq(A:Count("rep"), 2, "one quest's: one more")
         eq(A.FormatPattern("Din %1$s økte til %2$d."), "^Din (.+) økte til (%d+)%.$", "positional formats too")
         -- Without the format string the client can't say: unavailable, quietly.
         ola.env.SKILL_RANK_UP = nil

@@ -215,9 +215,36 @@ function ns.Variants(prefix)
     return list
 end
 
--- One variant of a line at random (ns.random), filled; nil when it has none.
+-- The player's class and race as the line keys spell them (UnitClass's and UnitRace's file names, lower case:
+-- "warrior", "nightelf", "scourge"); kept once read.
+local own
+local function Own()
+    if not own then
+        local class = UnitClass and ns.Plain((select(2, UnitClass("player"))))
+        local race = UnitRace and ns.Plain((select(2, UnitRace("player"))))
+        if type(class) ~= "string" then return nil end
+        own = { class = class:lower(), race = type(race) == "string" and race:lower() or nil }
+    end
+    return own.class, own.race
+end
+
+-- Every text a line can be, as keys (2026-11-17, the user: more variety in what the pets say): the bare key
+-- when it has one text, its variants (prefix.N), and the player's own, mixed in with the rest:
+-- prefix.class.<class>.N and prefix.race.<race>.N (a mage's pet has a mage's lines too).
+function ns.Lines(prefix)
+    local list = {}
+    if strings[prefix] then list[1] = prefix end
+    local function Add(p) for _, k in ipairs(ns.Variants(p)) do list[#list + 1] = k end end
+    Add(prefix)
+    local class, race = Own()
+    if class then Add(prefix .. ".class." .. class) end
+    if race then Add(prefix .. ".race." .. race) end
+    return list
+end
+
+-- One of a line's texts at random (ns.random, ns.Lines), filled; nil when it has none.
 function ns.PickLine(prefix, vars)
-    local list = ns.Variants(prefix)
+    local list = ns.Lines(prefix)
     if #list == 0 then return nil end
     return ns.T(list[ns.random(#list)], vars)
 end
@@ -300,6 +327,8 @@ ns.Config = {
     BOND_OTHER_POINTS = 1,        -- any other activity with it out
     BOND_OTHER_CAP = 3,           -- ... at most this many a day per activity (5 until 2026-11-10)
     BOND_OTHER_TOTAL = 10,        -- ... and all of them together (2026-11-10: likes are what fill a day)
+    REP_LINE_MIN = 100,           -- a reputation gain the pet says something about in chat (2026-11-17, the user: a
+                                  -- kill's few points shouldn't; the points and the wish count any gain)
     BOND_TRAIT_CAP = 10,          -- a trait's moment (Friluftsdyr outdoors...): this many a day per trait (25 until 2026-11-10)
     BOND_OTHER_RATE = 0.5,        -- a pet you own but haven't adopted earns this share (points rounded up, its day 37)
     REPORT_TO = "Hjelp Plask",    -- who to tell about a companion we don't know (Unlisted.lua; the user's pick, 2026-11-14)

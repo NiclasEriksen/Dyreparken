@@ -101,6 +101,22 @@ return function(test, H)
         end
     end)
 
+    test("a line's texts: the bare key, its variants, and the player's class's and race's mixed in", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        c.state.class, c.state.race = "MAGE", "NightElf"
+        w:Run(5)
+        local ns, L = c.ns, c.ns.L
+        L["t.line"] = "bare"; L["t.line.1"] = "one"; L["t.line.2"] = "two"
+        L["t.line.class.mage.1"] = "mage"; L["t.line.class.warrior.1"] = "warrior"
+        L["t.line.race.nightelf.1"] = "elf"; L["t.line.race.nightelf.3"] = "a gap: never"
+        eq(table.concat(ns.Lines("t.line"), " "), "t.line t.line.1 t.line.2 t.line.class.mage.1 t.line.race.nightelf.1")
+        local seen = {}
+        for pick = 1, 5 do c:Dice(0, pick); seen[#seen + 1] = ns.PickLine("t.line") end
+        eq(table.concat(seen, " "), "bare one two mage elf")
+        eq(#ns.Lines("t.none"), 0); eq(ns.PickLine("t.none"), nil)
+    end)
+
     test("placeholders are named: no printf codes left in the texts", function()
         local w = H.World()
         local c = w:AddClient("Ola Nord")

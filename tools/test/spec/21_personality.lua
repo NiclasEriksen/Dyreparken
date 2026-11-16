@@ -21,6 +21,18 @@ return function(test, H)
 
     local function Herb(c) c:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast-1", 2366) end
 
+    -- How many printed lines are one of these lines' texts (the panda's; ns.Lines: a line may have variants).
+    local function Liked(c, ...)
+        local texts, n = {}, 0
+        for _, prefix in ipairs({ ... }) do
+            for _, key in ipairs(c.ns.Lines(prefix)) do texts[#texts + 1] = c.ns.T(key, { pet = "Panda Cub" }) end
+        end
+        for _, l in ipairs(c.printed) do
+            for _, t in ipairs(texts) do if l:find(t, 1, true) then n = n + 1; break end end
+        end
+        return n
+    end
+
     -- Give a client's pets these traits (by id), whatever the species.
     local function Give(c, ...) c:Traits{ ... } end
 
@@ -148,7 +160,7 @@ return function(test, H)
         w:SetGroup({ "Ola Nord", "Kari Berg" })
         Quest()
         eq(ola:Points(PANDA), start + 7)
-        ok(ola:Printed("Panda Cub koste seg i flokken!", true))
+        ok(ola:PrintedLine("trait.flokkdyr.flavor", { pet = "Panda Cub" }))
         for _ = 1, 3 do Quest() end
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
         eq(ola:Points(PANDA), start + 14, "one cap for the trait (10), whatever the activity; then the everyday 1s")
@@ -156,9 +168,7 @@ return function(test, H)
         ola.state.instance = "party"
         Quest()
         eq(ola:Points(PANDA), start + 19)
-        local lines = 0
-        for _, l in ipairs(ola.printed) do if l:find("Panda Cub", 1, true) and l:find("!", 1, true) then lines = lines + 1 end end
-        eq(lines, 1, "still one line a day")
+        eq(Liked(ola, "trait.flokkdyr.flavor", "trait.huleboer.flavor"), 1, "still one line a day")
         -- A battleground isn't a dungeon.
         ola.state.instance = "pvp"
         w:SetGroup({ "Ola Nord", "Per Ukjent" })
@@ -234,16 +244,14 @@ return function(test, H)
         eq(ola:Points(PANDA), 20, "Klengete: a day counts double")
         Herb(ola)
         eq(ola:Points(PANDA), 25, "a liked activity: 5")
-        ok(ola:Printed("Panda Cub koste seg med herbs!", true))
+        ok(ola:PrintedLine("activity.herb.flavor", { pet = "Panda Cub" }))
         for _ = 1, 10 do Herb(ola) end
         eq(ola:Points(PANDA), 45, "at most 25 a day from herbs")
         ola:Fire("QUEST_TURNED_IN", 1)
         eq(ola:Points(PANDA), 46, "anything else: 1")
         for _ = 1, 10 do ola:Fire("QUEST_TURNED_IN", 1) end
         eq(ola:Points(PANDA), 48, "at most 3 a day")
-        local lines = 0
-        for _, l in ipairs(ola.printed) do if l:find("koste seg", 1, true) then lines = lines + 1 end end
-        eq(lines, 1, "one line a day")
+        eq(Liked(ola, "activity.herb.flavor"), 1, "one line a day")
         -- A new day.
         w:SkipDays(1)
         Herb(ola)

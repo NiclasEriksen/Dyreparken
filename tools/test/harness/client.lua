@@ -351,6 +351,14 @@ function Client:Printed(pattern, plain)
         if self.printed[i]:find(pattern, 1, plain) then return self.printed[i] end
     end
 end
+-- One of a line's texts (any of ns.Lines(prefix), filled with vars) printed: lines with variants are picked
+-- at random, so a test asks for the line, not one text of it.
+function Client:PrintedLine(prefix, vars)
+    for _, key in ipairs(self.ns.Lines(prefix)) do
+        local hit = self:Printed(self.ns.T(key, vars), true)
+        if hit then return hit end
+    end
+end
 function Client:ClearPrinted() self.printed = {} end
 
 function Client:Slash(text) return Hardware(self, self.env.SlashCmdList.DYREPARKEN, text) end
