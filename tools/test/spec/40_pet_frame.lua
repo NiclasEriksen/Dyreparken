@@ -121,8 +121,23 @@ return function(test, H)
         eq(b:GetParent(), env.UIParent, "not the frame's child")
         local p = b.points[#b.points]
         eq(p[2], env.UIParent, "anchored where the frame is, not to it")
-        eq(p[1], f.points[1][1]); eq(p[4], f.points[1][4]); eq(p[5], f.points[1][5])
-        eq(b.size[1], f.size[1]); eq(b.size[2], f.size[2])
+        -- Over the part that takes the mouse (2026-11-16, the user: "shrink the clickable box"): the frame less
+        -- PF.HIT, without the art; at the frame's CENTER, half the top's inset lower.
+        local H = PF.HIT
+        eq(p[1], f.points[1][1]); eq(p[4], f.points[1][4] + (H[1] - H[2]) / 2); eq(p[5], f.points[1][5] + (H[4] - H[3]) / 2)
+        eq(b.size[1], f.size[1] - H[1] - H[2]); eq(b.size[2], f.size[2] - H[3] - H[4])
+        ok(b.size[1] < PF.W and b.size[2] < PF.H + PF.FOOT, "smaller than the frame")
+        -- The frame's own click layer and Edit Mode's highlight: the same box.
+        for _, layer in ipairs({ f.click, f.edit }) do
+            eq(layer.points[1][4], H[1]); eq(layer.points[1][5], -H[3])
+            eq(layer.points[2][4], -H[2]); eq(layer.points[2][5], H[4])
+        end
+        -- With the art: the whole box it draws.
+        ola.ns.DB.global.settings.petFrameArt = true; PF:Apply()
+        eq(b.size[1], f.size[1]); eq(b.size[2], f.size[2]); eq(b.points[#b.points][5], f.points[1][5])
+        eq(f.click.points[1][4], 0)
+        ola.ns.DB.global.settings.petFrameArt = false; PF:Apply()
+        eq(b.size[1], f.size[1] - H[1] - H[2])
         ok(b:TakesClick("LeftButton", true), "the down, as ActionButtonUseKeyDown (1) says ...")
         no(b:TakesClick("LeftButton", false), "... and only that: one action a click")
         ola:Press(b); w:Run(0.1)
@@ -246,7 +261,7 @@ return function(test, H)
         eq(f:GetScale(), 0.7, "(and a stray scroll changes nothing)")
         ok(b:IsShown(), "back over the frame ...")
         local p = b.points[#b.points]
-        eq(p[1], "TOPLEFT"); eq(p[2], env.UIParent); eq(p[4], 40); eq(p[5], -50)
+        eq(p[1], "TOPLEFT"); eq(p[2], env.UIParent); eq(p[4], 40 + PF.HIT[1]); eq(p[5], -50 - PF.HIT[3])
         eq(b:GetScale(), 0.7, "... where it went, as big")
         -- Kept: after a reload it stands there.
         ola:Reload(); w:Run(15)

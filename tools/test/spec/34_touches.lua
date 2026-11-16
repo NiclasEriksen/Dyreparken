@@ -78,6 +78,20 @@ return function(test, H)
         eq(Files(), 31); eq(Clicks(), 4)
     end)
 
+    -- The user, 2026-11-16: the pets stand by their feet and are smaller on average, "shrink that one as well".
+    test("a click pets the pet only around where it stands on the card: the middle, above its shadow", function()
+        local w, ola = H.Setup{ ola = { 40 } }
+        local C = ola.ns.Cuddle
+        local m = ola.env.CreateFrame("Frame")
+        m.geo = { l = 100, r = 500, t = 500, b = 100 } -- (400 x 400 on the screen, scale 1)
+        ok(C:OnPet(m, 300, 250), "on the pet")
+        for _, at in ipairs({ { 300 - 0.25 * 400, 250, "left of it" }, { 300 + 0.25 * 400, 250, "right of it" },
+            { 300, 100 + 0.08 * 400, "under its shadow" }, { 300, 100 + 0.7 * 400, "high over it" } }) do
+            no(C:OnPet(m, at[1], at[2]), at[3])
+        end
+        ok(C.AREA[2] - C.AREA[1] <= 0.4 and C.AREA[4] <= 0.6, "smaller than it was (0.22-0.78 across, up to 0.75)")
+    end)
+
     test("the pets' sounds: every species in the journal's data has a row, a set of file ids or quiet", function()
         local w, ola = H.Setup{ ola = { 40 } }
         local P, species = ola.ns.PetSounds, ola.ns.Companions.species

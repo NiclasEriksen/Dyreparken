@@ -16,7 +16,10 @@ local HEARTS = 4
 -- Where a click pets the pet (2026-11-10): the area Blizzard frames every pet
 -- in, as fractions of the model scene (left, right, bottom, top). The client
 -- can't say where the pet itself is (docs/FOREVER_API.md), so one area for all.
-Cuddle.AREA = { 0.22, 0.78, 0.04, 0.75 }
+-- (2026-11-16, the user: the pets stand on the card's shadow by their feet and are smaller on average now,
+-- "shrink that one as well": the middle two fifths across, from just under the shadow to a little over the
+-- tallest; until then 0.22, 0.78, 0.04, 0.75. By eye from a card screenshot: to check in game.)
+Cuddle.AREA = { 0.3, 0.7, 0.12, 0.6 }
 
 -- Is the cursor (screen pixels) in that area of the model scene?
 function Cuddle:OnPet(model, x, y)

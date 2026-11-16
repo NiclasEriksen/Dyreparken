@@ -42,6 +42,11 @@ PF.VIEW_BOTTOM = -50    -- ... to 50 below it
 -- the scene reaches this far past its sides and top, taking no mouse, with the view kept where it
 -- was so the pet stays the same size. Not with the frame art: the pet stays within the border.
 PF.DRAW_X, PF.DRAW_TOP = 60, 80
+-- What takes the mouse without the art (the click, the secure button, Edit Mode's highlight and drag): the frame
+-- less these (left, right, top, bottom; 2026-11-16, the user: the pets stand by their feet and are smaller on
+-- average now, "shrink the clickable box"). The frame, its saved spot and the pet's view stay as they were, so
+-- nobody's pet moves. With the art, the whole box it draws.
+PF.HIT = { 40, 40, 50, 0 }
 PF.DEFAULT_POINT = { "CENTER", "CENTER", -380, -160 }
 PF.ZZZ_EVERY = 2.5      -- seconds between the Zzz over a sleeping pet
 PF.ZZZ_AT = { 22, 66 }  -- where they rise from: right of the middle, about head height in the card's view
@@ -132,7 +137,7 @@ function PF:Build()
     ns.Edges(edit, 2, { 0.45, 0.75, 1, 1 })
     edit.label = edit:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
     edit.label:SetPoint("TOP", edit, "TOP", 0, -8)
-    edit.label:SetWidth(self.W - 16)
+    edit.label:SetWidth(self.W - 16) -- (PF:Hit narrows it with the box)
     edit:Hide()
     f.edit = edit
 
@@ -226,6 +231,36 @@ function PF:Draw(wide)
     scene:SetPoint("TOPLEFT", self.frame, "TOPLEFT", -x, top)
     scene:SetSize(self.W + 2 * x, self.H + top)
     self:Insets()
+    self:Hit()
+end
+
+-- The part of the frame that takes the mouse: { left, right, top, bottom } in from its edges.
+function PF:HitInsets()
+    if (self.drawX or 0) > 0 then return self.HIT end -- (without the art: the pet drawn past the frame)
+    return { 0, 0, 0, 0 }
+end
+
+-- Where a box set in by these insets has its `point`, from where the frame has it (the secure button is
+-- anchored by the frame's own point, on UIParent: PF:Sync).
+function PF.HitOffset(point, insets)
+    local l, r, t, b = insets[1], insets[2], insets[3], insets[4]
+    local dx = point:find("LEFT") and l or point:find("RIGHT") and -r or (l - r) / 2
+    local dy = point:find("TOP") and -t or point:find("BOTTOM") and b or (b - t) / 2
+    return dx, dy
+end
+
+-- The click layer and Edit Mode's highlight on the part that takes the mouse; the secure button follows (Sync).
+function PF:Hit()
+    local f = self.frame
+    if not (f and f.click) then return end
+    local h = self:HitInsets()
+    for _, layer in ipairs({ f.click, f.edit }) do
+        layer:ClearAllPoints()
+        layer:SetPoint("TOPLEFT", f, "TOPLEFT", h[1], -h[3])
+        layer:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -h[2], h[4])
+    end
+    f.edit.label:SetWidth(self.W - h[1] - h[2] - 16)
+    self:Sync()
 end
 
 -- The card's view, wherever the scene reaches: the same box as on a frame of W x H.
@@ -670,10 +705,15 @@ function PF:Sync()
         return
     end
     local point, _, rel, x, y = f:GetPoint(1)
+    local h = self:HitInsets()
+    local w, ht = f:GetSize()
     b:ClearAllPoints()
     b:SetScale(f:GetScale())
-    b:SetSize(f:GetSize())
-    if point then b:SetPoint(point, UIParent, rel, x, y) end
+    b:SetSize(w - h[1] - h[2], ht - h[3] - h[4])
+    if point then
+        local dx, dy = PF.HitOffset(point, h)
+        b:SetPoint(point, UIParent, rel, x + dx, y + dy)
+    end
     b:RegisterForClicks(Clicks())
     local drive = rawget(_G, "RegisterStateDriver")
     if ns.Settings:Get("petFrameCombat") == true and drive and undrive then
