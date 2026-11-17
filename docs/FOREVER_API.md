@@ -474,7 +474,11 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   `UnitRangedDamage("player")` answers (0 speed without a ranged weapon). `START/STOP_AUTOREPEAT_SPELL` register fine
   (unseen: no ranged weapon); `PLAYER_TARGET_SET_ATTACKING` doesn't exist.
   Since 2026-11-14 the misses and resists eggs (Activity "misses", "resisted") read `MISS`, `DODGE`, `PARRY` and
-  `RESIST` from it; `MISS` and `DODGE` were seen, **`PARRY` and `RESIST` (a fully resisted spell) are unverified**.
+  `RESIST` from it; `MISS` and `DODGE` were seen, **`RESIST` (a fully resisted spell) is unverified**. `PARRY` seen
+  2026-11-17 (Uldaman, a shaman in a party of five, 1.60.1): ~250 `UNIT_COMBAT` lines, `WOUND` (also `CRITICAL`,
+  `BLOCK_REDUCED`), `HEAL`, `PARRY` on the target, `MISS`, `DODGE` on you, never a `RESIST` (shocks cast all along).
+  In the same run the glance sensor read party members plainly inside the instance (name, class, race, level), and
+  the group sensor once listed two members as "?" (secret or not yet loaded, at the group's forming).
 - **The layout cache** (2026-11-12, 1.60.1, from Logs/AccountData.log): a named frame moved with `StartMoving` is
   user-placed, and the client saves its spot itself ("Frame: DyreparkenPetFrame", anchor, x, y), to restore it
   before our code runs. A frame that keeps its own spot calls `SetUserPlaced(false)` after a drag. `EditModeManagerFrame` and Blizzard's EditMode*Mixin tables exist.
