@@ -313,15 +313,17 @@ return function(test, H)
     end)
 
     test("requests anyone can send are answered at most once per channel every few seconds", function()
-        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        local w, ola = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        ola:Slash("adopter panda")
+        w:Run(40)
         local m = w:Mark()
-        for _ = 1, 5 do w:InjectMessage("Per Hansen", { k = "VER_REQ", p = ola.ns.PROTOCOL }, "GUILD") end
+        for _ = 1, 5 do w:InjectMessage("Per Hansen", { k = "BOND_REQ", p = ola.ns.PROTOCOL, pet = PANDA }, "GUILD") end
         w:Run(3)
-        eq(w:Sent("VER", "Ola Nord", m), 1)
+        eq(w:Sent("BOND", "Ola Nord", m), 1)
         w:Run(6)
-        w:InjectMessage("Per Hansen", { k = "VER_REQ", p = ola.ns.PROTOCOL }, "GUILD")
+        w:InjectMessage("Per Hansen", { k = "BOND_REQ", p = ola.ns.PROTOCOL, pet = PANDA }, "GUILD")
         w:Run(2)
-        eq(w:Sent("VER", "Ola Nord", m), 2, "after the gap, again")
+        eq(w:Sent("BOND", "Ola Nord", m), 2, "after the gap, again")
     end)
 
     test("under our pages the card rests: no updates, no animations, no celebration spent unseen", function()

@@ -184,6 +184,67 @@ since OWN=11
 since OWN_SYNC=11
 digest owns=Ola Nord<31>1793500070<31>40,5159
 ]],
+        -- 12 (2026-11-17): the answers to 0.2.x clients gone (VER_REQ, VER, PET_REQ: their protocol, 9, had been under
+        -- the floor since 0.6.0, so none of it reached us), and Version's HELLO taken from the guild only by `from`.
+        -- No newer kind: the floor stays 10.
+        [12] = [[
+kind ACH from=GUILD fields=a:table
+kind ACH_EARNED from=GUILD fields=a:table
+kind BOND from=GUILD fields=e:table,pet:key
+kind BOND_REQ from=GUILD fields=pet:key
+kind GATHER from=GROUP fields=
+kind HELLO from=GUILD fields=
+kind HELLO from=GUILD fields=
+kind HELLO from=GUILD fields=
+kind LAPSE from=GUILD fields=l:table
+kind NICK from=GUILD fields=e:table,pet:key
+kind OWN from=GUILD fields=e:table
+kind OWN_SYNC from=GUILD fields=o:table
+kind PLAY from=GROUP fields=pet:key
+kind SYNC from=GUILD fields=
+kind UPD from=GUILD fields=r:table
+limit ACH_ID_LEN=64
+limit ACH_ID_PATTERN=^guild:[%w:_]+$
+limit DAY=86400
+limit GUILD_UNKNOWN_MAX=64
+limit KEY_LEN=64
+limit LAPSES_MAX=1000
+limit LIFE_SPARE_DAYS=3
+limit MAX_PARTS=64
+limit MAX_RAW=524288
+limit NAME_LEN=48
+limit NICK_BYTES_PER_CHAR=4
+limit OWNS_LEN=4096
+limit OWNS_MAX=512
+limit VERSION_LEN=32
+config BOND_DAILY_MAX=75
+config BOND_EPOCH=1793487600
+config CLOCK_SLACK=300
+config NICKNAME_MAX_LEN=20
+config SYNC_MAX_ENTRIES=2000
+level 1=0
+level 2=100
+level 3=270
+level 4=530
+level 5=900
+level 6=1440
+level 7=2250
+store r part=1 nested=false count=true
+store l part=1 nested=false count=true
+store a part=1 nested=false count=false
+store n part=2 nested=true count=true
+store b part=3 nested=true count=true
+digest r=cOla Nord<31>1793500010<31>1793500000<31>s:5159
+digest l=lOla Nord<31>1793500020
+digest a=aguild:family:cat<31>1793500030<31>1793500040
+digest n=ns:5159<31>Ola Nord<31>1793500050<31>Bambus<31>
+digest b=bs:5159<31>Ola Nord<31>3
+bond dayroom=85
+protocol floor=10
+since OWN=11
+since OWN_SYNC=11
+digest owns=Ola Nord<31>1793500070<31>40,5159
+]],
     }
 
     local CONFIG = { "BOND_DAILY_MAX", "BOND_EPOCH", "CLOCK_SLACK", "NICKNAME_MAX_LEN", "SYNC_MAX_ENTRIES" }

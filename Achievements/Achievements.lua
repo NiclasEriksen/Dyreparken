@@ -315,7 +315,7 @@ end
 ------------------------------------------------------------------------------
 -- Guild scope
 ------------------------------------------------------------------------------
-local outgoing, outgoingTimer = {}, nil -- ids we found and will broadcast
+local outgoing = {} -- ids we found and will broadcast
 
 local function GuildName() return (GetGuildInfo("player")) end
 
@@ -332,7 +332,6 @@ local function Appeared(ids)
 end
 
 local function Broadcast()
-    outgoingTimer = nil
     local g = ns.DB:Guild()
     if not g then outgoing = {}; return end
     local a, n = {}, 0
@@ -343,13 +342,15 @@ local function Broadcast()
     if n > 0 then ns.Comm:Send("ACH", { a = a }, "GUILD") end
 end
 
+-- (one burst of finds, one ACH; a peer that found them too likely says it first)
+local queued = false
 local function QueueBroadcast(id)
     outgoing[id] = true
-    if outgoingTimer then return end
-    local token = {}
-    outgoingTimer = token
-    C_Timer.After(2 + math.random() * 6, function()
-        if outgoingTimer == token then Broadcast() end
+    if queued then return end
+    queued = true
+    C_Timer.After(ns.Within(ns.Config.SYNC_DELAY), function()
+        queued = false
+        Broadcast()
     end)
 end
 

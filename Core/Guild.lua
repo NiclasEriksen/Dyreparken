@@ -17,13 +17,14 @@ local ns = select(2, ...)
 -- (Registry: Admit, Prune), and a stale or partial read later must not turn
 -- that off.
 --
--- (unverified on Forever) roster name format and GetGuildRosterLastOnline;
--- `/dp probe` logs the first rows.
+-- Roster names are "First Surname" and GetGuildRosterLastOnline gives years, months, days, hours for offline
+-- members (probed 2026-11-06, docs/FOREVER_API.md); `/dp probe` logs the first rows.
 ---@class Dyreparken.Guild
 local Guild = { members = {}, complete = false, at = 0 }
 ns.Guild = Guild
 
 local waiting
+local timeout = ns.Timers() -- (a read answered in time: its timeout is no one's)
 
 -- stale: the server didn't answer our request, so this is whatever the
 -- client had cached. Someone who joined since would be missing, so it never
@@ -56,16 +57,15 @@ function Guild:Refresh(force)
     ns.Events:On("GUILD_ROSTER_UPDATE", Guild, function()
         ns.Events:Off("GUILD_ROSTER_UPDATE", Guild)
         waiting = false
+        timeout:Cancel()
         Read()
     end)
     C_GuildInfo.GuildRoster()
     -- If the server ignores the request (it's throttled), don't wait forever.
-    C_Timer.After(ns.Config.ROSTER_TIMEOUT, function()
-        if waiting then
-            ns.Events:Off("GUILD_ROSTER_UPDATE", Guild)
-            waiting = false
-            if GetNumGuildMembers() > 0 then Read(true) end
-        end
+    timeout:After(ns.Config.ROSTER_TIMEOUT, function()
+        ns.Events:Off("GUILD_ROSTER_UPDATE", Guild)
+        waiting = false
+        if GetNumGuildMembers() > 0 then Read(true) end
     end)
 end
 

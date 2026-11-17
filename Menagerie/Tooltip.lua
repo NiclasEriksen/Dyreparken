@@ -27,9 +27,7 @@ local ns = select(2, ...)
 -- appended as extras, so without the shift its title stays the species and
 -- the moved last line shows twice; seen 2026-11-08).
 --
--- (unverified) whether the unit's species ID uses the same numbering as the
--- journal (Panda Cub = 5159 in the journal). `/dp probe more` with your own
--- companion targeted answers it.
+-- A unit's species ID is the journal's (Panda Cub: 5159 both ways; docs/FOREVER_API.md).
 --
 -- Skipped in combat: tooltip text and unit data can be secret values then.
 ---@class Dyreparken.Tooltip

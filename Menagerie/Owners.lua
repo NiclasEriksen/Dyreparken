@@ -226,7 +226,7 @@ local function Later(delay)
 end
 
 -- (timing, not a chance: math.random, as Sync's)
-local function Soon() return C.OWN_DELAY[1] + math.random() * (C.OWN_DELAY[2] - C.OWN_DELAY[1]) end
+local function Soon() return ns.Within(C.OWN_DELAY) end
 
 local function OnSync(msg, sender)
     local n = 0

@@ -100,7 +100,7 @@ local function Queue(text, channel, target, cb, kind)
     if not waiting then Drain() end
 end
 
--- Requests anyone can send (VER_REQ, PET_REQ) are answered at most once per
+-- Requests anyone can send (BOND_REQ) are answered at most once per
 -- channel every Config.REPLY_GAP seconds: a member sending them in a loop must not
 -- fill everyone's outbox. A second asker within the gap usually heard our
 -- first answer anyway (answers go to the whole channel).

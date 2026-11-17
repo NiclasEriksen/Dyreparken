@@ -267,7 +267,7 @@ local STAND = 0
 -- 2026-11-10): a sitter gets up and goes with you, and sits again once you've
 -- stopped. Events
 -- only while that pet's card shows. PLAYER_STARTED/STOPPED_MOVING and
--- GetUnitSpeed are unverified on Forever: without them it simply stands.
+-- GetUnitSpeed work on Forever (2026-11-11); without them it would simply stand.
 ------------------------------------------------------------------------------
 local motion = { on = false, moving = false }
 local motionTimers = ns.Timers() -- (a stop's wait: taken back by a start, or by turning off)
@@ -1041,7 +1041,7 @@ function Moves.NewStage(name, opts)
     -- A held pose by pausing the actor (2026-11-10): frozen with speed 0 at an
     -- offset, the pet lay still for a second and then stood up to its idle (the
     -- user: "no longer frozen when they stand up"). Retail's ModelSceneActor has
-    -- SetPaused; unverified on Forever, so used only when the actor has it: the
+    -- SetPaused, and so does Forever's (2026-11-11); still used only when the actor has it: the
     -- animation plays at its own speed and is paused `pose` seconds in.
     local function Unpause(actor)
         if shown.paused then Call(actor, "SetPaused", false); shown.paused = nil end

@@ -7,8 +7,9 @@ local ns = select(2, ...)
 --  * Seeing a newer version from the guild prints ONE line, once per version, remembered in
 --    DyreparkenCharDB.warnedVersion. Only the guild channel counts (code review 2026-11-15: a stranger's
 --    whisper or a party's message could print a forged notice and, remembered, silence the real ones).
---  * VER_REQ: clients on 0.2.x can ask the guild/group for versions (the
---    command was removed 2026-11-09); we still answer VER on that channel.
+--  * An older client's messages on another protocol (Comm's PROTOCOL_MISMATCH) carry its version too: a 0.5
+--    client's VER, say. (Answering 0.2.x clients' VER_REQ went at X-Protocol 12, 2026-11-17: their protocol,
+--    9, has been under the floor since 0.6.0, so none of it reached us.)
 ---@class Dyreparken.Version
 local Version = { seen = {} } -- seen[player] = version
 ns.Version = Version
@@ -50,22 +51,8 @@ local function NoteVersion(sender, version)
 end
 
 function Version:Init()
-    -- HELLO is only ever sent to the guild (Hello below). One by party or whisper is someone
-    -- else's doing, and isn't heeded. Checked here, not with Register's `from`: that's part of
-    -- the protocol fingerprint (spec 52) and would need an X-Protocol bump.
-    ns.Comm:Register("HELLO", function(msg, sender, channel)
-        if channel == "GUILD" then NoteVersion(sender, msg.v) end
-    end)
-    ns.Comm:Register("VER", function(msg, sender, channel)
-        if channel == "GUILD" then NoteVersion(sender, msg.v) end -- (checked here: Register's `from` would bump the protocol)
-    end, nil, { v = "version" })
-    -- Answer on the channel the request came from. (Whispers would be
-    -- quieter, but whisper targets with surnames are unverified on Forever.)
-    -- Everyone hearing everyone's version is useful anyway: NoteVersion.
-    ns.Comm:Register("VER_REQ", function(_, _, channel)
-        if channel == "WHISPER" or not ns.Comm:MayReply("VER", channel) then return end
-        ns.Comm:Send("VER", { v = ns.VERSION }, channel)
-    end)
+    -- HELLO is only ever sent to the guild (Hello below): one by party or whisper is someone else's doing.
+    ns.Comm:Register("HELLO", function(msg, sender) NoteVersion(sender, msg.v) end, "GUILD")
     ns.Bus:On("PROTOCOL_MISMATCH", function(sender, theirs, msg, channel)
         if channel ~= "GUILD" then return end -- (any kind: a forger outside the guild can't reach the notice)
         NoteVersion(sender, msg.v)

@@ -164,10 +164,11 @@ function Wish.Noun(w)
     return ns.Personality.NOUN[w.id]
 end
 
--- The card's line for a wish: one of its own lines (wish.say.<id>.N), the same all day; else the usual.
+-- The card's line for a wish: one of its own lines (wish.say.<id>.N, and the player's class's and race's:
+-- ns.Lines), the same all day; else the usual.
 function Wish.Line(w)
     local vars = { pet = ns.Registry:NameOf(w.pet), activity = Wish.Noun(w), zone = w.zone }
-    local list = ns.Variants("wish.say." .. w.id)
+    local list = ns.Lines("wish.say." .. w.id)
     if #list == 0 then return ns.T("wish.line", vars) end
     return ns.T(list[Hash("line " .. w.day .. " " .. w.pet) % #list + 1], vars)
 end

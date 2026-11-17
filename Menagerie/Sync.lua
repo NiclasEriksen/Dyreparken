@@ -148,7 +148,7 @@ end
 
 local function Schedule()
     if pending then return end
-    Later(2 + math.random() * 6)
+    Later(ns.Within(C.SYNC_DELAY))
 end
 
 -- Someone's SYNC is on its way: wait for it before sending ours (it may
@@ -309,7 +309,7 @@ function Sync:Init()
         else
             -- We know things the sender doesn't: answer soon (a hold ends here).
             answered[sender] = tostring(msg.d) .. "/" .. mine
-            Later(2 + math.random() * 6)
+            Later(ns.Within(C.SYNC_DELAY))
         end
     end, "GUILD")
     ns.Bus:On("COMM_INCOMING", function(_, channel)

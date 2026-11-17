@@ -10,8 +10,8 @@ local Today, Plain = ns.Today, ns.Plain
 local PetNow = Activity.PetNow -- (the companion out: key, and whether it's the adopted one)
 
 ------------------------------------------------------------------------------
--- The first sources. Each event is unverified on Forever until a probe says
--- otherwise (docs/FOREVER_API.md); a missing one only hides its activity.
+-- The sources. What each relies on, and whether a probe has seen it on Forever, is in docs/FOREVER_API.md
+-- (or said by the source); a missing event or string only hides its activity.
 ------------------------------------------------------------------------------
 -- A boss died (any difficulty). ENCOUNTER_END: id, name, difficulty, size, success.
 Activity:Source({ id = "boss", events = { "ENCOUNTER_END" }, filter = function(_, id, name, _, _, success)
@@ -47,7 +47,7 @@ Activity:Source({
 
 -- Gathering: your own successful casts of Herb Gathering, Mining, Fishing
 -- or Skinning, out of combat. Known spell ids first (the classic ranks),
--- else the spell's name. Unverified on Forever.
+-- else the spell's name. Herbs seen on Forever (2026-11-08); the other three by the same path.
 local GATHER_IDS = {
     [2366] = "herb", [2368] = "herb", [3570] = "herb", [11993] = "herb",
     [2575] = "mine", [2576] = "mine", [3564] = "mine", [10248] = "mine",
@@ -395,8 +395,8 @@ end })
 -- Skill-ups and reputation (2026-11-09): the client's own chat lines, read
 -- with its format strings (so any locale works): SKILL_RANK_UP ("Your skill
 -- in %s has increased to %d."), FACTION_STANDING_INCREASED ("Your %s
--- reputation has increased by %d."). extra: the skill or the faction. Both
--- unverified on Forever (docs/FOREVER_API.md); without the format string the
+-- reputation has increased by %d."; Forever's: "Reputation with %s increased by %d."). extra: the skill or
+-- the faction. Both verified on Forever (2026-11-09, 2026-11-11); without the format string the
 -- activity is unavailable. Weapon skills count too: the day's caps keep them
 -- small.
 -- Built once per format string (review 2026-11-12: every CHAT_MSG_LOOT and CHAT_MSG_SYSTEM line,

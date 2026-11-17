@@ -170,7 +170,8 @@ Core/DB.lua        SavedVariables, defaults, schema migrations, DB:Guild() regis
 Core/Comm.lua      serialize→compress→encode→chunk, our own paced outbox (not ChatThrottleLib), Register(kind, fn, from, fields)
                    ("GUILD"/"GROUP": other channels never reach fn; fields: { name = Wire.CHECKS name }, a malformed
                    message is dropped before fn), MayReply (requests anyone can send: once per channel every 5 s)
-Core/Version.lua   HELLO on login, one-time outdated notice; still answers VER_REQ from 0.2.x clients
+Core/Version.lua   HELLO on login, one-time outdated notice (0.2.x clients' VER_REQ went unanswered from 0.6.0, under the
+                   floor; the code went at X-Protocol 12, 2026-11-17)
 Core/Guild.lua     guild roster snapshot on demand (membership, days offline; Guild.known: the last complete one, which
                    judges whose data the sync keeps; Guild:Soon, a read no sooner than ROSTER_INTERVAL)
 Core/Activity.lua  the activity engine: game events -> activities, every one declared once in Activity.KINDS (always
@@ -219,7 +220,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    written by each member, only growing; its own digest in HELLO's `o` and a lazy paged OWN_SYNC, OWN when
                    ours changes; not in the registry's digest, so 0.7 clients sync as before; Of/Any/Others/Line also count
                    holders and bond carers; Personality:Known and Parken's question marks read it; read its header),
-                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out), Report (only answers 0.2.x clients' PET_REQ; /dp rapport is gone),
+                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out),
                    JournalList (the journal's list: markers, bond rings, nicknames, tooltips), CardActions (the card's
                    Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring),
                    Card (the card's widgets: one ns.Card.Register{ id, build, update, pause, stop } each, run in
@@ -504,8 +505,9 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
 - Auto-summon turns itself off if AutoCompanion is loaded.
 - **Fewer commands** (2026-11-09, the addon spread beyond the guild): `/dp rapport` (calling out group members
   without a pet), `/dp versjon`, `/dp prestasjoner ikoner` and the English aliases are gone. The developer commands
-  (probe, debug) exist only in a git checkout, so the probes and the debug log are for the developer. We still answer
-  0.2.x clients' PET_REQ and VER_REQ.
+  (probe, debug) exist only in a git checkout, so the probes and the debug log are for the developer. The answers to
+  0.2.x clients' PET_REQ and VER_REQ went at X-Protocol 12 (2026-11-17): their protocol, 9, had been under the
+  floor since 0.6.0, so none of it reached us.
 - Adopting and naming are announced in guild chat from the click or command that did it (`Bonds:Announce`), per
   character, default on, `/dp kunngjør`. Letting go and clearing a name aren't announced. The same line isn't
   repeated within an hour.

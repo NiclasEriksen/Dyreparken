@@ -10,8 +10,8 @@ local ns = select(2, ...)
 --
 -- Forever has the Retail-style journal (probed 2026-11-06): PetJournal,
 -- PetJournal.ScrollBox, PetJournalPetCard, PetJournalSummonButton.
--- (unverified) list buttons carry .petID / .speciesID like on Retail; we fall
--- back to elementData.index -> GetPetInfoByIndex.
+-- List buttons carry .petID / .speciesID like on Retail (probed 2026-11-06); we still fall back to
+-- elementData.index -> GetPetInfoByIndex, should a build ever leave them out.
 --
 -- What it adds, in parts:
 --  * the list (JournalList.lua): markers, bond rings, nicknames, tooltips

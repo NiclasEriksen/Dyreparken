@@ -299,6 +299,10 @@ function ns.Debounce(delay, fn)
     end
 end
 
+-- A time within { lo, hi } seconds, at random (math.random: timing, not a chance the tests pin; Config's
+-- SYNC_DELAY, OWN_DELAY).
+function ns.Within(range) return range[1] + math.random() * (range[2] - range[1]) end
+
 -- The channel to reach our group on, or nil when solo.
 function ns.GroupChannel()
     if IsInRaid() then return "RAID" end
@@ -352,6 +356,8 @@ ns.Config = {
     SYNC_HOLD = 30,               -- seconds ours waits for someone else's SYNC that started arriving
     SYNC_MAX_HOLD = 120,          -- ... and however often it's held, it goes this long after it was scheduled
     -- Who owns what (Owners.lua): lazier than the registry's, and local too.
+    SYNC_DELAY = { 2, 8 },        -- seconds before our SYNC (Sync) or ACH (Achievements) goes out, at random: a peer
+                                  -- with the same news likely says it first
     OWN_DELAY = { 5, 20 },        -- seconds before our OWN_SYNC answers a HELLO, at random (after the registry's SYNC)
     OWN_GAP = 60,                 -- seconds between two OWN_SYNCs of ours, at least
     OWN_HOLD = 20,                -- seconds ours waits while someone else's OWN_SYNC is arriving ...

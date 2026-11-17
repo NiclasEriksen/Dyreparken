@@ -76,7 +76,6 @@ end
 ------------------------------------------------------------------------------
 -- Our own bond
 ------------------------------------------------------------------------------
-local pending -- the scheduled publish, if any
 local pendingKeys = {} -- pets with gains waiting for it (a pet swap within the wait keeps both)
 
 local function Publish(key)
@@ -85,16 +84,12 @@ local function Publish(key)
     if e then ns.Bus:Fire("MY_BOND", key, e) end
 end
 
+local PublishSoon = ns.Debounce(PUBLISH_AFTER, function()
+    for k in pairs(pendingKeys) do Publish(k) end
+end)
 local function Schedule(key)
     pendingKeys[key] = true
-    if pending then return end
-    local token = {}
-    pending = token
-    C_Timer.After(PUBLISH_AFTER, function()
-        if pending ~= token then return end
-        pending = nil
-        for k in pairs(pendingKeys) do Publish(k) end
-    end)
+    PublishSoon()
 end
 
 -- How much of the full rate a pet earns: your adopted pet all of it, any
@@ -497,11 +492,12 @@ function Bond:PlaceChance(key)
     return math.min(p, self.PLACE_MAX)
 end
 
--- Its line: a family's own now and then (first.place.<family>.N), else a general one (first.place.N).
+-- Its line: a family's own now and then (first.place.<family>.N), else a general one (first.place.N); each
+-- with the player's class's and race's mixed in (ns.Lines).
 function Bond:PlaceLine(key, place)
     local family = ns.Scenes:Families(key)[1]
-    local own = family and ns.Variants("first.place." .. family) or {}
-    local list = (#own > 0 and ns.random() < self.PLACE_OWN) and own or ns.Variants("first.place")
+    local own = family and ns.Lines("first.place." .. family) or {}
+    local list = (#own > 0 and ns.random() < self.PLACE_OWN) and own or ns.Lines("first.place")
     return ns.T(list[ns.random(#list)], { pet = ns.Registry:NameOf(key), place = place })
 end
 

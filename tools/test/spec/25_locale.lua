@@ -117,6 +117,19 @@ return function(test, H)
         eq(#ns.Lines("t.none"), 0); eq(ns.PickLine("t.none"), nil)
     end)
 
+    test("the new place's and the wish's lines have the class's and race's too", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { pets = { 5159 } })
+        c.state.class = "MAGE"
+        w:Run(5)
+        local ns, L = c.ns, c.ns.L
+        L["first.place.class.mage.1"] = "{pet} ser etter en portal i {place}."
+        c:Dice(0.99, 99) -- (not the family's own; the last of the general ones: the class's)
+        eq(ns.Bond:PlaceLine("s:5159", "Ratchet"), "Panda Cub ser etter en portal i Ratchet.")
+        L["wish.say.zz.class.mage.1"] = "{pet} vil se deg trylle i dag"
+        eq(ns.Wish.Line({ id = "zz", pet = "s:5159", day = "2026-11-17" }), "Panda Cub vil se deg trylle i dag")
+    end)
+
     test("placeholders are named: no printf codes left in the texts", function()
         local w = H.World()
         local c = w:AddClient("Ola Nord")

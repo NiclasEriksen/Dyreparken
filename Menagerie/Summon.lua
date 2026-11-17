@@ -257,7 +257,7 @@ end
 local SUMMON_SOUNDS = { 567569, 568424 }
 local QUIET_FOR = 2.5 -- the sound comes with the server's answer, plus the ~1 s cooldown retry
 Summon.GAME_RESTORE, Summon.LOGIN_RESTORE = 5, 11 -- the game's own return: within 4 s, 10 after a login (AutoCompanion's)
-local quietGen, quiet = 0, false
+local quietT, quiet = ns.Timers(), false
 
 local function SetMuted(on)
     local fn = on and MuteSoundFile or UnmuteSoundFile
@@ -270,10 +270,8 @@ end
 function Summon:QuietSummon(seconds)
     if not ns.DB.char.muteSummonSound then return end
     if not quiet then SetMuted(true); quiet = true end
-    quietGen = quietGen + 1
-    local gen = quietGen
-    C_Timer.After(seconds or QUIET_FOR, function()
-        if gen ~= quietGen then return end
+    quietT:Cancel() -- (a later call keeps it quiet for longer)
+    quietT:After(seconds or QUIET_FOR, function()
         quiet = false
         SetMuted(false)
     end)
@@ -283,7 +281,8 @@ function Summon:SetMuteSound(on)
     ns.DB.char.muteSummonSound = on
     ns.Log("Summon", "summon sound %s", on and "muted" or "on")
     if not on and quiet then
-        quiet, quietGen = false, quietGen + 1
+        quiet = false
+        quietT:Cancel()
         SetMuted(false)
     end
 end
