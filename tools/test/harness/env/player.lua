@@ -14,7 +14,24 @@ return function(c, env, S)
     -- The swing: main hand and off hand speeds; ranged speed first. (Secret in combat? Unknown, 2026-11-12.)
     env.UnitAttackSpeed = function(u) assert(u == "player"); return S.swing or 2.0, nil end
     env.UnitRangedDamage = function(u) assert(u == "player"); return S.rangedSwing or 0, 0, 0, 0, 0, 0 end
-    env.UnitIsDeadOrGhost = function() return S.dead or false end
+    -- (raidN, partyN: that group member, a client's own state or w.dead[name]: a test's teammates; w.deadSecret:
+    -- unreadable. partyN: the others in the group's order, you left out, as the client)
+    env.UnitIsDeadOrGhost = function(u)
+        local g = c.world:GroupOf(c.name)
+        local name
+        local r, p = type(u) == "string" and tonumber(u:match("^raid(%d+)$")), type(u) == "string" and tonumber(u:match("^party(%d+)$"))
+        if r then name = g and g.members[r]
+        elseif p then
+            local others = {}
+            for _, m in ipairs(g and g.members or {}) do if m ~= c.name then others[#others + 1] = m end end
+            name = others[p]
+        else return S.dead or false end
+        if not name then return false end
+        if name == c.name then return S.dead or false end
+        if c.world.deadSecret then return H.SECRET end
+        for _, o in ipairs(c.world.clients) do if o.name == name then return o.state.dead or false end end
+        return (c.world.dead or {})[name] == true
+    end
     env.IsFlying = function() return S.flying or false end
     env.IsStealthed = function() return S.stealthed or false end
     env.UnitHealth = function() return S.health or 100 end

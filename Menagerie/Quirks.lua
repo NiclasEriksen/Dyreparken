@@ -417,6 +417,20 @@ Quirks.EGGS = {
     { id = "motstand", delay = "now", on = "resisted", always = true, fight = true,
         traits = { "skoyer", "oppdager", "kjaelen", "ordensdyr" },
         test = function(ctx) return Quirks.ByNature(ctx) end },
+    -- A wipe (2026-11-17, the user): now and then, once you're up again; the boss by name half the time when
+    -- one was up (Quirks.WIPE_BOSS), else by nature.
+    { id = "wipe", on = "wipe", always = true, chance = 0.5,
+        traits = { "trofast", "skoyer", "latsabb", "eventyrlysten", "kjaelen", "ordensdyr" },
+        test = function(ctx)
+            if type(ctx.extra) == "string" and ctx.extra ~= "" and ns.random() < Quirks.WIPE_BOSS then
+                return { _key = "egg.wipe.boss", boss = ctx.extra }
+            end
+            return Quirks.ByNature(ctx)
+        end },
+    -- Your battleground team routed (2026-11-17, the user): most of it dead with you; by nature.
+    { id = "rumpejuling", on = "routed", always = true, chance = 0.5,
+        traits = { "skoyer", "trofast", "eventyrlysten", "latsabb" },
+        test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
@@ -446,6 +460,7 @@ end
 
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
 Quirks.REUNION_DAYS, Quirks.REUNION_CHANCE = 3, 0.35 -- (gjensyn: Monday's pet back on Thursday)
+Quirks.WIPE_BOSS = 0.5 -- a wipe at a boss: the chance its line names it
 Quirks.WAKE_CHANCE = 0.15 -- the pet frame's pet woken after you were AFK: the chance of a line (egg "vaken")
 -- Lines by nature, from the egg's own lists (EGGS: traits, families): the first of its
 -- traits the pet has (egg.<id>.<trait>.N), then its families' (egg.<id>.<family>.N), else

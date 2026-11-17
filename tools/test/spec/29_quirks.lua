@@ -483,4 +483,90 @@ return function(test, H)
         A:Emit("boss", 1, "Hogger")
         eq(ola:CountPrinted("bit av Hogger"), 1, "seen it fall before: 0.3 > 15%")
     end)
+
+    -- Dying in a group: a full wipe in a dungeon or raid, a rout in a battleground (2026-11-17, the user).
+    local FIVE = { "Ola Nord", "Kari Berg", "Per Hansen", "Siri Dahl", "Nils Lie" }
+    -- You fall (with a boss up: boss); o.before: the others already dead, o.after: they fall after you
+    -- (dead by your release), o.fail: the boss fight fails while you're dead (else, with a boss, it's won);
+    -- o.keep: w.dead as the test set it.
+    local function Die(w, c, boss, o)
+        o = o or {}
+        local function Others(dead)
+            if o.keep then return end
+            w.dead = {}
+            for i = 2, #FIVE do w.dead[FIVE[i]] = dead end
+        end
+        Others(o.before == true)
+        if boss then c:Fire("ENCOUNTER_START", 1, boss, 1, 5) end
+        c.state.dead = true
+        c:Fire("PLAYER_DEAD")
+        if o.after then Others(true) end
+        c:Fire("PLAYER_ALIVE") -- (released: a ghost)
+        if boss then c:Fire("ENCOUNTER_END", 1, boss, 1, 5, o.fail and 0 or 1) end
+        w:Run(5)
+        c.state.dead = false
+        Others(false)
+        c:Fire("PLAYER_UNGHOST")
+        w:Run(12)
+    end
+
+    test("a wipe: the whole group of five or more dead, said once you're up; the boss by name now and then", function()
+        local w, ola = Setup()
+        local A = ola.ns.Activity
+        w:SetGroup({ "Ola Nord", "Kari Berg", "Per Hansen", "Siri Dahl" })
+        ola.state.instance = "party"
+        Die(w, ola, "Hogger", { before = true, fail = true })
+        eq(A:Count("wipe"), 0, "four of you: no wipe")
+        w:SetGroup(FIVE)
+        Die(w, ola)
+        Die(w, ola, "Hogger")
+        eq(A:Count("wipe"), 0, "only you fell: no wipe")
+        Die(w, ola, "Hogger", { before = true })
+        eq(A:Count("wipe"), 1, "the last to fall")
+        ok(ola:Said("Bombay Cat knurrer i retning Hogger. Neste gang!"), "at the boss: its name (the dice say so)")
+        w:SkipDays(1)
+        Die(w, ola, nil, { after = true }) -- (trash, and they fell after you)
+        eq(A:Count("wipe"), 2, "the others dead by the time you release")
+        ok(ola:Said("Bombay Cat ser på hele gruppen som ligger strødd utover."), "no boss: a plain one")
+        w:SkipDays(1)
+        w.deadSecret = true
+        Die(w, ola, nil, { before = true })
+        eq(A:Count("wipe"), 2, "the others unreadable: we can't tell")
+        Die(w, ola, "Hogger", { fail = true })
+        eq(A:Count("wipe"), 3, "a failed boss fight while you're dead is a wipe, read or not")
+        w.deadSecret = nil
+        w:SkipDays(1)
+        ola:Traits({ "trofast", "glupsk" }, 40)
+        ola:Dice(0.9)
+        Die(w, ola, "Hogger", { before = true })
+        no(ola:Said("ble hos deg hele tiden"), "the egg's own chance said no")
+        ola:Dice(0)
+        ola.ns.Quirks.WIPE_BOSS = 0 -- (one die for every chance: the boss's turn off)
+        Die(w, ola, "Hogger", { before = true })
+        ok(ola:Said("Bombay Cat ble hos deg hele tiden"), "by nature, when the boss's turn doesn't come up")
+    end)
+
+    test("a battleground: a death is no wipe; most of the team dead with you is a rout", function()
+        local w, ola = Setup()
+        local TEN = { "Ola Nord" }
+        for i = 2, 10 do TEN[i] = "Spiller " .. i end
+        w:SetGroup(TEN)
+        ola.state.instance = "pvp"
+        w.dead = {}
+        for i = 2, 7 do w.dead[TEN[i]] = true end -- (you and six: 7 of 10)
+        Die(w, ola, nil, { keep = true })
+        eq(ola.ns.Activity:Count("wipe"), 0, "no wipe in a battleground")
+        eq(ola.ns.Activity:Count("routed"), 0, "70%: not yet")
+        w.dead[TEN[8]] = true -- (8 of 10)
+        w.deadSecret = true
+        Die(w, ola, nil, { keep = true })
+        eq(ola.ns.Activity:Count("routed"), 0, "teammates we can't read don't count")
+        w.deadSecret = nil
+        Die(w, ola, nil, { keep = true })
+        eq(ola.ns.Activity:Count("routed"), 1)
+        ok(ola:Said("nesten hele laget ligger på graveyarden"))
+        ola.state.instance = "arena"
+        Die(w, ola, nil, { keep = true })
+        eq(ola.ns.Activity:Count("wipe") + ola.ns.Activity:Count("routed"), 1, "an arena: neither")
+    end)
 end

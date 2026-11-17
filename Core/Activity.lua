@@ -100,6 +100,8 @@ Activity.KINDS = {
     -- Bad luck in a fight (2026-11-14, the user): eggs only, said after the fight.
     { "misses", wish = false },   -- your weapon swings missed (missed, dodged, parried) MISS_STREAK times in a row
     { "resisted", wish = false }, -- your spells resisted RESIST_STREAK times in a row
+    { "wipe", wish = false },     -- your whole group of WIPE_GROUP or more died (extra: the boss, if one was up): eggs only
+    { "routed", wish = false },   -- you died in a battleground with most of your team dead (ROUTED_SHARE): eggs only
 }
 Activity.KIND = {}
 for _, k in ipairs(Activity.KINDS) do k.id = k[1]; Activity.KIND[k.id] = k end

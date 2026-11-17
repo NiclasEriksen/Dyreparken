@@ -268,6 +268,69 @@ Activity:Source({ id = "revive", events = { "PLAYER_DEAD", "PLAYER_ALIVE", "PLAY
         C_Timer.After(10, function() Activity:Emit("revive", 1) end)
     end })
 
+-- A wipe (2026-11-17, the user: "only count full group wipes"): you died in a group of WIPE_GROUP or more,
+-- party or raid, and so did everyone else. Looked at as you fall (you were the last), as you release (they
+-- fell after you; a ghost is dead too) and when a boss fight fails while you're dead (the game's own word
+-- for it, whatever we can read of the others). Told, like revive, once you're back on your feet and your pet
+-- is out again (dead, you have none), with the boss you fell to if one was up (ENCOUNTER_START's name).
+-- In a battleground it's "routed": you died with more than ROUTED_SHARE of your team dead, looked at as you
+-- fall. Teammates' UnitIsDeadOrGhost is unprobed (party, raid, battleground): only plain answers count, at
+-- least WIPE_GROUP of them, and each count is logged.
+Activity.WIPE_GROUP, Activity.ROUTED_SHARE = 5, 0.75
+local down, encounter = nil, nil -- down: { boss, wiped, routed } since you fell in a big group; encounter: the boss up now
+-- How many of the group are dead, of how many we can read (you included).
+local function Fallen(why)
+    local n, read, dead = Plain(GetNumGroupMembers()) or 0, 0, 0
+    local raid = Plain(IsInRaid()) == true
+    for i = 1, raid and n or math.min(n, 5) do
+        local unit = raid and ("raid" .. i) or (i == 1 and "player" or ("party" .. (i - 1)))
+        local d = Plain(UnitIsDeadOrGhost(unit))
+        if d ~= nil then
+            read = read + 1
+            if d then dead = dead + 1 end
+        end
+    end
+    ns.Log("Activity", "%s? %d of %d read dead, of %d", why, dead, read, n)
+    return dead, read
+end
+local function Wiped()
+    local dead, read = Fallen("wipe")
+    return read >= Activity.WIPE_GROUP and dead == read
+end
+Activity:Source({ id = "wipe", events = { "ENCOUNTER_START", "ENCOUNTER_END", "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST" },
+    filter = function(event, ...)
+        if event == "ENCOUNTER_START" then
+            local name = Plain((select(2, ...)))
+            encounter = type(name) == "string" and name or nil
+            return nil
+        elseif event == "ENCOUNTER_END" then
+            if down and not down.routed and Plain((select(5, ...))) == 0 then down.wiped = true end
+            encounter = nil
+            return nil
+        elseif event == "PLAYER_DEAD" then
+            down = nil
+            if not (Plain(IsInGroup()) and (Plain(GetNumGroupMembers()) or 0) >= Activity.WIPE_GROUP) then return nil end
+            local kind = select(2, IsInInstance())
+            if kind == "pvp" then
+                local dead, read = Fallen("routed")
+                if read >= Activity.WIPE_GROUP and dead > read * Activity.ROUTED_SHARE then down = { routed = true } end
+            elseif kind ~= "arena" then
+                down = { boss = encounter, wiped = Wiped() }
+            end
+            return nil
+        end
+        if not down then return nil end
+        if Plain(UnitIsDeadOrGhost("player")) then -- (released: a ghost now)
+            if not (down.wiped or down.routed) and Wiped() then down.wiped = true end
+            return nil
+        end
+        local d = down
+        down = nil
+        if not (d.wiped or d.routed) then return nil end
+        local id, boss = d.routed and "routed" or "wipe", not d.routed and d.boss or nil
+        C_Timer.After(10, function() Activity:Emit(id, 1, boss) end)
+    end })
+
 -- AFK in a city or an inn: a nap.
 Activity:Source({ id = "nap", events = { "PLAYER_FLAGS_CHANGED" }, unit = "player", filter = function(_, unit)
     if unit ~= "player" then return nil end
