@@ -205,6 +205,8 @@ Data/PetScenes.lua where pets stand and how tall (Moves.FRAMING: placed by their
 Data/PetSounds.lua the pets' own sounds when clicked on the card (Cuddle; setting petSounds): sets of sound files,
                    and a row per species (a set or false: quiet; every species needs one, 34_touches), EDITED BY HAND
                    by ear (/dp probe sound); a new companion's row: tools/companions/README.md
+Data/Familiars.lua a mage's familiars from scrolls (rat, frog, cat; 2026-11-17): their bond keys ("n:<name>",
+                   permanent), item, buff spell, npc, model and family, from the client's tables (wago.tools)
 Data/Zones.lua     zones, one row each (level, faction, capital, climate, high, neutral, home families), EDITED BY
                    HAND: Personality's climates and cities, Quirks.HOME_ZONES, Wish.ZONES, Sense's capitals are views
 Data/Unlocks.lua   every species' minor like and minor dislike (your bond unlocks them at levels 4 and 6), PINNED
@@ -220,7 +222,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    written by each member, only growing; its own digest in HELLO's `o` and a lazy paged OWN_SYNC, OWN when
                    ours changes; not in the registry's digest, so 0.7 clients sync as before; Of/Any/Others/Line also count
                    holders and bond carers; Personality:Known and Parken's question marks read it; read its header),
-                   Summon (auto-summon, defers to AutoCompanion), OutBadge (the "Med deg" badge: which pet is kept out),
+                   Familiar (2026-11-17: which mage's familiar is out, read from its buff by id and name and
+                   remembered until its end, through secret or failed reads, a /reload, and a "gone" until a second read
+                   3 s later agrees (flight paths, mounts); Bus FAMILIAR; a mage watches the scrolls' casts; read its header),
+                   Summon (auto-summon, defers to AutoCompanion; never replaces a familiar), OutBadge (the "Med deg" badge: which pet is kept out),
                    JournalList (the journal's list: markers, bond rings, nicknames, tooltips), CardActions (the card's
                    Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring),
                    Card (the card's widgets: one ns.Card.Register{ id, build, update, pause, stop } each, run in

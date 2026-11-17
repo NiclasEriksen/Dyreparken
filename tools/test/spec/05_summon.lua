@@ -102,37 +102,7 @@ return function(test, H)
         eq(c.ns.Summon.Busy(), "eating", "secret auras count as busy")
     end)
 
-    -- A mage's familiar (2026-11-15, the user): a scroll's companion isn't a journal pet, and replacing it
-    -- took its buff. Held while the buff is on; its end brings ours back.
-    test("a mage's familiar from a scroll isn't replaced while its buff is on; ours comes back after it", function()
-        local w, c = Claimed()
-        w:Run(4)
-        c.state.itemSpells = { [277483] = "Summon Frog Familiar" }
-        c:Summon(nil); c.state.auras["Summon Frog Familiar"] = true -- (the frog out: no journal pet)
-        local calls = c.summonCalls
-        c:Zone(); w:Run(5)
-        c:EnterCombat(); c:LeaveCombat(); w:Run(5)
-        eq(c.summonCalls, calls, "the familiar stays")
-        eq(c.ns.Summon.Busy(), "familiar")
-        c.state.auras = { ["Rat Familiar"] = true }
-        eq(c.ns.Summon.Busy(), "familiar", "the English name, for a scroll not cached")
-        c:Fire("UNIT_AURA", "player"); w:Run(1)
-        eq(c.summonCalls, calls, "still on")
-        c.state.auras = {}
-        c:Fire("UNIT_AURA", "player"); w:Run(1)
-        eq(c.summoned, PANDA_GUID(c), "its buff gone: ours")
-        -- Gone in a fight: the watch ends then, and the fight's end summons (code review 2026-11-15).
-        c:Summon(nil); c.state.auras = { ["Cat Familiar"] = true }
-        c:Zone(); w:Run(5)
-        c:EnterCombat()
-        c.state.auras = {}
-        c:Fire("UNIT_AURA", "player"); w:Run(1)
-        c:LeaveCombat(); w:Run(5)
-        eq(c.summoned, PANDA_GUID(c), "after the fight")
-        local n = #c:Log("check %(familiar%)")
-        c:Fire("UNIT_AURA", "player"); w:Run(5)
-        eq(#c:Log("check %(familiar%)"), n, "the watch ended with the buff")
-    end)
+    -- (a mage's familiar: 08_familiar.lua)
 
     test("secret values count as busy", function()
         local w, c = Reserved()

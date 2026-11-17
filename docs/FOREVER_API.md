@@ -165,6 +165,10 @@ From AutoCompanion (written for Forever, in this AddOns folder):
   "Cat Familiar", "Frog Familiar", "Rat Familiar". A `/run` loop over `C_UnitAuras.GetAuraDataByIndex("player", i,
   "HELPFUL")` printed nothing at all with one on (build 70938): the auras by index read as none from a macro, so read
   them by name (`GetAuraDataBySpellName`), as Summon and Activity do.
+  From the client's tables (wago.tools, 1.60.1.70938, 2026-11-17): each scroll's spell **is** its buff (ItemEffect),
+  which summons the familiar (SpellEffect 28, SummonProperties 6722) and raises Intellect (aura 29): Rat 1296202
+  (npc 266025, display 148790), Frog 1302285 (268744, 148792), Cat 1302303 (272012, 11709). Since then
+  Menagerie/Familiar.lua reads it by id too: `C_UnitAuras.GetPlayerAuraBySpellID` is in the API probe's list.
 - `SetPortraitTextureFromCreatureDisplayID(texture, displayID)` exists (the API probe's globals, 2026-11-15).
   The park and the list draw each pet's face with it from `GetPetInfoBySpeciesID`'s 12th return (Pets:Portrait).
   Unverified in game: whether every species draws (a model not loaded yet may come up blank), and whether the

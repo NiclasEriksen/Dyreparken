@@ -44,11 +44,13 @@ Data\PetScenes.lua
 Data\PetSounds.lua
 Data\Creatures.lua
 Data\Zones.lua
+Data\Familiars.lua
 
 Menagerie\Pets.lua
 Menagerie\Registry.lua
 Menagerie\Sync.lua
 Menagerie\Owners.lua
+Menagerie\Familiar.lua
 Menagerie\Summon.lua
 Menagerie\Card.lua
 Menagerie\Scenes.lua

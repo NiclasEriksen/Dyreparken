@@ -103,6 +103,8 @@ local CHAR_DEFAULTS = {
     eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Moves plays dead once: EggPlayed)
     -- [Reactions]
     reacts = {},               -- [row id] = { n, day, key }: class reactions said (Reactions.lua; once a day each)
+    -- [Familiar]
+    familiar = nil,            -- { key, ends }: the mage's familiar out and when its buff ends (Familiar.lua)
     -- [Moments]
     quirkAt = nil,             -- when the last quirk line was shown (at most one every 45 minutes)
     reactAt = nil,             -- when the last common reaction line was said (at most one every 20 minutes)

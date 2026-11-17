@@ -866,6 +866,37 @@ L["egg.rumpejuling.skoyer.1"] = "{pet} har begynt å heie på det andre laget. B
 L["egg.rumpejuling.trofast.1"] = "{pet} står ved din side, selv nå. Særlig nå."
 L["egg.rumpejuling.eventyrlysten.1"] = "{pet} nekter å gi seg. Ut og slåss igjen, alle sammen!"
 L["egg.rumpejuling.latsabb.1"] = "{pet} har lagt seg ned ved graveyarden. Her er det rolig, ihvertfall."
+-- ======== UTKAST 2026-11-17: magefamiliærer, for brukeren å redigere ========
+-- A mage's familiar (Data/Familiars.lua: rat, frog, cat), from a scroll, out for its buff's hour. {pet}: its name.
+-- No traits: lines by familiar (egg.<id>.<rat|frog|cat>.N) and for all of them (egg.<id>.N).
+-- Arrival: the scroll read, the familiar appears (egg "tryllet").
+L["egg.tryllet.1"] = "{pet} dukker opp i et lite blått glimt og ser seg forvirret rundt."
+L["egg.tryllet.2"] = "{pet} er tryllet fram, og har tydeligvis ikke fått beskjed om hvorfor."
+L["egg.tryllet.3"] = "{pet} kjenner etter i potene. Jo, alt er der. Ganske bra trylling."
+L["egg.tryllet.4"] = "{pet} er på oppdrag i en time. Så er det tilbake til pergamentet."
+L["egg.tryllet.rat.1"] = "{pet} snuser nysgjerrig på ryggsekken din. Har du ost i der?"
+L["egg.tryllet.rat.2"] = "{pet} pistrer høyt og klatrer opp på skulderen din for å se seg om."
+L["egg.tryllet.frog.1"] = "{pet} lander med et lite plask, selv om det ikke er vann i nærheten."
+L["egg.tryllet.frog.2"] = "{pet} kvekker en gang, høytidelig. Det er tydeligvis sånn man hilser."
+L["egg.tryllet.cat.1"] = "{pet} strekker seg, gjesper, og later som den har vært her hele tiden."
+L["egg.tryllet.cat.2"] = "{pet} ser på deg som om det var du som ble tryllet fram."
+-- The buff's end: it fades, your own pet comes back (egg "poff").
+L["egg.poff.1"] = "{pet} vinker farvel og forsvinner i et lite blått poff."
+L["egg.poff.2"] = "{pet} blir mer og mer gjennomsiktig. Det var en fin time!"
+L["egg.poff.3"] = "{pet} er ferdig for i dag. Trylleriet tar slutt, men minnene blir."
+L["egg.poff.4"] = "{pet} bukker dypt før den blir til glitter."
+L["egg.poff.rat.1"] = "{pet} rekker å knaske en siste smule før den blir borte."
+L["egg.poff.frog.1"] = "{pet} tar et siste hopp og lander ingen steder."
+L["egg.poff.cat.1"] = "{pet} går uten å se seg tilbake. Typisk katt."
+L["egg.poff.cat.2"] = "{pet} forsvinner bit for bit. Til slutt er det bare smilet igjen."
+-- The pet kept out (Med deg) waits its turn while the familiar is out ({friend}: its name; egg "vikar").
+L["egg.vikar.1"] = "{pet} lover å passe godt på deg til {friend} kommer tilbake."
+L["egg.vikar.2"] = "{pet} er bare vikar. {friend} har nok ikke glemt deg."
+L["egg.vikar.3"] = "{pet} har fått en lang liste med beskjeder fra {friend}. Den første: ikke glem kosen."
+L["egg.vikar.rat.1"] = "{pet} har funnet {friend} sin matskål. Den er tom nå."
+L["egg.vikar.frog.1"] = "{pet} prøver å sitte på plassen til {friend}. Den er litt for tørr."
+L["egg.vikar.cat.1"] = "{pet} har allerede tatt over sovestedet til {friend}. Det er sånn katter gjør."
+-- ======== slutt på utkast ========
 -- Five swings missed in a row, three spells resisted in a row (2026-11-14; edited by the user)
 L["egg.bom.1"] = "{pet} teller: fem bom på rad. Kanskje du trenger briller?"
 L["egg.bom.2"] = "{pet} lurer på om du sikter på lufta med vilje."

@@ -78,7 +78,9 @@ return function(test, H)
         -- (the minor ones too: without lines one could never be found, 2026-11-12)
         for _, pin in pairs(ns.UnlockPins or {}) do if pin[2] then dislikes[pin[2]] = true end end
         for a in pairs(dislikes) do ok(ns.Strings["dislike." .. a .. ".1"], "dislike." .. a); ok(P.NOUN[a], a) end
-        local eggs = {}
+        -- (2026-11-17: the familiars' lines, drafted for the user before their eggs exist; their step adds the
+        -- rows to Quirks.EGGS and this goes)
+        local eggs = { tryllet = true, poff = true, vikar = true }
         for _, e in ipairs(ns.Quirks.EGGS) do eggs[e.id] = true; ok(ns.Strings["egg." .. e.id .. ".1"], "egg." .. e.id) end
         for key in pairs(ns.Strings) do
             local kind, id, n = key:match("^(%a+)%.([%w_]+)%.(%d+)$")

@@ -196,11 +196,23 @@ return function(c, env, S)
         end,
     }
 
+    -- S.auras: your buffs, by name or by spell id (a spell id's aura also answers to its name, S.spellNames).
+    local function Aura(a, name, id)
+        if type(a) == "table" then return a end -- (a test's own AuraData: duration, expirationTime...)
+        return a and { name = name, spellId = id } or nil
+    end
     env.C_UnitAuras = { GetAuraDataBySpellName = function(unit, name, filter)
         assert(unit == "player" and filter == "HELPFUL")
         if S.aurasError then error("aura query failed") end
-        local a = S.auras[name]
-        if type(a) == "table" then return a end -- (a test's own AuraData: duration, expirationTime...)
-        return a and { name = name } or nil
+        if S.auras[name] then return Aura(S.auras[name], name) end
+        for id, a in pairs(S.auras) do
+            if type(id) == "number" and S.spellNames and S.spellNames[id] == name then return Aura(a, name, id) end
+        end
+        return nil
+    end,
+    -- (Forever has it: the API probe's C_UnitAuras, 2026-11-14)
+    GetPlayerAuraBySpellID = function(id)
+        if S.aurasError then error("aura query failed") end
+        return Aura(S.auras[id], S.spellNames and S.spellNames[id], id)
     end }
 end
