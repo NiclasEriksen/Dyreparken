@@ -123,7 +123,8 @@ checks the stub client lacks it. Add new finds there too.)
   and jumps with you on the card and the pet frame, the user): `PLAYER_STARTED_MOVING`, `PLAYER_STOPPED_MOVING`,
   `GetUnitSpeed("player")`, a `hooksecurefunc("JumpOrAscendStart")` firing on every jump, and `GetBindLocation()`.
   Still unverified: `PLAYER_CONTROL_GAINED` (2026-11-10: after landing from a flight path no stop came, so landing
-  re-reads the speed);
+  re-reads the speed); a flight path fires `PLAYER_MOUNT_DISPLAY_CHANGED` at take-off (~2 s after `TakeTaxiNode`)
+  and again at the landing (seen 2026-11-18, build 70959, a 3 min 20 s flight): the taxi activity counts there;
   `ModelSceneActor:GetYaw/SetYaw` (the pet turning its back after a dislike); the enUS zone names in `Quirks.HOME_ZONES`; custom emotes (`SendChatMessage(..., "EMOTE")`)
   reaching nearby players as `CHAT_MSG_EMOTE` with a "First Surname" sender (a guildmate's /dp klapp, Bonds.lua).
 

@@ -71,14 +71,30 @@ for _, kind in ipairs({ "herb", "mine", "fish", "skin" }) do
 end
 
 -- A flight path taken (a function hook: it can't be unregistered, so it
--- does nothing while nobody wants "taxi").
+-- does nothing while nobody wants "taxi"). Counted as you land, not as you take off (2026-11-18, the user: the
+-- pet "kissed the ground after landing" a few seconds into the flight; its lines speak of the whole flight):
+-- the take-off arms it, and the landing is the first dismount or control gained off the taxi (seen 2026-11-18:
+-- PLAYER_MOUNT_DISPLAY_CHANGED at take-off and again at the landing), watched only during the flight.
+Activity.LANDED_AFTER = 2 -- seconds after landing: on your feet first
+local FLIGHT = { name = "TaxiFlight" }
+local function Landed()
+    if Plain(UnitOnTaxi("player")) ~= false then return end
+    ns.Events:OffAll(FLIGHT)
+    C_Timer.After(Activity.LANDED_AFTER, function() Activity:Emit("taxi", 1) end)
+end
 Activity:Source({
     id = "taxi",
     available = function() return type(TakeTaxiNode) == "function" end,
     hook = function(fire)
         if type(TakeTaxiNode) == "function" then hooksecurefunc("TakeTaxiNode", fire) end
     end,
-    filter = function() return 1 end,
+    filter = function()
+        if not ns.Events:Has("PLAYER_MOUNT_DISPLAY_CHANGED", FLIGHT) then
+            ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", FLIGHT, Landed)
+            ns.Events:On("PLAYER_CONTROL_GAINED", FLIGHT, Landed)
+        end
+        return nil
+    end,
 })
 
 ------------------------------------------------------------------------------
