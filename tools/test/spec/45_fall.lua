@@ -21,6 +21,7 @@ return function(test, H)
         local A = ola.ns.Activity
         Hp(w, ola, 800); Hp(w, ola, 500)
         eq((A:Count("fall")), 0, "a little at a time")
+        eq(#ola:Log("fall: health reads 1000 / 1000 %(number, number%)"), 1, "what it can read, once a session")
         Hp(w, ola, 1000)
         Hp(w, ola, 250)
         eq((A:Count("fall")), 1)

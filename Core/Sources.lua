@@ -160,10 +160,19 @@ end
 -- in combat) is skipped. extra: "dead" when it was the end of you.
 Activity.FALL_SHARE = 0.7
 local lastHealth
+-- (2026-11-19, the user: never seen, though falls took most of their health. Its reads are logged once a session,
+-- to tell whether health is secret out of combat too, the likeliest reason.)
+local fallSeen = false
 Activity:Source({ id = "fall", events = { "UNIT_HEALTH" }, unit = "player", when = "peace",
     start = function() lastHealth = nil end,
     filter = function()
-        local hp, max = Plain(UnitHealth("player")), Plain(UnitHealthMax("player"))
+        local rawHp, rawMax = UnitHealth("player"), UnitHealthMax("player")
+        local hp, max = Plain(rawHp), Plain(rawMax)
+        if not fallSeen then
+            fallSeen = true
+            ns.Log("Activity", "fall: health reads %s / %s (%s, %s)", ns.IsSecret(rawHp) and "secret" or tostring(hp),
+                ns.IsSecret(rawMax) and "secret" or tostring(max), type(rawHp), type(rawMax))
+        end
         if type(hp) ~= "number" or type(max) ~= "number" or max <= 0 then lastHealth = nil; return nil end
         local before = lastHealth
         lastHealth = hp
