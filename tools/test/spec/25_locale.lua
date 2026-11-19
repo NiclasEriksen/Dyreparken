@@ -98,7 +98,7 @@ return function(test, H)
             if a then
                 ok(family[a] and family[b], key .. ": not two families")
                 ok(n == "1" or ns.Strings[("play.%s.%s.%d"):format(a, b, n - 1)], key .. ": a gap before it")
-            elseif key:find("^play%.") then
+            elseif key:find("^play%.") and not key:find("^play%.line%.%d+$") then
                 ok(({ ["play.line"] = 1, ["play.inseparable"] = 1, ["play.best"] = 1 })[key], key .. ": not a playdate line")
             end
         end
@@ -126,7 +126,12 @@ return function(test, H)
         for key in pairs(ns.Strings) do
             local dynamic = false
             for _, prefix in ipairs(DYNAMIC) do if key:sub(1, #prefix) == prefix then dynamic = true end end
-            ok(dynamic or used[key] or all:find('"' .. key .. '"', 1, true), key .. " is never used")
+            -- (a numbered variant of a line the code picks by its bare key: ns.PickLine reads them all; Bond.Line
+            -- picks too, for the keys given to it: the wish's from Wish:Grant)
+            local base = key:match("^(.+)%.%d+$")
+            local variant = base and (all:find('ns.PickLine("' .. base .. '"', 1, true)
+                or ({ ["wish.granted"] = 1, ["wish.granted.full"] = 1 })[base])
+            ok(dynamic or variant or used[key] or all:find('"' .. key .. '"', 1, true), key .. " is never used")
         end
     end)
 

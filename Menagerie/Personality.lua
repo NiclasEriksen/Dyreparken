@@ -215,7 +215,7 @@ Personality.TRAITS = {
             return ns.T("trait.festglad.dayflavor", { pet = name, holiday = Personality.Holiday(t) })
         end },
     { id = "helgedyr", day = function(t) return Personality.IsWeekend(t) and 2 or 1 end,
-        dayX = 2, dayFlavor = function(name) return ns.T("trait.helgedyr.dayflavor", { pet = name }) end },
+        dayX = 2, dayFlavor = function(name) return ns.PickLine("trait.helgedyr.dayflavor", { pet = name }) end },
     { id = "flokkdyr", is = { "social" }, against = "einstoing", when = function(ctx) return ctx.guildmates > 0 end },
     { id = "einstoing", is = { "loner" }, against = "flokkdyr", dislike = "chat", when = function(ctx) return not ctx.group end },
     { id = "huleboer", against = "friluftsdyr", when = function(ctx) return ctx.instance end },

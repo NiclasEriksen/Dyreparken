@@ -73,7 +73,7 @@ return function(test, H)
         ola.ns.DB.char.wish = { day = ola.ns.Today(), pet = "s:40", id = "camp", done = false }
         Buff(ola, "Campfire's Warmth", true); Buff(ola, "Campfire's Warmth", false); Buff(ola, "Campfire's Warmth", true)
         ok(ola.ns.DB.char.wish.done, "the wish came true")
-        ok(ola:Printed("Bombay Cat fikk ønsket sitt oppfylt: bålkos!", true))
+        ok(ola:PrintedLine("wish.granted.full", { pet = "Bombay Cat", activity = "bålkos" }))
     end)
 
     test("eggs: a cozy pet enjoys the fire and the sleeping bag, an adventurous one gets restless, the rest say nothing", function()

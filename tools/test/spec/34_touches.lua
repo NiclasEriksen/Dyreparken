@@ -544,7 +544,7 @@ return function(test, H)
         local w, ola, At, Said = Eggs({ "hjemlengsel", "rampete" }) -- likes going home
         ola:Set("home", "Goldshire")
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 8690)
-        ok(ola:Printed("Bombay Cat er glad for å være hjemme i Goldshire!", true))
+        ok(ola:PrintedLine("activity.hearth.flavor_home", { pet = "Bombay Cat", home = "Goldshire" }))
         ola:Set("home", nil)
         w:SkipDays(1)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 8690)

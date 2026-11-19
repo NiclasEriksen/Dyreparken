@@ -116,7 +116,7 @@ return function(test, H)
         no(W:Today().done, "not what it wished for")
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         ok(W:Today().done)
-        ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+10 båndpoeng)", true))
+        ok(ola:PrintedLine("wish.granted", { pet = "Panda Cub", activity = "herbs", n = 10 }))
         local after = ola:Points(PANDA)
         eq(after - before, 1 + 5 + 10, "the quest, the herb, and the wish")
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
@@ -198,7 +198,7 @@ return function(test, H)
         eq(ola:Points(PANDA) - before, 5, "just a herb")
         local lines = 0
         for _, line in ipairs(ola.printed) do
-            if line:find("fikk ønsket sitt oppfylt", 1, true) then lines = lines + 1 end
+            if line:find("ønsket sitt oppfylt", 1, true) or line:find("Ønsket gikk i oppfyllelse", 1, true) then lines = lines + 1 end
         end
         eq(lines, 1, "one wish line")
     end)
@@ -217,7 +217,7 @@ return function(test, H)
         local before = ola:Points(PANDA)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         eq(ola:Points(PANDA) - before, 10)
-        ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+10 båndpoeng)", true))
+        ok(ola:PrintedLine("wish.granted", { pet = "Panda Cub", activity = "herbs", n = 10 }))
         -- Two points short of what the wire accepts (Registry.LifeCap): the line says two.
         local B = ola.ns.Bond
         local function Room(n) local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); e.p = e.p + B:Room(PANDA) - n end
@@ -227,7 +227,7 @@ return function(test, H)
         before = ola:Points(PANDA)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         eq(ola:Points(PANDA) - before, 2)
-        ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+2 båndpoeng)", true))
+        ok(ola:PrintedLine("wish.granted", { pet = "Panda Cub", activity = "herbs", n = 2 }))
         -- At the cap: the wish comes true, with no promise of points.
         w:SkipDays(1)
         ola.ns.DB.char.wish = nil
@@ -237,7 +237,7 @@ return function(test, H)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         ok(W:Today().done)
         eq(ola:Points(PANDA) - before, 0)
-        match(ola:Printed("fikk ønsket sitt oppfylt", true) or "", "Panda Cub fikk ønsket sitt oppfylt: herbs!$")
+        ok(ola:PrintedLine("wish.granted.full", { pet = "Panda Cub", activity = "herbs" }))
         no(ola:Printed("båndpoeng", true), "no points promised")
     end)
 

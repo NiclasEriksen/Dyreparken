@@ -235,7 +235,7 @@ return function(test, H)
         local start = Pts()
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
         eq(Pts() - start, 1 + 5, "a boss (1, not liked) and the first time it saw Hogger fall (5)")
-        ok(ola:Printed("Panda Cub var med da Hogger falt!", true))
+        ok(ola:PrintedLine("first.boss", { pet = "Panda Cub", boss = "Hogger" }))
         start = Pts()
         ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1)
         eq(Pts() - start, 1, "the second time: just a boss")
@@ -309,8 +309,8 @@ return function(test, H)
         eq(w:Sent("PLAY", "Kari Berg", m), 1, "Kari answered")
         eq(ola:Points(PANDA), 15, "the adopted panda: the full playdate")
         eq(kari:Points(KARI), 8, "Kari's pet, not adopted: half (rounded up)")
-        ok(ola:Printed("Panda Cub lekte med", true))
-        ok(kari:Printed("lekte med Panda Cub %(Ola Nord%)"))
+        ok(ola:PrintedLine("play.line", { pet = "Panda Cub", friend = kari.ns.Registry:NameOf(KARI), owner = "Kari Berg" }))
+        ok(kari:PrintedLine("play.line", { pet = kari.ns.Registry:NameOf(KARI), friend = "Panda Cub", owner = "Ola Nord" }))
         -- Again today: no more points, and no ping-pong.
         w:Run(700)
         ola:Fire("GROUP_ROSTER_UPDATE"); kari:Fire("GROUP_ROSTER_UPDATE")
@@ -330,9 +330,9 @@ return function(test, H)
     test("playdates: a pair of families has its own lines, both ways; others keep the plain one", function()
         local w, ola = Setup()
         local P, ns = ola.ns.Playdate, ola.ns
-        local function OneOf(line, prefix, pet, friend)
+        local function OneOf(line, prefix, pet, friend, owner)
             for _, key in ipairs(ns.Lines(prefix)) do
-                if line == ns.T(key, { pet = pet, friend = friend }) then return true end
+                if line == ns.T(key, { pet = pet, friend = friend, owner = owner }) then return true end
             end
             return false
         end
@@ -345,10 +345,10 @@ return function(test, H)
         line = P.Line("s:40", "s:51", "Kari Berg")
         ok(OneOf(line, "play.cat.pirate", cat, ns.Registry:NameFor("s:51", "Kari Berg") .. " (Kari Berg)"), line)
         -- No lines for a bear meeting a cat, nor for a pet without families (a mage's familiar): the plain line.
-        eq(P.Line("s:5159", "s:40", "Kari Berg"), ns.T("play.line", { pet = ns.Registry:NameOf("s:5159"),
-            friend = ns.Registry:NameFor("s:40", "Kari Berg"), owner = "Kari Berg" }))
-        eq(P.Line("s:40", "n:Cat Familiar", "Kari Berg"), ns.T("play.line", { pet = cat,
-            friend = ns.Registry:NameFor("n:Cat Familiar", "Kari Berg"), owner = "Kari Berg" }))
+        line = P.Line("s:5159", "s:40", "Kari Berg")
+        ok(OneOf(line, "play.line", ns.Registry:NameOf("s:5159"), ns.Registry:NameFor("s:40", "Kari Berg"), "Kari Berg"), line)
+        line = P.Line("s:40", "n:Cat Familiar", "Kari Berg")
+        ok(OneOf(line, "play.line", cat, ns.Registry:NameFor("n:Cat Familiar", "Kari Berg"), "Kari Berg"), line)
     end)
 
     test("playdates: only with a guildmate near you, not one far away in the same group", function()

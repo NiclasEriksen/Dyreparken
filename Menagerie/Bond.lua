@@ -361,11 +361,13 @@ function Bond:Contest(key)
 end
 
 -- A reward's line that tells what it really gave (code review 2026-11-13: a full day's wish said
--- "+10" and gave nothing): `textKey` with {n}, or `fullKey`, without the amount, when it gave none.
+-- "+10" and gave nothing): `textKey` with {n}, or `fullKey`, without the amount, when it gave none. Either
+-- one's variants too (ns.PickLine, 2026-11-19: the wish's line came daily and always read the same).
 function Bond.Line(textKey, fullKey, vars)
     return function(n)
         vars.n = n
-        return ns.T(n > 0 and textKey or fullKey, vars)
+        local key = n > 0 and textKey or fullKey
+        return ns.PickLine(key, vars) or ns.T(key, vars)
     end
 end
 
@@ -435,7 +437,7 @@ function Bond:OnActivity(id, n, key)
         flavor = Bond.LikedLine(id, name)
         -- Home by name (2026-11-10): the inn you're bound to (GetBindLocation works on Forever: /dp probe api, 2026-11-11).
         local home = id == "hearth" and type(GetBindLocation) == "function" and ns.Plain(GetBindLocation())
-        if type(home) == "string" and home ~= "" then flavor = ns.T("activity.hearth.flavor_home", { pet = name, home = home }) end
+        if type(home) == "string" and home ~= "" then flavor = ns.PickLine("activity.hearth.flavor_home", { pet = name, home = home }) end
     elseif P:WantsContext(key) then
         -- A unit name we can't read mustn't cost the points: no bonus then.
         local ok, ctx = pcall(Bond.Context)
@@ -514,7 +516,7 @@ function Bond:First(id, key, extra)
         if firsts[key][extra] then return end
         firsts[key][extra] = true
         Bond.justFirst, Bond.justFirstAt = key .. "\31" .. extra, ns.Now() -- (Quirks' trophy: a boss new to this pet, whoever hears it first)
-        text = ns.T("first.boss", { pet = ns.Registry:NameOf(key), boss = extra })
+        text = ns.PickLine("first.boss", { pet = ns.Registry:NameOf(key), boss = extra })
         if Count(firsts[key]) == 1 then ns.Story:Mine(key, "first.boss", extra) end -- (its very first)
     elseif id == "explore" and type(extra) == "string" then
         -- Its very first new place: the second it has seen with you (the first is where it came out).

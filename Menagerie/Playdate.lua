@@ -107,7 +107,7 @@ function Playdate.Line(mine, theirs, sender)
             if line then return line end
         end
     end
-    return ns.T("play.line", { pet = pet, friend = friend, owner = sender })
+    return ns.PickLine("play.line", { pet = pet, friend = friend, owner = sender })
 end
 
 -- Someone in our group has a pet out.
