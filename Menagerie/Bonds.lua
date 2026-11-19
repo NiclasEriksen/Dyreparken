@@ -198,14 +198,19 @@ end
 -- A guildmate's /dp klapp on your pet (2026-11-10): their emote reaches you
 -- as CHAT_MSG_EMOTE ("klapper Pepe (Ola Nord sin Panda Cub)."); no message of
 -- ours. Your pet answers with hearts at the chat window and a line, at most
--- once per guildmate every PAT_AGAIN. Listened to only while you have an
--- adopted pet. Unverified on Forever: that custom emotes arrive like this.
+-- once per guildmate every PAT_AGAIN. Unverified on Forever: that custom emotes arrive like this.
+-- 2026-11-19 (the user): any pet of yours that's out, adopted or not, and it earns Config.BOND_PAT_POINTS
+-- (Bond.REWARDS.pat: within the day's limit, at the pet's rate), and counts as the activity "patted" (a wish
+-- now and then: Wish.PAT_EVERY). So it's listened to always (Bonds:Init): no event says a pet of ours came
+-- out but COMPANION_UPDATE, every companion nearby; anything not a pat goes at the first check.
 Bonds.PAT_AGAIN = 300
 local patted = {} -- sender -> GetTime()
 function Bonds:Patted(text, sender)
-    text, sender = Plain(text), ns.NormalizeName(Plain(sender))
-    local key = ns.Registry:MyPet()
-    if type(text) ~= "string" or type(sender) ~= "string" or not key or ns.Pets:OutKey() ~= key then return end
+    text = Plain(text)
+    if type(text) ~= "string" or text:sub(1, 8) ~= "klapper " then return end
+    sender = ns.NormalizeName(Plain(sender))
+    local key = ns.Pets:OutKey()
+    if type(sender) ~= "string" or not key then return end
     local me = ns.PlayerKey()
     if sender == me or ns.Guild:IsMember(sender) ~= true then return end
     -- Our own emote's two shapes (pat.other, pat.other_nick), anchored: a nickname that
@@ -217,22 +222,16 @@ function Bonds:Patted(text, sender)
     local now = GetTime()
     if patted[sender] and now - patted[sender] < self.PAT_AGAIN then return end
     patted[sender] = now
-    ns.PetSays(ns.T("pat.thanks", { pet = ns.Registry:NameOf(key), who = sender }), key, "like", true) -- (always: an answer to a guildmate's pat)
+    -- (always: an answer to a guildmate's pat; the name it has for us, as our own /klapp says it)
+    ns.PetSays(ns.T("pat.thanks", { pet = ns.Registry:NameFor(key, me), who = sender }), key, "like", true)
     if ns.Fx then ns.Fx:Burst({ DEFAULT_CHAT_FRAME, "TOPRIGHT", -24, -8 }, "heart", { n = 4, color = ns.Fx.PINK, size = 0.7 }) end
-end
-
-function Bonds:WatchPats()
-    if ns.Registry:MyPet() then
-        ns.Events:On("CHAT_MSG_EMOTE", Bonds, function(_, _, text, sender) Bonds:Patted(text, sender) end)
-    else
-        ns.Events:Off("CHAT_MSG_EMOTE", Bonds)
-    end
+    ns.Bond:Reward("pat", key)
+    ns.Activity:Emit("patted", 1, sender)
 end
 
 function Bonds:Init()
     C_Timer.After(SHOW_AFTER, function() Bonds:Celebrate() end)
-    ns.Bus:On("MY_RECORD", function() Bonds:WatchPats() end)
-    C_Timer.After(SHOW_AFTER, function() Bonds:WatchPats() end) -- (our record may come with the login SYNC)
+    ns.Events:On("CHAT_MSG_EMOTE", Bonds, function(_, _, text, sender) Bonds:Patted(text, sender) end)
 end
 
 -- The emote text for petting the target companion, or our own. nil if

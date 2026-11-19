@@ -278,6 +278,8 @@ end })
 
 -- A playdate (2026-11-14, a wish for social pets): Playdate.lua emits it, as it happens.
 Activity:Source({ id = "playmate", events = {} })
+-- A guildmate's /klapp on a pet of yours (2026-11-19, the user: a rare wish): Bonds:Patted emits it.
+Activity:Source({ id = "patted", events = {} })
 
 -- A line of our own in guild chat (only the sender is read, never the text).
 Activity:Source({ id = "chat", events = { "CHAT_MSG_GUILD" }, filter = function(_, _, ...)

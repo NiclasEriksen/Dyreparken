@@ -581,6 +581,13 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   realms invisibly. See docs/FOREVER_API.md.
 - The pet key is `s:<speciesID>`. Forever returns real species IDs (see docs/FOREVER_API.md).
 
+- **Pats from the guild** (2026-11-19, the user): a guildmate's /klapp (or /dp klapp) on any pet of yours that's out,
+  adopted or not, gives it Config.BOND_PAT_POINTS (1; Bond.REWARDS.pat, within the day's 75, at the pet's rate), with
+  its thank-you line and hearts, once every Bonds.PAT_AGAIN (5 minutes) from each guildmate (a session's memory).
+  It's the activity `patted`: one day in Wish.PAT_EVERY (10) any pet wishes for it, only with guildmates about lately
+  (Wish.Company). No wire change: the pat is the patter's emote, read on our side (Bonds:Patted, CHAT_MSG_EMOTE heard
+  always). A guildmate can type the emote by hand: a point every 5 minutes at most, within the day.
+
 - **Who owns what, X-Protocol 11** (2026-11-15, the user: "essential for many of the features I have planned"; Menagerie/
   Owners.lua): each member's owned species go to the guild, lazily, and pets are assumed kept for good (a list only
   grows). Older clients keep syncing (the user): the protocol is per kind now (X-Protocol-Floor 10; Wire.SINCE, Stamp,

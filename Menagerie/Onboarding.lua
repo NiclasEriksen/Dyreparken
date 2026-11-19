@@ -62,6 +62,7 @@ function Onboarding.HelpLines(key)
         lines[#lines + 1] = { L["help.wish.adopt"], 0.8, 0.8, 0.8, true }
     end
     lines[#lines + 1] = { ns.T("help.play", { n = C.BOND_PLAY_POINTS }), 1, 1, 1, true }
+    lines[#lines + 1] = { ns.T("help.pat", { n = C.BOND_PAT_POINTS }), 1, 1, 1, true }
     return lines
 end
 

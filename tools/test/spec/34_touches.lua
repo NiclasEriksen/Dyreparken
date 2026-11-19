@@ -556,27 +556,95 @@ return function(test, H)
         no(ola:Said("hjemme i Westfall"), "not a cat's place")
     end)
 
-    test("a guildmate's /dp klapp on your pet: hearts and a line, at most once every few minutes", function()
-        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
-        no(ola:Listening("CHAT_MSG_EMOTE"), "no adopted pet: not listening")
+    -- 2026-11-19, the user: "Pets should receive bond points when petted by other guild members (+1) ... 5 min CD and
+    -- not beyond the daily cap"; any pet of yours out, the cooldown per guildmate.
+    test("a guildmate's /klapp on your pet: hearts, a line and +1, once every five minutes from each, within the day", function()
+        local w, ola, kari = H.Setup{ ola = { 5159, 46 }, kari = { 40 }, world = { members = H.FOLK } }
+        local PANDA, KITTEN = "s:5159", "s:46"
+        ok(ola:Listening("CHAT_MSG_EMOTE"), "heard always: no event says a pet of ours came out")
         ola:Slash("adopter panda")
         w:Run(5)
-        ok(ola:Listening("CHAT_MSG_EMOTE"))
         ola:Summon(5159)
-        kari:Target({ species = 5159, owner = "Ola Nord" })
-        kari:Slash("klapp")
-        local said
-        for _, m in ipairs(w.chat) do if m.from == "Kari Berg" and m.chan == "EMOTE" then said = m.text end end
-        ola:Fire("CHAT_MSG_EMOTE", said, "Kari Berg")
+        local function Pat(c, species)
+            c:Target({ species = species, owner = "Ola Nord" })
+            c:Chat("/klapp")
+            local said
+            for _, m in ipairs(w.chat) do if m.from == c.name and m.chan == "EMOTE" then said = m.text end end
+            ola:Fire("CHAT_MSG_EMOTE", said, c.name)
+        end
+        local before = ola:Points(PANDA)
+        Pat(kari, 5159)
         ok(ola:Printed("Panda Cub ser fornøyd ut etter klappen fra Kari Berg.", true))
+        eq(ola:Points(PANDA) - before, 1, "+1")
         ola:ClearPrinted()
-        ola:Fire("CHAT_MSG_EMOTE", said, "Kari Berg")
+        Pat(kari, 5159)
         eq(#ola.printed, 0, "not again so soon")
+        eq(ola:Points(PANDA) - before, 1, "nor its point")
+        -- Another guildmate: theirs counts at once (the cooldown is each guildmate's).
+        local per = w:AddClient("Per Hansen", { pets = { 42 } })
+        w:Run(15)
+        Pat(per, 5159)
+        eq(ola:Points(PANDA) - before, 2, "Per's pat, at once")
         ola:Fire("CHAT_MSG_EMOTE", "klapper Kari Berg sin Bombay Cat.", "Per Hansen")
-        eq(#ola.printed, 0, "someone else's pet, and not a guildmate")
-        ola:Slash("gislipp")
-        w:Run(1)
-        no(ola:Listening("CHAT_MSG_EMOTE"), "let go: not listening")
+        eq(ola:Points(PANDA) - before, 2, "someone else's pet")
+        ola:Fire("CHAT_MSG_EMOTE", "klapper Ola Nord sin Panda Cub.", "Fremmed Person")
+        eq(ola:Points(PANDA) - before, 2, "not a guildmate")
+        w:Run(ola.ns.Bonds.PAT_AGAIN + 1)
+        Pat(kari, 5159)
+        eq(ola:Points(PANDA) - before, 3, "five minutes on: Kari's again")
+        -- A pet of yours you haven't adopted: the same (its rate rounded up: 1).
+        ola:Summon(46)
+        local kitten = ola:Points(KITTEN)
+        w:Run(ola.ns.Bonds.PAT_AGAIN + 1)
+        Pat(kari, 46)
+        ok(ola:Printed("White Kitten ser fornøyd ut etter klappen fra Kari Berg.", true))
+        eq(ola:Points(KITTEN) - kitten, 1, "a pet not adopted too")
+        -- Not past the day's limit.
+        ola:Summon(5159)
+        ola.ns.DB.char.bondToday = { day = ola.ns.Today(), pets = { [PANDA] = { got = { herb = 25 }, total = 75 } } }
+        before = ola:Points(PANDA)
+        w:Run(ola.ns.Bonds.PAT_AGAIN + 1)
+        Pat(kari, 5159)
+        ok(ola:Printed("Panda Cub ser fornøyd ut etter klappen fra Kari Berg.", true), "still glad")
+        eq(ola:Points(PANDA) - before, 0, "a full day: no more")
+        -- No pet out: nothing.
+        ola:Summon(nil)
+        ola:ClearPrinted()
+        w:Run(ola.ns.Bonds.PAT_AGAIN + 1)
+        ola:Fire("CHAT_MSG_EMOTE", "klapper Ola Nord sin Panda Cub.", "Kari Berg")
+        eq(#ola.printed, 0, "no pet out")
+    end)
+
+    test("a rare wish: a guildmate's /klapp, only with guildmates about lately; done by one", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
+        local PANDA, W = "s:5159", ola.ns.Wish
+        ola:Slash("adopter panda")
+        w:Run(5)
+        ola:Summon(5159)
+        -- Over many days, about one in PAT_EVERY; never without company.
+        local days, with, without = 200, 0, 0
+        local t = os.time({ year = 2027, month = 1, day = 1, hour = 12 })
+        ola.ns.DB.char.company = nil
+        for i = 1, days do
+            if W:For(PANDA, os.date("%Y%m%d", t + i * 86400)) == "patted" then without = without + 1 end
+        end
+        eq(without, 0, "nobody about: never")
+        ola.ns.DB.char.company = ola.ns.Now()
+        for i = 1, days do
+            if W:For(PANDA, os.date("%Y%m%d", t + i * 86400)) == "patted" then with = with + 1 end
+        end
+        ok(with >= days / W.PAT_EVERY / 2 and with <= days / W.PAT_EVERY * 2, "about one day in ten: " .. with)
+        -- Today's wish it is: a guildmate's pat makes it come true.
+        ola.ns.DB.char.wish = { day = ola.ns.Today(), pet = PANDA, id = "patted", done = false }
+        W:Arm()
+        ola:OpenJournal()
+        ola:SelectPet(5159)
+        ok(ola:Visible(ola.ns.Wish.Line(W:Today())), "its line on the card")
+        kari:Target({ species = 5159, owner = "Ola Nord" })
+        kari:Chat("/klapp")
+        ola:Fire("CHAT_MSG_EMOTE", "klapper Panda Cub (Ola Nord sin Panda Cub).", "Kari Berg")
+        ok(W:Today().done, "done")
+        ok(ola:PrintedLine("wish.granted", { pet = "Panda Cub", activity = "en klapp fra guilden", n = 10 }))
     end)
 
     test("the card hints at dislikes not found out yet; easter eggs found add up to achievements", function()

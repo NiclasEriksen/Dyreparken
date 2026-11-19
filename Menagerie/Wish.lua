@@ -27,6 +27,9 @@ end
 -- Wishes beyond its likes (2026-11-11, the user): now and then any pet wishes for time by a
 -- campfire, and a cozy one for a night in a sleeping bag. One day in CAMP_EVERY each, by the date.
 Wish.CAMP_EVERY = 6
+-- ... and, rarer, any pet wishes for a guildmate's /klapp (2026-11-19, the user: "a rare daily wish"), one day in
+-- PAT_EVERY, only with guildmates about lately (Wish.Company): else nobody would be there to give it.
+Wish.PAT_EVERY = 10
 local function Sleeper(key) return ns.Personality:Tagged(key, "sleeper") end -- (Personality.TRAITS' `is`)
 
 ------------------------------------------------------------------------------
@@ -85,7 +88,7 @@ end
 -- Only with guild company lately (the user, 2026-11-14: a solo player's streak broke on them): a guildmate
 -- in your group, their pet met or a playdate within COMPANY_DAYS (char.company), or in your group now.
 Wish.COMPANY_DAYS = 3
-Wish.COMPANY = { guildgroup = true, guildpet = true, playmate = true }
+Wish.COMPANY = { guildgroup = true, guildpet = true, playmate = true, patted = true }
 function Wish.Company()
     local at = ns.DB.char.company
     if at and ns.Now() - at <= Wish.COMPANY_DAYS * 86400 then return true end
@@ -124,6 +127,9 @@ function Wish:For(key, day)
     local roll = Hash("camp " .. day .. " " .. key) % self.CAMP_EVERY
     if roll == 0 and ns.Activity:Available("camp") then return "camp" end
     if roll == 1 and Sleeper(key) and ns.Activity:Available("rested") then return "rested" end
+    if Hash("pat " .. day .. " " .. key) % self.PAT_EVERY == 0 and ns.Activity:Available("patted") and self.Company() then
+        return "patted"
+    end
     local extra, zone = self:Extra(key, day)
     if extra then return extra, zone end
     local _, list = ns.Personality:Of(key)
@@ -300,7 +306,7 @@ function Wish.Capped()
 end
 
 -- The wishes with no chip of their own borrow one's icon.
-Wish.ICON = { zone = "explore", guildgroup = "chat", guildpet = "meet", playmate = "meet" }
+Wish.ICON = { zone = "explore", guildgroup = "chat", guildpet = "meet", playmate = "meet", patted = "cuddle" }
 
 -- A wish that comes true by itself, checked with the pet out (and out of combat: the pet can't be read in it).
 function Wish:Auto(w)

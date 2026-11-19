@@ -97,6 +97,7 @@ Activity.KINDS = {
     { "guildgroup" },             -- in a group with a guildmate (once a day)
     { "guildpet" },               -- a guildmate's companion met under the mouse (the meet activity's, guild owners)
     { "playmate" },               -- a playdate happened (Playdate.lua emits it; extra: who)
+    { "patted" },                 -- a guildmate's /klapp on a pet of yours (Bonds:Patted; extra: who): a rare wish, Wish.PAT_EVERY
     -- Bad luck in a fight (2026-11-14, the user): eggs only, said after the fight.
     { "misses", wish = false },   -- your weapon swings missed (missed, dodged, parried) MISS_STREAK times in a row
     { "resisted", wish = false }, -- your spells resisted RESIST_STREAK times in a row

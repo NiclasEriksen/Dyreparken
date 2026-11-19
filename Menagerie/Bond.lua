@@ -347,6 +347,7 @@ Bond.REWARDS = {
     wish = { points = "BOND_WISH_POINTS", once = true, beyond = true, kind = "major" },
     first = { points = "BOND_FIRST_POINTS", lines = "FIRST_LINES", cap = "BOND_FIRST_CAP" }, -- a first together
     play = { points = "BOND_PLAY_POINTS", once = true }, -- a playdate (Playdate.lua)
+    pat = { points = "BOND_PAT_POINTS" }, -- a guildmate's /klapp (Bonds:Patted: once every PAT_AGAIN from each)
     contest = { points = "BOND_CONTEST_POINTS", once = true }, -- fishing in the Sunday contest (Bond:Contest)
     feat = { points = "BOND_FEAT_POINTS", beyond = true, kind = "major" }, -- a feat (Feats.lua): once per character already, so not once a day
 }
