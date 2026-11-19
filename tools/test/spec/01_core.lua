@@ -102,6 +102,37 @@ return function(test, H)
         local bare = w:AddClient("Per Hansen", { version = "", protocol = "x" })
         ok(bare.ns.DEV, "empty version is dev")
         eq(bare.ns.PROTOCOL, 1, "unreadable protocol falls back to 1")
+        local old = w:AddClient("Lise Dahl", { version = "@project-version@" })
+        ok(old.ns.DEV, "the bare token (a checkout from before 2026-11-19) is dev too")
+    end)
+
+    -- 2026-11-19, the user: the addon list showed "@project-version@" for a git checkout. The TOC's Version is
+    -- "dev" there, and the packager's TOC rules (BigWigsMods/packager release.sh: toc_filter debug, every build
+    -- non-debug) delete that block and uncomment the token's line, which then gets the tag.
+    test("the TOC's version: dev in a checkout, the tag once packaged", function()
+        local f = assert(io.open("Dyreparken.toc", "rb"))
+        local text = f:read("*a")
+        f:close()
+        local function Versions(lines)
+            local out = {}
+            for _, l in ipairs(lines) do
+                local v = l:match("^##%s*Version:%s*(.-)%s*$")
+                if v then out[#out + 1] = v end
+            end
+            return out
+        end
+        local checkout, packaged, block = {}, {}, nil
+        for line in (text:gsub("\r", "") .. "\n"):gmatch("(.-)\n") do
+            checkout[#checkout + 1] = line
+            local tag = line:match("^#@([%w-]+)@")
+            if tag == "debug" or tag == "non-debug" then block = tag
+            elseif tag == "end-debug" or tag == "end-non-debug" then block = nil
+            elseif block == "non-debug" then packaged[#packaged + 1] = (line:gsub("^#[ \t]+", ""))
+            elseif block == nil then packaged[#packaged + 1] = line end
+        end
+        eq(table.concat(Versions(checkout), ","), "dev", "a checkout: one Version, dev")
+        eq(table.concat(Versions(packaged), ","), "@project-version@", "packaged: one Version, the tag's token")
+        eq(H.TOC.meta.Version, "dev", "and the harness's clients are dev builds")
     end)
 
     test("Utf8Len counts characters, not bytes", function()

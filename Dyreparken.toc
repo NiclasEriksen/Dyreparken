@@ -2,7 +2,12 @@
 ## Title: Dyreparken
 ## Notes: Guildens dyrepark: adopter kjæledyr, bygg bånd og se Parken.
 ## Author: Hjelp
-## Version: @project-version@
+#@debug@
+## Version: dev
+#@end-debug@
+#@non-debug@
+# ## Version: @project-version@
+#@end-non-debug@
 ## X-Flavor: forever
 ## X-Protocol: 12
 ## X-Protocol-Floor: 10

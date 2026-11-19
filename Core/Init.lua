@@ -11,11 +11,12 @@ ns.name = addonName
 local GetMeta = (C_AddOns and C_AddOns.GetAddOnMetadata) or GetAddOnMetadata
 
 -- The packager replaces @project-version@ with the git tag (e.g. "v0.1.0").
--- Running straight from a git checkout leaves the token in place: that's a
--- dev build, which never claims to be outdated or newer than anyone.
+-- A git checkout says "dev" (the TOC's #@debug@ block, which the packager deletes, while it uncomments the
+-- #@non-debug@ line with the token: 2026-11-19, the user: the addon list showed "@project-version@"): a dev
+-- build, which never claims to be outdated or newer than anyone. (The token itself: a checkout from before.)
 do
     local v = (GetMeta and GetMeta(addonName, "Version")) or ""
-    ns.DEV = v == "" or v:find("@", 1, true) ~= nil
+    ns.DEV = v == "" or v == "dev" or v:find("@", 1, true) ~= nil
     ns.VERSION = ns.DEV and "dev" or v
 end
 -- Wire protocol version, and the oldest one we still talk to (X-Protocol-Floor, 2026-11-15: X-Protocol 11

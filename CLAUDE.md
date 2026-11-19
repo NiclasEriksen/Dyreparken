@@ -151,7 +151,9 @@ per commit), in a temporary worktree, and refuses the push if it fails. CI runs 
   changelog with the same script, and refuses a tag that isn't on main or isn't newer than the last.
 - Push a tag `vX.Y.Z` (release), `vX.Y.Z-betaN` or `vX.Y.Z-alphaN`. `.github/workflows/release.yml` runs the checks,
   then BigWigsMods/packager@v2, which uploads to CurseForge (WoW Forever, 1.60.1) and makes a GitHub release.
-- The TOC has `## Version: @project-version@`, which the packager replaces with the tag. A git checkout reports `dev`
+- The TOC's Version is `dev` in a `#@debug@` block, and `# ## Version: @project-version@` in a `#@non-debug@` one: every
+  packaged build is non-debug, so the packager deletes the first and uncomments the second, with the tag (2026-11-19:
+  the bare token showed in the addon list for a checkout; 01_core checks the TOC). A git checkout reports `dev`
   (`ns.DEV`) and never shows "outdated" warnings.
 - The CurseForge project ID is the `CF_PROJECT_ID` repository secret, passed as `-p`, so it isn't in the TOC.
 - The changelog is written by the release workflow from commit **subjects** since the previous tag (bodies and
