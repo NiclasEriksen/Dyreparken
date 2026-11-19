@@ -54,6 +54,9 @@ quirks. When you learn something new about the client, add it there with the dat
   (days to each level) and every line group with how often it came and on what share of days. Run it after
   changing a chance, a cooldown or a REWARDS row. Our own Lua errors go into the log
   with their stack (Dev/Errors.lua, through BugGrabber), and `--errors` also reads BugGrabber's saved ones.
+- The saved data itself: **`luajit tools/sv.lua`** (read-only; `summary`: claims, bonds, names, owners, each table's
+  size; `check`: a harness client logs in with it, then lists what a peer's merge would refuse; `picks`: the editors'
+  picks as Lua to paste, each marked if the data has it already; `--file`, `--char`, `-h`).
 
 **Types** (2026-11-15): every file starts `---@class Dyreparken` / `local ns = select(2, ...)` (one class in parts), and
 a module's table has its class: `---@class Dyreparken.Wish` above `local Wish = {}` (`ns.Wish = Wish`), and above
