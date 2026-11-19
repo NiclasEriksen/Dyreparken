@@ -142,6 +142,17 @@ return function(test, H)
         match(ola:Printed("[Kattevræl] ", true), "%[Kattevræl%] %d%d%.%d%d%.%d%d%d%d$", "shared: no star")
     end)
 
+    test("a family by its aliases: the Mechanical Chicken (chicken, mechanical) is a farm pet too", function()
+        local list = H.CopyTable(H.COMPANIONS)
+        list[83] = { a = true, t = { "chicken", "mechanical" } }
+        local w, ola = H.Setup{ ola = { pets = { 7, 84 } }, kari = {}, settle = "hello",
+            each = function(c) c:Companions(list) end }
+        no(Got(ola, "family:farm"), "two of the three farm pets")
+        Learn(ola, 83); w:Run(2)
+        ok(Got(ola, "family:farm"), "the chicken counted (2026-11-19, the user)")
+        ok(Got(ola, "family:mechanical"), "and a mechanical pet still")
+    end)
+
     test("share: at most five lines a click, the rest at the next (the server's chat flood limit)", function()
         local w, ola = Setup({ 40 })
         local A, n = ola.ns.Achievements, 0

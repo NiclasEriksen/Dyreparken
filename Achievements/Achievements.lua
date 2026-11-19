@@ -145,8 +145,11 @@ local function Counting()
     return list, n
 end
 
+-- Through the families' aliases, as everywhere else (2026-11-19, the user: the Mechanical Chicken counts as a farm
+-- pet too, "but obviously still in the mechanical pen": its pen is its first family, unchanged).
 local function HasTag(e, tag)
-    for _, t in ipairs(e.t or {}) do if t == tag then return true end end
+    local alias = ns.Scenes.ALIAS
+    for _, t in ipairs(e.t or {}) do if t == tag or alias[t] == tag then return true end end
     return false
 end
 
