@@ -160,7 +160,10 @@ return function(test, H)
         local P = ola.ns.Personality
         eq(P:Names(PANDA), "Klengete og Grønnfinger")
         ok(A:IsListening("QUEST_TURNED_IN"))
-        no(A:IsListening("CHAT_MSG_TEXT_EMOTE"), "nobody here likes dancing")
+        ok(A:IsListening("CHAT_MSG_TEXT_EMOTE"), "Klengete likes cuddles (an emote, 2026-11-19)")
+        ola:Traits({ "gronnfinger", "glupsk" }, 5159)
+        ola.ns.Bond:Watch()
+        no(A:IsListening("CHAT_MSG_TEXT_EMOTE"), "nobody here likes dancing or cuddles")
         no(A:IsListening("MIRROR_TIMER_START"))
         ola:Traits({ "dansefot", "kjaelen" }, 5159)
         ola.ns.Bond:Watch()
@@ -183,7 +186,7 @@ return function(test, H)
     test("every trait's activity has a source, a word, and an effect text", function()
         local w, ola, A = Setup()
         local P = ola.ns.Personality
-        ola.state.spellNames = { [1229741] = "Campfire's Warmth" } -- (Bålkos: the campfire's buff, by its name)
+        ola.state.spellNames = { [1229741] = "Campfire's Warmth", [429959] = "Well Rested" } -- (the buffs, by their names)
         for _, t in ipairs(P.TRAITS) do
             if t.like then
                 ok(A:Available(t.like), t.id .. ": " .. t.like)

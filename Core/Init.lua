@@ -338,6 +338,7 @@ ns.Config = {
     BOND_MINOR_CAP = 10,          -- ... at most this many points a day (the user, 2026-11-12)
     MINOR_LIKE_LEVEL = 4,         -- your bond level with a pet that unlocks its minor like ...
     MINOR_DISLIKE_LEVEL = 6,      -- ... and its minor dislike (a secret until it happens, as dislikes are)
+    THIRD_TRAIT_LEVEL = 7,        -- ... and a third trait (Data/Unlocks.lua's third value, 2026-11-19)
     BOND_OTHER_POINTS = 1,        -- any other activity with it out
     BOND_OTHER_CAP = 3,           -- ... at most this many a day per activity (5 until 2026-11-10)
     BOND_OTHER_TOTAL = 10,        -- ... and all of them together (2026-11-10: likes are what fill a day)

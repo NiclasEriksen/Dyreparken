@@ -75,6 +75,7 @@ Menagerie\Personality.lua
 Menagerie\JournalList.lua
 Menagerie\CardActions.lua
 Menagerie\JournalUI.lua
+Menagerie\AboutPet.lua
 Menagerie\Tooltip.lua
 Menagerie\Sense.lua
 Menagerie\Unlisted.lua

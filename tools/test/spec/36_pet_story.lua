@@ -27,19 +27,20 @@ return function(test, H)
         eq(ola.ns.Story.panel.points[1][2], ola.ns.SidePage:Host())
     end)
 
-    test("the button shows on a pet with a story; it opens the panel beside the window, newest first", function()
+    -- (2026-11-19: on every pet, as the panel has more than the story now: AboutPet.lua's tabs)
+    test("the button shows on every pet; it opens the panel beside the window, newest first", function()
         local w, ola = H.Setup{ ola = { 5159, 40 }, journal = true }
         ola.ns.Bonds.PetOfTheDay = function() end -- (here and below, but in the last: the pet of the day)
         local card = ola:SelectPet(5159)
-        no(card.story:IsShown(), "no story yet")
+        ok(card.story:IsShown(), "no story yet: still the button")
         ola:Slash("adopter panda")
         w:Run(5)
-        ok(card.story:IsShown(), "adopted: its story begins")
-        ola:SelectPet(40)
-        no(card.story:IsShown(), "a pet with no story: no button")
         ola:SelectPet(5159)
-        eq(ola:TipOf(card.story)[1], "Historien om Panda Cub")
+        eq(ola:TipOf(card.story).text, "Om Panda Cub / Historien, personligheten og båndene. / Klikk for å åpne")
+        eq(card.story.arrow.rotation, -math.pi / 2, "an arrow out to the side")
         card.story:Click()
+        eq(card.story.arrow.rotation, math.pi / 2, "and back while it's open")
+        eq(ola:TipOf(card.story)[3], "Klikk for å lukke")
         local p = ola.ns.Story.panel
         ok(p:IsShown())
         eq(p.points[1][2], ola.env.CollectionsJournal, "right of the window")
@@ -47,7 +48,7 @@ return function(test, H)
         eq(p.points[1][4], 64, "past where the side tabs would be")
         eq(p.template, "ButtonFrameTemplate", "styled like the window")
         ok(p.portraitHidden)
-        eq(p.titleText, "Historien om Panda Cub")
+        eq(p.titleText, "Om Panda Cub")
         eq(Lines(ola)[1], "Første hjem: flyttet inn hos deg")
         -- Thirty days on, and a name: newest at the top.
         w:SkipDays(31)
@@ -102,6 +103,45 @@ return function(test, H)
         ola.ns.Card:Update(card, nil, {}) -- (the card with no pet on it)
         no(card.story:IsShown())
         no(ola.ns.Story:IsOpen(), "no panel of the last pet beside an empty card")
+    end)
+
+    -- The panel's tabs (AboutPet.lua, 2026-11-19): the story, the personality in full, everyone's bonds.
+    test("the panel's tabs: the story, its personality, everyone's bonds; the last one chosen opens next time", function()
+        local w, ola, kari = H.Setup{ ola = { 5159, 40 }, kari = { 5159 }, journal = true }
+        ola.ns.Bonds.PetOfTheDay = function() end
+        ola:Slash("adopter panda"); w:Run(5)
+        local card = ola:SelectPet(5159)
+        card.story:Click()
+        local p, S = ola.ns.Story.panel, ola.ns.Story
+        local titles = {}
+        for _, b in ipairs(p.tabs) do titles[#titles + 1] = b.text.text end
+        eq(table.concat(titles, " "), "Historie Personlighet Bånd")
+        ok(p.tabs[1].line:IsShown(), "the story first"); no(p.tabs[2].line:IsShown())
+        ok(p.pages.story:IsShown())
+        p.tabs[2]:Click()
+        ok(p.tabs[2].line:IsShown()); no(p.tabs[1].line:IsShown())
+        no(p.pages.story:IsShown(), "one page at a time")
+        eq(p.scroll.scrollChild, p.pages.personality)
+        local text = ola:About(PANDA, "personality").text
+        match(text, "^Egenskaper / ")
+        match(text, " / Liker / ")
+        -- Bånd: strongest first, the holder's home said, you as "Du".
+        local now = w:ServerTime()
+        ola.ns.Registry:MergeLife(PANDA, "Kari Berg", { p = 600, f = now - 40 * 86400, t = now })
+        local lines = ola:About(PANDA, "bonds")
+        eq(lines[1], "Alle i guilden som har et bånd med Panda Cub, sterkest først.")
+        eq(lines[2], "Kari Berg"); eq(lines[3], "God venn (level 4), 600 poeng")
+        eq(lines[4], "Du"); match(lines[5], "^Bekjent %(level 1%), %d+ poeng · Panda Cub bor her$")
+        -- Closed and opened again: on Bånd, the last chosen; another pet keeps the tab.
+        p.close:Click()
+        card.story:Click()
+        ok(p.tabs[3].line:IsShown(), "the tab last chosen")
+        ola:SelectPet(40)
+        eq(p.key, "s:40"); ok(p.tabs[3].line:IsShown())
+        eq(ola:About("s:40", "bonds")[1], "Ingen i guilden har et bånd med Bombay Cat ennå.")
+        -- A pet whose personality is a surprise says so.
+        eq(ola:About("s:84", "personality").text, "Ukjent personlighet / Personligheten er en overraskelse. "
+            .. "Den blir kjent når du eller noen i guilden har dyret.")
     end)
 
     test("the guild's part: homes, moves, names, levels, as this client sees them", function()
@@ -258,7 +298,7 @@ return function(test, H)
         card.story:Click()
         p = kari.ns.Story.panel
         eq(p.template, nil)
-        eq(p.title.text, "Historien om Panda Cub")
+        eq(p.title.text, "Om Panda Cub")
         ok(p.close and p.close:IsShown())
         p.close:Click()
         no(p:IsShown())

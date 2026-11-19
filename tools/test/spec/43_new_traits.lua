@@ -101,7 +101,6 @@ return function(test, H)
     test("one like from the families: every species with a choice has its pick, the adopted kept theirs", function()
         local w, ola = Setup()
         local P = ola.ns.Personality
-        local most = 0
         for sid in pairs(ola.ns.Companions.species) do
             local key = "s:" .. sid
             local can = P:FamilyLikes(ola.ns.Scenes:Families(key))
@@ -111,33 +110,43 @@ return function(test, H)
             for _, act in ipairs(picks) do
                 ok(table.concat(can, " "):find(act, 1, true), sid .. ": " .. act .. " isn't its families'")
             end
-            local _, list = P:Of(key)
-            if type(pick) ~= "table" then most = math.max(most, #list) end
         end
-        ok(most <= 4, "at most four likes, but for the adopted that kept theirs")
-        -- (the adopted pets of 2026-11-12 kept all their family likes)
-        eq(table.concat((select(2, P:Of("s:51"))), " "), "taxi fish pvp dive", "Senegal")
-        eq(table.concat((select(2, P:Of("s:39"))), " "), "mine skill dance", "Mechanical Squirrel")
-        eq(table.concat((select(2, P:Of("s:5159"))), " "), "herb fish", "Panda Cub")
-        eq(table.concat((select(2, P:Of("s:47"))), " "), "taxi chat fun", "Cockatiel: six likes before")
+        -- (the adopted pets of 2026-11-12 kept all their family likes; each trait's like after them since 2026-11-19)
+        eq(table.concat((select(2, P:Of("s:51"))), " "), "taxi fish pvp dive guildgroup", "Senegal")
+        eq(table.concat((select(2, P:Of("s:39"))), " "), "mine skill dance camp", "Mechanical Squirrel")
+        eq(table.concat((select(2, P:Of("s:5159"))), " "), "herb fish cuddle", "Panda Cub")
+        eq(table.concat((select(2, P:Of("s:47"))), " "), "boat taxi chat fun", "Cockatiel: six likes before")
     end)
 
-    test("likes and dislikes together, the minor ones counted, are 4 to 6 for every species", function()
+    -- 2026-11-19 (the user): at most 6 likes and 3 dislikes, and with everything unlocked (level 7: the minor ones and
+    -- the third trait) at least 4 likes and 2 dislikes. (Was 4 to 6 likes and dislikes together, 2026-11-12.)
+    test("every species: 4 to 6 likes and 2 to 3 dislikes at level 7, never more before", function()
         local w, ola = Setup()
         local P = ola.ns.Personality
-        P.YourLevel = function() return 7 end -- (both minors unlocked)
-        -- Rare exceptions (the user): the Senegal, adopted with its four likes, keeps its dislike at level 6.
-        local EXCEPT = { [51] = 7 }
-        for sid in pairs(ola.ns.Companions.species) do
-            local key = "s:" .. sid
+        local level = 7
+        P.YourLevel = function() return level end
+        local function Counts(key)
             local _, likes = P:Of(key)
             local _, dislikes = P:Dislikes(key)
-            local n = #likes + #dislikes + (P:Minor(key) and 1 or 0)
-            ok(n >= 4 and n <= (EXCEPT[sid] or 6), sid .. ": " .. n .. " (Personality.FAMILY_PICK, NO_DISLIKE, Data/Unlocks.lua)")
+            return #likes + (P:MinorLike(key) and 1 or 0), #dislikes
+        end
+        local where = " (Personality's tables, Data/Unlocks.lua: tools/pin_unlocks.lua)"
+        for sid in pairs(ola.ns.Companions.species) do
+            local key = "s:" .. sid
+            level = 7
+            local l, d = Counts(key)
+            ok(l >= 4 and l <= 6, sid .. ": " .. l .. " likes" .. where)
+            ok(d >= 2 and d <= 3, sid .. ": " .. d .. " dislikes" .. where)
+            level = 0
+            local l0, d0 = Counts(key)
+            ok(l0 <= l and d0 <= d, sid .. ": nothing lost on the way")
         end
         -- (a family dislike a species is spared; none from its families)
         no(P:Dislikes("s:47").pvp, "the Cockatiel, a pirate's bird, doesn't mind PvP")
         ok(P:Dislikes("s:40").dive, "a cat still minds the water")
+        ok(P:Dislikes("s:42").boat, "and boats")
+        no(P:Dislikes("s:44").boat, "but not the Siamese, a ship's cat")
+        ok(P:Dislikes("s:44").taxi, "it minds flying instead")
         eq(table.concat((select(2, P:Of("s:125"))), " "), "nap dive", "Speedy: no family like")
     end)
 end

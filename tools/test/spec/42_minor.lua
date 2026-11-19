@@ -56,7 +56,13 @@ return function(test, H)
         eq(set.pvp, "minor")
         eq(#(select(2, P:DislikedWords(PANDA))), 0, "not seen yet")
         local card = ola:SelectPet(5159)
-        no(card.likes.text:find("PvP", 1, true) or card.likes.text:find("pvp", 1, true), "secret")
+        local function Badge(kind, act)
+            for _, b in ipairs(card.badges.badges) do
+                if b:IsShown() and b.data.kind == kind and b.data.act == act then return b end
+            end
+        end
+        no(Badge("dislike", "pvp"), "secret")
+        ok(Badge("secret"), "a ? for it")
         -- It happens; the minor chance (pinned to come up) speaks.
         ola:Dice(0.1) -- (under 0.15: the minor dislike's first time)
         ola.ns.Activity:Emit("pvp", 1); w:RunTimers()
@@ -64,8 +70,8 @@ return function(test, H)
         local major, minor = P:DislikedWords(PANDA)
         eq(#minor, 1)
         card = ola:SelectPet(5159)
-        match(card.likes.text, "|cff8c8475" .. P.NOUN.pvp .. "|r", "dimmed")
-        match(card.likes.text, "|cff8c8475" .. P.NOUN.nap .. "|r", "the minor like too")
+        eq(Badge("dislike", "pvp").alpha, 0.55, "dimmed")
+        eq(Badge("like", "nap").alpha, 0.55, "the minor like too")
         -- The list's tooltip and the park's stage too, dimmed the same (2026-11-15, the user: they left them out).
         local pline = P:Line(PANDA)
         match(pline, "|cff8c8475" .. P.NOUN.nap .. "|r", "the minor like in the shared line")
@@ -76,10 +82,10 @@ return function(test, H)
         Park:Spot(PANDA)
         match(Park.spot.text.text, "|cff8c8475" .. P.NOUN.nap .. "|r|cff", "on the stage, back to the line's color after it")
         ola:SelectPet(5159)
-        -- The tooltip: the minor ones in their own, dimmer lines.
-        local tip = ola:TipOf(card.personalityHit).text
-        match(tip, "Liker også litt: " .. P.NOUN.nap)
-        match(tip, "Liker heller ikke: " .. P.NOUN.pvp)
+        -- The panel's Personlighet: the minor ones marked (and dimmed).
+        local tip = ola:About(PANDA, "personality").text
+        match(tip, "Liker / .*" .. P.NOUN.nap:sub(1, 1):upper() .. P.NOUN.nap:sub(2) .. " · litt")
+        match(tip, "Liker ikke / .*PvP · litt")
         -- Again later: rarer than a major dislike (0.1 is past MINOR_AGAIN).
         ola.ns.DB.char.quirkAt = nil
         local said = #ola:Log("dislike " .. PANDA .. " pvp")
@@ -87,14 +93,16 @@ return function(test, H)
         eq(#ola:Log("dislike " .. PANDA .. " pvp"), said, "0.1: a major dislike would have spoken, not a minor one")
     end)
 
-    test("the card says what your bond unlocks next, and nothing once it's all unlocked", function()
+    test("the panel says what your bond unlocks next (4, 6, 7), and nothing once it's all unlocked", function()
         local w, ola, P = Setup()
         local card = ola:SelectPet(5159)
-        local function Tip() return ola:TipOf(card.personalityHit).text end
+        local function Tip() return ola:About(PANDA, "personality").text end
         match(Tip(), "Når båndet ditt blir " .. ola.ns.Bond.LEVELS[4][2] .. ", lærer du mer om hva")
         ToLevel(w, ola, 4)
         match(Tip(), "Når båndet ditt blir " .. ola.ns.Bond.LEVELS[6][2] .. ", lærer du mer om")
         ToLevel(w, ola, 6)
+        match(Tip(), "Når båndet ditt blir " .. ola.ns.Bond.LEVELS[7][2] .. ", viser Panda Cub deg en ny side") -- (a third trait)
+        ToLevel(w, ola, 7)
         no(Tip():find("Når båndet ditt blir", 1, true))
     end)
 
@@ -107,7 +115,11 @@ return function(test, H)
             local key = "s:" .. sid
             local likes = P:Of(key)
             local _, majors = P:Dislikes(key)
-            for _, act in ipairs(pin) do if act then ok(A.KIND[act], act) end end
+            -- (and with its third trait too, at level 7: Personality:Third, all)
+            local third = P.ById(pin[3] or "")
+            if third and third.like then likes = setmetatable({ [third.like] = true }, { __index = likes }) end
+            for i = 1, 2 do if pin[i] then ok(A.KIND[pin[i]], pin[i]) end end
+            ok(pin[3] and P.ById(pin[3]), sid .. ": a third trait (level 7)")
             no(pin[1] and likes[pin[1]], sid .. ": the minor like is a major one")
             no(pin[2] and likes[pin[2]], sid .. ": the minor dislike is liked")
             for _, d in ipairs(majors) do no(d == pin[2], sid .. ": the minor dislike is a major one") end

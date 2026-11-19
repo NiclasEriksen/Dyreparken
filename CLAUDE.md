@@ -134,11 +134,13 @@ per commit), in a temporary worktree, and refuses the push if it fails. CI runs 
 
 `tools/test/spec/49_content.lua` walks all of it, so new content needs no test of its own unless it brings new logic.
 - **A trait**: a row in `Personality.TRAITS` (what other modules ask of it goes on the row: `is = { tags }`,
-  `place`), its `trait.<id>.*` lines, its particles in `Decor.TRAITS`. Never a list of trait ids in another
+  `place`), its `trait.<id>.*` lines, its particles in `Decor.TRAITS` (`icon` there too when the kind's texture is a dot
+  or a sparkle: its badge on the card, AboutPet.lua; 49_content checks). Never a list of trait ids in another
   module: ask `Personality:Has(key, id)` / `:Tagged(key, tag)`.
 - **An egg**: a row in `Quirks.EGGS` and its `egg.<id>.N` lines. Lines by nature: `traits` / `families` on the egg
   and `egg.<id>.<trait|family>.N`. Its activity is watched for it (Quirks.WATCH is built from the eggs). Ids are permanent.
-- **An activity**: a row in `Activity.KINDS`, a source, `activity.<id>`; `dislike.<id>.N` if anything can dislike it.
+- **An activity**: a row in `Activity.KINDS`, a source, `activity.<id>`; `dislike.<id>.N` if anything can dislike it;
+  `icons` (a chip) or a `mark` (one of our textures) if a pet can like or dislike it (its badge on the card).
 - **A family**: in `Scenes.ORDER` and a row in each table the content spec names.
 - **A companion**: tools/companions/README.md, "Adding a companion" (its data, traits, moves' lengths, where it
   stands, its sound row). Parken's map grows by itself (rows by the count; the garden Park.GARDEN_CELLS, near the middle).
@@ -261,6 +263,12 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Card (the card's widgets: one ns.Card.Register{ id, build, update, pause, stop } each, run in
                    Card.ORDER for build, update, our pages' pause and the card's one OnHide; a widget with nothing
                    to stop says still = true),
+                   AboutPet (2026-11-19, the user: room for more traits, moods, temperaments: a pet's personality on its card as a row of
+                   round badges between the home line and the bond strip (the "badges" widget): its traits, likes (green ring, a minor one dimmed), dislikes
+                   found out (red) and a "?" for the secret ones, each with its tooltip; a click opens the panel on "Personlighet", every
+                   trait, like and dislike in words; "Bånd" there lists everyone's bond with the pet, strongest first. A mood or
+                   temperament is meant to go at the row's end, the two next to each other (the user; undecided yet);
+                   c:About(key, tab) reads a tab in the tests),
                    Tooltip (reservation lines on companion units; owner parsed from tooltip text)
                    Sense (2026-11-14, docs/CLASS_INTERACTIONS.md part 1: sensors for the class, race and faction
                    reactions (the class ones read them: Reactions.lua; race and faction ones don't exist yet): glance (a unit under the mouse), cast, form, buff, pet, group,
@@ -316,7 +324,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Moves:Owe(key, "dead"|"joy"|"sulk"), char.owed (an egg's `move`); which animation per species: Data/PetMoves.lua; every step list comes from the pure planner Moves.Plan, the stages only play plans), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
                    congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Story (a pet's story: a local
                    timeline of its life in the guild, g.story, found by comparing the registry with what it last saw,
-                   plus your moments with it; a book button on the card opens a panel right of the window, newest first; flavor (eggs,
+                   plus your moments with it; a book button on every pet's card (an arrow: it opens out to the side) opens a panel right of the window, newest first, with tabs
+                   (Story:AddTab; the one last chosen opens next): Historie, and AboutPet's; flavor (eggs,
                    pet-of-the-day days) older than Story.FLAVOR_DAYS folds into grey "N interaksjoner" lines, 2026-11-19), Onboarding
                    (2026-11-19: a new player's welcome once an account, the line after a character's first adoption, the
                    card's "?" with how this pet's bond grows; an old install skips the first two: account migration 15, char
@@ -490,12 +499,22 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
 - **One like from the families** (2026-11-12, the user: "a bit crazy that it has 6 while the prairie dog only has
   2"): a species gets one of its families' likes, the one that fits it best, picked by hand in
   `Personality.FAMILY_PICK` (a test asks for a pick wherever the families give more than one), plus its story's
-  (BY_SPECIES) and its traits'. At most four likes now (was six). The adopted pets kept all theirs (Senegal,
-  Mechanical Squirrel, Panda Cub: a list there; `false`: none). **Likes and dislikes together, the minor ones
-  counted, are 4 to 6 per species** (the user, the same day; a test holds it): over that, a family dislike
-  the species doesn't have (`Personality.NO_DISLIKE`: the parrots don't mind PvP), or a minor dropped (Data/Unlocks.lua
-  `false`: the Wilted Lashling's minor dislike). Rare exceptions are fine (the user): the adopted Senegal has 7, its
-  likes kept and its dislike at level 6 too (the test's EXCEPT). Room is left on purpose for more later.
+  (BY_SPECIES) and its traits'. The adopted pets kept all theirs (Senegal, Mechanical Squirrel, Panda Cub: a list
+  there; `false`: none). A family dislike a species is spared: `Personality.NO_DISLIKE`; one of its own:
+  `DISLIKE_BY_SPECIES`. (The 4-6 likes and dislikes together of that day: replaced 2026-11-19, below.)
+- **More likes, and a third trait** (2026-11-19, the user, once the card's badges made room): **every species has
+  4 to 6 likes and 2 to 3 dislikes at level 7** (the minor ones and the third trait unlocked), never more before
+  (43_new_traits holds it). Every trait has a like now (those with only a moment or a day had none: Klengete kos,
+  Nattugle nye steder, Festglad dansing, Helgetroll sovepose, Flokkdyr selskap fra guilden, Einstøing fisking,
+  Huleboer dungeons, Friluftsdyr bål, Ordensdyr ærend, Vinterpels and Solelsker et måltid, Tivolidyr tøys, Skybåren
+  zeppeliner). New activities: errand (the bank, a mailbox, the auction house), eat (the Food or Drink buff), dungeon
+  (going in), duel (won or lost); boat and zeppelin (Voyage) became likes too: the pirates' parrots and Azurky like
+  boats, cats dislike them (not the Siamese, a ship's cat: it minds flying instead), the Rampete and Eventyrlysten species like duels. **A third trait** opens up at your bond's
+  level 7 (Config.THIRD_TRAIT_LEVEL), pinned per species as Data/Unlocks.lua's third value by tools/pin_unlocks.lua
+  (its like new to the pet, within the limits, from the family's fitting traits; the Senegal's by hand), told once at
+  the level-up (unlock.trait) and hinted on the panel before. Two minor likes the new trait likes made major were
+  re-pinned by hand (Jubling, Sinister Squashling). Guild company as a like is wished for only with guildmates about
+  (Wish.Company). No wire change: points and caps are as they were (chatter: the same pace).
 - **Minor likes and dislikes** (2026-11-12, the user): your own bond with a pet unlocks one more like at
   level 4 (Config.MINOR_LIKE_LEVEL) and one more dislike at 6, per species (Data/Unlocks.lua). Lesser than the
   major ones: a minor like gives 2 points, at most 10 a day (BOND_MINOR_POINTS/CAP), its line at 30% of its first

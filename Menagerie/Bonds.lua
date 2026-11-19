@@ -80,8 +80,8 @@ function Bonds:TellNameUnlock()
     end
 end
 
--- A minor like or dislike your bond just unlocked (Personality: levels 4 and 6), once each per pet
--- (char.unlocksTold). The like is told; the dislike only that there's something new to find.
+-- A minor like or dislike your bond just unlocked (Personality: levels 4 and 6), or its third trait (7), once
+-- each per pet (char.unlocksTold). The like and the trait are told; the dislike only that there's something new.
 function Bonds:TellUnlocks(key, level)
     local P, C = ns.Personality, ns.Config
     local like, dislike = P:Minor(key)
@@ -96,6 +96,11 @@ function Bonds:TellUnlocks(key, level)
     if dislike and level >= C.MINOR_DISLIKE_LEVEL and not told[key].dislike then
         told[key].dislike = true
         ns.PetSays(ns.T("unlock.dislike", { pet = name }), key, "major", true)
+    end
+    local trait = level >= C.THIRD_TRAIT_LEVEL and P:Third(key, true)
+    if trait and not told[key].trait then
+        told[key].trait = true
+        ns.PetSays(ns.T("unlock.trait", { pet = name, trait = trait.name }), key, "major", true)
     end
 end
 

@@ -40,6 +40,21 @@ function Client:TipOf(f)
     return lines, colors
 end
 
+-- The panel beside the card on one of AboutPet's tabs ("personality", "bonds"), as a player reads it: its shown
+-- headings, titles and texts, top to bottom (.text: joined with " / "). Opens the panel on the pet.
+function Client:About(key, tab)
+    self.ns.Story:Show(key, tab)
+    local p = self.ns.Story.panel
+    local page = assert(p and p.pages[tab], "no panel or no such tab: " .. tostring(tab))
+    local lines = {}
+    for _, it in ipairs(page.items or {}) do
+        if it.title:IsShown() then lines[#lines + 1] = it.title.text end
+        if it.text:IsShown() then lines[#lines + 1] = it.text.text end
+    end
+    lines.text = table.concat(lines, " / ")
+    return lines
+end
+
 -- World tooltip -------------------------------------------------------------------
 -- Hover a companion: o = { species, owner ("First Surname" or nil), companion (false: not a pet), secret (a unit
 -- in combat: no GUID, its name secret, as on Forever 2026-11-14), who (any other unit, with companion = false:

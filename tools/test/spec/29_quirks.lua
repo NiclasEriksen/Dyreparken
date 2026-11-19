@@ -91,7 +91,14 @@ return function(test, H)
         local w, ola, Q = Setup()
         ola:OpenJournal()
         local card = ola:SelectPet(40)
-        eq(card.likes.text, "Liker fisking, quests og PvP", "a secret until it happens")
+        local function Kinds()
+            local list = {}
+            for _, b in ipairs(card.badges.badges) do
+                if b:IsShown() then list[#list + 1] = b.data.kind .. (b.data.act and (":" .. b.data.act) or "") end
+            end
+            return table.concat(list, " ")
+        end
+        eq(Kinds(), "trait trait like:fish like:quest like:pvp secret", "a secret until it happens: a ? for it")
         ok(ola.ns.Activity:IsListening("MIRROR_TIMER_START"), "watched for the cat")
         local before = ola:Points(CAT)
         Dive(ola)
@@ -99,8 +106,10 @@ return function(test, H)
         ok(ola:Said("Nå vet du det: Bombay Cat liker ikke dykking."))
         eq(ola:Points(CAT), before, "no effect on the bond")
         ok(ola.ns.DB.char.dislikes[CAT].dive)
-        eq(card.likes.text, "Liker fisking, quests og PvP · liker ikke dykking")
-        match(ola:TipOf(card.personalityHit).text, "Liker ikke: dykking")
+        card = ola:SelectPet(40)
+        eq(Kinds(), "trait trait like:fish like:quest like:pvp dislike:dive", "found: its badge, red, in the ?'s place")
+        match(ola:TipOf(card.badges.badges[6]).text, "^Liker ikke dykking / Det koster ingen båndpoeng")
+        match(ola:About(CAT, "personality").text, "Liker ikke / Dykking / ")
         -- Once a day at most, and only on some days (the day's roll, 2026-11-19).
         Dive(ola)
         eq(ola:CountPrinted("Bombay Cat rister"), 1)
@@ -121,12 +130,12 @@ return function(test, H)
         Dive(ola)
         ok(ola:Said("Bombay Cat nekter å se på deg etter den dukkerten."), "another line, another day")
         eq(ola:CountPrinted("Nå vet du det"), 1, "found once")
-        -- Alone on the card: capitalized. And it's kept across a reload.
+        -- With no family like: its traits' own and the dislike. And it's kept across a reload.
         ola:Traits({ "kosete", "festglad" }, 40)
         ola.ns.Personality.BY_FAMILY = {}
         ola.ns.Personality.DEFAULT = {}
         ola:SelectPet(40)
-        eq(card.likes.text, "Liker ikke dykking")
+        eq(Kinds(), "trait trait like:cuddle like:dance dislike:dive", "the traits' likes only")
         ola:Reload()
         ok(ola.ns.DB.char.dislikes[CAT].dive)
     end)

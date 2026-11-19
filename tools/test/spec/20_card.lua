@@ -407,7 +407,9 @@ return function(test, H)
         local last = card.status.points[#card.status.points]
         eq(last[3], "RIGHT"); eq(last[4], -72, "the home line stops short of the medallion")
         eq(card.nickname.points[#card.nickname.points][4], -150)
-        for _, row in ipairs({ card.personality, card.likes }) do eq(row.points[#row.points][4], -12) end
+        eq(card.personality.points[#card.personality.points][4], -12)
+        -- The personality's badges from the left, under the strip (AboutPet.lua).
+        eq(card.badges.points[1][1], "TOPLEFT"); eq(card.badges.points[1][4], 10)
         -- The bond strip: stars from the left, the bar after them, the goal after the bar.
         local b = card.bond
         eq(b.pips[1].points[1][4], 12); eq(b.pips[1].points[1][5], ola.ns.JournalUI.ROW_Y.strip)
@@ -467,21 +469,40 @@ return function(test, H)
         eq(#ola:Log("bg %d+ YES probe: Interface\\EncounterJournal\\UI%-EJ%-LOREBG%-Naxxramas"), 1)
     end)
 
-    test("hovering the personality and the bond explains them", function()
+    test("hovering the personality and the bond explains them; a click on a badge, the panel tells all", function()
         local w, ola = Setup()
         ola:Slash("adopter panda")
         w:Run(40)
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
-        local text = ola:TipOf(card.personalityHit).text
         local traits = ola.ns.Personality:Traits("s:5159")
         eq(#traits, 2)
-        match(text, "^" .. traits[1].name .. " / ")
-        for _, q in ipairs(traits) do
-            ok(text:find(q.name .. " / " .. q.desc, 1, true), "what each trait means")
-            ok(text:find(ola.ns.Personality:Effect(q), 1, true), "and what it does")
+        local B = card.badges.badges
+        for i, q in ipairs(traits) do
+            eq(ola:TipOf(B[i]).text, q.name .. " / " .. q.desc .. " / " .. ola.ns.Personality:Effect(q)
+                .. " / Klikk for mer om Panda Cub", "a trait's badge: what it means and does")
         end
-        match(text, "Liker: herbs")
+        match(ola:TipOf(B[3]).text, "^Liker herbs / Herbs med dyret ute gir 5 båndpoeng %(opptil 25 om dagen%), mot 1 ellers%.")
+        no(ola.ns.Story:IsOpen())
+        B[3]:Click()
+        ok(ola.ns.Story:IsOpen(), "a click opens the panel")
+        eq(ola.ns.Story.tab, "personality", "on its personality")
+        local text = ola:About("s:5159", "personality").text
+        match(text, "^Egenskaper / " .. traits[1].name .. " / ")
+        -- What each trait means; what it does only when that isn't a like's line already (said twice, seen in game).
+        for _, q in ipairs(traits) do
+            if q.like and not (q.when or q.day) then
+                ok(text:find(q.name .. " / " .. q.desc .. " / ", 1, true), q.id .. ": what it means")
+                no(text:find(q.desc .. "\n", 1, true), q.id .. ": its like's line says what it gives, not the trait's")
+            else
+                ok(text:find(q.name .. " / " .. q.desc .. "\n" .. ola.ns.Personality:Effect(q), 1, true), q.id .. ": means and does")
+            end
+        end
+        ola:Traits{ "gronnfinger", "nattugle" } -- (one of each)
+        text = ola:About("s:5159", "personality").text
+        ok(text:find("Grønnfinger / " .. ola.ns.Personality.ById("gronnfinger").desc .. " / ", 1, true))
+        ok(text:find(ola.ns.Personality.ById("nattugle").desc .. "\n" .. ola.ns.Personality:Effect(ola.ns.Personality.ById("nattugle")), 1, true))
+        match(text, "Liker / Herbs / ")
         match(text, "vokser båndet raskere%.$")
         text = ola:TipOf(card.bond).text
         match(text, "^Bånd: Bekjent %(level 1%) / %d+ poeng til Kamerat%. / På level 2 får kortet en kant og et hint av farge%. / I dag: %+%d+ av 75 mulige poeng%. / Vokser for hver dag")
@@ -490,14 +511,16 @@ return function(test, H)
         ola.ns.Registry:MergeLife("s:5159", "Ola Nord", { p = 9000, f = now - 200 * 86400, t = now })
         card = ola:SelectPet(5159)
         match(ola:TipOf(card.bond).text, "Høyeste level%.")
-        -- A free pet we don't own: nothing to explain on the bond; the personality still tells.
+        -- A free pet nobody has: nothing to explain on the bond; its personality a surprise, and why on hover.
         card = ola:SelectPet(68)
         eq(#ola:TipOf(card.bond), 0)
-        ok(#ola:TipOf(card.personalityHit) >= 2)
+        no(card.badges:IsShown())
+        match(ola:TipOf(card.personalityHit).text, "^Ukjent personlighet / Personligheten er en overraskelse")
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil
         ola.env.PetJournal_UpdatePetCard(c)
-        eq(#ola:TipOf(card.personalityHit), 0, "no pet: no tooltip")
+        no(card.badges:IsShown(), "no pet: no badges")
+        no(card.personalityHit:IsShown(), "nor a hover")
     end)
 
     test("/dp probe card logs what the pet card is made of", function()
@@ -542,7 +565,7 @@ return function(test, H)
         eq(card.nickname.font, "GameFontNormalLarge")
     end)
 
-    test("a click on Dagens dyr shows that pet in the journal; the likes line is readable", function()
+    test("a click on Dagens dyr shows that pet in the journal", function()
         local w, ola = H.Setup{ ola = { 5159, 46 }, journal = true }
         ola:Slash("adopter panda")
         w:Run(5)
@@ -563,9 +586,6 @@ return function(test, H)
         card.todayBox.scripts.OnMouseUp(card.todayBox)
         eq(card.species, "White Kitten")
         eq(#ola:Log("PetJournal_SelectSpecies: missing"), 1); eq(#ola:Log("PetJournal_ShowPetCardBySpeciesID: missing"), 1)
-        -- The likes: light text now, not the disabled grey.
-        eq(card.likes.font, "GameFontHighlightSmall")
-        eq(card.likes.color[1], 0.8)
     end)
 
     test("the quest chip is the quest giver's \"!\", and the list marks a pet that needs a home with a house", function()

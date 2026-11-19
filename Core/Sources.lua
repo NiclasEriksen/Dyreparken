@@ -587,14 +587,54 @@ function Activity.Duel(text)
     if not kind then kind, who = Read("DUEL_WINNER_RETREAT", false) end
     return kind, who
 end
-for _, id in ipairs({ "duelwon", "duellost" }) do
+for _, id in ipairs({ "duelwon", "duellost", "duel" }) do
     Activity:Source({ id = id, events = { "CHAT_MSG_SYSTEM" },
         available = function() return Activity.FormatPattern(_G.DUEL_WINNER_KNOCKOUT) ~= nil end,
         filter = function(_, text)
             local kind, who = Activity.Duel(text)
-            if kind == id then return 1, who end
+            if kind and (kind == id or id == "duel") then return 1, who end -- (a duel, won or lost: a like)
         end })
 end
+
+-- Errands (2026-11-19, the user: Ordensdyr's like): the bank, a mailbox or the auction house opened. The same
+-- event as the trainer's window (Feats.lua, seen on Forever with Trainer 7); these three types read by name from
+-- Enum.PlayerInteractionType (retail's Banker 8, MailInfo 17, Auctioneer 21; unverified on Forever). One a
+-- minute at most: a mailbox closed and opened again isn't another errand.
+Activity.ERRAND_TYPES = { "Banker", "MailInfo", "Auctioneer" }
+Activity.ERRAND_AGAIN = 60
+local lastErrand
+Activity:Source({ id = "errand", events = { "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" },
+    available = function()
+        local E = rawget(_G, "Enum")
+        return E ~= nil and E.PlayerInteractionType ~= nil and E.PlayerInteractionType.MailInfo ~= nil
+    end,
+    filter = function(_, kind)
+        kind = Plain(kind)
+        local types = Enum.PlayerInteractionType
+        for _, name in ipairs(Activity.ERRAND_TYPES) do
+            if types[name] ~= nil and kind == types[name] then
+                local now = GetTime()
+                if lastErrand and now - lastErrand < Activity.ERRAND_AGAIN then return nil end
+                lastErrand = now
+                return 1, name
+            end
+        end
+    end })
+
+-- Into a dungeon or a raid (2026-11-19, the user: Huleboer's like): its loading screen's end inside one, once
+-- per visit (a /reload or a login inside isn't a new one). extra: its name.
+local inside
+Activity:Source({ id = "dungeon", events = { "PLAYER_ENTERING_WORLD" },
+    filter = function(_, login, reload)
+        local yes, kind = IsInInstance()
+        yes, kind = Plain(yes), Plain(kind)
+        local now = yes == true and (kind == "party" or kind == "raid")
+        local was = inside
+        inside = now
+        if not now or was or login or reload then return nil end
+        local name = Plain(GetZoneText())
+        return 1, type(name) == "string" and name or nil
+    end })
 
 -- A new flight path (ERR_NEWTAXIPATH "New flight path discovered!"): a message on screen
 -- (UI_INFO_MESSAGE: type, text) or in system chat; which one, unverified on Forever.
@@ -611,6 +651,9 @@ Activity:Source({ id = "newpath", events = { "UI_INFO_MESSAGE", "CHAT_MSG_SYSTEM
 -- combat only (camps are), and not while auras are secret. The first look only notes what's
 -- there (a /reload by the fire isn't a new fire).
 Activity.AURAS = {
+    -- A meal (2026-11-19, the user: Vinterpels' and Solelsker's like): eating or drinking, by the buffs' names
+    -- (Forever's English client; unverified there: the first one seen logs its spell id).
+    eat = { names = { "Food", "Drink", "Food & Drink", "Refreshment" } },
     campnear = { id = 1283391 },                       -- a campfire nearby
     campwarm = { id = 1229739 },                       -- Welcoming Campfire, the minute's countdown (seen 2026-11-11)
     camp = { id = 1229741 },                           -- the buff after a minute by the fire
@@ -620,9 +663,21 @@ local auraHad, auraNames = {}, {}
 function Activity.AuraName(id)
     if auraNames[id] then return auraNames[id] end -- (UNIT_AURA comes often: looked up once)
     local a = Activity.AURAS[id]
-    local name = a and (a.id and ns.SpellName(a.id) or a.name)
+    local name = a and (a.id and ns.SpellName(a.id) or a.name or (a.names and a.names[1]))
     auraNames[id] = name
     return name
+end
+-- Any of an aura's names (a meal's Food or Drink): whether one is on, and its data.
+local function HasAny(id)
+    local names = Activity.AURAS[id].names
+    if not names then return Activity.HasAura(Activity.AuraName(id)) end
+    local seen
+    for _, name in ipairs(names) do
+        local has, data = Activity.HasAura(name)
+        if has then return true, data end
+        if has ~= nil then seen = false end
+    end
+    return seen
 end
 function Activity.HasAura(name)
     local byName = C_UnitAuras and C_UnitAuras.GetAuraDataBySpellName
@@ -651,7 +706,7 @@ local function LookAt(updateInfo)
     if updateInfo == nil or auraLook.at ~= updateInfo then
         auraLook.at = updateInfo
         for id in pairs(Activity.AURAS) do
-            auraLook.has[id], auraLook.data[id] = Activity.HasAura(Activity.AuraName(id))
+            auraLook.has[id], auraLook.data[id] = HasAny(id)
         end
     end
     return true

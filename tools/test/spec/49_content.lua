@@ -212,6 +212,41 @@ return function(test, H)
         end
     end)
 
+    -- The card's badges (AboutPet.lua, 2026-11-19): every like and dislike any species can have, and every trait,
+    -- has an icon of its own: a chip's game icon, else one of our textures, never the question mark or a plain dot.
+    test("badges: every like, dislike and trait has an icon, and our textures exist", function()
+        local ns = World()
+        local P, A = ns.Personality, ns.AboutPet
+        local function Ours(path)
+            local name = path:match("Particles\\(.+)$")
+            local f = name and io.open("Media/Particles/" .. name .. ".tga", "rb")
+            if f then f:close() end
+            return f ~= nil
+        end
+        local acts = {}
+        for sid in pairs(ns.Companions.species) do
+            local key = "s:" .. sid
+            for _, a in ipairs(select(2, P:Of(key))) do acts[a] = sid end
+            for _, a in ipairs(select(2, P:Dislikes(key, true))) do acts[a] = sid end
+            local like = P:Minor(key)
+            if like then acts[like] = sid end
+        end
+        local n = 0
+        for a, sid in pairs(acts) do
+            n = n + 1
+            local path, ours = A.ActIcon(a)
+            no(path:find("QuestionMark"), a .. " (" .. sid .. "): an icon")
+            no(path:find("\\dot$"), a .. ": not a plain dot")
+            if ours then ok(Ours(path), a .. ": " .. path .. " exists") end
+        end
+        ok(n > 20, "every activity a pet can have")
+        for _, t in ipairs(P.TRAITS) do
+            local path = A.TraitIcon(t)
+            ok(Ours(path), t.id .. ": " .. path .. " exists")
+            no(path:find("\\dot$") or path:find("\\sparkle$"), t.id .. ": a shape of its own, not " .. path)
+        end
+    end)
+
     test("families: every one in Scenes.ORDER has its rows, and no table names one that isn't", function()
         local ns = World()
         local P, Sc, D, B, Q = ns.Personality, ns.Scenes, ns.Decor, ns.Bond, ns.Quirks

@@ -35,7 +35,8 @@ ns.Activity = Activity
 -- EVERY ACTIVITY, declared once (2026-11-09): its id, whether the bond
 -- always watches it (always; the rest only for a pet that likes it), whether
 -- it can be a pet's wish of the day (wish = false: not on demand), and the
--- icons of its chip on the card (the first the client has; none: no chip).
+-- icons of its chip on the card (the first the client has; none: no chip). mark: one of our particle
+-- textures for one with no chip, so every like and dislike has a badge on the card (AboutPet.lua, 2026-11-19).
 -- Its words come from Locale/nb.lua by id: activity.<id> (the noun),
 -- activity.<id>.flavor (the line the first liked one of a day brings) and
 -- effect.activity.<id> (how a trait's effect reads), each when present.
@@ -58,23 +59,25 @@ Activity.KINDS = {
     { "explore", always = true, icons = { ICON .. "INV_Misc_Map_01" } },
     { "skill", always = true, icons = { ICON .. "Trade_Engineering" } },
     { "rep", always = true, icons = { ICON .. "INV_Misc_Token_ArgentDawn", ICON .. "INV_Scroll_03" } },
-    { "dance" }, { "cuddle" }, { "chat" },
+    { "dance", mark = "note" }, { "cuddle", mark = "heart" }, { "chat", mark = "speech" },
     { "dive", icons = { ICON .. "Spell_Shadow_DemonBreath", ICON .. "Spell_Frost_SummonWaterElemental" } },
-    { "level", wish = false }, { "revive", wish = false }, { "nap" },
+    { "level", wish = false, mark = "chevron" }, { "revive", wish = false, mark = "halo" }, { "nap", mark = "zee" },
     { "hearth", icons = { ICON .. "INV_Misc_Rune_01" } },
-    { "jump" },
+    { "jump", mark = "feather" },
     { "roll", wish = false },     -- a 1 on a 1-100 roll (/roll or a loot roll): only the eggs watch it
     { "hundred", wish = false },  -- a 100 on a 1-100 roll: only the eggs watch it
     { "epic", wish = false },     -- you looted an epic (or better): only the eggs watch it
     { "fishfail", wish = false }, -- the second fish in a row that got away: only the eggs watch it
     { "duelwon", wish = false },  -- you won a duel (extra: who): only the eggs watch it
     { "duellost", wish = false }, -- you lost one (extra: who): only the eggs watch it
+    { "duel", wish = false,       -- a duel of yours, won or lost (extra: who): a like (2026-11-19)
+        icons = { ICON .. "INV_Sword_04", ICON .. "Ability_DualWield" } },
     { "newpath", wish = false },  -- a new flight path: only the eggs watch it
     -- Campfires, new on Forever (2026-11-11, the user): the buffs, as they come (Activity: AuraSource).
     { "campnear", wish = false }, -- a campfire nearby (pops up all the time out in the world): eggs only
     { "campwarm", wish = false }, -- sat down at one: Welcoming Campfire, a minute counting down
-    { "camp" },                   -- the campfire's buff, after that minute: a wish for any pet (Wish.lua)
-    { "rested" },                 -- Well-Rested, a night in a sleeping bag: a wish for cozy pets
+    { "camp", mark = "ember" },                   -- the campfire's buff, after that minute: a wish for any pet (Wish.lua)
+    { "rested", mark = "moon" },                 -- Well-Rested, a night in a sleeping bag: a wish for cozy pets
     -- For the traits of 2026-11-12 (the user): Sjørøver, Skøyer, Røverdyr, Venneflokk.
     { "gold", icons = { ICON .. "INV_Misc_Coin_02", ICON .. "INV_Misc_Coin_01" } }, -- money looted
     { "fun", icons = { ICON .. "INV_Misc_Toy_10", ICON .. "Spell_Holy_PowerWordShield" } }, -- a silly emote of yours
@@ -85,8 +88,9 @@ Activity.KINDS = {
     { "healtop", wish = false },  -- first in healing (a raid)
     { "kicktop", wish = false },  -- the most interrupts
     { "fall", wish = false },     -- a big fall (most of your health at once, out of combat): only the eggs watch it
-    { "zeppelin", wish = false }, -- a zeppelin ride (Menagerie/Voyage.lua; it counts as flying, "taxi", too): eggs only
-    { "boat", wish = false },     -- a boat ride (Menagerie/Voyage.lua): eggs only
+    -- (likes since 2026-11-19: Skybåren's zeppelins, the pirates' boats; never a wish, a ride can't be had on demand)
+    { "zeppelin", wish = false, mark = "cloud" }, -- a zeppelin ride (Menagerie/Voyage.lua; it counts as flying, "taxi", too)
+    { "boat", wish = false, mark = "drop" },      -- a boat ride (Menagerie/Voyage.lua); cats mind it
     -- A character's big moments (Menagerie/Feats.lua, 2026-11-12, the user).
     { "feat", wish = false },     -- a class quest's reward, riding, level 60 (extra: the feat's id): Feats' points
     { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it
@@ -94,10 +98,14 @@ Activity.KINDS = {
     { "respec", wish = false },   -- a talent reset: only the eggs watch it
     { "wake", wish = false },     -- back from AFK, the pet frame's pet woken (PetFrame.lua emits it): the eggs only
     -- Company from the guild (2026-11-14, the user): wishes for social pets (Wish.SOCIAL), no chips, liked by none.
-    { "guildgroup" },             -- in a group with a guildmate (once a day)
+    { "guildgroup", mark = "badge" }, -- in a group with a guildmate (once a day); Flokkdyr likes it (2026-11-19)
     { "guildpet" },               -- a guildmate's companion met under the mouse (the meet activity's, guild owners)
     { "playmate" },               -- a playdate happened (Playdate.lua emits it; extra: who)
     { "patted" },                 -- a guildmate's /klapp on a pet of yours (Bonds:Patted; extra: who): a rare wish, Wish.PAT_EVERY
+    -- New likes (2026-11-19, the user: every trait a like, more to go around).
+    { "errand", icons = { ICON .. "INV_Letter_15", ICON .. "INV_Scroll_03" } }, -- the bank, a mailbox, the auction house
+    { "eat", icons = { ICON .. "INV_Misc_Fork&Knife", ICON .. "INV_Misc_Food_15" } }, -- a meal: the Food or Drink buff
+    { "dungeon", icons = { ICON .. "INV_Misc_Key_03", ICON .. "Spell_Shadow_Teleport" } }, -- into a dungeon or raid
     -- Bad luck in a fight (2026-11-14, the user): eggs only, said after the fight.
     { "misses", wish = false },   -- your weapon swings missed (missed, dodged, parried) MISS_STREAK times in a row
     { "resisted", wish = false }, -- your spells resisted RESIST_STREAK times in a row

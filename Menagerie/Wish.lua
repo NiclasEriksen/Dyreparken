@@ -136,7 +136,10 @@ function Wish:For(key, day)
     local choices = {}
     for _, act in ipairs(list) do
         -- (and only what this client can see happen: a wish nobody can fulfil wastes the day)
-        if not self.NEVER[act] and ns.Activity:Available(act) then choices[#choices + 1] = act end
+        -- (company, only with guildmates about lately: Flokkdyr's like since 2026-11-19, as the extra wishes)
+        if not self.NEVER[act] and ns.Activity:Available(act) and not (self.COMPANY[act] and not self.Company()) then
+            choices[#choices + 1] = act
+        end
     end
     if #choices == 0 then choices = { "quest" } end
     return choices[Hash("wish " .. day .. " " .. key) % #choices + 1]

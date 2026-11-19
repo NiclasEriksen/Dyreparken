@@ -41,18 +41,18 @@ return function(test, H)
         Give(ola, "kosete", "nattugle")
         local likes, list, traits = P:Of(PANDA)
         eq(list[1], "herb", "the panda's own: bamboo")
-        eq(#list, 1, "neither trait adds a like")
+        eq(table.concat(list, " "), "herb cuddle explore", "and each trait's like (every trait has one since 2026-11-19)")
         eq(traits[1].name, "Klengete"); eq(traits[2].name, "Nattugle")
-        eq(P:Line(PANDA), "Klengete og Nattugle · liker herbs")
+        eq(P:Line(PANDA), "Klengete og Nattugle · liker herbs, kos og nye steder")
         local cat = { P:Of("s:40") }
         ok(cat[1].fish, "cats like fishing")
         -- One like from the families, not all (2026-11-12): a bird and a dragon, not pinned, gets the first.
         local dragon = { P:Of("s:84") }
-        eq(table.concat(dragon[2], " "), "boss", "one of the dragon's and the bird's: the first")
+        eq(table.concat(dragon[2], " "), "boss cuddle explore", "one of the dragon's and the bird's: the first (then the traits')")
         P.FAMILY_PICK[84] = "rep"
-        eq(table.concat((select(2, P:Of("s:84"))), " "), "rep", "the pick")
+        eq(table.concat((select(2, P:Of("s:84"))), " "), "rep cuddle explore", "the pick")
         P.FAMILY_PICK[84] = "nap"
-        eq(table.concat((select(2, P:Of("s:84"))), " "), "boss", "a pick its families don't give: as if none")
+        eq(table.concat((select(2, P:Of("s:84"))), " "), "boss cuddle explore", "a pick its families don't give: as if none")
         P.FAMILY_PICK[84] = nil
         ok(P:Of("s:72").quest, "no family: quests")
         Give(ola, "glupsk", "reiseglad")
@@ -64,7 +64,8 @@ return function(test, H)
         P.BY_FAMILY, P.DEFAULT = {}, {}
         Give(ola, "kosete", "helgedyr")
         P.Known = function() return true end
-        eq(P:Line("s:999"), "Klengete og Helgetroll", "nothing liked but the days")
+        eq(P:Line("s:999"), "Klengete og Helgetroll · liker kos og å sove i sovepose",
+            "no family: the traits' own (a day's trait has a like too since 2026-11-19)")
         -- What each kind of trait does, in numbers.
         local E = function(id) return P:Effect(P.ById(id)) end
         eq(E("glupsk"), "Quests med dyret ute gir 5 båndpoeng (opptil 25 om dagen), mot 1 ellers.")
@@ -267,20 +268,24 @@ return function(test, H)
         Give(ola, "kosete", "reiseglad")
         ola:OpenJournal()
         local card = ola:SelectPet(5159)
-        eq(card.personality.text, "Klengete og Reiseglad")
-        eq(card.likes.text, "Liker herbs og flyturer")
+        -- On the card: a badge each, the traits first (2026-11-19: two lines of words before), each telling itself.
+        eq(card.personality.text, "", "no words for a known personality")
+        local tips = {}
+        for _, b in ipairs(card.badges.badges) do if b:IsShown() then tips[#tips + 1] = ola:TipOf(b)[1] end end
+        eq(table.concat(tips, ", "), "Klengete, Reiseglad, Liker herbs, Liker kos, Liker flyturer, "
+            .. "Det er noe Panda Cub ikke liker. Hva kan det være?")
         local tip = ola.env.GameTooltip
         tip:ClearLines()
         ola.ns.JournalList:AddTooltipLines(tip, PANDA)
-        match(table.concat(tip.lines, " / "), "trenger et hjem / Klengete og Reiseglad · liker herbs og flyturer$")
+        match(table.concat(tip.lines, " / "), "trenger et hjem / Klengete og Reiseglad · liker herbs, kos og flyturer$")
         ola:Slash("adopter panda")
         tip:ClearLines()
         ola.ns.JournalList:AddTooltipLines(tip, PANDA)
-        match(table.concat(tip.lines, " / "), "Flyttet inn hos deg i dag / Bånd: .* / Klengete og Reiseglad · liker herbs og flyturer$")
+        match(table.concat(tip.lines, " / "), "Flyttet inn hos deg i dag / Bånd: .* / Klengete og Reiseglad · liker herbs, kos og flyturer$")
         local c = ola.env.PetJournalPetCard
         c.speciesID, c.petID = nil, nil
         ola.env.PetJournal_UpdatePetCard(c)
-        eq(card.personality.text, ""); eq(card.likes.text, "")
+        eq(card.personality.text, ""); no(card.badges:IsShown(), "no pet: no badges")
     end)
     -- (since X-Protocol 11, a guildmate who owns it is enough: Owners)
     test("a personality is a surprise until you or a guildmate have the pet", function()
@@ -291,7 +296,7 @@ return function(test, H)
         -- The card: no traits, no likes, no trait particles; the hover says why.
         ola:OpenJournal()
         local card = ola:SelectPet(84)
-        eq(card.personality.text, "Ukjent personlighet"); eq(card.likes.text, "")
+        eq(card.personality.text, "Ukjent personlighet"); no(card.badges:IsShown(), "no badges")
         ola:Traits{ "gronnfinger", "nattugle" }
         local specs = ola.ns.Decor:Specs("s:84", 0, w.t)
         for _, sp in ipairs(specs) do no(sp.kind == "leaf", "no trait particles") end
@@ -301,6 +306,8 @@ return function(test, H)
         kari:Fire("NEW_PET_ADDED", kari:GuidOf(84))
         w:Run(ola.ns.Config.OWN_LEARN_DELAY + 1)
         ok(P:Known("s:84"))
-        eq(card.personality.text, "Grønnfinger og Nattugle")
+        eq(card.personality.text, "")
+        ok(card.badges:IsShown(), "its badges")
+        eq(ola:TipOf(card.badges.badges[1])[1], "Grønnfinger")
     end)
 end

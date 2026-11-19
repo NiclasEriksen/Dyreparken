@@ -77,7 +77,7 @@ return function(test, H)
         for d = 0, 199 do
             local day = os.date("%Y%m%d", os.time({ year = 2026, month = 1, day = 1 + d, hour = 12 }))
             local id = W:For(PANDA, day)
-            if extra[id] then n = n + 1 end
+            if extra[id] and W:Extra(PANDA, day) == id then n = n + 1 end -- (not Flokkdyr's like, a wish of its own)
             eq(W:For(PANDA, day), id, "the same all day")
         end
         ok(n >= 25 and n <= 75, "about one day in four (less the campfire's): " .. n)

@@ -90,7 +90,7 @@ local CHAR_DEFAULTS = {
     -- [Bonds]
     announce = true,           -- post adoptions and nicknames to guild chat (Announce; SetAnnounce)
     nameLines = nil,           -- { day, n }: name lines posted to guild chat today (Announce)
-    unlocksTold = {},          -- [petKey] = { like, dislike }: its minor ones told at the level-up (TellUnlocks)
+    unlocksTold = {},          -- [petKey] = { like, dislike, trait }: its minor ones and third trait told at the level-up (TellUnlocks)
     toldNameUnlock = nil,      -- the adoption (its record's `at`) whose nickname unlock was told (TellNameUnlock)
     bondDay = nil,             -- the day the login's milestone and pet-of-the-day lines last showed
     -- [Activity]

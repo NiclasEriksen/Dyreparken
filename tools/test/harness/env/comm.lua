@@ -38,7 +38,8 @@ return function(c, env, S)
             NotInGuild = 10, AddOnMessageLockdown = 11, TargetOffline = 12 },
         TooltipDataType = { Unit = 2, Object = 4 },
         UITextureSliceMode = { Stretched = 0, Tiled = 1 },
-        PlayerInteractionType = { Merchant = 5, Trainer = 7 }, -- (Trainer 7 on Forever: /dp probe api feats)
+        PlayerInteractionType = { Merchant = 5, Trainer = 7, Banker = 8, MailInfo = 17, Auctioneer = 21 }, -- (Trainer 7 on
+        -- Forever: /dp probe api feats; the errands' three are retail's, unverified there)
     }
 
 end

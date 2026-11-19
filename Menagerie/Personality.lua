@@ -10,15 +10,16 @@ local ns = select(2, ...)
 -- A liked activity done with your adopted companion out is worth more bond
 -- points (Bond.lua).
 --
--- A trait does one of three things:
---   like = activity     that activity is liked;
+-- A trait's like: that activity is liked (every trait has one since 2026-11-19, the user: those with only a
+-- moment or a day left a pet with two likes). And a trait may also do one of two things:
 --   when = fn(ctx)      anything done while it holds (at night, in a group
 --                       with a guildmate, in a dungeon...) counts as liked,
 --                       with one daily cap for the trait (ctx: Bond.lua);
 --   day = fn(t) -> x    the day together is worth x times as much.
 --
 -- Picking: every species' two traits are pinned in Data/Traits.lua and never
--- change (decided 2026-11-08). For a species not in there, two from its id,
+-- change (decided 2026-11-08). A third, pinned in Data/Unlocks.lua, opens up to
+-- your bond at level 7 (THIRD_TRAIT_LEVEL, 2026-11-19, the user). For a species not in there, two from its id,
 -- never a pair that contradicts itself (Flokkdyr and Einstøing); that pick
 -- moves when traits are added, which is why it's pinned.
 ---@class Dyreparken.Personality
@@ -127,6 +128,16 @@ Personality.BY_SPECIES = {
     [5094] = { "fish" },  -- Bitter Baitling: bait
     [5160] = { "pvp" },   -- Zergling: the rush
     [5183] = { "mine" },  -- Spawn of Grubthor: a burrowing worm
+    -- 2026-11-19 (the user): boats for the pirates' birds and the murloc, duels for the troublemakers.
+    [47] = { "boat" }, [49] = { "boat" }, [50] = { "boat" }, -- the pirates' parrots (the Senegal has six likes already)
+    [5179] = { "boat" },  -- Azurky: a murloc at sea
+    [5006] = { "duel" },  -- Corrupted Kitten (Rampete)
+    [78] = { "duel" },    -- Crimson Snake (Rampete)
+    [162] = { "duel" },   -- Sinister Squashling (Rampete)
+    [5174] = { "duel" },  -- Minfernal (Rampete)
+    [56] = { "duel" }, [58] = { "duel" }, -- Dark and Crimson Whelpling (Eventyrlysten)
+    [5161] = { "duel" },  -- Mini Diablo (Eventyrlysten)
+    [5008] = { "duel" },  -- Mini Uber Diablo (Eventyrlysten)
 }
 
 -- Dislikes (2026-11-09): no effect on the bond, only a line now and then
@@ -135,7 +146,7 @@ Personality.BY_SPECIES = {
 -- trait's `dislike`); never anything the pet likes, so a Dykker cat doesn't
 -- mind the water.
 Personality.DISLIKE_BY_FAMILY = {
-    cat = { "dive" }, bird = { "pvp" }, owl = { "chat" }, farm = { "taxi" }, rabbit = { "boss" }, frog = { "taxi" },
+    cat = { "dive", "boat" }, bird = { "pvp" }, owl = { "chat" }, farm = { "taxi" }, rabbit = { "boss" }, frog = { "taxi" },
     snake = { "jump" }, mechanical = { "dive" }, dragon = { "dive" }, pirate = { "hearth" }, bug = { "jump" },
     rodent = { "taxi" }, wolf = { "nap" }, plant = { "hearth" }, festive = { "pvp" }, demon = { "cuddle" },
     ooze = { "jump" }, spirit = { "dive" }, bear = { "boss" }, reptile = { "taxi" }, murloc = { "taxi" },
@@ -158,6 +169,17 @@ Personality.NO_DISLIKE = {
     [5179] = { "taxi" }, -- Azurky
     [59] = { "dive" },   -- Emerald Whelpling (Latsabb minds jumping already)
     [83] = { "taxi" },   -- Mechanical Chicken: the machine minds water, not heights
+    -- 2026-11-19 (the user: two or three dislikes each): cats mind boats, but these have three already.
+    [40] = { "boat" },   -- Bombay
+    [41] = { "boat" },   -- Cornish Rex
+    [44] = { "boat" },   -- Siamese: a ship's cat (Cookie's, in the Deadmines' pirate ship); DISLIKE_BY_SPECIES instead
+}
+
+-- Dislikes of a species' own (2026-11-19, the user: at least two each): where its family's is something it likes.
+Personality.DISLIKE_BY_SPECIES = {
+    [5160] = { "dive" }, -- Zergling: a demon minds cuddles, but this one loves them; water, then
+    [5075] = { "camp" }, -- Excitable Slime: an ooze minds jumping, but this one bounces; a fire dries it out
+    [44] = { "taxi" },   -- Siamese: a ship's cat minds no boat, but would rather sail than fly (2026-11-19, the user)
 }
 
 -- The holidays the Festglad pets celebrate ("MMDD" -> name, Locale/nb.lua: holiday.*).
@@ -208,31 +230,31 @@ Personality.TRAITS = {
     { id = "ambisios", is = { "fighter" }, like = "level" },
     { id = "latsabb", is = { "watcher", "sleeper", "cozy" }, place = 0.6, like = "nap", dislike = "jump" },
     { id = "pratsom", is = { "social" }, like = "chat" },
-    { id = "kosete", is = { "timid", "sleeper", "cozy" }, day = function() return 2 end, dayX = 2 },
-    { id = "nattugle", when = function(ctx) return Personality.IsNight(ctx.t) end },
-    { id = "festglad", day = function(t) return Personality.Holiday(t) and 3 or 1 end, dayX = 3,
+    { id = "kosete", like = "cuddle", is = { "timid", "sleeper", "cozy" }, day = function() return 2 end, dayX = 2 },
+    { id = "nattugle", like = "explore", when = function(ctx) return Personality.IsNight(ctx.t) end },
+    { id = "festglad", like = "dance", day = function(t) return Personality.Holiday(t) and 3 or 1 end, dayX = 3,
         dayFlavor = function(name, t)
             return ns.T("trait.festglad.dayflavor", { pet = name, holiday = Personality.Holiday(t) })
         end },
-    { id = "helgedyr", day = function(t) return Personality.IsWeekend(t) and 2 or 1 end,
+    { id = "helgedyr", like = "rested", day = function(t) return Personality.IsWeekend(t) and 2 or 1 end,
         dayX = 2, dayFlavor = function(name) return ns.PickLine("trait.helgedyr.dayflavor", { pet = name }) end },
-    { id = "flokkdyr", is = { "social" }, against = "einstoing", when = function(ctx) return ctx.guildmates > 0 end },
-    { id = "einstoing", is = { "loner" }, against = "flokkdyr", dislike = "chat", when = function(ctx) return not ctx.group end },
-    { id = "huleboer", against = "friluftsdyr", when = function(ctx) return ctx.instance end },
-    { id = "friluftsdyr", is = { "sleeper" }, place = 1.3, against = "huleboer", when = function(ctx) return not ctx.instance end },
+    { id = "flokkdyr", like = "guildgroup", is = { "social" }, against = "einstoing", when = function(ctx) return ctx.guildmates > 0 end },
+    { id = "einstoing", like = "fish", is = { "loner" }, against = "flokkdyr", dislike = "chat", when = function(ctx) return not ctx.group end },
+    { id = "huleboer", like = "dungeon", against = "friluftsdyr", when = function(ctx) return ctx.instance end },
+    { id = "friluftsdyr", like = "camp", is = { "sleeper" }, place = 1.3, against = "huleboer", when = function(ctx) return not ctx.instance end },
     -- 2026-11-12 (the user, for 0.5): from Dyreparken in Kristiansand (Kaptein Sabeltann, Julius, Kardemomme
     -- by, Hakkebakkeskogen, the Nordic wilds and the savanna, the rides), Forever, and the likes no trait had.
     { id = "sjorover", is = { "fighter" }, like = "gold" },                       -- Kaptein Sabeltann: gold!
     { id = "skoyer", is = { "social" }, like = "fun" },                          -- Julius: silly emotes
     { id = "roverdyr", is = { "fighter" }, against = "ordensdyr", like = "sneak" }, -- Kasper, Jesper og Jonatan
-    { id = "ordensdyr", against = "roverdyr", dislike = "pvp", when = function(ctx) return ctx.city end }, -- Politimester Bastian
+    { id = "ordensdyr", like = "errand", against = "roverdyr", dislike = "pvp", when = function(ctx) return ctx.city end }, -- Politimester Bastian
     { id = "venneflokk", is = { "timid", "social" }, like = "meet", dislike = "pvp" },    -- Hakkebakkeskogen: all animals are friends
-    { id = "vinterpels", against = "solelsker", when = function(ctx) return Personality.COLD[ctx.zone] end },
-    { id = "solelsker", against = "vinterpels", when = function(ctx) return Personality.WARM[ctx.zone] end },
-    { id = "tivolidyr", is = { "social" }, day = function(t) return ns.Holidays:Has(t, "darkmoon") and 2 or 1 end, dayX = 2,
+    { id = "vinterpels", like = "eat", against = "solelsker", when = function(ctx) return Personality.COLD[ctx.zone] end },
+    { id = "solelsker", like = "eat", against = "vinterpels", when = function(ctx) return Personality.WARM[ctx.zone] end },
+    { id = "tivolidyr", like = "fun", is = { "social" }, day = function(t) return ns.Holidays:Has(t, "darkmoon") and 2 or 1 end, dayX = 2,
         dayFlavor = function(name) return ns.T("trait.tivolidyr.dayflavor", { pet = name }) end },
     { id = "balkos", is = { "cozy" }, like = "camp" },
-    { id = "skybaren", is = { "adventurous" }, place = 1.3, when = function(ctx) return Personality.HIGH[ctx.zone] end }, -- the Skyborne, Zephras Isle
+    { id = "skybaren", like = "zeppelin", is = { "adventurous" }, place = 1.3, when = function(ctx) return Personality.HIGH[ctx.zone] end }, -- the Skyborne, Zephras Isle
     { id = "jeger", is = { "fighter" }, like = "skin" },
     { id = "handverker", like = "skill" },
     { id = "diplomat", is = { "social" }, like = "rep" },
@@ -280,11 +302,16 @@ end
 -- tools/pin_traits.lua adds it.
 Personality.PINNED = ns.TraitPins or {}
 
--- The species' two traits: the same on every client.
-function Personality:Traits(key)
+-- The species' traits: the same on every client. Two, and the third once your bond with it has reached
+-- THIRD_TRAIT_LEVEL (all: whether it has or not).
+function Personality:Traits(key, all)
     local sid = ns.Pets:SpeciesOfKey(key) or 0
     local pin = self.PINNED[sid]
-    if pin then return { self.ById(pin[1]), self.ById(pin[2]) } end
+    if pin then
+        local list = { self.ById(pin[1]), self.ById(pin[2]) }
+        list[3] = self:Third(key, all)
+        return list
+    end
     local list, n = self.TRAITS, #self.TRAITS
     local first = list[math.fmod(sid * 2654435761, 4294967296) % n + 1]
     local i = math.fmod(sid * 40503 + 12345, 4294967296) % n + 1
@@ -367,14 +394,25 @@ function Personality:Effect(trait)
     if trait.when then
         what = ns.T("effect.when", { when = trait.whenText })
     else
-        what = self.EFFECT[trait.like]
-        if not what then
-            local noun = self.NOUN[trait.like]
-            what = ns.T("effect.activity", { activity = noun:sub(1, 1):upper() .. noun:sub(2) })
-        end
+        what = self:Doing(trait.like)
     end
     return ns.T("effect.liked", { what = what, n = C.BOND_LIKED_POINTS,
         cap = trait.when and C.BOND_TRAIT_CAP or C.BOND_LIKED_CAP, other = C.BOND_OTHER_POINTS })
+end
+
+-- What counts as doing an activity, as a sentence's start: "Hvert nytt sted dyret ser...", "Herbs med dyret ute".
+function Personality:Doing(act)
+    local what = self.EFFECT[act]
+    if what then return what end
+    local noun = self.NOUN[act] or act
+    return ns.T("effect.activity", { activity = noun:sub(1, 1):upper() .. noun:sub(2) })
+end
+
+-- What a like gives (minor: one your bond unlocked, worth less).
+function Personality:LikeEffect(act, minor)
+    local C = ns.Config
+    return ns.T("effect.liked", { what = self:Doing(act), n = minor and C.BOND_MINOR_POINTS or C.BOND_LIKED_POINTS,
+        cap = minor and C.BOND_MINOR_CAP or C.BOND_LIKED_CAP, other = C.BOND_OTHER_POINTS })
 end
 
 local Join = ns.Join
@@ -403,6 +441,7 @@ function Personality:Dislikes(key, all)
         if act and not likes[act] and not set[act] then set[act] = how or true; list[#list + 1] = act end
     end
     for _, t in ipairs(traits) do Add(t.dislike) end
+    for _, act in ipairs(self.DISLIKE_BY_SPECIES[ns.Pets:SpeciesOfKey(key) or 0] or {}) do Add(act) end
     local no = {}
     for _, act in ipairs(self.NO_DISLIKE[ns.Pets:SpeciesOfKey(key) or 0] or {}) do no[act] = true end
     for _, f in ipairs(ns.Scenes:Families(key)) do
@@ -448,6 +487,16 @@ function Personality:Minor(key)
     return like, dislike
 end
 
+-- The third trait (2026-11-19, the user): pinned per species with the minor ones (Data/Unlocks.lua, its third
+-- value; tools/pin_unlocks.lua picks one whose like is new and keeps the pet within 4-6 likes and 2-3 dislikes),
+-- opened up by your own bond at THIRD_TRAIT_LEVEL, as the minor ones are. nil before (all: whether or not).
+function Personality:Third(key, all)
+    local pin = self.MINOR_PINS[ns.Pets:SpeciesOfKey(key) or 0]
+    local id = pin and pin[3]
+    if not id then return nil end
+    if all or self.YourLevel(key) >= ns.Config.THIRD_TRAIT_LEVEL then return self.ById(id) end
+end
+
 -- Your own bond level with it (0: none).
 function Personality.YourLevel(key)
     local e = key and ns.Registry:Life(key, ns.PlayerKey())
@@ -466,6 +515,7 @@ function Personality:NextUnlock(key)
     local level, C = self.YourLevel(key), ns.Config
     if like and level < C.MINOR_LIKE_LEVEL then return "like", C.MINOR_LIKE_LEVEL end
     if dislike and level < C.MINOR_DISLIKE_LEVEL then return "dislike", C.MINOR_DISLIKE_LEVEL end
+    if self:Third(key, true) and level < C.THIRD_TRAIT_LEVEL then return "trait", C.THIRD_TRAIT_LEVEL end
 end
 
 -- A pet's personality is a surprise (decided 2026-11-09): shown only once

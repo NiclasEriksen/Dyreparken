@@ -44,9 +44,10 @@ end
 -- The panel, a full-width sheet (2026-11-11, the user picked "B" of three layouts: two columns had cut
 -- the home and the likes short while the bond column stood half empty). Rows, top to bottom, at fixed
 -- heights from the panel's top: the name (the level's name and medallion at its right), the species and
--- home, the bond strip (stars, bar, goal: BondTrack.lua), the traits, the likes.
+-- home, the personality's badges (AboutPet.lua, 2026-11-19: two lines of traits and likes under the strip before),
+-- the bond strip (stars, bar, goal: BondTrack.lua) at the bottom (the user, the same day: the icons above it).
 local PANEL_H = 106
-local ROW_Y = { name = -6, status = -33, strip = -51, personality = -71, likes = -86 }
+local ROW_Y = { name = -6, status = -33, personality = -51, strip = -79 }
 local NAME_RIGHT = 150 -- the name stops short of the level's name and the medallion
 local STATUS_RIGHT = 72 -- the home line stops short of the medallion, which rises out of the top right
 local COLUMN = NAME_RIGHT -- (the name's room, for the font step-down)
@@ -132,7 +133,7 @@ local function UpdateCard()
         card.status:SetText("")
         card.nickname:SetText("")
         card.personality:SetText("")
-        card.likes:SetText("")
+        card.personalityHit:Hide()
         DrawWidgets(nil)
         return
     end
@@ -161,14 +162,10 @@ local function UpdateCard()
     end
     card.status:SetText(nick and (species .. " · " .. text) or text) -- (no nickname: the big name is the species)
     card.fullName, card.species, card.home = nick or species, species, full or text -- for the hover
-    if ns.Personality:Known(key) then
-        card.personality:SetText(ns.Personality:Names(key))
-        -- (the minor ones, unlocked by your bond, in the same line, dimmed: Personality:LikesText)
-        card.likes:SetText(ns.Personality:LikesText(key, true))
-    else -- a surprise until it's collected or adopted
-        card.personality:SetText(ns.L["personality.unknown"])
-        card.likes:SetText("")
-    end
+    -- Its personality: a row of badges (AboutPet.lua, the "badges" widget); only a surprise is words here.
+    local known = ns.Personality:Known(key)
+    card.personality:SetText(known and "" or ns.L["personality.unknown"])
+    card.personalityHit:SetShown(not known)
     DrawWidgets(key)
     ns.Sync:AskBonds(key) -- others' bonds with it (not in the full sync)
 end
@@ -327,45 +324,17 @@ local function BuildRows()
         if others then lines[#lines + 1] = { others, 0.8, 0.76, 0.66, true } end
         return lines
     end)
-    -- Its personality: the traits, then what it likes.
-    card.personality = Line("GameFontNormalSmall", ROW_Y.personality, 12)
+    -- A personality still a surprise: in words (a known one is the badges' row, AboutPet.lua), and why on hover.
+    card.personality = Line("GameFontNormalSmall", ROW_Y.personality - 4, 12)
     card.personality:SetTextColor(0.95, 0.75, 0.45)
-    card.likes = Line("GameFontHighlightSmall", ROW_Y.likes, 12)
-    card.likes:SetTextColor(0.8, 0.76, 0.66) -- (was the disabled grey: hard to read, creative review 2026-11-09)
-    -- Hover the lines: what the traits mean and do, what it likes, and why it matters.
-    card.personalityHit = HitOver(card.personality, card.likes, function() return JournalUI.PersonalityLines(card.key) end)
+    card.personalityHit = HitOver(card.personality, card.personality, function() return JournalUI.PersonalityLines(card.key) end)
+    card.personalityHit:Hide()
 end
 
--- The personality's tooltip: what the traits mean and do, what it likes and dislikes (the minor
--- ones dimmed, as on the card; the secret ones a hint), what your bond unlocks next, and why it matters.
+-- A personality still a surprise: why, on hover (a known one explains itself: AboutPet's badges and tab).
 function JournalUI.PersonalityLines(key)
-    local P = ns.Personality
-    if not P:Known(key) then
-        return { { ns.L["personality.unknown"], 1, 0.82, 0 }, { ns.L["personality.unknown.tip"], 1, 1, 1, true } }
-    end
-    local lines = P:TraitLines(key)
-    local function Add(text, r, g, b) lines[#lines + 1] = { text, r, g, b, true } end
-    local words = P:LikedWords(key)
-    if #words > 0 then Add(ns.T("card.likes.tip", { list = ns.Join(words) }), 0.5, 0.8, 0.5) end
-    local minorLike = P:MinorLike(key)
-    if minorLike then Add(ns.T("card.likes.minor_tip", { list = P.NOUN[minorLike] }), 0.45, 0.62, 0.45) end
-    local bad, minorBad = P:DislikedWords(key)
-    if #bad > 0 then Add(ns.T("card.dislikes.tip", { list = ns.Join(bad) }), 0.85, 0.55, 0.55) end
-    if #minorBad > 0 then Add(ns.T("card.dislikes.minor_tip", { list = ns.Join(minorBad) }), 0.65, 0.45, 0.45) end
-    -- Dislikes not found out yet: a hint that there's something (creative review 2026-11-09).
-    local _, all = P:Dislikes(key)
-    local secret = #all - #bad - #minorBad
-    if secret > 0 then
-        Add(ns.T(secret == 1 and "card.dislikes.secret_one" or "card.dislikes.secret",
-            { pet = ns.Registry:NameOf(key), n = secret }), 0.75, 0.6, 0.6)
-    end
-    -- What your bond unlocks next (the minor ones): a small reason to keep going.
-    local what, level = P:NextUnlock(key)
-    if what then
-        Add(ns.T("card.unlock." .. what, { level = ns.Bond.LEVELS[level][2], pet = ns.Registry:NameOf(key) }), 0.6, 0.6, 0.6)
-    end
-    Add(ns.L["card.personality.hint"], 0.7, 0.7, 0.7)
-    return lines
+    if not key or ns.Personality:Known(key) then return nil end
+    return { { ns.L["personality.unknown"], 1, 0.82, 0 }, { ns.L["personality.unknown.tip"], 1, 1, 1, true } }
 end
 
 -- Blizzard's turn buttons sit where our rows go: move them to just above
@@ -391,7 +360,7 @@ local function BuildRotate(c)
     end
     if not left then
         -- They stay wherever they are, likely mid-panel: keep our text clear of the middle.
-        for _, row in ipairs({ card.nickname, card.status, card.personality, card.likes }) do
+        for _, row in ipairs({ card.nickname, card.status, card.personality }) do
             row:SetPoint("RIGHT", panel, "CENTER", -52, 0)
         end
     end

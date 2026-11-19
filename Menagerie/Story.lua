@@ -22,8 +22,10 @@ local ns = select(2, ...)
 -- Story.MAX; h = { o = owner, at } the home it's in; n = the name it had
 -- (false: none); lv = { [carer] = level seen } }.
 --
--- Shown from a small book button on the card (only when there's a story),
--- as a panel right of the Collections window, newest first.
+-- Shown from a small book button on the card, as a panel right of the Collections window, newest first.
+-- The panel has tabs (2026-11-19, the user: more about a pet than the card has room for): the story,
+-- and the ones AboutPet.lua adds (Story:AddTab), its personality in full and everyone's bonds with it.
+-- The book shows for every pet, with an arrow that says the panel opens out to the side.
 ---@class Dyreparken.Story
 local Story = {}
 ns.Story = Story
@@ -204,12 +206,9 @@ function Story:Scan()
     self:Changed()
 end
 
--- After new entries: the card's button (a first entry shows it) and an open panel.
+-- After new entries: an open panel. (The book shows for every pet: Update; under our pages it stays hidden
+-- until the card is drawn anew.)
 function Story:Changed()
-    local card = ns.JournalUI and ns.JournalUI:Card()
-    -- (not under our pages: the button is over the model's level and would show through; the card
-    -- is drawn anew when the page closes)
-    if card and card.story and card.key and not ns.SidePage:AnyOpen() then card.story:SetShown(self:Of(card.key) ~= nil) end
     self:Redraw()
 end
 
@@ -298,8 +297,32 @@ local SIZE = 30
 -- The book button's tooltip.
 function Story.ButtonLines(key)
     if not key then return nil end
-    return { { ns.T("story.title", { pet = ns.Registry:NameOf(key) }), 1, 0.82, 0 },
-        { ns.T("story.tip", { n = #(Story:Of(key) or {}) }), 1, 1, 1, true } }
+    local open = Story:IsOpen() and Story.panel.key == key
+    return { { ns.T("about.title", { pet = ns.Registry:NameOf(key) }), 1, 0.82, 0 },
+        { ns.L["about.tip"], 1, 1, 1, true },
+        { ns.L[open and "about.close" or "about.open"], 0.6, 0.6, 0.6 } }
+end
+
+-- The panel's tabs, in order: { id, title, draw = fn(page, key, width) -> height }. The story's is the first.
+Story.TABS = {}
+function Story:AddTab(tab)
+    assert(tab.id and tab.title and tab.draw, "Story:AddTab: id, title, draw")
+    for _, t in ipairs(self.TABS) do assert(t.id ~= tab.id, "Story:AddTab: " .. tab.id .. " twice") end
+    self.TABS[#self.TABS + 1] = tab
+end
+local function TabOf(id)
+    for _, t in ipairs(Story.TABS) do if t.id == id then return t end end
+end
+
+-- The arrow beside the book: points out of the window (the panel opens there), back in while it's open.
+local ARROW_OUT, ARROW_IN = -math.pi / 2, math.pi / 2
+function Story:Arrow()
+    local card = ns.JournalUI and ns.JournalUI:Card()
+    local b = card and card.story
+    if not (b and b.arrow) then return end
+    local open = self:IsOpen() and self.panel.key == card.key
+    b.arrow:SetRotation(open and ARROW_IN or ARROW_OUT)
+    b.arrow:SetVertexColor(1, 0.82, 0.3, open and 1 or 0.85)
 end
 
 function Story:Build(card, c)
@@ -310,17 +333,24 @@ function Story:Build(card, c)
     b:SetFrameLevel(c:GetFrameLevel() + 30)
     b:SetScript("OnClick", function() Story:Toggle(card.key) end)
     ns.SetTip(b, "ANCHOR_LEFT", function() return Story.ButtonLines(card.key) end)
+    -- It opens something out to the side: an arrow says so (2026-11-19, the user: "make it obvious").
+    b.arrow = b:CreateTexture(nil, "OVERLAY")
+    b.arrow:SetTexture(ns.Icon("chevron"))
+    b.arrow:SetSize(12, 12)
+    b.arrow:SetPoint("LEFT", b, "RIGHT", 0, 0)
     b:Hide()
     card.story = b
+    self:Arrow()
 end
 
--- The pet on the card: the button if it has a story; an open panel follows the card.
+-- The pet on the card: the button for any pet; an open panel follows the card.
 function Story:Update(card, key)
     local b = card.story
     if not b then return end
-    b:SetShown(self:Of(key) ~= nil)
+    b:SetShown(key ~= nil)
     if not key then return self:Close() end -- (no pet on the card: not the last one's story beside it)
     if self.panel and self.panel:IsShown() and key ~= self.panel.key then self:Show(key) end
+    self:Arrow()
 end
 
 -- Dense (2026-11-14, the user: "more dense"): the text in the small font, as
@@ -394,6 +424,31 @@ function Story:BuildPanel()
     f.child:SetSize(self.WIDTH - 46, 1)
     f.scroll:SetScrollChild(f.child)
     f.rows = {}
+    f.pages = { story = f.child } -- (each tab's own scroll child, made when first shown)
+    -- The tabs, under the title: plain words, the chosen one bright with a gold line under it.
+    f.tabs = {}
+    local x = 12
+    for _, t in ipairs(self.TABS) do
+        local b = CreateFrame("Button", nil, f)
+        b.text = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        b.text:SetPoint("CENTER")
+        b.text:SetText(t.title)
+        local w = (b.text:GetStringWidth() or 40) + 16
+        b:SetSize(w, 22)
+        b:SetPoint("TOPLEFT", f, "TOPLEFT", x, -30)
+        b.line = b:CreateTexture(nil, "ARTWORK")
+        b.line:SetColorTexture(1, 0.82, 0, 0.9)
+        b.line:SetPoint("BOTTOMLEFT", b, "BOTTOMLEFT", 4, 0)
+        b.line:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", -4, 0)
+        b.line:SetHeight(2)
+        b.hover = b:CreateTexture(nil, "HIGHLIGHT")
+        b.hover:SetColorTexture(1, 0.82, 0, 0.12)
+        b.hover:SetAllPoints()
+        b:SetScript("OnClick", function() Story:Tab(t.id) end)
+        b.id = t.id
+        f.tabs[#f.tabs + 1] = b
+        x = x + w + 2
+    end
     -- Only beside the pets: another tab of the window, or the window closing, closes it.
     if PetJournal then PetJournal:HookScript("OnHide", function() Story:Close() end) end
     host:HookScript("OnHide", function() Story:Close() end)
@@ -414,12 +469,33 @@ local function Row(f, i)
     return r
 end
 
--- Draws the story of f.key, newest at the top.
+-- Draws the open tab for f.key.
 function Story:Redraw()
     local f = self.panel
     if not (f and f:IsShown() and f.key) then return end
     local key = f.key
-    f:SetStoryTitle(ns.T("story.title", { pet = ns.Registry:NameOf(key) }))
+    f:SetStoryTitle(ns.T("about.title", { pet = ns.Registry:NameOf(key) }))
+    local tab = TabOf(self.tab) or self.TABS[1]
+    for _, b in ipairs(f.tabs) do
+        local on = b.id == tab.id
+        b.line:SetShown(on)
+        if on then b.text:SetTextColor(1, 1, 1) else b.text:SetTextColor(0.8, 0.7, 0.45) end
+    end
+    local page = f.pages[tab.id]
+    if not page then
+        page = CreateFrame("Frame", nil, f.scroll)
+        page:SetSize(self.WIDTH - 46, 1)
+        f.pages[tab.id] = page
+    end
+    for id, p in pairs(f.pages) do p:SetShown(id == tab.id) end
+    f.scroll:SetScrollChild(page)
+    page:SetHeight(math.max(1, tab.draw(page, key, self.WIDTH - 46) or 1))
+    f.scroll:SetVerticalScroll(0)
+end
+
+-- The story itself, newest at the top.
+local function DrawStory(_, key)
+    local self, f = Story, Story.panel
     local list = self:Of(key) or {}
     local firstAdopt
     for i, e in ipairs(list) do if e.k == "adopt" then firstAdopt = i; break end end
@@ -451,22 +527,32 @@ function Story:Redraw()
         n, y = 1, 16
     end
     for i = n + 1, #f.rows do f.rows[i].date:Hide(); f.rows[i].text:Hide() end
-    f.child:SetHeight(math.max(1, y))
-    f.scroll:SetVerticalScroll(0)
+    return y
 end
+Story:AddTab({ id = "story", title = ns.L["about.tab.story"], draw = DrawStory })
 
-function Story:Show(key)
+-- Opens the panel on a pet; tab: which (nil: the one last open this session, else the story).
+function Story:Show(key, tab)
     -- (the window our pages live in: known once the journal has loaded, as the card's button needs too)
     if not (key and ns.SidePage:Host()) then return end
+    if tab then self.tab = tab end
     if not self.panel then self:BuildPanel() end
     self.panel.key = key
     Place(self.panel) -- (each time: the tabs may have moved since)
     self.panel:Show()
     self:Redraw()
+    self:Arrow()
+end
+
+-- Another tab of the open panel.
+function Story:Tab(id)
+    self.tab = id
+    self:Redraw()
 end
 
 function Story:Close()
     if self.panel then self.panel:Hide(); self.panel.key = nil end
+    self:Arrow()
 end
 
 function Story:IsOpen() return self.panel ~= nil and self.panel:IsShown() end

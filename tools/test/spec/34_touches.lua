@@ -651,10 +651,10 @@ return function(test, H)
         local w, ola, At, Said = Eggs({ "glupsk", "rampete" }) -- a cat: dislikes the water
         ola:OpenJournal()
         local card = ola:SelectPet(40)
-        match(ola:TipOf(card.personalityHit).text, "Det er noe Bombay Cat ikke liker%. Hva kan det være%?")
+        match(ola:About("s:40", "personality").text, "Det er noe Bombay Cat ikke liker%. Hva kan det være%?")
         ola:Fire("MIRROR_TIMER_START", "BREATH", 60000, 60000, -1, 0, "Breath")
         w:RunTimers()
-        no(ola:TipOf(card.personalityHit).text:find("Hva kan det være"), "all found: no hint")
+        no(ola:About("s:40", "personality").text:find("Hva kan det være"), "all found: no hint")
         -- Ten different eggs: Påskeegghøne.
         local A = ola.ns.Achievements
         for i = 1, 9 do ola.ns.DB.char.eggs["x" .. i] = { n = 1 } end
