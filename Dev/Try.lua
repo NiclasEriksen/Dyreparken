@@ -3,12 +3,13 @@ local ns = select(2, ...)
 
 -- /dp try (2026-11-14, the user: "we both need better tools to log / test in game"): a line now, to see its
 -- text and its move in game without waiting for its moment. Nothing is counted or spent (no egg found, no
--- cooldown, no day used), except `wish`, which makes that today's wish for the card.
+-- cooldown, no day used), except `wish`, which makes that today's wish for the card, and `dislike`, which owes
+-- its sulk as a real one does (the pet frame turns away until the card plays it: Plan.Away).
 --
 --   /dp try egg <id> [n|all]      an egg's line by your pet's nature (n: that variant; all: every line it has,
 --                                 by nature too, in chat), with its cheer if it has one
 --   /dp try react <id> [n|all]    a class reaction's, the same way
---   /dp try dislike <activity>    a dislike's line, the way the pet frame shows one
+--   /dp try dislike <activity>    a dislike's line, the way the pet frame shows one, and its sulk
 --   /dp try line <prefix> [n|all] any lines in Locale/nb.lua (wish.say.fish, bond.like...)
 --   /dp try wish <id> [zone]      today's wish becomes this one (not done yet), the card redrawn
 -- A {placeholder} the moment would fill shows as <name>.
@@ -79,7 +80,9 @@ function Try:Command(arg)
         if not row then return ns.Print("No reaction " .. id .. ".") end
         return self:Row("react", row, which)
     elseif what == "dislike" then
-        return Show({ "dislike." .. id }, which, key, "dislike")
+        local ok = Show({ "dislike." .. id }, which, key, "dislike")
+        if ok and key and which ~= "all" then ns.Moves:Owe(key, "sulk") end
+        return ok
     elseif what == "line" and id ~= "" then
         return Show({ id }, which, key)
     elseif what == "wish" and id ~= "" then

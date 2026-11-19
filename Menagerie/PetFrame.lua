@@ -50,6 +50,8 @@ PF.HIT = { 40, 40, 50, 0 }
 PF.DEFAULT_POINT = { "CENTER", "CENTER", -380, -160 }
 PF.ZZZ_EVERY = 2.5      -- seconds between the Zzz over a sleeping pet
 PF.ZZZ_AT = { 22, 66 }  -- where they rise from: right of the middle, about head height in the card's view
+PF.SULK_AT = { 0, 84 }  -- the sulk's cloud over the pet's head (Moves.MOOD), in the card's view; tune by eye
+PF.SULK_SCALE = 0.55    -- ... and its size and drift against the card's (the frame's pet is smaller)
 -- The bond bar and level show only under the mouse (2026-11-11, the user: "only visible on mouseover regardless
 -- of settings for now"), and while points rise (the numbers are drawn on the bar; a new level comes with points).
 PF.PEEK_HOLD = 1          -- seconds the bar stays after its last number has faded
@@ -166,6 +168,15 @@ function PF:Build()
     self:Art() -- (and the scene's size: PF:Draw)
     self.stage = ns.Moves.NewStage("frame", {
         moments = false, -- (the sulk, playing dead, the wish's hop: the card's, once; code review 2026-11-11)
+        -- ... but a sulk shows here too, held: its back turned until the card's sulk has played (Plan.Away,
+        -- 2026-11-19, the user), with the cloud over it, sized for the frame's pet.
+        sulks = true,
+        fx = function()
+            local f, scene = PF.frame, PF.scene
+            if not (f and scene) then return nil end
+            return { parent = f, level = scene:GetFrameLevel() + 3, scale = PF.SULK_SCALE,
+                anchor = { scene, "BOTTOM", PF.SULK_AT[1], PF.SULK_AT[2] } }
+        end,
         private = true, -- (its own scene: nothing else stands it up, so a refresh leaves the pose alone)
         actor = function() return PF.actor end,
         scene = function() return PF.scene end,

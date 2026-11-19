@@ -80,6 +80,7 @@ Moves.SULK = 3
 -- OnUpdate: a timer chain, only while it turns). Tune by eye.
 Moves.TURN = 0.6
 Moves.TURN_STEPS = 12
+Moves.SNAP = 0.05 -- a pet that sulks already, put on a stage that holds it: turned away at once
 -- Moods over the pet on the card while it plays them out (Fx:Emit's particles, from a point over its
 -- head), by step.mood; each given how long it lasts. The sulk (2026-11-13, the user: "particles that
 -- match the mood"): a small grey cloud that settles over it and thins as it turns round, two puffs, and
@@ -286,6 +287,10 @@ local function Truthy(v) return ns.Plain(v) and true or false end
 -- The walk or run it plays now, or nil (standing still, on a taxi, not the pet you keep out).
 function Moves:MotionId(key)
     if not (motion.on and motion.moving and key and Moves.WithYou(key)) then return nil end
+    -- Sulking (a dislike's, until its card has played it): it won't go with you, it stands where it is, its back
+    -- turned on the frame (2026-11-19, the user: "make sure he doesn't walk/run while he's sulking"; nor jump:
+    -- Plan.Jump). Its turns still walk (Plan.Turn).
+    if Moves:Owed(key, "sulk") then return nil end
     if Truthy(UnitOnTaxi("player")) then return nil end
     return self:For(key, Moves.Riding() and "run" or "walk")
 end
@@ -417,6 +422,7 @@ function Moves:Owe(key, move)
     local o = ns.DB.char.owed
     o[key] = o[key] or {}
     o[key][move] = ns.Today()
+    if move == "sulk" then Moves:Sulks(key) end
 end
 function Moves:Owed(key, move)
     local o = key and ns.DB.char.owed[key]
@@ -428,6 +434,11 @@ function Moves:Paid(key, move)
     if not o then return end
     o[move] = nil
     if next(o) == nil then owed[key] = nil end
+    if move == "sulk" then Moves:Sulks(key) end
+end
+-- The sulk owed or seen: the stages that hold it (the pet frame) turn away, or round again.
+function Moves:Sulks(key)
+    for _, st in ipairs(Moves.stages or {}) do st:Sulk(key) end
 end
 -- (Yesterday's never played: gone at login.)
 local function Forget()
@@ -528,8 +539,9 @@ function Plan.Pose(key, o)
         plan = Plan.Hold(key, mode)
         plan.wake = true
     end
-    -- First, once the model has loaded: a sulk (it turns its back and round again), then the one-off.
-    local front = o.noMoments and {} or Plan.Sulk(key) or {}
+    -- First, once the model has loaded: a sulk (it turns its back and round again), then the one-off. On a
+    -- stage that holds the sulk (o.away: the pet frame), its back turned at once, as it was.
+    local front = o.away and { { STAND, Moves.SNAP, yaw = math.pi } } or o.noMoments and {} or Plan.Sulk(key) or {}
     if cheer or joy then
         front[#front + 1] = { cheer or joy, Moves:Length(key, cheer or joy, cheer and Moves.T.cheer or Moves.T.happy),
             on = joy and function() Moves:Paid(key, "joy") end or nil }
@@ -639,6 +651,7 @@ end
 function Plan.Jump(key, from)
     if Truthy(IsSwimming and IsSwimming()) or Truthy(UnitOnTaxi("player")) then return nil end
     if not (key and Moves.WithYou(key) and For(key, "canJump")) then return nil end
+    if Moves:Owed(key, "sulk") then return nil end -- (sulking: it won't, as it won't walk with you: MotionId)
     if from.mode ~= "stand" or not from.last then return nil end -- (in the air too: it lands first)
     local plan = Airborne(key)
     if #plan == 0 then return nil end
@@ -714,6 +727,19 @@ function Plan.Sulk(key)
     }
 end
 
+-- Turning away to sulk on a stage that holds it (the pet frame, 2026-11-19, the user: "let the pet frame show it
+-- also, and don't turn it around for any other animations until it's been resolved in the journal (like
+-- sleeping)"): its back turned walking, the cloud, then its pose, still turned away. It faces you again once
+-- the card's sulk has played (Moves:Paid), or its day is over.
+function Plan.Away(key, noMoments)
+    local mode = Plan.Rest(key, nil, noMoments)
+    local plan = List(Plan.Turn(key, math.pi), { STAND, Moves.SULK, mood = "sulk" })
+    local hold = Plan.Hold(key, mode)
+    if mode == "stand" then plan[#plan + 1] = hold[#hold] else for _, st in ipairs(hold) do plan[#plan + 1] = st end end
+    plan.mode, plan.why = mode, "sulks"
+    return plan
+end
+
 ------------------------------------------------------------------------------
 -- The stage: plays plans on a model actor
 ------------------------------------------------------------------------------
@@ -733,6 +759,8 @@ function Moves.NewStage(name, opts)
     -- moments = false (the pet frame) leaves them to it (code review 2026-11-11: else the frame
     -- spent them hours later, at its next pose).
     local moments = opts.moments ~= false
+    -- opts.sulks: the stage keeps the pet's back turned while it owes the card its sulk (the pet frame: Plan.Away).
+    local function Away(key) return opts.sulks and key ~= nil and Moves:Owed(key, "sulk") end
     -- opts.rest(key): a pose the stage's own (the pet frame's: asleep while you're AFK), or nil for Plan.Rest's.
     local function Rest(key) return opts.rest and opts.rest(key) or Plan.Rest(key, nil, not moments) end
 
@@ -748,7 +776,7 @@ function Moves.NewStage(name, opts)
     -- 36 swaps of 38), the loaded callback 0.01 to 0.2 s later, so the scale was pinned from a model not loaded
     -- yet, and Keep fought the engine's real one ("scaled 13.83, kept at 19.48"): half the pets came out too
     -- big, too small, too high or too low. Only the loaded callback (or IsGeoReady going true) counts now.
-    local loadT, warmT = ns.Timers(), ns.Timers()
+    local loadT, warmT, turnT = ns.Timers(), ns.Timers(), ns.Timers()
     local load, waiting, pinned, warming, setAt, confirmed
     local readyAt = 0 -- (when the model last loaded or warmed up: AFTER_LOAD runs from it)
     local function Ready() return load == nil and not warming end
@@ -1147,11 +1175,26 @@ function Moves.NewStage(name, opts)
     -- A plan played: the pet awake now and the stage's mode as it says, then its steps.
     Run = function(key, plan)
         if not plan then return end
-        -- Its back still turned (a click, a cheer, another pose for it): it turns round first.
-        if shown.sulk then table.insert(plan, 1, Plan.Turn(key, 0)) end
+        -- Its back still turned (a click, a cheer, another pose for it): it turns round first. Not on a stage
+        -- that holds the sulk while it's owed: all it does, it does turned away (a turn on its way goes on: its
+        -- own timers, turnT, which a new plan leaves running).
+        if shown.sulk and not Away(key) then table.insert(plan, 1, Plan.Turn(key, 0)) end
         if plan.wake then awake[key] = true end
         if plan.mode then shown.mode = plan.mode end
         stage:Sequence(plan, plan.why)
+    end
+
+    -- The sulk owed or seen (Moves:Sulks): a stage that holds it turns away, or round again, now.
+    function stage:Sulk(key)
+        if not (opts.sulks and key == shown.key) then return end
+        if Away(key) and not shown.sulk then return Run(key, Plan.Away(key, not moments)) end
+        if shown.sulk and not Away(key) then
+            local mode = Rest(key)
+            local plan = Plan.Hold(key, mode)
+            if mode == "stand" then plan = { plan[#plan] } end
+            plan.mode, plan.why = mode, "sulk over"
+            Run(key, plan) -- (turns round first)
+        end
     end
 
     -- Moving changed (Plan.Repose).
@@ -1220,7 +1263,19 @@ function Moves.NewStage(name, opts)
     Mood = function(kind, secs)
         local fx, make = opts.fx and opts.fx(), Moves.MOOD[kind]
         if not (fx and make and ns.Fx) then return end
-        ns.Fx:Emit({ parent = fx.parent, level = fx.level, tag = "mood", anchor = fx.anchor }, make(secs))
+        local list = make(secs)
+        local k = fx.scale -- (a smaller pet than the card's: its sizes and distances)
+        if k and k ~= 1 then
+            local function Scaled(v) return type(v) == "number" and v * k or v end
+            for _, p in ipairs(list) do
+                p.size = type(p.size) == "table" and { p.size[1] * k, p.size[2] * k } or Scaled(p.size)
+                p.x, p.y = Scaled(p.x), Scaled(p.y)
+                for _, f in ipairs({ "up", "drift" }) do
+                    if p[f] then p[f] = { p[f][1] * k, p[f][2] * k, p[f][3], p[f][4] } end
+                end
+            end
+        end
+        ns.Fx:Emit({ parent = fx.parent, level = fx.level, tag = "mood", anchor = fx.anchor }, list)
     end
     local function StopMood()
         local fx = opts.fx and opts.fx()
@@ -1247,16 +1302,18 @@ function Moves.NewStage(name, opts)
             local t = secs and secs > 0 and math.min(1, (GetTime() - start) / secs) or 1
             b.off = t >= 1 and to or from + (to - from) * (1 - math.cos(math.pi * t)) / 2 -- (eased in and out)
             Call(b.actor, "SetYaw", b.yaw + b.off)
-            if t < 1 then return timers:After(secs / math.max(1, Moves.TURN_STEPS), Tick) end
+            if t < 1 then return turnT:After(secs / math.max(1, Moves.TURN_STEPS), Tick) end
             if to == 0 and shown.sulk == b then shown.sulk = nil; StopMood() end
         end
         ns.Log("Moves", "%s %s: turns to %.2f", name, tostring(shown.key), to)
+        turnT:Cancel() -- (a turn already on its way: this one goes on from where it got)
         if not secs or secs <= 0 then return Tick() end
-        timers:After(secs / math.max(1, Moves.TURN_STEPS), Tick)
+        turnT:After(secs / math.max(1, Moves.TURN_STEPS), Tick)
     end
 
     -- Facing you again at once (another pet, the card closing), its mood gone.
     local function UnSulk()
+        turnT:Cancel()
         StopMood()
         local b = shown.sulk
         if not b then return end
@@ -1330,7 +1387,8 @@ function Moves.NewStage(name, opts)
         end
         if key ~= shown.key then UnSulk() end -- (the same pet in another pose turns round first: Run)
         local fresh = key ~= shown.key
-        local plan = Plan.Pose(key, { mode = mode, fresh = fresh, cheer = shown.cheerFor == key, noMoments = not moments })
+        local plan = Plan.Pose(key, { mode = mode, fresh = fresh, cheer = shown.cheerFor == key, noMoments = not moments,
+            away = Away(key) and not shown.sulk })
         if fresh then -- (what it plays after standing, warm before it does: Warm)
             local need = {}
             for _, st in ipairs(plan) do if st[1] ~= STAND then need[#need + 1] = st[1] end end

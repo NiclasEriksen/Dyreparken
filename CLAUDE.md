@@ -342,7 +342,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    PetFrame (the pet that's out on screen; mounted or on a flight path the last one out, else the one kept out (Med deg), none while
                    you're dead, optional and off by default: its own ModelScene with the card's view
                    insets, a stage of Moves so it moves 1:1 as on the card (and asleep while you're AFK, a rare line as it
-                   wakes: Quirks' egg vaken), name and a slim bond bar with the rising numbers;
+                   wakes: Quirks' egg vaken; after a dislike its back turned with a cloud, kept through every move until its card's sulk has played or the day ends: Plan.Away, opts.sulks, 2026-11-19), name and a slim bond bar with the rising numbers;
                    a click opens its card through a secure button of its own over it (SecureActionButtonTemplate, type
                    "click" on CollectionsMicroButton: Blizzard opens the window untainted, on its last page; never our
                    ToggleCollectionsJournal or SetTab; on UIParent, matched to the frame out of combat, never its child or
