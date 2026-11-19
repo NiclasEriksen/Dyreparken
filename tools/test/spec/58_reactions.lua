@@ -40,12 +40,18 @@ return function(test, H)
         w:Run(1)
         no(Said(ola, "krigsrop"), "shouted in a fight: no")
         ok(ola:Log("krigsrop: in a fight %(Battle Shout%)")[1], "and the log says why")
-        -- The roll lost.
+        -- The day's roll lost: quiet all day, however often it's shouted (2026-11-19: rolled at every shout, a 40%
+        -- came on nearly every day).
         ola:Dice(0.9)
         Cast(ola, 1)
         w:Run(1)
-        no(Said(ola, "krigsrop")); ok(ola:Log("krigsrop: the roll")[1])
+        no(Said(ola, "krigsrop")); ok(ola:Log("krigsrop: not today")[1])
         ola:Dice(0)
+        Cast(ola, 1)
+        w:Run(1)
+        no(Said(ola, "krigsrop"), "the same day: still lost")
+        -- The next day's roll won.
+        w:SkipDays(1)
         Cast(ola, 1)
         w:Run(1)
         ok(Said(ola, "krigsrop"))

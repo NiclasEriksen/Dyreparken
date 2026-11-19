@@ -145,18 +145,26 @@ return function(test, H)
         ok(ola.ns.Quirks:Ready(), "a dislike: past 15 minutes"); no(ola.ns.Quirks:Ready(true), "an egg: not 45 yet")
         Step("none"); eq(M:Every("quirk"), 2700, "none: as normal, the lines hidden"); no(S:Chatty())
         Step("bogus"); eq(S:Chatter(), "normal")
-        -- In play: the midnight egg (a chance of 0.5) at a roll of 0.3 speaks on Vanlig, not on Litt.
+        -- In play: the midnight egg (on 15% of days) at a roll of 0.1 speaks on Vanlig, not on Litt. The day's
+        -- roll: Litt's lost one keeps it quiet that night, Vanlig gets the next.
+        local E = ola.ns.Quirks.EGGS
+        local midnight
+        for _, e in ipairs(E) do if e.id == "midnatt" then midnight = e.chance end end
         ola:QuirksNow()
-        ola:Dice(0.3)
+        ola:Dice(midnight * 0.6)
         Step("few")
         w:SetDate(2027, 3, 9, 0, 5)
         ola.ns.Activity:Emit("herb")
         w:RunTimers()
-        eq(ola:Eggs("midnatt"), 0, "Litt: 0.25")
+        eq(ola:Eggs("midnatt"), 0, "Litt: half the chance")
         Step("normal")
         ola.ns.Activity:Emit("herb")
         w:RunTimers()
-        eq(ola:Eggs("midnatt"), 1, "Vanlig: 0.5")
+        eq(ola:Eggs("midnatt"), 0, "the same night: the day's roll was lost")
+        w:SetDate(2027, 3, 10, 0, 5)
+        ola.ns.Activity:Emit("herb")
+        w:RunTimers()
+        eq(ola:Eggs("midnatt"), 1, "Vanlig, the next night")
     end)
 
     test("migration 14: Småting i chatten off becomes Ingenting, on becomes Vanlig", function()

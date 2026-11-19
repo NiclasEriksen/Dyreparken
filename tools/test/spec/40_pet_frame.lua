@@ -642,6 +642,7 @@ return function(test, H)
 
     test("options: hidden in combat; faded when nothing happens, full under the mouse and after a pet event", function()
         local w, ola, PF = Setup(14)
+        ola:Dice(0.99) -- (no egg's cheer: the reunion's, 162 days on, would keep it full)
         local f = PF.frame
         local S = ola.ns.DB.global.settings
         -- Hidden in combat: off by default, nothing listened to.

@@ -18,11 +18,13 @@ local ns = select(2, ...)
 -- midnight egg's ten minutes lost to a campfire line):
 --   rare       never held back by the 45 minutes, nor spending them (2026-11-15): `always` eggs (holidays, milestones, a roll, a duel,
 --              a new flight path) and the clock's (midnight, 13:37, the early morning, Friday taco,
---              Saturday sweets, Monday): once a day each, and their window is the rarity.
+--              Saturday sweets, Monday): once a day each, and their window is the rarity, or their chance where
+--              the window comes every day (midnight: on 15% of days; 2026-11-19, it had come on 9 of 9).
 --   discovery  a dislike's first time (DISLIKE_CHANCE): finding it is a goal with an achievement.
---   common     the 45 minutes: a known dislike again (DISLIKE_AGAIN), the campfire (its stages are one
+--   common     the 45 minutes: a known dislike again (DISLIKE_AGAIN, once a day at most), a hundred jumps, the campfire (its stages are one
 --              fire, so one line; the countdown less likely, so the warmth after it gets its turn), the
 --              boss trophy (more likely for a boss new to the pet), wings, the cat and the fish, the chatter.
+-- A chance is rolled once a day (Moments.Rolled), at the first moment it could speak: a share of days.
 -- Lines: Locale/nb.lua, dislike.<activity>.N and egg.<id>.N (one is picked).
 -- The activities they need are watched like the bond's (Activity:Want).
 ---@class Dyreparken.Quirks
@@ -32,9 +34,11 @@ ns.Quirks = Quirks
 -- (The 45 minutes between quirk lines, the waits and the one line on its way: Moments.lua, shared with the
 -- class reactions since 2026-11-14.)
 Quirks.DISLIKE_CHANCE = 0.35 -- a dislike not yet found: per time it happens (the cooldown doesn't hold it back)
-Quirks.DISLIKE_AGAIN = 0.15  -- one already found: per time, with the 45 minutes free
+-- One already found: once a day at most, on this share of days (rolled once a day, Moments.Rolled, with the 45
+-- minutes free; 15% per time with no day's limit until 2026-11-19: an everyday dislike, every 45 minutes)
+Quirks.DISLIKE_AGAIN = 0.25
 -- A minor dislike (Personality: unlocked by your bond at level 6), a third as often (the user, 2026-11-12).
-Quirks.MINOR_CHANCE, Quirks.MINOR_AGAIN = 0.15, 0.05
+Quirks.MINOR_CHANCE, Quirks.MINOR_AGAIN = 0.15, 0.1
 -- How long a line waits: Moments.DELAY (the same table). An egg names its own (delay = ...), day eggs
 -- are "day"; Quirks.DISLIKE_DELAY per activity.
 Quirks.DELAY = ns.Moments.DELAY
@@ -77,14 +81,21 @@ function Quirks:Dislike(key, id, minor)
     if not first and not self:Ready() then return end
     local chance = minor and (first and self.MINOR_CHANCE or self.MINOR_AGAIN)
         or (first and self.DISLIKE_CHANCE or self.DISLIKE_AGAIN)
-    -- (a discovery counts toward an achievement, as an egg; a known one again is only a line)
-    if ns.random() >= ns.Settings:Chance(chance, first and "egg" or "flavor") then return end
+    -- (a discovery counts toward an achievement, as an egg; a known one again is only a line, the day's roll)
+    chance = ns.Settings:Chance(chance, first and "egg" or "flavor")
+    local day = ("dislike:%s:%s"):format(key, id)
+    if first then
+        if ns.random() >= chance then return end
+    elseif not ns.Moments.Rolled(day, chance) then
+        return
+    end
     local name = ns.Registry:NameOf(key)
     local text = Pick("dislike." .. id, { pet = name })
     if not text then return end
     self:Say(text, ("dislike %s %s"):format(key, id), "dislike", function()
         seen[key] = seen[key] or {}
         seen[key][id] = true
+        ns.Moments.Spend(day) -- (once a day)
         ns.Moves:Owe(key, "sulk") -- (its back turned on the card, once)
         if not first then return end
         ns.Bus:Fire("DISLIKE_FOUND", key, id)
@@ -95,7 +106,8 @@ end
 
 ------------------------------------------------------------------------------
 -- Easter eggs: { id, on = activity (or "seen": a companion under the mouse),
--- chance (default 1), test = fn(ctx) -> vars or nil }. ctx: key, name (the
+-- chance (default 1: a number is the share of days, rolled once a day; a function this moment's chance),
+-- test = fn(ctx) -> vars or nil }. ctx: key, name (the
 -- pet's), id, extra, t, family (set), today (the activity's count today), egg.
 -- `always`: not held back by the quirks' 45 minutes, nor spending them (rare by nature, and a day late is lost).
 -- `fight`: about the fight just over: unsaid if it ended with your death.
@@ -212,9 +224,21 @@ Quirks.EGGS = {
         if h < 5 or h >= 7 then return nil end -- (before five it's still night: midnight's own)
         return HasTrait(ctx.key, "nattugle") and { _key = "egg.morgen.nattugle" } or {}
     end },
-    { id = "hopp", on = "jump", always = true, test = function(ctx) -- a hundred jumps (one "jump" is ten)
+    -- Jumps (2026-11-19, the user: a hundred "very likely to happen every day for all players ... 1000 jumps is
+    -- more notable, 100 jumps can be a (very) rare reaction where they don't mention a number"): a hundred in a
+    -- day now and then, a common egg with no number; a thousand in a day always; ten thousand with your adopted
+    -- pet once, with the hidden achievement jump:10000 (one "jump" is ten).
+    { id = "hopp", on = "jump", chance = 0.08, test = function(ctx)
         if ctx.today ~= 10 then return nil end
         return HasTrait(ctx.key, "hoppetass") and { _key = "egg.hopp.hoppetass" } or {}
+    end },
+    { id = "tusenhopp", on = "jump", always = true, test = function(ctx)
+        if ctx.today ~= 100 then return nil end
+        return HasTrait(ctx.key, "hoppetass") and { _key = "egg.tusenhopp.hoppetass" } or {}
+    end },
+    { id = "titusenhopp", on = "jump", always = true, test = function(ctx)
+        local _, mine = ns.Activity:Count("jump")
+        return ns.Registry:MyPet() == ctx.key and mine == 1000 and {} or nil
     end },
     { id = "lur", on = "nap", test = function(ctx) return ctx.today == 5 and {} end },
     { id = "midnattsdans", on = "dance", always = true, watch = false, test = function(ctx) return Hour(ctx.t) == 0 and tonumber(date("%M", ctx.t)) < 30 and {} end },
@@ -273,7 +297,8 @@ Quirks.EGGS = {
             if HasTrait(ctx.key, "ordensdyr") then return {} end
             return HasTrait(ctx.key, "roverdyr") and { _key = "egg.bastian.roverdyr" } or nil
         end },
-    { id = "midnatt", on = "*", always = true, chance = 0.5,
+    -- (2026-11-19: at 50% for every activity in those ten minutes it came on 9 of 9 days; a share of days now)
+    { id = "midnatt", on = "*", always = true, chance = 0.15,
         test = function(ctx) return date("%H", ctx.t) == "00" and tonumber(date("%M", ctx.t)) < 10 and {} end },
     { id = "speil", delay = "now", on = "seen", test = function(ctx)
         return ns.Pets:SpeciesOfKey(ctx.key) == ctx.seen and { owner = ctx.extra }
@@ -312,17 +337,18 @@ Quirks.EGGS = {
     end },
     -- Campfires and sleeping bags (2026-11-11, the user): cozy pets love them, adventurous ones get
     -- restless; a fire passed by only now and then catches a cozy pet's eye.
-    { id = "baalnaer", on = "campnear", chance = 0.03, test = function(ctx)
+    { id = "baalnaer", on = "campnear", chance = 0.1, test = function(ctx)
         return Kind(ctx.key) == "cozy" and {} end },
     -- (the countdown less likely, 2026-11-12: at 50% it came first and won, and the warmth never spoke)
-    { id = "baalvarm", on = "campwarm", chance = 0.25, test = function(ctx)
+    { id = "baalvarm", on = "campwarm", chance = 0.2, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.baalvarm.eventyr" }) end },
-    -- (fire and bag lower, 2026-11-15: a shaman's saves had all four camp eggs said on most days, a third of them)
-    { id = "baal", on = "camp", chance = 0.45, test = function(ctx)
+    -- (fire and bag lower, 2026-11-15: a shaman's saves had all four camp eggs said on most days, a third of them;
+    -- shares of days since 2026-11-19, when the fire still spoke on 7 of 9)
+    { id = "baal", on = "camp", chance = 0.25, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.baal.eventyr" }) end },
-    { id = "sovepose", on = "rested", chance = 0.45, test = function(ctx)
+    { id = "sovepose", on = "rested", chance = 0.3, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.sovepose.eventyr" }) end },
     -- A lot of guild chat at once, for a pet that isn't a Pratsom (it would join in) (the user, 2026-11-11).
@@ -347,7 +373,7 @@ Quirks.EGGS = {
         return ns.Personality:Known(ctx.key) and ns.Personality:Of(ctx.key).fish
             and ns.Holidays:Has(ctx.t, "stvfishing") and {} end },
     { id = "kattefisk", delay = "now", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
-    { id = "vinger", on = "taxi", chance = 0.3,
+    { id = "vinger", on = "taxi", chance = 0.25,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },
     -- More likely for a boss this pet hasn't seen fall (Bond:First notes those; either may hear it first).
     { id = "trofe", on = "boss", fight = true, chance = function(ctx)
@@ -391,14 +417,14 @@ Quirks.EGGS = {
         end },
     -- Zeppelins and boats (Voyage.lua, 2026-11-12, the user): by trait, then family, else a plain one. A pet
     -- afraid of flying is afraid up there too.
-    { id = "luftskip", on = "zeppelin", always = true, chance = 0.6,
+    { id = "luftskip", on = "zeppelin", always = true, chance = 0.4,
         traits = { "skybaren", "reiseglad", "eventyrlysten", "hjemlengsel", "latsabb" },
         families = { "bird", "owl", "dragon", "mechanical" },
         test = function(ctx)
             if ns.Personality:Known(ctx.key) and ns.Personality:Dislikes(ctx.key).taxi then return { _key = "egg.luftskip.redd" } end
             return Quirks.ByNature(ctx)
         end },
-    { id = "seilas", on = "boat", always = true, chance = 0.6,
+    { id = "seilas", on = "boat", always = true, chance = 0.4,
         traits = { "sjorover", "vannhund", "dykker", "hjemlengsel", "eventyrlysten" },
         families = { "pirate", "cat", "frog", "murloc", "reptile", "bird" },
         test = function(ctx) return Quirks.ByNature(ctx) end },
@@ -458,7 +484,8 @@ local function Families(key)
     return set
 end
 
-Quirks.TROPHY, Quirks.TROPHY_NEW = 0.15, 0.5
+-- (a boss seen fall before 0.05 since 2026-11-19, from 0.15: a dungeon's five bosses had it on 8 of 9 days)
+Quirks.TROPHY, Quirks.TROPHY_NEW = 0.05, 0.5
 Quirks.REUNION_DAYS, Quirks.REUNION_CHANCE = 3, 0.35 -- (gjensyn: Monday's pet back on Thursday)
 Quirks.WIPE_BOSS = 0.5 -- a wipe at a boss: the chance its line names it
 Quirks.WAKE_CHANCE = 0.15 -- the pet frame's pet woken after you were AFK: the chance of a line (egg "vaken")
@@ -496,15 +523,18 @@ function Quirks:Egg(on, key, extra, seen)
         local done = (had and had.day == today) or pending.eggs[e.id] == today
         -- (a common one held back only by another line on its way: this moment again after it)
         if not e.always and not done and M:Pending() and M:Left("quirk", true) == 0 then held = true end
-        local chance = e.chance
+        -- A number is the share of days (rolled once a day, at the first moment its test lets through:
+        -- Moments.Rolled); a function's answer is this moment's own chance (a boss never seen fall, a level).
+        local chance, daily = e.chance, type(e.chance) == "number"
         if type(chance) == "function" then chance = chance(ctx) end -- (false or nil: no roll, the test decides)
         if chance then chance = ns.Settings:Chance(chance, "egg") end
         if dead and e.fight then
             ns.Log("Quirks", "egg %s: unsaid, the fight ended with your death", e.id)
         elseif (e.always or self:Ready(true)) and not done
-            and (not chance or ns.random() < chance) then
+            and (daily or not chance or ns.random() < chance) then
             ctx.egg = e
             local vars = e.test(ctx)
+            if vars and daily and not ns.Moments.Rolled("egg:" .. e.id, chance) then vars = nil end
             local text = vars and Pick(vars._key or ("egg." .. e.id), setmetatable({ pet = ctx.name }, { __index = vars }))
             if text then
                 pending.eggs[e.id] = today

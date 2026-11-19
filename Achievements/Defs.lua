@@ -29,6 +29,8 @@ local ns = select(2, ...)
 --   guildfamily tag   the guild cares for every counting pet with this tag
 --                     (one pet per member, so each by a different member)
 --
+-- secret = true: not on the page, in /dp prestasjoner or the count until it's earned (a surprise).
+--
 -- scope: "account" (default; the collection is account-wide on Forever),
 -- "char" (adoption is per character), or "guild" (shared, synced; ids start
 -- with "guild:", which the sync relies on).
@@ -71,6 +73,9 @@ ns.AchDefs = {
     { id = "quest:100", kind = "activity", act = "quest", n = 100, pet = true, scope = "char", cat = "together", icon = { "INV_Misc_Book_09", "INV_Scroll_03" } },
     { id = "quest:500", kind = "activity", act = "quest", n = 500, pet = true, scope = "char", cat = "together", icon = { "INV_Misc_Book_11", "INV_Scroll_03" } },
     { id = "quest:1000", kind = "activity", act = "quest", n = 1000, pet = true, scope = "char", cat = "together", icon = { "INV_Misc_Book_07", "INV_Scroll_03" } },
+    -- (2026-11-19, the user: ten thousand jumps, "once (hidden achievement?)"; one "jump" is ten)
+    { id = "jump:10000", kind = "activity", act = "jump", n = 1000, pet = true, scope = "char", cat = "together", secret = true,
+        icon = { "Ability_Rogue_Sprint", "Spell_Nature_FeatherFall" } },
     { id = "eggs:10", kind = "eggs", n = 10, scope = "char", cat = "loyalty", icon = { "INV_Egg_03", "INV_Egg_01", "INV_Misc_Food_57" } },
     { id = "eggs:25", kind = "eggs", n = 25, scope = "char", cat = "loyalty", icon = { "INV_Egg_04", "INV_Egg_03", "INV_Misc_Food_57" } },
     { id = "wish:7", kind = "wishstreak", n = 7, scope = "char", cat = "loyalty", icon = { "INV_Misc_Coin_02", "INV_Misc_Coin_01" } },

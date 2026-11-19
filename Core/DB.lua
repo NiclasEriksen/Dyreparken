@@ -108,6 +108,7 @@ local CHAR_DEFAULTS = {
     -- [Moments]
     quirkAt = nil,             -- when the last quirk line was shown (at most one every 45 minutes)
     reactAt = nil,             -- when the last common reaction line was said (at most one every 20 minutes)
+    rolls = nil,               -- { day, [line id] = won }: today's roll per line, rolled at its first moment
     -- [Registry]
     named = nil,               -- { day, at = { [petKey] = when } }: today's first new name per pet (once a day)
     -- [Bond]

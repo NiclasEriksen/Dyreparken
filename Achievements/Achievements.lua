@@ -673,7 +673,7 @@ function Ach:Rows(ctx)
         if Scope(d) ~= "guild" or inGuild then
             local done, have, need = self:Evaluate(d, ctx)
             local g = self:Got(d.id)
-            if done ~= nil or g then
+            if (done ~= nil or g) and (g or not d.secret) then -- (a secret one only once earned)
                 rows[#rows + 1] = { id = d.id, def = d, got = g, have = have, need = need }
             end
         end

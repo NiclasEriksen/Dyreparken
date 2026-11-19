@@ -70,6 +70,7 @@ return function(test, H)
         w:SetDate(2027, 3, 2, 14)
         ola:SelectPet(5159)
         local actor = ola.petActor
+        ola:Dice(0.9) -- (the click's hop, not its other move: Moves.HAPPY_TOO_CHANCE)
         ola.ns.Cuddle:Pet(ola:Card())
         eq(actor.anim, 756)
         local n = #actor.played

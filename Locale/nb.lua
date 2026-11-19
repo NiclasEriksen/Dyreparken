@@ -831,8 +831,15 @@ L["egg.mandag.1"] = "{pet} er sur. Det er mandag, og helgen er fem dager unna."
 L["egg.morgen.1"] = "{pet} gnir søvnen ut av øynene. Så tidlig?"
 L["egg.morgen.nattugle.1"] = "{pet} har ikke lagt seg ennå."
 L["egg.morgen.2"] = "{pet} er ikke et morgendyr. Ikke snakk til det ennå."
-L["egg.hopp.1"] = "{pet} har hoppet hundre ganger med deg i dag og må hvile litt."
-L["egg.hopp.hoppetass.1"] = "{pet} har hoppet hundre ganger med deg i dag, og vil ha mer!"
+-- Jumps (2026-11-19): a hundred in a day now and then, no number; a thousand in a day; ten thousand with your pet
+L["egg.hopp.1"] = "{pet} puster tungt. All denne hoppingen tar på."
+L["egg.hopp.2"] = "{pet} lurer på hvorfor du aldri kan gå som folk."
+L["egg.hopp.hoppetass.1"] = "{pet} hopper i takt med deg. Dere er et lag!"
+L["egg.tusenhopp.1"] = "Tusen hopp i dag! {pet} har lagt seg flat og nekter å reise seg."
+L["egg.tusenhopp.2"] = "{pet} har talt med: tusen hopp i dag. Beina dens skjelver."
+L["egg.tusenhopp.hoppetass.1"] = "Tusen hopp i dag, og {pet} er bare så vidt varm i trøya!"
+L["egg.titusenhopp.1"] = "Ti tusen hopp sammen! {pet} ser på deg med noe som ligner på beundring."
+L["egg.titusenhopp.2"] = "{pet} har fulgt deg gjennom ti tusen hopp. Det har aldri vært så spenstig."
 L["egg.lur.1"] = "{pet} lurer på om dere har tenkt å bli her for godt."
 L["egg.lur.2"] = "{pet} har flyttet inn i innet. Det har til og med fått eget teppe."
 L["egg.midnattsdans.1"] = "Midnattsdans! {pet} visste ikke at du hadde det i deg."
@@ -1796,6 +1803,9 @@ ns.AchTexts = {
         flavor = "{player} og {pet} har fullført 500 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 500 quests sammen! {name}" },
     ["quest:1000"] = { name = "Hele Azeroths hjelpere", desc = "Fullfør 1000 quests med dyret ditt ute.",
         flavor = "{player} og {pet} har fullført 1000 quests sammen! {name}", plain = "{player} og dyret sitt har fullført 1000 quests sammen! {name}" },
+    -- (secret: listed once earned)
+    ["jump:10000"] = { name = "Sprett i beina", desc = "Hopp 10 000 ganger med dyret ditt ute.",
+        flavor = "{player} og {pet} har hoppet 10 000 ganger sammen! {name}", plain = "{player} og dyret sitt har hoppet 10 000 ganger sammen! {name}" },
     ["eggs:10"] = { name = "Påskeegghøne", desc = "Trigge 10 hemmelige interaksjoner med dyrene dine.",
         flavor = "{player} har funnet 10 forskjellige hemmelige interaksjoner med dyrene sine! {name}" },
     ["eggs:25"] = { name = "Eggspert", desc = "Finn 25 forskjellige hemmelige interaksjoner med dyrene dine.",

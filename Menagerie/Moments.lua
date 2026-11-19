@@ -13,6 +13,11 @@ local ns = select(2, ...)
 --                    seconds apart (each module had its own, and neither saw the other's)
 --   once a day       Moments.SaidToday(store, id), and Moments.Count(...) as it's said: store[id] (char.eggs,
 --                    char.reacts) { n, day, key }; the caller fires its Bus event the first time
+--   the day's roll   Moments.Rolled(id, chance): a line's chance rolled once a day, at its first moment
+--                    (char.rolls); a miss keeps it quiet until tomorrow (2026-11-19, the user: totems, midnight
+--                    and Ghost Wolf "very likely to happen every day for all players ... feels artificial and
+--                    repetitive"). Rolled at every moment until said, a 40% only delayed a line that came dozens
+--                    of times a day: on 8 or 9 of a shaman's 9 days. Now a chance is the share of days.
 --   the delay        Moments.DELAY's spans; `afterFight`: in a fight, the wait starts once it's over
 --                    (a fight that ended with your death: unsaid; any other line while you're dead is fine)
 --   later            a moment held back only by another line on its way waits its turn (Moments:Later; the
@@ -142,6 +147,25 @@ function Moments.ByNature(prefix, row, key)
     end
     return {}
 end
+
+-- The day's roll for a line (id: "egg:midnatt", "react:totemer", "dislike:s:40:jump"): rolled at its first
+-- moment of the day, the same answer at every later one; a new day starts a new table (the old ones go).
+-- Moments.Spend(id): said, so no more today (for lines without a SaidToday of their own: a known dislike).
+local function Rolls()
+    local today = ns.Today()
+    local r = ns.DB.char.rolls
+    if not (r and r.day == today) then r = { day = today }; ns.DB.char.rolls = r end
+    return r
+end
+function Moments.Rolled(id, chance)
+    local r = Rolls()
+    if r[id] == nil then
+        r[id] = chance >= 1 or ns.random() < chance
+        ns.Log("Moments", "%s: today's roll %s (%d%%)", id, r[id] and "won" or "lost", math.floor(chance * 100 + 0.5))
+    end
+    return r[id]
+end
+function Moments.Spend(id) Rolls()[id] = false end
 
 -- Said today already (store[id].day; store: char.eggs, char.reacts).
 function Moments.SaidToday(store, id)

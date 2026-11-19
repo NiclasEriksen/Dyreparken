@@ -12,15 +12,17 @@ local ns = select(2, ...)
 -- when it happened out of combat), rare, chance, traits / families (lines by nature, the first the pet has),
 -- delay (Moments.DELAY's).
 -- Pacing (the user's answer 2): common rows at most one line every 20 minutes (Moments' "react" budget,
--- char.reactAt), beside the eggs' 45; rare ones always. Each row once a day. Something done in a fight is said
+-- char.reactAt), beside the eggs' 45; rare ones always. Each row once a day, on a share of days (its chance,
+-- rolled once a day: Moments.Rolled). Something done in a fight is said
 -- after it. No line while another is on its way, an egg's either (Moments.lua).
 -- Lines: Locale/nb.lua, react.<id>.N and react.<id>.<trait|family>.N.
 ---@class Dyreparken.Reactions
 local Reactions = {}
 ns.Reactions = Reactions
 
--- (0.5 until 2026-11-15: a shaman's few rows spoke on most days, the same lines; "Mye" makes it 0.6)
-Reactions.CHANCE = 0.4 -- a common row's line, when its moment comes (once a day each)
+-- (0.5 until 2026-11-15: a shaman's few rows spoke on most days, the same lines; "Mye" makes it 0.6. Rolled at every
+-- moment until 2026-11-19, when a 40% still had the totems on 6 of 6 days: rolled once a day now, Moments.Rolled)
+Reactions.CHANCE = 0.2 -- a common row's share of days (its first moment of a day rolls; once a day each)
 -- A rare row with another line on its way (an egg's, Moments): said anyway this often, else lost (2026-11-14, the
 -- user: "rare should have a chance to skip the one at a time rule, but only some of the time").
 Reactions.RARE_SKIP = 0.5
@@ -101,7 +103,8 @@ Reactions.ROWS = {
     -- rare (the user, the same day: "Totem garden is not rare, I've gotten it twice in a short period").
     { id = "spokelsesulv", class = "SHAMAN", on = "cast", spells = { "Ghost Wolf" }, families = { "wolf", "rabbit", "farm" } },
     -- (in a fight too, said after it: a shaman drops them in fights, the garden most of all; seen 2026-11-14)
-    { id = "totemhage", class = "SHAMAN", on = "cast", ends = { " Totem" }, test = function()
+    -- (both lower still, 2026-11-19: a shaman drops totems all day, every day)
+    { id = "totemhage", class = "SHAMAN", on = "cast", ends = { " Totem" }, chance = 0.15, test = function()
             local list = times.totem
             Within(list, Reactions.TOTEM_SPAN, 1)
             local kinds, n = {}, 0
@@ -110,7 +113,7 @@ Reactions.ROWS = {
             end
             if n >= Reactions.TOTEMS then times.totem = {}; return {} end
         end },
-    { id = "totemer", class = "SHAMAN", on = "cast", ends = { " Totem" }, traits = { "handverker" }, families = { "cat" } },
+    { id = "totemer", class = "SHAMAN", on = "cast", ends = { " Totem" }, chance = 0.15, traits = { "handverker" }, families = { "cat" } },
     { id = "astral", class = "SHAMAN", on = "cast", spells = { "Astral Recall" }, traits = { "hjemlengsel" } },
     -- (2026-11-15, from a shaman's evening in the log: the spells cast most with nothing to say; the heals left
     -- out, cast too often to stay fun)
@@ -187,7 +190,7 @@ function Reactions:Speak(row, key, vars, again)
     if not (rare or self:Ready()) then return "the 20 minutes" end
     -- (a rare one counts, as an egg: only "few" rolls for it, at its half)
     local chance = rare and ns.Settings:Chance(1, "egg") or ns.Settings:Chance(row.chance or self.CHANCE, "flavor")
-    if chance < 1 and ns.random() >= chance then return "the roll" end
+    if not ns.Moments.Rolled("react:" .. row.id, chance) then return "not today (the day's roll)" end
     local text = ns.PickLine(vars._key or ("react." .. row.id), setmetatable({ pet = ns.Registry:NameOf(key) }, { __index = vars }))
     if not text then return "no line" end
     self:Say(row, key, text, rare)

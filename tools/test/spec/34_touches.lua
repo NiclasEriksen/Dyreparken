@@ -29,6 +29,7 @@ return function(test, H)
         local w, ola = Card(3, 2, 23)
         local card = ola:SelectPet(5159)
         eq(Count(ola, card, "zee"), 3)
+        ola:Dice(0.9) -- (the click's hop, not its other move: Moves.HAPPY_TOO_CHANCE)
         ola.ns.Cuddle:Pet(card)
         eq(Count(ola, card, "zee"), 0, "awake")
         eq(ola.petActor.anim, 756, "and the hop plays on")
@@ -358,11 +359,46 @@ return function(test, H)
         ok(ola:Said("har ikke lagt seg ennå"), "a Nattugle at six")
         ola.ns.DB.char.activity.jump = { total = 9, mine = 9, today = 9, day = ola.ns.Today(), pets = {} }
         ola.ns.Activity:Emit("jump")
-        ok(ola:Said("vil ha mer"), "a Hoppetass: a hundred jumps and more")
+        ok(ola:Said(ola.ns.L["egg.hopp.hoppetass.1"]:gsub("{pet} ", "")), "a Hoppetass: a hundred jumps, its own line")
         ola.ns.DB.char.quirkAt = nil
         ola.ns.DB.char.activity.nap = { total = 4, mine = 4, today = 4, day = ola.ns.Today(), pets = {} }
         ola.ns.Activity:Emit("nap")
         ok(ola:Said("tenkt å bli her for godt"))
+    end)
+
+    test("jumps: a hundred in a day now and then, a thousand always, ten thousand with your pet once (a secret achievement)", function()
+        local w, ola, At = Eggs({ "glupsk", "rampete" })
+        At(2027, 3, 9, 12)
+        local A = ola.ns.Activity
+        local function Jumps(today, mine)
+            ola.ns.DB.char.activity.jump = { total = mine - 1, mine = mine - 1, today = today - 1, day = ola.ns.Today(), pets = {} }
+            A:Emit("jump")
+            w:RunTimers()
+        end
+        local function Egg(id) return ola:Eggs(id) end
+        ola:Dice(0.5)
+        Jumps(10, 10)
+        eq(Egg("hopp"), 0, "a hundred: the day's roll lost (8% of days)")
+        At(2027, 3, 10, 12)
+        ola:Dice(0)
+        Jumps(10, 20)
+        eq(Egg("hopp"), 1, "the next day's won")
+        no(ola:Said("hundre"), "and no number in it")
+        ola:Dice(0.99)
+        Jumps(100, 110)
+        eq(Egg("tusenhopp"), 1, "a thousand in a day: always")
+        local function Listed()
+            for _, row in ipairs(ola.ns.Achievements:Rows()) do if row.id == "jump:10000" then return row end end
+        end
+        Jumps(101, 999)
+        no(Listed(), "ten thousand: not on the page before it's earned")
+        eq(Egg("titusenhopp"), 0)
+        Jumps(102, 1000)
+        eq(Egg("titusenhopp"), 1, "the ten thousandth jump with the adopted pet")
+        w:RunTimers()
+        ok(Listed() and Listed().got, "and the achievement, listed once earned")
+        Jumps(103, 1001)
+        eq(Egg("titusenhopp"), 1, "once")
     end)
 
     test("named after you, or after another pet in the park", function()
