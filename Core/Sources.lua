@@ -161,30 +161,21 @@ for _, kind in ipairs({ "dance", "cuddle", "fun" }) do
     end })
 end
 
--- A big fall (2026-11-12, the user: "taking a lot of fall damage should be an event"): no event says so, but out
--- of combat, FALL_SHARE of your health or more gone in one change is a fall (nothing else hits that hard
--- outside a fight). UNIT_HEALTH for the player only, while the eggs watch it; a value we can't read (secret
--- in combat) is skipped. extra: "dead" when it was the end of you.
-Activity.FALL_SHARE = 0.7
-local lastHealth
--- (2026-11-19, the user: never seen, though falls took most of their health. Its reads are logged once a session,
--- to tell whether health is secret out of combat too, the likeliest reason.)
-local fallSeen = false
-Activity:Source({ id = "fall", events = { "UNIT_HEALTH" }, unit = "player", when = "peace",
-    start = function() lastHealth = nil end,
-    filter = function()
-        local rawHp, rawMax = UnitHealth("player"), UnitHealthMax("player")
-        local hp, max = Plain(rawHp), Plain(rawMax)
-        if not fallSeen then
-            fallSeen = true
-            ns.Log("Activity", "fall: health reads %s / %s (%s, %s)", ns.IsSecret(rawHp) and "secret" or tostring(hp),
-                ns.IsSecret(rawMax) and "secret" or tostring(max), type(rawHp), type(rawMax))
-        end
-        if type(hp) ~= "number" or type(max) ~= "number" or max <= 0 then lastHealth = nil; return nil end
-        local before = lastHealth
-        lastHealth = hp
-        if not before or InCombatLockdown() then return nil end
-        if before - hp >= max * Activity.FALL_SHARE then return 1, hp <= 0 and "dead" or nil end
+-- A fall (2026-11-12, the user: "taking a lot of fall damage should be an event"). Read from health until
+-- 2026-11-19, when the log showed UnitHealth("player") is secret out of combat too: it never fired. What a fall
+-- looks like (/dp probe api fall, the user's jumps, build 70959): out of combat, at the landing, UNIT_COMBAT on you,
+-- "WOUND", physical (school 1), its amount secret; nothing for a hop that doesn't hurt. So a fall is that: damage
+-- out of a fight, still out of one FALL_CHECK later (a mob's first hit starts a fight). How big is unknown (the
+-- amount is secret): any fall that hurts. extra: "dead" when it was the end of you.
+Activity.FALL_CHECK = 0.5
+Activity:Source({ id = "fall", events = { "UNIT_COMBAT" }, unit = "player", when = "peace",
+    filter = function(_, unit, action, _, _, school)
+        if Plain(unit) ~= "player" or Plain(action) ~= "WOUND" or Plain(school) ~= 1 then return nil end
+        C_Timer.After(Activity.FALL_CHECK, function()
+            if ns.InCombat() then return end
+            Activity:Emit("fall", 1, Plain(UnitIsDeadOrGhost("player")) == true and "dead" or nil)
+        end)
+        return nil
     end })
 
 -- Money looted (Sjørøver, 2026-11-12): CHAT_MSG_MONEY is only ever about you ("You loot 5 Silver", "Your
