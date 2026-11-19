@@ -35,15 +35,19 @@ function Meter.Place(kind)
     if not ok or type(s) ~= "table" or ns.IsSecret(s) then return nil end
     local sources = s.combatSources
     if type(sources) ~= "table" or ns.IsSecret(sources) then return nil end
-    for i, src in ipairs(sources) do
-        if type(src) == "table" and src.isLocalPlayer == true then
-            local mine = ns.Plain(src.totalAmount)
-            local other = sources[i == 1 and 2 or 1]
-            local next = type(other) == "table" and ns.Plain(other.totalAmount) or 0
-            if type(mine) ~= "number" or type(next) ~= "number" then return nil end
-            return i, mine, next
+    -- (pcall'd: an entry or a field secret where the rest isn't would throw at an index or a compare, review
+    -- 2026-11-19; nothing here is worth a Lua error)
+    local found, place, mine, next = pcall(function()
+        for i, src in ipairs(sources) do
+            if type(src) == "table" and not ns.IsSecret(src) and ns.Plain(src.isLocalPlayer) == true then
+                local other = sources[i == 1 and 2 or 1]
+                local theirs = type(other) == "table" and not ns.IsSecret(other) and ns.Plain(other.totalAmount) or 0
+                return i, ns.Plain(src.totalAmount), theirs
+            end
         end
-    end
+    end)
+    if not found or type(mine) ~= "number" or type(next) ~= "number" then return nil end
+    return place, mine, next
 end
 
 -- The last result: { raid, kind = "damage" | "healing" | "kicks", far = ahead by FAR_AHEAD } (the eggs read it).
@@ -51,6 +55,8 @@ Meter.last = nil
 
 function Meter:Read()
     if not IsInGroup() or (GetNumGroupMembers() or 0) < self.MIN_GROUP then return end
+    -- In combat it's all secret (the header), and the next pull may come within READ_AFTER: the fight is gone.
+    if ns.InCombat() then return ns.Log("Meter", "a fight again: not read") end
     local raid = IsInRaid() == true
     local function Top(kind, word, activity, least)
         local place, mine, next = Meter.Place(kind)

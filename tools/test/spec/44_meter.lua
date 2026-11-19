@@ -87,5 +87,26 @@ return function(test, H)
         eq(ola.ns.Meter.Place(0), nil, "secret: nothing")
         meter[0] = nil
         eq(ola.ns.Meter.Place(0), nil)
+        -- One entry secret, or one that throws when read (review 2026-11-19): nothing, no Lua error.
+        meter[0] = { combatSources = { H.SECRET_TABLE, { name = "Ola Nord", totalAmount = 9, isLocalPlayer = true } } }
+        eq(ola.ns.Meter.Place(0), 2)
+        meter[0] = { combatSources = { { name = "Ola Nord", totalAmount = H.SECRET, isLocalPlayer = true } } }
+        eq(ola.ns.Meter.Place(0), nil)
+        meter[0] = { combatSources = { setmetatable({}, { __index = function() error("secret") end }) } }
+        eq(ola.ns.Meter.Place(0), nil)
+    end)
+
+    test("a fight again before the read: the meter isn't read (it's all secret then)", function()
+        local w, ola, meter = Setup(5)
+        meter[0] = Session({ { "Ola Nord", 5000 }, { "Member 2", 4000 } })
+        ola:Fire("ENCOUNTER_END", 1, "Herod", 1, 5, 1)
+        w:Run(0.5)
+        local reads = meter.reads
+        ola:EnterCombat()
+        w:Run(2)
+        eq(meter.reads, reads, "not read in the fight")
+        ok(ola:Log("a fight again: not read")[1])
+        ola:LeaveCombat(); w:Run(2)
+        eq((ola.ns.Activity:Count("dmgtop")), 0)
     end)
 end
