@@ -15,6 +15,9 @@ return function(c, env, S)
             assert(type(text) == "string" and #text <= 255, "addon message over 255 bytes")
             assert(chan ~= "WHISPER" or target, "whisper without target")
             if c.trial then return 7 end -- Trial/Veteran accounts can't send
+            -- A test's own answer from the server (c.sendCode(text, chan): a code, nil to send; it may throw).
+            local code = c.sendCode and c.sendCode(text, chan)
+            if code then return code end
             -- The server's throttle (docs/FOREVER_API.md): per prefix, 10
             -- messages, +1 per second. Over it, the message is dropped.
             c.throttle = c.throttle or {}
@@ -31,7 +34,8 @@ return function(c, env, S)
         end,
     }
     env.Enum = {
-        SendAddonMessageResult = { Success = 0, AddonMessageThrottle = 3, NotInGroup = 5, AddOnMessageLockdown = 11 },
+        SendAddonMessageResult = { Success = 0, AddonMessageThrottle = 3, NotInGroup = 5, ChannelThrottle = 8,
+            NotInGuild = 10, AddOnMessageLockdown = 11, TargetOffline = 12 },
         TooltipDataType = { Unit = 2 },
         UITextureSliceMode = { Stretched = 0, Tiled = 1 },
         PlayerInteractionType = { Merchant = 5, Trainer = 7 }, -- (Trainer 7 on Forever: /dp probe api feats)

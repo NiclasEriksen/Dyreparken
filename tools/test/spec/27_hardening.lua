@@ -240,10 +240,54 @@ return function(test, H)
         ola.throttle = { [ola.ns.Config.COMM_PREFIX] = { tokens = 0, at = w.t } }
         ola.ns.Comm:Send("VER", { v = "x" }, "GUILD")
         eq(w:Sent("VER", nil, m), 0)
-        ok(#ola:Log("throttled by the server") >= 1)
+        ok(#ola:Log("busy %(code 3%); waiting") >= 1)
         w:Run(3)
         eq(w:Sent("VER", nil, m), 1, "sent after the wait")
-        ok(#ola:Log("throttled by the server") <= 2, "a wait for a token, not a retry every frame")
+        ok(#ola:Log("busy %(code 3%); waiting") <= 2, "a wait for a token, not a retry every frame")
+    end)
+
+    test("Comm: a chunk the server refuses: busy, it waits (a lockdown till the fight ends); else its message goes whole", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        local C = ola.ns.Comm
+        local got = {}
+        kari.ns.Comm:Register("TESTX", function(msg) got[msg.n] = msg.n end, "GUILD")
+        local big = {}
+        for i = 1, 300 do big[i] = ("%04d-abcdefghij"):format(i * 7919 % 9973) end -- (a few chunks)
+        -- The third chunk is refused once (ChannelThrottle): it waits and goes, in its place (review 2026-11-19).
+        local n = 0
+        ola.sendCode = function() n = n + 1; if n == 3 then return 8 end end
+        C:Send("TESTX", { n = 1, big = big }, "GUILD")
+        w:Run(10)
+        eq(got[1], 1, "whole, after the wait")
+        ok(ola:Log("busy %(code 8%); waiting")[1])
+        -- A lockdown in a fight: after it.
+        n = 0
+        ola:EnterCombat()
+        ola.sendCode = function() n = n + 1; if ola.state.combat and n >= 2 then return 11 end end
+        C:Send("TESTX", { n = 2, big = big }, "GUILD")
+        w:Run(10)
+        eq(got[2], nil, "not in the fight")
+        ola:LeaveCombat(); w:Run(10)
+        eq(got[2], 2, "after it")
+        -- Refused for good (not in the guild's channel any more, say), or a throw: the rest of it isn't sent.
+        n = 0
+        ola.sendCode = function() n = n + 1; if n == 2 then return 10 end end
+        C:Send("TESTX", { n = 3, big = big }, "GUILD")
+        C:Send("TESTX", { n = 4 }, "GUILD")
+        w:Run(10)
+        eq(got[3], nil); eq(got[4], 4, "the next message goes")
+        ok(ola:Log("gave up TESTX: code 10")[1])
+        eq(w.throttled or 0, 0)
+        n = 0
+        ola.sendCode = function() n = n + 1; if n == 1 then error("boom") end end
+        C:Send("TESTX", { n = 5, big = big }, "GUILD")
+        w:Run(10)
+        eq(got[5], nil)
+        ok(ola:Log("gave up TESTX: .*boom")[1])
+        ola.sendCode = nil
+        C:Send("TESTX", { n = 6, big = big }, "GUILD")
+        w:Run(10)
+        eq(got[6], 6)
     end)
 
     test("bond points never go down, and the day counts only what fit under the cap", function()

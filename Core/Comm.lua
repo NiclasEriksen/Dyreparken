@@ -37,7 +37,7 @@ local ns = select(2, ...)
 -- Notes (Forever 1.60.1):
 --  * Trial/Veteran accounts cannot send addon messages at all.
 --  * SendAddonMessage may return AddOnMessageLockdown (11); when it applies
---    isn't documented. We log result codes so we can find out.
+--    isn't documented. We log result codes so we can find out, and retry it (after the fight, in one).
 --  * Anyone can send anything: treat every message as untrusted input.
 ---@class Dyreparken.Comm
 local Comm = {}
@@ -65,26 +65,61 @@ local partial = {} -- sender .. channel -> { parts }
 local outbox, first, last = {}, 1, 0
 local tokens, stamp = BURST, nil
 local waiting = false
+local sent = 0 -- messages queued: each chunk carries its message's number
 
-local function Drain()
+-- What the server's answer means for a chunk (review 2026-11-19: only the throttle kept a chunk; any other
+-- refusal dropped it and sent the rest of its message, which receivers then threw away whole). Busy: try the
+-- same chunk again later (the throttles; a lockdown, after the fight). Anything else, or a throw: the rest of
+-- that message goes too, since it can't be put together.
+Comm.RETRIES = 20 -- tries for one chunk before its message is given up
+local function Busy(codes, result)
+    return codes and (result == codes.AddonMessageThrottle or result == codes.ChannelThrottle
+        or result == codes.AddOnMessageLockdown)
+end
+local function Delivered(codes, result) return result == nil or result == true or (codes and result == codes.Success) end
+
+local Drain
+local function GiveUp(c, why)
+    for i = first, last do
+        local o = outbox[i]
+        if o and o.msg == c.msg then o.dead = true end
+    end
+    ns.Log("Comm", "gave up %s: %s", tostring(c.kind), tostring(why))
+    if c.done then c.done(c.kind, false) end
+end
+
+function Drain()
     waiting = false
     local now = GetTime()
     tokens = math.min(BURST, tokens + (now - (stamp or now)) * REFILL)
     stamp = now
+    local codes = Enum.SendAddonMessageResult
     -- The epsilon: float rounding must not leave us a hair short forever.
     while first <= last and tokens >= 1 - 1e-6 do
         local c = outbox[first]
-        tokens = tokens - 1
-        local result = C_ChatInfo.SendAddonMessage(PREFIX, c.text, c.channel, c.target)
-        local codes = Enum.SendAddonMessageResult
-        if codes and result == codes.AddonMessageThrottle then
-            -- Keep it first in line; try again once a token has come back.
-            tokens = 0
-            ns.Log("Comm", "throttled by the server; waiting")
-            break
+        if not c.dead then
+            tokens = tokens - 1
+            local ok, result = pcall(C_ChatInfo.SendAddonMessage, PREFIX, c.text, c.channel, c.target)
+            if ok and Busy(codes, result) then
+                c.tries = (c.tries or 0) + 1
+                if c.tries <= Comm.RETRIES then
+                    -- Keep it first in line; try again once a token has come back (a lockdown: after the fight).
+                    tokens = 0
+                    ns.Log("Comm", "busy (code %s); waiting", tostring(result))
+                    if result == codes.AddOnMessageLockdown and ns.InCombat() then
+                        waiting = true
+                        return ns.Events:OutOfCombat(Drain)
+                    end
+                    break
+                end
+                GiveUp(c, ("still busy after %d tries (code %s)"):format(Comm.RETRIES, tostring(result)))
+            elseif not ok or not Delivered(codes, result) then
+                GiveUp(c, ok and ("code " .. tostring(result)) or result)
+            elseif c.cb then
+                c.cb(c.kind, true)
+            end
         end
         outbox[first], first = nil, first + 1
-        if c.cb then c.cb(c.kind, result == nil or result == true or (codes and result == codes.Success)) end
     end
     if first <= last then
         waiting = true
@@ -94,9 +129,10 @@ local function Drain()
     end
 end
 
-local function Queue(text, channel, target, cb, kind)
+-- cb: on the message's last chunk (sent or not); done: told if the message is given up, from any chunk.
+local function Queue(text, channel, target, cb, kind, msg, done)
     last = last + 1
-    outbox[last] = { text = text, channel = channel, target = target, cb = cb, kind = kind }
+    outbox[last] = { text = text, channel = channel, target = target, cb = cb, kind = kind, msg = msg, done = done }
     if not waiting then Drain() end
 end
 
@@ -175,14 +211,15 @@ function Comm:Send(kind, msg, channel, target)
         ns.Log("Comm", "not sent: %s is too big (%d bytes, over %d chunks)", kind, n, LIMITS.MAX_PARTS)
         return false
     end
+    sent = sent + 1
     if n <= CHUNK then
-        Queue("S" .. data, channel, target, OnSent, kind)
+        Queue("S" .. data, channel, target, OnSent, kind, sent, OnSent)
     else
         local pos = 1
         while pos <= n do
             local final = pos + CHUNK > n
             local head = pos == 1 and "F" or (final and "L" or "M")
-            Queue(head .. data:sub(pos, pos + CHUNK - 1), channel, target, final and OnSent or nil, kind)
+            Queue(head .. data:sub(pos, pos + CHUNK - 1), channel, target, final and OnSent or nil, kind, sent, OnSent)
             pos = pos + CHUNK
         end
     end
