@@ -51,7 +51,7 @@ jobs:
       # packager at this file (manual-changelog).
       - name: Changelog
         run: |
-          tools/changelog.sh "${GITHUB_REF_NAME}" > CHANGELOG.md
+          bash tools/changelog.sh "${GITHUB_REF_NAME}" > CHANGELOG.md
           cat CHANGELOG.md
 
       - uses: BigWigsMods/packager@v2
