@@ -244,7 +244,7 @@ if parallel then
             passed = passed + tonumber(p)
             for name in text:gmatch("  FAIL ([^\n]+)") do failed[#failed + 1] = name end
             for secs, name in text:gmatch("\nTIME\t([%d%.]+)\t([^\n]+)") do times[name] = tonumber(secs) end
-            local body = text:gsub("\nTIME\t[^\n]*", ""):gsub("\n%d+ passed, %d+ failed[^\n]*\n?$", "")
+            local body = ("\n" .. text):gsub("\nTIME\t[^\n]*", ""):gsub("\n%d+ passed, %d+ failed[^\n]*\n?$", "")
             if body:match("%S") then io.write(body, "\n") end
         end
         if args.coverage then
