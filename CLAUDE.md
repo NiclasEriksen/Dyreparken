@@ -216,7 +216,7 @@ Core/Timers.lua    ns.Timers(): a group of cancellable timers (After, Every, Can
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
 Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [alle], kunngjør (kunngjor too, not
-                   listed), klapp, innstillinger; Norwegian only; an unknown word says so); ns.Commands.Add for Dev/Commands.lua,
+                   listed), klapp (also /klapp on its own, 2026-11-19; c:Chat("/klapp") in the tests), innstillinger; Norwegian only; an unknown word says so); ns.Commands.Add for Dev/Commands.lua,
                    whose help is under /dp dev. A release never logs (Debug:Init turns a saved log off)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; per build, tools/companions/wago.py first: Forever's
                    tables from wago.tools, no game needed; the tools stay out of git; a new companion:

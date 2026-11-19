@@ -113,6 +113,10 @@ Add("innstillinger", L["cmd.help.innstillinger"], function()
 end)
 Add("klapp", L["cmd.help.klapp"], function() ns.Bonds:Pat() end)
 
+-- /klapp on its own (2026-11-19, the user): the same as /dp klapp, the one players type the most.
+SLASH_DYREPARKENKLAPP1 = "/klapp"
+SlashCmdList.DYREPARKENKLAPP = function() ns.Bonds:Pat() end
+
 SLASH_DYREPARKEN1 = "/dp"
 SLASH_DYREPARKEN2 = "/dyreparken"
 SlashCmdList.DYREPARKEN = function(input)

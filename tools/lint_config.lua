@@ -62,7 +62,7 @@ P("max_line_length = false")
 P('exclude_files = { "Libs/**", "tools/**", ".claude/**" }')
 -- Ours: the SavedVariables (the TOC) and what Blizzard's frames and slash commands read back.
 P('globals = { "DyreparkenDB", "DyreparkenDebugDB", "DyreparkenCharDB", "SlashCmdList", "StaticPopupDialogs",')
-P('    "SLASH_DYREPARKEN1", "SLASH_DYREPARKEN2" }')
+P('    "SLASH_DYREPARKEN1", "SLASH_DYREPARKEN2", "SLASH_DYREPARKENKLAPP1" }')
 -- LibStub: Libs/ (left out) makes it.
 P("read_globals = {")
 P('    "LibStub",')

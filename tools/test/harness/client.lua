@@ -249,7 +249,7 @@ end
 -- Checked after every test (run.lua), for every client: what no test should ever see.
 -- Globals the addon may write, and ones it may read that the stubs lack (it checks for them).
 H.ALLOWED_GLOBALS = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true,
-    SLASH_DYREPARKEN1 = true, SLASH_DYREPARKEN2 = true, LibStub = true }
+    SLASH_DYREPARKEN1 = true, SLASH_DYREPARKEN2 = true, SLASH_DYREPARKENKLAPP1 = true, LibStub = true }
 H.OPTIONAL_GLOBALS = { DyreparkenDB = true, DyreparkenCharDB = true, DyreparkenDebugDB = true, -- first login
     GetAddOnMetadata = true, ScrollUtil = true, SendAddonMessage = true,
     RegisterAddonMessagePrefix = true, io = true --[[ LibDeflate's command line mode ]],
@@ -406,6 +406,19 @@ end
 function Client:ClearPrinted() self.printed = {} end
 
 function Client:Slash(text) return Hardware(self, self.env.SlashCmdList.DYREPARKEN, text) end
+-- A line typed in the chat box, as the client reads it: "/word rest" runs the slash command whose SLASH_<NAME>n is
+-- /word (any of ours: /dp, /klapp), with the rest; a keypress. Nothing for a word nobody registered.
+function Client:Chat(line)
+    local word, rest = line:match("^(/%S+)%s*(.-)$")
+    assert(word, "a slash command: " .. line)
+    for name, fn in pairs(self.env.SlashCmdList) do
+        for i = 1, 9 do
+            local s = rawget(self.env, "SLASH_" .. name .. i)
+            if not s then break end
+            if s:lower() == word:lower() then return Hardware(self, fn, rest) end
+        end
+    end
+end
 
 -- Debug log lines (newest last), optionally only those matching a pattern.
 function Client:Log(pattern)
