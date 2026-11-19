@@ -1,6 +1,6 @@
 ## Interface: 16001
 ## Title: Dyreparken
-## Notes: Guild companion registry (reserve, sync, auto-summon) and a framework for party games.
+## Notes: Guildens dyrepark: adopter kjæledyr, bygg bånd og se Parken.
 ## Author: Hjelp
 ## Version: @project-version@
 ## X-Flavor: forever
@@ -9,7 +9,7 @@
 ## SavedVariables: DyreparkenDB, DyreparkenDebugDB
 ## SavedVariablesPerCharacter: DyreparkenCharDB
 ## Category: Collections
-## IconTexture: Interface\Icons\Ability_Mount_WhiteTiger
+## IconTexture: Interface\Icons\INV_Box_PetCarrier_01
 
 # Libraries (LibStub-registered)
 Libs\LibStub\LibStub.lua
