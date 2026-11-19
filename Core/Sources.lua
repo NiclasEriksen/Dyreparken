@@ -75,10 +75,21 @@ end
 -- pet "kissed the ground after landing" a few seconds into the flight; its lines speak of the whole flight):
 -- the take-off arms it, and the landing is the first dismount or control gained off the taxi (seen 2026-11-18:
 -- PLAYER_MOUNT_DISPLAY_CHANGED at take-off and again at the landing), watched only during the flight.
+-- A landing counts only after the taxi was seen (review 2026-11-19): mounted at the flight master, picking a node
+-- dismounts you before the taxi starts, and a TakeTaxiNode that fails (no money) starts nothing. So the taxi is
+-- read at each event and a few seconds after the take-off, and the watch ends unused if none saw it by
+-- TAKEOFF_WITHIN.
 Activity.LANDED_AFTER = 2 -- seconds after landing: on your feet first
+Activity.TAKEOFF_WITHIN = 10
 local FLIGHT = { name = "TaxiFlight" }
+local flightT = ns.Timers()
+local flying = false
 local function Landed()
-    if Plain(UnitOnTaxi("player")) ~= false then return end
+    local on = Plain(UnitOnTaxi("player"))
+    if on == true then flying = true; return end
+    if on ~= false or not flying then return end
+    flying = false
+    flightT:Cancel()
     ns.Events:OffAll(FLIGHT)
     C_Timer.After(Activity.LANDED_AFTER, function() Activity:Emit("taxi", 1) end)
 end
@@ -93,6 +104,12 @@ Activity:Source({
             ns.Events:On("PLAYER_MOUNT_DISPLAY_CHANGED", FLIGHT, Landed)
             ns.Events:On("PLAYER_CONTROL_GAINED", FLIGHT, Landed)
         end
+        flying = false
+        flightT:Cancel()
+        flightT:Every(2, Activity.TAKEOFF_WITHIN / 2, function(n)
+            if Plain(UnitOnTaxi("player")) == true then flying = true; return flightT:Cancel() end
+            if n * 2 >= Activity.TAKEOFF_WITHIN then ns.Events:OffAll(FLIGHT) end -- (no take-off: it failed)
+        end)
         return nil
     end,
 })

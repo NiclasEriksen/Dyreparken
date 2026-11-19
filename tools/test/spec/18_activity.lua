@@ -167,6 +167,30 @@ return function(test, H)
         c2.ns.Activity:Want("taxi", ME)
     end)
 
+    test("a flight counts only once the taxi was seen: not a dismount before take-off, not a node that failed", function()
+        local w, c, A = Setup()
+        A:Want("taxi", ME)
+        local before = A:Count("taxi")
+        -- Mounted at the flight master: picking the node dismounts you before the taxi starts (review 2026-11-19).
+        c:Mount()
+        c.env.TakeTaxiNode(1)
+        c.state.taxi = false
+        c:Dismount(); w:Run(3)
+        eq(A:Count("taxi"), before, "not at take-off")
+        c.state.taxi = true; w:Run(40) -- (seen by the read a few seconds after the take-off, no event needed)
+        c.state.taxi = false
+        c:Fire("PLAYER_CONTROL_GAINED"); w:Run(3)
+        eq(A:Count("taxi"), before + 1, "the landing")
+        -- A node that fails (no money): no take-off, and the watch ends unused.
+        c.env.TakeTaxiNode(2)
+        c.state.taxi = false
+        ok(c:Listening("PLAYER_CONTROL_GAINED"))
+        w:Run(A.TAKEOFF_WITHIN + 1)
+        no(c:Listening("PLAYER_CONTROL_GAINED"), "given up")
+        c:Mount(); c:Dismount(); w:Run(5)
+        eq(A:Count("taxi"), before + 1, "no flight that never was")
+    end)
+
     test("the daily visit: once a day per companion out", function()
         local w, c, A = Setup()
         A:Want("day", ME)
