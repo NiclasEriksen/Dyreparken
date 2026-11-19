@@ -73,6 +73,9 @@ anything marked (beta) or (unverified). Add findings here as you make them, with
 
 - Some values are "secret": `type()` reports number/string/boolean, but arithmetic, comparison, boolean tests,
   indexing and table keys **throw**. Printing a secret throws. Storing, passing and concatenating are allowed.
+- **`UnitHealth("player")` is secret out of combat too** (2026-11-19, build 70959, the fall source's log: "health
+  reads secret / 2535"), while `UnitHealthMax("player")` is plain. A fall can't be read from health: the fall egg
+  never fired. `/dp probe api fall` watches what a fall looks like otherwise (IsFalling, UNIT_COMBAT, COMBAT_TEXT_UPDATE).
 - Known secret: `UnitHealth`/percent/missing (player and target), target `UnitHealthMax`, possibly unit names,
   `UnitCanAttack`/`UnitExists` (contextual). Auras are inaccessible while `C_Secrets.ShouldAurasBeSecret()` is true
   (includes your own buffs; `UNIT_AURA` payload tables can be secret). AutoCompanion notes this happens in combat.

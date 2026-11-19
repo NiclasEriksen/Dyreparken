@@ -9,6 +9,7 @@ return function(c, env, S)
     env.UnitAffectingCombat = function() return S.combat == true end
     env.IsMounted = function() return S.mounted or false end
     env.GetShapeshiftFormID = function() return S.form end -- (nil: no form, like the client)
+    env.IsFalling = function() return S.falling == true end
     env.GetUnitSpeed = function(u) assert(u == "player"); return S.moving and ((S.mounted or S.form) and 14 or 7) or 0 end
     env.UnitOnTaxi = function() return S.taxi ~= nil and S.taxi ~= false end
     -- The swing: main hand and off hand speeds; ranged speed first. (Secret in combat? Unknown, 2026-11-12.)

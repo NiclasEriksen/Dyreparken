@@ -340,6 +340,21 @@ return function(test, H)
         match(ola:Printed("api probe combat", true), "watching already")
     end)
 
+    test("fall: time in the air, and each health event with what's secret", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("debug on")
+        ola.state.health = H.SECRET
+        ola:Slash("probe api fall")
+        match(ola:Printed("api probe fall", true), "watching for 600 s.*hp secret")
+        ola.state.falling = true; w:Run(2.5)
+        ola.state.falling = false; w:Run(0.3)
+        match(ola:Log("fall landed after")[1], "fall landed after 2%.%d+ s in the air")
+        ola:Fire("UNIT_HEALTH", "player")
+        match(ola:Log("fall UNIT_HEALTH")[1], "since landing | hp secret max")
+        ola:Slash("probe api fall")
+        match(ola:Printed("api probe fall", true), "watching already")
+    end)
+
     test("legacy: professions with their caps, exploration achievements with progress, Legacy globals", function()
         local w = H.World()
         local ola = w:AddClient("Ola Nord", { pets = { 5159 }, patch = function(env)

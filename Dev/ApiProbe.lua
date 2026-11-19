@@ -1170,6 +1170,55 @@ function S.transport(out)
 end
 
 ------------------------------------------------------------------------------
+-- fall (2026-11-19, by name only: the fall egg was never seen, and UnitHealth("player") is secret out of combat
+-- too, so a fall can't be read from health). What a fall looks like without it: time in the air (IsFalling,
+-- sampled every FALL_TICK only while this watches, at most FALL_FOR seconds), and at each UNIT_HEALTH,
+-- UNIT_COMBAT on you and COMBAT_TEXT_UPDATE: falling or not, how long since landing, the speed, and what's
+-- secret (health, percent, missing). To the debug log ("fall ..."). Jump off something high, then /reload.
+Api.FALL_TICK, Api.FALL_FOR = 0.1, 600
+function Api.Health()
+    local function Read(name)
+        local fn = rawget(_G, name)
+        if type(fn) ~= "function" then return "missing" end
+        local ok, v = pcall(fn, "player")
+        if not ok then return "error" end
+        return ns.IsSecret(v) and "secret" or tostring(v)
+    end
+    return ("hp %s max %s pct %s missing %s falling %s speed %s"):format(Read("UnitHealth"), Read("UnitHealthMax"),
+        Read("UnitHealthPercent"), Read("UnitHealthMissing"), Try(IsFalling), Try(GetUnitSpeed, "player"))
+end
+function S.fall(out)
+    out.now = Api.Health()
+    if Api.fallWatch then return "watching already: " .. out.now end
+    local f = CreateFrame("Frame")
+    Api.fallWatch = f
+    local refused = {}
+    if not pcall(f.RegisterUnitEvent, f, "UNIT_HEALTH", "player") then refused[#refused + 1] = "UNIT_HEALTH" end
+    if not pcall(f.RegisterUnitEvent, f, "UNIT_COMBAT", "player") then refused[#refused + 1] = "UNIT_COMBAT" end
+    if not pcall(f.RegisterEvent, f, "COMBAT_TEXT_UPDATE") then refused[#refused + 1] = "COMBAT_TEXT_UPDATE" end
+    out.refused = refused
+    local airFrom, landed, started = nil, nil, GetTime()
+    f:SetScript("OnEvent", function(_, event, a, b, c, d, e)
+        ns.Log("Api", "fall %s (%s, %s, %s, %s, %s) %.2f s since landing | %s", event, Show(a), Show(b), Show(c), Show(d),
+            Show(e), landed and GetTime() - landed or -1, Api.Health())
+    end)
+    local function Tick()
+        if GetTime() - started > Api.FALL_FOR then return f:UnregisterAllEvents() end
+        local falling = ns.Plain(IsFalling())
+        if falling == true and not airFrom then airFrom = GetTime() end
+        if falling ~= true and airFrom then
+            landed = GetTime()
+            ns.Log("Api", "fall landed after %.2f s in the air | %s", landed - airFrom, Api.Health())
+            airFrom = nil
+        end
+        C_Timer.After(Api.FALL_TICK, Tick)
+    end
+    C_Timer.After(Api.FALL_TICK, Tick)
+    return ("watching for %d s (events refused: %s): %s"):format(Api.FALL_FOR,
+        #refused > 0 and table.concat(refused, " ") or "none", out.now)
+end
+
+------------------------------------------------------------------------------
 -- combat (2026-11-12, by name only: an attack move for the pet frame, the user). There's no combat log on
 -- Forever, so this logs what a fight looks like without one: auto-attack on and off (PLAYER_ENTER/LEAVE_COMBAT),
 -- auto shot or a wand (START/STOP_AUTOREPEAT_SPELL), your casts, UNIT_COMBAT on you and your target (each
@@ -1454,7 +1503,7 @@ function Api:Run(arg)
     rest = rest ~= "" and rest or nil
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], boxes [ids], petframe, meter, feats, transport, combat, glance, legacy)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], boxes [ids], petframe, meter, feats, transport, combat, fall, glance, legacy)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out, rest)
