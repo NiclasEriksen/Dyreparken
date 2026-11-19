@@ -222,9 +222,11 @@ local function DecodeWire(data)
     local ok, msg = LibSerialize:Deserialize(s)
     return ok and msg or nil
 end
--- Encode a message exactly like Comm does (for forged/foreign traffic).
-function H.Encode(msg)
-    return LibDeflate:EncodeForWoWAddonChannel(LibDeflate:CompressDeflate(LibSerialize:Serialize(msg)))
+-- Encode a message exactly like Comm does (for forged/foreign traffic). level: LibDeflate's (0 stores it
+-- uncompressed: still a deflate stream every client reads, at a fraction of the cost; the fuzzer's).
+function H.Encode(msg, level)
+    local s = LibSerialize:Serialize(msg)
+    return LibDeflate:EncodeForWoWAddonChannel(LibDeflate:CompressDeflate(s, level and { level = level } or nil))
 end
 
 P.ADDON, P.LATENCY, P.KNOWN_EVENTS = ADDON, LATENCY, KNOWN_EVENTS

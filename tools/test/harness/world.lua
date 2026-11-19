@@ -223,15 +223,16 @@ function World:Inject(sender, chan, text, target)
 end
 
 -- Send a whole message from a client-less sender (encoded like Comm, one chunk or several).
-function World:InjectMessage(sender, msg, chan, target)
-    local data = H.Encode(msg)
+-- (level: H.Encode's, a fuzzer's cheaper compression)
+function World:InjectMessage(sender, msg, chan, target, level)
+    local data = H.Encode(msg, level)
     if #data <= 254 then
         self:Inject(sender, chan or "GUILD", "S" .. data, target)
     else
         local pos = 1
         while pos <= #data do
             local last = pos + 254 > #data
-            self:Inject(sender, chan or "GUILD", (pos == 1 and "F" or (last and "L" or "M")) .. data:sub(pos, pos + 253))
+            self:Inject(sender, chan or "GUILD", (pos == 1 and "F" or (last and "L" or "M")) .. data:sub(pos, pos + 253), target)
             pos = pos + 254
         end
     end
