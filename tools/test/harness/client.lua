@@ -133,6 +133,7 @@ function Client:Login()
     assert(not self.online, self.name .. " is already online")
     self.online = true
     self.frames, self.tooltipCalls, self.units, self.sidePages = {}, {}, {}, {}
+    self.objectCalls = {}
     self.updaters = {}
     self.prefixes, self.missingGlobals, self.newGlobals = {}, {}, {}
     self.loaded = { [ADDON] = true }

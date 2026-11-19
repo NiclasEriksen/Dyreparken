@@ -358,3 +358,23 @@ The plan:
 - **A talent reset** (flavor, least sure): `GetNumUnspentTalents()` read on `SPELLS_CHANGED` and the candidate
   events above (registered only if the client knows them); unspent points up by 2 or more with no level-up and no
   spec switch = a reset; eggs-only activity `respec`. To confirm in game (the debug log logs every activity).
+
+## From the balance review (2026-11-19, docs/review-2026-11-19/04, the user's notes)
+
+- **Pet-swapping for points** (4 §1.4): every owned pet out earns its own day (half rate when not adopted). Harmless
+  today, but swapping through pets to min-max loyalty points feels like a chore or an exploit. Keep it in mind
+  before anything rewards "N pets at level X".
+- **Alt-friendly bonding with several pets** (4 §2.5): with many new companions coming and few active members, the
+  registry won't run out; the friction is in swapping between unadopted pets. Make that more fluid and clean for
+  those who bond with several (the "Med deg" badge, the list, the pet frame). To discuss what exactly.
+- **A hidden third trait at Sjelevenn (level 7)** (4 §3.2): a pinned third slot your bond unlocks, additive, so no pet
+  changes; a reward for the top level. The card's personality row will need room. Wait with pinning until the
+  traits are settled.
+- **Temperament** (PET_LIFE.md §1, 4 §3.4.1): still to discuss.
+- **Fostering, a second carer** (4 §3.4.3): someone other than the holder earns bond with the pet (g.life is per
+  carer already; a rule in Bond:Rate). A great idea, for later.
+- **A weekly "big wish"** (4 §3.4.4): one harder like-based goal a week (five bosses, a new zone) for 25 points past
+  the cap. A `once` per week reward widens DayRoom: a protocol bump and the floor (CLAUDE.md, Balance is wire). For
+  later.
+- **Park week** (4 §3.4.5): the guild's combined bond points this week, from the BOND messages heard. Open: an event
+  posted in chat, or a panel on the Parken tab?

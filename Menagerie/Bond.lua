@@ -336,6 +336,11 @@ end
 -- every wish done are never clamped; a new such row changes what peers accept (a protocol bump). Add
 -- still clamps to the cap, and the line says what was really given (Room).
 -- A new one is a row here and a Bond:Reward call where it happens.
+-- (Balance is wire, review 2026-11-19: Wire.DayRoom is BOND_DAILY_MAX plus every `beyond` + `once` reward, and
+-- LifeCap is days x DayRoom, what peers accept. Lowering an earning is free. Raising BOND_DAILY_MAX or such a
+-- reward, or adding one, is an X-Protocol bump, and since older clients at the floor still check the old cap,
+-- a fast player's bond would soon pass it there: it means raising X-Protocol-Floor too. A `beyond` reward that
+-- isn't `once` eats LifeCap's spare days instead.)
 Bond.REWARDS = {
     -- today's wish done. once here too: Wish.lua starts a fresh wish when you adopt the
     -- pet again the same day, and it paid twice (code review 2026-11-11).

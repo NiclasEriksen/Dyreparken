@@ -52,6 +52,7 @@
 ---@field Moves Dyreparken.Moves Menagerie/Moves.lua
 ---@field MovesEditor Dyreparken.MovesEditor Dev/MovesEditor.lua
 ---@field NEAR_YARDS any Core/Init.lua
+---@field Onboarding Dyreparken.Onboarding Menagerie/Onboarding.lua
 ---@field OutBadge Dyreparken.OutBadge Menagerie/OutBadge.lua
 ---@field Owners Dyreparken.Owners Menagerie/Owners.lua
 ---@field PHASES any Core/Init.lua

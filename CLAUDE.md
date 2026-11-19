@@ -23,6 +23,9 @@ quirks. When you learn something new about the client, add it there with the dat
   through `MIGRATIONS` in `Core/DB.lua`. Wire changes bump `X-Protocol` in the TOC (`52_protocol.lua` fails until they do). Since X-Protocol 11 a
   bump keeps older clients syncing down to `X-Protocol-Floor` (10): a new kind goes in `Wire.SINCE`, a changed one gets
   a new name; only raising the floor splits the guild.
+- **Balance is wire.** Lowering an earning is free; raising `BOND_DAILY_MAX` or a `beyond` + `once` reward (the wish's
+  10), or adding one, widens `Wire.DayRoom`/`LifeCap`: an X-Protocol bump, and in practice the floor raised too, since
+  clients at the floor would refuse a fast player's bond (Bond.REWARDS' comment).
 - Comments explain *why* (game quirks, decisions), not what.
 
 ## Verify
@@ -301,12 +304,15 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    quest's id; what was had at the first look isn't new; a trainer visit, a dual-spec switch, a talent
                    reset and the tenth levels are eggs only; read its header), Wish (today's wish: one of your pet's likes a day, +10 when done, a line on the card; a gathering wish also
                    by a party member's gathering within ~40 yards, the wish only (their Dyreparken's GATHER on PARTY, a new
-                   kind without a protocol bump: their casts are secret to us; in a party, out of combat); wishes in a row, char.wishes, with achievements at 7 and 30 in a row and 100 in all), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
+                   kind without a protocol bump: their casts are secret to us; in a party, out of combat), or by hovering a node that
+                   says so in its tooltip (Wish.NODE_WORDS, 2026-11-19: a herb, a vein, a skinnable corpse; unverified words,
+                   logged while such a wish waits); wishes in a row, char.wishes, with achievements at 7 and 30 in a row and 100 in all), Moves (the pet on the card moves: asleep at night, a Latsabb sits, a click is a happy move, a level-up a
                    cheer, a jump with you (every pet: canJump), playing dead the day of the three-deaths egg; a move a moment earns the pet is owed once,
                    Moves:Owe(key, "dead"|"joy"|"sulk"), char.owed (an egg's `move`); which animation per species: Data/PetMoves.lua; every step list comes from the pure planner Moves.Plan, the stages only play plans), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
                    congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Story (a pet's story: a local
                    timeline of its life in the guild, g.story, found by comparing the registry with what it last saw,
-                   plus your moments with it; a book button on the card opens a panel right of the window, newest first), Onboarding
+                   plus your moments with it; a book button on the card opens a panel right of the window, newest first; flavor (eggs,
+                   pet-of-the-day days) older than Story.FLAVOR_DAYS folds into grey "N interaksjoner" lines, 2026-11-19), Onboarding
                    (2026-11-19: a new player's welcome once an account, the line after a character's first adoption, the
                    card's "?" with how this pet's bond grows; an old install skips the first two: account migration 15, char
                    4; /dp fresh [solo|reset] replays them), Cuddle (a click on the pet:

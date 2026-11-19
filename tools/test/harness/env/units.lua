@@ -106,9 +106,12 @@ return function(c, env, S)
 
 
     -- Units (companions in the world)
+    -- (unit tooltips: c.tooltipCalls, run by c:Hover; world objects': c.objectCalls, by c:HoverObject)
     env.TooltipDataProcessor = { AddTooltipPostCall = function(kind, fn)
-        assert(kind == env.Enum.TooltipDataType.Unit)
-        c.tooltipCalls[#c.tooltipCalls + 1] = fn
+        local T = env.Enum.TooltipDataType
+        assert(kind == T.Unit or kind == T.Object, "a tooltip type the harness doesn't show")
+        local list = kind == T.Unit and c.tooltipCalls or c.objectCalls
+        list[#list + 1] = fn
     end }
     env.UnitIsBattlePetCompanion = function(u) local x = c.units[u]; return x and x.companion or false end
     env.UnitBattlePetSpeciesID = function(u) local x = c.units[u]; return x and x.species end

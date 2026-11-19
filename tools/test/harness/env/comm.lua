@@ -36,7 +36,7 @@ return function(c, env, S)
     env.Enum = {
         SendAddonMessageResult = { Success = 0, AddonMessageThrottle = 3, NotInGroup = 5, ChannelThrottle = 8,
             NotInGuild = 10, AddOnMessageLockdown = 11, TargetOffline = 12 },
-        TooltipDataType = { Unit = 2 },
+        TooltipDataType = { Unit = 2, Object = 4 },
         UITextureSliceMode = { Stretched = 0, Tiled = 1 },
         PlayerInteractionType = { Merchant = 5, Trainer = 7 }, -- (Trainer 7 on Forever: /dp probe api feats)
     }

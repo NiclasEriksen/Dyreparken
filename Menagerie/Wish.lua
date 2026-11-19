@@ -394,6 +394,42 @@ function Wish:Heard(sender, kind)
     self:Grant(w, "wish.granted.friend", "wish.granted.friend.full", { who = sender })
 end
 
+------------------------------------------------------------------------------
+-- A node seen (2026-11-19, the user, review 04 1.1: "Let them succeed on a node seen, preferably if you hover
+-- one"): a gathering wish was out of reach for a character without the profession. Your pet out and the mouse
+-- over a herb, a vein or a skinnable corpse that says so in its tooltip: the wish comes true. Out of combat, only
+-- while such a wish is pending (the post-calls cost one check otherwise). The tooltip's words are the client's
+-- (enUS): unverified on Forever, so while a gathering wish waits, a world object's lines go to the debug log.
+------------------------------------------------------------------------------
+Wish.NODE_WORDS = { herb = { "herbalism" }, mine = { "mining" }, skin = { "skinnable", "skinning" } }
+
+-- Which gathering a tooltip's lines speak of (a list of strings), or nil.
+function Wish.NodeKind(lines)
+    for _, text in ipairs(lines) do
+        local lower = type(text) == "string" and text:lower()
+        if lower then
+            for kind, words in pairs(Wish.NODE_WORDS) do
+                for _, word in ipairs(words) do if lower:find(word, 1, true) then return kind end end
+            end
+        end
+    end
+end
+
+function Wish:Hovered(tooltip, data)
+    if not (armed and Wish.NODE_WORDS[armed]) or tooltip ~= GameTooltip then return end
+    local w = Pending(armed)
+    if not w or ns.InCombat() or ns.Pets:OutKey() ~= w.pet then return end
+    local lines = {}
+    for _, l in ipairs(type(data) == "table" and type(data.lines) == "table" and data.lines or {}) do
+        local text = type(l) == "table" and ns.Plain(l.leftText)
+        if type(text) == "string" then lines[#lines + 1] = text end
+    end
+    local kind = Wish.NodeKind(lines)
+    ns.Log("Wish", "hovered: %s (%s)", table.concat(lines, " / "), tostring(kind))
+    if kind ~= w.id then return end
+    self:Grant(w, "wish.granted.node", "wish.granted.node.full")
+end
+
 -- What today's wish needs watched, while it isn't done: its activity (a like is watched by the bond
 -- already, but a campfire or company from the guild isn't), an explore's other ways, a trip's zone.
 -- Nothing otherwise.
@@ -450,6 +486,16 @@ function Wish:Init()
         Wish:OnActivity(id, key)
     end)
     ns.Comm:Register("GATHER", function(msg, sender) Wish:Heard(sender, msg.g) end, "GROUP")
+    -- (world objects, and units for a skinnable corpse; pcall'd: a surprise in a tooltip's data is no Lua error)
+    local TDP, types = rawget(_G, "TooltipDataProcessor"), Enum.TooltipDataType
+    if TDP and TDP.AddTooltipPostCall and types then
+        for _, kind in ipairs({ types.Object, types.Unit }) do
+            TDP.AddTooltipPostCall(kind, function(tooltip, data)
+                local ok, err = pcall(Wish.Hovered, Wish, tooltip, data)
+                if not ok then ns.Log("Wish", "hover error: %s", tostring(err)) end
+            end)
+        end
+    end
     -- (the company's activities heard always: what the social wishes are offered by)
     for id in pairs(Wish.COMPANY) do ns.Activity:Want(id, Wish.COMPANY) end
     self:Arm() -- (a wish made before a /reload)

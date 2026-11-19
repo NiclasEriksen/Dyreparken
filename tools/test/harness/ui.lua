@@ -46,6 +46,16 @@ end
 -- { name, player, class, race, faction, pvp, reaction, family = { name, id }, type = { name, id }, classif,
 -- guid }, read by env/units.lua) }.
 -- Returns the lines the addon added (and the whole tooltip, third).
+-- The mouse over a world object (a herb, a vein): its tooltip's lines, then the post-calls for objects.
+function Client:HoverObject(lines)
+    local tip = self.env.GameTooltip
+    tip:ClearLines()
+    local data = { lines = {} }
+    for i, text in ipairs(lines) do tip:AddLine(text); data.lines[i] = { leftText = text, lineIndex = i } end
+    tip.unit = nil
+    for _, fn in ipairs(self.objectCalls) do fn(tip, data) end
+end
+
 function Client:Hover(o)
     local unit = "mouseover"
     local lines = { { leftText = SpeciesName(o.species or 0) } }

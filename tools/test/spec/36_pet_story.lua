@@ -187,6 +187,51 @@ return function(test, H)
         eq(S:Text(PANDA, S:Of(PANDA)[#S:Of(PANDA)]), "Første lekedate: med Kari Berg sin White Kitten")
     end)
 
+    test("old flavor folds into one grey line a run; milestones stay; a folded egg isn't new again; carers who left go", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola.ns.Bonds.PetOfTheDay = function() end
+        ola:Slash("adopter panda")
+        w:Run(5)
+        local S = ola.ns.Story
+        S:Mine(PANDA, "egg", "En.", "a")
+        S:Mine(PANDA, "egg", "To.", "b")
+        ola.ns.Bond:First("boss", PANDA, "Hogger")
+        S:Mine(PANDA, "egg", "Tre.", "c")
+        w:SkipDays(S.FLAVOR_DAYS + 1)
+        S:Mine(PANDA, "egg", "Fire.", "d")
+        local g = ola.ns.DB:Guild()
+        g.story[PANDA].lv["Gammel Bekjent"] = 3
+        S:Scan()
+        local kinds = {}
+        for _, e in ipairs(S:Of(PANDA)) do kinds[#kinds + 1] = e.k .. (e.k == "many" and e.v or "") end
+        eq(table.concat(kinds, " "), "adopt many2 first.boss many1 milestone egg", "runs folded, the boss and the month kept, the new one too")
+        eq(S:Text(PANDA, S:Of(PANDA)[2]), "2 interaksjoner")
+        S:Mine(PANDA, "egg", "En igjen.", "a")
+        eq(#S:Of(PANDA), 6, "a folded egg isn't added again")
+        eq(g.story[PANDA].lv["Gammel Bekjent"], nil, "not in the guild: pruned with the roster")
+        -- Runs don't merge across what stays (the month), and a new fold joins the run before it.
+        S:Mine(PANDA, "egg", "Fem.", "e")
+        w:SkipDays(S.FLAVOR_DAYS + 1); S:Scan()
+        kinds = {}
+        for _, e in ipairs(S:Of(PANDA)) do kinds[#kinds + 1] = e.k .. (e.k == "many" and e.v or "") end
+        eq(table.concat(kinds, " "), "adopt many2 first.boss many1 milestone many2")
+        -- In the panel: grey, with its dates.
+        ola:OpenJournal()
+        ola:SelectPet(5159)
+        S:Show(PANDA)
+        local row
+        for _, r in ipairs(S.panel.rows) do if r.text.text == "2 interaksjoner" then row = r end end
+        ok(row and row.text.color and row.text.color[1] == 0.6, "grey")
+        match(row.date.text, "^%d%d%.%d%d%.%d%d%d%d$", "(both on one day: one date)")
+        -- A run over several days: its first and last.
+        local g2 = { e = { { t = 1790000000, k = "many", v = 1, u = 1790000000 }, { t = 1790000000 + 5 * 86400, k = "day", v = "x" } } }
+        S.Compact(g2, 1790000000 + 400 * 86400)
+        eq(#g2.e, 1); eq(g2.e[1].v, 2); eq(g2.e[1].u, 1790000000 + 5 * 86400)
+        g.story[PANDA].e[#g.story[PANDA].e].u = g.story[PANDA].e[#g.story[PANDA].e].t + 3 * 86400
+        S:Redraw()
+        match(S.panel.rows[1].date.text, "^%d%d%.%d%d%.%d%d%d%d – %d%d%.%d%d%.%d%d%d%d$")
+    end)
+
     test("the panel starts past the side tabs, ours too; without the window's template, a frame of its own", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         ola.ns.Bonds.PetOfTheDay = function() end

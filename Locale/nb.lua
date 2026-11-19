@@ -138,6 +138,7 @@ L["story.unname"] = "Heter ikke «{name}» lenger"
 L["story.level"] = "Ble {level} med {who} (level {n})"
 L["story.milestone"] = "{time} hos {who}"
 L["story.day"] = "Dagens dyr i guilden"
+L["story.many"] = "{n} interaksjoner"
 L["story.first.boss"] = "Første boss sammen med {who}: {what}"
 L["story.first.place"] = "Første nye sted sammen med {who}: {what}"
 L["story.first.play"] = "Første lekedate: med {owner} sin {friend}"
@@ -1631,6 +1632,8 @@ L["wish.granted.full"] = "{pet} fikk ønsket sitt oppfylt: {activity}!" -- (a fu
 -- A party member's gathering nearby (Wish.GATHER): {who} is their name.
 L["wish.granted.friend"] = "{pet} fikk se {who} gjøre det, og ønsket ble oppfylt: {activity}! (+{n} båndpoeng)"
 L["wish.granted.friend.full"] = "{pet} fikk se {who} gjøre det, og ønsket ble oppfylt: {activity}!"
+L["wish.granted.node"] = "{pet} fikk se det på nært hold, og det var nok: ønsket ble oppfylt! (+{n} båndpoeng)"
+L["wish.granted.node.full"] = "{pet} fikk se det på nært hold, og det var nok: ønsket ble oppfylt!"
 -- (2026-11-13: drafts, for the user to edit) A wish come true by itself (Wish:Auto): everything explored and
 -- seen together, or every profession at its cap.
 L["wish.auto.explore"] = "{pet} har sett hver krok av verden sammen med deg, og ønsker seg bare å være med deg i dag. Ønsket er oppfylt! (+{n} båndpoeng)"

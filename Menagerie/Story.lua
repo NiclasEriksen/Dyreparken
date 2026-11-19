@@ -30,6 +30,11 @@ ns.Story = Story
 
 Story.MAX = 80 -- entries per pet; the oldest go first
 Story.WIDTH = 300
+-- Flavor older than FLAVOR_DAYS (the lines it said, its days as the pet of the day) is folded into one grey line
+-- a run, "N interaksjoner" (2026-11-19, the user: the milestones stay; the story is the biggest thing we keep).
+-- Its eggs stay known (s.eggs), so one isn't added again as new.
+Story.FLAVOR = { egg = true, day = true }
+Story.FLAVOR_DAYS = 30
 
 local function G() return ns.DB:Guild() end
 
@@ -52,6 +57,7 @@ end
 -- Adds an entry (once), in time order. True if it was new.
 local function Add(g, key, e)
     local s = State(g, key, true)
+    if e.k == "egg" and s.eggs and s.eggs[e.x] then return false end -- (one folded away already)
     for _, o in ipairs(s.e) do if Same(o, e) then return false end end
     local i = #s.e + 1
     while i > 1 and s.e[i - 1].t > e.t do i = i - 1 end
@@ -146,11 +152,46 @@ local function ScanPet(g, key, now)
     end
 end
 
+-- Old flavor folded into "many" lines (FLAVOR_DAYS), next ones joined: { t = the first, u = the last, v = how many }.
+function Story.Compact(s, now)
+    local cut, out, changed = now - Story.FLAVOR_DAYS * 86400, {}, false
+    for _, e in ipairs(s.e) do
+        local old = Story.FLAVOR[e.k] and e.t < cut
+        if old or e.k == "many" then
+            if old then
+                changed = true
+                if e.k == "egg" and e.x then s.eggs = s.eggs or {}; s.eggs[e.x] = true end
+            end
+            local n, u = e.k == "many" and e.v or 1, e.u or e.t
+            local last = out[#out]
+            if last and last.k == "many" then
+                last.v, last.u, changed = last.v + n, math.max(last.u, u), true
+            else
+                out[#out + 1] = { t = e.t, k = "many", v = n, u = u }
+            end
+        else
+            out[#out + 1] = e
+        end
+    end
+    if changed then s.e = out end
+    return changed
+end
+
+-- Its carers' levels seen, members only (as g.life: the roster prunes them, review 2026-11-19: never pruned).
+local function PruneLevels(s, roster)
+    for carer in pairs(s.lv or {}) do if not roster[carer] then s.lv[carer] = nil end end
+end
+
 function Story:Scan()
     local g = G()
     if not g then return end
     g.story = g.story or {}
     local now = ns.Now()
+    local roster = ns.Registry.Roster()
+    for _, s in pairs(g.story) do
+        Story.Compact(s, now)
+        if roster then PruneLevels(s, roster) end
+    end
     local keys = {}
     for key in pairs(ns.Registry:Holders()) do keys[key] = true end
     for key, s in pairs(g.story) do if s.h or s.n then keys[key] = true end end
@@ -232,6 +273,7 @@ function Story:Text(key, e, first)
         return ns.T("story.milestone", vars)
     end
     if k == "day" then return ns.L["story.day"] end
+    if k == "many" then return ns.T("story.many", { n = v }) end
     if k == "first.boss" or k == "first.place" then
         vars.what = v
         return ns.T(k == "first.boss" and "story.first.boss" or "story.first.place", vars)
@@ -389,10 +431,13 @@ function Story:Redraw()
         local r = Row(f, n)
         r.date:ClearAllPoints()
         r.date:SetPoint("TOPLEFT", f.child, "TOPLEFT", 0, -y)
-        r.date:SetText(ns.Date(e.t))
+        r.date:SetText(e.u and e.u ~= e.t and ns.Date(e.u) ~= ns.Date(e.t) and (ns.Date(e.t) .. " – " .. ns.Date(e.u))
+            or ns.Date(e.t))
         r.text:ClearAllPoints()
         r.text:SetPoint("TOPLEFT", r.date, "BOTTOMLEFT", 0, -1)
         r.text:SetText(self:Text(key, e, i == firstAdopt))
+        -- (folded flavor in grey: it's been shortened, the user)
+        if e.k == "many" then r.text:SetTextColor(0.6, 0.6, 0.6) else r.text:SetTextColor(1, 1, 1) end
         r.date:Show(); r.text:Show()
         y = y + DATE_H + 1 + (r.text:GetStringHeight() or 12) + ROW_GAP
     end
