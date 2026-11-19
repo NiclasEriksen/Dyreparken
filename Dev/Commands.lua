@@ -82,6 +82,7 @@ function ns.Commands.Sense(arg)
     for _, kind in ipairs(ns.Sense.KINDS) do
         if arg == "off" then ns.Sense:Drop(kind, SENSE) else ns.Sense:Want(kind, SENSE) end
     end
+    ns.Debug:Mute("Sense.cast", arg == "off") -- (each cast too, quiet otherwise: Debug.QUIET)
     ns.Print(arg == "off" and "Sensors off." or "Sensors on: every subject goes to the debug log (/dp debug on).")
 end
 local usage = {}
@@ -92,6 +93,8 @@ Add("probe", "probe [" .. table.concat(usage, "|") .. "] - dump API info to the 
         ---@diagnostic disable-next-line: redundant-parameter (some probes take the rest of the line)
         if p[1] == word then return p[2](rest ~= "" and rest or nil) end
     end
+    -- (a typo used to run the journal's probe without a word, 2026-11-19)
+    if word ~= "" then return ns.Print("No probe \"" .. word .. "\". Probes: " .. table.concat(usage, ", ") .. ".") end
     ns.Pets:Probe()
 end)
 
@@ -104,8 +107,8 @@ Add("debug", "debug [on|off|echo|clear|mute [module]|unmute <module>] - debug lo
         ns.Print("Muted in the log: " .. (#list > 0 and table.concat(list, ", ") or "none") .. ".")
         return
     elseif arg == "clear" then
-        D:Clear()
         ns.Print("Debug log cleared.")
+        D:Clear() -- (after: what's printed goes to the log too)
         return
     elseif arg == "echo" then
         D:SetEnabled(true, not D.echo)

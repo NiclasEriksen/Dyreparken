@@ -162,7 +162,8 @@ end
 -- The sensors: their events (registered only while wanted), what each starts from, and the subject.
 ------------------------------------------------------------------------------
 local function Fire(kind, s)
-    if ns.Debug.enabled then ns.Log("Sense", "%s %s", kind, Sense.Show(s)) end -- (Show builds tables: not for nothing)
+    -- (Show builds tables: not for nothing. Casts are most of it, in a module of their own, quiet: Debug.QUIET.)
+    if ns.Debug.enabled then ns.Log(kind == "cast" and "Sense.cast" or "Sense", "%s %s", kind, Sense.Show(s)) end
     ns.Bus:Fire("SENSE", kind, s)
 end
 -- A subject as one line, for the log.

@@ -133,6 +133,11 @@ return function(test, H)
         c.units.target.species = nil
         c:Slash("probe more")
         eq(#c:Log("Probe"), #c:Log("Probe"))
+        -- A typo says so (it used to run the journal's probe).
+        c:ClearPrinted()
+        c:Slash("probe anmi")
+        ok(c:Printed('No probe "anmi". Probes: more,', true))
+        no(c:Printed("No companion summoned", true))
     end)
 
     test("guild roster: on demand, throttled, with a fallback when ignored", function()

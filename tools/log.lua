@@ -117,11 +117,16 @@ for n = 1, size do
     end
 end
 
--- Sessions: from each "Session" line (and the ring's start, which may be the middle of one).
+-- Sessions: from each "Session start" line (and the ring's start, which may be the middle of one). The
+-- "Session settled ..." line later on adds where the player was to the session's head.
 local sessions = {}
 for _, e in ipairs(entries) do
-    if e.module == "Session" or #sessions == 0 then
-        sessions[#sessions + 1] = { head = e.module == "Session" and e.msg or "(the ring's start: the session before is cut)", lines = {} }
+    local start = e.module == "Session" and e.msg:find("^start")
+    if start or #sessions == 0 then
+        sessions[#sessions + 1] = { head = start and e.msg or "(the ring's start: the session before is cut)", lines = {} }
+    elseif e.module == "Session" and e.msg:find("^settled") and not sessions[#sessions].settled then
+        sessions[#sessions].settled = true
+        sessions[#sessions].head = sessions[#sessions].head .. "; " .. e.msg
     end
     local s = sessions[#sessions]
     s.lines[#s.lines + 1] = e

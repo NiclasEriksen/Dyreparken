@@ -43,8 +43,11 @@ quirks. When you learn something new about the client, add it there with the dat
   `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
   `serverTime  GetTime  module  message`, ring buffer of `Config.DEBUG_RING_SIZE` (8000); `head` is the newest index).
   **Read it with `luajit tools/log.lua`** (`-h`: the newest session by default, `--sessions`, `-m/-x` modules, `-g`
-  text, `--summary`, `--errors`, `--dump api.glance`). Each login writes a `Session` line; a line repeated right
-  after itself becomes " (xN)"; `/dp debug mute <Module>` silences a noisy one. Our own Lua errors go into the log
+  text, `--summary`, `--errors`, `--dump api.glance`). Each login writes a `Session start` line first of all, and a
+  `Session settled` one (zone, guild, pets) 10 s on; a line repeated right after itself becomes " (xN)";
+  `/dp debug mute <Module>` silences a noisy one. `Moves.step` (every animation played) and `Sense.cast` (every cast
+  seen) are quiet until `/dp debug unmute` (`Debug.QUIET`; `/dp probe sense` hears casts). Everything printed is
+  logged as `Chat`, with the line's key when `ns.PickLine` chose it (`-m Chat`: what the player was told). Our own Lua errors go into the log
   with their stack (Dev/Errors.lua, through BugGrabber), and `--errors` also reads BugGrabber's saved ones.
 
 **Types** (2026-11-15): every file starts `---@class Dyreparken` / `local ns = select(2, ...)` (one class in parts), and

@@ -242,11 +242,16 @@ function ns.Lines(prefix)
     return list
 end
 
--- One of a line's texts at random (ns.random, ns.Lines), filled; nil when it has none.
+-- One of a line's texts at random (ns.random, ns.Lines), filled; nil when it has none. The last one picked is
+-- kept with its key, so the debug log can say which variant was said (ns.Print).
+local picked = {}
 function ns.PickLine(prefix, vars)
     local list = ns.Lines(prefix)
     if #list == 0 then return nil end
-    return ns.T(list[ns.random(#list)], vars)
+    local key = list[ns.random(#list)]
+    local text = ns.T(key, vars)
+    picked.key, picked.text = key, text
+    return text
 end
 
 -- A pet's own line: purple in chat (unless Settings' chatter is "none"; `always`: said anyway, for
@@ -254,7 +259,11 @@ end
 -- the user, 2026-11-12)
 -- and, with a key and a kind, on the pet frame (PET_SAID: "say", "like", "dislike", "major").
 function ns.PetSays(text, key, kind, always)
-    if always or ns.Settings:Chatty() then ns.Print("|cffd9b3ff" .. text .. "|r") end
+    if always or ns.Settings:Chatty() then
+        ns.Print("|cffd9b3ff" .. text .. "|r")
+    elseif ns.Debug.enabled then
+        ns.Log("Chat", "%s (not shown: chatter none)", text)
+    end
     if key and kind then ns.Bus:Fire("PET_SAID", key, kind, text) end
 end
 
@@ -442,8 +451,16 @@ end
 ------------------------------------------------------------------------------
 -- Helpers
 ------------------------------------------------------------------------------
+-- Everything we print goes to the debug log too (2026-11-19: "my pet said something odd at 22:08" needed the game
+-- again): the text without its colors, and the line's key when it came from ns.PickLine.
 function ns.Print(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff7fd47fDyreparken:|r " .. tostring(msg))
+    msg = tostring(msg)
+    DEFAULT_CHAT_FRAME:AddMessage("|cff7fd47fDyreparken:|r " .. msg)
+    if ns.Debug and ns.Debug.enabled then
+        local plain = msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
+        local key = picked.text and plain:find(picked.text, 1, true) and picked.key
+        ns.Log("Chat", "%s%s", key and (key .. ": ") or "", plain)
+    end
 end
 
 -- Server time: the same clock for everyone, so "first come first served" does

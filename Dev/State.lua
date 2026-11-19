@@ -70,3 +70,16 @@ end
 
 ns.Commands.Add("state", "state - why nothing is said now: cooldowns, today's lines, the wish, events (development)",
     function() State:Show() end)
+
+-- The session's context, once the login is over (2026-11-19): the Session line at loaded can't say where the
+-- player is (the zone is blank then), and every read of the log starts with who, where and with which pet.
+function State.Context()
+    local function Plain(fn, ...) local ok, v = pcall(fn, ...); if ok then return ns.Plain(v) end end
+    local members, owned = Plain(GetNumGuildMembers) or 0, 0
+    for _ in pairs(ns.Pets:Owned()) do owned = owned + 1 end
+    local sub = Plain(GetSubZoneText)
+    return ("settled in %s%s, guild %s (%d members), %d pets owned, adopted %s, out %s"):format(
+        tostring(Plain(GetZoneText)), (sub and sub ~= "") and (" (" .. sub .. ")") or "", tostring((GetGuildInfo("player"))),
+        members, owned, tostring((ns.Registry:MyPet())), tostring((ns.Pets:OutKey())))
+end
+ns.Start("settled", function() if ns.Debug.enabled then ns.Log("Session", "%s", State.Context()) end end)
