@@ -1,6 +1,9 @@
 ---@class Dyreparken
 local ns = select(2, ...)
 local L = ns.L
+-- The settings' cog as it looks in the window (the gear particle, gold), for text: chat's font has no "⚙" (a blank
+-- box, seen 2026-11-19). Write it into a text as `.. COG .. `.
+local COG = "|TInterface\\AddOns\\Dyreparken\\Media\\Particles\\gear:14:14:0:0:64:64:0:64:0:64:230:199:128|t"
 
 -- Every text players read, in Norwegian (bokmål). Edit freely: the code only
 -- knows the keys (left), never the words. {name} is a placeholder the code
@@ -52,10 +55,10 @@ L["cmd.help.prestasjoner"] = "prestasjoner [alle|del|varsel på|av] - prestasjon
 L["cmd.help.kunngjor"] = "kunngjør [på|av] - del adopsjoner og kallenavn i guildchatten (på som standard)"
 L["cmd.help.klapp"] = "klapp - klapp dyret du har valgt som mål, eller ditt eget"
 L["cmd.help.innstillinger"] = "innstillinger - åpne innstillingene"
-L["cmd.help.ui"] = "Alt annet finner du i samlingen (Shift+P): kortet, Parken, Prestasjoner og ⚙."
+L["cmd.help.ui"] = "Alt annet finner du i samlingen (Shift+P): kortet, Parken, Prestasjoner og " .. COG .. "."
 L["cmd.help.dev"] = "Utviklerkommandoene: /dp dev"
 L["cmd.unknown"] = "Ukjent kommando «{cmd}»."
-L["cmd.settings.where"] = "Innstillingene finner du under ⚙ i samlingen (Shift+P), eller under Esc > Options > AddOns."
+L["cmd.settings.where"] = "Innstillingene finner du under " .. COG .. " i samlingen (Shift+P), eller under Esc > Options > AddOns."
 
 ------------------------------------------------------------------------------
 -- Versions
@@ -78,7 +81,7 @@ L["nick.cleared"] = "Kallenavnet er fjernet."
 -- A new player's first steps (Onboarding.lua): once an account, once after the first adoption, the card's "?".
 L["welcome.guild"] = "Velkommen til Dyreparken! Åpne samlingen (Shift+P) og adopter et dyr: det blir guildens, og dere bygger et bånd sammen."
 L["welcome.solo"] = "Velkommen til Dyreparken! Den er for guilder, der dere adopterer dyr sammen, men båndet med dyrene dine vokser likevel: ha dem ute med deg."
-L["welcome.where"] = "Parken og Prestasjoner er fanene til høyre i samlingen, og ⚙ har innstillingene."
+L["welcome.where"] = "Parken og Prestasjoner er fanene til høyre i samlingen, og " .. COG .. " har innstillingene."
 L["welcome.adopted"] = "Ha {pet} ute med deg: {day} poeng om dagen, mer når dere gjør noe det liker (opptil {max}). Hold over ? på kortet for mer."
 L["help.title"] = "Slik blir du venn med {pet}"
 L["help.day"] = "Ha {pet} ute med deg: {n} båndpoeng om dagen, og opptil {max} med alt dere gjør."
@@ -97,7 +100,7 @@ L["adopt.done_swap"] = "Du adopterte {pet} (og ga slipp på {old})."
 L["adopt.keeps_own_name"] = " Det heter fortsatt «{nick}»."
 L["adopt.confirm"] = "Adoptere {pet}?"
 L["adopt.confirm.swap"] = "Du gir da slipp på {pet}. Båndet dere har bygget, blir ikke borte."
-L["adopt.confirm.announce"] = "Adopsjonen blir kunngjort i guildchatten, så hele guilden får se den. (Slå av under ⚙ Innstillinger, eller med /dp kunngjør.)"
+L["adopt.confirm.announce"] = "Adopsjonen blir kunngjort i guildchatten, så hele guilden får se den. (Slå av under " .. COG .. " Innstillinger, eller med /dp kunngjør.)"
 L["adopt.inherits_name"] = " Det heter «{nick}», et navn det fikk av {namer}. Ta godt vare på det!"
 L["release.none"] = "Du har ikke adoptert noe dyr."
 L["release.done"] = "Du ga slipp på {pet}."
@@ -1447,7 +1450,7 @@ L["card.out.off.title"] = "Ta med {pet} ut"
 L["card.out.on.click"] = "Klikk for å slutte å summone automatisk."
 L["card.out.off.click"] = "Klikk for å ta {pet} med ut."
 L["card.auto.tip"] = "Summoner {pet} når det er fraværende og du ikke er opptatt. Kun ett dyr kan holdes ute om gangen; det du adopterer blir automatisk valgt."
-L["card.out.frame_hint"] = "Vil du ha dyret på skjermen? Slå det på under ⚙ Innstillinger («Vis dyret ditt på skjermen»)."
+L["card.out.frame_hint"] = "Vil du ha dyret på skjermen? Slå det på under " .. COG .. " Innstillinger («Vis dyret ditt på skjermen»)."
 L["card.auto.now"] = "Nå holdes {pet} ute."
 L["card.auto.deferred"] = "AutoCompanion er lastet og tar seg av summoning."
 L["card.nick.popup"] = "Kallenavn på dyret ditt (maks {n} tegn, tomt fjerner det):"

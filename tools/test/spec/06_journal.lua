@@ -5,6 +5,7 @@ return function(test, H)
     local MINE, TAKEN, FREE = MEDIA .. "heart", MEDIA .. "paw", MEDIA .. "house"
 
     -- Ola owns Panda Cub (reserved) and White Kitten (free); Kari holds Bombay Cat.
+    local COG = "|TInterface\\AddOns\\Dyreparken\\Media\\Particles\\gear:14:14:0:0:64:64:0:64:0:64:230:199:128|t"
     local function Setup(journalOpts, olaOpts)
         olaOpts = olaOpts or {}
         olaOpts.pets = olaOpts.pets or { 5159, 46 }
@@ -138,7 +139,7 @@ return function(test, H)
         eq(ola.ns.Registry:MyPet(), nil, "not before it's confirmed")
         eq(ola.popup.which, "DYREPARKEN_ADOPT")
         eq(ola.popup.args[1], "Adoptere White Kitten?\n\nAdopsjonen blir kunngjort i guildchatten, så hele guilden får se den."
-            .. " (Slå av under ⚙ Innstillinger, eller med /dp kunngjør.)")
+            .. " (Slå av under " .. COG .. " Innstillinger, eller med /dp kunngjør.)")
         ola:PopupAccept()
         eq(ola.ns.Registry:MyPet(), "s:46")
         ok(ola:Printed("Du adopterte White Kitten."))
@@ -330,7 +331,7 @@ return function(test, H)
         local card = ola:SelectPet(46)
         card.reserve:Click()
         eq(ola.popup.args[1], "Adoptere White Kitten?\nDu gir da slipp på Panda Cub. Båndet dere har bygget, blir ikke"
-            .. " borte.\n\nAdopsjonen blir kunngjort i guildchatten, så hele guilden får se den. (Slå av under ⚙ Innstillinger,"
+            .. " borte.\n\nAdopsjonen blir kunngjort i guildchatten, så hele guilden får se den. (Slå av under " .. COG .. " Innstillinger,"
             .. " eller med /dp kunngjør.)")
         eq(ola.popup.args[3], "s:46", "the pet goes along with the popup")
         -- Cancelled: nothing happens.
