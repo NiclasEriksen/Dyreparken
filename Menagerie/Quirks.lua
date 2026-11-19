@@ -218,8 +218,10 @@ Quirks.EGGS = {
         local yesterday = time({ year = d.year, month = d.month, day = d.day - 1, hour = 12 })
         return date("*t", noon).isdst ~= date("*t", yesterday).isdst and {}
     end },
-    { id = "mandag", on = "day", always = true, test = function(ctx) return Weekday(ctx.t) == 1 and HasTrait(ctx.key, "helgedyr") and {} end },
-    { id = "morgen", on = "day", always = true, test = function(ctx)
+    -- (2026-11-19, the user: rare lines uncapped, their chances revisited: the ones that could come every week or
+    -- every day are a share of days now: mandag, morgen, hjemme, fiskedag, bom)
+    { id = "mandag", on = "day", always = true, chance = 0.5, test = function(ctx) return Weekday(ctx.t) == 1 and HasTrait(ctx.key, "helgedyr") and {} end },
+    { id = "morgen", on = "day", always = true, chance = 0.35, test = function(ctx)
         local h = Hour(ctx.t)
         if h < 5 or h >= 7 then return nil end -- (before five it's still night: midnight's own)
         return HasTrait(ctx.key, "nattugle") and { _key = "egg.morgen.nattugle" } or {}
@@ -262,7 +264,7 @@ Quirks.EGGS = {
         end
     end },
     -- The first time here with this pet, and it's a place its family feels at home in.
-    { id = "hjemme", on = "explore", always = true, test = function(ctx)
+    { id = "hjemme", on = "explore", always = true, chance = 0.5, test = function(ctx)
         for _, family in ipairs(type(ctx.extra) == "string" and homeOf[ctx.extra] or {}) do
             if ctx.family[family] then
                 local own = "egg.hjemme." .. family
@@ -374,7 +376,7 @@ Quirks.EGGS = {
         end },
     -- The Sunday fishing contest, for a pet that likes fishing: excited about the day (the bonus for
     -- fishing there is Bond's, Bond:Contest).
-    { id = "fiskedag", on = "day", always = true, test = function(ctx)
+    { id = "fiskedag", on = "day", always = true, chance = 0.5, test = function(ctx)
         return ns.Personality:Known(ctx.key) and ns.Personality:Of(ctx.key).fish
             and ns.Holidays:Has(ctx.t, "stvfishing") and {} end },
     { id = "kattefisk", delay = "now", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
@@ -443,7 +445,7 @@ Quirks.EGGS = {
         test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Bad luck in a fight (2026-11-14, the user): five swings missed in a row, three spells resisted in a row
     -- (Activity: solo, only yours). Rare, said after the fight; by nature.
-    { id = "bom", delay = "now", on = "misses", always = true, fight = true,
+    { id = "bom", delay = "now", on = "misses", always = true, fight = true, chance = 0.5,
         traits = { "skoyer", "rampete", "kjaelen", "eventyrlysten", "latsabb" },
         test = function(ctx) return Quirks.ByNature(ctx) end },
     { id = "motstand", delay = "now", on = "resisted", always = true, fight = true,
