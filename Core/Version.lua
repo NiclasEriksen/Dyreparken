@@ -59,11 +59,31 @@ function Version:Init()
     end)
 end
 
+local said -- the guild our HELLO went to (nil: none, or its name wasn't known yet)
 function Version:Hello()
     -- d: registry digest, so peers can tell whether we need a sync (Sync.lua); o: who owns what (Owners.lua,
     -- X-Protocol 11; a 0.7 client reads the rest as before).
-    if IsInGuild() then ns.Comm:Send("HELLO", { v = ns.VERSION, d = ns.Sync:Digest(), o = ns.Owners:Digest() }, "GUILD") end
+    if not IsInGuild() then return end
+    said = select(2, ns.DB:Guild())
+    ns.Comm:Send("HELLO", { v = ns.VERSION, d = ns.Sync:Digest(), o = ns.Owners:Digest() }, "GUILD")
+end
+
+-- A guild that comes after the login's HELLO (review 2026-11-19): its name not yet known then (the HELLO carried
+-- an empty digest, and the SYNCs that answered had nowhere to go), or joined in the middle of a session. The
+-- roster, our owned pets and the HELLO again, for it. PLAYER_GUILD_UPDATE is rare (membership, ranks), and a
+-- guild we already said hello to is let be.
+function Version:Rejoin()
+    local _, name = ns.DB:Guild()
+    if not IsInGuild() or not name or name == said then return end
+    ns.Log("Version", "guild %s, after the login's hello: its start again", name)
+    ns.Guild:Refresh(true)
+    ns.Owners:Update()
+    ns.Registry:CheckMine()
+    self:Hello()
 end
 
 ns.Start("loaded", function() Version:Init() end)
-ns.Start("hello", function() Version:Hello() end)
+ns.Start("hello", function()
+    Version:Hello()
+    ns.Events:On("PLAYER_GUILD_UPDATE", Version, ns.Debounce(2, function() Version:Rejoin() end))
+end)

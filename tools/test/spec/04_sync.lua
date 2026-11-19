@@ -420,6 +420,39 @@ return function(test, H)
         ok(ola:Printed("Ifølge Kari Berg bor ikke Panda Cub hos deg lenger", true))
     end)
 
+    test("a guild joined mid-session, or whose name came late, gets its HELLO and sync then", function()
+        local w = H.World({ members = H.FOLK })
+        local kari = w:AddClient("Kari Berg", { pets = { 46 } })
+        w:Run(20)
+        kari:Slash("adopter"); w:Run(2)
+        -- Joined in the middle of a session (review 2026-11-19): nothing until a /reload before.
+        local ola = w:AddClient("Ola Nord", { guild = false, pets = { 5159 } })
+        w:Run(20)
+        eq(ola.ns.Registry:Holder("s:46"), nil)
+        ola.guild = w.guildName
+        ola:Fire("PLAYER_GUILD_UPDATE", "player"); ola:Fire("PLAYER_GUILD_UPDATE", "player")
+        w:Run(20)
+        eq(ola.ns.Registry:Holder("s:46"), "Kari Berg")
+        eq(w:Sent("HELLO", "Ola Nord"), 1, "one HELLO, for the two events")
+        H.assertConverged(w)
+        -- The guild's name not known yet at the HELLO: its sync comes once it is.
+        local late = true
+        local per = w:AddClient("Per Hansen", { pets = { 40 }, patch = function(env)
+            local real = env.GetGuildInfo
+            env.GetGuildInfo = function(u) if late then return nil end return real(u) end
+        end })
+        w:Run(20)
+        eq(per.ns.Registry:Holder("s:46"), nil)
+        late = false
+        per:Fire("PLAYER_GUILD_UPDATE", "player")
+        w:Run(20)
+        eq(per.ns.Registry:Holder("s:46"), "Kari Berg")
+        -- An update for the guild it already said hello to: nothing.
+        local m = w:Mark()
+        per:Fire("PLAYER_GUILD_UPDATE", "player"); w:Run(5)
+        eq(w:Sent("HELLO", "Per Hansen", m), 0)
+    end)
+
     test("another protocol's SYNC, UPD and LAPSE are ignored", function()
         local w, ola = Guild({ { "Ola Nord", { 5159 } } })
         w:InjectMessage("Ny Versjon", { k = "SYNC", p = 99, d = 1, r = { ["Ny Versjon"] = { k = PANDA, at = 1, ts = 1 } } })
