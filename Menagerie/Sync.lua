@@ -19,8 +19,12 @@ local ns = select(2, ...)
 --   UPD    { r }           the sender's own record changed
 --   NICK   { pet, e }      the sender named a pet (or cleared or voided the name)
 --   BOND   { pet, e }      the sender's bond with a pet (Bond.lua)
---   BOND_REQ { pet }       who has a bond with this pet? (a card shows it);
+--   BOND_REQ { pet }       who has a bond with this pet? (an older client's card asks so);
 --                          each member with one answers with their own BOND
+--   BONDS_REQ { pet }      the same, from a newer client (2026-11-19): one answer for all, BONDS
+--   BONDS  { pet, b }      every bond with the pet that the sender knows, b[carer] = entry: one
+--                          client answers for the guild; the others hold theirs back, and drop it
+--                          if it said all they knew (Sync:OnBondsReq)
 --   LAPSE  { l }           lapses someone just noticed
 --
 -- Flow: a client logs in and sends HELLO with its digest. Peers whose
@@ -205,8 +209,9 @@ function Sync:AskBonds(key)
     local now = GetTime()
     if lastAsk and now - lastAsk < C.BOND_ASK_GAP then return end
     asked[key], lastAsk = true, now
-    ns.Comm:Send("BOND_REQ", { pet = key }, "GUILD")
+    ns.Comm:Send("BONDS_REQ", { pet = key }, "GUILD")
 end
+
 
 -- Someone told us something we know better (an older date, say): answer
 -- with a SYNC, the usual way (delayed, one at a time).
@@ -297,6 +302,59 @@ local function MergeAll(msg, from)
     return changed
 end
 
+-- One answer for the guild (review 2026-11-19, 2.3, the user): every member with a bond answered BOND_REQ
+-- with their own, so a common pet's card cost everyone online forty messages. Every client keeps the bonds
+-- it hears, so one can answer for all: each that knows any waits BONDS_WAIT (random, within it), and one
+-- that hears a BONDS saying all it knows (every carer, as many points) before its turn says nothing. Older
+-- clients don't know these kinds: they ask and answer with BOND_REQ and BOND as before, which we still
+-- answer, and their bonds reach us through their own BONDs. New kinds: no X-Protocol bump (spec 52).
+Sync.BONDS_WAIT = { 0.3, 2.5 }
+local bondsT = {} -- pet -> its pending answer's timers
+local function Ours(key)
+    local g = ns.DB:Guild()
+    local t = g and g.life[key]
+    if not t or not next(t) then return nil end
+    local out = {}
+    for carer, e in pairs(t) do out[carer] = { p = e.p, f = e.f, t = e.t } end
+    return out
+end
+-- Does `theirs` (carer -> entry) say all `mine` does? Our own entry aside: it's always freshest here (points go
+-- out lazily, Bond.lua), and a little behind is fine, by design.
+local function Covers(theirs, mine)
+    local me = ns.PlayerKey()
+    for carer, e in pairs(mine) do
+        local o = carer == me or (type(theirs) == "table" and theirs[carer])
+        if o ~= true and (type(o) ~= "table" or type(o.p) ~= "number" or o.p < e.p) then return false end
+    end
+    return true
+end
+
+function Sync:OnBondsReq(key, sender, channel)
+    if bondsT[key] or not Ours(key) or ns.Comm:Backlog() > C.BOND_ANSWER_BACKLOG then return end
+    if not (ns.Comm:MayReply("BONDS:" .. key, channel) and AnswerBudget(sender)) then return end
+    local t = ns.Timers()
+    bondsT[key] = t
+    local lo, hi = Sync.BONDS_WAIT[1], Sync.BONDS_WAIT[2]
+    t:After(lo + (hi - lo) * ns.random(), function()
+        bondsT[key] = nil
+        local b = Ours(key)
+        if b then ns.Comm:Send("BONDS", { pet = key, b = b }, "GUILD") end
+    end)
+end
+
+-- Someone's answer: ours goes if it said all we'd say.
+function Sync:OnBonds(key, b, sender)
+    if TooBig({ b = { [key] = b } }) then
+        return ns.Log("Sync", "refused a BONDS from %s: too many entries", tostring(sender))
+    end
+    MergeAll({ b = { [key] = b } }, sender)
+    local t, mine = bondsT[key], Ours(key)
+    if t and (not mine or Covers(b, mine)) then
+        t:Cancel(); bondsT[key] = nil
+        ns.Log("Sync", "%s's BONDS for %s said it all: ours dropped", tostring(sender), key)
+    end
+end
+
 -- Registry traffic only counts on the guild channel: a whisper or party
 -- message comes from anyone, guild member or not.
 
@@ -364,6 +422,10 @@ function Sync:Init()
     ns.Comm:Register("BOND", function(msg, sender, channel)
         MergeAll({ b = { [msg.pet] = { [sender] = msg.e } } }, sender)
     end, "GUILD", { pet = "key", e = "table" })
+    ns.Comm:Register("BONDS_REQ", function(msg, sender, channel) Sync:OnBondsReq(msg.pet, sender, channel) end,
+        "GUILD", { pet = "key" })
+    ns.Comm:Register("BONDS", function(msg, sender) Sync:OnBonds(msg.pet, msg.b, sender) end,
+        "GUILD", { pet = "key", b = "table" })
     ns.Comm:Register("BOND_REQ", function(msg, sender, channel)
         local e = ns.Registry:Life(msg.pet, ns.PlayerKey())
         if not e or ns.Comm:Backlog() > C.BOND_ANSWER_BACKLOG then return end

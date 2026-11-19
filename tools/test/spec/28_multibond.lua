@@ -158,16 +158,17 @@ return function(test, H)
         kari:SelectPet(40) -- right after: not asked yet (too soon)
         kari:SelectPet(46) -- asked already this session
         w:Run(3)
-        eq(w:Sent("BOND_REQ", "Kari Berg", m), 1)
+        eq(w:Sent("BONDS_REQ", "Kari Berg", m), 1)
         kari:SelectPet(40)
         w:Run(1)
-        eq(w:Sent("BOND_REQ", "Kari Berg", m), 2)
+        eq(w:Sent("BONDS_REQ", "Kari Berg", m), 2)
         w:Run(3)
         kari:SelectPet(46) -- looked at before, this session: not asked again
         w:Run(1)
-        eq(w:Sent("BOND_REQ", "Kari Berg", m), 2)
-        -- Ola answers a burst of the same question once (and Kari's, just now, counted:
-        -- answers go to the whole guild).
+        eq(w:Sent("BONDS_REQ", "Kari Berg", m), 2)
+        eq(w:Sent("BOND_REQ", "Kari Berg", m), 0, "the older question: older clients'")
+        -- An older client's question: Ola answers a burst of it once with her own BOND (and Kari's, just
+        -- now, counted: answers go to the whole guild).
         w:Run(6)
         local m2 = w:Mark()
         for _ = 1, 5 do w:InjectMessage("Per Hansen", { k = "BOND_REQ", p = ola.ns.PROTOCOL, pet = KITTEN }, "GUILD") end
@@ -178,6 +179,41 @@ return function(test, H)
         w:InjectMessage("Per Hansen", { k = "BOND_REQ", p = ola.ns.PROTOCOL, pet = "s:72" }, "GUILD")
         w:Run(6)
         eq(w:Sent("BOND", "Ola Nord", m2), 1)
+    end)
+
+    test("one answer for the guild: whoever answers first says every bond with the pet; the others hold back", function()
+        local w = H.World({ members = H.FOLK })
+        local cs = {}
+        for _, name in ipairs({ "Ola Nord", "Kari Berg", "Per Hansen", "Liv Lund" }) do
+            cs[#cs + 1] = w:AddClient(name, { pets = { 46 } })
+        end
+        w:Run(20)
+        -- Three bond with the kitten (not adopted: not in the sync), and everyone hears it.
+        for i = 1, 3 do cs[i]:Summon(46); cs[i].ns.Bond:Add(10 * i, KITTEN) end
+        w:Run(5)
+        local nina = w:AddClient("Nina Ny", { pets = { 72 } })
+        w:Run(40)
+        eq(nina.ns.Registry:Life(KITTEN, "Ola Nord"), nil, "not by SYNC")
+        local m = w:Mark()
+        nina:OpenJournal()
+        nina:SelectPet(46)
+        w:Run(5)
+        eq(w:Sent("BONDS", nil, m), 1, "one answer, not one a carer (review 2026-11-19)")
+        eq(w:Sent("BOND", nil, m), 0)
+        for i = 1, 3 do eq(nina:Points(KITTEN, cs[i].name), 10 * i) end
+        -- A new carer's bond (told at once, so everyone knows it) is in the next answer too, whoever gives it.
+        local m2 = w:Mark()
+        for i = 1, 3 do cs[i].ns.Sync.BONDS_WAIT = { 0, 0.1 } end
+        cs[4]:Summon(46); cs[4].ns.Bond:Add(5, KITTEN)
+        w:Run(3)
+        local per = w:AddClient("Per Ny", { pets = { 72 } })
+        w:Run(40)
+        per:OpenJournal(); per:SelectPet(46); w:Run(5)
+        ok(w:Sent("BONDS", nil, m2) >= 1)
+        for i = 1, 4 do ok(per:Points(KITTEN, cs[i].name) > 0, cs[i].name) end
+        -- Junk: not a table, too many entries: dropped.
+        w:InjectMessage("Per Hansen", { k = "BONDS", p = nina.ns.PROTOCOL, pet = KITTEN, b = "nope" }, "GUILD")
+        w:Run(1)
     end)
 
     test("auto-summon keeps the active pet out, adopted or not", function()

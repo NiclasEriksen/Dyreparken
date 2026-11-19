@@ -432,7 +432,8 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   you haven't adopted at half rate (Config.BOND_OTHER_RATE, its day 37). The card shows an adopted pet's holder's bond (2026-11-09, reversed from "yours first" the same day), with your own bond with it as a small line under it (Bond:Yours), and a dim "Ikke samlet" in the paw badge's place for a pet you don't own; a pet without a home shows yours; the list's ring is your level in gold, else the holder's in grey. Only adopted bonds
   (each pet's holder's) ride the full SYNC and the digest (Registry:AdoptedLife): with ~100 members and several pets
   each, all bonds would outgrow a SYNC. Other bonds go out as their owner's BOND messages, and a card asks the guild
-  once per pet a session (BOND_REQ); they may be a little behind, by design. Wish and nicknames stay adoption-only.
+  once per pet a session (BONDS_REQ since 2026-11-19: one client answers with every bond it knows, BONDS, the others
+  hold back; older clients' BOND_REQ is still answered with one's own BOND); they may be a little behind, by design. Wish and nicknames stay adoption-only.
 - **More ways to bond** (2026-11-09): firsts together (a boss this pet hasn't seen fall, a place it hasn't been: 10
   points), playdates (15, once a day per pet, with a guildmate's pet out in the group; Menagerie/Playdate.lua), and
   skill-ups (verified 2026-11-09) and reputation (verified 2026-11-11) as activities. All at the pet's rate, within
