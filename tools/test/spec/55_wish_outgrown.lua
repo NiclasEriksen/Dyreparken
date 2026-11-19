@@ -214,6 +214,17 @@ return function(test, H)
         ola:HoverObject({ "Peacebloom", "Herbalism" })
         ok(W:Today().done)
         ok(ola:Printed("fikk se det på nært hold", true))
+        -- Not a trainer's tooltip (review 2026-11-19), nor a unit's "Herbalism" at all.
+        local w4, liv, W4 = Setup("herb")
+        W4:Today()
+        liv:Hover({ unit = false, lines = { { leftText = "Herbalist Ella" }, { leftText = "Herbalism Trainer" } } })
+        no(W4:Today().done, "a trainer")
+        liv:HoverObject({ "Herbalism Trainer's Sign", "Herbalism" })
+        no(W4:Today().done, "a line that says trainer, anywhere")
+        -- Mounted or on a flight path the game puts the pet away: the one kept out counts.
+        liv.state.taxi = true; liv:Summon(nil)
+        liv:HoverObject({ "Peacebloom", "Herbalism" })
+        ok(W4:Today().done, "from the flight path")
         -- A skinning wish by a skinnable corpse, a unit's tooltip.
         local w2, kari, W2 = Setup("skin")
         eq(W2:Today().id, "skin") -- (made, as the day's first activity does)

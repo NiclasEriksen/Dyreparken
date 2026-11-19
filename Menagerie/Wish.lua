@@ -401,30 +401,45 @@ end
 -- while such a wish is pending (the post-calls cost one check otherwise). The tooltip's words are the client's
 -- (enUS): unverified on Forever, so while a gathering wish waits, a world object's lines go to the debug log.
 ------------------------------------------------------------------------------
-Wish.NODE_WORDS = { herb = { "herbalism" }, mine = { "mining" }, skin = { "skinnable", "skinning" } }
+-- (seen 2026-11-19: "Wild Steelbloom / Herbalism", "Iron Deposit / Requires Mining")
+Wish.NODE_WORDS = { herb = { "herbalism" }, mine = { "mining" }, skin = { "skinnable" } }
 
--- Which gathering a tooltip's lines speak of (a list of strings), or nil.
-function Wish.NodeKind(lines)
+-- Which gathering a tooltip's lines speak of (a list of strings), or nil. A unit (a creature, not a node) only
+-- by "Skinnable", and never one that's a trainer (review 2026-11-19: "Herbalism Trainer" would have done it).
+function Wish.NodeKind(lines, unit)
+    for _, text in ipairs(lines) do
+        if type(text) == "string" and text:lower():find("trainer", 1, true) then return nil end
+    end
     for _, text in ipairs(lines) do
         local lower = type(text) == "string" and text:lower()
         if lower then
             for kind, words in pairs(Wish.NODE_WORDS) do
-                for _, word in ipairs(words) do if lower:find(word, 1, true) then return kind end end
+                if not unit or kind == "skin" then
+                    for _, word in ipairs(words) do if lower:find(word, 1, true) then return kind end end
+                end
             end
         end
     end
 end
 
-function Wish:Hovered(tooltip, data)
+-- The pet the wish waits for, at hand: out, or (mounted, or on a flight path, where the game puts it away: the
+-- user, 2026-11-19) the one auto-summon keeps out.
+local function AtHand(key)
+    if ns.Pets:OutKey() == key then return true end
+    if ns.Plain(IsMounted()) or ns.Plain(UnitOnTaxi("player")) then return ns.Summon:ActiveKey() == key end
+    return false
+end
+
+function Wish:Hovered(tooltip, data, unit)
     if not (armed and Wish.NODE_WORDS[armed]) or tooltip ~= GameTooltip then return end
     local w = Pending(armed)
-    if not w or ns.InCombat() or ns.Pets:OutKey() ~= w.pet then return end
+    if not w or ns.InCombat() or not AtHand(w.pet) then return end
     local lines = {}
     for _, l in ipairs(type(data) == "table" and type(data.lines) == "table" and data.lines or {}) do
         local text = type(l) == "table" and ns.Plain(l.leftText)
         if type(text) == "string" then lines[#lines + 1] = text end
     end
-    local kind = Wish.NodeKind(lines)
+    local kind = Wish.NodeKind(lines, unit)
     ns.Log("Wish", "hovered: %s (%s)", table.concat(lines, " / "), tostring(kind))
     if kind ~= w.id then return end
     self:Grant(w, "wish.granted.node", "wish.granted.node.full")
@@ -491,7 +506,7 @@ function Wish:Init()
     if TDP and TDP.AddTooltipPostCall and types then
         for _, kind in ipairs({ types.Object, types.Unit }) do
             TDP.AddTooltipPostCall(kind, function(tooltip, data)
-                local ok, err = pcall(Wish.Hovered, Wish, tooltip, data)
+                local ok, err = pcall(Wish.Hovered, Wish, tooltip, data, kind == types.Unit)
                 if not ok then ns.Log("Wish", "hover error: %s", tostring(err)) end
             end)
         end
