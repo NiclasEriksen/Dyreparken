@@ -1,22 +1,30 @@
 #!/usr/bin/env bash
-# Runs tools/check.sh (full, with coverage floors) on the newest commit of
-# each branch or tag being pushed (not on every commit in between: one check
-# per push), in a temporary worktree, so uncommitted edits can't hide a
-# broken commit. Enable once per clone:  git config core.hooksPath .githooks
+# Runs tools/check.sh on the newest commit of each branch or tag being pushed
+# (not on every commit in between: one check per push), in a temporary
+# worktree, so uncommitted edits can't hide a broken commit. A branch gets
+# --quick (no coverage floors: CI enforces them); a tag, which releases, the
+# full check (2026-11-19, the user). Enable once per clone:  git config core.hooksPath .githooks
 # Skip in an emergency:           git push --no-verify
 set -u
 zero=0000000000000000000000000000000000000000
-declare -A seen
-status=0
+declare -A full names
+order=()
+# First every ref (a branch and a tag on one commit: the tag's full check, once).
 while read -r local_ref local_sha remote_ref remote_sha; do
     [[ "$local_sha" == "$zero" ]] && continue      # deleting a ref
     sha=$(git rev-parse "$local_sha^{commit}" 2>/dev/null) || continue
-    [[ -n "${seen[$sha]:-}" ]] && continue          # a tag on a commit we already checked
-    seen[$sha]=1
+    [[ -z "${names[$sha]:-}" ]] && order+=("$sha")
+    names[$sha]="${names[$sha]:-}${names[$sha]:+, }${local_ref#refs/*/}"
+    [[ $local_ref == refs/tags/* ]] && full[$sha]=1
+done
+status=0
+for sha in "${order[@]}"; do
+    mode=--quick
+    [[ -n "${full[$sha]:-}" ]] && mode=
     tmp=$(mktemp -d)
     git worktree add --quiet --detach "$tmp" "$sha" || { status=1; continue; }
-    echo "pre-push: checking ${local_ref#refs/*/} ($(git log -1 --format='%h %s' "$sha"))"
-    if ! "$tmp/tools/check.sh"; then
+    echo "pre-push: checking ${names[$sha]} ($(git log -1 --format='%h %s' "$sha"))${mode:+ (quick)}"
+    if ! "$tmp/tools/check.sh" $mode; then
         echo "pre-push: checks failed for $sha; push aborted (git push --no-verify to override)"
         status=1
     fi

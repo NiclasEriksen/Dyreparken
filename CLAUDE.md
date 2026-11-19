@@ -32,8 +32,12 @@ quirks. When you learn something new about the client, add it there with the dat
   luacheck (its config from the harness's stubs, `tools/lint_config.lua`: a client API must be stubbed before lint takes
   it; one read only behind an existence check goes in its OPTIONAL list; `-- luacheck: ignore NNN (why)` for a meant one),
   the Lua language server headless (fields and arguments: `ns.Bodn`, `ns.Wish:Grnat()`, an argument too many; value
-  types are off in .luarc.json), and the test suite with coverage floors (~50 s). `tools/check.sh --quick` skips coverage (~5 s). The runner
-  uses every core (`--jobs=N`; one process for a filter or `-v`): coverage alone made a run ~9x slower.
+  types are off in .luarc.json; it runs alongside the rest), and the test suite with coverage floors (~35 s).
+  `tools/check.sh --quick` skips coverage (~8 s). The runner uses every core (`--jobs=N`; one process for `-v` or a
+  filter matching under 20 tests), dealing tests longest first by their last times (`tools/test/.timings*`, untracked);
+  `--slow[=N]` lists the slowest, `--shuffle[=seed]` runs in a random order. A filter matching nothing, or an unknown
+  option, fails. The harness shares one memoized LibDeflate among its clients: a test that compresses a lot of
+  unique data is slow under coverage (27_hardening's big message was 31 s of it).
 - The game can't run from here. For in-game checks, ask the user to `/reload` and run `/dp debug on`, then
   `/dp probe` or the feature. Then read the log at
   `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
@@ -54,9 +58,9 @@ fields to tools/types/ns.lua (check.sh does). Fields set elsewhere or at run tim
 **Run the tests whenever you implement something new or change something existing**, and add or update tests
 in the same change. Run `luajit tools/test/run.lua <filter>` while working, and `tools/check.sh` before
 committing. A change isn't done while a test fails or a coverage floor is missed.
-A `pre-push` hook (`.githooks/`, enabled per clone with `git config core.hooksPath .githooks`) runs the full
-`tools/check.sh` on the newest commit of each pushed branch (once per push, not per commit) in a temporary worktree
-and refuses the push if it fails.
+A `pre-push` hook (`.githooks/`, enabled per clone with `git config core.hooksPath .githooks`) runs
+`tools/check.sh --quick` on the newest commit of each pushed branch, and the full check for a tag (once per push, not
+per commit), in a temporary worktree, and refuses the push if it fails. CI runs the full check on every push.
 
 - `tools/test/harness.lua` simulates a world: several clients (`w:AddClient("Ola Nord", opts)`), each running
   its own copy of the addon in its own global environment, with a shared clock (`w:Run(s)`, `w:SkipDays(n)`),

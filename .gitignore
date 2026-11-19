@@ -1,3 +1,4 @@
 DesignDocument.md
 .idea/
 *.swp
+tools/test/.timings*

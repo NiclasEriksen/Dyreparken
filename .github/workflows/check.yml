@@ -8,20 +8,44 @@ on:
   pull_request:
   workflow_call:
 
+# A second push to a branch cancels the first's run (not a tag's: a release finishes).
+concurrency:
+  group: check-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
 jobs:
   check:
     runs-on: ubuntu-latest
+    env:
+      LUALS: "3.19.2"
+      LUACHECK: "1.2.0" # as on the developer's machine (Arch), so a new warning doesn't show up in CI only
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # the tags: a test runs a v0.7.1 client from git (spec/65_owners.lua)
-      - name: Install LuaJIT and luacheck
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq luajit lua-check
-      - name: Install the Lua language server
+      - name: Install LuaJIT and LuaRocks
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq luajit luarocks liblua5.1-0-dev
+      - uses: actions/cache@v4
+        id: rocks
+        with:
+          path: ~/.luarocks
+          key: luacheck-${{ env.LUACHECK }}
+      - name: Install luacheck
         run: |
-          v=3.19.2
+          [[ -x "$HOME/.luarocks/bin/luacheck" ]] || luarocks --lua-version=5.1 --local install luacheck "$LUACHECK"
+          echo "$HOME/.luarocks/bin" >> "$GITHUB_PATH"
+      - uses: actions/cache@v4
+        id: luals
+        with:
+          path: ~/luals
+          key: luals-${{ env.LUALS }}
+      - name: Install the Lua language server
+        if: steps.luals.outputs.cache-hit != 'true'
+        run: |
           mkdir -p "$HOME/luals" && cd "$HOME/luals"
-          curl -sSL "https://github.com/LuaLS/lua-language-server/releases/download/$v/lua-language-server-$v-linux-x64.tar.gz" | tar xz
-          echo "$HOME/luals/bin" >> "$GITHUB_PATH"
+          curl -sSL "https://github.com/LuaLS/lua-language-server/releases/download/$LUALS/lua-language-server-$LUALS-linux-x64.tar.gz" | tar xz
       - name: Run checks
-        run: tools/check.sh
+        run: |
+          export PATH="$HOME/luals/bin:$PATH"
+          luacheck --version
+          tools/check.sh

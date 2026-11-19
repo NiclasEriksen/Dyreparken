@@ -17,12 +17,12 @@ return function(c, env, S)
     end
     env.GetGuildRosterInfo = function(i)
         if c.rosterPartial and i > c.rosterPartial then return nil end
-        local r = Rows()[i]
+        local r = c.guild and w:RosterRow(c.guild, i)
         if r then return r.name, "Member", 3, 60, "Warrior", "Elwynn Forest", "", "", r.online end
     end
     -- (years, months, days, hours) for offline members, nil when online.
     env.GetGuildRosterLastOnline = function(i)
-        local r = Rows()[i]
+        local r = c.guild and w:RosterRow(c.guild, i)
         if not r or r.online then return nil end
         local d = r.days
         return math.floor(d / 365), math.floor((d % 365) / 30), (d % 365) % 30, 0

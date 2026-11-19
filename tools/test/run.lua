@@ -6,8 +6,12 @@
 --   luajit tools/test/run.lua --min=Menagerie/=95 --min=Core/Comm=90
 --                                              fail if a file under the prefix is below n%
 --   -v                                         print each test name
---   --jobs=N                                   run in N processes (default: every core for the whole suite,
---                                              one for a filter or -v); coverage merged from all
+--   --jobs=N                                   run in N processes (default: every core, one for -v or a
+--                                              filter matching fewer than 20 tests); coverage merged from all
+--   --slow[=N]                                 list the N slowest tests (default 15)
+--   --shuffle[=seed]                           run in a random order (the tests must not depend on it)
+-- A filter that matches no test, or an unknown option, fails the run (a typo used to pass with 0 tests).
+-- Shards are dealt the tests longest first, by each test's last time (tools/test/.timings, untracked).
 --
 -- Specs live in tools/test/spec/*.lua and return function(test, H).
 -- After each test the runner fails it if any client logged a Lua error,
@@ -35,12 +39,21 @@ for _, a in ipairs(arg) do
     local jobs = a:match("^%-%-jobs=(%d+)$")
     local k, n = a:match("^%-%-shard=(%d+)/(%d+)$")
     local out = a:match("^%-%-hits%-out=(.+)$")
+    local list = a:match("^%-%-tests=(.+)$")
+    local slow = a == "--slow" and "15" or a:match("^%-%-slow=(%d+)$")
+    local seed = a == "--shuffle" and tostring(os.time()) or a:match("^%-%-shuffle=(%d+)$")
     if jobs then
         args.jobs = tonumber(jobs)
     elseif k then
         args.shard, args.shards = tonumber(k), tonumber(n)
     elseif out then
         args.hitsOut = out
+    elseif list then
+        args.list = list
+    elseif slow then
+        args.slow = tonumber(slow)
+    elseif seed then
+        args.seed = tonumber(seed)
     elseif a == "--coverage" then
         args.coverage = true
     elseif m then
@@ -51,24 +64,32 @@ for _, a in ipairs(arg) do
         args.min[#args.min + 1] = { prefix = mp, pct = tonumber(mv) }
     elseif a == "-v" then
         args.verbose = true
+    elseif a:match("^%-") then
+        io.stderr:write("run.lua: unknown option " .. a .. "\n")
+        os.exit(2)
+    elseif args.filter then
+        io.stderr:write("run.lua: one filter at a time (" .. args.filter .. ", " .. a .. ")\n")
+        os.exit(2)
     else
         args.filter = a
     end
 end
 
+-- A clock with sub-second wall time (os.time is whole seconds; os.clock is this process's CPU only).
+local function Wall()
+    local p = io.popen("date +%s.%N 2>/dev/null")
+    local t = p and tonumber(p:read("*l") or "")
+    if p then p:close() end
+    return t or os.time()
+end
+local wall0 = Wall()
+
 ------------------------------------------------------------------------------
 -- In parallel (2026-11-11, the user: "tests taking soooooo long"): the line hook makes a
--- coverage run ~9x slower, so the suite runs in N processes, each taking every Nth test
--- (by index: the long sync tests spread out), each writing the lines it hit to a file.
--- This process then only merges and reports.
+-- coverage run ~9x slower, so the suite runs in N processes, each writing the lines it hit to a file.
+-- This process deals them the tests (longest first, by .timings; by index until 2026-11-19, when the
+-- shards took from 28 to 61 s), then only merges and reports.
 ------------------------------------------------------------------------------
-if not args.shard and not args.jobs then
-    local cores = 1
-    local p = io.popen("nproc 2>/dev/null")
-    if p then cores = tonumber(p:read("*l") or "") or 1; p:close() end
-    args.jobs = (args.filter or args.verbose) and 1 or cores
-end
-local parallel = not args.shard and args.jobs > 1
 
 ------------------------------------------------------------------------------
 -- Coverage: a line hook counts executed lines of addon files; the lines
@@ -134,36 +155,96 @@ for _, path in ipairs(specFiles) do
     fn(function(name, body) tests[#tests + 1] = { name = spec .. ": " .. name, fn = body } end, H)
 end
 
-local passed, failed = 0, {}
+-- The tests this run is about: the filter's, or a shard's list from its parent.
+local chosen = {}
+if args.list then
+    local want = {}
+    for name in io.open(args.list):lines() do want[name] = true end
+    for _, t in ipairs(tests) do if want[t.name] then chosen[#chosen + 1] = t end end
+else
+    for _, t in ipairs(tests) do
+        if not args.filter or t.name:find(args.filter, 1, true) then chosen[#chosen + 1] = t end
+    end
+end
+if #chosen == 0 then
+    io.stderr:write(("run.lua: no test matches %q\n"):format(args.filter or ""))
+    os.exit(1)
+end
+if args.seed and not args.shard then
+    math.randomseed(args.seed)
+    for i = #chosen, 2, -1 do
+        local j = math.random(i)
+        chosen[i], chosen[j] = chosen[j], chosen[i]
+    end
+    print(("(shuffled, seed %d)"):format(args.seed))
+end
+
+if not args.shard and not args.jobs then
+    local cores = 1
+    local p = io.popen("nproc 2>/dev/null")
+    if p then cores = tonumber(p:read("*l") or "") or 1; p:close() end
+    args.jobs = (args.verbose or #chosen < 20) and 1 or cores
+end
+local parallel = not args.shard and args.jobs > 1
+
+-- Each test's last time, per mode (a coverage run is ~20x slower, and not evenly): what deals the shards.
+local TIMINGS = "tools/test/.timings" .. (args.coverage and "-coverage" or "")
+local function ReadTimings()
+    local t = {}
+    local f = io.open(TIMINGS)
+    if f then
+        for line in f:lines() do
+            local secs, name = line:match("^([%d%.]+)\t(.+)$")
+            if secs then t[name] = tonumber(secs) end
+        end
+        f:close()
+    end
+    return t
+end
+
+local passed, failed, times = 0, {}, {}
 local t0 = os.clock()
-local wall0 = os.time()
-local index = 0
 if parallel then
-    -- Each shard in its own process, all at once; their output and hits in temp files.
+    -- Longest first, each to the shard with the least so far (a test never timed counts as the mean).
+    local known, sum, n = ReadTimings(), 0, 0
+    for _, v in pairs(known) do sum, n = sum + v, n + 1 end
+    local mean = n > 0 and sum / n or 1
+    local order = {}
+    for i, t in ipairs(chosen) do order[i] = { t = t, cost = known[t.name] or mean, i = i } end
+    table.sort(order, function(a, b) if a.cost ~= b.cost then return a.cost > b.cost end return a.i < b.i end)
+    local loads, lists = {}, {}
+    for k = 1, args.jobs do loads[k], lists[k] = 0, {} end
+    for _, o in ipairs(order) do
+        local best = 1
+        for k = 2, args.jobs do if loads[k] < loads[best] then best = k end end
+        loads[best] = loads[best] + o.cost
+        lists[best][#lists[best] + 1] = o.t.name
+    end
+    -- Each shard in its own process, all at once; their lists, output and hits in temp files.
     local cmds, files = {}, {}
     for k = 1, args.jobs do
-        local outFile, hitFile = os.tmpname(), os.tmpname()
-        files[k] = { out = outFile, hits = hitFile }
-        local passArgs = {}
-        for _, a in ipairs(arg) do
-            if not a:match("^%-%-jobs=") and not a:match("^%-%-min=") and not a:match("^%-%-missed=") then
-                passArgs[#passArgs + 1] = ("'%s'"):format(a:gsub("'", "'\\''"))
-            end
+        if #lists[k] > 0 then
+            local outFile, hitFile, listFile = os.tmpname(), os.tmpname(), os.tmpname()
+            local lf = assert(io.open(listFile, "w"))
+            lf:write(table.concat(lists[k], "\n"), "\n")
+            lf:close()
+            files[#files + 1] = { out = outFile, hits = hitFile, list = listFile }
+            cmds[#cmds + 1] = ("luajit tools/test/run.lua --shard=%d/%d --tests=%s %s %s > %s 2>&1 &"):format(k, args.jobs,
+                listFile, args.coverage and ("--coverage --hits-out=" .. hitFile) or "", args.verbose and "-v" or "", outFile)
         end
-        cmds[#cmds + 1] = ("luajit tools/test/run.lua --shard=%d/%d %s %s > %s 2>&1 &"):format(k, args.jobs,
-            args.coverage and ("--coverage --hits-out=" .. hitFile) or "", table.concat(passArgs, " "), outFile)
     end
     os.execute("{ " .. table.concat(cmds, " ") .. " wait; }")
     for _, f in ipairs(files) do
         local text = io.open(f.out):read("*a")
-        local p, fl = text:match("(%d+) passed, (%d+) failed")
+        local p = text:match("(%d+) passed, (%d+) failed")
         if not p then
             failed[#failed + 1] = "a shard crashed"
             print(text)
         else
             passed = passed + tonumber(p)
             for name in text:gmatch("  FAIL ([^\n]+)") do failed[#failed + 1] = name end
-            local body = text:gsub("\n%d+ passed, %d+ failed[^\n]*\n?$", "")
+            for secs, name in text:gmatch("\nTIME\t([%d%.]+)\t([^\n]+)") do times[name] = tonumber(secs) end
+            local body = text:gsub("\nTIME\t[^\n]*", ""):gsub("\n%d+ passed, %d+ failed[^\n]*\n?$", "")
             if body:match("%S") then io.write(body, "\n") end
         end
         if args.coverage then
@@ -172,18 +253,14 @@ if parallel then
                 hits[src][tonumber(line)] = true
             end
         end
-        os.remove(f.out); os.remove(f.hits)
+        os.remove(f.out); os.remove(f.hits); os.remove(f.list)
     end
 end
-for _, t in ipairs(parallel and {} or tests) do
-    local mine = not args.filter or t.name:find(args.filter, 1, true)
-    if mine and args.shard then
-        index = index + 1
-        mine = (index - 1) % args.shards == args.shard - 1
-    end
-    if mine then
+for _, t in ipairs(parallel and {} or chosen) do
+    do
         H.worlds = {}
         math.randomseed(42)
+        local start = os.clock()
         local ok, err = xpcall(t.fn, debug.traceback)
         local problems = {}
         for _, w in ipairs(H.worlds) do
@@ -194,6 +271,7 @@ for _, t in ipairs(parallel and {} or tests) do
             end
         end
         if ok and #problems > 0 then ok, err = false, "errors in clients:\n    " .. table.concat(problems, "\n    ") end
+        times[t.name] = os.clock() - start
         if ok then
             passed = passed + 1
             if args.verbose then print("  ok   " .. t.name) end
@@ -214,8 +292,9 @@ for _, t in ipairs(parallel and {} or tests) do
     end
 end
 if args.coverage and not parallel then debug.sethook() end
-local elapsed = parallel and os.difftime(os.time(), wall0) or (os.clock() - t0)
+local elapsed = parallel and (Wall() - wall0) or (os.clock() - t0)
 if args.shard then
+    for name, secs in pairs(times) do print(("TIME\t%.4f\t%s"):format(secs, name)) end
     -- A shard: its hits for the parent, its counts (the parent reads the last line).
     if args.hitsOut then
         local f = assert(io.open(args.hitsOut, "w"))
@@ -263,6 +342,24 @@ if args.coverage then
         end
     end
     print(("%-28s %6d %6d %6.1f%%"):format("total", totalL, totalH, totalL > 0 and totalH * 100 / totalL or 100))
+end
+
+-- The times for the next run's shards: kept for the tests not run this time (a filter).
+if not args.list then
+    local all = ReadTimings()
+    for name, secs in pairs(times) do all[name] = secs end
+    local f = io.open(TIMINGS, "w")
+    if f then
+        for name, secs in pairs(all) do f:write(("%.4f\t%s\n"):format(secs, name)) end
+        f:close()
+    end
+end
+if args.slow then
+    local list = {}
+    for name, secs in pairs(times) do list[#list + 1] = { name = name, secs = secs } end
+    table.sort(list, function(a, b) return a.secs > b.secs end)
+    print(("\nslowest %d (CPU s%s):"):format(math.min(args.slow, #list), args.coverage and ", with coverage" or ""))
+    for i = 1, math.min(args.slow, #list) do print(("  %7.3f  %s"):format(list[i].secs, list[i].name)) end
 end
 
 print(("\n%d passed, %d failed (%.1fs)"):format(passed, #failed, elapsed))

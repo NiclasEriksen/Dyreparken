@@ -145,18 +145,24 @@ function World:RemoveMember(name, guild)
     if c and c.guild == (guild or self.guildName) then c.guild = nil end
 end
 
+-- One roster row (GetGuildRosterInfo reads them one at a time: building the whole roster for each was
+-- quadratic in a big guild, 2026-11-19).
+function World:RosterRow(guild, i)
+    local m = self:Guild(guild).members[i]
+    if not m then return nil end
+    local c = self.byName[m.name]
+    local online = c and c.online and c.guild == (guild or self.guildName)
+    local days
+    if not online then
+        local last = (c and c.lastSeen) or m.lastSeen or self:ServerTime()
+        days = math.floor((self:ServerTime() - last) / 86400)
+    end
+    return { name = m.name, online = online, days = days }
+end
+
 function World:Roster(guild)
     local rows = {}
-    for _, m in ipairs(self:Guild(guild).members) do
-        local c = self.byName[m.name]
-        local online = c and c.online and c.guild == (guild or self.guildName)
-        local days
-        if not online then
-            local last = (c and c.lastSeen) or m.lastSeen or self:ServerTime()
-            days = math.floor((self:ServerTime() - last) / 86400)
-        end
-        rows[#rows + 1] = { name = m.name, online = online, days = days }
-    end
+    for i = 1, #self:Guild(guild).members do rows[i] = self:RosterRow(guild, i) end
     return rows
 end
 

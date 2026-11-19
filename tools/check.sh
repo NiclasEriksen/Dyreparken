@@ -11,7 +11,8 @@
 #     globals, reads of globals and C_* fields the stubs lack (GetZonetext, C_PetJournal.GetPetInfoBySpeciesId).
 #  6. The Lua language server, headless (2026-11-15): the namespace's fields and modules' methods
 #     (tools/types.lua writes tools/types/ns.lua from the code), arguments past a function's. Types of values
-#     are left out (.luarc.json: our `a and b or c` idioms read as mismatches).
+#     are left out (.luarc.json: our `a and b or c` idioms read as mismatches). It runs in the background,
+#     alongside 5 and 7, and is read last.
 #  7. tools/test/run.lua: the test suite (simulated clients, see tools/test/harness.lua).
 #     Coverage floors: Menagerie 95%, Achievements 95%, Core 90%. Games has none on purpose (see CLAUDE.md).
 set -u
@@ -58,8 +59,25 @@ for f in $own; do
     done < <(luajit -bl "$f" 2>/dev/null | grep 'GGET' | grep -o '"[a-z_][A-Za-z0-9_]*"$' | tr -d '"' | sort -u)
 done
 
+# The language server is most of the static checks' time (6 of --quick's 10 s): it runs alongside luacheck and the
+# tests, and its result is read at the end (2026-11-19).
+luals_pid=
+luals_log=$(mktemp -d)
+rc=$(mktemp)
+trap 'rm -f "$rc"; rm -rf "$luals_log"' EXIT
+if command -v lua-language-server >/dev/null; then
+    if luajit tools/types.lua; then
+        lua-language-server --check="$PWD" --checklevel=Warning --logpath="$luals_log" --check_format=json \
+            > "$luals_log/out.txt" 2>&1 &
+        luals_pid=$!
+    else
+        echo "TYPES: tools/types.lua failed"; fail=1
+    fi
+else
+    echo "TYPES: lua-language-server not installed (Arch: pacman -S lua-language-server; CI: its release)"; fail=1
+fi
+
 if command -v luacheck >/dev/null; then
-    rc=$(mktemp); trap 'rm -f "$rc"' EXIT
     if luajit tools/lint_config.lua > "$rc"; then
         out=$(luacheck --config "$rc" --formatter plain --codes --quiet . 2>&1) || { echo "$out" | sed 's/^/LINT: /'; fail=1; }
     else
@@ -67,28 +85,6 @@ if command -v luacheck >/dev/null; then
     fi
 else
     echo "LINT: luacheck not installed (Arch: pacman -S luacheck; Debian/Ubuntu: apt install lua-check)"; fail=1
-fi
-
-if command -v lua-language-server >/dev/null; then
-    luajit tools/types.lua || { echo "TYPES: tools/types.lua failed"; fail=1; }
-    log=$(mktemp -d)
-    out=$(lua-language-server --check="$PWD" --checklevel=Warning --logpath="$log" --check_format=json 2>&1)
-    if ! grep -qE "no problems found|complete, 0 problems" <<<"$out"; then
-        if [[ -f $log/check.json ]]; then
-            # (one line a problem: file:line code message; its lines count from 0)
-            python3 -I -c 'import json, sys
-for f, ds in sorted(json.load(open(sys.argv[1])).items()):
-    for d in ds:
-        print("%s:%d %s %s" % (f.split("Dyreparken/")[-1], d["range"]["start"]["line"] + 1, d["code"], d["message"].splitlines()[0]))' \
-                "$log/check.json" | head -40 | sed 's/^/TYPES: /'
-        else
-            echo "$out" | tail -5 | sed 's/^/TYPES: /'
-        fi
-        fail=1
-    fi
-    rm -rf "$log"
-else
-    echo "TYPES: lua-language-server not installed (Arch: pacman -S lua-language-server; CI: its release)"; fail=1
 fi
 
 if [[ $fail -eq 0 ]]; then
@@ -99,5 +95,26 @@ if [[ $fail -eq 0 ]]; then
             || { echo "$out" | tail -60; fail=1; }
     fi
     [[ $fail -eq 0 ]] && echo "$out" | tail -1
+    # In CI, the coverage table on the run's page (check.sh prints only the last line when all is well).
+    if [[ $quick -eq 0 && -n ${GITHUB_STEP_SUMMARY:-} ]]; then
+        { echo '```'; echo "$out" | sed -n '/^file /,$p'; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+    fi
+fi
+if [[ -n $luals_pid ]]; then
+    wait "$luals_pid"
+    out=$(cat "$luals_log/out.txt")
+    if ! grep -qE "no problems found|complete, 0 problems" <<<"$out"; then
+        if [[ -f $luals_log/check.json ]]; then
+            # (one line a problem: file:line code message; its lines count from 0)
+            python3 -I -c 'import json, sys
+for f, ds in sorted(json.load(open(sys.argv[1])).items()):
+    for d in ds:
+        print("%s:%d %s %s" % (f.split("Dyreparken/")[-1], d["range"]["start"]["line"] + 1, d["code"], d["message"].splitlines()[0]))' \
+                "$luals_log/check.json" | head -40 | sed 's/^/TYPES: /'
+        else
+            echo "$out" | tail -5 | sed 's/^/TYPES: /'
+        fi
+        fail=1
+    fi
 fi
 [[ $fail -eq 0 ]] && echo "OK" || exit 1

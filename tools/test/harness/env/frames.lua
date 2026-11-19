@@ -27,10 +27,12 @@ return function(c, env, S)
         if tab or first then env.CollectionsJournal_SetTab(env.CollectionsJournal, tab or 2) end
     end)
     env.CreateFrame = function(ftype, name, parent, template)
-        local f = setmetatable({ type = ftype, frameName = name, parent = parent, events = {}, scripts = {},
+        local f = setmetatable({ type = ftype, frameName = name, parent = parent, events = {},
             shown = true, enabled = true, checked = false, textures = {}, fontStrings = {}, template = template }, Frame)
         f.client = c
         c.frames[#c.frames + 1] = f
+        f.seq = #c.frames
+        f.scripts = P.Scripts(f, c)
         -- A secure template: a protected frame (P.Blocked), made out of combat only.
         if template and template:find("Secure") then
             if S.combat and (c.secure or 0) == 0 then

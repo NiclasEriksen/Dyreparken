@@ -83,11 +83,32 @@ function Client:Fire(event, ...)
     end
 end
 
+-- Only the frames that ever had an OnUpdate (P.Scripts keeps them, in creation order): walking every frame of
+-- every client every 0.1 s was ~9% of a coverage run (2026-11-19).
 function Client:Tick(step)
+    if not self.updaters[1] then return end
     if (self.secure or 0) > 0 then return P.Insecure(self, self.Tick, self, step) end
-    for _, f in ipairs(self.frames) do
+    for _, f in ipairs(self.updaters) do
         if f.shown and f.scripts.OnUpdate then f.scripts.OnUpdate(f, step) end
     end
+end
+
+-- A frame's scripts. OnUpdate is kept off the table itself, so every write to it (SetScript, HookScript, a
+-- template's `f.scripts.OnUpdate = fn`) goes through __newindex and puts the frame on c.updaters.
+function P.Scripts(f, c)
+    return setmetatable({}, {
+        __index = function(_, k) if k == "OnUpdate" then return f.onUpdate end end,
+        __newindex = function(t, k, v)
+            if k ~= "OnUpdate" then return rawset(t, k, v) end
+            f.onUpdate = v
+            if v and not f.updating then
+                f.updating = true
+                local list = c.updaters
+                list[#list + 1] = f
+                table.sort(list, function(a, b) return a.seq < b.seq end)
+            end
+        end,
+    })
 end
 
 local SAVED = { "DyreparkenDB", "DyreparkenCharDB", "DyreparkenDebugDB" }
@@ -112,6 +133,7 @@ function Client:Login()
     assert(not self.online, self.name .. " is already online")
     self.online = true
     self.frames, self.tooltipCalls, self.units, self.sidePages = {}, {}, {}, {}
+    self.updaters = {}
     self.prefixes, self.missingGlobals, self.newGlobals = {}, {}, {}
     self.loaded = { [ADDON] = true }
     for _, a in ipairs(self.addons) do self.loaded[a] = true end
@@ -136,7 +158,12 @@ function Client:Login()
     })
     self.env, self.ns = env, {}
     for _, path in ipairs(self.release and self.toc.release or self.toc.files) do
-        Load(env, path, self.from, ADDON, self.ns)
+        if path == "Libs/LibDeflate/LibDeflate.lua" and not self.from then
+            P.ShareDeflate(env)
+        else
+            Load(env, path, self.from, ADDON, self.ns)
+            if path == "Libs/LibDeflate/LibDeflate.lua" then P.Memoize(env.LibStub("LibDeflate"), self.from) end
+        end
         if path == "Core/Init.lua" then
             self:CheckBus() -- (before any module listens)
             self.ns.STRICT = true -- (our own bugs throw here; in the game they're logged: Registry:WriteOwn)

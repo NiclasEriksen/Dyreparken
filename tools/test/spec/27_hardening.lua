@@ -225,8 +225,14 @@ return function(test, H)
 
     test("Comm: a message receivers would drop isn't sent; a throttled chunk waits and goes", function()
         local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
-        local big = {}
-        for i = 1, 40000 do big[i] = ("x%d"):format(i * 7919 % 100003) end
+        -- Random letters barely compress: 40 KB of them pass the 64 chunks (16 KB) after compression. (40000 short
+        -- numbers did too, at 31 s of a coverage run in LibDeflate, 2026-11-19.)
+        local big, ALNUM = {}, "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+        for i = 1, 2500 do
+            local s = {}
+            for j = 1, 16 do local r = math.random(#ALNUM); s[j] = ALNUM:sub(r, r) end
+            big[i] = table.concat(s)
+        end
         ok(ola.ns.Comm:Send("SYNC", { junk = big }, "GUILD") == false)
         eq(#ola:Log("not sent: SYNC is too big"), 1)
         -- The server says throttled: the chunk stays first in line and goes once a token is back.

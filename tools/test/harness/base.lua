@@ -175,6 +175,46 @@ for _, p in ipairs({ "Libs/LibStub/LibStub.lua", "Libs/LibSerialize/LibSerialize
     Load(libEnv, p)
 end
 local LibSerialize, LibDeflate = libEnv.LibStub("LibSerialize"), libEnv.LibStub("LibDeflate")
+
+-- LibDeflate, memoized (2026-11-19): every message is compressed by its sender and decompressed by each
+-- receiver and by DecodeWire, in pure Lua, and that was over half of a coverage run's line hooks. Its functions
+-- are pure, so one cache by input, shared by every client, gives the same bytes on the wire. Not
+-- LibSerialize's Deserialize: it returns fresh tables. (A release's own copy, opts.from, keeps a cache of its
+-- own: its LibDeflate may differ.)
+local deflateCaches, cached = {}, 0
+local MEMO = { "CompressDeflate", "DecompressDeflate", "EncodeForWoWAddonChannel", "DecodeForWoWAddonChannel", "Adler32" }
+local function Pack(...) return { n = select("#", ...), ... } end
+local function Memoize(lib, id)
+    local caches = deflateCaches[id or ""] or {}
+    deflateCaches[id or ""] = caches
+    for _, name in ipairs(MEMO) do
+        local fn, cache = lib[name], caches[name] or {}
+        caches[name] = cache
+        lib[name] = function(self, input, more)
+            if more ~= nil or type(input) ~= "string" then return fn(self, input, more) end
+            local r = cache[input]
+            if not r then
+                if cached > 50000 then
+                    for _, c in pairs(deflateCaches) do for _, t in pairs(c) do for k in pairs(t) do t[k] = nil end end end
+                    cached = 0
+                end
+                r = Pack(fn(self, input))
+                cache[input] = r
+                cached = cached + 1
+            end
+            return unpack(r, 1, r.n)
+        end
+    end
+end
+Memoize(LibDeflate)
+
+-- Every client gets the harness's LibDeflate (2026-11-19): loading it builds its tables in pure Lua, a big
+-- share of each client's start. It keeps no state between calls, so one copy serves all.
+local DEFLATE_MINOR = libEnv.LibStub.minors.LibDeflate
+local function ShareDeflate(env)
+    local lib = env.LibStub:NewLibrary("LibDeflate", DEFLATE_MINOR)
+    for k, v in pairs(LibDeflate) do lib[k] = v end
+end
 local function DecodeWire(data)
     local c = LibDeflate:DecodeForWoWAddonChannel(data)
     local s = c and LibDeflate:DecompressDeflate(c)
@@ -189,3 +229,4 @@ end
 
 P.ADDON, P.LATENCY, P.KNOWN_EVENTS = ADDON, LATENCY, KNOWN_EVENTS
 P.Source, P.TOC, P.TOCAt, P.Load, P.NewEnv, P.CopyTable, P.DecodeWire = Source, TOC, TOCAt, Load, NewEnv, CopyTable, DecodeWire
+P.Memoize, P.ShareDeflate = Memoize, ShareDeflate

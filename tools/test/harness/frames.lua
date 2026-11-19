@@ -208,11 +208,24 @@ function Frame:HookScript(k, fn)
 end
 -- Like the client: showing or hiding a frame also fires OnShow/OnHide on
 -- its shown descendants, whose visibility changes with it.
-local function Cascade(f, script)
-    for _, kid in ipairs(f.client and f.client.frames or {}) do
+-- (The children are looked up once per cascade, from one walk over the frames: a walk per descendant was
+-- quadratic, 2026-11-19. A frame made by a handler during the cascade isn't in it, as in the client.)
+local function Cascade(f, script, kids)
+    if not kids then
+        kids = {}
+        for _, kid in ipairs(f.client and f.client.frames or {}) do
+            local p = kid.parent
+            if p then
+                local list = kids[p]
+                if not list then list = {}; kids[p] = list end
+                list[#list + 1] = kid
+            end
+        end
+    end
+    for _, kid in ipairs(kids[f] or {}) do
         if kid.parent == f and kid.shown then
             if kid.scripts[script] then Invoke(kid.client, kid.scripts[script], kid) end
-            Cascade(kid, script)
+            Cascade(kid, script, kids)
         end
     end
 end
