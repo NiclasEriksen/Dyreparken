@@ -37,6 +37,26 @@ return function(test, H)
         ok(Egg(ola, "winterveil").test({ t = w:ServerTime() }), "the game's egg too")
     end)
 
+    test("two holidays at once (Love is in the Air inside the Lunar Festival): both eggs; both Darkmoon ids", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        w:SetDate(2027, 2, 12, 12)
+        -- (either order: the calendar's isn't known, review 2026-11-19)
+        for _, ids in ipairs({ { 327, 335 }, { 335, 327 } }) do
+            ola.state.holidays = { [ola.ns.Today()] = ids }
+            ola.ns.Personality.Holiday(w:ServerTime()); w:Run(1.1)
+            ok(Egg(ola, "love").test({ t = w:ServerTime() }), "Love is in the Air")
+            ok(Egg(ola, "lunar").test({ t = w:ServerTime() }), "the Lunar Festival")
+            ok(ola.ns.Personality.Holiday(w:ServerTime()), "Festglad names one of them")
+            w:SkipDays(1)
+        end
+        for _, id in ipairs({ 263, 264 }) do
+            ola.state.holidays = { [ola.ns.Today()] = { id } }
+            ola.ns.Holidays:On(w:ServerTime()); w:Run(1.1)
+            ok(ola.ns.Holidays:Has(w:ServerTime(), "darkmoon"), "the Darkmoon Faire as " .. id)
+            w:SkipDays(1)
+        end
+    end)
+
     test("only the holidays we know; the month the calendar shows; no calendar, no holiday", function()
         local w, ola = H.Setup{ ola = {} }
         local P = ola.ns.Personality

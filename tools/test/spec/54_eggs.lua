@@ -79,6 +79,17 @@ return function(test, H)
         w4:SetDate(2027, 3, 2, 22, 0)
         liv.ns.Activity:Emit("herb"); w4:RunTimers()
         no(liv:Printed("Klokken er ti", true), "neither: nothing")
+        -- A share of days: lost at the window's first activity, the rest of it has no new roll (review 2026-11-19).
+        local w5, bo = Setup("cat", { "ordensdyr", "glupsk" })
+        w5:SetDate(2027, 3, 2, 22, 1)
+        bo:Dice(0.9)
+        bo.ns.Activity:Emit("herb"); w5:RunTimers()
+        bo:Dice(0)
+        for m = 2, 12 do w5:SetDate(2027, 3, 2, 22, m); bo.ns.Activity:Emit("herb"); w5:RunTimers() end
+        no(bo:Printed("Klokken er ti", true), "the day's roll was lost")
+        w5:SetDate(2027, 3, 3, 22, 3)
+        bo.ns.Activity:Emit("herb"); w5:RunTimers()
+        ok(bo:Printed("Klokken er ti", true), "the next day's won")
     end)
 
     test("gjensyn: back with a pet after three days apart or more, by a chance, it greets you by its nature", function()

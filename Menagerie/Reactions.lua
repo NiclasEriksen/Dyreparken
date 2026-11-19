@@ -75,7 +75,7 @@ Reactions.ROWS = {
     { id = "trylleskaffet", class = "MAGE", on = "cast", starts = { "Conjure Food", "Conjure Water" }, traits = { "glupsk" } },
     { id = "sau", class = "MAGE", on = "cast", starts = { "Polymorph" }, families = { "farm", "reptile", "rabbit" } },
     { id = "portal", class = "MAGE", on = "cast", starts = { "Teleport: ", "Portal: " }, traits = { "hjemlengsel", "reiseglad" } },
-    { id = "fallskjerm", class = "MAGE", on = "cast", spells = { "Slow Fall" }, traits = { "skybaren" }, families = { "bird", "owl" } },
+    { id = "fallskjerm", class = "MAGE", on = "cast", spells = { "Slow Fall" }, traits = { "skybaren" }, families = { "owl", "bird" } },
     -- Priest
     { id = "svev", class = "PRIEST", on = "cast", spells = { "Levitate" }, traits = { "skybaren", "hjemlengsel" } },
     { id = "skyggeform", class = "PRIEST", on = "cast", spells = { "Shadowform" }, traits = { "ordensdyr", "kjaelen" },

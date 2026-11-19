@@ -28,6 +28,7 @@ Holidays.IDS = {
 Holidays.EVENTS = {
     [301] = "stvfishing",  -- Stranglethorn Fishing Extravaganza (Sundays)
     [263] = "darkmoon",    -- the Darkmoon Faire (seen in the calendar, 2026-11-11): Tivolidyr's double days
+    [264] = "darkmoon",    -- (it has two ids, a month each in turn: 264 from 2026-12-07, review 2026-11-19)
 }
 
 -- Seconds to wait for the calendar's answer (about one on Forever, 2026-11-11). Past this, or if
@@ -46,7 +47,8 @@ function Holidays:On(t)
     return nil
 end
 
--- Is that other event (Holidays.EVENTS' word) on today?
+-- Is that event on today: Holidays.EVENTS' word, or a holiday's (two at once: Love is in the Air falls inside the
+-- Lunar Festival, and :On names only the first, review 2026-11-19)?
 function Holidays:Has(t, word)
     self:On(t)
     local day = ns.Today(t)
@@ -86,7 +88,7 @@ function Holidays:Read()
         for i = 1, C_Calendar.GetNumDayEvents(offset, mine.day) or 0 do
             local e = C_Calendar.GetDayEvent(offset, mine.day, i)
             local id = e and ns.Plain(e.eventID)
-            if id and self.IDS[id] then word = self.IDS[id] end
+            if id and self.IDS[id] then word = word or self.IDS[id]; events[self.IDS[id]] = true end
             if id and self.EVENTS[id] then events[self.EVENTS[id]] = true end
         end
     end)

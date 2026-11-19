@@ -118,7 +118,7 @@ end
 -- Egg ids are permanent: char.eggs, a pet's story and the eggs:N achievements count them.
 ------------------------------------------------------------------------------
 local function On(md) return function(ctx) return date("%m%d", ctx.t) == md and {} end end
-local function Game(word) return function(ctx) return ns.Holidays:On(ctx.t) == word and {} end end
+local function Game(word) return function(ctx) return ns.Holidays:Has(ctx.t, word) and {} end end
 
 local MILESTONES = { [200] = true, [500] = true, [1000] = true }
 
@@ -228,19 +228,22 @@ Quirks.EGGS = {
     -- more notable, 100 jumps can be a (very) rare reaction where they don't mention a number"): a hundred in a
     -- day now and then, a common egg with no number; a thousand in a day always; ten thousand with your adopted
     -- pet once, with the hidden achievement jump:10000 (one "jump" is ten).
+    -- (At least, not exactly: a count passed with no pet out, or while the 45 minutes ran, lost the day's egg for
+    -- good, review 2026-11-19. Once a day each, as every egg.)
     { id = "hopp", on = "jump", chance = 0.08, test = function(ctx)
-        if ctx.today ~= 10 then return nil end
+        if (ctx.today or 0) < 10 then return nil end
         return HasTrait(ctx.key, "hoppetass") and { _key = "egg.hopp.hoppetass" } or {}
     end },
     { id = "tusenhopp", on = "jump", always = true, test = function(ctx)
-        if ctx.today ~= 100 then return nil end
+        if (ctx.today or 0) < 100 then return nil end
         return HasTrait(ctx.key, "hoppetass") and { _key = "egg.tusenhopp.hoppetass" } or {}
     end },
     { id = "titusenhopp", on = "jump", always = true, test = function(ctx)
         local _, mine = ns.Activity:Count("jump")
-        return ns.Registry:MyPet() == ctx.key and mine == 1000 and {} or nil
+        -- (once ever, at the ten thousandth or the first jump after it)
+        return ns.Registry:MyPet() == ctx.key and mine >= 1000 and not ns.DB.char.eggs.titusenhopp and {} or nil
     end },
-    { id = "lur", on = "nap", test = function(ctx) return ctx.today == 5 and {} end },
+    { id = "lur", on = "nap", test = function(ctx) return (ctx.today or 0) >= 5 and {} end },
     { id = "midnattsdans", on = "dance", always = true, watch = false, test = function(ctx) return Hour(ctx.t) == 0 and tonumber(date("%M", ctx.t)) < 30 and {} end },
     { id = "fredagstaco", on = "*", always = true, chance = 0.5, test = function(ctx)
         return Weekday(ctx.t) == 5 and Hour(ctx.t) >= 17 and (HasTrait(ctx.key, "glupsk") or ctx.family.cat) and {}
@@ -291,7 +294,9 @@ Quirks.EGGS = {
     -- first quarter hour, like midnight's: an Ordensdyr says it, a Røverdyr knows the robbers are out now;
     -- the rest say nothing. (No dice outside it: a "*" egg is asked on every activity, and a roll there
     -- would shift every other chance after it.)
-    { id = "bastian", on = "*", always = true, chance = function(ctx) return Quirks.Bastian(ctx.t) and 0.5 end,
+    -- (a share of days, review 2026-11-19: a function's chance was rolled at every activity in the window, so an
+    -- active pet nearly always had it; the test keeps the dice to the window, as a number's roll comes after it)
+    { id = "bastian", on = "*", always = true, chance = 0.5,
         test = function(ctx)
             if not Quirks.Bastian(ctx.t) then return nil end
             if HasTrait(ctx.key, "ordensdyr") then return {} end
@@ -419,12 +424,13 @@ Quirks.EGGS = {
     -- afraid of flying is afraid up there too.
     { id = "luftskip", on = "zeppelin", always = true, chance = 0.4,
         traits = { "skybaren", "reiseglad", "eventyrlysten", "hjemlengsel", "latsabb" },
-        families = { "bird", "owl", "dragon", "mechanical" },
+        families = { "owl", "bird", "dragon", "mechanical" }, -- (owl first: every owl is a bird too)
         test = function(ctx)
             if ns.Personality:Known(ctx.key) and ns.Personality:Dislikes(ctx.key).taxi then return { _key = "egg.luftskip.redd" } end
             return Quirks.ByNature(ctx)
         end },
-    { id = "seilas", on = "boat", always = true, chance = 0.4,
+    -- (the reptiles before the traits, 2026-11-19, the user: both are Dykker, so the trait's line hid theirs)
+    { id = "seilas", on = "boat", always = true, chance = 0.4, first = { "reptile" },
         traits = { "sjorover", "vannhund", "dykker", "hjemlengsel", "eventyrlysten" },
         families = { "pirate", "cat", "frog", "murloc", "reptile", "bird" },
         test = function(ctx) return Quirks.ByNature(ctx) end },

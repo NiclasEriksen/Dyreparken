@@ -132,18 +132,20 @@ function Moments:Say(m)
 end
 
 -- Lines by nature: { _key = "<prefix>.<id>.<trait|family>" } for the first the pet has with lines, else {}.
+-- Traits first, then families; the families in a row's `first` come before its traits (seilas' reptiles, both
+-- Dykker, 2026-11-19, the user).
 function Moments.ByNature(prefix, row, key)
-    for _, t in ipairs(row.traits or {}) do
-        if ns.Personality:Has(key, t) and ns.Strings[prefix .. "." .. row.id .. "." .. t .. ".1"] then
-            return { _key = prefix .. "." .. row.id .. "." .. t }
-        end
+    local has = {}
+    for _, f in ipairs(row.families and ns.Scenes:Families(key) or {}) do has[f] = true end
+    local function Line(x) return prefix .. "." .. row.id .. "." .. x end
+    for _, f in ipairs(row.first or {}) do
+        if has[f] and ns.Strings[Line(f) .. ".1"] then return { _key = Line(f) } end
     end
-    if row.families then
-        local has = {}
-        for _, f in ipairs(ns.Scenes:Families(key)) do has[f] = true end
-        for _, f in ipairs(row.families) do
-            if has[f] and ns.Strings[prefix .. "." .. row.id .. "." .. f .. ".1"] then return { _key = prefix .. "." .. row.id .. "." .. f } end
-        end
+    for _, t in ipairs(row.traits or {}) do
+        if ns.Personality:Has(key, t) and ns.Strings[Line(t) .. ".1"] then return { _key = Line(t) } end
+    end
+    for _, f in ipairs(row.families or {}) do
+        if has[f] and ns.Strings[Line(f) .. ".1"] then return { _key = Line(f) } end
     end
     return {}
 end

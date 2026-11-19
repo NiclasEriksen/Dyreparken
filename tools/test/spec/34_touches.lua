@@ -399,6 +399,18 @@ return function(test, H)
         ok(Listed() and Listed().got, "and the achievement, listed once earned")
         Jumps(103, 1001)
         eq(Egg("titusenhopp"), 1, "once")
+        -- At least, not exactly (review 2026-11-19): the hundredth of a day passed with no pet out still counts
+        -- at the next with one, and a character already past ten thousand gets the egg at its next jump.
+        At(2027, 3, 11, 12)
+        Jumps(150, 1500)
+        eq(Egg("tusenhopp"), 2, "a thousand passed: still the day's")
+        Jumps(151, 1501)
+        eq(Egg("tusenhopp"), 2, "once a day")
+        local w2, kari, At2 = Eggs({ "glupsk", "rampete" })
+        At2(2027, 3, 9, 12)
+        kari.ns.DB.char.activity.jump = { total = 1499, mine = 1499, today = 3, day = kari.ns.Today(), pets = {} }
+        kari.ns.Activity:Emit("jump"); w2:RunTimers()
+        eq(kari:Eggs("titusenhopp"), 1, "past it already: at the next jump")
     end)
 
     test("named after you, or after another pet in the park", function()

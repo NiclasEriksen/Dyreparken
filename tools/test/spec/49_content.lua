@@ -127,6 +127,45 @@ return function(test, H)
         end
     end)
 
+    test("eggs and reactions: every trait or family they list is the one picked for some species", function()
+        -- Moments.ByNature takes the first the pet has, so one listed after another that every such pet also has
+        -- is never said (review 2026-11-19: every owl is a bird, and bird came first; both reptiles are Dykker).
+        -- (Ola owns every species: a personality is known only then, Personality:Known)
+        local sids = {}
+        for sid in pairs(World().Companions.species) do sids[#sids + 1] = sid end
+        table.sort(sids)
+        local _, ola = H.Setup{ ola = sids, settle = "hello" }
+        local ns, keys = ola.ns, {}
+        for _, sid in ipairs(sids) do keys[#keys + 1] = "s:" .. sid end
+        local function Walk(prefix, row)
+            local picked = {}
+            for _, key in ipairs(keys) do
+                local k = ns.Moments.ByNature(prefix, row, key)._key
+                if k then picked[k] = true end
+            end
+            for _, list in ipairs({ row.traits or {}, row.families or {} }) do
+                for _, x in ipairs(list) do
+                    local k = prefix .. "." .. row.id .. "." .. x
+                    ok(not ns.Strings[k .. ".1"] or picked[k], k .. ": no species gets it (an earlier one in the lists wins)")
+                end
+            end
+        end
+        -- Only rows that pick by nature (a test of its own may name its lines: hakkebakke's playdates).
+        local function ByNature(file)
+            local src, rows = Sources()[file], {}
+            local starts = {}
+            for at, id in src:gmatch('(){ id = "([%w_]+)"') do starts[#starts + 1] = { at = at, id = id } end
+            for i, r in ipairs(starts) do
+                local block = src:sub(r.at, starts[i + 1] and starts[i + 1].at - 1 or #src)
+                rows[r.id] = block:find("ByNature") ~= nil or not block:find("test = ")
+            end
+            return rows
+        end
+        local eggs, reacts = ByNature("Menagerie/Quirks.lua"), ByNature("Menagerie/Reactions.lua")
+        for _, e in ipairs(ns.Quirks.EGGS) do if eggs[e.id] then Walk("egg", e) end end
+        for _, r in ipairs(ns.Reactions.ROWS) do if reacts[r.id] then Walk("react", r) end end
+    end)
+
     test("eggs: Quirks.WATCH is every activity the eggs need that the bond doesn't always watch", function()
         local ns = World()
         local Q, KIND = ns.Quirks, ns.Activity.KIND
