@@ -3,10 +3,6 @@
 return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
 
-    local function Listening(c, event)
-        for _, f in ipairs(c.frames) do if f.events[event] then return true end end
-        return false
-    end
 
     test("PvP kills: logged with the counters while the debug log is on, idle otherwise", function()
         local w, c = H.Setup{ ola = { 5159 }, settle = "hello" }

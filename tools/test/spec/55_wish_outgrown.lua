@@ -20,8 +20,6 @@ return function(test, H)
         ola:OpenJournal()
         return w, ola, ola.ns.Wish, k
     end
-    local function Earned(ola) local e = ola.ns.Registry:Life(OWL, "Ola Nord"); return e and e.p or 0 end
-
     test("an explore wish: a new area of your own does it, even where the owl has been before", function()
         local w, ola, W = Setup("explore")
         local wish = W:Today()
@@ -38,11 +36,11 @@ return function(test, H)
         -- Not any line on screen.
         ola:Fire("UI_INFO_MESSAGE", 0, "Not enough mana")
         no(W:Today().done)
-        local before = Earned(ola)
+        local before = ola:Points(OWL)
         ola:Fire("UI_INFO_MESSAGE", 0, "Discovered: Goldshire")
         ok(W:Today().done)
         ok(ola:Printed("Great Horned Owl fikk ønsket sitt oppfylt: nye steder! (+10 båndpoeng)", true))
-        eq(Earned(ola) - before, 10)
+        eq(ola:Points(OWL) - before, 10)
         eq(ola.ns.DB.char.wishes.n, 1, "counted in the streak")
         no(W:Watching(), "done: the events go")
         -- In system chat too, with the experience it gives (another day).
@@ -173,11 +171,11 @@ return function(test, H)
         Mine(kari)
         eq(w:Sent("GATHER"), 3, "one a kind every GATHER_EVERY seconds")
         w:Run(W.GATHER_EVERY)
-        local before = Earned(ola)
+        local before = ola:Points(OWL)
         Mine(kari)
         ok(W:Today().done)
         ok(ola:Printed("Great Horned Owl fikk se Kari Berg gjøre det, og ønsket ble oppfylt", true))
-        eq(Earned(ola) - before, 10)
+        eq(ola:Points(OWL) - before, 10)
         eq((ola.ns.Activity:Count("mine")), 0, "not your activity")
         -- Another day: not in a fight, not from outside the party, not in a raid.
         w:SkipDays(1)

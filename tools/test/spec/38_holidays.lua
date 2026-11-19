@@ -91,21 +91,17 @@ return function(test, H)
     test("a calendar that never answers, or throws: read what it has after a while, and ask again the next day", function()
         local w, ola = H.Setup{ ola = {} }
         local P, Hol = ola.ns.Personality, ola.ns.Holidays
-        local function Listening()
-            for _, f in ipairs(ola.frames or {}) do if f.events and f.events.CALENDAR_UPDATE_EVENT_LIST then return true end end
-            return false
-        end
         -- Silent: no word that it loaded, though its events are there.
         w:SkipDays(1)
         ola.state.calendarSilent = true
         ola.state.holidays = { [ola.ns.Today()] = { 324 } }
         eq(P.Holiday(w:ServerTime()), nil, "asking")
-        ok(Listening())
+        ok(ola:Listening("CALENDAR_UPDATE_EVENT_LIST"))
         w:Run(2)
         eq(P.Holiday(w:ServerTime()), nil, "still waiting")
         w:Run(Hol.WAIT)
         no(Hol.asking, "given up waiting")
-        no(Listening(), "not listening any more")
+        no(ola:Listening("CALENDAR_UPDATE_EVENT_LIST"), "not listening any more")
         eq(P.Holiday(w:ServerTime()), "Hallow's End", "what the calendar had")
         -- Throws: no holiday today, and the next day asks again.
         w:SkipDays(1)
@@ -113,7 +109,7 @@ return function(test, H)
         local asked = ola.calendarAsked
         eq(P.Holiday(w:ServerTime()), nil)
         no(Hol.asking, "not stuck asking")
-        no(Listening())
+        no(ola:Listening("CALENDAR_UPDATE_EVENT_LIST"))
         eq(P.Holiday(w:ServerTime()), nil); eq(ola.calendarAsked, asked + 1, "once today")
         w:SkipDays(1)
         ola.state.calendarBroken = nil

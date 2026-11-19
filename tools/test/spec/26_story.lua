@@ -111,26 +111,25 @@ return function(test, H)
         eq(ola:SelectPet(5159).wish.text.text, said, "the same line when it shows again")
         eq(card.wish.icon.tex, "Interface\\Icons\\Trade_Herbalism")
         eq(ola:TipOf(card.wish).text, "Dagens ønske / Gjør det med Panda Cub ute i dag, så får dere 10 ekstra båndpoeng.")
-        local function Earned() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
-        local before = Earned()
+        local before = ola:Points(PANDA)
         ola:Fire("QUEST_TURNED_IN", 1)
         no(W:Today().done, "not what it wished for")
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         ok(W:Today().done)
         ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+10 båndpoeng)", true))
-        local after = Earned()
+        local after = ola:Points(PANDA)
         eq(after - before, 1 + 5 + 10, "the quest, the herb, and the wish")
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned(), after + 5, "once a day: the next herb is just a herb")
+        eq(ola:Points(PANDA), after + 5, "once a day: the next herb is just a herb")
         card = ola:SelectPet(5159)
         eq(card.wish.text.text, "Ønsket er oppfylt!"); eq(card.wish.text.color[2], 1)
         -- A new day, a new wish: past the day's limit, like a feat (2026-11-13, the user).
         w:SkipDays(1)
         no(W:Today().done, "a new wish")
         ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), pets = { [PANDA] = { got = {}, total = 72 } } }
-        before = Earned()
+        before = ola:Points(PANDA)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned() - before, 3 + 10, "the herb: what's left of the day; the wish: all of it")
+        eq(ola:Points(PANDA) - before, 3 + 10, "the herb: what's left of the day; the wish: all of it")
         eq(ola.ns.DB.char.bondToday.pets[PANDA].total, 75, "the wish not counted in the day")
         -- Not with another companion out.
         w:SkipDays(1)
@@ -186,18 +185,17 @@ return function(test, H)
         local W = ola.ns.Wish
         W.For = function() return "herb" end
         ola.ns.DB.char.wish = nil
-        local function Earned() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
         ola:Summon(5159)
-        local before = Earned()
+        local before = ola:Points(PANDA)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned() - before, 5 + 10, "the herb and the wish")
+        eq(ola:Points(PANDA) - before, 5 + 10, "the herb and the wish")
         -- Over to the cat and back: a fresh wish for the panda, the same day (review 2026-11-11).
         ola:Slash("adopter bombay"); w:Run(5)
         ola:Slash("adopter panda"); w:Run(5)
         ola:Summon(5159)
-        before = Earned()
+        before = ola:Points(PANDA)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned() - before, 5, "just a herb")
+        eq(ola:Points(PANDA) - before, 5, "just a herb")
         local lines = 0
         for _, line in ipairs(ola.printed) do
             if line:find("fikk ønsket sitt oppfylt", 1, true) then lines = lines + 1 end
@@ -211,15 +209,14 @@ return function(test, H)
         W.For = function() return "herb" end
         ola.ns.DB.char.wish = nil
         ola:Summon(5159)
-        local function Earned() local e = ola.ns.Registry:Life(PANDA, "Ola Nord"); return e and e.p or 0 end
         local function Today(total)
             ola.ns.DB.char.bondToday = { day = ola.ns.Today(), pets = { [PANDA] = { got = { herb = 25 }, total = total } } }
         end
         -- A full day: all ten, past the day's 75 (2026-11-13, the user).
         Today(75)
-        local before = Earned()
+        local before = ola:Points(PANDA)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned() - before, 10)
+        eq(ola:Points(PANDA) - before, 10)
         ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+10 båndpoeng)", true))
         -- Two points short of what the wire accepts (Registry.LifeCap): the line says two.
         local B = ola.ns.Bond
@@ -227,19 +224,19 @@ return function(test, H)
         w:SkipDays(1)
         ola.ns.DB.char.wish = nil
         Today(75); Room(2)
-        before = Earned()
+        before = ola:Points(PANDA)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned() - before, 2)
+        eq(ola:Points(PANDA) - before, 2)
         ok(ola:Printed("Panda Cub fikk ønsket sitt oppfylt: herbs! (+2 båndpoeng)", true))
         -- At the cap: the wish comes true, with no promise of points.
         w:SkipDays(1)
         ola.ns.DB.char.wish = nil
         Today(75); Room(0)
-        before = Earned()
+        before = ola:Points(PANDA)
         ola:ClearPrinted()
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         ok(W:Today().done)
-        eq(Earned() - before, 0)
+        eq(ola:Points(PANDA) - before, 0)
         match(ola:Printed("fikk ønsket sitt oppfylt", true) or "", "Panda Cub fikk ønsket sitt oppfylt: herbs!$")
         no(ola:Printed("båndpoeng", true), "no points promised")
     end)

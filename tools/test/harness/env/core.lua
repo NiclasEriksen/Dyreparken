@@ -6,7 +6,10 @@ return function(c, env, S)
     env.print = function(...) c.printed[#c.printed + 1] = table.concat({ ... }, " ") end
     env.GetTime = function() return w.t end
     env.GetServerTime = function() return w:ServerTime() end
-    env.time, env.date = os.time, os.date
+    -- Without a time, the world's clock, not the host's (as the client: its clock is the machine's, near the
+    -- server's): a bare date("%H") read the hour the tests ran at (2026-11-19, review).
+    env.time = function(t) if t == nil then return w:ServerTime() end return os.time(t) end
+    env.date = function(fmt, t) return os.date(fmt or "%c", t or w:ServerTime()) end
     -- (A test's own handler, seterrorhandler'd, first; the client's records it for the runner.)
     c.errorHandler = nil -- (a new session)
     local record = function(e) c.errors[#c.errors + 1] = tostring(e) end

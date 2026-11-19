@@ -106,7 +106,9 @@ per commit), in a temporary worktree, and refuses the push if it fails. CI runs 
   a new API, stub it realistically in the right `tools/test/harness/env/*.lua` (Client:BuildEnv runs them).
 - Pin a test's world with the harness, never by replacing addon functions: `c:Traits{...}`, `c:Companions(...)`,
   `c:Fixture(fn)` (all survive `c:Reload()`), `c:Dice(roll, pick)` for every chance (the addon rolls only through
-  `ns.random`), `c:QuirksNow()`, `w:SetDate(y, m, d, h)`. Tests run on Europe/Oslo time whatever the host's (run.lua).
+  `ns.random`), `c:QuirksNow()`, `c:SetBond(key, points)`, `w:SetDate(y, m, d, h)`, `w:SetHour(h, min)`. Tests run on
+  Europe/Oslo time whatever the host's (run.lua), and the stubs' `date()`/`time()` without a time read the world's
+  clock. Read state with `c:Points(key)`, `c:Listening(event)`, `c:CountPrinted(text)`.
 - Read the UI as a player does, not through a module's private fields: `c:Visible(text)` (shown text, its parents
   shown too), `c:Labeled(text)` (the check box or button a label names), `c:Frames(pred, root)`, and
   `c:Page(title)` for our side pages (`.tab`, `.button`, `.frame`, `:Open()`, `:Row(name)`, `:Text(t)`).

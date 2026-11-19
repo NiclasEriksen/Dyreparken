@@ -4,12 +4,6 @@ return function(test, H)
     local eq, ok, no, match = H.eq, H.ok, H.no, H.match
     local PANDA = "s:5159"
 
-    local function Count(c, text)
-        local n = 0
-        for _, line in ipairs(c.printed) do if line:find(text, 1, true) then n = n + 1 end end
-        return n
-    end
-
     -- Ola adopts the panda, Kari the cat; then time passes.
     local function Setup()
         local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
@@ -38,7 +32,7 @@ return function(test, H)
         w:SkipDays(30)
         ola:Reload(); kari:Reload()
         w:Run(25)
-        eq(Count(ola, "bodd hos deg"), 0, "not right at login: the sync comes first")
+        eq(ola:CountPrinted("bodd hos deg"), 0, "not right at login: the sync comes first")
         w:Run(15)
         ok(ola:Printed("I dag har Panda Cub bodd hos deg i 1 måned!", true))
         ok(kari:Printed("Ola Nord og Panda Cub feirer 1 måned sammen i dag!", true))
@@ -46,13 +40,13 @@ return function(test, H)
         -- Again the same day: nothing new.
         ola:Reload(); kari:Reload()
         w:Settle("day")
-        eq(Count(ola, "bodd hos deg"), 1)
-        eq(Count(kari, "feirer"), 1)
+        eq(ola:CountPrinted("bodd hos deg"), 1)
+        eq(kari:CountPrinted("feirer"), 1)
         -- The next day there's no milestone.
         w:SkipDays(1)
         kari:Reload()
         w:Settle("day")
-        eq(Count(kari, "feirer"), 1)
+        eq(kari:CountPrinted("feirer"), 1)
     end)
 
     test("the nickname is used, and long guild lists are cut", function()
@@ -75,7 +69,7 @@ return function(test, H)
         ola:Reload()
         w:Settle("day")
         ok(ola:Printed("I dag har Pepe bodd hos deg i 100 dager!", true))
-        eq(Count(ola, "feirer 100 dager sammen i dag!"), 5)
+        eq(ola:CountPrinted("feirer 100 dager sammen i dag!"), 5)
         ok(ola:Printed("... og 2 til.", true))
     end)
 
@@ -88,7 +82,7 @@ return function(test, H)
         ok(ola:Printed("Nå kan du gi Panda Cub et kallenavn: /dp navn", true))
         ola:Reload()
         w:Settle("day")
-        eq(Count(ola, "Nå kan du gi"), 1)
+        eq(ola:CountPrinted("Nå kan du gi"), 1)
         ola:Slash("navn Pepe")
         ola:Slash("gislipp")
         w:Run(1)

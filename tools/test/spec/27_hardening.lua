@@ -472,22 +472,19 @@ return function(test, H)
 
     test("auto-summon listens to the game only while it can do something: on, with a pet to keep out", function()
         local w, ola = Guild({ { "Ola Nord", { 5159 } } })
-        local function Listening(e)
-            for _, f in ipairs(ola.frames) do if f.events[e] then return true end end
-        end
-        no(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "no pet yet")
+        no(ola:Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "no pet yet")
         ola:Slash("adopter panda")
         w:Run(2)
-        ok(Listening("PLAYER_MOUNT_DISPLAY_CHANGED")); ok(Listening("PLAYER_REGEN_ENABLED"))
+        ok(ola:Listening("PLAYER_MOUNT_DISPLAY_CHANGED")); ok(ola:Listening("PLAYER_REGEN_ENABLED"))
         ola.ns.Summon:SetEnabled(false)
-        no(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "turned off")
+        no(ola:Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "turned off")
         ola.ns.Summon:SetEnabled(true)
-        ok(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"))
+        ok(ola:Listening("PLAYER_MOUNT_DISPLAY_CHANGED"))
         ola:Slash("gislipp")
         w:Run(2)
-        ok(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "let go, but still the pet kept out")
+        ok(ola:Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "let go, but still the pet kept out")
         ola.ns.Summon:SetActive("s:5159", false)
-        no(Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "Hold ute unticked")
+        no(ola:Listening("PLAYER_MOUNT_DISPLAY_CHANGED"), "Hold ute unticked")
     end)
 
     -- 2026-11-10: the addon has players outside the developer's reach now.

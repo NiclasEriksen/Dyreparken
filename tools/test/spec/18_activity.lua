@@ -21,30 +21,26 @@ return function(test, H)
         return w, c, c.ns.Activity
     end
 
-    local function Listening(c, event)
-        for _, f in ipairs(c.frames) do if f.events[event] then return true end end
-        return false
-    end
 
     test("idle without consumers; events come and go with Want and Drop", function()
         local w, c, A = Setup()
         for _, e in ipairs({ "ENCOUNTER_END", "CHAT_MSG_TEXT_EMOTE", "PLAYER_PVP_KILLS_CHANGED" }) do
-            no(Listening(c, e), e .. " not registered")
+            no(c:Listening(e), e .. " not registered")
         end
         A:Want("boss", ME)
-        ok(Listening(c, "ENCOUNTER_END")); ok(A:IsListening("ENCOUNTER_END"))
-        no(Listening(c, "CHAT_MSG_TEXT_EMOTE"))
+        ok(c:Listening("ENCOUNTER_END")); ok(A:IsListening("ENCOUNTER_END"))
+        no(c:Listening("CHAT_MSG_TEXT_EMOTE"))
         local other = {}
         A:Want("boss", other)
         A:Drop("boss", ME)
-        ok(Listening(c, "ENCOUNTER_END"), "still wanted by another")
+        ok(c:Listening("ENCOUNTER_END"), "still wanted by another")
         A:Drop("boss", other)
-        no(Listening(c, "ENCOUNTER_END"))
+        no(c:Listening("ENCOUNTER_END"))
         -- The debug log wants everything.
         c:Slash("debug on")
-        ok(Listening(c, "ENCOUNTER_END")); ok(Listening(c, "CHAT_MSG_TEXT_EMOTE"))
+        ok(c:Listening("ENCOUNTER_END")); ok(c:Listening("CHAT_MSG_TEXT_EMOTE"))
         c:Slash("debug off")
-        no(Listening(c, "CHAT_MSG_TEXT_EMOTE"))
+        no(c:Listening("CHAT_MSG_TEXT_EMOTE"))
     end)
 
     test("an undeclared activity fails loudly, before any listener sees it", function()
@@ -246,7 +242,7 @@ return function(test, H)
         Ach:WatchActivities()
         Ach:WatchActivities()
         Ach:Check("login", "char") -- its first look, as at login (a first look is quiet)
-        ok(Listening(c, "ENCOUNTER_END"), "watched for the achievement")
+        ok(c:Listening("ENCOUNTER_END"), "watched for the achievement")
         local done, have, need = Ach:Evaluate(d, {})
         eq(done, false); eq(have, 0); eq(need, 2)
         c:Fire("ENCOUNTER_END", 1, "A", 1, 5, 1)

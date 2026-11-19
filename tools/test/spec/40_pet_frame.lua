@@ -4,10 +4,6 @@ return function(test, H)
     local eq, ok, no = H.eq, H.ok, H.no
     local PANDA = "s:5159"
 
-    local function Listening(c, e)
-        for _, f in ipairs(c.frames) do if f.events[e] then return true end end
-        return false
-    end
     -- Ola with her Panda Cub adopted and out, at a given hour; the frame turned on.
     local function Setup(hour, on)
         local w, ola = H.Setup{ ola = { 5159, 46 } }
@@ -25,11 +21,11 @@ return function(test, H)
         local w, ola, PF = Setup(14, false)
         eq(ola.ns.DB.global.settings.petFrame, false)
         eq(PF.frame, nil, "no frame")
-        no(Listening(ola, "COMPANION_UPDATE"))
+        no(ola:Listening("COMPANION_UPDATE"))
         ola.ns.DB.global.settings.petFrame = true; PF:Apply()
         local f = ola.env.DyreparkenPetFrame
         ok(f:IsShown())
-        ok(Listening(ola, "COMPANION_UPDATE"))
+        ok(ola:Listening("COMPANION_UPDATE"))
         local scene = PF.scene
         eq(scene.sceneID, 1271, "the species' model scene")
         -- The pet draws past the frame (sides and top), with the card's view where it was; the frame
@@ -46,7 +42,7 @@ return function(test, H)
         -- Off again: hidden, nothing listened to.
         ola.ns.DB.global.settings.petFrame = false; PF:Apply()
         no(f:IsShown())
-        no(Listening(ola, "COMPANION_UPDATE"))
+        no(ola:Listening("COMPANION_UPDATE"))
     end)
 
     test("it moves as on the card: asleep at night, a cheer at a new level, walking with you", function()

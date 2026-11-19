@@ -9,17 +9,11 @@ return function(test, H)
     end
 
     -- Give Ola's panda this many points (its bond, as if earned long ago).
-    local function Points(ola, p)
-        local now = ola.ns.Now()
-        local g = ola.ns.DB:Guild()
-        g.life[PANDA] = { ["Ola Nord"] = { p = p, f = now - 400 * 86400, t = now } }
-    end
-
     test("the medallion, the track of stars and the bar show the holder's bond in its tier", function()
         local w, ola = Setup()
         ola:Slash("adopter panda")
         w:Run(5)
-        Points(ola, 300) -- Venn, level 3
+        ola:SetBond(PANDA, 300) -- Venn, level 3
         local card = ola:SelectPet(5159)
         local b = card.bond
         ok(b:IsShown())
@@ -41,16 +35,16 @@ return function(test, H)
         end
         eq(#b.pips, 7)
         -- Gold from 5: the ring's own gold, glowing.
-        Points(ola, 1000)
+        ola:SetBond(PANDA, 1000)
         card = ola:SelectPet(5159)
         eq(b.level.text, 5)
         no(b.medal.ring.desaturated); ok(b.medal.glow:IsShown()); ok(b.medal.glow.pulse:IsPlaying())
         -- The top: a full bar, no spark.
-        Points(ola, 7000)
+        ola:SetBond(PANDA, 7000)
         card = ola:SelectPet(5159)
         eq(b.text.text, "7000"); no(b.spark:IsShown())
         -- The level preview shows that level's own name and points (it said "Bekjent (level 7)").
-        Points(ola, 30)
+        ola:SetBond(PANDA, 30)
         ola:Slash("probe level 7")
         eq(b.label.text, "Sjelevenn"); eq(b.level.text, 7); eq(b.next.text, "Høyeste level")
         ola:Slash("probe level 4")
@@ -66,7 +60,7 @@ return function(test, H)
         local w, ola = Setup()
         ola:Slash("adopter panda")
         w:Run(5)
-        Points(ola, 300)
+        ola:SetBond(PANDA, 300)
         local card = ola:SelectPet(5159)
         local p = card.bond.pips[4]
         eq(ola:TipOf(p).text, "Level 4: God venn / Fra 530 poeng. / Kortet får en glød under dyret.")
@@ -133,18 +127,17 @@ return function(test, H)
         local w, ola, kari = Setup()
         ola:Slash("adopter panda")
         w:Run(5)
-        Points(ola, 300)
+        ola:SetBond(PANDA, 300)
         ola:Traits{ "glupsk", "reiseglad" } -- plain: a day is 10, herbs are liked (the panda's own)
         ola:NoBonuses() -- (just the activities)
         local card = ola:SelectPet(5159)
         local b = card.bond
-        local function Earned() return ola.ns.Registry:Life(PANDA, "Ola Nord").p end
         eq(b.text.text, "300 / 530", "nothing yet today")
         no(b.text:IsShown(), "the points show only on hover")
         b.scripts.OnEnter(b); ok(b.text:IsShown()); b.scripts.OnLeave(b); no(b.text:IsShown())
         no(b.today:IsShown())
         ola.ns.Activity:CheckDay()
-        eq(Earned(), 310)
+        eq(ola:Points(PANDA), 310)
         eq(b.text.text, "310 / 530  (+10)", "today's points on the bar")
         ok(b.today:IsShown(), "lit up")
         local lo, width = b.today.points[1][4], b.today.size[1]
@@ -156,13 +149,13 @@ return function(test, H)
         ola:Traits{ "eventyrlysten", "reiseglad" }
         for _ = 1, 6 do ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1) end -- 25 (boss, liked now)
         ola:Traits{ "glupsk", "steinhard" }
-        eq(Earned(), 360)
+        eq(ola:Points(PANDA), 360)
         ok(not ola:Printed("fullt for i dag", true))
         for _ = 1, 6 do ola:Fire("QUEST_TURNED_IN", 1) end -- quests (liked now): 15 of 25 fit
-        eq(Earned(), 375, "75 in a day, no more")
+        eq(ola:Points(PANDA), 375, "75 in a day, no more")
         ok(ola:Printed("Båndet med Panda Cub er fullt for i dag. Fortsett i morgen!", true))
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2575)
-        eq(Earned(), 375)
+        eq(ola:Points(PANDA), 375)
         local fulls = 0
         for _, l in ipairs(ola.printed) do if l:find("fullt for i dag", 1, true) then fulls = fulls + 1 end end
         eq(fulls, 1, "said once")
@@ -183,9 +176,9 @@ return function(test, H)
         w:SkipDays(1)
         ola.ns.DB.char.bondToday = { day = os.date("%Y%m%d", ola.ns.Now()), pets = { [PANDA] = { got = {}, total = 70 } } }
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
-        eq(Earned(), 380, "the new day's visit came first, with the herb: only the 5 left, nothing for the herb")
+        eq(ola:Points(PANDA), 380, "the new day's visit came first, with the herb: only the 5 left, nothing for the herb")
         ola.ns.Activity:CheckDay()
-        eq(Earned(), 380, "once a day")
+        eq(ola:Points(PANDA), 380, "once a day")
         card = ola:SelectPet(5159)
         match(b.next.text, "ReadyCheck%-Ready:12|t 150 poeng til God venn$")
     end)

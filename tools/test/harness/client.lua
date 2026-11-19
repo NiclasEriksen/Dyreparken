@@ -372,6 +372,22 @@ function Client:QuirksNow()
     self.ns.DB.char.quirkAt = nil
 end
 
+-- Whether any of the addon's frames listens to a game event now (the performance rule: only while needed).
+function Client:Listening(event)
+    for _, f in ipairs(self.frames or {}) do if f.events[event] then return true end end
+    return false
+end
+
+-- A carer's bond with a pet, written as synced data would be (g.life): points, first day (default: long enough
+-- ago for the points to fit under the cap), last write (default now). who: default this client.
+function Client:SetBond(key, points, opts)
+    opts = opts or {}
+    local now = self.ns.Now()
+    local g = self.ns.DB:Guild()
+    g.life[key] = g.life[key] or {}
+    g.life[key][opts.who or self.name] = { p = points, f = opts.from or (now - 400 * 86400), t = opts.at or now }
+end
+
 -- Chat lines the addon printed for this client (color codes stripped).
 function Client:Printed(pattern, plain)
     for i = #self.printed, 1, -1 do

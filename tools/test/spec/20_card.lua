@@ -124,10 +124,7 @@ return function(test, H)
     test("the light follows the clock: morning, day, evening, dusk and night", function()
         local w, ola = Setup()
         local function At(h)
-            local now = ola.ns.Now()
-            local t = os.date("*t", now)
-            t.hour, t.min = h, 30
-            w:Skip(os.time(t) - now)
+            w:SetHour(h, 30)
             local card = ola:SelectPet(40)
             return card.skyName, card.sky:IsShown(), card.sky.gradient
         end

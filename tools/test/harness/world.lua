@@ -59,6 +59,15 @@ function World:SetDate(year, month, day, hour, min)
 end
 
 function World:SkipDays(days) self:Skip(days * 86400) end
+-- Move the clock forward to the next h:min on the players' clock (today's, or tomorrow's once it's past).
+function World:SetHour(hour, min)
+    local now = self:ServerTime()
+    local t = os.date("*t", now)
+    t.hour, t.min, t.sec = hour, min or 0, 0
+    local at = os.time(t)
+    if at < now then t.day = t.day + 1; at = os.time(t) end
+    self:Skip(at - now)
+end
 
 -- Bring every online client's adopted pet up to the bond level that allows a
 -- nickname (Config.NICKNAME_LEVEL), through Bond:Add like real points (it's

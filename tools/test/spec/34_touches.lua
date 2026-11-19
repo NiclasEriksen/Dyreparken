@@ -540,13 +540,10 @@ return function(test, H)
 
     test("a guildmate's /dp klapp on your pet: hearts and a line, at most once every few minutes", function()
         local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
-        local function Listening(e)
-            for _, f in ipairs(ola.frames) do if f.events[e] then return true end end
-        end
-        no(Listening("CHAT_MSG_EMOTE"), "no adopted pet: not listening")
+        no(ola:Listening("CHAT_MSG_EMOTE"), "no adopted pet: not listening")
         ola:Slash("adopter panda")
         w:Run(5)
-        ok(Listening("CHAT_MSG_EMOTE"))
+        ok(ola:Listening("CHAT_MSG_EMOTE"))
         ola:Summon(5159)
         kari:Target({ species = 5159, owner = "Ola Nord" })
         kari:Slash("klapp")
@@ -561,7 +558,7 @@ return function(test, H)
         eq(#ola.printed, 0, "someone else's pet, and not a guildmate")
         ola:Slash("gislipp")
         w:Run(1)
-        no(Listening("CHAT_MSG_EMOTE"), "let go: not listening")
+        no(ola:Listening("CHAT_MSG_EMOTE"), "let go: not listening")
     end)
 
     test("the card hints at dislikes not found out yet; easter eggs found add up to achievements", function()
