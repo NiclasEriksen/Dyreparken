@@ -37,12 +37,20 @@ jobs:
       # without the developer-only ones, and the Claude credit once at the top
       # instead of a Co-Authored-By line under every entry. .pkgmeta points
       # the packager at this file (manual-changelog).
+      # Secrets stay secret (2026-11-19, the user: easter eggs and hidden achievements kept out of the changelog):
+      # a subject's {{...}} shows as *****, and .github/changelog-fix.txt ("<full hash> <subject>" per line)
+      # replaces the subject of a commit already pushed that gave one away.
       - name: Changelog
         run: |
           tag="${GITHUB_REF_NAME}"
           prev=$(git describe --tags --abbrev=0 "${tag}^" 2>/dev/null || true)
-          lines=$(git log --no-merges --format='- %s' ${prev:+"$prev.."}"$tag" \
-            | grep -vE '^- (Tests|Tidy-up|Notes|Docs|Developer probe)\b' || true)
+          lines=$(git log --no-merges --format='%H %s' ${prev:+"$prev.."}"$tag" \
+            | while read -r sha subject; do
+                fix=$(grep -m1 "^$sha " .github/changelog-fix.txt 2>/dev/null | cut -d' ' -f2- || true)
+                echo "- ${fix:-$subject}"
+              done \
+            | grep -vE '^- (Tests|Tidy-up|Notes|Docs|Developer probe)\b' \
+            | sed -E 's/\{\{[^}]*\}\}/*****/g' || true)
           {
             echo "# Dyreparken ${tag}"
             echo

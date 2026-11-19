@@ -135,6 +135,10 @@ and refuses the push if it fails.
   Co-Authored-By lines left out; the Claude credit is one line at the top), skipping subjects that start with
   `Tests:`, `Tidy-up:`, `Notes:`, `Docs:` or `Developer probe`. So write subjects for players, and start developer-only
   ones with one of those words. `.pkgmeta` has `manual-changelog: CHANGELOG.md`.
+- **Keep secrets out of the changelog** (2026-11-19, the user): easter eggs, hidden achievements and other surprises
+  are never named in a subject. Wrap the giveaway in `{{...}}` (it shows as `*****`), e.g. "and {{ten thousand jumps}}
+  earns something". A subject already pushed that gives one away gets a line in `.github/changelog-fix.txt`
+  (`<full hash> <subject>`) before the tag.
 - `.pkgmeta` lists the dev files left out of the zip: tools, docs, CLAUDE.md, README.md, .claude, .luarc.json, .github,
   .githooks, Dev (whose TOC lines sit in a `#@do-not-package@` block).
 - Any wire format change bumps `X-Protocol` (the floor stays, see Working rules). Any saved data change adds a migration (see Working rules).
