@@ -95,13 +95,27 @@ function Playdate:Near(sender)
     return ns.UnitNear(unit, "playdate")
 end
 
+-- The playdate's line. Two families that meet have their own (2026-11-18, the user: "Cats should react
+-- differently to rodents or dogs/pups"): play.<ours>.<theirs>.N, {friend} with its owner ("Mjau (Kari Berg)").
+-- Each pet's families in Scenes' order, the first that sets its look first: the first pair with lines speaks
+-- (a parrot is a pirate before a bird). Else the plain one.
+function Playdate.Line(mine, theirs, sender)
+    local pet, friend = ns.Registry:NameOf(mine), ns.Registry:NameFor(theirs, sender)
+    for _, a in ipairs(ns.Scenes:Families(mine)) do
+        for _, b in ipairs(ns.Scenes:Families(theirs)) do
+            local line = ns.PickLine("play." .. a .. "." .. b, { pet = pet, friend = ("%s (%s)"):format(friend, sender) })
+            if line then return line end
+        end
+    end
+    return ns.T("play.line", { pet = pet, friend = friend, owner = sender })
+end
+
 -- Someone in our group has a pet out.
 function Playdate:Heard(sender, theirs)
     local mine = PetOut()
     if not mine or ns.Guild:IsMember(sender) ~= true then return end
     if not self:Near(sender) then return end -- (no answer either: they're far from us too)
-    local line = ns.T("play.line", { pet = ns.Registry:NameOf(mine), friend = ns.Registry:NameFor(theirs, sender),
-        owner = sender })
+    local line = Playdate.Line(mine, theirs, sender)
     if ns.Bond:Reward("play", mine, line) then
         ns.Log("Bond", "playdate: %s with %s's %s", mine, sender, theirs)
         self:Count(mine, sender, theirs)

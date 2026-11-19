@@ -25,7 +25,7 @@ return function(test, H)
     -- prefixes, each checked against the runtime tables below.
     local DYNAMIC = { "time.", "home.", "bond.level.", "decor.level.", "effect.times.", "activity.",
         "holiday.", "trait.", "effect.activity.", "dislike.", "egg.", "voice.", "settings.", "feat.", "card.unlock.", "first.place.",
-        "source.", "park.filter.", "wish.say.", "react.", "unlisted." }
+        "source.", "park.filter.", "wish.say.", "react.", "unlisted.", "play." }
 
     test("ns.T fills named placeholders; a missing key or value shows, never breaks", function()
         local w = H.World()
@@ -88,6 +88,18 @@ return function(test, H)
             if kind == "egg" then ok(eggs[id], key .. ": no such egg") end
             if (kind == "dislike" or kind == "egg") and n ~= "1" then
                 ok(ns.Strings[("%s.%s.%d"):format(kind, id, n - 1)], key .. ": a gap before it")
+            end
+        end
+        -- Playdates between families (Playdate.Line): two families of Scenes.ORDER, numbered from 1.
+        local family = {}
+        for _, f in ipairs(ns.Scenes.ORDER) do family[f] = true end
+        for key in pairs(ns.Strings) do
+            local a, b, n = key:match("^play%.(%a+)%.(%a+)%.(%d+)$")
+            if a then
+                ok(family[a] and family[b], key .. ": not two families")
+                ok(n == "1" or ns.Strings[("play.%s.%s.%d"):format(a, b, n - 1)], key .. ": a gap before it")
+            elseif key:find("^play%.") then
+                ok(({ ["play.line"] = 1, ["play.inseparable"] = 1, ["play.best"] = 1 })[key], key .. ": not a playdate line")
             end
         end
         for day, name in pairs(ns.Personality.HOLIDAYS) do ok(ns.Strings["holiday." .. day], day) end

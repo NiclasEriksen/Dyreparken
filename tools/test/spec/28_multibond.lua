@@ -289,6 +289,32 @@ return function(test, H)
         eq(ola:Points(KITTEN), 8)
     end)
 
+    -- Two families that meet have their own lines (2026-11-18, the user: "Cats should react differently to rodents
+    -- or dogs/pups"); the first pair with lines, each pet's families in Scenes' order; else the plain line.
+    test("playdates: a pair of families has its own lines, both ways; others keep the plain one", function()
+        local w, ola = Setup()
+        local P, ns = ola.ns.Playdate, ola.ns
+        local function OneOf(line, prefix, pet, friend)
+            for _, key in ipairs(ns.Lines(prefix)) do
+                if line == ns.T(key, { pet = pet, friend = friend }) then return true end
+            end
+            return false
+        end
+        local cat, dog = ns.Registry:NameOf("s:40"), ns.Registry:NameFor("s:70", "Kari Berg")
+        local line = P.Line("s:40", "s:70", "Kari Berg")
+        ok(OneOf(line, "play.cat.rodent", cat, dog .. " (Kari Berg)"), line)
+        line = P.Line("s:70", "s:40", "Kari Berg")
+        ok(OneOf(line, "play.rodent.cat", ns.Registry:NameOf("s:70"), ns.Registry:NameFor("s:40", "Kari Berg") .. " (Kari Berg)"), line)
+        -- A parrot is a pirate before a bird.
+        line = P.Line("s:40", "s:51", "Kari Berg")
+        ok(OneOf(line, "play.cat.pirate", cat, ns.Registry:NameFor("s:51", "Kari Berg") .. " (Kari Berg)"), line)
+        -- No lines for a bear meeting a cat, nor for a pet without families (a mage's familiar): the plain line.
+        eq(P.Line("s:5159", "s:40", "Kari Berg"), ns.T("play.line", { pet = ns.Registry:NameOf("s:5159"),
+            friend = ns.Registry:NameFor("s:40", "Kari Berg"), owner = "Kari Berg" }))
+        eq(P.Line("s:40", "n:Cat Familiar", "Kari Berg"), ns.T("play.line", { pet = cat,
+            friend = ns.Registry:NameFor("n:Cat Familiar", "Kari Berg"), owner = "Kari Berg" }))
+    end)
+
     test("playdates: only with a guildmate near you, not one far away in the same group", function()
         local w, ola, kari = Setup()
         local m = w:Mark()
