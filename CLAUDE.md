@@ -48,7 +48,11 @@ quirks. When you learn something new about the client, add it there with the dat
   seen) are quiet until `/dp debug unmute` (`Debug.QUIET`; `/dp probe sense` hears casts). Everything printed is
   logged as `Chat`, with the line's key when `ns.PickLine` chose it (`-m Chat`: what the player was told).
 - `luajit tools/lines.lua egg.stup --pet 70` (or `--traits a,b`, `--class`, `--race`, `--all`): every text a pet can
-  say for a line, by its nature, through the real ns.Lines and Moments.ByNature; for editing Locale/nb.lua. Our own Lua errors go into the log
+  say for a line, by its nature, through the real ns.Lines and Moments.ByNature; for editing Locale/nb.lua.
+- `luajit tools/chatter.lua --pet 70 --class shaman --days 28 --profile casual|regular|grinder [--chatter few]`: days of
+  scripted play (activities at guessed rates, fights with the class's casts) in a harness client: the bond's pace
+  (days to each level) and every line group with how often it came and on what share of days. Run it after
+  changing a chance, a cooldown or a REWARDS row. Our own Lua errors go into the log
   with their stack (Dev/Errors.lua, through BugGrabber), and `--errors` also reads BugGrabber's saved ones.
 
 **Types** (2026-11-15): every file starts `---@class Dyreparken` / `local ns = select(2, ...)` (one class in parts), and
