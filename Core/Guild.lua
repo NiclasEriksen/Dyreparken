@@ -34,8 +34,8 @@ local function Read(stale)
     local members, read = {}, 0
     for i = 1, total do
         local name = GetGuildRosterInfo(i)
-        if name then
-            local key = ns.NormalizeName(name)
+        local key = name and ns.NormalizeName(name) -- (nil for an empty name: skipped, not a Lua error)
+        if key then
             local years, months, days = GetGuildRosterLastOnline(i)
             -- Months are approximated as 30 days, years as 365: we only
             -- compare against a threshold measured in weeks.

@@ -496,7 +496,8 @@ function PF:NextChange()
     local d = date("*t", now)
     local hour = (d.hour >= 22 or d.hour < 4) and 4 or 22
     local at = time({ year = d.year, month = d.month, day = d.day, hour = hour, min = 0, sec = 1 })
-    if at <= now then at = at + 86400 end
+    -- (tomorrow's by its date: + 86400 is an hour off on the two DST nights)
+    if at <= now then at = time({ year = d.year, month = d.month, day = d.day + 1, hour = hour, min = 0, sec = 1 }) end
     -- One timer at a time (code review 2026-11-11: a new one on every refresh piled up thousands).
     if self.changeAt == at then return end
     self.changeAt = at

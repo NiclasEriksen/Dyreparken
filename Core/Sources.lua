@@ -296,7 +296,8 @@ local died = false
 Activity:Source({ id = "revive", events = { "PLAYER_DEAD", "PLAYER_ALIVE", "PLAYER_UNGHOST" },
     filter = function(event)
         if event == "PLAYER_DEAD" then died = true; return nil end
-        if not died or UnitIsDeadOrGhost("player") then return nil end
+        -- (Plain: a secret would throw here, and the source would be off for the session, review 2026-11-19)
+        if not died or Plain(UnitIsDeadOrGhost("player")) ~= false then return nil end
         died = false
         C_Timer.After(10, function() Activity:Emit("revive", 1) end)
     end })

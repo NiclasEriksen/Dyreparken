@@ -213,6 +213,20 @@ return function(test, H)
         eq(w:Sent("OWN", "Ola Nord", m), 0)
     end)
 
+    test("a newer copy of our list from before this login (our other PC's) joins ours", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 41 } }
+        -- Written on the other PC an hour before this login, with a pet this one's SavedVariables don't have.
+        ola:Logout(); w:Skip(7200); ola:Login(); w:Settle("hello")
+        local at = ola.ns.DB:Guild().owns["Ola Nord"].at
+        local m = w:Mark()
+        w:InjectMessage("Kari Berg", { k = "OWN_SYNC", p = 11, i = 1, of = 1, d = 1,
+            o = { ["Ola Nord"] = { at = at + 1, s = "40,5159" } } })
+        w:Run(5)
+        eq(ola.ns.DB:Guild().owns["Ola Nord"].s, "40,5159", "joined, not outdone")
+        eq(w:Sent("OWN", "Ola Nord", m), 1)
+        eq(kari.ns.DB:Guild().owns["Ola Nord"].s, "40,5159")
+    end)
+
     test("members only: a non-member's list isn't kept, and who leaves goes at the next roster", function()
         local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 41 } }
         local now = w:ServerTime()

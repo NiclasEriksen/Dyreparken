@@ -142,6 +142,23 @@ return function(test, H)
         match(ola:Printed("[Kattevræl] ", true), "%[Kattevræl%] %d%d%.%d%d%.%d%d%d%d$", "shared: no star")
     end)
 
+    test("share: at most five lines a click, the rest at the next (the server's chat flood limit)", function()
+        local w, ola = Setup({ 40 })
+        local A, n = ola.ns.Achievements, 0
+        for _, d in ipairs(ola.ns.AchDefs) do
+            if n < 8 and (d.scope or "account") == "account" and not A:Got(d.id) then
+                ola.ns.DB.global.ach.got[d.id] = { at = ola.ns.Now() }
+                n = n + 1
+            end
+        end
+        local before = #w.chat
+        ola:Slash("prestasjoner del")
+        eq(#w.chat - before, A.SHARE_MAX)
+        ok(ola:Printed("3 til venter. Del dem med /dp prestasjoner del en gang til.", true))
+        ola:Slash("prestasjoner del")
+        eq(#w.chat - before, 8)
+    end)
+
     test("share fills placeholders; no flavor: the generic line; quiet ones are never offered", function()
         local w, ola = Setup(Pets(CATS)) -- cats quiet on the first run
         local A = ola.ns.Achievements

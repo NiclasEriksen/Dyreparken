@@ -1709,6 +1709,7 @@ ns.AchTexts = {
         share_hint = "Del det i guildchatten med /dp prestasjoner del.",
         already = "Du har allerede {n} prestasjoner fra før. Se dem med /dp prestasjoner.",
         none_to_share = "Ingen nye prestasjoner å dele.",
+        share_more = "{n} til venter. Del dem med /dp prestasjoner del en gang til.",
         not_in_guild = "Du er ikke i en guild.",
         notify_on = "Andre med Dyreparken får beskjed når du får en prestasjon.",
         notify_off = "Andre med Dyreparken får ikke lenger beskjed om prestasjonene dine.",

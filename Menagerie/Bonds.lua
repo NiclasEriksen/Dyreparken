@@ -32,10 +32,13 @@ local MAX_OTHERS = 5  -- guild milestone lines; the rest are counted
 
 local Plain = ns.Plain
 
--- Days counted at local noon, so DST shifts never move a day.
+-- The local calendar day as a number (a Julian day): from the date alone, so no DST shift or timezone moves it
+-- (local noon over 86400 did, far from UTC, review 2026-11-19).
 local function DayNumber(t)
     local d = date("*t", t)
-    return math.floor(time({ year = d.year, month = d.month, day = d.day, hour = 12 }) / 86400)
+    local a = math.floor((14 - d.month) / 12)
+    local y, m = d.year + 4800 - a, d.month + 12 * a - 3
+    return d.day + math.floor((153 * m + 2) / 5) + 365 * y + math.floor(y / 4) - math.floor(y / 100) + math.floor(y / 400) - 32045
 end
 Bonds.DayNumber = DayNumber
 

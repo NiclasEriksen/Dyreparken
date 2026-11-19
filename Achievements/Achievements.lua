@@ -636,14 +636,18 @@ function Ach:Shareable(id)
     return Scope(d) ~= "guild" or IsOfficer()
 end
 
--- Post every earned, unshared achievement (or just `only`) to guild chat.
--- Only from a keypress or click (/dp prestasjoner del, the page's Del button):
+-- Post every earned, unshared achievement (or just `only`) to guild chat, at most SHARE_MAX a click (review
+-- 2026-11-19: a first share could be 20 lines at once, past the server's chat flood limit; the rest wait for the
+-- next click). Only from a keypress or click (/dp prestasjoner del, the page's Del button):
 -- Forever blocks guild chat from anything else.
+Ach.SHARE_MAX = 5
 function Ach:Share(only)
     if not IsInGuild() then return ns.Print(T().not_in_guild) end
-    local ctx, n, guild = Context(), 0, {}
+    local ctx, n, guild, more = Context(), 0, {}, 0
     for _, d in ipairs(ns.AchDefs) do
-        if (only == nil or only == d.id) and self:Shareable(d.id) then
+        if (only == nil or only == d.id) and self:Shareable(d.id) and n >= Ach.SHARE_MAX then
+            more = more + 1
+        elseif (only == nil or only == d.id) and self:Shareable(d.id) then
             local g = self:Got(d.id)
             SendChatMessage(self:ShareLine(d.id, ctx), "GUILD")
             g.ann = ctx.now
@@ -654,6 +658,7 @@ function Ach:Share(only)
     -- Other officers' clients stop offering it.
     if next(guild) then ns.Comm:Send("ACH", { a = guild }, "GUILD") end
     if n == 0 then ns.Print(T().none_to_share) else ns.Bus:Fire("ACH") end
+    if more > 0 then ns.Print(ns.Fill(T().share_more, { n = more })) end
 end
 
 -- quiet: from the settings page, whose checkbox already shows it.

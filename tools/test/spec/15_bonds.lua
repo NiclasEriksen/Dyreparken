@@ -273,4 +273,15 @@ return function(test, H)
         eq(ola:Card().todayBox.tip, ("Dagens dyr: %s, som bor hos %s.\n|cffa0a0a0Klikk for å se det.|r")
             :format(card.today.text, owner))
     end)
+
+    test("day numbers are calendar days, across DST and the year's end", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        local D = c.ns.Bonds.DayNumber
+        local function T(y, m, d, h, min) return os.time({ year = y, month = m, day = d, hour = h, min = min or 0 }) end
+        eq(D(T(2027, 3, 28, 23, 30)) - D(T(2027, 3, 27, 0, 30)), 1, "over the spring's short night")
+        eq(D(T(2026, 10, 25, 23, 59)) - D(T(2026, 10, 25, 0, 1)), 0, "the autumn's long day is one day")
+        eq(D(T(2027, 1, 1, 0, 5)) - D(T(2026, 12, 31, 23, 55)), 1)
+        eq(D(T(2028, 3, 1, 12)) - D(T(2028, 2, 28, 12)), 2, "a leap year's 29 February")
+    end)
 end

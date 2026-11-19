@@ -143,16 +143,33 @@ end
 ------------------------------------------------------------------------------
 -- Merge, prune, digest
 ------------------------------------------------------------------------------
+local loginAt
+ns.Start("login", function() loginAt = ns.Now() end)
+
 -- A peer's copy of an entry (from: who sent it on the guild channel). Returns true when the store changed.
 function Owners:Merge(owner, e, from)
     local g = G()
     if not g or not Owners.Valid(owner, e) then return false end
     local cur = g.owns[owner]
     if owner == ns.PlayerKey() then
-        -- Ours is only ours: a copy that isn't it and would win (forged) is outdone by ours, written newer.
+        -- Ours is only ours: a copy that isn't it and would win is outdone by ours, written newer. One written
+        -- before this login may be our other PC's, with pets this one's SavedVariables haven't seen yet (review
+        -- 2026-11-19): its pets join ours (pets are for good). One since our login can only be made up.
         if cur and (cur.s ~= e.s or cur.at ~= e.at) and e.at >= cur.at then
+            if loginAt and e.at < loginAt then
+                local ids = {}
+                for id in (cur.s .. "," .. e.s):gmatch("%d+") do ids[tonumber(id)] = true end
+                local list = {}
+                for id in pairs(ids) do list[#list + 1] = id end
+                table.sort(list)
+                for i = #list, Wire.LIMITS.OWNS_MAX + 1, -1 do list[i] = nil end
+                cur.s = table.concat(list, ",")
+                ns.Log("Owners", "a copy of ours from before this login (%s): joined", tostring(from))
+                self:Changed()
+            else
+                ns.Log("Owners", "a copy of ours from %s wasn't ours: ours again", tostring(from))
+            end
             cur.at = math.max(ns.Now(), e.at + 1)
-            ns.Log("Owners", "a copy of ours from %s wasn't ours: ours again", tostring(from))
             ns.Comm:Send("OWN", { e = cur }, "GUILD")
         end
         return false

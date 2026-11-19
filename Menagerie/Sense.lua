@@ -208,9 +208,11 @@ Sense.SENSORS = {
         local added = info.addedAuras
         if type(added) ~= "table" or Secret(added) then return end
         for _, aura in ipairs(added) do
-            if type(aura) ~= "table" or Secret(aura) then return end
-            local name, id = Plain(aura.name), Plain(aura.spellId)
-            if type(name) == "string" and Plain(aura.isHelpful) ~= false then Fire("buff", { name = name, id = id, combat = ns.InCombat() }) end
+            -- (a secret one is skipped, not the rest of them with it, review 2026-11-19)
+            if type(aura) == "table" and not Secret(aura) then
+                local name, id = Plain(aura.name), Plain(aura.spellId)
+                if type(name) == "string" and Plain(aura.isHelpful) ~= false then Fire("buff", { name = name, id = id, combat = ns.InCombat() }) end
+            end
         end
     end },
     pet = { events = { "UNIT_PET" }, unit = "player",
@@ -323,6 +325,10 @@ end
 
 ns.Start("login", function()
     if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall and Enum.TooltipDataType then
-        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, OnUnitTooltip)
+        -- (pcall'd, as Tooltip's: a surprise in a unit's data must not be a Lua error at every hover)
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(tooltip, data)
+            local ok, err = pcall(OnUnitTooltip, tooltip, data)
+            if not ok then ns.Log("Sense", "glance error: %s", tostring(err)) end
+        end)
     end
 end)
