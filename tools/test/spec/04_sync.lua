@@ -453,6 +453,42 @@ return function(test, H)
         eq(w:Sent("HELLO", "Per Hansen", m), 0)
     end)
 
+    test("a guild's thousand lapses: the part too big for one goes as several, and every client takes it, old ones too", function()
+        local w = H.World({ members = H.FOLK })
+        local ola = w:AddClient("Ola Nord", { pets = { 5159 } })
+        w:Run(20)
+        ola:Slash("adopter"); w:Run(2)
+        -- (random letters barely compress: 1000 of them are far past one part's 64 chunks, review 2026-11-19)
+        local g, now = ola.ns.DB:Guild(), w:ServerTime()
+        local A = "abcdefghijklmnopqrstuvwxyz"
+        local function Word(n)
+            local t = {}
+            for i = 1, n do local r = math.random(#A); t[i] = A:sub(r, r) end
+            return t[1]:upper() .. table.concat(t, "", 2)
+        end
+        for i = 1, ola.ns.Wire.LIMITS.LAPSES_MAX do g.lapses[Word(10) .. " " .. Word(14)] = now - i end
+        local count = 0
+        for _ in pairs(g.lapses) do count = count + 1 end
+        no(ola.ns.Comm.Fits({ l = g.lapses }), "too big for one part")
+        local m = w:Mark()
+        local kari = w:AddClient("Kari Berg", { pets = { 46 } })
+        local old = w:AddClient("Gammel Versjon", { from = "v0.7.1", pets = { 40 } })
+        w:Run(120)
+        local parts = 0
+        for i = m + 1, #w.wire do
+            local x = w.wire[i]
+            if x.kind == "SYNC" and x.from == "Ola Nord" then parts = math.max(parts, tonumber(x.msg.of) or 0) end
+        end
+        ok(parts > 3, "more parts than the usual three: " .. parts)
+        for _, c in ipairs({ kari, old }) do
+            local n = 0
+            for _ in pairs(c.ns.DB:Guild().lapses) do n = n + 1 end
+            eq(n, count, c.name .. ": every lapse")
+            eq(c.ns.Registry:Holder(PANDA), "Ola Nord", c.name .. ": and the claims")
+        end
+        eq(kari.ns.Sync:Digest(), ola.ns.Sync:Digest())
+    end)
+
     test("another protocol's SYNC, UPD and LAPSE are ignored", function()
         local w, ola = Guild({ { "Ola Nord", { 5159 } } })
         w:InjectMessage("Ny Versjon", { k = "SYNC", p = 99, d = 1, r = { ["Ny Versjon"] = { k = PANDA, at = 1, ts = 1 } } })

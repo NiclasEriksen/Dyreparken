@@ -112,15 +112,48 @@ function Sync:Digest()
     return LibDeflate:Adler32(table.concat(parts, "\30"))
 end
 
+-- A part too big to send (a big guild's years of lapses: part 1 passed MAX_PARTS chunks at ~800 of them, and went
+-- unsent without a word, review 2026-11-19) goes as several: its biggest table halved, by its sorted keys, until
+-- each piece fits. Receivers merge any part by its tables' keys whatever its number (MergeAll), older clients too,
+-- so this needs no protocol; a SYNC of an everyday size is laid out as before. An entry too big alone is logged.
+local function Halve(t)
+    local keys = {}
+    for k in pairs(t) do keys[#keys + 1] = k end
+    table.sort(keys, function(a, b) return tostring(a) < tostring(b) end)
+    local a, b = {}, {}
+    for i, k in ipairs(keys) do if i <= #keys / 2 then a[k] = t[k] else b[k] = t[k] end end
+    return a, b, #keys
+end
+local function Fit(msg, out)
+    if ns.Comm.Fits(msg) then out[#out + 1] = msg; return end
+    local wire, most = nil, 0
+    for w, t in pairs(msg) do
+        local n = 0
+        for _ in pairs(t) do n = n + 1 end
+        if n > most then wire, most = w, n end
+    end
+    if most < 2 then return ns.Log("Sync", "a SYNC part too big to send, with one entry in it: left out") end
+    local a, b = Halve(msg[wire])
+    local first, second = {}, {}
+    for w, t in pairs(msg) do first[w], second[w] = t, t end
+    first[wire], second[wire] = a, b
+    -- (the other tables go in the first half only)
+    for w in pairs(second) do if w ~= wire then second[w] = nil end end
+    Fit(first, out); Fit(second, out)
+end
+
 local function SendFull()
     pending = nil
     if not IsInGuild() then return end
     lastSent = GetTime()
-    local parts = {}
+    local byPart = {}
     for _, row in ipairs(Sync.TABLES) do
-        parts[row.part] = parts[row.part] or {}
-        parts[row.part][row.wire] = row.source()
+        byPart[row.part] = byPart[row.part] or {}
+        byPart[row.part][row.wire] = row.source()
     end
+    local parts = {}
+    for _, msg in ipairs(byPart) do Fit(msg, parts) end
+    if #parts > #byPart then ns.Log("Sync", "SYNC in %d parts (a part was too big for one)", #parts) end
     for i, msg in ipairs(parts) do
         msg.i, msg.of = i, #parts
         if i == #parts then msg.d = Sync:Digest() end

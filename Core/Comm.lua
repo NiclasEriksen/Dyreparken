@@ -197,6 +197,9 @@ local function OnSent(kind, sent)
     if not sent then ns.Log("Comm", "send of %s not delivered", tostring(kind)) end
 end
 
+-- Would every receiver take this message (it fits in MAX_PARTS chunks)? Sync splits a part that doesn't.
+function Comm.Fits(msg) return #Encode(msg) <= CHUNK * LIMITS.MAX_PARTS end
+
 -- channel: "GUILD", "RAID", "PARTY", "INSTANCE_CHAT", "WHISPER". (No
 -- priorities: the outbox is first in, first out.)
 function Comm:Send(kind, msg, channel, target)
