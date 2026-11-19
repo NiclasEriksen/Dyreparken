@@ -85,6 +85,9 @@ L["release.none"] = "Du har ikke adoptert noe dyr."
 L["release.done"] = "Du ga slipp på {pet}."
 L["lapse.away"] = "{pet} dro tilbake til parken mens du var lenge borte. Adopter det igjen hvis det fortsatt er ledig."
 L["lapse.beaten"] = "{owner} rakk å adoptere {pet} rett før deg, så det bor der nå."
+-- A copy of your own record from a guildmate changed which pet lives with you (your other PC's, most likely).
+L["own.relayed"] = "Ifølge {who} bor {pet} hos deg nå (endret på en annen PC?)."
+L["own.relayed_none"] = "Ifølge {who} bor ikke {pet} hos deg lenger (endret på en annen PC?). Var det ikke deg, kan du adoptere det igjen."
 L["lapse.unknown_owner"] = "?"
 
 ------------------------------------------------------------------------------

@@ -146,6 +146,18 @@ local function Admit(author, from)
 end
 Registry.Admit = Admit
 
+-- A peer's copy of our own entry, newer than ours (2026-11-19, review: any member could relay a "copy" of
+-- someone's record that freed their pet, on every client, theirs too, without a word). A character is online on
+-- one PC at a time, so nothing but this client writes our entries while we're logged in: a copy stamped since
+-- our login is made up. It's refused and ours written again, newer, so every client comes back to ours. An
+-- older one is taken (our other PC's, from before this login: its SavedVariables may be behind), and a claim
+-- it changes is told (MergeRecord). Bonds aren't guarded: they only grow, so ours can't win again by a stamp.
+local loginAt
+ns.Start("login", function() loginAt = ns.Now() end)
+local function OwnForged(author, stamp, from)
+    return author == ns.PlayerKey() and from ~= nil and from ~= author and loginAt ~= nil and stamp >= loginAt
+end
+
 -- Entries by someone the roster doesn't list, until the next one judges them.
 local held = {}
 local function Hold(store, key, author, e)
@@ -282,6 +294,11 @@ function Registry:MergeName(key, namer, e, from)
     local byKey = g.names[key]
     local cur = byKey and byKey[namer]
     if cur and (cur.at > e.at or (cur.at == e.at and NameLine(cur) >= NameLine(e))) then return false end
+    if OwnForged(namer, e.at, from) then
+        ns.Log("Registry", "refused a copy of our name for %s from %s, stamped since our login", key, tostring(from))
+        self:WriteOwn("names", key, cur and { n = cur.n, x = cur.x } or { x = true }, e.at)
+        return false
+    end
     local member = Admit(namer, from)
     if not member and not Journal(key) then return Hold("names", key, namer, e) end
     if not byKey then byKey = {}; g.names[key] = byKey end
@@ -303,9 +320,19 @@ function Registry:MergeRecord(owner, r, from)
     if not g or not Registry.ValidClaim(owner, r) then return false end
     local cur = g.claims[owner]
     if cur and (cur.ts > r.ts or (cur.ts == r.ts and ClaimLine(cur) >= ClaimLine(r))) then return false end
+    if OwnForged(owner, r.ts, from) then
+        ns.Log("Registry", "refused a copy of our record from %s, stamped since our login", tostring(from))
+        if cur then self:WriteOwn("claims", nil, { k = cur.k, at = cur.at }, r.ts) end
+        return false
+    end
     if not Admit(owner, from) then return Hold("claims", owner, owner, r) end
     g.claims[owner] = Copy(r)
     dirty = true
+    if owner == ns.PlayerKey() and from and from ~= owner and cur and cur.k ~= r.k then
+        -- (from before this login: our other PC's, most likely; said, in case it wasn't)
+        ns.Print(ns.T(r.k and "own.relayed" or "own.relayed_none", { who = from,
+            pet = ns.Pets:NameOfKey(r.k or cur.k) }))
+    end
     return true
 end
 
@@ -375,14 +402,16 @@ local OWN = {
 }
 
 -- Write our own entry: store "claims" (key: unused, the record is ours),
--- "names" or "life" (key: the pet). Returns the entry as stored.
-function Registry:WriteOwn(store, key, e)
+-- "names" or "life" (key: the pet). Returns the entry as stored. beat: a stamp to outdo (a made-up copy of ours,
+-- stamped ahead: OwnForged), within the clock slack peers allow.
+function Registry:WriteOwn(store, key, e, beat)
     local spec = assert(OWN[store], "WriteOwn: not a store of our own")
     local g, me = G(), ns.PlayerKey()
     local t = g[store]
     local prev
     if spec.nested then prev = t[key] and t[key][me] else prev = t[me] end
     e[spec.stamp] = math.max(ns.Now(), (prev and prev[spec.stamp] or 0) + spec.step)
+    if beat then e[spec.stamp] = math.max(e[spec.stamp], math.min(beat + 1, ns.Now() + Config.CLOCK_SLACK)) end
     -- An entry peers would refuse is our bug. The tests fail on it (ns.STRICT, the harness); in the
     -- game it's logged and kept as before, never a Lua error in the middle of adopting a pet (2026-11-12).
     if not spec.valid(key, me, e) then

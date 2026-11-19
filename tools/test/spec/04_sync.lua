@@ -388,6 +388,38 @@ return function(test, H)
         H.assertConverged(w)
     end)
 
+    test("a relayed copy of your own record: refused if made since your login, else taken and told", function()
+        local w, ola, kari = Guild({ { "Ola Nord", { 5159 } }, { "Kari Berg", { 46 } } })
+        ola:Slash("adopter")
+        w:Run(2)
+        local p = kari.ns.PROTOCOL
+        local mine = ola.ns.Registry:MyRecord()
+        -- Mallory relays a "copy" of Ola's record, released, stamped a minute ahead (review 2026-11-19): only
+        -- Ola's client writes it while she's online, so hers refuses it and writes hers again, and Kari follows.
+        w:InjectMessage("Mallory Mal", { k = "SYNC", p = p, d = 1,
+            r = { ["Ola Nord"] = { at = mine.at, ts = w:ServerTime() + 60 } }, l = {} })
+        w:Run(5)
+        eq(ola.ns.Registry:MyPet(), PANDA)
+        ok(ola:Log("refused a copy of our record from Mallory Mal")[1])
+        eq(kari.ns.Registry:Holder(PANDA), "Ola Nord", "ours again, newer")
+        no(ola:Printed("bor ikke Panda Cub hos deg lenger", true))
+        -- A name of hers made up the same way: refused, hers written again.
+        w:InjectMessage("Mallory Mal", { k = "SYNC", p = p, d = 1,
+            n = { [PANDA] = { ["Ola Nord"] = { n = "Tullball", at = w:ServerTime() + 30 } } } })
+        w:Run(5)
+        eq(kari.ns.Registry:Nickname(PANDA), nil)
+        eq(ola.ns.Registry:Nickname(PANDA), nil)
+        H.assertConverged(w)
+        -- One from before this login (her other PC's, say) is taken, and she's told.
+        ola:Logout(); w:Skip(3600); ola:Login(); w:Settle("hello")
+        mine = ola.ns.Registry:MyRecord()
+        w:InjectMessage("Kari Berg", { k = "SYNC", p = p, d = 1,
+            r = { ["Ola Nord"] = { at = mine.at, ts = mine.ts + 1 } }, l = {} })
+        w:Run(5)
+        eq(ola.ns.Registry:MyPet(), nil)
+        ok(ola:Printed("Ifølge Kari Berg bor ikke Panda Cub hos deg lenger", true))
+    end)
+
     test("another protocol's SYNC, UPD and LAPSE are ignored", function()
         local w, ola = Guild({ { "Ola Nord", { 5159 } } })
         w:InjectMessage("Ny Versjon", { k = "SYNC", p = 99, d = 1, r = { ["Ny Versjon"] = { k = PANDA, at = 1, ts = 1 } } })
