@@ -5,10 +5,10 @@
 #  1. Every file in the TOC exists, and every addon .lua is listed in the TOC.
 #  2. Lua 5.1 syntax (luajit parses 5.1; it also accepts goto, so we grep for that).
 #  3. Constructs WoW's Lua 5.1 lacks: goto/labels, //, bitwise operators.
-#  4. No read of a lowercase global but the known ones (Lua's and the client's): a misspelt or out-of-order local
-#     reads as nil there, silently (2026-11-15: Parken's rings read `match` before it was declared).
+#  4. (A bytecode scan for reads of unknown lowercase globals went 2026-11-19: luacheck's W113 reports the same, a
+#     misspelt or out-of-order local, like Parken's rings reading `match` before it was declared, 2026-11-15.)
 #  5. luacheck (2026-11-15), its config built from the harness's stubs (tools/lint_config.lua): writes to
-#     globals, reads of globals and C_* fields the stubs lack (GetZonetext, C_PetJournal.GetPetInfoBySpeciesId).
+#     globals, reads of globals and C_* fields the stubs lack (GetZonetext, C_PetJournal.GetPetInfoBySpeciesId, match).
 #  6. The Lua language server, headless (2026-11-15): the namespace's fields and modules' methods
 #     (tools/types.lua writes tools/types/ns.lua from the code), arguments past a function's. Types of values
 #     are left out (.luarc.json: our `a and b or c` idioms read as mismatches). It runs in the background,
@@ -45,18 +45,6 @@ for f in $own; do
         | grep -nE '\bgoto\b|::[A-Za-z_]+::|//|[^~<>=]~[^=]|<<|>>|[^&]&[^&]|\|' \
         | sed "s#^#LUA51: $f:#")
     [[ -n "$hits" ]] && { echo "$hits"; fail=1; }
-done
-
-# The lowercase globals the addon may read (Lua 5.1's, and the client's own lowercase functions).
-known=" ipairs pairs tostring tonumber type math table string pcall error assert select next unpack rawget rawset
- setmetatable getmetatable _G date time hooksecurefunc geterrorhandler seterrorhandler debugstack issecretvalue
- issecrettable debugprofilestop wipe strtrim strsplit format tinsert tremove "
-known=" $(echo $known) " # (one line: the list's line breaks as spaces)
-for f in $own; do
-    [[ $f == ./tools/* ]] && continue
-    while IFS= read -r g; do
-        [[ $known == *" $g "* ]] || { echo "GLOBAL: $f reads \"$g\" (a misspelt or undeclared local? else add it to check.sh's known)"; fail=1; }
-    done < <(luajit -bl "$f" 2>/dev/null | grep 'GGET' | grep -o '"[a-z_][A-Za-z0-9_]*"$' | tr -d '"' | sort -u)
 done
 
 # The language server is most of the static checks' time (6 of --quick's 10 s): it runs alongside luacheck and the

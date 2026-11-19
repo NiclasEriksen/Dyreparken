@@ -7,8 +7,13 @@
 --   luajit tools/log.lua -m Reactions,Wish  only these modules (-x Moves,Sense: all but these)
 --   luajit tools/log.lua -g "said today"    only lines with this text (plain; -p for a Lua pattern)
 --   luajit tools/log.lua --summary          lines per module, and the commonest lines (numbers as N)
---   luajit tools/log.lua --errors           our Lua errors: the log's, then BugGrabber's saved ones
+--   luajit tools/log.lua --errors           our Lua errors: the log's, then BugGrabber's saved ones of the last
+--                                           7 days (--errors-all: every one it kept; old ones are usually fixed)
 --   luajit tools/log.lua --dump api.glance  a table in DyreparkenDebugDB, as Lua
+--   luajit tools/log.lua --db settings      a table in DyreparkenDB (the account's data), as Lua
+--   luajit tools/log.lua --at 22:08 [-w 90] the lines around a time of day (every session; the newest day that has
+--                                           any), 60 s either side by default: "my pet said something odd at 22:08"
+--   luajit tools/log.lua --rate             lines per minute per module (a noisy new module stands out)
 --   luajit tools/log.lua -n 50              the last 50 lines only
 --   luajit tools/log.lua -f <file>          another SavedVariables file (default: WTF/Account/*/SavedVariables)
 --
@@ -30,7 +35,12 @@ while i <= #args do
     elseif a == "--sessions" then opt.sessions = true
     elseif a == "--summary" then opt.summary = true
     elseif a == "--errors" then opt.errors = true
+    elseif a == "--errors-all" then opt.errors, opt.allErrors = true, true
     elseif a == "--dump" then opt.dump = Next()
+    elseif a == "--db" then opt.db = Next()
+    elseif a == "--at" then opt.at = Next(); opt.session = "all"
+    elseif a == "-w" then opt.window = tonumber(Next())
+    elseif a == "--rate" then opt.rate = true
     elseif a == "-h" or a == "--help" then
         for line in io.lines(arg[0]) do
             if not line:find("^%-%-") then break end
@@ -67,7 +77,7 @@ if not file then
     file = found[1]
     if not file then io.stderr:write("no WTF/Account/*/SavedVariables/Dyreparken.lua: give one with -f\n"); os.exit(1) end
 end
-local db, err = Load(file, "DyreparkenDebugDB")
+local db, err = Load(file, opt.db and "DyreparkenDB" or "DyreparkenDebugDB")
 if not db then io.stderr:write("can't read ", file, ": ", tostring(err or "no DyreparkenDebugDB"), "\n"); os.exit(1) end
 
 -- A table as Lua text, keys sorted.
@@ -93,9 +103,9 @@ local function Show(v, indent, seen)
     return table.concat(out, "\n")
 end
 
-if opt.dump then
+if opt.dump or opt.db then
     local v = db
-    for part in opt.dump:gmatch("[^%.]+") do
+    for part in (opt.dump or opt.db):gmatch("[^%.]+") do
         if type(v) ~= "table" then v = nil; break end
         v = v[tonumber(part) or part]
     end
@@ -158,7 +168,26 @@ local function Set(list)
     return s
 end
 local only, except = Set(opt.only), Set(opt.except)
+-- --at: seconds into the day, and the newest day with a line that near it.
+local atDay, atSecs
+if opt.at then
+    local h, m, sec = opt.at:match("^(%d+):(%d+):?(%d*)$")
+    if not h then io.stderr:write("--at HH:MM[:SS]\n"); os.exit(2) end
+    atSecs = tonumber(h) * 3600 + tonumber(m) * 60 + (tonumber(sec) or 0)
+    opt.window = opt.window or 60
+    for _, e in ipairs(entries) do
+        local d = os.date("*t", e.t)
+        if math.abs(d.hour * 3600 + d.min * 60 + d.sec - atSecs) <= opt.window then atDay = os.date("%Y%m%d", e.t) end
+    end
+    if not atDay then io.stderr:write("no line within ", opt.window, " s of ", opt.at, "\n"); os.exit(1) end
+end
 local function Keep(e)
+    if atDay then
+        local d = os.date("*t", e.t)
+        if os.date("%Y%m%d", e.t) ~= atDay or math.abs(d.hour * 3600 + d.min * 60 + d.sec - atSecs) > opt.window then
+            return false
+        end
+    end
     if only and not only[e.module] then return false end
     if except and except[e.module] then return false end
     local text = e.module .. "\t" .. e.msg
@@ -182,16 +211,21 @@ if opt.errors then
     end
     local bugs = Glob('"' .. file:match("^(.*)/[^/]*$") .. '/!BugGrabber.lua"')[1]
     local bdb = bugs and Load(bugs, "BugGrabberDB")
-    print("-- BugGrabber's saved errors that name Dyreparken (newest first):")
+    print("-- BugGrabber's saved errors that name Dyreparken (newest first" .. (opt.allErrors and "" or ", the last 7 days") .. "):")
     local list = bdb and bdb.errors or {}
+    local since, older = not opt.allErrors and (os.time() - 7 * 86400) or nil, 0
     for n = #list, 1, -1 do
         local e = list[n]
-        if type(e) == "table" and ((e.message or ""):find("Dyreparken") or (e.stack or ""):find("Dyreparken")) then
+        local ours = type(e) == "table" and ((e.message or ""):find("Dyreparken") or (e.stack or ""):find("Dyreparken"))
+        if ours and since and type(e.time) == "number" and e.time < since then
+            older = older + 1
+        elseif ours then
             local when = type(e.time) == "number" and os.date("%Y-%m-%d %H:%M:%S", e.time) or tostring(e.time)
             print(("%s  x%d  session %s\n  %s\n  %s"):format(when, e.counter or 1, tostring(e.session),
                 tostring(e.message), (tostring(e.stack or "")):gsub("\n", "\n  ")))
         end
     end
+    if older > 0 then print(("(%d older ones: --errors-all)"):format(older)) end
     os.exit(0)
 end
 
@@ -211,6 +245,21 @@ if opt.summary then
     end
     print("-- Lines per module:"); Top(modules, 40)
     print("-- The commonest lines:"); Top(shapes, 25)
+    os.exit(0)
+end
+
+if opt.rate then
+    -- Over the sessions' own time (a session's first line to its last), the " (xN)" counted in.
+    local minutes, count = 0, {}
+    for _, s in ipairs(picked) do minutes = minutes + (s.lines[#s.lines].t - s.lines[1].t) / 60 end
+    for _, o in ipairs(out) do
+        count[o.e.module] = (count[o.e.module] or 0) + (tonumber(o.e.msg:match(" %(x(%d+)%)$")) or 1)
+    end
+    local list = {}
+    for m, n in pairs(count) do list[#list + 1] = { m, n } end
+    table.sort(list, function(a, b) return a[2] > b[2] end)
+    print(("-- Lines per minute over %.0f minutes:"):format(minutes))
+    for _, x in ipairs(list) do print(("%8.2f  %6d  %s"):format(x[2] / math.max(minutes, 1), x[2], x[1])) end
     os.exit(0)
 end
 

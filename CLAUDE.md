@@ -27,9 +27,8 @@ quirks. When you learn something new about the client, add it there with the dat
 
 ## Verify
 
-- `tools/check.sh` runs the TOC↔file check, a Lua 5.1 syntax check (luajit), a scan for 5.2+ syntax, a scan for
-  reads of unknown lowercase globals (a misspelt or undeclared local; the known ones are listed in it),
-  luacheck (its config from the harness's stubs, `tools/lint_config.lua`: a client API must be stubbed before lint takes
+- `tools/check.sh` runs the TOC↔file check, a Lua 5.1 syntax check (luajit), a scan for 5.2+ syntax,
+  luacheck (reads of unknown globals too: a misspelt or undeclared local; its config from the harness's stubs, `tools/lint_config.lua`: a client API must be stubbed before lint takes
   it; one read only behind an existence check goes in its OPTIONAL list; `-- luacheck: ignore NNN (why)` for a meant one),
   the Lua language server headless (fields and arguments: `ns.Bodn`, `ns.Wish:Grnat()`, an argument too many; value
   types are off in .luarc.json; it runs alongside the rest), and the test suite with coverage floors (~35 s).
@@ -43,11 +42,13 @@ quirks. When you learn something new about the client, add it there with the dat
   `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
   `serverTime  GetTime  module  message`, ring buffer of `Config.DEBUG_RING_SIZE` (8000); `head` is the newest index).
   **Read it with `luajit tools/log.lua`** (`-h`: the newest session by default, `--sessions`, `-m/-x` modules, `-g`
-  text, `--summary`, `--errors`, `--dump api.glance`). Each login writes a `Session start` line first of all, and a
+  text, `--summary`, `--errors`, `--dump api.glance`, `--db settings`, `--at 22:08` the lines around a time, `--rate`). Each login writes a `Session start` line first of all, and a
   `Session settled` one (zone, guild, pets) 10 s on; a line repeated right after itself becomes " (xN)";
   `/dp debug mute <Module>` silences a noisy one. `Moves.step` (every animation played) and `Sense.cast` (every cast
   seen) are quiet until `/dp debug unmute` (`Debug.QUIET`; `/dp probe sense` hears casts). Everything printed is
-  logged as `Chat`, with the line's key when `ns.PickLine` chose it (`-m Chat`: what the player was told). Our own Lua errors go into the log
+  logged as `Chat`, with the line's key when `ns.PickLine` chose it (`-m Chat`: what the player was told).
+- `luajit tools/lines.lua egg.stup --pet 70` (or `--traits a,b`, `--class`, `--race`, `--all`): every text a pet can
+  say for a line, by its nature, through the real ns.Lines and Moments.ByNature; for editing Locale/nb.lua. Our own Lua errors go into the log
   with their stack (Dev/Errors.lua, through BugGrabber), and `--errors` also reads BugGrabber's saved ones.
 
 **Types** (2026-11-15): every file starts `---@class Dyreparken` / `local ns = select(2, ...)` (one class in parts), and

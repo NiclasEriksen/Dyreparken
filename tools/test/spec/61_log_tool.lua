@@ -39,4 +39,51 @@ return function(test, H)
         ok(dump:find("n = 2,", 1, true), dump)
         os.remove(file)
     end)
+
+    test("the settled line joins its session's head; --at, --rate and --db", function()
+        local file = os.tmpname()
+        local f = io.open(file, "w")
+        local function At(hms) -- (a time of the players' day, as the log holds it)
+            local d = os.date("*t", 1790000000)
+            d.hour, d.min, d.sec = hms:match("(%d+):(%d+):(%d+)")
+            return os.time(d)
+        end
+        f:write('DyreparkenDebugDB = { lines = { head = 5,\n',
+            ('"%d\\t1.000\\tSession\\tstart dev, Ola Nord WARRIOR",\n'):format(At("22:00:00")),
+            ('"%d\\t2.000\\tDebug\\tenabled dev",\n'):format(At("22:00:00")),
+            ('"%d\\t11.000\\tSession\\tsettled in Orgrimmar, guild G (5 members)",\n'):format(At("22:00:10")),
+            ('"%d\\t481.000\\tChat\\tegg.midnatt.1: Pepe gjesper.",\n'):format(At("22:08:00")),
+            ('"%d\\t601.000\\tMoves\\tframe s:1: jump (x9)",\n'):format(At("22:10:00")),
+            '} }\nDyreparkenDB = { settings = { chatter = "few" } }\n')
+        f:close()
+        local sessions = Run(file, "--sessions")
+        eq(#sessions, 1, "the settled line doesn't start a session")
+        ok(sessions[1]:find("start dev, Ola Nord WARRIOR; settled in Orgrimmar", 1, true), sessions[1])
+        local near = Run(file, "--at 22:08 -w 30")
+        eq(#near, 1); ok(near[1]:find("egg.midnatt.1: Pepe gjesper.", 1, true), near[1])
+        eq(#Run(file, "--at 22:09"), 2, "a minute either side by default")
+        local rate = table.concat(Run(file, "--rate"), "\n")
+        ok(rate:find("over 10 minutes", 1, true), rate)
+        ok(rate:find("    0.90       9  Moves", 1, true), rate)
+        ok(table.concat(Run(file, "--db settings"), "\n"):find('chatter = "few"', 1, true))
+        os.remove(file)
+    end)
+
+    test("tools/lines.lua: what a pet can say, by its nature, class and race", function()
+        local function Lines(flags)
+            local p = io.popen("luajit tools/lines.lua " .. flags .. " 2>&1")
+            local out = p:read("*a")
+            p:close()
+            return out
+        end
+        local out = Lines("egg.stup --traits kjaelen,latsabb")
+        ok(out:find("Panda Cub (s:5159): traits kjaelen, latsabb; families bear", 1, true), out)
+        ok(out:find("by its nature (egg.stup.latsabb)", 1, true), out)
+        ok(not out:find("egg.stup.1 ", 1, true), "not the plain ones")
+        out = Lines("react.totemer --class shaman --pet 70")
+        ok(out:find("react.totemer.1 +Brown Prairie Dog snuser"), out)
+        out = Lines("egg.luftskip --all")
+        ok(out:find("-- trait skybaren:", 1, true) and out:find("-- the plain ones:", 1, true), out)
+        ok(Lines("nope.x"):find("no text: nope.x", 1, true))
+    end)
 end

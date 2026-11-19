@@ -102,6 +102,21 @@ return function(test, H)
                 ok(({ ["play.line"] = 1, ["play.inseparable"] = 1, ["play.best"] = 1 })[key], key .. ": not a playdate line")
             end
         end
+        -- Every group of variants, whatever its kind, numbered without a gap (ns.Variants stops at one: a line past
+        -- it is never said), and the player's own lines under a class or race the client has (a typo, .shamen.,
+        -- would never be said either). Keys numbered by an id (holiday.0101, source.where.5159) have no .1.
+        local CLASSES = { warrior = 1, paladin = 1, hunter = 1, rogue = 1, priest = 1, shaman = 1, mage = 1, warlock = 1, druid = 1 }
+        local RACES = { human = 1, dwarf = 1, nightelf = 1, gnome = 1, orc = 1, scourge = 1, tauren = 1, troll = 1 }
+        for key in pairs(ns.Strings) do
+            local prefix, n = key:match("^(.+)%.(%d+)$")
+            if prefix and ns.Strings[prefix .. ".1"] and tonumber(n) > 1 then
+                ok(ns.Strings[("%s.%d"):format(prefix, n - 1)], key .. ": a gap before it")
+            end
+            local class = key:match("%.class%.([^.]+)%.%d+$")
+            if class then ok(CLASSES[class], key .. ": no such class (the client's file name, lower case)") end
+            local race = key:match("%.race%.([^.]+)%.%d+$")
+            if race then ok(RACES[race], key .. ": no such race (the client's file name, lower case)") end
+        end
         for day, name in pairs(ns.Personality.HOLIDAYS) do ok(ns.Strings["holiday." .. day], day) end
         for i = 1, #ns.Bond.LEVELS do ok(ns.Strings["bond.level." .. i]) end
         for n = 2, 7 do ok(ns.Strings["decor.level." .. n]) end
