@@ -17,7 +17,7 @@ return function(test, H)
         eq((A:Count("gold")), 1)
         local me = ola.env.UnitGUID("player")
         local function Emote(text) ola:Fire("CHAT_MSG_TEXT_EMOTE", text, "Ola Nord", "", "", "", "", 0, 0, "", 0, 0, me) end
-        Emote("You laugh."); Emote("You tell a joke."); Emote("You wave."); w:Run(1)
+        Emote("You laugh."); w:Run(A.EMOTE_EVERY); Emote("You tell a joke."); Emote("You wave."); w:Run(1)
         eq((A:Count("fun")), 2, "laughing and joking; waving isn't silly")
         eq(A.EmoteKind("With arms flapping, you strut around. Cluck, Cluck, Chicken!"), "fun")
         eq(A.EmoteKind("You dance."), "dance", "dancing stays its own")

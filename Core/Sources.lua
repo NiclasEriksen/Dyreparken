@@ -147,10 +147,17 @@ function Activity.EmoteKind(text)
     end
     return nil
 end
+-- Each kind counts once per EMOTE_EVERY, like a dive (review 2026-11-19, the user: five /dance filled a 25-point
+-- like in seconds; a like you live with, not a macro).
+Activity.EMOTE_EVERY = 300
+local lastEmote = {}
 for _, kind in ipairs({ "dance", "cuddle", "fun" }) do
     Activity:Source({ id = kind, events = { "CHAT_MSG_TEXT_EMOTE" }, filter = function(_, text, ...)
         if not Own((select(11, ...))) then return nil end
-        if Activity.EmoteKind(text) == kind then return 1 end
+        if Activity.EmoteKind(text) ~= kind then return nil end
+        if lastEmote[kind] and GetTime() - lastEmote[kind] < Activity.EMOTE_EVERY - 0.01 then return nil end
+        lastEmote[kind] = GetTime()
+        return 1
     end })
 end
 
