@@ -44,6 +44,12 @@ function JournalList.PetLines(key, free, nick)
         Add(ns.Home(status == "mine" and ns.L["home.you"] or owner, r.at), 1, 0.82, 0)
         Add(ns.T("tip.bond", { label = ns.Bond:Label(key) }), 1, 1, 1)
     end
+    -- Your own bond with one you don't hold, in words: the ring tells it by its color alone (gold yours, grey its
+    -- carer's: review 2026-11-19).
+    local p, level, levelName, _, _, yours = ns.Bond:Own(key)
+    if yours and status ~= "mine" and p and p > 0 then
+        Add(ns.T("tip.yours", { label = ns.T("bond.label", { level = levelName, n = level }) }), 1, 0.82, 0)
+    end
     local name, namer, namedAt = ns.Registry:Nickname(key)
     if name then
         if nick then Add(ns.T("tip.nick", { nick = name }), 1, 1, 1) end
@@ -128,19 +134,28 @@ local function UpdateBadge(button, ctx)
         local name = rawget(button, "name")
         if type(name) == "table" and name.GetObjectType then
             b.name = name
-            b.nick = button:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+            -- (warm, as the card's likes line: disabled grey read as unavailable, review 2026-11-19)
+            b.nick = button:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+            b.nick:SetTextColor(0.8, 0.76, 0.66)
+            b.nick:SetWordWrap(false)
         end
-        -- The pet kept out (OutBadge): a small gold paw on its icon.
+        -- The pet kept out (OutBadge): a small gold paw on its icon, on a dark disc (review 2026-11-19: a bare paw
+        -- was also the grey "someone else's" mark at the row's end).
         local icon = rawget(button, "icon")
+        b.outDisc = button:CreateTexture(nil, "OVERLAY", nil, 6)
+        b.outDisc:SetTexture(ns.Icon("dot"))
+        b.outDisc:SetVertexColor(0.1, 0.07, 0.03, 0.9)
+        b.outDisc:SetSize(18, 18)
         b.out = button:CreateTexture(nil, "OVERLAY", nil, 7)
         b.out:SetTexture(ns.Icon("paw"))
         b.out:SetVertexColor(1, 0.82, 0.3, 1)
-        b.out:SetSize(16, 16)
+        b.out:SetSize(13, 13)
         if type(icon) == "table" and icon.GetObjectType then
-            b.out:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 3, -3)
+            b.outDisc:SetPoint("BOTTOMRIGHT", icon, "BOTTOMRIGHT", 4, -4)
         else
-            b.out:SetPoint("LEFT", button, "LEFT", 30, -10)
+            b.outDisc:SetPoint("LEFT", button, "LEFT", 29, -10)
         end
+        b.out:SetPoint("CENTER", b.outDisc, "CENTER", 0, 0)
         badges[button] = b
     end
     local sid = speciesOf[button]
@@ -150,7 +165,7 @@ local function UpdateBadge(button, ctx)
     if mine and p == 0 and key ~= ctx.myPet then -- one of yours, no bond yet: its carer's, if any
         level, mine = select(2, ns.Bond:Of(key)), false
     end
-    b.out:SetShown(key ~= nil and key == ctx.active)
+    b.out:SetShown(key ~= nil and key == ctx.active); b.outDisc:SetShown(b.out:IsShown())
     b.ring:SetShown(level ~= nil); b.level:SetShown(level ~= nil)
     if level then
         b.level:SetText(level)
@@ -163,7 +178,13 @@ local function UpdateBadge(button, ctx)
         -- button: seen 2026-11-08).
         b.nick:SetText(nick and ns.T("list.nick", { nick = nick }) or "")
         b.nick:ClearAllPoints()
-        b.nick:SetPoint("LEFT", b.name, "LEFT", b.name:GetStringWidth() + 5, 0)
+        -- (it ends before the ring, cut with "...", review 2026-11-19; a name on two lines: under it)
+        if (b.name.GetNumLines and b.name:GetNumLines() or 1) > 1 then
+            b.nick:SetPoint("TOPLEFT", b.name, "BOTTOMLEFT", 0, -1)
+        else
+            b.nick:SetPoint("LEFT", b.name, "LEFT", b.name:GetStringWidth() + 5, 0)
+        end
+        b.nick:SetPoint("RIGHT", b.ring, "LEFT", -4, 0)
         b.nick:SetShown(nick ~= nil)
     end
 end

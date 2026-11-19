@@ -28,7 +28,7 @@ ns.Bonds = Bonds
 
 local SHOW_AFTER = 30 -- seconds after login: the login SYNC has arrived by then
 local REPEAT_AFTER = 3600 -- seconds before the same announcement can be posted again
-local MAX_OTHERS = 5  -- guild milestone lines; the rest are counted
+local MAX_OTHERS = 3  -- guildmates named in the milestones' line; the rest are counted
 
 local Plain = ns.Plain
 
@@ -107,7 +107,11 @@ ns.Bus:On("BOND_LEVEL", function(key, level, name)
     if key == ns.Registry:MyPet() then Bonds:TellNameUnlock() end
     if ns.Personality:Known(key) then Bonds:TellUnlocks(key, level) end
 end)
-ns.Bus:On("BOND_FULL", function(key) ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end)
+-- Only for the adopted pet (2026-11-19, the user: each pet out earns its own day, and every swap brought a line;
+-- the card's tick shows the others').
+ns.Bus:On("BOND_FULL", function(key)
+    if key == ns.Registry:MyPet() then ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end
+end)
 ns.Bus:On("BOND_LINE", function(key, text, kind)
     if ns.Settings:Chatty() then ns.PrintGold(text) end
     ns.Bus:Fire("PET_SAID", key, kind or "like", text)
@@ -156,15 +160,25 @@ function Bonds:Celebrate()
     g.bondDay = today
     local years = self:ParkBirthday(now)
     if years then ns.Print(Gold(ns.T("park.birthday", { n = years }))) end
-    local lines = {}
+    -- Guildmates' milestones: one alone in full; more in one line, the first names and how many in all
+    -- (2026-11-19, the user: the login's burst in one line).
+    local lines, owners = {}, {}
     for petKey, owner in pairs(ns.Registry:Holders()) do
         local _, rec = ns.Registry:Holder(petKey)
         local m = owner ~= me and self:Milestone(rec.at, now)
-        if m then lines[#lines + 1] = ns.T("milestone.other", { owner = owner, pet = ns.Registry:NameOf(petKey), time = m }) end
+        if m then
+            lines[#lines + 1] = ns.T("milestone.other", { owner = owner, pet = ns.Registry:NameOf(petKey), time = m })
+            owners[#owners + 1] = owner
+        end
     end
-    table.sort(lines)
-    for i = 1, math.min(#lines, MAX_OTHERS) do ns.Print(lines[i]) end
-    if #lines > MAX_OTHERS then ns.Print(ns.T("milestone.more", { n = #lines - MAX_OTHERS })) end
+    if #lines == 1 then return ns.Print(lines[1]) end
+    if #lines == 0 then return end
+    table.sort(owners)
+    local shown = {}
+    for i = 1, math.min(#owners, MAX_OTHERS) do shown[i] = owners[i] end
+    local list = #owners > MAX_OTHERS and table.concat(shown, ns.L["list.sep"]) .. ns.T("milestone.and_more", { n = #owners - MAX_OTHERS })
+        or ns.Join(shown)
+    ns.Print(ns.T("milestone.others", { list = list }))
 end
 
 -- key, owner of today's pet, or nil when nobody has adopted one.

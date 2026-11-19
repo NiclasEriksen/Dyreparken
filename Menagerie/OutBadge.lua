@@ -34,6 +34,8 @@ function OutBadge.Lines(key, on, notOwned)
     if active and active ~= key then
         lines[#lines + 1] = { ns.T("card.auto.now", { pet = ns.Registry:NameOf(active) }), 0.7, 0.7, 0.7, true }
     end
+    -- (the pet frame, off by default, was found only in the settings: review 2026-11-19)
+    if not ns.PetFrame:Enabled() then lines[#lines + 1] = { ns.L["card.out.frame_hint"], 0.6, 0.8, 1, true } end
     lines[#lines + 1] = { on and ns.L["card.out.on.click"] or ns.T("card.out.off.click", { pet = pet }), 0.5, 0.8, 0.5, true }
     return lines
 end

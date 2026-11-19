@@ -207,8 +207,9 @@ Core/Timers.lua    ns.Timers(): a group of cancellable timers (After, Every, Can
                    a hand-written token guard around C_Timer.After
 Core/SidePage.lua  our pages of the Collections window: a side tab each under Blizzard's, the page covers theirs
                    (no taint: never their SetTab or tab list), title/portrait swapped and put back. Read its header.
-Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner, kunngjør, klapp; Norwegian
-                   only); ns.Commands.Add for Dev/Commands.lua. A release never logs (Debug:Init turns a saved log off)
+Core/Commands.lua  /dp slash commands (adopter, gislipp, navn, liste, lyd, prestasjoner [alle], kunngjør (kunngjor too, not
+                   listed), klapp, innstillinger; Norwegian only; an unknown word says so); ns.Commands.Add for Dev/Commands.lua,
+                   whose help is under /dp dev. A release never logs (Debug:Init turns a saved log off)
 Data/Companions.lua GENERATED (tools/companions/build.py --lua; per build, tools/companions/wago.py first: Forever's
                    tables from wago.tools, no game needed; the tools stay out of git; a new companion:
                    tools/companions/add.py, see "Adding a companion" in tools/companions/README.md): every journal species, whether
@@ -305,7 +306,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Moves:Owe(key, "dead"|"joy"|"sulk"), char.owed (an egg's `move`); which animation per species: Data/PetMoves.lua; every step list comes from the pure planner Moves.Plan, the stages only play plans), Cake (a cake with flickering candles on an adopted pet's card on its milestone day; a click on a guildmate's
                    congratulates them), Crown (the pet of the day's gold crown on its card, beside the cake), Story (a pet's story: a local
                    timeline of its life in the guild, g.story, found by comparing the registry with what it last saw,
-                   plus your moments with it; a book button on the card opens a panel right of the window, newest first), Cuddle (a click on the pet:
+                   plus your moments with it; a book button on the card opens a panel right of the window, newest first), Onboarding
+                   (2026-11-19: a new player's welcome once an account, the line after a character's first adoption, the
+                   card's "?" with how this pet's bond grows; an old install skips the first two: account migration 15, char
+                   4; /dp fresh [solo|reset] replays them), Cuddle (a click on the pet:
                    a ripple, hearts, a glow; once a day a cuddle), Decor (pet card decorations: one more per bond level of the holder
                    (border and color wash: family, silver, gold; corners; glow; sparks; ribbon and turning rays; hearts),
                    particles from traits (every trait has some; those with a moment show only then) and the date, and
@@ -378,7 +382,7 @@ Dev/               DEVELOPMENT ONLY (2026-11-12, refactor phase 5): what only a 
                    made with { from = "v0.7.1" } runs that release's own code from git (an older client: spec/65_owners.lua;
                    CI's checkout fetches the tags for it).
                    Commands (/dp probe [more|tabs|kills|life|world|card|bg|decor|frames|level|celebrate|anim|ach|pos|
-                   place|lift|moves|gains|api|sense|perf|garden|sound] and /dp debug, only when ns.DEV; place: the
+                   place|lift|moves|gains|api|sense|perf|garden|sound], /dp debug and /dp fresh, only when ns.DEV; place: the
                    per-scene floor and size editor, PlaceEditor.lua, picks in DyreparkenDB.placePicks); Errors (our Lua errors into the log); State (/dp state: cooldowns, today's lines, the wish, events); Try (/dp try egg|react|dislike|line|wish:
                    a line now, by nature, nothing counted); Perf (/dp probe perf: calls and time per
                    handler, through ns.profile, the one hook Events, Bus and Activity check; a release leaves it nil); PetsProbe (/dp probe, more, ach);

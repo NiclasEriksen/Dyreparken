@@ -51,8 +51,9 @@ return function(test, H)
         for _, cmd in ipairs({ "probe", "probe anim", "probe api", "probe lift", "debug on" }) do
             local before = #c.printed
             c:Slash(cmd)
-            ok(c.printed[before + 1] and c.printed[before + 1]:find("kommandoer:", 1, true), cmd .. ": the help")
-            for i = before + 1, #c.printed do no(c.printed[i]:find("probe", 1, true), cmd .. ": no probe in the help") end
+            ok(c.printed[before + 1] and c.printed[before + 1]:find("Ukjent kommando", 1, true), cmd .. ": unknown")
+            ok(c.printed[before + 2] and c.printed[before + 2]:find("kommandoer:", 1, true), cmd .. ": the help")
+            for i = before + 2, #c.printed do no(c.printed[i]:find("probe", 1, true), cmd .. ": no probe in the help") end
         end
         no(ns.Debug.enabled, "no debug log in a release")
         eq(c.env.DyreparkenDebugDB.lines.head, 0, "nothing logged")

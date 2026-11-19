@@ -192,12 +192,12 @@ return function(test, H)
         match(ola:TipOf(star).text, "/ Du kan gi dyret ditt et kallenavn%.")
         no(ola.ns.Registry:CanNickname(select(2, ola.ns.Registry:MyPet())))
         ola.ns.Bond:Add(269)
-        ok(not ola:Printed("et kallenavn: /dp navn", true), "one short")
+        ok(not ola:Printed("et kallenavn: trykk Kallenavn på kortet, eller /dp navn.", true), "one short")
         ola.ns.Bond:Add(1)
-        ok(ola:Printed("Nå kan du gi Panda Cub et kallenavn: /dp navn", true), "the moment it's Venn")
+        ok(ola:Printed("Nå kan du gi Panda Cub et kallenavn: trykk Kallenavn på kortet, eller /dp navn.", true), "the moment it's Venn")
         ola.ns.Bonds:TellNameUnlock()
         local n = 0
-        for _, l in ipairs(ola.printed) do if l:find("et kallenavn: /dp navn", 1, true) then n = n + 1 end end
+        for _, l in ipairs(ola.printed) do if l:find("et kallenavn: trykk Kallenavn på kortet, eller /dp navn.", 1, true) then n = n + 1 end end
         eq(n, 1, "once")
         ola:Slash("navn Pepe")
         eq(ola.ns.Registry:Nickname(PANDA), "Pepe")

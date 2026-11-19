@@ -555,9 +555,15 @@ local function EarnedLine(who, ids)
 end
 Ach.EarnedLine = EarnedLine
 
+-- The hint after one's own achievement, only its first few times (review 2026-11-19: on the tenth it was noise).
+Ach.SHARE_HINTS = 3
 function Ach:Notify(ids)
     ns.Print(EarnedLine(ns.PlayerKey(), ids))
-    ns.Print(T().share_hint)
+    local char = ns.DB.char
+    if (char.shareHints or 0) < Ach.SHARE_HINTS then
+        char.shareHints = (char.shareHints or 0) + 1
+        ns.Print(T().share_hint)
+    end
     local told
     if not ns.DB.char.achNotify then
         told = "off"
@@ -598,7 +604,8 @@ local function OnEarned(msg, sender, channel)
         -- Unknown ids come from newer versions: skip them, show the rest.
         if type(id) == "string" and defsById[id] and not Heard(sender, id) then ids[#ids + 1] = id end
     end
-    if #ids == 0 then return end
+    -- (still marked heard: turned on again, an old one isn't told then)
+    if #ids == 0 or not ns.Settings:On("achOthers") then return end
     ns.Print(EarnedLine(sender, ids))
 end
 
@@ -696,20 +703,25 @@ function Ach:RowInfo(row)
 end
 
 -- /dp prestasjoner: the same list as the panel, in chat.
-function Ach:List()
+function Ach:List(all)
+    -- The count and the ones not shared yet; every one with `all` (review 2026-11-19: 49 lines in chat, the
+    -- page shows them better).
     local rows, got = self:Rows(), 0
     local lines = {}
     for _, row in ipairs(rows) do
         if row.got then
             got = got + 1
-            lines[#lines + 1] = ("  |cff40ff40%s|r %s%s"):format(self:Link(row.id), self:RowInfo(row),
-                self:Shareable(row.id) and " *" or "")
-        else
+            if all or self:Shareable(row.id) then
+                lines[#lines + 1] = ("  |cff40ff40%s|r %s%s"):format(self:Link(row.id), self:RowInfo(row),
+                    self:Shareable(row.id) and " *" or "")
+            end
+        elseif all then
             lines[#lines + 1] = ("  |cff909090%s|r %s"):format(self:Link(row.id), self:RowInfo(row))
         end
     end
     ns.Print(ns.Fill(T().list_header, { n = got, total = #rows }))
     for _, line in ipairs(lines) do ns.Print(line) end
+    if not all then ns.Print(#lines > 0 and T().list_unshared or T().list_page) end
 end
 
 -- Ask the activity engine to watch what our activity achievements count;

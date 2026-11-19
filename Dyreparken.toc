@@ -63,6 +63,7 @@ Menagerie\OutBadge.lua
 Menagerie\Cake.lua
 Menagerie\Crown.lua
 Menagerie\Story.lua
+Menagerie\Onboarding.lua
 Menagerie\Moves.lua
 Menagerie\Holidays.lua
 Menagerie\Personality.lua

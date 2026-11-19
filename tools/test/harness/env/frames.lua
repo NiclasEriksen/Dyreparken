@@ -175,6 +175,8 @@ return function(c, env, S)
     env.DEFAULT_CHAT_FRAME = { AddMessage = function(_, m)
         c.printed[#c.printed + 1] = (tostring(m):gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""))
     end }
+    -- The chat windows' names (name, fontSize, r, g, b, alpha, shown, locked, docked): two set up, as by default.
+    env.GetChatWindowInfo = function(i) local n = ({ "General", "Combat Log" })[i]; return n or "", 14, 0, 0, 0, 0, n ~= nil end
     env.SlashCmdList = {}
     env.StaticPopupDialogs = {}
     env.StaticPopup_Show = function(which, ...) c.popup = { which = which, args = { ... } } end

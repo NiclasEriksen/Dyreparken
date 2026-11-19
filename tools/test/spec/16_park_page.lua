@@ -209,8 +209,12 @@ return function(test, H)
         ok(panda.trail:IsShown()); ok(panda.trail.paws[1].walk:IsPlaying())
         no(kitty.trail:IsShown())
         ok(tabby.icon.desaturated, "free: grey"); eq(tabby.icon.alpha, 0.55)
-        no(tabby.free:IsShown(), "Ola doesn't own it")
+        ok(tabby.free:IsShown(), "a house on every free one (review 2026-11-19)")
+        eq(tabby.free.vertexColor[1], 0.62, "grey: Ola doesn't own it")
         ok(rabbit.free:IsShown(), "free, and Ola owns it: he could adopt it")
+        eq(rabbit.free.vertexColor[1], 0.45, "green")
+        eq(rabbit.free.tex, ola.ns.Icon("house"), "the list's house, not a tick (review 2026-11-19)")
+        ok(ola.ns.ParkPage.Legend():find(ola.ns.Icon("house"), 1, true), "and in the legend")
         -- Sorted by name; laid out in rows.
         eq(SpeciesOf(Cells(ola)[1]), 42, "Black Tabby Cat first")
         match(Tip(ola, kitty), "^Cornish Rex Cat / Flyttet inn hos Kari Berg i dag / Bånd: Bekjent %(level 1%) / %S+ og %S+ · liker [^/]* / Klikk for å se dyret%.$", "the traits by name; no effect paragraphs; no source without data")
@@ -619,6 +623,19 @@ return function(test, H)
         no(ola:Visible(ola.ns.L["park.spot.hint"]))
         local _, likes = P.spot.text.text:gsub(" · liker", "")
         eq(likes, 1, "its personality once (it was twice: 2026-11-15)")
+        -- Its words end at the side's rule, and there are at most SPOT_LINES of them (review 2026-11-19).
+        for _, t in ipairs({ P.spot.name, P.spot.species, P.spot.today, P.spot.text }) do
+            local right
+            for _, pt in ipairs(t.points) do if pt[1] == "RIGHT" then right = pt[2] end end
+            ok(right == P.spot.side.rule, "anchored at the rule")
+        end
+        local _, breaks = P.spot.text.text:gsub("\n", "")
+        ok(breaks + 1 <= P.SPOT_LINES)
+        -- A name longer than the room: a smaller font before it's cut (here, 50 px between the stage and the rule).
+        P.spot.geo = { l = 0, r = 700, t = 156, b = 0 }
+        P.spot.side.geo = { l = P.SCENE_W + 16 + 10 + 12 + 50, r = 680, t = 140, b = 10 }
+        P:Spot("s:41", true)
+        ok(P.spot.name.font ~= "GameFontNormalHuge", "stepped down: " .. tostring(P.spot.name.font))
         local scene = P.spot.scene
         eq(scene.actor.display, 20000 + 41, "its model")
         -- Placed by its feet, as on the card (Data/PetScenes.lua: its scene's floor; the stubs' scene is 1271).

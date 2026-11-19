@@ -391,7 +391,7 @@ return function(test, H)
             wish = { day = today, pet = "s:5159", id = "herb", done = true } }
         c:Login()
         local db = c.env.DyreparkenCharDB
-        eq(db.schema, 3)
+        eq(db.schema, c.ns.DB.CHAR_SCHEMA)
         eq(db.sulk, nil); eq(db.eggs.dodsfall.played, nil); eq(db.eggs.dodsfall.n, 2)
         ok(c.ns.Moves:Owed("s:40", "sulk")); ok(c.ns.Moves:Owed("s:5159", "joy"))
         no(c.ns.Moves:Owed("s:46", "dead"), "already played")
@@ -532,7 +532,9 @@ return function(test, H)
         rel:Slash("")
         local listed = 0
         for _, l in ipairs(rel.printed) do if l:find("  /dp ", 1, true) then listed = listed + 1 end end
-        eq(listed, 8)
+        eq(listed, 9)
+        ok(rel:Printed("Alt annet finner du i samlingen", true), "and where the rest is")
+        no(rel:Printed("/dp dev", true), "no developer commands in a release")
         for _, word in ipairs({ "probe", "debug on", "claim", "adopt", "nick Pepe", "list", "sound off", "ach",
             "version", "versjon", "report", "rapport", "pat" }) do
             rel:ClearPrinted()
@@ -546,6 +548,9 @@ return function(test, H)
         no(rel:Printed("|T", true), "no icon gallery")
         -- The git checkout: probe and debug are there.
         dev:Slash("")
+        no(dev:Printed("  /dp probe [", true), "not in the players' help (2026-11-19)")
+        ok(dev:Printed("Utviklerkommandoene: /dp dev", true))
+        dev:Slash("dev")
         ok(dev:Printed("  /dp probe [", true)); ok(dev:Printed("  /dp debug [", true))
         dev:Slash("debug off")
         no(dev.ns.Debug.enabled)

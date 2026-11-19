@@ -31,10 +31,15 @@ function CardActions:Build(card, c)
     -- Forever puts the Summon/Dismiss button at the bottom left of the
     -- journal (under the list), so our buttons go to its right, under the card.
     card.reserve:SetPoint("LEFT", anchor, "RIGHT", 6, 0)
+    card.reserve:SetMotionScriptsWhileDisabled(true)
+    -- (outside a guild it's disabled, and says why: adoption is the guild's, review 2026-11-19)
+    ns.SetTip(card.reserve, "ANCHOR_TOP", function()
+        if not card.reserve:IsEnabled() then return { { ns.L["card.adopt.no_guild"], 1, 1, 1, true } } end
+    end)
     card.reserve:SetScript("OnClick", function()
         local status = ns.Registry:Status(card.key)
         if status == "mine" then
-            Report(ns.Registry:Release())
+            CardActions:AskLetGo(card.key)
         else
             CardActions:AskAdopt(card.key)
         end
@@ -63,7 +68,7 @@ function CardActions:Update(card, key)
         if ns.Registry:CanNickname(r) or ns.Registry:Nickname(key) then card.nick:Enable() else card.nick:Disable() end
     elseif key and status == "free" and ns.Pets:IsOwned(key) then
         card.reserve:SetText(ns.L["card.adopt"])
-        card.reserve:Enable()
+        if IsInGuild() then card.reserve:Enable() else card.reserve:Disable() end
         card.reserve:Show()
         card.nick:Hide()
     else
@@ -101,6 +106,23 @@ function CardActions:AskAdopt(key)
     if mine and mine ~= key then text = text .. "\n" .. ns.T("adopt.confirm.swap", { pet = ns.Registry:NameOf(mine) }) end
     if ns.DB.char.announce then text = text .. "\n\n" .. ns.L["adopt.confirm.announce"] end
     StaticPopup_Show("DYREPARKEN_ADOPT", text, nil, key)
+end
+
+-- Letting go asks first too (review 2026-11-19): it was the one action with no question, on the button that
+-- adopts on other cards, and a guildmate may adopt the pet before you notice. /dp gislipp doesn't ask.
+StaticPopupDialogs["DYREPARKEN_LETGO"] = {
+    text = "%s",
+    button1 = ns.L["card.letgo"],
+    button2 = CANCEL,
+    timeout = 0,
+    whileDead = 1,
+    hideOnEscape = 1,
+    OnAccept = function() Report(ns.Registry:Release()) end,
+}
+
+function CardActions:AskLetGo(key)
+    if not key then return end
+    StaticPopup_Show("DYREPARKEN_LETGO", ns.T("letgo.confirm", { pet = ns.Registry:NameOf(key) }), nil, key)
 end
 
 StaticPopupDialogs["DYREPARKEN_NICKNAME"] = {

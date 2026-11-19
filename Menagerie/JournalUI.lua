@@ -94,6 +94,11 @@ local function UpdateGuildBoxes()
     local pct = total > 0 and math.floor(n / total * 100 + 0.5) or 0
     card.counter:SetText(ns.T("card.guild.value", { n = n, total = total, pct = pct }))
     card.guildBox.tip = ns.T("card.guild.tip", { n = n, total = total, pct = pct })
+    card.guildBox:SetAlpha(IsInGuild() and 1 or 0.5)
+    if not IsInGuild() then
+        card.counter:SetText("-")
+        card.guildBox.tip = ns.L["card.guild.none"]
+    end
     local today, owner = ns.Bonds:PetOfTheDay()
     card.today:SetText(today and ns.Registry:NameOf(today) or "-")
     card.todayBox.tip = today and (ns.T("card.today.tip", { pet = ns.Registry:NameOf(today), owner = owner })
@@ -134,13 +139,15 @@ local function UpdateCard()
     local key = ns.Pets:KeyOfSpecies(sid)
     local status, owner, r = ns.Registry:Status(key)
     local nick = ns.Registry:Nickname(key)
-    local text
+    local text, full
     if status == "free" then
-        text = "|cff80cc80" .. ns.L["card.free"] .. "|r"
+        -- (outside a guild nothing has a home to find: say so, review 2026-11-19)
+        text = IsInGuild() and ("|cff80cc80" .. ns.L["card.free"] .. "|r") or ("|cffa0a0a0" .. ns.L["card.no_guild"] .. "|r")
     elseif status == "mine" then
-        text = ns.Gold(ns.Home(ns.L["home.you"], r.at))
+        text, full = ns.Gold(ns.HomeShort(ns.L["home.you"], r.at)), ns.Gold(ns.Home(ns.L["home.you"], r.at))
     else
-        text = "|cffff8080" .. ns.Home(owner, r.at) .. "|r"
+        -- (white, not red: a pet living with a guildmate is the good outcome, review 2026-11-19)
+        text, full = "|cffffffff" .. ns.HomeShort(owner, r.at) .. "|r", "|cffffffff" .. ns.Home(owner, r.at) .. "|r"
     end
     -- Big: the nickname, else the species. Small: the species (if named) and its home.
     local species = ns.Pets:NameOfKey(key) or ""
@@ -153,7 +160,7 @@ local function UpdateCard()
         if not room or card.nickname:GetStringWidth() <= room then break end
     end
     card.status:SetText(nick and (species .. " · " .. text) or text) -- (no nickname: the big name is the species)
-    card.fullName, card.species, card.home = nick or species, species, text -- for the hover
+    card.fullName, card.species, card.home = nick or species, species, full or text -- for the hover
     if ns.Personality:Known(key) then
         card.personality:SetText(ns.Personality:Names(key))
         -- (the minor ones, unlocked by your bond, in the same line, dimmed: Personality:LikesText)

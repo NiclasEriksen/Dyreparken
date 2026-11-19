@@ -55,7 +55,14 @@ ns.ParkPage = Park
 -- (36 until the enclosures, 2026-11-15: their fences ran over the faces' rims; a wooden fence on the line
 -- between two cells, 2 px into each, leaves a pixel at 34)
 local CELL, ICON_SIZE = 40, 34
-local READY = "Interface\\RaidFrame\\ReadyCheck-Ready"
+-- "Can be adopted": the list's mark, the green house (review 2026-11-19: a ready check's tick here, a house in the
+-- list, and the same tick for "fullt for i dag" on the bond bar).
+local FREE_RGB = { 0.45, 0.9, 0.45 }
+local function FreeIcon(size, rgb)
+    rgb = rgb or FREE_RGB
+    return ("|T%s:%d:%d:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(ns.Icon("house"), size, size,
+        math.floor(rgb[1] * 255), math.floor(rgb[2] * 255), math.floor(rgb[3] * 255))
+end
 
 local sp, page, child, spot
 local cells = {}
@@ -66,6 +73,8 @@ local spotT, cameraT = ns.Timers(), ns.Timers()
 -- (180 until 2026-11-16, the user: "shrink the highlight stage by 10-15% to make more room for the map": 13%
 -- smaller, its view and shadow with it, so the pet stands as before, a little smaller)
 Park.SPOT_H = 156        -- the stage under the map
+Park.SPOT_LINES = 4      -- the stage's lines beside the pet, at most (the rest: the icon's tooltip)
+Park.NAME_FONTS = { "GameFontNormalHuge", "GameFontNormalLarge", "GameFontNormal" } -- the stage's name, biggest first
 Park.SCENE_W = 230       -- its model's part, at the left
 Park.SIDE_W = 200        -- the guild's records and the legend, at the right (2026-11-16, the user: moved in from over the map)
 -- The model's view in the stage: the pet frame's (0, 0, 84, -50 on 170 px) a third larger, so the pet
@@ -166,7 +175,10 @@ function Park:Records(now)
             if names[tag] then families[tag] = (families[tag] or 0) + 1 end
         end
     end
-    if not oldest then return { ns.L["park.empty"], short = { { ns.L["park.rec.empty"], "", ns.L["park.empty"] } } } end
+    if not oldest then
+        local empty = IsInGuild() and ns.L["park.empty"] or ns.L["park.no_guild"]
+        return { empty, short = { { ns.L["park.rec.empty"], "", empty } } }
+    end
     -- The lines, and for the stage's side a short form of each: { label, value, the line in full (its tooltip) }.
     local lines, short = {}, {}
     lines.short = short
@@ -317,7 +329,8 @@ local function NewCell()
     c.glint.pulse = Park.Glint(c.glint)
     Park.Enclosure(c)
     c.free = c:CreateTexture(nil, "OVERLAY", nil, 2)
-    c.free:SetTexture(READY)
+    c.free:SetTexture(ns.Icon("house"))
+    c.free:SetVertexColor(FREE_RGB[1], FREE_RGB[2], FREE_RGB[3])
     c.free:SetSize(14, 14)
     c.free:SetPoint("BOTTOMRIGHT", c.ring, "BOTTOMRIGHT", 2, -2)
     Park.Mystery(c)
@@ -528,7 +541,12 @@ local function Redraw()
         c.mystery:SetAlpha(match and Park.MYSTERY_COLOR[4] or Park.DIM)
         c.mine:SetShown(owner == me and match)
         Park.Walk(c, owner == me and match)
-        c.free:SetShown(owner == nil and owned[it.key] ~= nil and match)
+        -- A house on every free one, green where you could adopt it (review 2026-11-19: "needs a home" was
+        -- told by its grey alone).
+        c.free:SetShown(owner == nil and match)
+        local can = owned[it.key] ~= nil
+        c.free:SetVertexColor(can and FREE_RGB[1] or 0.62, can and FREE_RGB[2] or 0.62, can and FREE_RGB[3] or 0.62)
+        c.free:SetAlpha(can and 1 or 0.7)
         if owner then homes = homes + 1 end
         local col, row = path[i][1], path[i][2]
         c.family = it.family
@@ -1149,9 +1167,17 @@ local function BuildSpot(inset)
     side.legend:SetScript("OnLeave", ns.HideTip)
     spot.side = side
     spot.text:SetPoint("RIGHT", side.rule, "LEFT", -12, 0)
+    -- The name, its species and the crown's line end at the rule too, cut with "..." (review 2026-11-19: a Huge
+    -- "Mechanical Squirrel Box" ran into the records).
+    for _, t in ipairs({ spot.today, spot.name, spot.species }) do
+        t:SetPoint("RIGHT", side.rule, "LEFT", -12, 0)
+        t:SetJustifyH("LEFT")
+        t:SetWordWrap(false)
+    end
     spot.text:SetJustifyH("LEFT")
     spot.text:SetSpacing(3)
-    spot.hint = spot:CreateFontString(nil, "OVERLAY", "GameFontDisable")
+    spot.hint = spot:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+    spot.hint:SetTextColor(0.75, 0.75, 0.75) -- (meant to be read: not the disabled grey, review 2026-11-19)
     spot.hint:SetPoint("CENTER")
     spot.hint:SetText(ns.L["park.spot.hint"])
     spot:SetScript("OnClick", function(self) if self.key then Park:Show(self.key) end end)
@@ -1252,17 +1278,34 @@ function Park:Spot(key, again)
     spot.today:SetText(key == today and ("|T%s:16|t %s"):format(ns.Icon("crown"), ns.L["park.spot.today"]) or "")
     local nick = ns.Registry:Nickname(key)
     spot.name:SetText(nick or ns.Pets:NameOfKey(key))
+    -- A long name steps down a size or two before it's cut, as on the card.
+    local sideAt, spotAt = spot.side:GetLeft(), spot:GetLeft() -- (the rule sits 10 left of the side)
+    local room = sideAt and spotAt and (sideAt - 10 - 12 - spotAt - Park.SCENE_W - 16)
+    for _, font in ipairs(Park.NAME_FONTS) do
+        spot.name:SetFontObject(font)
+        if not room or spot.name:GetStringWidth() <= room then break end
+    end
     spot.species:SetText(nick and ns.Pets:NameOfKey(key) or "")
     local lines = {}
     -- (the home, the bond, the personality: the icons' tooltip lines; not where it comes from, 2026-11-16, the
     -- user: with many likes and a long source "the text gets too long vertically", and the tooltip has it)
     for _, l in ipairs(ns.JournalList.PetLines(key, "park.free")) do lines[#lines + 1] = Colored(l) end
-    spot.text:SetText(table.concat(lines, "\n"))
+    -- At most what the stage holds (review 2026-11-19: a long home on two lines pushed the rest under the fence);
+    -- the rest is in the icon's tooltip.
+    local function Height()
+        return spot.today:GetStringHeight() + 6 + spot.name:GetStringHeight() + 4 + spot.species:GetStringHeight()
+            + 8 + spot.text:GetStringHeight()
+    end
+    spot.text:SetText(table.concat(lines, "\n", 1, math.min(#lines, Park.SPOT_LINES)))
+    for n = math.min(#lines, Park.SPOT_LINES) - 1, 1, -1 do
+        if Height() <= self.SPOT_H - 12 then break end
+        spot.text:SetText(table.concat(lines, "\n", 1, n))
+    end
     -- The words centered beside the pet (from the top they left the stage's lower half empty, 2026-11-15).
-    local h = spot.today:GetStringHeight() + 6 + spot.name:GetStringHeight() + 4 + spot.species:GetStringHeight()
-        + 8 + spot.text:GetStringHeight()
+    local h = Height()
     spot.today:ClearAllPoints()
     spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 16, -math.max(14, (self.SPOT_H - h) / 2))
+    spot.today:SetPoint("RIGHT", spot.side.rule, "LEFT", -12, 0)
 end
 
 -- The stage's side: the records' short lines (Park:Records(), its .short), the legend.
@@ -1351,14 +1394,14 @@ sp = ns.SidePage:New({
 -- What the map's marks mean, and the question mark while unknown pets are hidden: in full (the legend's
 -- tooltip), and short, two lines under the records on the stage's side.
 function Park.Legend()
-    local text = ns.T("park.legend", { icon = ("|T%s:14|t"):format(READY) })
+    local text = ns.T("park.legend", { icon = FreeIcon(14) })
     if ns.Settings:On("hideUnknown") then text = text .. "  " .. ns.L["park.legend.unknown"] end
     return text
 end
 function Park.LegendShort()
     local function Dot(c) return ("|T%s:10:10:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(ns.Icon("dot"), c[1], c[2], c[3]) end
-    local text = ns.T("park.legend.short", { home = Dot({ 255, 200, 60 }), free = Dot({ 140, 140, 140 }),
-        icon = ("|T%s:12|t"):format(READY) })
+    local text = ns.T("park.legend.short", { home = Dot({ 255, 200, 60 }), free = FreeIcon(10, { 0.62, 0.62, 0.62 }),
+        icon = FreeIcon(12) })
     if ns.Settings:On("hideUnknown") then text = text .. "   " .. ns.L["park.legend.short.unknown"] end
     return text
 end

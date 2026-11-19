@@ -453,9 +453,16 @@ end
 ------------------------------------------------------------------------------
 -- Everything we print goes to the debug log too (2026-11-19: "my pet said something odd at 22:08" needed the game
 -- again): the text without its colors, and the line's key when it came from ns.PickLine.
+-- The chat window: the settings' chatFrame (2026-11-19, the user), the main one if it's gone or unset.
+function ns.ChatFrame()
+    local n = tonumber(ns.DB and ns.DB.global and ns.DB.global.settings and ns.DB.global.settings.chatFrame)
+    local f = n and n > 1 and rawget(_G, "ChatFrame" .. n)
+    return type(f) == "table" and f.AddMessage and f or DEFAULT_CHAT_FRAME
+end
+
 function ns.Print(msg)
     msg = tostring(msg)
-    DEFAULT_CHAT_FRAME:AddMessage("|cff7fd47fDyreparken:|r " .. msg)
+    ns.ChatFrame():AddMessage("|cff7fd47fDyreparken:|r " .. msg)
     if ns.Debug and ns.Debug.enabled then
         local plain = msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
         local key = picked.text and plain:find(picked.text, 1, true) and picked.key
@@ -512,6 +519,12 @@ function ns.Home(who, t, now)
     local kind = Ago(t, now or ns.Now())
     if kind == "today" or kind == "yesterday" then return ns.T("home." .. kind, { who = who }) end
     return ns.T("home.since", { who = who, how = ns.CaredFor(t, now) })
+end
+
+-- The same, short, for the card (2026-11-19, the user): "Hos Kari Berg i 3 dager", "Hos deg siden i dag"; the
+-- sentence is the card's hover.
+function ns.HomeShort(who, t, now)
+    return ns.T("home.short", { who = who, how = ns.CaredFor(t, now) })
 end
 
 function ns.PlayerKey()

@@ -80,15 +80,18 @@ local function NewRow(id)
     r.bar.text:SetPoint("CENTER", r.bar, "CENTER", 0, 0)
 
     r.name = r:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    r.name:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", 8, -3)
+    r.name:SetPoint("TOPLEFT", r.icon, "TOPRIGHT", 8, -1)
     r.name:SetPoint("RIGHT", r.bar, "LEFT", -8, 0)
     r.name:SetJustifyH("LEFT")
     r.name:SetWordWrap(false)
+    -- Two lines under the name (review 2026-11-19: the Norwegian descriptions ended in "..." on one).
     r.desc = r:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-    r.desc:SetPoint("BOTTOMLEFT", r.icon, "BOTTOMRIGHT", 8, 3)
+    r.desc:SetPoint("TOPLEFT", r.name, "BOTTOMLEFT", 0, -2)
     r.desc:SetPoint("RIGHT", r.bar, "LEFT", -8, 0)
     r.desc:SetJustifyH("LEFT")
-    r.desc:SetWordWrap(false)
+    r.desc:SetJustifyV("TOP")
+    r.desc:SetWordWrap(true)
+    ns.Call(r.desc, "SetMaxLines", 2)
 
     ns.SetTip(r, "ANCHOR_RIGHT", function(self) return Page.Lines(self.data) end)
     rows[id] = r
@@ -144,10 +147,21 @@ local function Redraw()
     local list, ctx = A():Rows()
     Page.ctx = ctx
     local byCat = {}
-    for _, it in ipairs(list) do
+    for i, it in ipairs(list) do
         local cat = it.def.cat or "collection"
         byCat[cat] = byCat[cat] or {}
+        it.order = i
         table.insert(byCat[cat], it)
+    end
+    -- In each: the earned ones first, then the rest by how close they are (2026-11-19, the user: the nearly-done
+    -- ones were lost among the rest); ties as Defs.lua has them.
+    local function Share(it) return it.got and 2 or ((it.have or 0) / math.max(it.need or 1, 1)) end
+    for _, items in pairs(byCat) do
+        table.sort(items, function(a, b)
+            local x, y = Share(a), Share(b)
+            if x ~= y then return x > y end
+            return a.order < b.order
+        end)
     end
     for _, r in pairs(rows) do r:Hide() end
     for _, h in pairs(headers) do h:Hide() end

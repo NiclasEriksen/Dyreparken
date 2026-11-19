@@ -138,7 +138,7 @@ function Track:Build(card, c, panel)
     b.label:SetJustifyH("RIGHT")
     -- What's next, at the strip's right end at its own width; the bar fills the room between the
     -- stars and it (a fixed bar cut the goal short: "✓ 244 poeng til...", 2026-11-11).
-    b.next = b:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+    b.next = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     b.next:SetPoint("RIGHT", panel, "TOPRIGHT", -12, y - 7)
     b.next:SetJustifyH("RIGHT")
     b:SetPoint("RIGHT", b.next, "LEFT", -8, 0)
@@ -278,7 +278,7 @@ function Track:Update(card, key, color)
             b.next:SetText(nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
                 or ns.L["bond.top"])
         end
-        b.next:SetTextColor(0.6, 0.6, 0.6)
+        b.next:SetTextColor(0.8, 0.8, 0.8) -- (0.6 on the dark panel over a bright backdrop was hard to read, review 2026-11-19)
         b.edge:SetColorTexture(1, 0.82, 0, 0.35)
     end
     -- The medallion: the ring greyed and tinted below gold, its disc dark in the tier.

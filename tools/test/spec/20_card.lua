@@ -41,7 +41,7 @@ return function(test, H)
         ola:OpenJournal()
         card = ola:SelectPet(5159)
         eq(card.nickname.text, "Pepe")
-        eq(card.status.plain, "Panda Cub · Har bodd hos deg i 30 dager")
+        eq(card.status.plain, "Panda Cub · Hos deg i 30 dager", "short on the card (2026-11-19, the user)")
         -- Hover the name or the home line: everything in full, even if cut short on the card.
         eq(ola:TipOf(card.nameHit).text, "Pepe / Panda Cub / |cffffd100Har bodd hos deg i 30 dager|r")
         ok(card.bond:IsShown())

@@ -470,10 +470,12 @@ return function(test, H)
         for _, n in ipairs(bar.numbers or {}) do if n:IsShown() then shown[#shown + 1] = n.text.text end end
         eq(table.concat(shown, " "), "+7")
         ok(bar:IsShown(), "shown while the numbers rise")
-        -- Its tooltip: the name, and what a click does.
+        -- Its tooltip: the name, today's points, the wish, and what a click does.
         local tip = ola:TipOf(PF.frame.click)
         eq(tip[1], "Panda Cub")
-        eq(tip[2], ola.ns.L["petframe.tip"])
+        H.match(tip[2], "^I dag: %d+ av %d+ båndpoeng$")
+        ok(tip[3] == ola.ns.L["wish.done"] or tip[3]:find("Panda Cub", 1, true), "today's wish: " .. tostring(tip[3]))
+        eq(tip[#tip], ola.ns.L["petframe.tip"])
     end)
 
     test("the bar and level show only under the mouse, and while points rise (a level comes with them)", function()

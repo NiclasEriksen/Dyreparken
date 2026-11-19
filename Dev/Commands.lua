@@ -119,3 +119,18 @@ Add("debug", "debug [on|off|echo|clear|mute [module]|unmute <module>] - debug lo
     end
     ns.Print(("Debug %s%s."):format(D.enabled and "on" or "off", D.echo and " (echo to chat)" or ""))
 end)
+
+-- /dp fresh: a new player's first steps (Onboarding.lua), as one sees them (2026-11-19, the user: "Give me a
+-- command to test it"). Now: the welcome, and the line after a first adoption for the pet out; "solo": the
+-- welcome outside a guild; "reset": forgotten, so the next login and adoption are a new player's again.
+Add("fresh", "fresh [solo|reset] - a new player's welcome and first-adoption line, now (reset: at the next login)", function(arg)
+    local O = ns.Onboarding
+    if arg == "reset" then
+        O:Forget()
+        return ns.Print("Onboarding forgotten: the welcome comes at the next login, the line after the next adoption.")
+    end
+    O:Welcome(true, arg == "solo")
+    local key = ns.Registry:MyPet() or ns.Pets:OutKey()
+    if key then O:AfterAdopt(key, true) end
+    ns.Print("(That's what a new player sees. The card's ? is there for everyone.)")
+end)

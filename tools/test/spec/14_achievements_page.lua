@@ -303,4 +303,21 @@ return function(test, H)
         ok(c.ns.AchPage:IsOpen())
         c:ClickTab(2)
     end)
+
+    test("in each group: the earned first, then the rest by how close they are", function()
+        local w, ola = Setup({ 40, 7 }) -- (cats 1/4, farm 1/2)
+        local page = Open(ola)
+        local function Y(id) local r = Row(page, id); return r and -r.points[1][5] end
+        ok(Y("family:farm") < Y("family:cat"), "the closer first, though Defs.lua has the cats first")
+        ola:GivePet(41); ola:Fire("NEW_PET_ADDED", ola:GuidOf(41)); w:Run(2)
+        ola.ns.AchPage:Refresh()
+        ok(Y("family:cat") < Y("family:farm"), "both half done: Defs' order again")
+        ola:GivePet(84); ola:Fire("NEW_PET_ADDED", ola:GuidOf(84)); w:Run(2)
+        ola.ns.AchPage:Refresh()
+        ok(ola.ns.Achievements:Got("family:farm"), "farm earned")
+        ok(Y("family:farm") < Y("family:cat"), "an earned one first")
+        -- Two lines for the description, under the name.
+        local r = Row(page, "family:cat")
+        eq(r.desc.points[1][1], "TOPLEFT"); ok(r.desc.points[1][2] == r.name)
+    end)
 end

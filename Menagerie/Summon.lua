@@ -306,8 +306,10 @@ function Summon:Watch()
     ns.Events:On("PLAYER_UNGHOST", Summon, Alive)
 end
 
+-- Once a character (review 2026-11-19: it came at every login while both addons were in).
 function Summon:AnnounceDeferral()
-    if self:Deferring() and ns.DB.char.autoSummon then
+    if self:Deferring() and ns.DB.char.autoSummon and not ns.DB.char.toldDeferral then
+        ns.DB.char.toldDeferral = true
         ns.Print(ns.L["summon.deferred"])
     end
 end

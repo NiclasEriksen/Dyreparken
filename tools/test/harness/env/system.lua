@@ -47,6 +47,8 @@ return function(c, env, S)
             assert(type(cat) == "table" and cat.frame, "RegisterAddOnCategory(category)")
             c.optionCategories[#c.optionCategories + 1] = cat
         end,
+        -- (Esc > Options at a category; c.optionsOpened: its id)
+        OpenToCategory = function(id) c.optionsOpened = id end,
     }
 
 end

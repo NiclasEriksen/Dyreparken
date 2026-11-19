@@ -75,9 +75,16 @@ local ROWS = {
         set = function(v) ns.Bonds:SetAnnounce(v, true) end, char = true },
     { key = "settings.achnotify", get = function() return ns.DB.char.achNotify and true or false end,
         set = function(v) ns.Achievements:SetNotify(v, true) end, char = true },
+    { key = "settings.achothers", setting = "achOthers" },
     { head = "settings.head.chat" },
     { key = "settings.chatter", steps = Settings.CHATTER_STEPS, setting = "chatter" },
     { key = "settings.hearts", setting = "worldHearts" },
+    -- (the client's chat windows, by their names: GetChatWindowInfo; one not set up isn't offered)
+    { key = "settings.chatframe", choices = { "1", "2", "3", "4" }, setting = "chatFrame",
+        label = function(choice)
+            local name = GetChatWindowInfo and ns.Plain((GetChatWindowInfo(tonumber(choice))))
+            return type(name) == "string" and name ~= "" and name or ns.T("settings.chatframe.n", { n = choice })
+        end },
     { head = "settings.head.park" },
     { key = "settings.hideunknown", setting = "hideUnknown",
         set = function(v) Set("hideUnknown", v); ns.ParkPage:Refresh() end },
@@ -140,7 +147,9 @@ local function Fill(inset, widgets, one)
             h:SetPoint("TOPLEFT", inset, at, x + 20, y - 6)
             h:SetText(L[row.head])
             if row.char then -- (these are per character; the rest is for the account: UX review 2026-11-11)
-                local note = inset:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+                -- (a note, not disabled: light grey, review 2026-11-19)
+                local note = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+                note:SetTextColor(0.7, 0.7, 0.7)
                 note:SetPoint("BOTTOMLEFT", h, "BOTTOMRIGHT", 8, 1)
                 note:SetText(L["settings.char.head"])
             end
@@ -212,7 +221,7 @@ local function Fill(inset, widgets, one)
                 else b:SetPoint("TOPLEFT", inset, at, x + 52, y) end
                 b.label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                 b.label:SetPoint("LEFT", b, "RIGHT", 2, 0)
-                b.label:SetText(L[row.key .. "." .. choice])
+                b.label:SetText(row.label and row.label(choice) or L[row.key .. "." .. choice])
                 b.row, b.choice = row, choice
                 b:SetScript("OnClick", function()
                     Set(row.setting, choice)

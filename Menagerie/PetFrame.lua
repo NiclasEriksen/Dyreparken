@@ -532,10 +532,19 @@ PF.SAY_KINDS = {
 }
 PF.SAY_TIP_FOR = 300 -- seconds the last line shows in the frame's tooltip
 
--- The frame's tooltip: the pet's name, what it said last a while (easy to miss in chat), the hint.
+-- The frame's tooltip: the pet's name, what it said last a while (easy to miss in chat), today's points and,
+-- for the adopted one, its wish (review 2026-11-19: the one place the pet is seen without the journal), the hint.
 function PF:Lines()
     local lines = { { ns.Registry:NameOf(self.key), 1, 0.82, 0 } }
     if self.said and GetTime() - self.saidAt < self.SAY_TIP_FOR then lines[2] = { self.said, 0.85, 0.7, 1, true } end
+    if self.key then
+        local got, max = ns.Bond:Today(self.key)
+        lines[#lines + 1] = { ns.T("petframe.today", { n = got, max = max }), 0.8, 0.8, 0.8 }
+    end
+    local w = self.key and self.key == ns.Registry:MyPet() and ns.Wish:Today()
+    if w and w.id then
+        lines[#lines + 1] = w.done and { L["wish.done"], 0.4, 1, 0.4 } or { ns.Wish.Line(w), 1, 0.82, 0, true }
+    end
     lines[#lines + 1] = { L["petframe.tip"], 1, 1, 1, true }
     return lines
 end

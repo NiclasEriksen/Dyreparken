@@ -38,6 +38,7 @@ Card.ORDER = {
     "cake",    -- a cake on its milestone day (Cake.lua)
     "crown",   -- the pet of the day's crown, beside the cake (Crown.lua)
     "story",   -- the story's button (Story.lua)
+    "help",    -- the "?" under it: how this pet's bond grows (Onboarding.lua)
     "moves",   -- the pet's pose (Moves.lua, registered by JournalUI)
     "rows",    -- the name, home, traits and likes, and their hovers (JournalUI)
     "rotate",  -- Blizzard's turn buttons and title row moved out of the way (JournalUI)

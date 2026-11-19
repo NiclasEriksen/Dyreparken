@@ -350,8 +350,10 @@ return function(test, H)
         ola.ns.JournalUI:Refresh()
         eq(panda.level.text, 4)
         ok(panda.nick:IsShown()); eq(panda.nick.text, "«Pepe»")
-        local at = panda.nick.points[#panda.nick.points]
-        eq(at[2], ola:Button(5159).name); eq(at[1], "LEFT"); eq(at[4], #"Panda Cub" * 7 + 5, "right after the name, on its row")
+        local at = panda.nick.points[1]
+        ok(at[2] == ola:Button(5159).name, "after the name"); eq(at[1], "LEFT"); eq(at[4], #"Panda Cub" * 7 + 5, "right after the name, on its row")
+        local edge = panda.nick.points[2]
+        eq(edge[1], "RIGHT"); ok(edge[2] == panda.ring, "and it ends before the ring (review 2026-11-19)")
         -- Someone else's pet shows its level too.
         kari:Slash("adopter bombay")
         w:Run(5)

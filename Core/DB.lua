@@ -19,8 +19,8 @@ local ns = select(2, ...)
 local DB = {}
 ns.DB = DB
 
-local SCHEMA = 14
-local CHAR_SCHEMA = 3
+local SCHEMA = 15
+local CHAR_SCHEMA = 4
 DB.SCHEMA, DB.CHAR_SCHEMA = SCHEMA, CHAR_SCHEMA
 
 -- Every key a module keeps in the account's or the character's table has a
@@ -44,7 +44,11 @@ local ACCOUNT_DEFAULTS = {
         chatter = "normal", worldHearts = true, cardParticles = "all", cardMoves = true, celebrate = true, petSounds = true,
         petFrame = false, petFrameArt = false, -- (the pet frame and its background and border: off unless chosen, PetFrame.lua)
         petFrameCombat = false, petFrameFade = false, petFrameAlpha = 0.25, -- (hidden in combat; faded when nothing happens, to this)
+        achOthers = true, -- guildmates' achievement lines (2026-11-19, the user: a box of its own, not the chatter's)
+        chatFrame = "1", -- the chat window our lines go to (ns.Print; a window gone: the main one)
     },
+    -- [Onboarding]
+    welcomed = nil, -- told what Dyreparken is, once an account (account migration 15: not for an old install)
     -- [SceneGallery] (developer galleries, through their picks tables; Scenes and Decor read them)
     scenePicks = {}, -- family -> background path, picked in /dp probe bg
     decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor
@@ -76,8 +80,12 @@ local CHAR_DEFAULTS = {
     autoSummon = true,         -- may be overridden at runtime if AutoCompanion is loaded (SetEnabled)
     activePet = nil,           -- the pet auto-summon keeps out ("Med deg" on its card); nil: the adopted one
     muteSummonSound = true,    -- the clank when a companion is summoned (QuietSummon; SetMuteSound)
+    toldDeferral = nil,        -- the AutoCompanion notice, said once a character (AnnounceDeferral)
+    -- [Onboarding]
+    toldAdoptHow = nil,        -- how the bond grows, said after the character's first adoption (char migration 4)
     -- [Achievements]
     achNotify = true,          -- tell other addon users when I earn an achievement (SetNotify)
+    shareHints = 0,            -- the "Del det..." hint after our own achievements, said the first SHARE_HINTS times
     ach = { got = {}, seen = {} }, -- character-scope achievements
     -- [Bonds]
     announce = true,           -- post adoptions and nicknames to guild chat (Announce; SetAnnounce)
@@ -296,6 +304,9 @@ local MIGRATIONS = {
         if s.chatLines == false then s.chatter = "none" end
         s.chatLines = nil
     end,
+    -- 15 (2026-11-19, the user): the welcome is for new players only, so an account that had Dyreparken before
+    -- is welcomed already (Onboarding.lua). A fresh one starts at the newest schema, without it.
+    [15] = function(db) db.welcomed = true end,
 }
 DB.MIGRATIONS = MIGRATIONS
 local CHAR_MIGRATIONS = {
@@ -327,6 +338,8 @@ local CHAR_MIGRATIONS = {
             w.shown = nil
         end
     end,
+    -- 4 (2026-11-19, the user): the line after a first adoption is for new players only (Onboarding.lua).
+    [4] = function(db) db.toldAdoptHow = true end,
 }
 
 local function ApplyDefaults(t, defaults)
