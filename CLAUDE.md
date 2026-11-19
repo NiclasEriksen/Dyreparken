@@ -146,6 +146,9 @@ per commit), in a temporary worktree, and refuses the push if it fails. CI runs 
 
 ## Releasing
 
+- Before tagging, `tools/changelog.sh` prints what players will read (since the newest tag) and warns on stderr when a
+  subject names an egg id, a hidden achievement or says egg/hidden/secret (a warning only). release.yml writes the
+  changelog with the same script, and refuses a tag that isn't on main or isn't newer than the last.
 - Push a tag `vX.Y.Z` (release), `vX.Y.Z-betaN` or `vX.Y.Z-alphaN`. `.github/workflows/release.yml` runs the checks,
   then BigWigsMods/packager@v2, which uploads to CurseForge (WoW Forever, 1.60.1) and makes a GitHub release.
 - The TOC has `## Version: @project-version@`, which the packager replaces with the tag. A git checkout reports `dev`

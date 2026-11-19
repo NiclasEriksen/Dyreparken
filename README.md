@@ -3,9 +3,10 @@
 A World of Warcraft: Forever addon for the guild Dyreparken.
 
 - **Menagerie:** adopt a companion pet for your character. Adoptions sync across the guild (first come, first
-  served), show in the Pet Journal and on companion tooltips, and your companion can get a nickname after a week. It's
-  summoned automatically when you're idle.
-- **Party games:** a framework for leader-run guild events (work in progress).
+  served), show in the Pet Journal and on companion tooltips, and your companion can get a nickname once your bond
+  reaches Venn. It's summoned automatically when you're idle.
+- **Bonds:** every pet you have out builds a bond with you, faster with what it likes; levels, wishes, easter eggs
+  and achievements along the way. **Parken**, a tab in the Collections window, shows the guild's whole park.
 
 Commands: `/dp` lists them all.
 
@@ -17,7 +18,7 @@ Commands: `/dp` lists them all.
 
 ## Releasing
 
-Push a tag: `v0.1.0` (release), `v0.1.0-beta1` (beta) or `v0.1.0-alpha1` (alpha). GitHub Actions runs the checks and
+`tools/changelog.sh` shows what players will read (and warns if a subject gives a secret away). Push a tag: `v0.1.0` (release), `v0.1.0-beta1` (beta) or `v0.1.0-alpha1` (alpha). GitHub Actions runs the checks and
 then the [BigWigs packager](https://github.com/BigWigsMods/packager), which uploads to CurseForge and creates a GitHub
 release. It needs the repository secrets `CF_API_KEY` and `CF_PROJECT_ID`.
 

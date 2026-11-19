@@ -32,32 +32,26 @@ jobs:
         with:
           fetch-depth: 0 # full history: the changelog is built from commits since the last tag
 
-      # The changelog players read on CurseForge and GitHub: one line per commit
-      # subject since the previous tag (the subjects are written for players),
-      # without the developer-only ones, and the Claude credit once at the top
-      # instead of a Co-Authored-By line under every entry. .pkgmeta points
-      # the packager at this file (manual-changelog).
-      # Secrets stay secret (2026-11-19, the user: easter eggs and hidden achievements kept out of the changelog):
-      # a subject's {{...}} shows as *****, and .github/changelog-fix.txt ("<full hash> <subject>" per line)
-      # replaces the subject of a commit already pushed that gave one away.
-      - name: Changelog
+      # Only a tag on main, newer than the one before it (a typo like v0.8.40 would publish out of order).
+      - name: Tag guard
         run: |
           tag="${GITHUB_REF_NAME}"
+          git fetch -q origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main \
+            || { echo "::error::$tag isn't on main"; exit 1; }
           prev=$(git describe --tags --abbrev=0 "${tag}^" 2>/dev/null || true)
-          lines=$(git log --no-merges --format='%H %s' ${prev:+"$prev.."}"$tag" \
-            | while read -r sha subject; do
-                fix=$(grep -m1 "^$sha " .github/changelog-fix.txt 2>/dev/null | cut -d' ' -f2- || true)
-                echo "- ${fix:-$subject}"
-              done \
-            | grep -vE '^- (Tests|Tidy-up|Notes|Docs|Developer probe)\b' \
-            | sed -E 's/\{\{[^}]*\}\}/*****/g' || true)
-          {
-            echo "# Dyreparken ${tag}"
-            echo
-            echo "_Developed with the help of Claude (Anthropic)._"
-            echo
-            echo "${lines:-- Small fixes and polish.}"
-          } > CHANGELOG.md
+          if [[ -n $prev ]]; then
+            newest=$(printf '%s\n%s\n' "${prev#v}" "${tag#v}" | sort -V | tail -1)
+            [[ $newest == "${tag#v}" && $prev != "$tag" ]] || { echo "::error::$tag isn't newer than $prev"; exit 1; }
+          fi
+
+      # The changelog players read on CurseForge and GitHub (tools/changelog.sh: run it before tagging to see it):
+      # one line per commit subject since the previous tag, without the developer-only ones, {{...}} as *****,
+      # .github/changelog-fix.txt's rewordings, and the Claude credit once at the top. .pkgmeta points the
+      # packager at this file (manual-changelog).
+      - name: Changelog
+        run: |
+          tools/changelog.sh "${GITHUB_REF_NAME}" > CHANGELOG.md
           cat CHANGELOG.md
 
       - uses: BigWigsMods/packager@v2
