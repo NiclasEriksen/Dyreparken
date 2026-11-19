@@ -1074,6 +1074,12 @@ end
 ------------------------------------------------------------------------------
 -- The spotlight: today's pet, or the one under the mouse
 ------------------------------------------------------------------------------
+-- The stage's glow and particles for key (nil: none) by the bond the card shows (yours with it, or its carer's);
+-- the same pet, level and day's particles leave them playing.
+local function SpotDecor(key, tint)
+    ns.Decor:Apply(spot, key, key and select(2, ns.Bond:Shown(key)), tint)
+end
+
 local function BuildSpot(inset)
     spot = CreateFrame("Button", nil, inset)
     Park.spot = spot -- (the tests read its model)
@@ -1117,6 +1123,12 @@ local function BuildSpot(inset)
     spot.card.floor:ClearAllPoints()
     spot.card.floor:SetPoint("CENTER", scene, "BOTTOM", 0, Park.SHADOW.y)
     spot.card.floor:SetSize(Park.SHADOW.w, Park.SHADOW.h)
+    -- The bond's glow and particles behind the pet, half the card's (Decor:BuildStage), laid out from a line
+    -- a little under its feet, as the card's are from its panel.
+    local area = CreateFrame("Frame", nil, spot)
+    area:SetSize(Park.SCENE_W, 1)
+    area:SetPoint("TOPLEFT", scene, "BOTTOMLEFT", 0, Park.SHADOW.y - ns.Decor.STAGE.feet * ns.Decor.STAGE.scale)
+    ns.Decor:BuildStage(spot, spot, area)
     spot.today = spot:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     spot.today:SetPoint("TOPLEFT", spot, "TOPLEFT", Park.SCENE_W + 16, -18)
     spot.name = spot:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
@@ -1194,11 +1206,14 @@ local function BuildSpot(inset)
     })
     -- (and the way back to today's pet ends: a click on an icon closes the park as the mouse leaves it,
     -- and the stage got a pet while hidden, its stage following it unseen: code review 2026-11-15)
-    spot:SetScript("OnHide", function() spotT:Cancel(); spot.hover = nil; spot.stage:Update(spot, nil) end)
+    spot:SetScript("OnHide", function()
+        spotT:Cancel(); spot.hover = nil; spot.stage:Update(spot, nil); ns.Decor:Stop(spot)
+    end)
     -- Shown again: today's pet (one left hovered as it hid would linger), posed anew.
     spot:SetScript("OnShow", function()
         local today = (ns.Bonds:PetOfTheDay())
-        if today ~= spot.key then Park:Spot(today) elseif spot.key then spot.stage:Update(spot, spot.key) end
+        if today ~= spot.key then Park:Spot(today)
+        elseif spot.key then spot.stage:Update(spot, spot.key); SpotDecor(spot.key, spot.tint) end
     end)
     -- The template's camera runs on every frame drawn: only a moment after a change (PF:Camera).
     local ok, fn = pcall(scene.GetScript, scene, "OnUpdate")
@@ -1261,7 +1276,8 @@ function Park:Spot(key, again)
     spot.hover = key ~= today and key or nil
     local changed = key ~= spot.key
     spot.key = key
-    ns.Scenes:Paint(spot.card, key)
+    spot.tint = ns.Scenes:Paint(spot.card, key)
+    SpotDecor(key, spot.tint)
     spot.hint:SetShown(key == nil)
     for _, t in ipairs({ spot.today, spot.name, spot.species, spot.text }) do t:SetShown(key ~= nil) end
     spot.scene:SetShown(key ~= nil)

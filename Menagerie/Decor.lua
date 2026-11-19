@@ -353,6 +353,22 @@ local function NewParticle(c)
     return holder
 end
 
+-- 4+: a glow under the pet, breathing: a wide one and a bright core ({ width, height, its center above the panel }).
+Decor.GLOWS = { { 420, 260, 120 }, { 220, 110, 90 } }
+local function Glows(d)
+    local s = d.scale or 1
+    d.glows = {}
+    for i, g in ipairs(Decor.GLOWS) do
+        local t = d.c:CreateTexture(nil, "BORDER", nil, i)
+        t:SetBlendMode("ADD")
+        t:SetSize(g[1] * s, g[2] * s)
+        t:SetPoint("CENTER", d.panel, "TOP", 0, g[3] * s)
+        t:Hide()
+        t.breathe = Pulse(t, i == 1 and 0.55 or 0.7, 1, 4.4)
+        d.glows[i] = t
+    end
+end
+
 -- Build the textures once (JournalUI's BuildCard): c = the card frame, panel
 -- = its bottom panel (particles live above it).
 function Decor:Build(card, c, panel)
@@ -382,17 +398,7 @@ function Decor:Build(card, c, panel)
         t:Hide()
         d.corners[point] = t
     end
-    -- 4+: a glow under the pet, breathing: a wide one and a bright core.
-    d.glows = {}
-    for i, size in ipairs({ { 420, 260 }, { 220, 110 } }) do
-        local t = c:CreateTexture(nil, "BORDER", nil, i)
-        t:SetBlendMode("ADD")
-        t:SetSize(size[1], size[2])
-        t:SetPoint("CENTER", panel, "TOP", 0, i == 1 and 120 or 90)
-        t:Hide()
-        t.breathe = Pulse(t, i == 1 and 0.55 or 0.7, 1, 4.4)
-        d.glows[i] = t
-    end
+    Glows(d)
     -- 6+: light rays behind the pet, turning slowly.
     -- Over the glow, not under it: under, the glow drowned them (seen 2026-11-08).
     d.rays = c:CreateTexture(nil, "BORDER", nil, 3)
@@ -414,6 +420,25 @@ function Decor:Build(card, c, panel)
     for i = 1, POOL do d.parts[i] = NewParticle(c) end
 end
 
+-- Parken's stage (2026-11-19, the user: "should also reflect a character's bond in aesthetics: glow, particles (both
+-- reduced by half compared to journal page)"): the card's glow at half its strength and the card's particles at half
+-- their count, laid out at the stage's size around its pet; not the border, corners, ribbon or rays.
+-- scale: the stage's pet against the card's (its feet 35 px up a 152 px scene, the card's 82 up some 330: the
+-- card's highest particles, 330 up, start inside the stage);
+-- feet: the card's pet's feet above its panel (JournalUI: MODEL_LIFT + 48), so a stage lines its area up;
+-- share: what the stage shows of the card's glow and particles.
+Decor.STAGE = { scale = 0.45, share = 0.5, pool = 16, feet = 82 }
+
+-- A stage's decor in holder (a table, as a card's: holder.decor), its textures and particles on c, laid out
+-- from area's top (where the card's panel top would be: a little under the pet's feet) at Decor.STAGE.scale.
+function Decor:BuildStage(holder, c, area)
+    local o = self.STAGE
+    local d = { c = c, panel = area, parts = {}, stage = true, scale = o.scale, share = o.share, pool = o.pool }
+    holder.decor = d
+    Glows(d)
+    for i = 1, d.pool do d.parts[i] = NewParticle(c) end
+end
+
 function Decor:Stop(card)
     local d = card.decor
     if not d then return end
@@ -423,14 +448,17 @@ function Decor:Stop(card)
         p:Hide()
     end
     for _, t in ipairs(d.glows) do t.breathe:Stop() end
+    if d.stage then return end
     d.border.shimmer:Stop()
     d.rays.turn:Stop()
 end
 
 -- One particle: where it starts, its timeline and its extra motions.
 -- (x, y) from the panel's top left; the area is the card above the panel.
-local function Launch(p, spec, rng, i, n, panel)
+-- s: the layout's scale (a stage's; 1 on the card): sizes, heights, distances and sways.
+local function Launch(p, spec, rng, i, n, panel, s)
     local k = Decor.KINDS[spec.kind]
+    s = s or 1
     local width = panel:GetWidth() or 400
     local icon = p.icon
     SetArt(icon, Decor:PartArt(spec.kind))
@@ -440,11 +468,11 @@ local function Launch(p, spec, rng, i, n, panel)
     if type(c[1]) == "table" then c = c[(i - 1) % #c + 1] end -- a palette
     icon:SetVertexColor(c[1], c[2], c[3], spec.alpha or 1)
     icon:SetRotation(0)
-    local size = rng(k.size[1], k.size[2])
+    local size = rng(k.size[1], k.size[2]) * s
     p:SetSize(size, size)
     local dur = rng(k.dur[1], k.dur[2])
-    local x, y, dx, dy = width * (i - 0.5) / n + rng(-20, 20), 0, 0, 0
-    if k.x == "pet" then x = width / 2 + rng(-1, 1) * (k.spread or 50) end
+    local x, y, dx, dy = width * (i - 0.5) / n + rng(-20, 20) * s, 0, 0, 0
+    if k.x == "pet" then x = width / 2 + rng(-1, 1) * (k.spread or 50) * s end
     local function Y(a, b) return k.y and rng(k.y[1], k.y[2]) or rng(a, b) end
     local function Dist(a, b) return k.dist and rng(k.dist[1], k.dist[2]) or rng(a, b) end
     local grow = k.grow
@@ -454,18 +482,19 @@ local function Launch(p, spec, rng, i, n, panel)
         y, dx, dy = Y(270, 330), rng(-30, 30), -Dist(200, 260)
     elseif k.path == "burst" then -- out from around the pet, in every direction
         local a = rng(0, 2 * math.pi)
-        x, y = width / 2 + rng(-30, 30), rng(70, 130)
+        x, y = width / 2 + rng(-30, 30) * s, rng(70, 130)
         dx, dy, grow = math.cos(a) * rng(90, 150), math.sin(a) * rng(60, 120), grow or 0.3
     elseif k.path == "twinkle" then
         y, grow = Y(190, 320), grow or 1.6
     elseif k.path == "drift" then -- a slow wander, anywhere above the panel
         y, dx, dy = Y(40, 280), rng(-40, 40), rng(-25, 25)
     elseif k.path == "wind" then -- in from the left, across
-        x, y, dx, dy = rng(0, width * 0.3), Y(30, 300), width * rng(0.5, 0.7), rng(-15, 15)
+        x, y, dx, dy = rng(0, width * 0.3), Y(30, 300), width * rng(0.5, 0.7) / s, rng(-15, 15)
     else -- steps: paw prints, one after another, along the ground
-        x, y = width * 0.22 + (i - 1) * 36, 20 + (i % 2) * 12
+        x, y = width * 0.22 + (i - 1) * 36 * s, 20 + (i % 2) * 12
         icon:SetRotation(-0.3)
     end
+    y, dx, dy = y * s, dx * s, dy * s -- (the wind's dx is the width's share: unscaled above)
     p:ClearAllPoints()
     p:SetPoint("CENTER", panel, "TOPLEFT", x, y)
     local g = grow and grow ~= 1 and p.growing or p.plain
@@ -483,7 +512,7 @@ local function Launch(p, spec, rng, i, n, panel)
     g:Play()
     -- Its own motions, alongside, each on its own layer.
     if k.sway then
-        SetSwing(p.sway, rng(0.6, 1) * k.sway * (i % 2 == 0 and 1 or -1), rng(2.2, 3.6))
+        SetSwing(p.sway, rng(0.6, 1) * k.sway * s * (i % 2 == 0 and 1 or -1), rng(2.2, 3.6))
         p.sway:Play()
     end
     if k.spin then
@@ -585,7 +614,8 @@ function Decor:Apply(card, key, level, color)
     local sig, art, specs
     if key then
         local family = o and o.Family() or ns.Scenes:Families(key)[1] or "default"
-        art = { self:Art("border", family), self:Art(ns.Scenes.Gold(level) and "cornerGold" or "corner", family), self:Art("glow"), self:Art("ribbon") }
+        art = d.stage and { "", "", self:Art("glow"), "" } -- (a stage has the glow only)
+            or { self:Art("border", family), self:Art(ns.Scenes.Gold(level) and "cornerGold" or "corner", family), self:Art("glow"), self:Art("ribbon") }
         local parts = { key, level, color and table.concat(color, ",") or "", table.concat(art, ";"),
             tostring(ns.Settings:Get("cardParticles")) }
         -- Once per Apply: the signature and the particles launched must agree (two
@@ -599,13 +629,45 @@ function Decor:Apply(card, key, level, color)
     end
     self:Stop(card)
     d.sig, d.playing = sig, key ~= nil
-    for i = 1, 4 do d.edges[i]:Hide(); d.wash[i]:Hide() end
-    d.border:Hide()
-    for _, t in pairs(d.corners) do t:Hide() end
     for _, t in ipairs(d.glows) do t:Hide() end
-    d.rays:Hide(); d.ribbon:Hide(); d.ribbonText:Hide()
+    if not d.stage then
+        for i = 1, 4 do d.edges[i]:Hide(); d.wash[i]:Hide() end
+        d.border:Hide()
+        for _, t in pairs(d.corners) do t:Hide() end
+        d.rays:Hide(); d.ribbon:Hide(); d.ribbonText:Hide()
+    end
     d.used = 0
     if not key then return end
+    color = color or GOLD
+    local gold = Gold(level)
+    if Reward(level, "glow") then
+        local g = gold and GOLD or Bright(color, ns.Scenes.GLOW_BRIGHT)
+        for _, t in ipairs(d.glows) do
+            SetArt(t, art[3])
+            t:SetVertexColor(g[1], g[2], g[3], d.share or 1)
+            t:Show()
+            t.breathe:Play()
+        end
+    end
+    if not d.stage then self:Frame(d, level, color, art) end
+    -- Particles, up to the pool's size (Settings: all of them, half, or none; a stage its share of them).
+    local amount = ns.Settings:Get("cardParticles")
+    if amount == "none" then return end
+    local rng = Rng((ns.Pets:SpeciesOfKey(key) or 1) * 7919 + level)
+    local pool, share = d.pool or POOL, d.share or 1
+    for _, spec in ipairs(specs) do
+        local n = math.max(1, math.ceil(spec.n * share))
+        if amount == "few" then n = math.max(1, math.ceil(n / 2)) end
+        for i = 1, n do
+            if d.used >= pool then break end
+            d.used = d.used + 1
+            Launch(d.parts[d.used], spec, rng, i, n, d.panel, d.scale)
+        end
+    end
+end
+
+-- The card's frame by its bond level: the family's border and wash, corners, the ribbon, the rays, the shimmer.
+function Decor:Frame(d, level, color, art)
     -- The family's frame, the corners, the glow, the ribbon: set again each time, not only when they change
     -- (2026-11-16, the user's screenshot: now and then the frame showed stretched whole over the card, unsliced,
     -- and the corners missing, until another pet; the cause unknown, maybe a texture not loaded yet when its
@@ -617,9 +679,7 @@ function Decor:Apply(card, key, level, color)
     end
     ns.Log("Decor", "art %s, corners %s, level %d, sliced %s", art[1], art[2], level, tostring(d.sliced))
     for point, t in pairs(d.corners) do SetArt(t, art[2], point:find("RIGHT") ~= nil, point:find("BOTTOM") ~= nil) end
-    for _, t in ipairs(d.glows) do SetArt(t, art[3]) end
     SetArt(d.ribbon, art[4])
-    color = color or GOLD
     local gold = Gold(level)
     if Reward(level, "border") then
         local e = ns.Scenes.Tier(level, Bright(color)) -- (the border: 2 has the family's own)
@@ -652,14 +712,6 @@ function Decor:Apply(card, key, level, color)
             t:Show()
         end
     end
-    if Reward(level, "glow") then
-        local g = gold and GOLD or Bright(color, ns.Scenes.GLOW_BRIGHT)
-        for _, t in ipairs(d.glows) do
-            t:SetVertexColor(g[1], g[2], g[3], 1)
-            t:Show()
-            t.breathe:Play()
-        end
-    end
     if Reward(level, "ribbon") then
         d.ribbonText:SetText(ns.Bond.LEVELS[level][2])
         d.ribbon:Show(); d.ribbonText:Show()
@@ -673,18 +725,6 @@ function Decor:Apply(card, key, level, color)
         d.rays.turn:Play()
     end
     if Reward(level, "shimmer") then d.border.shimmer:Play() end
-    -- Particles, up to the pool's size (Settings: all of them, half, or none).
-    local amount = ns.Settings:Get("cardParticles")
-    if amount == "none" then return end
-    local rng = Rng((ns.Pets:SpeciesOfKey(key) or 1) * 7919 + level)
-    for _, spec in ipairs(specs) do
-        local n = amount == "few" and math.max(1, math.ceil(spec.n / 2)) or spec.n
-        for i = 1, n do
-            if d.used >= POOL then break end
-            d.used = d.used + 1
-            Launch(d.parts[d.used], spec, rng, i, n, d.panel)
-        end
-    end
 end
 
 ns.Card.Register{ id = "decor",

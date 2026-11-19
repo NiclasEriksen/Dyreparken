@@ -688,6 +688,54 @@ return function(test, H)
         P:Spot(today)
     end)
 
+    -- 2026-11-19, the user: "Parken stage should also reflect a characters bond in aesthetics: glow, particles (both
+    -- reduced by half compared to journal page)".
+    test("the stage shows the bond as the card does: its glow at half strength, half its particles, inside the stage", function()
+        local w, ola, kari = Setup()
+        kari:Slash("adopter cornish"); w:Run(5)
+        local now = ola.ns.Now()
+        ola.ns.DB:Guild().life["s:41"] = { ["Kari Berg"] = { p = 600, f = now - 200 * 86400, t = now } } -- level 4
+        ola:OpenJournal({ sideTabs = 4 })
+        local card = ola:SelectPet(41)
+        local P, D = ola.ns.ParkPage, ola.ns.Decor
+        local function Shown(x)
+            local list = {}
+            for _, p in ipairs(x.parts) do if p:IsShown() and p.anim:IsPlaying() then list[#list + 1] = p end end
+            return list
+        end
+        local cd = card.decor
+        local onCard = #Shown(cd)
+        ok(cd.glows[1]:IsShown(), "its card glows")
+        ola:Page("Parken"):Open()
+        eq(P.spot.key, "s:41", "Kari's cat, today's pet")
+        local d = P.spot.decor
+        for i, g in ipairs(d.glows) do
+            ok(g:IsShown(), "a glow, as on its card"); ok(g.breathe:IsPlaying())
+            eq(g.vertexColor[4], 0.5, "at half its strength"); eq(cd.glows[i].vertexColor[4], 1, "the card's at full")
+            eq(g.size[1], cd.glows[i].size[1] * D.STAGE.scale, "the stage's size")
+        end
+        local want = 0
+        for _, spec in ipairs(D:Specs("s:41", 4, ola.ns.Now())) do want = want + math.max(1, math.ceil(spec.n / 2)) end
+        eq(#Shown(d), want, "half of each kind's particles")
+        ok(#Shown(d) < onCard, "fewer than the card's")
+        for _, p in ipairs(Shown(d)) do
+            local y = p.points[1][5] + d.panel.points[1][5]
+            ok(y >= 0 and y <= P.SPOT_H - P.STAGE_FENCE, "starts inside the stage: " .. y)
+        end
+        -- A pet with no bond to show: no glow; the stage hidden: nothing plays; shown again: all back.
+        P:Spot("s:72")
+        no(d.glows[1]:IsShown())
+        P:Spot("s:41")
+        P.spot:Hide()
+        eq(#Shown(d), 0); no(d.glows[1].breathe:IsPlaying())
+        P.spot:Show()
+        eq(#Shown(d), want); ok(d.glows[1].breathe:IsPlaying())
+        -- "Ingen" particles on the card: none on the stage either.
+        ola.ns.DB.global.settings.cardParticles = "none"
+        P:Spot("s:41", true)
+        eq(#Shown(d), 0); ok(d.glows[1]:IsShown(), "the glow stays")
+    end)
+
     test("tooltips say where a pet comes from: the kind, and where when known (names from the data, prose from Locale)", function()
         local w, ola = Setup()
         ola:OpenJournal({ sideTabs = 4 })
