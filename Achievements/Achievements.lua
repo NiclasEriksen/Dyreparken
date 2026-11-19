@@ -553,7 +553,6 @@ local function EarnedLine(who, ids)
     local last = table.remove(names)
     return ns.Fill(T().earned_many, { player = who, list = table.concat(names, ns.L["list.sep"]), last = last })
 end
-Ach.EarnedLine = EarnedLine
 
 -- The hint after one's own achievement, only its first few times (review 2026-11-19: on the tenth it was noise).
 Ach.SHARE_HINTS = 3

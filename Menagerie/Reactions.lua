@@ -141,7 +141,6 @@ local function Named(row, name)
     for _, n in ipairs(row.ends or {}) do if name:sub(-#n) == n then return true end end
     return false
 end
-Reactions.Named = Named
 
 -- Lines by nature: the first of the row's traits the pet has with lines, then its families', else the plain.
 function Reactions.ByNature(row, key) return ns.Moments.ByNature("react", row, key) end

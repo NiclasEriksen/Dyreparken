@@ -20,6 +20,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
-Bundled libraries in Libs/ keep their own licenses: LibStub and ChatThrottleLib
-(public domain), LibSerialize (MIT, see its header) and LibDeflate (zlib, see
+Bundled libraries in Libs/ keep their own licenses: LibStub (public domain),
+LibSerialize (MIT, see its header) and LibDeflate (zlib, see
 Libs/LibDeflate/LICENSE.txt).

@@ -98,10 +98,10 @@ Games\Framework.lua
 
 Core\Commands.lua
 
+#@do-not-package@
 # Development only (a git checkout): probes, editors, galleries, /dp probe and
 # /dp debug. The packager strips this block and .pkgmeta leaves Dev/ out, so a
 # release never loads them; each file extends a module above it.
-#@do-not-package@
 Dev\DecorCandidates.lua
 Dev\PetsProbe.lua
 Dev\ScenesProbe.lua

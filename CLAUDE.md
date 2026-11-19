@@ -34,7 +34,7 @@ quirks. When you learn something new about the client, add it there with the dat
   luacheck (reads of unknown globals too: a misspelt or undeclared local; its config from the harness's stubs, `tools/lint_config.lua`: a client API must be stubbed before lint takes
   it; one read only behind an existence check goes in its OPTIONAL list; `-- luacheck: ignore NNN (why)` for a meant one),
   the Lua language server headless (fields and arguments: `ns.Bodn`, `ns.Wish:Grnat()`, an argument too many; value
-  types are off in .luarc.json; it runs alongside the rest), and the test suite with coverage floors (~35 s).
+  types are off in .luarc.json; it runs alongside the rest), and the test suite with coverage floors (~40 s).
   `tools/check.sh --quick` skips coverage (~8 s). The runner uses every core (`--jobs=N`; one process for `-v` or a
   filter matching under 20 tests), dealing tests longest first by their last times (`tools/test/.timings*`, untracked);
   `--slow[=N]` lists the slowest, `--shuffle[=seed]` runs in a random order. A filter matching nothing, or an unknown
@@ -374,7 +374,7 @@ Media/Particles/   our own particle textures (heart, sparkle, star, dot, bubble,
                    pebble, chevron, bolt, halo, sword, drop, butterfly, mist; house, the list's mark for a pet that needs a home; cake, Cake.lua;
                    since 2026-11-12 the pet frame's bubbles speechblank, thought, shout and rain, the families' yarn
                    (cats), petal (plants), shell (murlocs), and the traits' banana, mask, sun, badge; 2026-11-15 Parken's
-                   fences, plank and post, its sign, tree, bush, pond, flowers and stump (and since 2026-11-16 signpost, bench, trough; bush unused), in color, not white, and the pens' ground, turf (a seamless grain, near white, tinted); the signs'
+                   fences, plank and post, its sign, tree, pond, flowers and stump (and since 2026-11-16 signpost, bench, trough; the bush went 2026-11-19), in color, not white, and the pens' ground, turf (a seamless grain, near white, tinted); the signs'
                    marks snake, cheese, horseshoe, lilypad, egg):
                    white with soft alpha, 64x64 32-bit TGA, to tint and animate. Drawn by tools/draw_particles.py;
                    edit the script and rerun it rather than editing the files.

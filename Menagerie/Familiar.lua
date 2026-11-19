@@ -28,7 +28,6 @@ local BY_KEY, BY_SPELL = {}, {}
 for _, row in ipairs(ns.Familiars) do BY_KEY[row.key], BY_SPELL[row.spell] = row, row end
 
 function Familiar:Row(key) return BY_KEY[key] end
-function Familiar:IsFamiliar(key) return BY_KEY[key] ~= nil end
 
 -- One familiar's buff: true (on, with its aura data), false (plainly off), nil (can't tell).
 local function Read(row)

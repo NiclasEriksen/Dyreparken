@@ -403,7 +403,6 @@ Plan.LIE_MARGIN = 0.05
 -- and says the loop shows after it (shows: what a put-back plays).
 Moves.CHAINS = { [99] = 100 }
 local function Chains(id, hold) return id ~= nil and hold ~= nil and Moves.CHAINS[id] == hold end
-Plan.Chains = Chains
 local function LieDown(key, id, at)
     local len = Moves:Length(key, id)
     at = at or Moves:Length(key, id, Moves.T.down)

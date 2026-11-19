@@ -898,7 +898,7 @@ def turf():
     return img
 
 
-COLORED = {"plank": plank, "post": post, "sign": sign, "tree": tree, "bush": bush, "pond": pond,
+COLORED = {"plank": plank, "post": post, "sign": sign, "tree": tree, "pond": pond,
            "flowers": flowers, "stump": stump, "turf": turf, "signpost": signpost, "bench": bench,
            "trough": trough}
 
