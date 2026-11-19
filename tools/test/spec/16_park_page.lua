@@ -209,8 +209,13 @@ return function(test, H)
         ok(panda.trail:IsShown()); ok(panda.trail.paws[1].walk:IsPlaying())
         no(kitty.trail:IsShown())
         ok(tabby.icon.desaturated, "free: grey"); eq(tabby.icon.alpha, 0.55)
-        ok(tabby.free:IsShown(), "a house on every free one (review 2026-11-19)")
+        ok(tabby.free:IsShown(), "a house on a free one someone in the guild has (review 2026-11-19)")
         eq(tabby.free.vertexColor[1], 0.62, "grey: Ola doesn't own it")
+        local none = 0
+        for _, c in ipairs(Cells(ola)) do
+            if not ola.ns.Owners:Any(c.key) then none = none + 1; no(c.free:IsShown(), "nobody has " .. c.key .. ": no house") end
+        end
+        ok(none > 0, "(some nobody has)")
         ok(rabbit.free:IsShown(), "free, and Ola owns it: he could adopt it")
         eq(rabbit.free.vertexColor[1], 0.45, "green")
         eq(rabbit.free.tex, ola.ns.Icon("house"), "the list's house, not a tick (review 2026-11-19)")

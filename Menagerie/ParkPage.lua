@@ -541,9 +541,9 @@ local function Redraw()
         c.mystery:SetAlpha(match and Park.MYSTERY_COLOR[4] or Park.DIM)
         c.mine:SetShown(owner == me and match)
         Park.Walk(c, owner == me and match)
-        -- A house on every free one, green where you could adopt it (review 2026-11-19: "needs a home" was
-        -- told by its grey alone).
-        c.free:SetShown(owner == nil and match)
+        -- A house on a free one someone in the guild owns, green where you could adopt it (review 2026-11-19:
+        -- "needs a home" was told by its grey alone; the user: not on one nobody has, the question marks).
+        c.free:SetShown(owner == nil and match and ns.Owners:Any(it.key))
         local can = owned[it.key] ~= nil
         c.free:SetVertexColor(can and FREE_RGB[1] or 0.62, can and FREE_RGB[2] or 0.62, can and FREE_RGB[3] or 0.62)
         c.free:SetAlpha(can and 1 or 0.7)
