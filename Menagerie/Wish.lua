@@ -422,12 +422,10 @@ function Wish.NodeKind(lines, unit)
     end
 end
 
--- The pet the wish waits for, at hand: out, or (mounted, or on a flight path, where the game puts it away: the
--- user, 2026-11-19) the one auto-summon keeps out.
+-- The pet the wish waits for, out with you, on foot (the user, 2026-11-19: not from a flight path or a mount,
+-- where the game puts it away; that it didn't count there was right).
 local function AtHand(key)
-    if ns.Pets:OutKey() == key then return true end
-    if ns.Plain(IsMounted()) or ns.Plain(UnitOnTaxi("player")) then return ns.Summon:ActiveKey() == key end
-    return false
+    return ns.Pets:OutKey() == key and not ns.Plain(IsMounted()) and not ns.Plain(UnitOnTaxi("player"))
 end
 
 function Wish:Hovered(tooltip, data, unit)

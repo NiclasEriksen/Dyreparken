@@ -166,13 +166,15 @@ end
 -- looks like (/dp probe api fall, the user's jumps, build 70959): out of combat, at the landing, UNIT_COMBAT on you,
 -- "WOUND", physical (school 1), its amount secret; nothing for a hop that doesn't hurt. So a fall is that: damage
 -- out of a fight, still out of one FALL_CHECK later (a mob's first hit starts a fight). How big is unknown (the
--- amount is secret): any fall that hurts. extra: "dead" when it was the end of you.
+-- amount is secret): any fall that hurts. A fight begun in that moment, even one over already (a mob that hit
+-- first, killed at once: the user asked, 2026-11-19), makes it not a fall. extra: "dead" when it was the end of you.
 Activity.FALL_CHECK = 0.5
 Activity:Source({ id = "fall", events = { "UNIT_COMBAT" }, unit = "player", when = "peace",
     filter = function(_, unit, action, _, _, school)
         if Plain(unit) ~= "player" or Plain(action) ~= "WOUND" or Plain(school) ~= 1 then return nil end
+        local at = GetTime()
         C_Timer.After(Activity.FALL_CHECK, function()
-            if ns.InCombat() then return end
+            if ns.InCombat() or (Activity.fightAt and Activity.fightAt >= at - 0.05) then return end
             Activity:Emit("fall", 1, Plain(UnitIsDeadOrGhost("player")) == true and "dead" or nil)
         end)
         return nil

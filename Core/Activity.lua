@@ -247,7 +247,8 @@ local function State(on)
     if ns.Events:Has("PLAYER_REGEN_DISABLED", STATE) then return end
     fighting = ns.InCombat() == true
     local grouped = Plain(IsInGroup()) == true
-    ns.Events:On("PLAYER_REGEN_DISABLED", STATE, function() fighting = true; Update() end)
+    -- (when the last fight began: a fall waits a moment, and a fight begun in it, even one over already, isn't one)
+    ns.Events:On("PLAYER_REGEN_DISABLED", STATE, function() fighting = true; Activity.fightAt = GetTime(); Update() end)
     ns.Events:On("PLAYER_REGEN_ENABLED", STATE, function() fighting = false; Update() end)
     -- (a raid's roster comes in bursts: only joining or leaving a group in a fight changes what's heard)
     ns.Events:On("GROUP_ROSTER_UPDATE", STATE, function()

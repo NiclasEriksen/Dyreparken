@@ -221,10 +221,16 @@ return function(test, H)
         no(W4:Today().done, "a trainer")
         liv:HoverObject({ "Herbalism Trainer's Sign", "Herbalism" })
         no(W4:Today().done, "a line that says trainer, anywhere")
-        -- Mounted or on a flight path the game puts the pet away: the one kept out counts.
-        liv.state.taxi = true; liv:Summon(nil)
+        -- On foot with the pet out only: not from a flight path or a mount (the user, 2026-11-19).
+        liv.state.taxi = true
         liv:HoverObject({ "Peacebloom", "Herbalism" })
-        ok(W4:Today().done, "from the flight path")
+        no(W4:Today().done, "from the flight path")
+        liv.state.taxi = false; liv:Mount()
+        liv:HoverObject({ "Peacebloom", "Herbalism" })
+        no(W4:Today().done, "mounted")
+        liv:Dismount()
+        liv:HoverObject({ "Peacebloom", "Herbalism" })
+        ok(W4:Today().done, "on foot")
         -- A skinning wish by a skinnable corpse, a unit's tooltip.
         local w2, kari, W2 = Setup("skin")
         eq(W2:Today().id, "skin") -- (made, as the day's first activity does)
