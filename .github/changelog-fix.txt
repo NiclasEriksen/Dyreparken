@@ -1,2 +1,5 @@
 38fcb0fe41212348c4fda40feeb79a1cfbe3bc44 Everyday lines come on some days, not every day: totems, Ghost Wolf, midnight, campfires and known dislikes; and a couple of new ***** to find
 d8e46af69f7190aad5a411f47c0eeca6128eba14 A gathering wish counts only on foot with your pet out, and never a profession trainer
+5b65a951d884c2f9417c08fe1a231b8620e68d85 Tidy-up: The addon list shows a version for a git checkout ("dev") instead of @project-version@
+482e23a93e190c059a70bae3118a0f2b3b9f5ef5 Tidy-up: A visit to the bank should count as an errand now (as Forever's newer bank window opens)
+05b30189b3330a8cea4690fb221c8cffe5062fd3 Tidy-up: Going into a dungeon counts for the pet that's with you, after the loading screen brings it back, and once a visit
