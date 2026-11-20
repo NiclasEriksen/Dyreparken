@@ -174,14 +174,29 @@ return function(test, H)
         ok(confetti.spin:IsPlaying()); ok(confetti.sway:IsPlaying())
         ok(Parts(d)[1].icon.vertexColor[1] ~= Parts(d)[4].icon.vertexColor[1] or Parts(d)[1].icon.vertexColor[3] ~= Parts(d)[4].icon.vertexColor[3],
             "in many colors")
-        -- Sparks fly out from the pet, quickly, shrinking.
+        -- The bond's sparks fly out from the pet like sparks: small, lit, quick, mostly up, then dropping.
         At(w, ola, 9, 21, 12)
         ola:Traits{}
         D:Apply(card, PANDA, 5)
         local spark = Parts(d)[1]
-        eq(spark.icon.tex, D.MEDIA .. "sparkle")
-        ok(spark.anim.moveA.duration < 1, "fast"); eq(spark.anim.moveA.smoothing, "OUT")
-        eq(spark.anim.grow.scaleTo[1], 0.3); ok(spark.spin:IsPlaying())
+        eq(spark.icon.tex, D.MEDIA .. "sparkle"); eq(spark.icon.blend, "ADD")
+        ok(spark.size[1] <= 9, "small, the size of the others or less: " .. spark.size[1])
+        eq(spark.anim.grow.scaleTo[1], 0.4); no(spark.spin:IsPlaying())
+        local up, even = 0, 0
+        for _, p in ipairs(Parts(d)) do
+            local a, b = p.anim.moveA, p.anim.moveB
+            if a.offset[2] > 0 then up = up + 1 end
+            -- No jerk halfway: one even speed through both steps.
+            local function Speed(m) return math.sqrt(m.offset[1] ^ 2 + m.offset[2] ^ 2) / m.duration end
+            if a.smoothing == "NONE" and (b.smoothing or "NONE") == "NONE" and math.abs(Speed(a) - Speed(b)) < 1e-6 then
+                even = even + 1
+            end
+            -- Gravity alongside, in step with the path: the same wait, the whole flight, faster and faster.
+            ok(p.fall:IsPlaying(), "falling"); eq(p.fall.wait.duration, p.anim.hold.duration)
+            eq(p.fall.drop.duration, a.duration + b.duration); eq(p.fall.drop.smoothing, "IN")
+            ok(p.fall.drop.offset[2] < 0)
+        end
+        eq(up, 6, "flung up"); eq(even, 6, "at an even speed")
         -- Stars twinkle in place at night.
         At(w, ola, 9, 21, 23)
         local star = Kind("nattugle", "star")

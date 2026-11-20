@@ -78,6 +78,13 @@ Decor.KINDS = {
     snow = { tex = "snowflake", path = "fall", sway = 12, spin = 6, size = { 10, 16 }, dur = { 9, 12 } },
     note = { tex = "note", path = "rise", sway = 16, tilt = 20, size = { 16, 22 }, dur = { 5, 7 } },
     spark = { tex = "sparkle", path = "burst", spin = 1.5, size = { 12, 22 }, dur = { 1.4, 2.2 } },
+    -- The bond's sparks from level 5 (2026-11-20, the user: "easily twice the size of other particles"; they
+    -- should move like sparks): small, lit, flung out and mostly up, then pulled down as they die.
+    -- reach: the burst's distance, times; arc: its angles (in half turns, 0 right, 0.5 up); fall: the drop,
+    -- gravity on the inner frame (so never with a sway), while the path goes on at an even speed: an eased path
+    -- split in two steps jerked halfway (2026-11-20, the user: "that awkward jerking halfway").
+    fleck = { tex = "sparkle", path = "burst", add = true, reach = 1.1, arc = { 0.1, 0.9 }, fall = 70, grow = 0.4,
+        size = { 5, 9 }, dur = { 1.5, 2.1 } },
     star = { tex = "star", path = "twinkle", spin = 8, size = { 10, 18 }, dur = { 2, 3.5 } },
     paw = { tex = "paw", path = "steps", size = { 16, 18 }, dur = { 4, 4 } },
     -- The families' ambience (2026-11-09).
@@ -346,10 +353,17 @@ local function NewParticle(c)
     holder.icon = holder.inner:CreateTexture(nil, "ARTWORK")
     holder.icon:SetAllPoints()
     holder.sway = Swing(holder.inner, "Translation")
+    -- A kind's fall (gravity), alongside the path: the holder's wait, then down ever faster, looped in step with it.
+    holder.fall = holder.inner:CreateAnimationGroup()
+    holder.fall:SetLooping("REPEAT")
+    holder.fall.wait = holder.fall:CreateAnimation("Translation"); holder.fall.wait:SetOrder(1)
+    holder.fall.wait:SetOffset(0, 0)
+    holder.fall.drop = holder.fall:CreateAnimation("Translation"); holder.fall.drop:SetOrder(2)
+    holder.fall.drop:SetSmoothing("IN")
     holder.spin = Loop(holder.icon, "Rotation", "REPEAT")
     holder.tilt = Swing(holder.icon, "Rotation")
     holder.throb = Swing(holder.icon, "Scale")
-    holder.groups = { holder.plain, holder.growing, holder.sway, holder.spin, holder.tilt, holder.throb }
+    holder.groups = { holder.plain, holder.growing, holder.sway, holder.fall, holder.spin, holder.tilt, holder.throb }
     holder.anim = holder.plain
     return holder
 end
@@ -482,9 +496,10 @@ local function Launch(p, spec, rng, i, n, panel, s)
     elseif k.path == "fall" then
         y, dx, dy = Y(270, 330), rng(-30, 30), -Dist(200, 260)
     elseif k.path == "burst" then -- out from around the pet, in every direction
-        local a = rng(0, 2 * math.pi)
+        local arc, reach = k.arc or { 0, 2 }, k.reach or 1
+        local a = rng(arc[1], arc[2]) * math.pi
         x, y = width / 2 + rng(-30, 30) * s, rng(70, 130)
-        dx, dy, grow = math.cos(a) * rng(90, 150), math.sin(a) * rng(60, 120), grow or 0.3
+        dx, dy, grow = math.cos(a) * rng(90, 150) * reach, math.sin(a) * rng(60, 120) * reach, grow or 0.3
     elseif k.path == "twinkle" then
         y, grow = Y(190, 320), grow or 1.6
     elseif k.path == "drift" then -- a slow wander, anywhere above the panel
@@ -504,7 +519,7 @@ local function Launch(p, spec, rng, i, n, panel, s)
     g.hold:SetDuration(wait)
     local first = k.path == "burst" and 0.35 or 0.4
     g.moveA:SetOffset(dx * first, dy * first); g.moveA:SetDuration(dur * first)
-    g.moveA:SetSmoothing(k.path == "burst" and "OUT" or "NONE")
+    g.moveA:SetSmoothing(k.path == "burst" and not k.fall and "OUT" or "NONE")
     g.fadeIn:SetDuration(dur * (k.path == "burst" and 0.1 or 0.25))
     g.moveB:SetOffset(dx * (1 - first), dy * (1 - first)); g.moveB:SetDuration(dur * (1 - first))
     g.fadeOut:SetDuration(dur * (1 - first))
@@ -512,6 +527,11 @@ local function Launch(p, spec, rng, i, n, panel, s)
     p:Show()
     g:Play()
     -- Its own motions, alongside, each on its own layer.
+    if k.fall then
+        p.fall.wait:SetDuration(wait)
+        p.fall.drop:SetOffset(0, -k.fall * s); p.fall.drop:SetDuration(dur)
+        p.fall:Play()
+    end
     if k.sway then
         SetSwing(p.sway, rng(0.6, 1) * k.sway * s * (i % 2 == 0 and 1 or -1), rng(2.2, 3.6))
         p.sway:Play()
@@ -588,7 +608,7 @@ function Decor:Specs(key, level, t)
         if not d.season and d.when(t) then list[#list + 1] = Thinned(d.spec, f) end
     end
     local Reward = ns.Scenes.Reward
-    if Reward(level, "sparks") then list[#list + 1] = { kind = "spark", n = Reward(level, "sparks"), color = GOLD } end
+    if Reward(level, "sparks") then list[#list + 1] = { kind = "fleck", n = Reward(level, "sparks"), color = GOLD } end
     if Reward(level, "hearts") then list[#list + 1] = { kind = "heart", n = Reward(level, "hearts"), color = { 1, 0.4, 0.5 } } end
     -- Last: the pool may run out, and the ambience is what can go.
     local family = ns.Scenes:Families(key)[1]
