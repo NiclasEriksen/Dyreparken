@@ -453,8 +453,10 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
     `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` (errands); the meal buffs "Food" (spell 435) and "Drink" (spell 1135,
     2026-11-20; logged as "Food" until the log named the buff found) on UNIT_AURA, readable and plain.
   - Still unverified: the bank (no `Banker` 8 came on a visit, 2026-11-20; `CharacterBanker` 67 counted too; a window that isn't an errand logs its type:
-    `-g "errand: not one"`); "Food & Drink", "Refreshment"; `IsInInstance()`'s "party" / "raid" after
-    `PLAYER_ENTERING_WORLD` (dungeons).
+    `-g "errand: not one"`); "Food & Drink", "Refreshment"; `IsInInstance()`'s "raid".
+  - Verified 2026-11-20: `IsInInstance()` gives true, "party" after `PLAYER_ENTERING_WORLD` into a dungeon
+    (Maraudon, its name from `GetZoneText()`). The companion is gone through that loading screen and back only
+    when Summon brings it a few seconds later: anything counted at the loading screen's end has no pet out.
 - **UNIT_AURA's updateInfo can be secret** (2026-11-12, 1.60.1, in a dungeon): "attempt to perform boolean test on field
   'isFullUpdate' (a secret boolean)". Check `issecretvalue` on the table and its fields before testing them.
 - **The meter in a real fight** (2026-11-12): Meter.lua's read after a boss kill gave "damage: place 5, 1027 against

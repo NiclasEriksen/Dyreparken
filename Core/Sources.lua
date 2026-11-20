@@ -627,7 +627,21 @@ Activity:Source({ id = "errand", events = { "PLAYER_INTERACTION_MANAGER_FRAME_SH
 
 -- Into a dungeon or a raid (2026-11-19, the user: Huleboer's like): its loading screen's end inside one, once
 -- per visit (a /reload or a login inside isn't a new one). extra: its name.
-local inside
+-- From the log (2026-11-20, Maraudon): the pet is gone through the loading screen and back a few seconds later
+-- (Summon), so the visit waits for it (else it went to no pet: no points); and out and back in 15 s later counted
+-- twice, so the same dungeon within DUNGEON_AGAIN is the same visit (a run back after a wipe too).
+Activity.DUNGEON_AGAIN = 30 * 60
+Activity.DUNGEON_WAIT = { 2, 10 } -- seconds: look for the pet every 2, count it anyway at 10
+local inside, lastDungeon, lastDungeonAt
+local dungeonT = ns.Timers()
+local function Visit(name, waited)
+    if waited < Activity.DUNGEON_WAIT[2] and not ns.Pets:OutKey() then
+        local step = Activity.DUNGEON_WAIT[1]
+        return dungeonT:After(step, function() Visit(name, waited + step) end)
+    end
+    if not inside then return end -- (out again before it counted)
+    Activity:Emit("dungeon", 1, name)
+end
 Activity:Source({ id = "dungeon", events = { "PLAYER_ENTERING_WORLD" },
     filter = function(_, login, reload)
         local yes, kind = IsInInstance()
@@ -637,7 +651,13 @@ Activity:Source({ id = "dungeon", events = { "PLAYER_ENTERING_WORLD" },
         inside = now
         if not now or was or login or reload then return nil end
         local name = Plain(GetZoneText())
-        return 1, type(name) == "string" and name or nil
+        name = type(name) == "string" and name or nil
+        local t = GetTime()
+        if name and name == lastDungeon and t - lastDungeonAt < Activity.DUNGEON_AGAIN then return nil end
+        lastDungeon, lastDungeonAt = name, t
+        dungeonT:Cancel()
+        Visit(name, 0)
+        return nil
     end })
 
 -- A new flight path (ERR_NEWTAXIPATH "New flight path discovered!"): a message on screen

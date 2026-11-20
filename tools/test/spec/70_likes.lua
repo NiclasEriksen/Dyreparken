@@ -53,20 +53,45 @@ return function(test, H)
 
     test("a dungeon: going in, once a visit; not a reload or a login inside, nor the open world", function()
         local w, ola = Setup({ "huleboer", "glupsk" })
-        local function Enter(kind, login, reload)
-            ola.state.instance = kind
+        local A = ola.ns.Activity
+        local function Enter(kind, zone, login, reload)
+            ola.state.instance, ola.state.zone = kind, zone or (kind == "none" and "Desolace" or "Maraudon")
             ola:Fire("PLAYER_ENTERING_WORLD", login or false, reload or false); w:Run(1)
         end
+        local before = ola:Points(PANDA)
         Enter("party")
         eq(Count(ola, "dungeon"), 1)
+        eq(select(4, A:Count("dungeon", PANDA)), 1, "the pet's"); eq(ola:Points(PANDA), before + 5, "a like")
         Enter("party")
         eq(Count(ola, "dungeon"), 1, "still inside")
-        Enter("none"); Enter("raid")
+        -- Out and back in (2026-11-20, Maraudon: 15 s later, twice): the same visit, and a run back after a wipe.
+        Enter("none"); Enter("party")
+        eq(Count(ola, "dungeon"), 1, "the same dungeon again soon: the same visit")
+        Enter("none"); Enter("raid", "Molten Core")
         eq(Count(ola, "dungeon"), 2, "out and into a raid")
-        Enter("none"); Enter("party", false, true)
+        Enter("none"); Enter("party", "Maraudon", false, true)
         eq(Count(ola, "dungeon"), 2, "a reload inside isn't a visit")
-        Enter("none"); Enter("pvp")
+        Enter("none"); Enter("pvp", "Warsong Gulch")
         eq(Count(ola, "dungeon"), 2, "a battleground isn't one")
+        w:Run(A.DUNGEON_AGAIN)
+        Enter("none"); Enter("party")
+        eq(Count(ola, "dungeon"), 3, "Maraudon again, later: a new visit")
+    end)
+
+    test("a dungeon waits for the pet the loading screen took (2026-11-20, Maraudon: counted to no pet)", function()
+        local w, ola = Setup({ "huleboer", "glupsk" })
+        local A = ola.ns.Activity
+        local before = ola:Points(PANDA)
+        local guid = ola.summoned
+        ola.summoned = nil -- (gone through the loading screen)
+        ola.state.instance, ola.state.zone = "party", "Maraudon"
+        ola:Fire("PLAYER_ENTERING_WORLD", false, false)
+        eq(Count(ola, "dungeon"), 0, "not yet: no pet out")
+        w:Run(3)
+        ola.summoned = guid -- (Summon brings it back)
+        w:Run(A.DUNGEON_WAIT[1] + 1)
+        eq(Count(ola, "dungeon"), 1)
+        eq(select(4, A:Count("dungeon", PANDA)), 1, "to the pet"); eq(ola:Points(PANDA), before + 5)
     end)
 
     test("a duel of yours, won or lost, is liked by a troublemaker; someone else's isn't", function()
