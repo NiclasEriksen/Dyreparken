@@ -72,6 +72,7 @@ local GUILD_DEFAULTS = {
     achSeen = {}, -- guild achievements looked at
     born = nil,   -- the guild's first adoption we know of: the park's birthday (Bonds:ParkBorn)
     story = {},   -- [petKey] = its story as this client saw it (Menagerie/Story.lua; local, never sent)
+    loyal = {},   -- [carer] = { [petKey] = loyalty points } (Bond:Loyalty, from bond level 7; local, never sent yet)
     rosterHeld = nil, -- { at, owners = { [owner] = true } }: a roster batch held back as too big (Registry:CheckRoster; local)
 }
 

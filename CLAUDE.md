@@ -607,6 +607,15 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   (Wish.Company). No wire change: the pat is the patter's emote, read on our side (Bonds:Patted, CHAT_MSG_EMOTE heard
   always). A guildmate can type the emote by hand: a point every 5 minutes at most, within the day.
 
+- **Loyalty points** (lojalitetspoeng, 2026-11-19, the user): from your bond's top level (Sjelevenn) on, everything a pet
+  earns with you counts on with no day's limit (the per-activity caps stay), continuing from the bond's points, at
+  the pet's rate (adopted or not): Bond:Loyalty / AddLoyalty / LoyaltyTotal (a character's sum: a leaderboard later).
+  The bond's own `p` goes on as before, within the day's 75 and Wire.LifeCap, so nothing changes on the wire: the
+  points are kept on this client only (g.loyal[carer][pet]), not sent yet (the user: "not yet"; sending them later
+  is a protocol bump with a sanity cap a day). On the card (your own bond) and the pet frame a counter ("3 484
+  lojalitetspoeng") takes the bar's place, the "+N" still rising; the level's number becomes a gold star at the top,
+  "level 7/7" in the tooltip (a guildmate's pet at the top: the star, its bar).
+
 - **Who owns what, X-Protocol 11** (2026-11-15, the user: "essential for many of the features I have planned"; Menagerie/
   Owners.lua): each member's owned species go to the guild, lazily, and pets are assumed kept for good (a list only
   grows). Older clients keep syncing (the user): the protocol is per kind now (X-Protocol-Floor 10; Wire.SINCE, Stamp,

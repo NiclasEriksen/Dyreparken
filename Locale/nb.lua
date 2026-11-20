@@ -1547,9 +1547,14 @@ L["card.nick.popup"] = "Kallenavn på dyret ditt (maks {n} tegn, tomt fjerner de
 -- The bond on the card: tooltips, the stars, the celebration (BondTrack)
 ------------------------------------------------------------------------------
 L["bond.tip.title"] = "Bånd: {level} (level {n})"
+L["bond.tip.title_top"] = "Bånd: {level} (level {n}/{n})"
 L["bond.tip.to_next"] = "{n} poeng til {level}."
 L["bond.tip.next_decor"] = "På level {n} får kortet {decor}."
 L["bond.tip.top"] = "Høyeste level."
+L["bond.loyal"] = "{n} lojalitetspoeng"
+L["bond.tip.loyal"] = "Lojalitetspoeng: {n}"
+L["bond.tip.loyal_today"] = "I dag: +{n}"
+L["bond.tip.loyal_how"] = "På høyeste level teller alt dere gjør sammen videre som lojalitetspoeng, uten grense for dagen."
 L["bond.tip.whose"] = "{owner} sitt bånd med dyret."
 L["bond.tip.others"] = "Også glad i det: {list}"
 L["bond.tip.how_other"] = "Ditt bånd med et dyr du ikke har adoptert vokser halvparten så fort. Adopter det for å gi det full oppmerksomhet."

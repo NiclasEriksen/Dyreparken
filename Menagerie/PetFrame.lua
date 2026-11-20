@@ -126,6 +126,17 @@ function PF:Build()
     bar.ring:SetPoint("CENTER", bar.medal, "CENTER")
     bar.level = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     bar.level:SetPoint("CENTER", bar.medal, "CENTER", 0, 0)
+    -- The top level: a gold star for the level's number, and the loyalty points in the bar's place (2026-11-19).
+    bar.star = bar:CreateTexture(nil, "OVERLAY")
+    bar.star:SetTexture(ns.Icon("star"))
+    bar.star:SetSize(16, 16)
+    bar.star:SetPoint("CENTER", bar.medal, "CENTER", 0, 0)
+    bar.star:SetVertexColor(ns.Scenes.GOLD[1], ns.Scenes.GOLD[2], ns.Scenes.GOLD[3], 1)
+    bar.star:Hide()
+    bar.count = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+    bar.count:SetPoint("LEFT", bar, "LEFT", 2, 0)
+    bar.count:SetTextColor(1, 0.85, 0.4)
+    bar.count:Hide()
     f.bar = bar
 
     -- Edit Mode's highlight, like Blizzard's own frames there: a blue wash, a bright edge, a label.
@@ -354,9 +365,21 @@ function PF:Bond(animate)
     local points, level, _, from, nextAt = ns.Bond:Own(key)
     if not points then self.points = nil; bar:Hide(); return end
     local tier = ns.Scenes.Tier(level)
+    -- At the top level: the loyalty points, counting on, instead of the bar (its numbers rise as before).
+    local lp = ns.Bond:Loyalty(key)
+    local fill = bar:GetStatusBarTexture()
+    if fill then fill:SetAlpha(lp and 0 or 1) end
+    bar.bg:SetShown(not lp); bar.edge:SetShown(not lp)
+    bar.count:SetShown(lp and true or false)
+    if lp then
+        points, from, nextAt = lp, lp - 1, lp + 1
+        bar.count:SetText(ns.T("bond.loyal", { n = ns.Grouped(lp) }))
+    end
     bar:Set(points, from, nextAt or math.max(points, 1), tier) -- (a rise to these points goes on)
     bar.ring:SetVertexColor(tier[1], tier[2], tier[3], 1)
     bar.level:SetText(level)
+    local top = level == #ns.Bond.LEVELS
+    bar.star:SetShown(top); bar.level:SetShown(not top)
     local last = self.points
     self.points = points
     if animate and last and points > last then

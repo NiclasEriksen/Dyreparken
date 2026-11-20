@@ -50,7 +50,8 @@ Track.Others = Others
 function Track.BondLines(key)
     local points, level, name, _, nextAt, mine = ns.Bond:Shown(key)
     if not points then return nil end
-    local lines = { { ns.T("bond.tip.title", { level = name, n = level }), 1, 0.82, 0 } }
+    local top = level == #ns.Bond.LEVELS -- (the star: "level 7/7")
+    local lines = { { ns.T(top and "bond.tip.title_top" or "bond.tip.title", { level = name, n = level }), 1, 0.82, 0 } }
     local function Add(text, r, g, b, wrap) lines[#lines + 1] = { text, r, g, b, wrap } end
     local holder = ns.Registry:Holder(key)
     if not mine then Add(ns.T("bond.tip.whose", { owner = holder }), 1, 1, 1) end
@@ -62,7 +63,12 @@ function Track.BondLines(key)
     else
         Add(ns.L["bond.tip.top"], 1, 1, 1)
     end
-    if mine then
+    local lp = mine and ns.Bond:Loyalty(key)
+    if lp then -- (the top level, your own: no day's limit, the loyalty points instead)
+        Add(ns.T("bond.tip.loyal", { n = ns.Grouped(lp) }), 1, 0.85, 0.4)
+        Add(ns.T("bond.tip.loyal_today", { n = ns.Bond:LoyalToday(key) }), 0.5, 0.8, 1, true)
+        Add(ns.L["bond.tip.loyal_how"], 0.8, 0.8, 0.8, true)
+    elseif mine then
         local today, max = ns.Bond:Today(key)
         if today >= max then
             Add(ns.T("bond.tip.today_full", { max = max }), 0.4, 1, 0.4, true)
@@ -147,6 +153,12 @@ function Track:Build(card, c, panel)
     b.yours:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -12, ns.JournalUI.ROW_Y.personality)
     b.yours:SetJustifyH("RIGHT")
     b.yours:SetTextColor(1, 0.6, 0.7)
+    -- The top level, your own: loyalty points instead of the bar (2026-11-19, the user: the bar goes at 7), in
+    -- the bar's place; the bar stays, invisible, for the rising numbers (from its middle, under the counter).
+    b.count = b:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    b.count:SetPoint("CENTER", b, "CENTER", 0, 0)
+    b.count:SetTextColor(1, 0.85, 0.4)
+    b.count:Hide()
 
     -- The medallion, rising out of the panel's top right.
     local m = CreateFrame("Frame", nil, b)
@@ -169,6 +181,14 @@ function Track:Build(card, c, panel)
     m.ring:SetAllPoints()
     m.num = m:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
     m.num:SetPoint("CENTER", m, "CENTER", 0, 1)
+    -- The top level: a gold star for the number (2026-11-19, the user: "we reach the top, now we're just building
+    -- highscores"); "level 7/7" in its tooltip.
+    m.star = m:CreateTexture(nil, "OVERLAY")
+    m.star:SetTexture(ns.Icon("star"))
+    m.star:SetSize(30, 30)
+    m.star:SetPoint("CENTER", m, "CENTER", 0, 0)
+    m.star:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
+    m.star:Hide()
     m:EnableMouse(true)
     ns.SetTip(m, "ANCHOR_TOP", function() return Track.BondLines(card.key) end)
     b.medal = m
@@ -235,51 +255,63 @@ function Track:Update(card, key, color)
     b.yours:SetText(yourLevel and ns.T("bond.yours", { level = yourName, n = yourLevel,
         icon = "|T" .. ns.Icon("heart") .. ":10|t" }) or "")
     b.level:SetText(level)
-    -- The bar: from the tier's dark to its bright (the top level: full), a spark at the tip.
-    b:Set(points, from, nextAt or math.max(points, 1), tier)
-    -- Your own pet: what today brought, and whether the day is full.
-    local mine = shownMine and not quiet
-    if mine then self:Gains(card, key, points) end
-    local today, max = 0, 0
-    if mine then today, max = ns.Bond:Today(key) end
-    local full = mine and today >= max
-    b.spark:SetShown(nextAt ~= nil and points > from and not full)
-    local top = nextAt or math.max(points, 1)
-    local span = math.max(1, top - from)
-    local lo = math.max(0, math.min(1, (points - today - from) / span))
-    local hi = math.max(0, math.min(1, (points - from) / span))
-    if mine and today > 0 and hi > lo then
-        b.today:ClearAllPoints()
-        local w = b:GetWidth() or BAR_W -- (it stretches to the goal's text)
-        b.today:SetPoint("TOPLEFT", b, "TOPLEFT", w * lo, 0)
-        b.today:SetSize(w * (hi - lo), b:GetHeight() or 13)
-        b.today:Show()
+    local top = level == #ns.Bond.LEVELS
+    b.medal.star:SetShown(top); b.level:SetShown(not top)
+    -- Your own bond at the top level: the loyalty points, counting on (Bond:Loyalty).
+    local lp = shownMine and not quiet and ns.Bond:Loyalty(key)
+    self:Counter(b, lp)
+    if lp then
+        b:Set(lp, lp - 1, lp + 1, tier) -- (the numbers rise from the middle, where the counter is)
+        self:Gains(card, key, lp)
+        b.text:SetText("")
+        b.next:SetText("")
     else
-        b.today:Hide()
-    end
-    local vars = { have = points, need = nextAt, today = today }
-    if nextAt then
-        b.text:SetText(ns.T(mine and today > 0 and "bond.bar.today" or "bond.bar", vars))
-    else
-        b.text:SetText(ns.T(mine and today > 0 and "bond.bar.top_today" or "bond.bar.top", vars))
-    end
-    if full then
-        -- The goal stays, with a check for the full day (2026-11-11, the user: "Fullt for i dag" beside an
-        -- almost empty bar read as a contradiction); the tooltip says the day is full.
-        b.next:SetText(ns.T("bond.full.line", { icon = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t",
-            goal = nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
-                or ns.L["bond.top"] }))
-        b.next:SetTextColor(0.4, 1, 0.4)
-        b.edge:SetColorTexture(0.4, 1, 0.4, 0.6)
-    else
-        if not shownMine then
-            b.next:SetText(ns.T("bond.theirs", { owner = ns.Registry:Holder(key) }))
+        -- The bar: from the tier's dark to its bright (the top level: full), a spark at the tip.
+        b:Set(points, from, nextAt or math.max(points, 1), tier)
+        -- Your own pet: what today brought, and whether the day is full.
+        local mine = shownMine and not quiet
+        if mine then self:Gains(card, key, points) end
+        local today, max = 0, 0
+        if mine then today, max = ns.Bond:Today(key) end
+        local full = mine and today >= max
+        b.spark:SetShown(nextAt ~= nil and points > from and not full)
+        local top = nextAt or math.max(points, 1)
+        local span = math.max(1, top - from)
+        local lo = math.max(0, math.min(1, (points - today - from) / span))
+        local hi = math.max(0, math.min(1, (points - from) / span))
+        if mine and today > 0 and hi > lo then
+            b.today:ClearAllPoints()
+            local w = b:GetWidth() or BAR_W -- (it stretches to the goal's text)
+            b.today:SetPoint("TOPLEFT", b, "TOPLEFT", w * lo, 0)
+            b.today:SetSize(w * (hi - lo), b:GetHeight() or 13)
+            b.today:Show()
         else
-            b.next:SetText(nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
-                or ns.L["bond.top"])
+            b.today:Hide()
         end
-        b.next:SetTextColor(0.8, 0.8, 0.8) -- (0.6 on the dark panel over a bright backdrop was hard to read, review 2026-11-19)
-        b.edge:SetColorTexture(1, 0.82, 0, 0.35)
+        local vars = { have = points, need = nextAt, today = today }
+        if nextAt then
+            b.text:SetText(ns.T(mine and today > 0 and "bond.bar.today" or "bond.bar", vars))
+        else
+            b.text:SetText(ns.T(mine and today > 0 and "bond.bar.top_today" or "bond.bar.top", vars))
+        end
+        if full then
+            -- The goal stays, with a check for the full day (2026-11-11, the user: "Fullt for i dag" beside an
+            -- almost empty bar read as a contradiction); the tooltip says the day is full.
+            b.next:SetText(ns.T("bond.full.line", { icon = "|TInterface\\RaidFrame\\ReadyCheck-Ready:12|t",
+                goal = nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
+                    or ns.L["bond.top"] }))
+            b.next:SetTextColor(0.4, 1, 0.4)
+            b.edge:SetColorTexture(0.4, 1, 0.4, 0.6)
+        else
+            if not shownMine then
+                b.next:SetText(ns.T("bond.theirs", { owner = ns.Registry:Holder(key) }))
+            else
+                b.next:SetText(nextAt and ns.T("bond.next", { n = nextAt - points, level = ns.Bond.LEVELS[level + 1][2] })
+                    or ns.L["bond.top"])
+            end
+            b.next:SetTextColor(0.8, 0.8, 0.8) -- (0.6 on the dark panel over a bright backdrop was hard to read, review 2026-11-19)
+            b.edge:SetColorTexture(1, 0.82, 0, 0.35)
+        end
     end
     -- The medallion: the ring greyed and tinted below gold, its disc dark in the tier.
     local m = b.medal
@@ -316,6 +348,18 @@ function Track:Update(card, key, color)
             self:Celebrate(card, key, level)
         end
     end
+end
+
+-- The loyalty counter in the bar's place (lp), or the bar back (nil).
+function Track:Counter(b, lp)
+    local fill = b:GetStatusBarTexture()
+    if fill then fill:SetAlpha(lp and 0 or 1) end
+    b.bg:SetShown(not lp); b.edge:SetShown(not lp)
+    if lp then
+        b.spark:Hide(); b.today:Hide()
+        b.count:SetText(ns.T("bond.loyal", { n = ns.Grouped(lp) }))
+    end
+    b.count:SetShown(lp and true or false)
 end
 
 ------------------------------------------------------------------------------

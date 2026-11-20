@@ -39,10 +39,11 @@ return function(test, H)
         card = ola:SelectPet(5159)
         eq(b.level.text, 5)
         no(b.medal.ring.desaturated); ok(b.medal.glow:IsShown()); ok(b.medal.glow.pulse:IsPlaying())
-        -- The top: a full bar, no spark.
+        -- The top, your own: the loyalty points instead of the bar (2026-11-19), no spark.
         ola:SetBond(PANDA, 7000)
         card = ola:SelectPet(5159)
-        eq(b.text.text, "7000"); no(b.spark:IsShown())
+        ok(b.count:IsShown()); eq(b.count.text, "7 000 lojalitetspoeng")
+        no(b.bg:IsShown()); no(b.spark:IsShown()); eq(b.next.text, "")
         -- The level preview shows that level's own name and points (it said "Bekjent (level 7)").
         ola:SetBond(PANDA, 30)
         ola:Slash("probe level 7")

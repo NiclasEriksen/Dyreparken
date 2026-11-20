@@ -141,6 +141,7 @@ function Bond:Add(points, key)
     if not g then return nil end
     local e = ns.Registry:Life(key, me)
     local before = e and e.p or 0
+    local loyal = before >= LEVELS[#LEVELS][1] -- (its gains are the loyalty points' now: AddLoyalty)
     local f = Start(key, e)
     -- Within what the wire accepts (Registry.LifeCap), so every copy merges;
     -- never below what we had (a copy that was valid stays ours).
@@ -151,7 +152,7 @@ function Bond:Add(points, key)
     ns.Log("Bond", "%s +%d -> %d (level %d)", key, points, p, level)
     -- Each gain, for the card to show as it next sees this pet (BondTrack: the numbers
     -- rising from the bar). At most GAINS_KEPT; older ones are added into the oldest kept.
-    if p > before then
+    if p > before and not loyal then
         local all = ns.DB.char.bondGains
         local list = all[key] or {}
         all[key] = list
@@ -168,6 +169,61 @@ function Bond:Add(points, key)
     end
     ns.Bus:Fire("BOND", key)
     return p
+end
+
+------------------------------------------------------------------------------
+-- Loyalty points (lojalitetspoeng, 2026-11-19, the user): from the top level on, everything a pet earns with
+-- you counts on without the day's limit (the per-activity caps stay), as how much time you've spent with it;
+-- a character's total is meant for a leaderboard later. They continue from the bond's points as it reached
+-- the top. The bond's own points (`p`) go on as before, within the day's limit and the wire's cap
+-- (Registry.LifeCap), so peers see nothing new: the loyalty points are kept here only (g.loyal[carer]), not
+-- sent yet. At the pet's rate, as every point is.
+------------------------------------------------------------------------------
+-- Your own bond with the pet has reached the top level.
+function Bond:Loyal(key)
+    local e = key and ns.Registry:Life(key, ns.PlayerKey())
+    return e ~= nil and e.p >= LEVELS[#LEVELS][1]
+end
+
+local function LoyalStore(make)
+    local g = ns.DB:Guild()
+    if not g then return nil end
+    local me = ns.PlayerKey()
+    local t = g.loyal[me]
+    if not t and make then t = {}; g.loyal[me] = t end
+    return t
+end
+
+-- Your loyalty points with a pet: nil below the top level.
+function Bond:Loyalty(key)
+    if not self:Loyal(key) then return nil end
+    local t = LoyalStore()
+    return math.max(t and t[key] or 0, ns.Registry:Life(key, ns.PlayerKey()).p)
+end
+
+-- Your loyalty points with every pet: the character's total (the leaderboard's, later).
+function Bond:LoyaltyTotal()
+    local total = 0
+    for key in pairs(LoyalStore() or {}) do total = total + (self:Loyalty(key) or 0) end
+    return total
+end
+
+-- Loyalty points for a pet at the top level (a gain for its card's rising numbers). The new total, or nil.
+-- base: the loyalty points before this gain, read before the bond's own share was added (until the first is kept,
+-- they're the bond's points, and the share would count twice).
+function Bond:AddLoyalty(points, key, base)
+    local lp = points > 0 and (base or self:Loyalty(key))
+    if not lp then return nil end
+    lp = lp + points
+    LoyalStore(true)[key] = lp
+    local all = ns.DB.char.bondGains
+    local list = all[key] or {}
+    all[key] = list
+    list[#list + 1] = points
+    while #list > self.GAINS_KEPT do list[2] = list[1] + list[2]; table.remove(list, 1) end
+    ns.Log("Bond", "%s loyalty +%d -> %d", key, points, lp)
+    ns.Bus:Fire("BOND", key)
+    return lp
 end
 
 -- The bond the card shows: points, level, name, start of the level, next
@@ -283,6 +339,11 @@ local function Ledger(key)
     return p
 end
 
+-- Loyalty points a pet earned today (0 below the top level).
+function Bond:LoyalToday(key)
+    return Ledger(key).loyal or 0
+end
+
 -- Points a pet earned today, and the most its day can bring.
 function Bond:Today(key)
     key = key or ns.Registry:MyPet()
@@ -295,8 +356,16 @@ local function Grantable(d, points, key)
     return math.max(0, math.min(points, Bond:DailyMax(key) - d.total, Bond:Room(key)))
 end
 
--- Give points within what's left of the pet's day; one line when it's full.
+-- Give points within what's left of the pet's day; one line when it's full. At the top level: all of them as
+-- loyalty points, no day's limit (and no full day to tell of), the bond's own share within it as before.
 local function Grant(d, points, key)
+    if points > 0 and Bond:Loyal(key) then
+        d.loyal = (d.loyal or 0) + points
+        local base = Bond:Loyalty(key)
+        local share = Grantable(d, points, key)
+        if share > 0 then d.total = d.total + share; Bond:Add(share, key) end
+        return Bond:AddLoyalty(points, key, base)
+    end
     local max = Bond:DailyMax(key)
     points = Grantable(d, points, key)
     if points <= 0 then return nil end
@@ -383,19 +452,25 @@ function Bond:Reward(kind, key, text)
     local n = (d.had[kind] or 0) + 1
     if def.once and n > 1 then return false end
     local points = math.ceil(ns.Config[def.points] * self:Rate(key))
+    local loyal = self:Loyal(key) -- (no day's limit: it gives all of it)
     local capKey = def.cap and "reward:" .. kind
     if capKey then
         points = math.max(0, math.min(points, math.ceil(ns.Config[def.cap] * self:Rate(key)) - (d.got[capKey] or 0)))
     end
     if type(text) == "function" then
-        text = text(def.beyond and math.min(points, self:Room(key)) or Grantable(d, points, key))
+        text = text(loyal and points or def.beyond and math.min(points, self:Room(key)) or Grantable(d, points, key))
     end
     if text then
         d.had[kind] = n
         if not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text, def.kind or "like") end
     end
     ns.Log("Bond", "reward %s for %s", kind, key)
-    if def.beyond then self:Add(points, key); return true end
+    if def.beyond then
+        local base = loyal and self:Loyalty(key)
+        self:Add(points, key)
+        if loyal then d.loyal = (d.loyal or 0) + points; self:AddLoyalty(points, key, base) end
+        return true
+    end
     if capKey then
         if points <= 0 then return true end
         d.got[capKey] = (d.got[capKey] or 0) + points
@@ -459,7 +534,8 @@ function Bond:OnActivity(id, n, key)
         end
     end
     per, cap = Scaled(per), Scaled(cap)
-    local room = math.min(cap - (d.got[capKey] or 0), self:DailyMax(key) - d.total)
+    local dayLeft = self:Loyal(key) and math.huge or (self:DailyMax(key) - d.total) -- (the top level: none)
+    local room = math.min(cap - (d.got[capKey] or 0), dayLeft)
     -- Everyday activities (not liked, not a trait's moment) share a small pot too.
     local other = capKey == id and not likes[id] and not minor
     if other then room = math.min(room, Scaled(C.BOND_OTHER_TOTAL) - (d.got.other or 0)) end

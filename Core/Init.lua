@@ -185,6 +185,13 @@ end
 
 -- Gold text, and a gold line in chat (the pet's moments: wishes, firsts, playdates).
 function ns.Gold(text) return "|cffffd100" .. text .. "|r" end
+
+-- A whole number in groups of three, as Norwegian writes it: 12345 -> "12 345".
+function ns.Grouped(n)
+    local s = tostring(math.floor(n))
+    local out = s:reverse():gsub("(%d%d%d)", "%1 "):reverse()
+    return (out:gsub("^%s+", ""):gsub("^%-%s+", "-"))
+end
 function ns.PrintGold(text) ns.Print(ns.Gold(text)) end
 
 
