@@ -599,8 +599,8 @@ end
 -- Errands (2026-11-19, the user: Ordensdyr's like): the bank, a mailbox or the auction house opened. The same
 -- event as the trainer's window (Feats.lua, seen on Forever with Trainer 7); these three types read by name from
 -- Enum.PlayerInteractionType (MailInfo 17 and Auctioneer 21 seen on Forever, 2026-11-20). The bank: a visit with
--- items deposited came as no Banker (8); Forever's enum also has CharacterBanker (67), retail's bank since the
--- warband bank, so that's taken too (unverified). One a minute at most: a mailbox closed and opened again isn't
+-- items deposited came as no Banker (8): it's CharacterBanker (67), retail's bank since the warband bank (seen
+-- 2026-11-20); Banker stays in case another bank window uses it. One a minute at most: a mailbox closed and opened again isn't
 -- another errand.
 Activity.ERRAND_TYPES = { "Banker", "CharacterBanker", "MailInfo", "Auctioneer" }
 Activity.ERRAND_AGAIN = 60

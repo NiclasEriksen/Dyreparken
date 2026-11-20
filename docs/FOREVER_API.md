@@ -452,8 +452,9 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   - Verified: `Enum.PlayerInteractionType.MailInfo` and `Auctioneer` (2026-11-20) with
     `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` (errands); the meal buffs "Food" (spell 435) and "Drink" (spell 1135,
     2026-11-20; logged as "Food" until the log named the buff found) on UNIT_AURA, readable and plain.
-  - Still unverified: the bank (no `Banker` 8 came on a visit, 2026-11-20; `CharacterBanker` 67 counted too; a window that isn't an errand logs its type:
-    `-g "errand: not one"`); "Food & Drink", "Refreshment"; `IsInInstance()`'s "raid".
+  - Verified 2026-11-20: the bank opens as `CharacterBanker` (67), never `Banker` (8). Other windows seen: Gossip 3,
+    TaxiNode 6 (a window that isn't an errand logs its type: `-g "errand: not one"`).
+  - Still unverified: "Food & Drink", "Refreshment"; `IsInInstance()`'s "raid".
   - Verified 2026-11-20: `IsInInstance()` gives true, "party" after `PLAYER_ENTERING_WORLD` into a dungeon
     (Maraudon, its name from `GetZoneText()`). The companion is gone through that loading screen and back only
     when Summon brings it a few seconds later: anything counted at the loading screen's end has no pet out.
