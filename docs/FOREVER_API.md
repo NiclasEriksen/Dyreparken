@@ -448,10 +448,13 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
     (`ERR_TALENT_FAILED_UNSPENT_TALENT_POINTS`). `GetNumUnspentTalents()` 0 with every point spent.
     Dual spec strings: "Primary/Secondary Talents - Active".
   - `Enum.PlayerInteractionType.Trainer` is 7; `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` fires with the window's type.
-- **Unverified, used since 2026-11-19 (the new likes)**: `Enum.PlayerInteractionType.Banker`, `MailInfo` and
-  `Auctioneer` (retail's 8, 17, 21) with `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` (errands); the meal buffs by name,
-  "Food", "Drink", "Food & Drink", "Refreshment" (the first one seen logs its spell id: `-m Activity -g "eat:"`);
-  `IsInInstance()`'s "party" / "raid" after `PLAYER_ENTERING_WORLD` (dungeons).
+- **The new likes' sources** (2026-11-19, 1.60.1 build 70959, from the log):
+  - Verified: `Enum.PlayerInteractionType.MailInfo` and `Auctioneer` (2026-11-20) with
+    `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` (errands); the meal buffs "Food" (spell 435) and "Drink" (spell 1135,
+    2026-11-20; logged as "Food" until the log named the buff found) on UNIT_AURA, readable and plain.
+  - Still unverified: the bank (no `Banker` 8 came on a visit, 2026-11-20; `CharacterBanker` 67 counted too; a window that isn't an errand logs its type:
+    `-g "errand: not one"`); "Food & Drink", "Refreshment"; `IsInInstance()`'s "party" / "raid" after
+    `PLAYER_ENTERING_WORLD` (dungeons).
 - **UNIT_AURA's updateInfo can be secret** (2026-11-12, 1.60.1, in a dungeon): "attempt to perform boolean test on field
   'isFullUpdate' (a secret boolean)". Check `issecretvalue` on the table and its fields before testing them.
 - **The meter in a real fight** (2026-11-12): Meter.lua's read after a boss kill gave "damage: place 5, 1027 against

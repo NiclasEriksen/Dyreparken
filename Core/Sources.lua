@@ -598,9 +598,11 @@ end
 
 -- Errands (2026-11-19, the user: Ordensdyr's like): the bank, a mailbox or the auction house opened. The same
 -- event as the trainer's window (Feats.lua, seen on Forever with Trainer 7); these three types read by name from
--- Enum.PlayerInteractionType (retail's Banker 8, MailInfo 17, Auctioneer 21; unverified on Forever). One a
--- minute at most: a mailbox closed and opened again isn't another errand.
-Activity.ERRAND_TYPES = { "Banker", "MailInfo", "Auctioneer" }
+-- Enum.PlayerInteractionType (MailInfo 17 and Auctioneer 21 seen on Forever, 2026-11-20). The bank: a visit with
+-- items deposited came as no Banker (8); Forever's enum also has CharacterBanker (67), retail's bank since the
+-- warband bank, so that's taken too (unverified). One a minute at most: a mailbox closed and opened again isn't
+-- another errand.
+Activity.ERRAND_TYPES = { "Banker", "CharacterBanker", "MailInfo", "Auctioneer" }
 Activity.ERRAND_AGAIN = 60
 local lastErrand
 Activity:Source({ id = "errand", events = { "PLAYER_INTERACTION_MANAGER_FRAME_SHOW" },
@@ -619,6 +621,8 @@ Activity:Source({ id = "errand", events = { "PLAYER_INTERACTION_MANAGER_FRAME_SH
                 return 1, name
             end
         end
+        -- (2026-11-20: the bank's never came; the window types that aren't errands, to find its number)
+        ns.Log("Activity", "errand: not one, interaction type %s", tostring(kind))
     end })
 
 -- Into a dungeon or a raid (2026-11-19, the user: Huleboer's like): its loading screen's end inside one, once
@@ -728,8 +732,10 @@ for id in pairs(Activity.AURAS) do
             local before = auraHad[id]
             auraHad[id] = has
             if has and (before == false or (before == nil and Fresh(data))) then
-                if not Activity.AURAS[id].id then
-                    ns.Log("Activity", "%s: %s is spell %s", id, tostring(name), tostring(data and Plain(data.spellId)))
+                if not Activity.AURAS[id].id then -- (the buff found: one of the names, not always the first)
+                    local found = data and Plain(data.name)
+                    ns.Log("Activity", "%s: %s is spell %s", id, tostring(type(found) == "string" and found or name),
+                        tostring(data and Plain(data.spellId)))
                 end
                 return 1
             end
