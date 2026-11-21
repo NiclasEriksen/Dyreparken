@@ -9,6 +9,17 @@ local Activity = ns.Activity
 local Today, Plain = ns.Today, ns.Plain
 local PetNow = Activity.PetNow -- (the companion out: key, and whether it's the adopted one)
 
+-- A developer's line worth one look a session per value (true the first time): a window type, a buff's spell.
+-- (Only while the log is on: one turned on later still sees each once.)
+local logged = {}
+function Activity.OnceLogged(what, value)
+    if not ns.Debug.enabled then return false end
+    local k = tostring(what) .. "\31" .. tostring(value)
+    if logged[k] then return false end
+    logged[k] = true
+    return true
+end
+
 ------------------------------------------------------------------------------
 -- The sources. What each relies on, and whether a probe has seen it on Forever, is in docs/FOREVER_API.md
 -- (or said by the source); a missing event or string only hides its activity.
@@ -662,8 +673,11 @@ Activity:Source({ id = "errand", events = { "PLAYER_INTERACTION_MANAGER_FRAME_SH
                 return 1, name
             end
         end
-        -- (2026-11-20: the bank's never came; the window types that aren't errands, to find its number)
-        ns.Log("Activity", "errand: not one, interaction type %s", tostring(kind))
+        -- (2026-11-20: the bank's never came; the window types that aren't errands, to find its number. Each once a
+        -- session: a vendor's or gossip's every window was 92 lines of the log, review 2026-11-21)
+        if Activity.OnceLogged("errand", kind) then
+            ns.Log("Activity", "errand: not one, interaction type %s", tostring(kind))
+        end
     end })
 
 -- Into a dungeon or a raid (2026-11-19, the user: Huleboer's like): its loading screen's end inside one, once
@@ -853,10 +867,12 @@ for id in pairs(Activity.AURAS) do
                 end
                 if auraAt[id] and now - auraAt[id] < (row.again or Activity.AURA_AGAIN) then return nil end
                 auraAt[id] = now
-                if not Activity.AURAS[id].id then -- (the buff found: one of the names, not always the first)
-                    local found = data and Plain(data.name)
-                    ns.Log("Activity", "%s: %s is spell %s", id, tostring(type(found) == "string" and found or name),
-                        tostring(data and Plain(data.spellId)))
+                if not Activity.AURAS[id].id then -- (the buff found: one of the names, not always the first; once a session each)
+                    local found, spell = data and Plain(data.name), data and Plain(data.spellId)
+                    found = type(found) == "string" and found or name
+                    if Activity.OnceLogged(id, tostring(found) .. "\31" .. tostring(spell)) then
+                        ns.Log("Activity", "%s: %s is spell %s", id, tostring(found), tostring(spell))
+                    end
                 end
                 return 1
             end

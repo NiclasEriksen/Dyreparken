@@ -35,6 +35,9 @@ return function(test, H)
         ola:Fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", T.Merchant); w:Run(1)
         eq(Count(ola, "errand"), 3, "a merchant: no errand")
         eq(#ola:Log("errand: not one, interaction type " .. T.Merchant), 1, "logged, to find a missing one's number")
+        ola:Fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", T.MailInfo)
+        ola:Fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", T.Merchant); w:Run(1)
+        eq(#ola:Log("errand: not one, interaction type " .. T.Merchant), 1, "once a session (review 2026-11-21: 92 lines)")
     end)
 
     test("a meal: the Food or Drink buff appearing, not one already on", function()
@@ -56,6 +59,7 @@ return function(test, H)
         for _ = 1, 5 do Buff("Drink", false); Buff("Drink", true) end
         eq(Count(ola, "eat"), 3, "once, not five times")
         ok(#ola:Log("Aura\teat on") > 0, "each coming logged")
+        eq(#ola:Log("eat: Drink is spell"), 1, "the buff's spell once a session (review 2026-11-21: 62 lines a day)")
     end)
 
     test("a dungeon: going in, once a visit; not a reload or a login inside, nor the open world", function()
