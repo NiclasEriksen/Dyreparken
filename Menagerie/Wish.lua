@@ -447,7 +447,7 @@ function Wish:Hovered(tooltip, data, unit)
         if type(text) == "string" then lines[#lines + 1] = text end
     end
     local kind = Wish.NodeKind(lines, unit)
-    ns.Log("Wish", "hovered: %s (%s)", table.concat(lines, " / "), tostring(kind))
+    if ns.Debug.enabled then ns.Log("Wish", "hovered: %s (%s)", table.concat(lines, " / "), tostring(kind)) end -- (every tooltip)
     if kind ~= w.id then return end
     self:Grant(w, "wish.granted.node", "wish.granted.node.full")
 end
