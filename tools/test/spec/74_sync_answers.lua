@@ -107,21 +107,32 @@ return function(test, H)
         local w = H.World({ members = H.FOLK })
         local ola = w:AddClient("Ola Nord", { pets = { 40 } })
         w:Run(5)
+        -- (a limit of 4 chunks: the edge is the same at any size, and compressing thousands of lapses again and
+        -- again took 8 minutes under coverage)
+        ola.ns.Wire.LIMITS.MAX_PARTS = 4
         local Fits, LIM = ola.ns.Comm.Fits, 254 * ola.ns.Wire.LIMITS.MAX_PARTS
         local with = { i = 999, of = 999, d = 4294967295, k = "SYNC", p = 999 }
-        local seed, l = 12345, {}
+        local seed, names, times = 12345, {}, {}
         local function rnd() seed = (seed * 1103515245 + 12345) % 2147483648; return seed end
-        local checked = 0
-        for n = 1, 4000 do
-            l[("M%08x Nr%05d"):format(rnd(), n)] = 1700000000 + rnd() % 90000000
-            if n > 1300 then
-                if not Fits({ l = l }, with) then break end
-                checked = checked + 1
-                local full = { l = l, k = "SYNC", p = 12, i = 2, of = 3, d = 123456789 }
-                ok(#H.Encode(full) <= LIM, ("%d lapses fit, but sent it's %d bytes"):format(n, #H.Encode(full)))
-            end
+        for n = 1, 400 do names[n], times[n] = ("M%08x Nr%05d"):format(rnd(), n), 1700000000 + rnd() % 90000000 end
+        local function Lapses(n)
+            local l = {}
+            for j = 1, n do l[names[j]] = times[j] end
+            return l
         end
-        ok(checked > 50)
+        -- The most lapses that fit, by halving; the parts nearest the limit are the ones a missing field pushed over it.
+        local lo, hi = 1, 400
+        ok(not Fits({ l = Lapses(hi) }, with))
+        while hi - lo > 1 do
+            local mid = math.floor((lo + hi) / 2)
+            if Fits({ l = Lapses(mid) }, with) then lo = mid else hi = mid end
+        end
+        ok(lo > 20, "the edge is somewhere real")
+        for n = lo - 7, lo do
+            local full = { l = Lapses(n), k = "SYNC", p = 12, i = 2, of = 3, d = 123456789 }
+            local size = #H.Encode(full)
+            ok(size <= LIM, ("%d lapses fit, but sent it's %d bytes"):format(n, size))
+        end
     end)
 
     test("addon messages on a whisper or a custom channel aren't even unpacked", function()
