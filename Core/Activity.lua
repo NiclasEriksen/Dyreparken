@@ -253,7 +253,10 @@ local STATE = { name = "Activity when" } -- our owner key for the state's events
 local Update
 local function State(on)
     if not on then
-        for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "GROUP_ROSTER_UPDATE" }) do ns.Events:Off(e, STATE) end
+        for _, e in ipairs({ "PLAYER_REGEN_DISABLED", "PLAYER_REGEN_ENABLED", "GROUP_ROSTER_UPDATE", "PLAYER_DEAD",
+            "PLAYER_ALIVE", "PLAYER_UNGHOST" }) do
+            ns.Events:Off(e, STATE)
+        end
         return
     end
     if ns.Events:Has("PLAYER_REGEN_DISABLED", STATE) then return end
@@ -261,7 +264,13 @@ local function State(on)
     local grouped = Plain(IsInGroup()) == true
     -- (when the last fight began: a fall waits a moment, and a fight begun in it, even one over already, isn't one)
     ns.Events:On("PLAYER_REGEN_DISABLED", STATE, function() fighting = true; Activity.fightAt = GetTime(); Update() end)
-    ns.Events:On("PLAYER_REGEN_ENABLED", STATE, function() fighting = false; Update() end)
+    -- (and when it ended, and when you died: a fall isn't the fight's last swings, nor a hit on your corpse)
+    ns.Events:On("PLAYER_REGEN_ENABLED", STATE, function() fighting = false; Activity.peaceAt = GetTime(); Update() end)
+    -- (deadAt: since when you've been dead, until you're alive again; PLAYER_ALIVE also comes as you release, a ghost)
+    ns.Events:On("PLAYER_DEAD", STATE, function() Activity.deadAt = GetTime() end)
+    local function Alive() if Plain(UnitIsDeadOrGhost("player")) == false then Activity.deadAt = nil end end
+    ns.Events:On("PLAYER_ALIVE", STATE, Alive)
+    ns.Events:On("PLAYER_UNGHOST", STATE, Alive)
     -- (a raid's roster comes in bursts: only joining or leaving a group in a fight changes what's heard)
     ns.Events:On("GROUP_ROSTER_UPDATE", STATE, function()
         local now = Plain(IsInGroup()) == true

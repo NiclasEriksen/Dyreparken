@@ -168,11 +168,21 @@ end
 -- out of a fight, still out of one FALL_CHECK later (a mob's first hit starts a fight). How big is unknown (the
 -- amount is secret): any fall that hurts. A fight begun in that moment, even one over already (a mob that hit
 -- first, killed at once: the user asked, 2026-11-19), makes it not a fall. extra: "dead" when it was the end of you.
+-- Not a fall either (review 2026-11-21, the log: 12 of 26 came 0.5-1.1 s after a fight's end, the fatal ones all a
+-- wipe at a boss, two hits two falls): a hit within FALL_AFTER_FIGHT of a fight's end (a mob's last swing lands as
+-- it ends; dying ends one too), a hit on you dead since before it (a fatal fall's PLAYER_DEAD comes with its hit),
+-- and a second hit within FALL_AGAIN of one (the landing and a bounce).
 Activity.FALL_CHECK = 0.5
+Activity.FALL_AFTER_FIGHT, Activity.FALL_AGAIN = 2.5, 5
+local lastFall
 Activity:Source({ id = "fall", events = { "UNIT_COMBAT" }, unit = "player", when = "peace",
     filter = function(_, unit, action, _, _, school)
         if Plain(unit) ~= "player" or Plain(action) ~= "WOUND" or Plain(school) ~= 1 then return nil end
         local at = GetTime()
+        if Activity.peaceAt and at - Activity.peaceAt < Activity.FALL_AFTER_FIGHT then return nil end
+        if Activity.deadAt and Activity.deadAt < at - 0.05 and Plain(UnitIsDeadOrGhost("player")) == true then return nil end
+        if lastFall and at - lastFall < Activity.FALL_AGAIN then return nil end
+        lastFall = at
         C_Timer.After(Activity.FALL_CHECK, function()
             if ns.InCombat() or (Activity.fightAt and Activity.fightAt >= at - 0.05) then return end
             Activity:Emit("fall", 1, Plain(UnitIsDeadOrGhost("player")) == true and "dead" or nil)

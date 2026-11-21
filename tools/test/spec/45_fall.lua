@@ -46,6 +46,7 @@ return function(test, H)
         ola:EnterCombat(); w:Run(0.1); ola:LeaveCombat()
         w:Run(1)
         eq((A:Count("fall")), 1, "a fight begun and over within the moment: not a fall")
+        w:Run(A.FALL_AFTER_FIGHT)
         Fall(w, ola)
         eq((A:Count("fall")), 2, "a real one after it still counts")
     end)
@@ -61,5 +62,36 @@ return function(test, H)
         Fall(w3, per, true)
         ok(per:Printed("Det var visst litt for høyt", true), "the end of you: its own line")
         for _, id in ipairs(ola.ns.Quirks.EggById("stup").traits) do ok(ola.ns.Strings["egg.stup." .. id .. ".1"], id) end
+    end)
+    -- From the log (review 2026-11-21): 12 of 26 falls came 0.5-1.1 s after a fight's end (a mob's last swing
+    -- landing as it ended), the three fatal ones a wipe at a boss, and two hits were two falls.
+    test("no fall: a fight's last swings, hits on you already dead, a second hit right after", function()
+        local w, ola = Setup()
+        local A = ola.ns.Activity
+        local function Hit() ola:Fire("UNIT_COMBAT", "player", "WOUND", "", H.SECRET, 1) end
+        ola:EnterCombat(); w:Run(20); ola:LeaveCombat()
+        w:Run(0.2); Hit(); w:Run(0.5); Hit(); w:Run(2)
+        eq((A:Count("fall")), 0, "the fight's last swings")
+        -- Dead in a fight (it ends at your death), hit after it: still the fight's.
+        ola.state.dead = true
+        ola:EnterCombat(); w:Run(20); ola:LeaveCombat()
+        w:Run(0.3); Hit(); w:Run(2)
+        eq((A:Count("fall")), 0, "dead at a boss")
+        -- Long dead, hit (a corpse out of any fight): no fall either.
+        ola:Fire("PLAYER_DEAD"); w:Run(10)
+        Hit(); w:Run(2)
+        eq((A:Count("fall")), 0, "already dead at the hit")
+        ola.state.dead = false; ola:Fire("PLAYER_ALIVE"); w:Run(10)
+        -- A fall's two hits (the landing, a bounce): one fall.
+        Hit(); w:Run(0.2); Hit(); w:Run(2)
+        eq((A:Count("fall")), 1, "one fall, not two")
+        w:Run(A.FALL_AGAIN)
+        Hit(); w:Run(2)
+        eq((A:Count("fall")), 2, "a new one later")
+        -- A fatal fall: dead as it hits (its PLAYER_DEAD with it) still counts, as the end of you.
+        w:Run(A.FALL_AGAIN)
+        ola.state.dead = true; Hit(); ola:Fire("PLAYER_DEAD"); w:Run(2)
+        eq((A:Count("fall")), 3, "the fatal one")
+        ok(ola:Log("fall %+1 .*dead")[1], "as the end of you")
     end)
 end
