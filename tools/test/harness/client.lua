@@ -479,6 +479,13 @@ function Client:Dismount() self.state.mounted = false; self:Fire("PLAYER_MOUNT_D
 function Client:Move() self.state.moving = true; self:Fire("PLAYER_STARTED_MOVING") end
 function Client:Halt() self.state.moving = false; self:Fire("PLAYER_STOPPED_MOVING") end
 function Client:Summon(sid) self.summoned = sid and self:GuidOf(sid) or nil end
+-- A summon by another player, accepted on Blizzard's popup (its OnAccept: secure); the loading screen is the
+-- test's (c:Travel, or the events by hand).
+function Client:AcceptSummon(by, area)
+    self.state.summon = { by = by or "Kari Berg", area = area }
+    self:Fire("CONFIRM_SUMMON")
+    P.Secure(self, function() self.env.C_SummonInfo.ConfirmSummon() end)
+end
 
 -- A clean bond slate: no bonds, nothing earned today, no day visits yet
 -- (logins give the pet out a day; tests that count from zero call this).

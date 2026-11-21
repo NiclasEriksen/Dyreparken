@@ -28,6 +28,7 @@ return function(test, H)
         opts = opts or {}
         At(ola, from)
         if opts.cast then ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "x", opts.cast) end
+        if opts.summoned then ola:AcceptSummon(); w:Run(1) end
         ola.state.mapPos = opts.fromPos
         ola:Fire("LOADING_SCREEN_ENABLED")
         if opts.gone then ola:Summon(nil) end -- (the client takes the pet away on the way)
@@ -125,5 +126,12 @@ return function(test, H)
         eq(N(ola, "zeppelin"), 2, "and back, wherever it lands")
         Trip(w, ola, "Zephras Isle", "Durotar", { cast = 8690 })
         eq(N(ola, "zeppelin"), 2, "a hearthstone off the isle is no ride")
+        -- Summoned by a guildmate (a warlock's ritual, a meeting stone; review 2026-11-21): no ride either.
+        Trip(w, ola, "Zephras Isle", "Durotar", { summoned = true })
+        eq(N(ola, "zeppelin"), 2, "summoned off the isle")
+        Trip(w, ola, "Stranglethorn Vale", "Durotar", { summoned = true })
+        eq(N(ola, "zeppelin"), 2, "summoned from Stranglethorn to Durotar")
+        Trip(w, ola, "Stranglethorn Vale", "Durotar")
+        eq(N(ola, "zeppelin"), 3, "the zeppelin after it still is one")
     end)
 end

@@ -486,6 +486,11 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   Forever's 14 routes (wowforever.be, from the 1.60.1 game files): new are Steamwheedle Port to Powderfuse Port,
   Stormwind Harbor to Auberdine, Menethil to Southshore to Auberdine, and Zephras Isle's zeppelins (Valanaar to
   Dalaran and to Skywatcher Plateau); their zone names other than Riverglades are unverified.
+- **A summon isn't a ride** (2026-11-21, review): `C_SummonInfo` is in the client (the API probe: ConfirmSummon,
+  CancelSummon, GetSummonConfirmSummoner, GetSummonConfirmAreaName, GetSummonConfirmTimeLeft, GetSummonReason,
+  IsSummonSkippingStartExperience). Voyage hooks `ConfirmSummon` as a cast that takes you somewhere. **Assumed** from
+  retail: the summon popup's accept calls it (a summon accepted, then a loading screen across a route, logs
+  "Voyage ... a cast took you there").
 - **A ride's zones are the sea's, not the docks'** (2026-11-14, 1.60.1, the user): the boat from Ratchet to Booty Bay
   was taken for Grom'gol's zeppelin on a friend's client, so halfway out from Ratchet `GetZoneText` must have read
   "Durotar" (the zeppelin's pair: Durotar and Stranglethorn Vale). Voyage tells them apart by the position on

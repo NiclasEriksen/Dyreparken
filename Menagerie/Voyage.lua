@@ -6,7 +6,7 @@ local ns = select(2, ...)
 -- a ride looks like (docs/FOREVER_API.md, a zeppelin from Grom'gol to Durotar): LOADING_SCREEN_ENABLED halfway,
 -- then PLAYER_ENTERING_WORLD on the other continent, and the zone's name only right at ZONE_CHANGED_NEW_AREA a
 -- few seconds later. So a ride is: a loading screen between two zones a route joins (ROUTES), not after a
--- hearthstone, teleport, portal or recall (cast within CAST_FOR seconds before), and not into or out of an
+-- hearthstone, teleport, portal or recall (cast within CAST_FOR seconds before) or a summon accepted, and not into or out of an
 -- instance. Which route says which kind (Stranglethorn has both: Grom'gol's zeppelin, Booty Bay's boat).
 --   zeppelin  counts as flying too (Activity "taxi": the flight lovers' points, the fearful's grumbles), and its
 --             own activity for the remarks (egg "luftskip")
@@ -143,6 +143,12 @@ function Voyage:Init()
     -- screen could pass for a ride whenever no egg happened to want "zeppelin". Free: the gathering
     -- activities (always watched) keep UNIT_SPELLCAST_SUCCEEDED registered anyway.
     ns.Activity:Want("zeppelin", Voyage)
+    -- Summoned by someone (a warlock's ritual, a meeting stone; review 2026-11-21): no cast of ours, and a summon
+    -- across a route's zones (or off Zephras Isle) passed for a ride. Accepting is Blizzard's popup calling
+    -- ConfirmSummon (in the client, the API probe): a hook costs nothing until then.
+    if C_SummonInfo and type(C_SummonInfo.ConfirmSummon) == "function" then
+        hooksecurefunc(C_SummonInfo, "ConfirmSummon", function() lastCast = GetTime() end)
+    end
     ns.Events:On("LOADING_SCREEN_ENABLED", Voyage, function()
         -- (where we leave from: the zone and continent are still ours here, not at PLAYER_LEAVING_WORLD)
         from = Here()

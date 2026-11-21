@@ -176,6 +176,17 @@ return function(c, env, S)
         c.soundChannels[#c.soundFiles] = channel or "SFX"
         return true, #c.soundFiles
     end
+    -- A summon to accept (a warlock's ritual, a meeting stone): S.summon = { by, area }, until ConfirmSummon or
+    -- CancelSummon (Blizzard's popup calls them; c:AcceptSummon). The functions as the API probe listed them.
+    env.C_SummonInfo = {
+        ConfirmSummon = function() S.summon = nil end,
+        CancelSummon = function() S.summon = nil end,
+        GetSummonConfirmSummoner = function() return S.summon and S.summon.by end,
+        GetSummonConfirmAreaName = function() return S.summon and S.summon.area end,
+        GetSummonConfirmTimeLeft = function() return S.summon and 120 or 0 end,
+        GetSummonReason = function() return 0 end,
+        IsSummonSkippingStartExperience = function() return false end,
+    }
     env.C_Spell = { GetSpellName = function(id) return S.spellNames and S.spellNames[id] end,
         -- (6603 Attack: true while auto-attack is on; the global IsCurrentSpell doesn't exist on Forever)
         IsCurrentSpell = function(id) return id == 6603 and S.attacking or false end }
