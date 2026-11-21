@@ -4,7 +4,10 @@ local ns = select(2, ...)
 -- A development tool: every candidate picture that exists on this client,
 -- as thumbnails, to pick one per slot.
 --   /dp probe bg     backgrounds, one per family (DyreparkenDB.scenePicks):
---                    a pick shows on the pet card at once.
+--                    a source row (the family's suggestions, or a group of
+--                    Dev/SceneArt.lua) and pages; the thumbnails have the
+--                    card's shape and its crop, hovering one shows it on the
+--                    card, a pick shows there at once.
 --   /dp probe decor  decorations for the card (DyreparkenDB.decorPicks,
 --                    Dev/DecorProbe.lua): corners, glows, sparkles...
 -- Choose a slot at the top, then click a thumbnail; right-click clears the
@@ -42,6 +45,36 @@ Gallery.MODES = {
         slots = { "default", unpack(ns.Scenes.ORDER) }, -- (every family there is: a new one shows up here too)
         picks = function() return ns.DB.global.scenePicks end,
         changed = function() ns.Scenes:Reset() end,
+        -- "suggest": the chosen family's; else a group of Dev/SceneArt.lua.
+        sources = function()
+            local list = { { "suggest", "Suggestions" } }
+            for _, g in ipairs(ns.SceneArt.groups) do list[#list + 1] = g end
+            return list
+        end,
+        entries = function(view)
+            if view.source == "suggest" then return ns.Scenes:Suggestions(view.selected) end
+            local out = {}
+            for _, c in ipairs(view.all) do if c.group == view.source then out[#out + 1] = c end end
+            return out
+        end,
+        page = 20,
+        shape = function() return ns.Scenes:Shape() end,
+        -- The thumbnail as the card will show it: the art's part, cut to the card's shape.
+        draw = function(image, c, w, h)
+            local S = ns.Scenes
+            local file, l, r, t, b, aw, ah = S:Art(c.path)
+            if not file then image:SetColorTexture(0.4, 0, 0, 1); return false end
+            image:SetTexture(file)
+            image:SetTexCoord(S.Cover(l, r, t, b, aw, ah, w, h))
+            return true
+        end,
+        label = function(c) return c.label or tostring(c.path) end,
+        tip = function(c)
+            return ("%s\n%s\n%s%s"):format(c.label or "", tostring(c.path), c.group or "",
+                c.w and (", %d x %d"):format(c.w, c.h) or "")
+        end,
+        hover = function(path) ns.Scenes:Preview(path) end,
+        closed = function() ns.Scenes:Preview(nil) end,
     },
     decor = {
         title = "Dyreparken: decorations",
@@ -71,7 +104,7 @@ for _, family in ipairs(Gallery.MODES.bg.slots) do
     slots[#slots + 1] = "border." .. family
 end
 
-local views = {} -- mode -> { frame, grid, thumbs, selected, all, shown }
+local views = {} -- mode -> { frame, grid, thumbs, selected, source, page, all, shown }
 local Layout -- below
 
 local function UsedBy(view, path)
@@ -96,8 +129,18 @@ local function Redraw(view)
         card = (ns.Decor.NEED[slot] or ns.Decor.SLOT_KIND[slot]) and " Hover to see it on the pet card."
             or " (Not used on the card.)"
     end
-    view.frame.hint:SetText(("Slot: %s%s. Click a picture to pick it, right-click to clear.%s"):format(
-        view.selected, view.cfg.filter and (" (%d pictures)"):format(view.shown or 0) or "", card))
+    for _, b in ipairs(view.frame.sources or {}) do
+        if b.source == view.source then b:LockHighlight() else b:UnlockHighlight() end
+    end
+    local paged = ""
+    if view.pages then
+        paged = (" Page %d of %d (%d pictures)."):format(view.page, view.pages, view.total)
+        view.frame.prev:SetEnabled(view.page > 1)
+        view.frame.next:SetEnabled(view.page < view.pages)
+    end
+    if view.cfg.sources then card = " Hover to see it on the pet card." end
+    view.frame.hint:SetText(("Slot: %s%s. Click a picture to pick it, right-click to clear.%s%s"):format(
+        view.selected, view.cfg.filter and (" (%d pictures)"):format(view.shown or 0) or "", paged, card))
 end
 
 local function OnClick(view, t, button)
@@ -142,12 +185,48 @@ local function Build(mode)
         b:SetScript("OnClick", function()
             view.selected = f
             if cfg.select then cfg.select(f) end
-            if cfg.filter then Layout(view) end
+            if cfg.filter or view.source == "suggest" then view.page = 1; Layout(view) end
             Redraw(view)
         end)
         frame.families[i] = b
         x = x + bw + 4
         if x + bw > width - 10 then x, y = 12, y - 24 end
+    end
+    -- Where the pictures come from, and pages through them (bg).
+    if cfg.sources then
+        y = y - 28
+        x = 12
+        frame.sources = {}
+        for i, s in ipairs(cfg.sources()) do
+            local b = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+            b:SetSize(150, 20)
+            b:SetPoint("TOPLEFT", frame, "TOPLEFT", x, y)
+            b:SetText(s[2])
+            b.source = s[1]
+            b:SetScript("OnClick", function()
+                view.source, view.page = s[1], 1
+                Layout(view)
+                Redraw(view)
+            end)
+            frame.sources[i] = b
+            x = x + 154
+        end
+        local function Turn(by)
+            view.page = view.page + by
+            Layout(view)
+            Redraw(view)
+        end
+        frame.prev = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        frame.prev:SetSize(40, 20)
+        frame.prev:SetPoint("TOPRIGHT", frame, "TOPRIGHT", -58, y)
+        frame.prev:SetText("<")
+        frame.prev:SetScript("OnClick", function() Turn(-1) end)
+        frame.next = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+        frame.next:SetSize(40, 20)
+        frame.next:SetPoint("LEFT", frame.prev, "RIGHT", 4, 0)
+        frame.next:SetText(">")
+        frame.next:SetScript("OnClick", function() Turn(1) end)
+        view.source, view.page = "suggest", 1
     end
     frame.hint = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     frame.hint:SetPoint("TOPLEFT", frame, "TOPLEFT", 14, y - 26)
@@ -188,7 +267,9 @@ local function NewThumb(view)
     t.used = t:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     t.used:SetPoint("TOPLEFT", t.label, "BOTTOMLEFT", 0, -1)
     t:SetScript("OnClick", function(self, button) OnClick(view, self, button) end)
-    ns.SetTip(t, "ANCHOR_RIGHT", function(self) return self.path end)
+    ns.SetTip(t, "ANCHOR_RIGHT", function(self)
+        return view.cfg.tip and view.cfg.tip(self.entry) or tostring(self.path)
+    end)
     if view.cfg.hover then -- the card shows it while the mouse is on it
         t:HookScript("OnEnter", function(self) view.cfg.hover(self.path) end)
         t:HookScript("OnLeave", function() view.cfg.hover(nil) end)
@@ -210,15 +291,57 @@ local function Fit(image, atlas)
     image:SetSize(w, h)
 end
 
--- Lay out the thumbnails: all of them, or the selected slot's.
-function Layout(view)
-    for _, t in ipairs(view.thumbs) do t:Hide() end
-    local shown = 0
+-- The pictures to show: the mode's own choice (bg), or all of them, or the selected slot's.
+local function Entries(view)
+    if view.cfg.entries then return view.cfg.entries(view) end
+    local out, kind = {}, view.cfg.kindOf and view.cfg.kindOf(view.selected) or view.selected
     for _, c in ipairs(view.all) do
-        if not view.cfg.filter or c.slot == (view.cfg.kindOf and view.cfg.kindOf(view.selected) or view.selected) then
-            shown = shown + 1
-            local t = view.thumbs[shown] or NewThumb(view)
-            t.path = c.path
+        if not view.cfg.filter or c.slot == kind then out[#out + 1] = c end
+    end
+    return out
+end
+
+-- A thumbnail's size: the mode's shape (bg: the card's), else the default.
+local function ThumbSize(view)
+    if not view.cfg.shape then return THUMB_W, THUMB_H end
+    local shape = view.cfg.shape()
+    local h = math.min(200, math.floor(THUMB_W / shape + 0.5))
+    return math.floor(h * shape + 0.5), h
+end
+
+-- Lay out the thumbnails (a page of them, with pages). A hidden one lets go of its picture: the backgrounds
+-- are big files.
+function Layout(view)
+    for _, t in ipairs(view.thumbs) do
+        t:Hide()
+        t.image:SetTexture(nil)
+    end
+    local list = Entries(view)
+    local per = view.cfg.page
+    local first, last = 1, #list
+    view.pages, view.total = nil, #list
+    if per then
+        view.pages = math.max(1, math.ceil(#list / per))
+        view.page = math.min(math.max(view.page or 1, 1), view.pages)
+        first = (view.page - 1) * per + 1
+        last = math.min(#list, first + per - 1)
+    end
+    local tw, th = ThumbSize(view)
+    local shown = 0
+    for i = first, last do
+        local c = list[i]
+        shown = shown + 1
+        local t = view.thumbs[shown] or NewThumb(view)
+        t.path, t.entry = c.path, c
+        t:SetSize(tw, th + 28)
+        t.backing:SetSize(tw, th)
+        t.border:SetSize(tw + 6, th + 6)
+        if view.cfg.draw then
+            t.image:ClearAllPoints()
+            t.image:SetPoint("TOPLEFT")
+            t.image:SetSize(tw, th)
+            view.cfg.draw(t.image, c, tw, th)
+        else
             local atlas = c.path:match("^atlas:(.+)$")
             if atlas then
                 t.image:SetTexCoord(0, 1, 0, 1)
@@ -228,22 +351,25 @@ function Layout(view)
                 t.image:SetTexCoord(ns.Scenes.Crop(c.path))
             end
             Fit(t.image, atlas)
-            t.label:SetText(("%d %s"):format(c.n, (c.path:match("([^\\\\:]+)$") or c.path)))
-            local col, row = (shown - 1) % COLS, math.floor((shown - 1) / COLS)
-            t:ClearAllPoints()
-            t:SetPoint("TOPLEFT", view.grid, "TOPLEFT", col * (THUMB_W + GAP), -row * (THUMB_H + 36))
-            t:Show()
         end
+        local name = view.cfg.label and view.cfg.label(c) or (c.path:match("([^\\\\:]+)$") or c.path)
+        t.label:SetText(("%d %s"):format(c.n, name))
+        local col, row = (shown - 1) % COLS, math.floor((shown - 1) / COLS)
+        t:ClearAllPoints()
+        t:SetPoint("TOPLEFT", view.grid, "TOPLEFT", col * (THUMB_W + GAP), -row * (th + 36))
+        t:Show()
     end
-    view.grid:SetHeight(math.max(1, math.ceil(shown / COLS)) * (THUMB_H + 36))
+    view.grid:SetHeight(math.max(1, math.ceil(shown / COLS)) * (th + 36))
     view.shown = shown
 end
 
--- Show the candidates that exist: { n, path, slot } (a file path, or "atlas:name").
-function Gallery:Show(list, mode)
+-- Show the candidates that exist: { n, path, slot } (a file path, or "atlas:name"). slot: the one to start on
+-- (bg: the card's family), if the mode has it.
+function Gallery:Show(list, mode, slot)
     mode = mode or "bg"
     local view = views[mode] or Build(mode)
     view.all = list
+    for _, s in ipairs(view.cfg.slots) do if s == slot then view.selected = slot end end
     Layout(view)
     Redraw(view)
     view.frame:Show()

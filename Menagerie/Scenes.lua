@@ -2,11 +2,12 @@
 local ns = select(2, ...)
 
 -- Backgrounds behind the companion on the pet card, by family (our tags in
--- Data/Companions.lua). Each family lists candidate textures, best first;
--- the card shows the first the client has (GetFileIDFromPath). Which large
--- art Forever ships is unknown (2026-11-08), so these are guesses until
--- `/dp probe bg` has listed them and they've been looked at in game
--- (`/dp probe bg <n>` previews one on the card).
+-- Data/Companions.lua). Each family lists candidates, best first; the card
+-- shows the first the client has. A candidate is a file path, a file id, or
+-- "atlas:<name>" (2026-11-21: tools/scene_art.py lists every large picture
+-- Forever has, loading screens and atlases too; `/dp probe bg` shows them
+-- per family, with a preview on the card). The picture is cropped to fill
+-- the card at its own shape, never stretched (Scenes.ART, Scenes.Cover).
 ---@class Dyreparken.Scenes
 ---@field override? any a dev tool's hook (Dev/; a release leaves it nil)
 local Scenes = {}
@@ -14,45 +15,102 @@ ns.Scenes = Scenes
 
 local EJ = "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-"
 
--- family tag -> candidates. "default" is for pets without a listed family.
--- Picked in game from the gallery, 2026-11-08 (build 70862): dungeon
--- backgrounds (UI-EJ-BACKGROUND-*). The pet battle weathers are small
--- overlays (a blur when stretched) and the loading screens that exist are
--- the generic splash, so neither is used.
+-- family tag -> candidates, the first the client has. "default" is for pets without a listed family.
+-- Picked in game from /dp probe bg, 2026-11-22 (build 1.60.1.71037): loading screens (file ids: their art's
+-- part in Scenes.ART) and atlases, Forever's new dungeons' among them; each family's dungeon background
+-- from before (picked 2026-11-08 and 2026-11-10) stays behind it, in case a build drops the new one.
 Scenes.BY_FAMILY = {
-    cat = { EJ .. "TheStockade" },
-    bird = { EJ .. "ShadowfangKeep" },
-    owl = { EJ .. "ScarletMonastery" },
-    farm = { EJ .. "Karazhan" },
-    rabbit = { EJ .. "RazorfenDowns" },
-    frog = { EJ .. "Maraudon" }, -- (picked again 2026-11-10; was the Wailing Caverns, the plants' too)
-    snake = { EJ .. "RazorfenKraul" },
-    mechanical = { EJ .. "Gnomeregan" },
-    dragon = { EJ .. "RagefireChasm" },
-    pirate = { EJ .. "Deadmines" },
-    -- Added and picked in game 2026-11-08 (the second round).
-    bug = { EJ .. "RuinsofAhnQiraj" },
-    rodent = { EJ .. "Scholomance" },
-    wolf = { EJ .. "ShadowfangKeep" },
-    plant = { EJ .. "WailingCaverns" },
-    festive = { EJ .. "TempleofAhnQiraj" },
-    demon = { EJ .. "MoltenCore" },
-    ooze = { EJ .. "Uldaman" },
-    spirit = { EJ .. "BlackfathomDeeps" },
-    -- The data pass's new families, picked in game 2026-11-10.
-    bear = { EJ .. "OnyxiasLair" },
+    cat = { 1984118, EJ .. "TheStockade" }, -- Waycrest Manor
+    bird = { 7950679, EJ .. "ShadowfangKeep" }, -- Zephras Isle
+    owl = { 1395129, EJ .. "ScarletMonastery" }, -- Suramar's catacombs
+    farm = { "atlas:charactercreate-startingzone-tauren", EJ .. "Karazhan" }, -- Mulgore
+    rabbit = { 574578, EJ .. "RazorfenDowns" }, -- the Wandering Isle
+    frog = { 131882, EJ .. "Maraudon" }, -- Wailing Caverns
+    snake = { 2126830, EJ .. "RazorfenKraul" }, -- Nazmir
+    mechanical = { 2991615, EJ .. "Gnomeregan" }, -- Mechagon
+    dragon = { 4691725, EJ .. "RagefireChasm" }, -- Neltharus
+    pirate = { 2125650, EJ .. "Deadmines" }, -- Freehold
+    bug = { 5898878, EJ .. "RuinsofAhnQiraj" }, -- Ara-Kara
+    rodent = { 5794590, EJ .. "Scholomance" }, -- Darkflame Cleft
+    wolf = { 131869, EJ .. "ShadowfangKeep" }, -- Shadowfang Keep
+    plant = { 1060205, EJ .. "WailingCaverns" }, -- the Everbloom
+    festive = { 534166, EJ .. "TempleofAhnQiraj" }, -- Darkmoon Island
+    demon = { 1389211, EJ .. "MoltenCore" }, -- the demon hunters' order hall
+    ooze = { 7963783, EJ .. "Uldaman" }, -- The Shaper's Terrace
+    spirit = { 3621966, EJ .. "BlackfathomDeeps" }, -- Spires of Ascension
+    bear = { 7963784, EJ .. "OnyxiasLair" }, -- Blackmaw Hold
     reptile = { EJ .. "SunkenTemple" },
-    murloc = { EJ .. "BlackfathomDeeps", EJ .. "Deadmines" }, -- (2026-11-10: not picked in game yet)
-    default = { EJ .. "BlackrockDepths" },
+    murloc = { 397151, EJ .. "BlackfathomDeeps" }, -- Throne of the Tides
+    default = { "atlas:orderhalltalents-background-monk", EJ .. "BlackrockDepths" }, -- the monks' order hall
 }
 
 -- The part of a picture file that holds the art. The dungeon backgrounds
 -- fill only the top left of their file: Blizzard's own journal shows
 -- 0-0.7695 across and 0-0.8301 down (Blizzard_EncounterJournal.xml,
 -- dungeonBG); the whole file left the art in a corner (seen 2026-11-08).
+-- Forever's files are 512 square, so the art is 394 x 425.
 function Scenes.Crop(path)
-    if path:find("UI%-EJ%-BACKGROUND%-") then return 0, 0.76953125, 0, 0.830078125 end
+    if type(path) == "string" and path:find("UI%-EJ%-BACKGROUND%-") then return 0, 0.76953125, 0, 0.830078125, 394, 425 end
     return 0, 1, 0, 1
+end
+
+-- A file's art, by its id: { left, right, top, bottom, width, height }: the part of the file that's the
+-- picture (a loading screen's frame and logo left out) and its shape on screen. Copied from Dev/SceneArt.lua
+-- (tools/scene_art.py; luajit tools/sv.lua picks prints the rows) for the files a family uses. An atlas
+-- needs one only when its art is part of its rectangle ("atlas:<name>" = that part of it, and its size).
+Scenes.ART = {
+    [131869] = { 0.012, 0.988, 0.27, 0.8, 999, 407 }, -- Shadowfang Keep
+    [131882] = { 0.012, 0.988, 0.27, 0.8, 999, 407 }, -- Wailing Caverns
+    [397151] = { 0.012, 0.988, 0.26, 0.86, 999, 461 }, -- Throne of the Tides
+    [534166] = { 0.012, 0.988, 0.26, 0.86, 999, 461 }, -- Darkmoon Island
+    [574578] = { 0.012, 0.988, 0.27, 0.82, 999, 422 }, -- the Wandering Isle
+    [1060205] = { 0.012, 0.988, 0.26, 0.85, 999, 453 }, -- the Everbloom
+    [1389211] = { 0, 1, 0.31, 0.85, 1920, 583 }, -- the demon hunters' order hall
+    [1395129] = { 0, 1, 0.31, 0.85, 1920, 583 }, -- Suramar's catacombs
+    [1984118] = { 0, 1, 0.31, 0.85, 1920, 583 }, -- Waycrest Manor
+    [2125650] = { 0, 1, 0.31, 0.85, 1920, 583 }, -- Freehold
+    [2126830] = { 0, 1, 0.31, 0.85, 1920, 583 }, -- Nazmir
+    [2991615] = { 0, 1, 0.1571, 0.8429, 2992, 1155 }, -- Mechagon
+    [3621966] = { 0, 1, 0.1571, 0.8429, 2992, 1155 }, -- Spires of Ascension
+    [4691725] = { 0, 1, 0.1571, 0.8429, 2992, 1155 }, -- Neltharus
+    [5794590] = { 0, 1, 0.1571, 0.8429, 2992, 1155 }, -- Darkflame Cleft
+    [5898878] = { 0, 1, 0.1571, 0.8429, 2992, 1155 }, -- Ara-Kara
+    [7950679] = { 0, 1, 0.1571, 0.8429, 2992, 1155 }, -- Zephras Isle
+    [7963783] = { 0, 1, 0.1571, 0.8429, 2992, 1155 }, -- The Shaper's Terrace
+    [7963784] = { 0, 1, 0.1571, 0.8429, 2992, 1155 }, -- Blackmaw Hold
+}
+
+-- What to draw for a candidate: the texture (a path or file id), the art's part of it (left, right, top,
+-- bottom) and its size on screen (nil: unknown, then it fills the card as it is). nil: the client lacks it.
+function Scenes:Art(spec)
+    local atlas = type(spec) == "string" and spec:match("^atlas:(.+)$")
+    if atlas then
+        local info = C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas)
+        local file = info and (info.file or info.filename)
+        if not file then return nil end
+        local l, r, t, b = info.leftTexCoord, info.rightTexCoord, info.topTexCoord, info.bottomTexCoord
+        local part = self.ART[spec] -- (the art within the atlas's rectangle, when that's not all of it)
+        if not part then return file, l, r, t, b, info.width, info.height end
+        return file, l + (r - l) * part[1], l + (r - l) * part[2], t + (b - t) * part[3], t + (b - t) * part[4],
+            part[5], part[6]
+    end
+    local row = self.ART[spec]
+    if row then return spec, unpack(row, 1, 6) end
+    if type(spec) == "string" and GetFileIDFromPath and GetFileIDFromPath(spec) == nil then return nil end
+    return spec, self.Crop(spec)
+end
+
+-- The art's part that fills a frame of W x H at its own shape (the middle of it; cut at the sides or top and
+-- bottom, never stretched). Without both sizes, the part as it is.
+function Scenes.Cover(l, r, t, b, w, h, W, H)
+    if not (w and h and W and H) or w <= 0 or h <= 0 or W <= 0 or H <= 0 then return l, r, t, b end
+    local want, have = W / H, w / h
+    if have > want then
+        local half, mid = (r - l) * want / have / 2, (l + r) / 2
+        return mid - half, mid + half, t, b
+    end
+    local half, mid = (b - t) * have / want / 2, (t + b) / 2
+    return l, r, mid - half, mid + half
 end
 
 -- A species with a background of its own (before its families).
@@ -78,10 +136,7 @@ Scenes.TINT = {
 Scenes.ORDER = { "dragon", "demon", "mechanical", "pirate", "murloc", "owl", "frog", "snake", "reptile", "spirit", "ooze",
     "bear", "wolf", "cat", "bug", "plant", "rabbit", "rodent", "farm", "bird", "festive" }
 
-local function Exists(path)
-    if not GetFileIDFromPath then return true end
-    return GetFileIDFromPath(path) ~= nil
-end
+local function Exists(spec) return Scenes:Art(spec) ~= nil end
 
 local found = {} -- family -> path or false (cached)
 local function First(family)
@@ -198,10 +253,11 @@ end
 -- Draw the card's background for a pet: the picture and the tinted layers
 -- (nil: clear them). Returns the family's tint.
 function Scenes:Paint(card, key)
-    local scene = key and self:For(key)
-    if scene then
-        card.scene:SetTexture(scene)
-        card.scene:SetTexCoord(self.Crop(scene))
+    local file, l, r, t, b, w, h
+    if key then file, l, r, t, b, w, h = self:Art(self:For(key)) end
+    if file then
+        card.scene:SetTexture(file)
+        card.scene:SetTexCoord(self.Cover(l, r, t, b, w, h, card.scene:GetWidth(), card.scene:GetHeight()))
         card.scene:Show()
     else
         card.scene:Hide()

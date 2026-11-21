@@ -443,7 +443,30 @@ local function Picks()
         local path = db.scenePicks[family]
         local code = ns.Scenes.BY_FAMILY[family]
         local text = type(path) == "string" and path:sub(1, #EJ) == EJ and ("EJ .. %q"):format(path:sub(#EJ + 1)) or Inline(path)
-        print(("    %s = { %s },%s"):format(family, text, Mark(code and code[1] == path)))
+        local label = ""
+        for _, row in ipairs(ns.SceneArt and ns.SceneArt.list or {}) do
+            if row[1] == path then label = ("  -- %s"):format(row[3]) end
+        end
+        print(("    %s = { %s },%s%s"):format(family, text, Mark(code and code[1] == path), label))
+    end
+    -- A file's crop and shape: Scenes.ART's row (from Dev/SceneArt.lua), for each file picked.
+    local rows = {}
+    for _, family in ipairs(Sorted(db.scenePicks)) do
+        local id = db.scenePicks[family]
+        local row = ns.Scenes.ART[id]
+        if row and not rows[id] then
+            rows[id] = true
+            rows[#rows + 1] = id
+        end
+    end
+    if #rows > 0 then
+        print("-- -> Menagerie/Scenes.lua, Scenes.ART (the files picked: their art's part and shape):")
+        table.sort(rows, function(a, b) return tostring(a) < tostring(b) end)
+        for _, id in ipairs(rows) do
+            local r = ns.Scenes.ART[id]
+            local function N4(v) return (("%.4f"):format(v):gsub("0+$", ""):gsub("%.$", "")) end
+            print(("    [%s] = { %s, %s, %s, %s, %d, %d },"):format(type(id) == "number" and id or ("%q"):format(id), N4(r[1]), N4(r[2]), N4(r[3]), N4(r[4]), r[5], r[6]))
+        end
     end
 
     -- Decorations: "slot" -> Decor.ART, "slot.family" -> Decor.FAMILY_ART[family]; atlases there by bare name.

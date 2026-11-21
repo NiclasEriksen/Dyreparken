@@ -17,7 +17,7 @@ local PROBES = {
     { "life", function() ns.Kills:ProbeLife() end },
     { "world", function() ns.Kills:ProbeWorld() end },
     { "card", function() ns.JournalUI:ProbeCard() end },
-    { "bg", function(a) ns.Scenes:Probe(a) end, "<family>" },
+    { "bg", function(a) ns.Scenes:Probe(a) end, "[off]" },
     { "decor", function() ns.Decor:Probe() end },
     { "frames", function() ns.Decor:ProbeFrames() end },
     { "level", function(a) ns.Decor:Preview(a) end, "<n|off>" },

@@ -304,6 +304,16 @@ From AutoCompanion (written for Forever, in this AddOns folder):
     the loading screens that exist are the generic splash. `/dp probe bg` shows them in a gallery.
     The art fills only part of each `UI-EJ-BACKGROUND-*` file: Blizzard's journal crops it with TexCoords 0-0.7695
     across, 0-0.8301 down (`dungeonBG`). Shown whole, the art sits in the top left.
+  - **Far more large art than that** (2026-11-21, build 1.60.1.71037, from the client's own tables and file list on
+    wago.tools, product `wowf`; not yet seen in game): the guess above missed it by looking for paths. The build
+    serves ~330 loading screens of every expansion (`interface/glues/loadingscreens/`, by file id), Forever's own
+    among them (the new dungeons': The Drowned City 7963741, Blackmaw Hold 7963784, Alcaz Prison 7963734, The Shaper's
+    Terrace 7963783, Krol'dok Stronghold 7963780, and 7963775-7963782, Zephras Isle 7950679, Darkspear Islands
+    8423398: the `LoadingScreens` table's `MainImageFileDataID`, 2992 x 1684, transparent above and below the art).
+    The Season of Discovery ones the table lists (6213069-6730949) come back empty: encrypted or not shipped. Older
+    loading screens have a frame and the logo in the file (cut off by era: tools/scene_art.py). The atlas table is
+    retail's (~20 000 members), with Forever's own `*-c60` ones and `talent-background-<class>` (2046 x 1177, files
+    7792321-7808141). `SetTexture(fileID)` takes the ids. `tools/scene_art.py` lists them all for `/dp probe bg`.
   - **Animation groups** (2026-11-08, inferred from what showed, not yet confirmed by the fix): an Alpha animation
     waiting out its `SetStartDelay` seems to apply its
     start value, so a fade-out (from 1) delayed inside a group showed the particle fully opaque and still until it

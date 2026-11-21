@@ -110,6 +110,7 @@ Core\Commands.lua
 # release never loads them; each file extends a module above it.
 Dev\DecorCandidates.lua
 Dev\PetsProbe.lua
+Dev\SceneArt.lua
 Dev\ScenesProbe.lua
 Dev\DecorProbe.lua
 Dev\BondTrackProbe.lua

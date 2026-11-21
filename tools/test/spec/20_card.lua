@@ -103,7 +103,8 @@ return function(test, H)
         S.BY_SPECIES = { [5159] = { "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-ZulGurub" } }
         card = ola:SelectPet(5159)
         eq(card.scene.tex, "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-ZulGurub")
-        eq(table.concat(card.scene.texCoord, ","), "0,0.76953125,0,0.830078125")
+        local half = 0.830078125 * 394 / 425 / 2 -- (art 394 x 425 on a square card: a little off the top and bottom)
+        eq(table.concat(card.scene.texCoord, ","), table.concat({ 0, 0.76953125, 0.4150390625 - half, 0.4150390625 + half }, ","))
         -- A client without the first cat scene uses the next; with none at all, Blizzard's stays.
         local w2 = H.World()
         local kari = w2:AddClient("Kari Berg", { pets = { 40 } })
@@ -340,56 +341,135 @@ return function(test, H)
         ola.env.DyreparkenDB.decorPicks.star = nil
     end)
 
-    test("/dp probe bg opens a gallery of what exists; picks become the family's background", function()
+    test("a background is a path, a file id or an atlas, cut to fill the card at its own shape", function()
         local w, ola = Setup()
-        ola.ns.Scenes.BY_FAMILY = Lists()
-        local list = ola.ns.Scenes:Candidates()
-        ola.missingFiles = { [list[2].path] = true }
+        local S = ola.ns.Scenes
+        -- Cover: the middle of the art, never stretched.
+        local function Near(got, want, what)
+            for i = 1, 4 do ok(math.abs(got[i] - want[i]) < 1e-6, ("%s %d: %s, not %s"):format(what, i, got[i], want[i])) end
+        end
+        Near({ S.Cover(0, 1, 0, 1, 200, 100, 100, 100) }, { 0.25, 0.75, 0, 1 }, "wide art, square card: the sides go")
+        Near({ S.Cover(0, 1, 0, 1, 100, 200, 100, 100) }, { 0, 1, 0.25, 0.75 }, "tall art: top and bottom")
+        Near({ S.Cover(0.2, 0.6, 0.1, 0.5, 400, 100, 200, 100) }, { 0.3, 0.5, 0.1, 0.5 }, "within the art's part")
+        Near({ S.Cover(0, 1, 0, 1, nil, nil, 100, 100) }, { 0, 1, 0, 1 }, "no size: as it is")
+        -- A file id: its row in Scenes.ART; an atlas: the client's part of its file.
+        S.ART[7963741] = { 0, 1, 0.16, 0.84, 2992, 1152 }
+        local file, l, r, t, b, aw, ah = S:Art(7963741)
+        eq(file, 7963741); eq(t, 0.16); eq(aw, 2992)
+        eq(S:Art("atlas:hunter-stable-bg-art_cunning"), nil, "an atlas the client lacks")
+        ola.atlases = { ["hunter-stable-bg-art_cunning"] = true }
+        file, l, r, t, b, aw = S:Art("atlas:hunter-stable-bg-art_cunning")
+        eq(file, 4000 + #"hunter-stable-bg-art_cunning"); eq(l, 0.25); eq(aw, 64)
+        -- An atlas whose art is part of its rectangle (the delve entrances: art left, parchment right).
+        S.ART["atlas:hunter-stable-bg-art_cunning"] = { 0, 0.6, 0, 1, 38, 64 }
+        Near({ select(2, S:Art("atlas:hunter-stable-bg-art_cunning")) }, { 0.25, 0.4, 0.125, 0.375 }, "its left part")
+        eq(select(6, S:Art("atlas:hunter-stable-bg-art_cunning")), 38)
+        S.ART["atlas:hunter-stable-bg-art_cunning"] = nil
+        -- On the card (16 x 16 in the harness): the atlas's part, cut square.
+        S.BY_FAMILY = { cat = { "atlas:Missing", "atlas:hunter-stable-bg-art_cunning" }, default = { 7963741 } }
+        S.BY_SPECIES = {}
+        S:Reset()
+        local card = ola:SelectPet(40)
+        eq(card.scene.tex, file, "the first the client has")
+        Near(card.scene.texCoord, { 0.25, 0.5, 0.125, 0.375 }, "a square atlas, a square card")
+        card = ola:SelectPet(5159)
+        Near(card.scene.texCoord, { 0.5 - 1152 / 2992 / 2, 0.5 + 1152 / 2992 / 2, 0.16, 0.84 }, "wide art")
+        -- A dungeon background: its art is 394 x 425, a little taller than wide.
+        Near({ select(2, S:Art("Interface\\EncounterJournal\\UI-EJ-BACKGROUND-ZulGurub")) }, { 0, 0.76953125, 0, 0.830078125 }, "EJ")
+    end)
+
+    test("/dp probe bg: a family's suggestions and every group, cut as the card shows them; hover previews, a click picks", function()
+        local w, ola = Setup()
+        local S, G = ola.ns.Scenes, ola.ns.SceneGallery
+        local Art = ola.ns.SceneArt
+        ola:SelectPet(68) -- an owl on the card: the gallery opens on owls
         ola:Slash("probe bg")
-        ok(ola:Printed(("%d of %d backgrounds exist; the gallery shows them."):format(#list - 1, #list), true))
-        eq(#ola:Log("bg 2 no "), 1, "all of them are logged")
-        eq(#ola:Log("bg 1 YES default: "), 1)
-        local G = ola.ns.SceneGallery
+        ok(ola:Printed("backgrounds (", true))
         ok(G._frame:IsShown())
-        local shown = {}
-        for _, t in ipairs(G._thumbs) do if t:IsShown() then shown[#shown + 1] = t end end
-        eq(#shown, #list - 1, "a thumbnail for each one that exists")
-        eq(shown[1].image.tex, list[1].path)
-        match(shown[2].label.text, "^3 ", "numbered as in the list")
-        -- Pick for owls: choose the family, click the picture.
         local owlButton
         for _, b in ipairs(G._frame.families) do if b.family == "owl" then owlButton = b end end
-        owlButton:Click()
-        ok(owlButton.highlightLocked)
-        local pick = shown[3] -- a cat picture, for the owl
-        pick.scripts.OnClick(pick, "LeftButton")
-        eq(ola.env.DyreparkenDB.scenePicks.owl, pick.path, "saved")
-        eq(pick.used.text, "owl"); ok(pick.border:IsShown())
-        match(owlButton.text, "%*$")
-        eq(ola.ns.Scenes:For("s:68"), pick.path, "the owl uses it now")
-        eq(ola:SelectPet(68).scene.tex, pick.path)
+        ok(owlButton.highlightLocked, "the card's family")
+        local function Shown()
+            local list = {}
+            for _, t in ipairs(G._thumbs) do if t:IsShown() then list[#list + 1] = t end end
+            return list
+        end
+        -- Suggestions: what the code has first, then the generated ones.
+        local shown = Shown()
+        eq(shown[1].path, S.BY_FAMILY.owl[1])
+        eq(#shown, #S:Suggestions("owl"))
+        ok(#shown >= 2, "more than today's")
+        -- A group, in pages.
+        local loading
+        for _, b in ipairs(G._frame.sources) do if b.source == "loading" then loading = b end end
+        loading:Click()
+        local n = 0
+        for _, c in ipairs(S:Candidates()) do if c.group == "loading" then n = n + 1 end end
+        ok(n > 100, n .. " loading screens")
+        eq(#Shown(), 20, "a page")
+        match(G._frame.hint.text, ("Page 1 of %d %%(%d pictures%%)"):format(math.ceil(n / 20), n))
+        local first, last = Shown()[1].path, Shown()[20]
+        G._frame.next:Click()
+        match(G._frame.hint.text, "Page 2 of")
+        no(Shown()[1].path == first)
+        -- The last page is short: the thumbnails it doesn't need let go of their pictures.
+        for _ = 3, math.ceil(n / 20) do G._frame.next:Click() end
+        if n % 20 ~= 0 then no(last:IsShown()); eq(last.image.tex, nil, "a hidden one lets go of its picture") end
+        G._frame.prev:Click()
+        -- Cut as the card will be: the card's shape (unknown in the harness: the guess).
+        local t = Shown()[1]
+        eq(S:Shape(), 0.8)
+        eq(t.backing.size[1], 160); eq(t.backing.size[2], 200)
+        local file, l, r, tp, b, aw, ah = S:Art(t.path)
+        local want = { S.Cover(l, r, tp, b, aw, ah, t.backing.size[1], t.backing.size[2]) }
+        eq(table.concat(t.image.texCoord, ","), table.concat(want, ","))
+        eq(t.image.tex, file)
+        match(ola:TipOf(t)[1], "loading")
+        -- Hover: the card shows it; away: the family's again.
+        t.scripts.OnEnter(t)
+        eq(ola:SelectPet(40).scene.tex, file, "any pet, while hovered")
+        t.scripts.OnLeave(t)
+        eq(ola.ns.Scenes.override, nil)
+        no(ola:SelectPet(40).scene.tex == file, tostring(file))
+        -- A click picks it for the selected family (owl), kept after a reload.
+        t.scripts.OnClick(t, "LeftButton")
+        eq(ola.env.DyreparkenDB.scenePicks.owl, t.path)
+        eq(t.used.text, "owl"); match(owlButton.text, "%*$")
+        eq(ola:SelectPet(68).scene.tex, file, "the owl wears it")
         eq(#ola:Log("bg pick owl = "), 1)
-        -- Kept after a reload.
         ola:Reload()
-        ola.ns.Scenes.BY_FAMILY = Lists()
         w:Run(20)
         ola:OpenJournal()
-        eq(ola.ns.Scenes:For("s:68"), pick.path)
-        -- Right-click clears it.
+        eq(ola:SelectPet(68).scene.tex, file)
+        -- The pick leads the family's suggestions; right-click clears it.
+        S, G = ola.ns.Scenes, ola.ns.SceneGallery -- (the reloaded addon's)
         ola:Slash("probe bg")
-        local again = ola.ns.SceneGallery._thumbs[3]
-        eq(again.path, pick.path)
-        again.scripts.OnClick(again, "RightButton")
+        eq(Shown()[1].path, t.path)
+        Shown()[1].scripts.OnClick(Shown()[1], "RightButton")
         eq(ola.env.DyreparkenDB.scenePicks.owl, nil)
-        no(ola.ns.Scenes:For("s:68") == again.path, "back to the built-in choice")
-        -- Preview one by number, as before.
-        ola:Slash("probe bg 3")
-        eq(ola:SelectPet(40).scene.tex, list[3].path)
-        ola:Slash("probe bg 999")
-        ok(ola:Printed("No background 999", true))
+        -- Closing the gallery ends a preview; /dp probe bg off too.
+        Shown()[2].scripts.OnEnter(Shown()[2])
+        ok(S.override)
+        G._frame:Hide()
+        eq(S.override, nil)
         ola:Slash("probe bg off")
+        ok(ola:Printed("Backgrounds: back to the families.", true))
+        -- Every candidate once; each generated file's crop is in Scenes.ART.
         local seen = {}
-        for _, c in ipairs(list) do no(seen[c.path], "listed once"); seen[c.path] = true end
+        for _, c in ipairs(S:Candidates()) do no(seen[c.path], "listed once"); seen[c.path] = true end
+        for _, row in ipairs(Art.list) do
+            if type(row[1]) == "number" then ok(S.ART[row[1]], row[3]) end
+        end
+    end)
+
+    test("the probe has Forever's own loading screens, the new dungeons' among them", function()
+        local w, ola = Setup()
+        local names = {}
+        for _, c in ipairs(ola.ns.Scenes:Candidates()) do if c.group == "forever" then names[c.label] = true end end
+        ok(names["The Drowned City"]); ok(names["Blackmaw Hold"]); ok(names["Krol'dok Stronghold"])
+        for family in pairs(ola.ns.SceneArt.families) do
+            ok(family == "default" or ola.ns.Scenes.TINT[family], family .. ": a family")
+        end
     end)
 
     test("Blizzard's turn buttons move above the panel; without them the text stays clear of the middle", function()
@@ -458,15 +538,6 @@ return function(test, H)
         ola.env.CreateColor = nil
         card = ola:SelectPet(40)
         ok(card.tint:IsShown())
-    end)
-
-    test("the probe also looks for every classic dungeon's art", function()
-        local w, ola = Setup()
-        local list = ola.ns.Scenes:Candidates()
-        -- Every name twice (background and lore), each listed once even if a family uses it.
-        ok(#list >= 66, #list .. " candidates")
-        ola:Slash("probe bg")
-        eq(#ola:Log("bg %d+ YES probe: Interface\\EncounterJournal\\UI%-EJ%-LOREBG%-Naxxramas"), 1)
     end)
 
     test("hovering the personality and the bond explains them; a click on a badge, the panel tells all", function()

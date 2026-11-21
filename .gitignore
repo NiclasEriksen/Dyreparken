@@ -2,3 +2,4 @@ DesignDocument.md
 .idea/
 *.swp
 tools/test/.timings*
+tools/.scene_art/

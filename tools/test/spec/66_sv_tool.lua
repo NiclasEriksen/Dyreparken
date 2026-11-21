@@ -33,7 +33,7 @@ DyreparkenDB = {
 ["owns"] = { ["Ola Nord"] = { ["at"] = DAY, ["s"] = "40,5159" } },
 },
 },
-["scenePicks"] = { ["cat"] = "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-TheStockade", ["owl"] = "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-Maraudon" },
+["scenePicks"] = { ["cat"] = 1984118, ["bird"] = 7963741, ["owl"] = "Interface\\EncounterJournal\\UI-EJ-BACKGROUND-Maraudon" },
 ["decorPicks"] = { ["border.cat"] = "atlas:loottoast-itemborder-gold", ["corner"] = "atlas:SomeCorner" },
 ["liftPicks"] = { [40] = 0.35 },
 ["movePicks"] = { [40] = { ["happy"] = 758 } },
@@ -81,7 +81,10 @@ DyreparkenDebugDB = { ["lines"] = { "a", "b" } }
     test("picks: ready to paste, each saying whether the data has it, and a table it doesn't know raw", function()
         local account, char = Files()
         local out = Run("picks --file " .. account)
-        Has(out, 'cat = { EJ .. "TheStockade" },  -- (in the data already)')
+        Has(out, 'cat = { 1984118 },  -- (in the data already)  -- waycrestmanor wide')
+        Has(out, 'bird = { 7963741 },  -- The Drowned City')
+        -- A file's crop, from Dev/SceneArt.lua, for Scenes.ART.
+        Has(out, "[7963741] = { 0, 1, 0.1571, 0.8429, 2992, 1155 },")
         ok(out:find('owl = { EJ .. "Maraudon" },\n', 1, true), out)
         Has(out, 'cat = { border = "loottoast-itemborder-gold" },  -- (in the data already)')
         ok(out:find('corner = "SomeCorner",\n', 1, true), out)
