@@ -22,6 +22,7 @@ local ns = select(2, ...)
 -- quarters of the 8000 lines, so the ring held three sessions.
 ---@class Dyreparken.Debug
 ---@field tap fun(module: string, msg: string)? Dev/Verify.lua: every line written (a release leaves it nil)
+---@field context fun(): string? Dev/State.lua, once settled: where the player is, for a Session line
 local Debug = { enabled = false }
 ns.Debug = Debug
 
@@ -34,37 +35,54 @@ Debug.QUIET = {
 local buf -- DyreparkenDebugDB.lines, bound by Debug:Init
 local mute = {} -- DyreparkenDebugDB.mute: module -> true
 local loud = {} -- DyreparkenDebugDB.loud: a QUIET module -> true, heard
+local heard = {} -- a QUIET module heard this session only (a probe's: /dp probe sense), never saved
 local last, again, first -- the last line's module and message, how many times since, and its line as written
 
 local function noop() end
 ns.Log = noop
 
+local tapping -- (a line logged while Debug.tap reads one isn't read again: Verify's tick prints)
 local function Write(module, fmt, ...)
     module = tostring(module)
-    if mute[module] or (Debug.QUIET[module] and not loud[module]) then return end
+    local silent = mute[module] or (Debug.QUIET[module] and not (loud[module] or heard[module]))
+    local tap = not tapping and Debug.tap
+    if silent and not tap then return end
     local ok, msg = pcall(string.format, fmt, ...)
     if not ok then msg = tostring(fmt) end
-    -- (Dev/Verify.lua's checklist reads every line written; a release leaves it nil)
-    if Debug.tap then Debug.tap(module, msg) end
-    local key = module .. "\t" .. msg
-    if key == last and buf[buf.head] then
-        again = again + 1
-        buf[buf.head] = first .. " (x" .. again .. ")"
-        return
+    if not silent then
+        local key = module .. "\t" .. msg
+        if key == last and buf[buf.head] then
+            again = again + 1
+            buf[buf.head] = first .. " (x" .. again .. ")"
+        else
+            last, again = key, 1
+            first = ns.Now() .. "\t" .. string.format("%.3f", GetTime()) .. "\t" .. key
+            local i = (buf.head % ns.Config.DEBUG_RING_SIZE) + 1
+            buf.head = i
+            buf[i] = first
+            -- (straight to chat: ns.Print would log it again)
+            if Debug.echo then DEFAULT_CHAT_FRAME:AddMessage("|cff7fd47fDyreparken:|r |cff999999[" .. module .. "]|r " .. msg) end
+        end
     end
-    last, again = key, 1
-    first = ns.Now() .. "\t" .. string.format("%.3f", GetTime()) .. "\t" .. key
-    local i = (buf.head % ns.Config.DEBUG_RING_SIZE) + 1
-    buf.head = i
-    buf[i] = first
-    -- (straight to chat: ns.Print would log it again)
-    if Debug.echo then DEFAULT_CHAT_FRAME:AddMessage("|cff7fd47fDyreparken:|r |cff999999[" .. module .. "]|r " .. msg) end
+    -- Dev/Verify.lua's checklist reads every line, a muted or quiet module's too (its sensor worked); after the
+    -- line is written, so what it makes of it comes after its cause in the log, and protected: a probe's error
+    -- mustn't raise in whoever logged (review 2026-11-21). A release leaves it nil.
+    if tap then
+        tapping = true
+        local fine, err = pcall(tap, module, msg)
+        if not fine then Write("Debug", "tap failed on %s: %s", module, tostring(err)) end
+        tapping = false
+    end
 end
 
 -- Muted modules log nothing: on (true) or off (false), or nil to list them (a QUIET one too, unless unmuted).
-function Debug:Mute(module, on)
+-- session: a QUIET module heard or quiet again for this session only, its saved state left alone (review
+-- 2026-11-21: /dp probe sense's casts went on flooding the ring every login after).
+function Debug:Mute(module, on, session)
     if module ~= nil then
-        if self.QUIET[module] then
+        if session then
+            heard[module] = not on or nil
+        elseif self.QUIET[module] then
             loud[module] = not on or nil
             DyreparkenDebugDB.loud = loud
         else
@@ -74,13 +92,15 @@ function Debug:Mute(module, on)
     end
     local list = {}
     for m in pairs(mute) do list[#list + 1] = m end
-    for m in pairs(self.QUIET) do if not loud[m] then list[#list + 1] = m end end
+    for m in pairs(self.QUIET) do if not (loud[m] or heard[m]) then list[#list + 1] = m end end
     table.sort(list)
     return list
 end
 
 -- Where a session starts in the log: who, which build (tools/log.lua splits here). The first line of the
--- session (Debug:Init); where the player is comes at settled (Dev/State.lua).
+-- session (Debug:Init); where the player is comes at settled (Dev/State.lua). The log turned on mid-session
+-- starts one too, with where the player is now (Debug.context, once settled; review 2026-11-21: its lines went
+-- to the session before).
 function Debug:Session()
     if not self.enabled then return end
     local function Plain(fn, ...) local ok, a, b, c, d = pcall(fn, ...); if ok then return ns.Plain(a), ns.Plain(b), ns.Plain(c), ns.Plain(d) end end
@@ -89,6 +109,7 @@ function Debug:Session()
     ns.Log("Session", "start %s, %s %s level %s, client %s (%s, %s), protocol %s",
         tostring(ns.VERSION), tostring(ns.PlayerKey()), tostring(class), tostring(Plain(UnitLevel, "player")),
         tostring(version), tostring(build), tostring(interface), tostring(ns.PROTOCOL))
+    if self.context then ns.Log("Session", "%s", self.context()) end
 end
 
 function Debug:Init()
@@ -112,10 +133,11 @@ end
 -- ns.Log("Comm", "sent %s to %s", kind, channel)
 -- (starting: at login, where the session's line goes first)
 function Debug:SetEnabled(on, echo, starting)
+    local was = self.enabled
     self.enabled, self.echo = not not on, not not echo
     DyreparkenDebugDB.enabled, DyreparkenDebugDB.echo = self.enabled, self.echo
     ns.Log = self.enabled and Write or noop
-    if starting then self:Session() end
+    if starting or (self.enabled and not was) then self:Session() end
     ns.Log("Debug", "enabled %s, echo=%s", ns.VERSION, tostring(self.echo))
     ns.Bus:Fire("DEBUG", self.enabled) -- probes that only listen while logging (Dev/Kills.lua)
 end

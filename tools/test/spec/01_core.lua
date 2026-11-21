@@ -332,6 +332,16 @@ return function(test, H)
         local text = ns.PickLine("egg.midnatt", { pet = "Pepe" })
         ns.PetSays(text)
         ok(c:Log("\tChat\tegg%.midnatt%.%d: " .. text:gsub("%p", "%%%0"))[1])
+        -- A line said after a wait (Moments) keeps its key though another was picked meanwhile (review 2026-11-21),
+        -- and one not shown (chatter "none") has its key too.
+        local later = ns.PickLine("egg.midnatt", { pet = "Kurt" })
+        ns.PetSays(ns.PickLine("egg.baal", { pet = "Pepe" }))
+        ns.PetSays(later)
+        ok(c:Log("\tChat\tegg%.midnatt%.%d: " .. later:gsub("%p", "%%%0"))[1], "the waiting line's key")
+        ns.DB.global.settings.chatter = "none"
+        ns.PetSays(ns.PickLine("egg.midnatt", { pet = "Rolf" }))
+        ok(c:Log("\tChat\tegg%.midnatt%.%d: .*Rolf.* %(not shown: chatter none%)$")[1], "a line not shown, with its key")
+        ns.DB.global.settings.chatter = nil
         c:Slash("debug echo")
         c:Slash("debug clear")
         ok(c:Printed("Debug log cleared"))
@@ -388,6 +398,30 @@ return function(test, H)
         c:Slash("debug mute Moves.step")
         c.ns.Log("Moves.step", "quiet again")
         eq(#c:Log("quiet again"), 0)
+        -- Turned on mid-session: a Session line of its own, with where the player is (review 2026-11-21).
+        w:Settle("hello")
+        c:Slash("debug off"); c.ns.Debug:Clear(); c:Slash("debug on")
+        match(c.env.DyreparkenDebugDB.lines[1] or "", "\tSession\tstart dev, Ola Nord")
+        match(c.env.DyreparkenDebugDB.lines[2] or "", "\tSession\tsettled in Elwynn Forest")
+        c:Slash("debug echo")
+        eq(#c:Log("\tSession\tstart"), 1, "echo on isn't a new session")
+        c:Slash("debug echo")
+        -- The tap (Dev/Verify.lua) reads a line after it's written, a muted or quiet module's too, and its error
+        -- stays in the log, not in whoever logged.
+        c:Slash("debug mute Zap")
+        local D2, seen = c.ns.Debug, {}
+        D2.tap = function(module, msg)
+            seen[#seen + 1] = module .. ":" .. msg .. ":" .. #c:Log(msg)
+            if msg == "boom" then error("tapped") end
+            c.ns.Log("Inner", "from the tap")
+        end
+        c.ns.Log("Fight", "heard"); c.ns.Log("Zap", "muted line"); c.ns.Log("Sense.cast", "quiet cast")
+        c.ns.Log("Fight", "boom")
+        D2.tap = nil
+        eq(seen[1], "Fight:heard:1", "after the line")
+        eq(seen[2], "Zap:muted line:0"); eq(seen[3], "Sense.cast:quiet cast:0")
+        eq(#seen, 4, "a line the tap logs isn't tapped again")
+        ok(c:Log("\tDebug\ttap failed on Fight: .*tapped")[1])
     end)
 
     test("our own Lua errors go into the log with their stack (through BugGrabber, or a handler of ours)", function()

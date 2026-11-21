@@ -51,7 +51,12 @@ return function(test, H)
         ola.state.spellNames = { [8690] = "Hearthstone" }
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "x", 8690)
         ok(ola:Log("cast combat=false id=8690 name=Hearthstone")[1])
-        ola:Slash("probe sense off")
+        -- Each cast heard for this session only (review 2026-11-21: it was saved, and flooded every login after).
+        ola:Reload(); w:Settle("hello")
+        ola.ns.Log("Sense.cast", "a cast after the reload")
+        eq(#ola:Log("a cast after the reload"), 0, "quiet again")
+        S = ola.ns.Sense
+        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions) end
         for _, kind in ipairs(S.KINDS) do no(S:Wants(kind), kind) end
     end)
 

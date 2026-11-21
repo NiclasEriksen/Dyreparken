@@ -83,7 +83,7 @@ function ns.Commands.Sense(arg)
     for _, kind in ipairs(ns.Sense.KINDS) do
         if arg == "off" then ns.Sense:Drop(kind, SENSE) else ns.Sense:Want(kind, SENSE) end
     end
-    ns.Debug:Mute("Sense.cast", arg == "off") -- (each cast too, quiet otherwise: Debug.QUIET)
+    ns.Debug:Mute("Sense.cast", arg == "off", true) -- (each cast too, quiet otherwise: Debug.QUIET; this session only)
     ns.Print(arg == "off" and "Sensors off." or "Sensors on: every subject goes to the debug log (/dp debug on).")
 end
 local usage = {}

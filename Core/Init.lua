@@ -262,16 +262,31 @@ function ns.Lines(prefix)
     return list
 end
 
--- One of a line's texts at random (ns.random, ns.Lines), filled; nil when it has none. The last one picked is
--- kept with its key, so the debug log can say which variant was said (ns.Print).
-local picked = {}
+-- One of a line's texts at random (ns.random, ns.Lines), filled; nil when it has none. The last few picked are
+-- kept with their keys, so the debug log can say which variant was said (ns.Print, PetSays). A few, not one
+-- (review 2026-11-21): an egg's or a reaction's line waits up to a minute (Moments), and a line picked meanwhile
+-- took the one slot, so the line came out with no key (egg.ridning.3 after feat.riding). Only while logging.
+local PICKS = 16
+local picks, pickAt = {}, 0
+local function Uncolored(msg) return (msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
 function ns.PickLine(prefix, vars)
     local list = ns.Lines(prefix)
     if #list == 0 then return nil end
     local key = list[ns.random(#list)]
     local text = ns.T(key, vars)
-    picked.key, picked.text = key, text
+    if type(text) == "string" and ns.Debug and ns.Debug.enabled then
+        pickAt = pickAt % PICKS + 1
+        picks[pickAt] = { key = key, text = Uncolored(text) }
+    end
     return text
+end
+
+-- The key of a picked line within a printed text (plain: its colors gone), the newest pick first.
+local function PickedKey(plain)
+    for i = 0, PICKS - 1 do
+        local p = picks[(pickAt - i - 1) % PICKS + 1]
+        if p and p.text ~= "" and plain:find(p.text, 1, true) then return p.key end
+    end
 end
 
 -- A pet's own line: purple in chat (unless Settings' chatter is "none"; `always`: said anyway, for
@@ -282,7 +297,9 @@ function ns.PetSays(text, key, kind, always)
     if always or ns.Settings:Chatty() then
         ns.Print("|cffd9b3ff" .. text .. "|r")
     elseif ns.Debug.enabled then
-        ns.Log("Chat", "%s (not shown: chatter none)", text)
+        local plain = Uncolored(tostring(text))
+        local line = PickedKey(plain)
+        ns.Log("Chat", "%s%s (not shown: chatter none)", line and (line .. ": ") or "", plain)
     end
     if key and kind then ns.Bus:Fire("PET_SAID", key, kind, text) end
 end
@@ -487,8 +504,8 @@ function ns.Print(msg)
     msg = tostring(msg)
     ns.ChatFrame():AddMessage("|cff7fd47fDyreparken:|r " .. msg)
     if ns.Debug and ns.Debug.enabled then
-        local plain = msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")
-        local key = picked.text and plain:find(picked.text, 1, true) and picked.key
+        local plain = Uncolored(msg)
+        local key = PickedKey(plain)
         ns.Log("Chat", "%s%s", key and (key .. ": ") or "", plain)
     end
 end

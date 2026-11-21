@@ -82,4 +82,7 @@ function State.Context()
         tostring(Plain(GetZoneText)), (sub and sub ~= "") and (" (" .. sub .. ")") or "", tostring((GetGuildInfo("player"))),
         members, owned, tostring((ns.Registry:MyPet())), tostring((ns.Pets:OutKey())))
 end
-ns.Start("settled", function() if ns.Debug.enabled then ns.Log("Session", "%s", State.Context()) end end)
+ns.Start("settled", function()
+    if ns.Debug.enabled then ns.Log("Session", "%s", State.Context()) end
+    ns.Debug.context = State.Context -- (a log turned on later says it with its Session line)
+end)
