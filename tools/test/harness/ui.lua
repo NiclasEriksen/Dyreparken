@@ -413,6 +413,15 @@ function Client:PopupAccept(text, viaEnter)
     return shown, frame
 end
 
+-- The last StaticPopup's second button (reason "clicked"), or Escape (reason "override", hideOnEscape).
+function Client:PopupCancel(escape)
+    local p = assert(self.popup, "no popup shown")
+    local dialog = self.env.StaticPopupDialogs[p.which]
+    local data = p.args[3]
+    self.popup = nil
+    if dialog.OnCancel then Hardware(self, dialog.OnCancel, { data = data }, data, escape and "override" or "clicked") end
+end
+
 -- What's on screen ------------------------------------------------------------------
 -- Read the UI as a player does, not through a module's private fields. Shown means the
 -- region or frame and every parent are shown (IsVisible); `root` keeps to one frame and

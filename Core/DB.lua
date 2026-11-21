@@ -120,6 +120,7 @@ local CHAR_DEFAULTS = {
     rolls = nil,               -- { day, [line id] = won }: today's roll per line, rolled at its first moment
     -- [Registry]
     named = nil,               -- { day, at = { [petKey] = when } }: today's first new name per pet (once a day)
+    ownChange = nil,           -- { k, at, who, to }: a copy from someone else took our pet; asked in the journal (Registry, CardActions)
     -- [Bond]
     bondToday = nil,           -- { day, pets = { [petKey] = { got = { [cap] = n }, total } } }: today's points (Ledger)
     bondGains = {},            -- [petKey] = { gains not yet shown on its card } (Add; BondTrack: TakeGains)

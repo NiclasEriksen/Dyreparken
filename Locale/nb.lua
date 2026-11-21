@@ -107,10 +107,17 @@ L["release.none"] = "Du har ikke adoptert noe dyr."
 L["release.done"] = "Du ga slipp på {pet}."
 L["letgo.confirm"] = "Gi slipp på {pet}?\n\nBåndet dere har bygget, blir ikke borte, men andre i guilden kan adoptere {pet}."
 L["lapse.away"] = "{pet} dro tilbake til parken mens du var lenge borte. Adopter det igjen hvis det fortsatt er ledig."
+L["lapse.forged"] = "Noen meldte at du var lenge borte, men du er jo her: {pet} bor fortsatt hos deg."
 L["lapse.beaten"] = "{owner} rakk å adoptere {pet} rett før deg, så det bor der nå."
 -- A copy of your own record from a guildmate changed which pet lives with you (your other PC's, most likely).
 L["own.relayed"] = "Ifølge {who} bor {pet} hos deg nå (endret på en annen PC?)."
-L["own.relayed_none"] = "Ifølge {who} bor ikke {pet} hos deg lenger (endret på en annen PC?). Var det ikke deg, kan du adoptere det igjen."
+L["own.relayed_none"] = "Ifølge {who} bor ikke {pet} hos deg lenger (endret på en annen PC?)."
+-- ... and the question on the pet journal's page (CardActions:AskOwnChange): keep the pet you had?
+L["own.ask"] = "Ifølge {who} bor ikke {pet} hos deg lenger. Det kan være endret på en annen PC, eller av noen andre.\n\nVil du beholde {pet}?"
+L["own.ask.swap"] = "Ifølge {who} bor {new} hos deg nå, ikke {pet}. Det kan være endret på en annen PC, eller av noen andre.\n\nVil du beholde {pet}?"
+L["own.keep"] = "Behold"
+L["own.let"] = "Det var meg"
+L["own.kept"] = "{pet} bor fortsatt hos deg."
 L["lapse.unknown_owner"] = "?"
 
 ------------------------------------------------------------------------------

@@ -151,7 +151,8 @@ Registry.Admit = Admit
 -- one PC at a time, so nothing but this client writes our entries while we're logged in: a copy stamped since
 -- our login is made up. It's refused and ours written again, newer, so every client comes back to ours. An
 -- older one is taken (our other PC's, from before this login: its SavedVariables may be behind), and a claim
--- it changes is told (MergeRecord). Bonds aren't guarded: they only grow, so ours can't win again by a stamp.
+-- it changes is told (MergeRecord). Our bonds are guarded too (review 2026-11-21: a relayed copy took ours to the
+-- top level): they only grow, so ours can't win back on peers by a stamp, but this client keeps the truth.
 local loginAt
 ns.Start("login", function() loginAt = ns.Now() end)
 local function OwnForged(author, stamp, from)
@@ -169,6 +170,18 @@ local function Hold(store, key, author, e)
 end
 function Registry:Held() return #held end
 
+-- A journal species (Data/Companions.lua): a name a member who left gave stays on one (Tidy).
+local function Journal(key)
+    local known = ns.Companions and ns.Companions.species
+    return known and known[ns.Pets:SpeciesOfKey(key) or false] ~= nil
+end
+-- A pet anyone can really have: a journal species or a mage's familiar (Data/Familiars.lua). Any other key is
+-- made up (or a pet newer than this version), so under a flood it's the first to go (Trim) and gets no story.
+local familiar = {}
+for _, row in ipairs(ns.Familiars or {}) do familiar[row.key] = true end
+local function Real(key) return familiar[key] or Journal(key) or false end
+Registry.Real = Real
+
 -- Returns true when our data changed.
 -- At most `max` entries by one author in t[key][author] (code review
 -- 2026-11-09): one member sending names or bonds under made-up pet keys
@@ -178,14 +191,20 @@ function Registry:Held() return #held end
 -- same choice on every client whatever order entries arrived in, so the
 -- digests still agree. No real member comes near the caps. Returns false if
 -- the entry just added (key `added`) was the one to go.
-local function Trim(t, author, field, max, added)
-    local n, worstKey, worst = 0, nil, nil
+-- Made-up keys go before real ones, and (names) an entry that names nothing before one naming a pet now
+-- (review 2026-11-21: 400 junk bonds "by" a member, newer than their real one, pushed it out on every client,
+-- theirs too; fewer real keys exist than either cap, so a flood can't push out a real one any more).
+-- rank(key, e): a rank for the entry, the lowest going first.
+local function Trim(t, author, field, max, added, rank)
+    local n, worstKey, worst, worstRank = 0, nil, nil, nil
     for key, byKey in pairs(t) do
         local e = byKey[author]
         if e then
             n = n + 1
-            if not worst or e[field] < worst or (e[field] == worst and key > worstKey) then
-                worst, worstKey = e[field], key
+            local r = (Real(key) and 2 or 0) + (rank and rank(key, byKey, author) or 0)
+            if not worst or r < worstRank or (r == worstRank and (e[field] < worst
+                or (e[field] == worst and key > worstKey))) then
+                worst, worstKey, worstRank = e[field], key, r
             end
         end
     end
@@ -196,13 +215,13 @@ local function Trim(t, author, field, max, added)
 end
 
 -- The same over a whole table (migration 9): every author within the cap.
-function Registry.TrimAll(t, field, max)
+function Registry.TrimAll(t, field, max, rank)
     local count = {}
     for _, byKey in pairs(t) do
         for author in pairs(byKey) do count[author] = (count[author] or 0) + 1 end
     end
     for author, n in pairs(count) do
-        for _ = max + 1, n do Trim(t, author, field, max) end
+        for _ = max + 1, n do Trim(t, author, field, max, nil, rank) end
     end
 end
 
@@ -214,6 +233,9 @@ function Registry:MergeLife(key, carer, e, from)
     local byKey = g.life[key]
     local cur = byKey and byKey[carer]
     if cur and (cur.p > e.p or (cur.p == e.p and cur.t >= e.t)) then return false end
+    if OwnForged(carer, e.t, from) then
+        return ns.Log("Registry", "refused a copy of our bond with %s from %s, stamped since our login", key, tostring(from)) or false
+    end
     if not Admit(carer, from) then return Hold("life", key, carer, e) end
     if not byKey then byKey = {}; g.life[key] = byKey end
     byKey[carer] = { p = e.p, f = e.f, t = e.t }
@@ -253,7 +275,9 @@ local function Current(byKey, key)
     local holder, hr = Registry:Holder(key)
     local best, bestBy
     for namer, e in pairs(byKey) do
-        if not e.x and (namer == holder or not hr or e.at <= hr.at)
+        -- (strictly before: a name dated at the very second of the adoption was no earlier carer's; anyone
+        -- could name an unnamed pet so, review 2026-11-21)
+        if not e.x and (namer == holder or not hr or e.at < hr.at)
             and (not best or e.at > best.at or (e.at == best.at and namer < bestBy)) then
             best, bestBy = e, namer
         end
@@ -261,16 +285,19 @@ local function Current(byKey, key)
     return bestBy, best
 end
 
+-- Trim's rank for a naming entry: the one naming a pet now goes last among its author's (a flood of names "by"
+-- a member pushed out the name they gave their pet).
+local function NameRank(key, byKey, author)
+    return Current(byKey, key) == author and 1 or 0
+end
+Registry.NameRank = NameRank
+
 -- A name stays with the pet when its carer lets go (2026-11-08), and when they leave the guild too
 -- (the user, 2026-11-13): a non-member's naming entry is kept while it's the one naming a journal
 -- species (Data/Companions.lua) now, so at most one per species. The rest of a key's non-member
 -- entries go (Tidy): a newer name by the next carer replaces it as ever, and the old one goes then.
 -- Decided from what every client stores, the same way, so digests agree; a forger racing entries
 -- for one pet leaves the one that wins by the rules above, whatever order they came in.
-local function Journal(key)
-    local known = ns.Companions and ns.Companions.species
-    return known and known[ns.Pets:SpeciesOfKey(key) or false] ~= nil
-end
 local function Tidy(byKey, key, roster)
     local me = ns.PlayerKey()
     local keep = Journal(key) and (Current(byKey, key))
@@ -296,7 +323,10 @@ function Registry:MergeName(key, namer, e, from)
     if cur and (cur.at > e.at or (cur.at == e.at and NameLine(cur) >= NameLine(e))) then return false end
     if OwnForged(namer, e.at, from) then
         ns.Log("Registry", "refused a copy of our name for %s from %s, stamped since our login", key, tostring(from))
-        self:WriteOwn("names", key, cur and { n = cur.n, x = cur.x } or { x = true }, e.at)
+        -- With no entry of ours there, a void one outdoes it, for a real pet only: one for each made-up key filled
+        -- our names and pushed out the name we gave our pet (review 2026-11-21); on a made-up key the copy
+        -- names nothing.
+        if cur or Real(key) then self:WriteOwn("names", key, cur and { n = cur.n, x = cur.x } or { x = true }, e.at) end
         return false
     end
     local member = Admit(namer, from)
@@ -311,7 +341,21 @@ function Registry:MergeName(key, namer, e, from)
     end
     local roster = Roster()
     if roster then Tidy(byKey, key, roster) end
-    return Trim(g.names, namer, "at", Config.NAMES_PER_MEMBER, key)
+    return Trim(g.names, namer, "at", Config.NAMES_PER_MEMBER, key, NameRank)
+end
+
+-- A claim written long after the time it gives (more than Config.CLAIM_RACE), new to us, that would take a pet
+-- from its holder (review 2026-11-21, the user agreed: anyone could send their own record with a claim dated at
+-- BOND_EPOCH, and the earliest claim won any pet). A real claim is written the moment it's made (at = ts), and two
+-- only meet in a race, within moments; later writes of a claim (OwnForged's) keep its pet and date, which we
+-- know already. Judged against what we hold, so it can differ between clients for a moment (one that hadn't the
+-- holder's record yet); only forgeries are refused, so no protocol bump (as 2026-11-10's rules).
+local function Backdated(owner, r, cur)
+    if not r.k or r.ts - r.at <= Config.CLAIM_RACE then return false end
+    if cur and cur.k == r.k and cur.at == r.at then return false end
+    local holder, hr = Registry:Holder(r.k)
+    if not holder or holder == owner then return false end
+    return r.at < hr.at or (r.at == hr.at and owner < holder)
 end
 
 -- Returns true when our data changed.
@@ -325,15 +369,52 @@ function Registry:MergeRecord(owner, r, from)
         if cur then self:WriteOwn("claims", nil, { k = cur.k, at = cur.at }, r.ts) end
         return false
     end
+    if Backdated(owner, r, cur) then
+        ns.Log("Registry", "refused %s's claim on %s from %s: dated %d s before it was written, ahead of its holder",
+            owner, tostring(r.k), tostring(from), r.ts - r.at)
+        return false
+    end
     if not Admit(owner, from) then return Hold("claims", owner, owner, r) end
     g.claims[owner] = Copy(r)
     dirty = true
     if owner == ns.PlayerKey() and from and from ~= owner and cur and cur.k ~= r.k then
-        -- (from before this login: our other PC's, most likely; said, in case it wasn't)
+        -- (from before this login: our other PC's, most likely; said, in case it wasn't, and the pet we had is
+        -- offered back on the pet journal's page, the user, 2026-11-21: CardActions:AskOwnChange)
         ns.Print(ns.T(r.k and "own.relayed" or "own.relayed_none", { who = from,
             pet = ns.Pets:NameOfKey(r.k or cur.k) }))
+        if cur.k then
+            ns.DB.char.ownChange = { k = cur.k, at = cur.at, who = from, to = r.k }
+            if ns.CardActions then ns.CardActions:AskOwnChange() end
+        end
     end
     return true
+end
+
+-- The question CardActions:AskOwnChange asks, if it's still one (our record has another pet than it took), or
+-- nil; forget: it's answered ("it was me").
+function Registry:OwnChange(forget)
+    local q = ns.DB.char.ownChange
+    local r = self:MyRecord()
+    if forget or type(q) ~= "table" or (r and r.k == q.k) then ns.DB.char.ownChange = nil; return nil end
+    return q
+end
+
+-- The answer to CardActions:AskOwnChange: keep the pet a copy from someone else took from us. Our record as it
+-- was (the same pet and date) written again, newer: every client takes it back, unless someone adopted the pet
+-- since (then it's theirs, and we're told), or a lapse came after our adoption (adopted anew). ok, message.
+function Registry:KeepOwn(q)
+    ns.DB.char.ownChange = nil
+    if type(q) ~= "table" or not ValidKey(q.k) or not After(q.at) then return false end
+    local r = self:MyRecord()
+    if r and r.k == q.k then return false end
+    local holder = self:Holder(q.k)
+    if holder and holder ~= ns.PlayerKey() then return false, ns.T("adopt.taken", { owner = holder }) end
+    local g = G()
+    local lapse = g and g.lapses[ns.PlayerKey()]
+    if not ns.Pets:Owned()[q.k] or (lapse and lapse >= q.at) then return self:Claim(q.k) end
+    self:WriteOwn("claims", nil, { k = q.k, at = q.at })
+    ns.Log("Registry", "kept %s after a copy from %s took it", q.k, tostring(q.who))
+    return true, ns.T("own.kept", { pet = ns.Pets:NameOfKey(q.k) })
 end
 
 -- At most Wire.LIMITS.LAPSES_MAX lapses (X-Protocol 10): they're kept for people who left (the
@@ -358,11 +439,21 @@ function Registry.TrimLapses(lapses, added)
     return kept
 end
 
--- batch: the caller trims once at the end (MergeLapses).
-function Registry:MergeLapse(owner, t, batch)
+-- A lapse of ours stamped since our login, from a peer (review 2026-11-21): we're here, so it's made up (a lapse
+-- needs a roster that shows us gone or a month away; one read just before we came back can't be dated after it by
+-- more than a moment, and then the pet was free all along). Lapses can't be refused (they merge by max on every
+-- client, and older ones don't know), so CheckMine adopts the pet again, at once, if it's still free.
+local forgedLapse
+
+-- batch: the caller trims once at the end (MergeLapses). from: who sent it, nil for our own.
+function Registry:MergeLapse(owner, t, batch, from)
     local g = G()
     if not g or not Registry.ValidLapseOf(owner, t) then return false end
     if (g.lapses[owner] or 0) >= t then return false end
+    if OwnForged(owner, t, from) then
+        ns.Log("Registry", "a lapse of ours from %s, stamped since our login: we'll adopt again if it's free", tostring(from))
+        forgedLapse = t
+    end
     local new = g.lapses[owner] == nil
     g.lapses[owner] = t
     dirty = true
@@ -371,12 +462,12 @@ function Registry:MergeLapse(owner, t, batch)
 end
 
 -- A whole table of lapses (a SYNC's, a LAPSE): merged, then trimmed once.
-function Registry:MergeLapses(t)
+function Registry:MergeLapses(t, from)
     local g = G()
     if not g or type(t) ~= "table" then return false end
     local changed = false
     for owner, at in pairs(t) do
-        if self:MergeLapse(owner, at, true) then changed = true end
+        if self:MergeLapse(owner, at, true, from) then changed = true end
     end
     if changed then Registry.TrimLapses(g.lapses) end
     return changed
@@ -397,7 +488,7 @@ local OWN = {
     claims = { stamp = "ts", step = 1, valid = function(_, me, r) return Registry.ValidClaim(me, r) end,
         changed = true },
     names = { nested = true, stamp = "at", step = 1, valid = Registry.ValidNaming, cap = "NAMES_PER_MEMBER",
-        changed = true },
+        changed = true, rank = NameRank },
     life = { nested = true, stamp = "t", step = 0, valid = Registry.ValidBond, cap = "LIFE_PER_MEMBER" },
 }
 
@@ -421,7 +512,7 @@ function Registry:WriteOwn(store, key, e, beat)
     if spec.nested then
         t[key] = t[key] or {}
         t[key][me] = e
-        Trim(t, me, spec.stamp, Config[spec.cap], key)
+        Trim(t, me, spec.stamp, Config[spec.cap], key, spec.rank)
         local roster = Roster()
         if store == "names" and roster then Tidy(t[key], key, roster) end -- (an inherited name we replace goes)
     else
@@ -800,6 +891,22 @@ function Registry:CheckMine()
     local owner = self:Holder(r.k)
     if owner == me then return false end
     local name = ns.Pets:NameOfKey(r.k)
+    local lapse = g.lapses[me]
+    if not Active(g, me, r) and forgedLapse and lapse == forgedLapse and not owner then
+        -- Adopted again, dated just past the lapse (within the clock slack peers allow; a lapse stamped right at
+        -- its edge waits a moment). The day of adoption starts over: a lapse is for good on every client.
+        local now = ns.Now()
+        if lapse + 1 > now + Config.CLOCK_SLACK then
+            C_Timer.After(lapse + 2 - now - Config.CLOCK_SLACK, function() self:CheckMine() end)
+            return false
+        end
+        local at = math.max(now, lapse + 1)
+        forgedLapse = nil
+        ns.Log("Registry", "made-up lapse: %s adopted again", r.k)
+        self:WriteOwn("claims", nil, { k = r.k, at = at }, at - 1)
+        ns.Print(ns.T("lapse.forged", { pet = name }))
+        return false
+    end
     if not Active(g, me, r) then
         ns.Print(ns.T("lapse.away", { pet = name }))
     else

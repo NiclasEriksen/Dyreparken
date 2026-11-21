@@ -186,6 +186,8 @@ return function(c, env, S)
     env.SlashCmdList = {}
     env.StaticPopupDialogs = {}
     env.StaticPopup_Show = function(which, ...) c.popup = { which = which, args = { ... } } end
+    -- (the shown dialog of that kind, or nil)
+    env.StaticPopup_Visible = function(which) return c.popup and c.popup.which == which and "StaticPopup1" or nil end
     env.ACCEPT, env.CANCEL = "Accept", "Cancel"
     env.UNITNAME_TITLE_COMPANION = "%s's Companion"
     env.UNKNOWNOBJECT = "Unknown" -- a unit the client has no name for yet

@@ -125,6 +125,31 @@ function CardActions:AskLetGo(key)
     StaticPopup_Show("DYREPARKEN_LETGO", ns.T("letgo.confirm", { pet = ns.Registry:NameOf(key) }), nil, key)
 end
 
+-- A copy of our record from someone else, from before this login, changed which pet lives with us
+-- (Registry:MergeRecord): asked on the pet journal's page, the next time it shows (the user, 2026-11-21), kept
+-- for the next login until answered. Escape asks again next time; only "Det var meg" lets it be.
+StaticPopupDialogs["DYREPARKEN_OWNCHANGE"] = {
+    text = "%s",
+    button1 = ns.L["own.keep"],
+    button2 = ns.L["own.let"],
+    timeout = 0,
+    whileDead = 1,
+    hideOnEscape = 1,
+    OnAccept = function(_, q) Report(ns.Registry:KeepOwn(q)) end,
+    OnCancel = function(_, _, reason)
+        if reason == "clicked" then ns.Registry:OwnChange(true) end
+    end,
+}
+
+function CardActions:AskOwnChange()
+    local q = ns.Registry:OwnChange()
+    if not q then return end
+    if not (PetJournal and PetJournal:IsVisible()) or StaticPopup_Visible("DYREPARKEN_OWNCHANGE") then return end
+    local text = ns.T(q.to and "own.ask.swap" or "own.ask", { who = q.who, pet = ns.Pets:NameOfKey(q.k),
+        new = q.to and ns.Pets:NameOfKey(q.to) })
+    StaticPopup_Show("DYREPARKEN_OWNCHANGE", text, nil, q)
+end
+
 StaticPopupDialogs["DYREPARKEN_NICKNAME"] = {
     text = ns.T("card.nick.popup", { n = "%d" }), -- StaticPopup_Show fills in the number
     button1 = ACCEPT,

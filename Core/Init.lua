@@ -377,6 +377,7 @@ ns.Config = {
     BOND_DAILY_MAX = 75,          -- the most bond points a calendar day can bring (the day + activities); bounds the wire
     BOND_EPOCH = 1793487600,      -- 2026-10-31 23:00 UTC: no bond (or adoption it grew from) is older; bounds forgeries
     CLOCK_SLACK = 300,            -- seconds a time from the wire may be ahead of ours (Wire.Time)
+    CLAIM_RACE = 3600,            -- a claim written more than this after its date can't take a pet from its holder (Registry)
     BONDS_SHIPPED = 1794178800,   -- 2026-11-08 23:00 UTC (0.1.0-alpha4): adoptions before it are seeded (Bond:Seed)
     SYNC_MAX_ENTRIES = 2000,      -- entries per incoming SYNC part (records, names or bonds); more is junk, refused whole
     NAMES_PER_MEMBER = 50,        -- nickname entries kept per namer, and ...

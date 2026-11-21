@@ -375,7 +375,9 @@ return function(test, H)
                 local gone = NAMES[math.random(#NAMES)]
                 w:InjectMessage("Rolf Relay", { k = "SYNC", p = c.ns.PROTOCOL, i = 1, of = 1, d = 1, l = {}, a = {},
                     r = { [who] = { k = "s:" .. POOL[math.random(#POOL)], at = now - 600, ts = now },
-                        [gone] = { k = "s:" .. POOL[math.random(#POOL)], at = now - 9000, ts = now - 5 } },
+                        -- (dated within Config.CLAIM_RACE of its write: one dated further back that would
+                        -- take a pet from its holder is a forgery, refused where the holder is known, 2026-11-21)
+                        [gone] = { k = "s:" .. POOL[math.random(#POOL)], at = now - 3000, ts = now - 5 } },
                     n = { ["s:46"] = { [who] = { n = "Junk", at = now } } },
                     b = { ["s:40"] = { [who] = { p = 5, f = now - 60, t = now } } } })
                 history[#history + 1] = "relay " .. who

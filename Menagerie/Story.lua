@@ -194,11 +194,18 @@ function Story:Scan()
         Story.Compact(s, now)
         if roster then PruneLevels(s, roster) end
     end
+    -- Bonds and names start a story for a pet anyone can really have only (Registry.Real): one for every key a
+    -- guildmate made up grew g.story for good (review 2026-11-21), and such a story without a home or a name
+    -- goes (its level lines too: made-up bonds can rise).
+    local Real = ns.Registry.Real
     local keys = {}
     for key in pairs(ns.Registry:Holders()) do keys[key] = true end
-    for key, s in pairs(g.story) do if s.h or s.n then keys[key] = true end end
-    for key in pairs(g.life) do keys[key] = true end
-    for key in pairs(g.names) do keys[key] = true end
+    for key, s in pairs(g.story) do
+        if s.h or s.n then keys[key] = true
+        elseif not Real(key) then g.story[key] = nil end
+    end
+    for key in pairs(g.life) do if Real(key) then keys[key] = true end end
+    for key in pairs(g.names) do if Real(key) then keys[key] = true end end
     for key in pairs(keys) do ScanPet(g, key, now) end
     -- Today's pet of the day, once a day (the days this client is on).
     local pick, holder = ns.Bonds:PetOfTheDay(now)

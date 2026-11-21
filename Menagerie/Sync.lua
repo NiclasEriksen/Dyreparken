@@ -79,7 +79,7 @@ Sync.TABLES = {
         digest = function(owner, r) return "c" .. owner .. "\31" .. r.ts .. "\31" .. R.ClaimLine(r) end,
         count = true, registry = true },
     { wire = "l", part = 1, source = function() return (select(2, R:All())) end, valid = R.ValidLapseOf,
-        mergeAll = function(t) return R:MergeLapses(t) end,
+        mergeAll = function(t, from) return R:MergeLapses(t, from) end,
         digest = function(owner, t) return "l" .. owner .. "\31" .. t end, count = true, registry = true },
     -- (Achievements.lua loads after this file: its functions are looked up when called.)
     { wire = "a", part = 1, source = function() return ns.Achievements:GuildRecords() end,
@@ -278,7 +278,7 @@ local function MergeAll(msg, from)
         local t = msg[row.wire]
         if type(t) == "table" then
             if row.mergeAll then
-                if row.mergeAll(t) and row.registry then Changed(row) end
+                if row.mergeAll(t, from) and row.registry then Changed(row) end
             elseif row.nested then
                 for key, byKey in pairs(t) do
                     if type(byKey) == "table" then
