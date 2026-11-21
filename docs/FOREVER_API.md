@@ -463,6 +463,12 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   - Verified 2026-11-20: `IsInInstance()` gives true, "party" after `PLAYER_ENTERING_WORLD` into a dungeon
     (Maraudon, its name from `GetZoneText()`). The companion is gone through that loading screen and back only
     when Summon brings it a few seconds later: anything counted at the loading screen's end has no pet out.
+  - 2026-11-21 (review, from the log, 1.60.1 build 71037): at that `PLAYER_ENTERING_WORLD` `GetZoneText()` is still
+    the zone outside, as on a ride ("Dustwallow Marsh", "Tanaris" going into Zul'Farrak); the dungeon's own name
+    comes with `ZONE_CHANGED_NEW_AREA`. So the dungeon activity names a visit by `GetInstanceInfo()`'s first value
+    (out of an instance the API probe read `"Eastern Kingdoms", "none", 0, "", 0, 0, false, 0, 0, nil, false`).
+    **Unverified**: that the name is there, plain, at `PLAYER_ENTERING_WORLD` inside a dungeon (else the zone's, as
+    before). Check: `/dp debug on`, go into a dungeon, `-g "dungeon +1"` should end with the dungeon's name.
 - **UNIT_AURA's updateInfo can be secret** (2026-11-12, 1.60.1, in a dungeon): "attempt to perform boolean test on field
   'isFullUpdate' (a secret boolean)". Check `issecretvalue` on the table and its fields before testing them.
 - **The meter in a real fight** (2026-11-12): Meter.lua's read after a boss kill gave "damage: place 5, 1027 against

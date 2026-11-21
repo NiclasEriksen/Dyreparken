@@ -499,6 +499,28 @@ function Client:Zone()
     self:Fire("PLAYER_ENTERING_WORLD", false, false)
 end
 
+-- A loading screen to another zone, in the client's order (docs/FOREVER_API.md, a ride; seen too going into a
+-- dungeon, review 2026-11-21: "Dustwallow Marsh" read at the loading screen's end into Zul'Farrak): the instance
+-- (IsInInstance, GetInstanceInfo) is the new one at PLAYER_ENTERING_WORLD, GetZoneText still the old zone until
+-- ZONE_CHANGED_NEW_AREA; C_Map has no map inside one. opts: instance ("party", "raid", "pvp"; default "none"), name
+-- (the instance's own, for GetInstanceInfo; default the zone), map (outside), login, reload.
+function Client:Travel(zone, opts)
+    opts = opts or {}
+    local S = self.state
+    self:Fire("LOADING_SCREEN_ENABLED")
+    self:Fire("PLAYER_LEAVING_WORLD")
+    S.instance = opts.instance or "none"
+    S.instanceName = S.instance ~= "none" and (opts.name or zone) or nil
+    if S.instance ~= "none" then
+        S.map = false
+    elseif opts.map ~= nil or S.map == false then
+        S.map = opts.map -- (out again: the one given, or the default)
+    end
+    self:Fire("PLAYER_ENTERING_WORLD", opts.login or false, opts.reload or false)
+    S.zone = zone
+    self:Fire("ZONE_CHANGED_NEW_AREA")
+end
+
 P.Client, P.SpeciesName = Client, SpeciesName
 
 -- The stub client API, one environment per client: each env/*.lua adds a part, in this order.

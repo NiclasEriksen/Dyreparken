@@ -40,6 +40,16 @@ return function(c, env, S)
     env.UnitCastingInfo = function() return S.casting end
     env.UnitChannelInfo = function() return S.channeling end
     env.IsInInstance = function() return S.instance ~= "none", S.instance end
+    -- name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID,
+    -- instanceGroupSize, lfgDungeonID, (one more). Out of one, Forever's (the API probe, 1.60.1): "Eastern Kingdoms",
+    -- "none", 0, "", 0, 0, false, 0, 0, nil, false. Inside one, retail's shape (unprobed on Forever): S.instanceName
+    -- (c:Travel sets it), else the zone.
+    env.GetInstanceInfo = function()
+        if S.instance == "none" then return S.continent or "Eastern Kingdoms", "none", 0, "", 0, 0, false, 0, 0, nil, false end
+        local raid = S.instance == "raid"
+        return S.instanceName or S.zone or "Elwynn Forest", S.instance, raid and 9 or 1, raid and "40 Player" or "Normal",
+            raid and 40 or 5, 0, false, S.instanceID or 0, raid and 40 or 5, nil, false
+    end
     env.UnitStandState = function() return S.stand end
     env.IsSwimming = function() return S.swimming or false end
     env.IsResting = function() return S.resting or false end
@@ -120,9 +130,13 @@ return function(c, env, S)
         local done = (S.explored or {})[zone] == true
         return zone, 0, done, done and 1 or 0, 1
     end
-    -- Map ids (S.map, default Elwynn's 1429), names from S.mapNames.
+    -- Map ids (S.map, default Elwynn's 1429; false: none, as inside an instance), names from S.mapNames.
     env.C_Map = {
-        GetBestMapForUnit = function(u) assert(u == "player"); return S.map or 1429 end,
+        GetBestMapForUnit = function(u)
+            assert(u == "player")
+            if S.map == false then return nil end
+            return S.map or 1429
+        end,
         -- (S.mapTree: id -> { parent, mapType }, as the client's parents: a zone (3) in a continent (2))
         GetMapInfo = function(id)
             local t = (S.mapTree or {})[id] or {}

@@ -644,6 +644,15 @@ Activity.DUNGEON_AGAIN = 30 * 60
 Activity.DUNGEON_WAIT = { 2, 10 } -- seconds: look for the pet every 2, count it anyway at 10
 local inside, lastDungeon, lastDungeonAt
 local dungeonT = ns.Timers()
+-- The dungeon's name: GetInstanceInfo's (review 2026-11-21: GetZoneText at the loading screen's end is still the
+-- zone outside, "Tanaris" for Zul'Farrak in the log, so two dungeons from one zone were one visit). Whether it's
+-- plain on Forever inside one is unverified (docs/FOREVER_API.md): else the zone's, as before.
+function Activity.DungeonName()
+    local name = type(GetInstanceInfo) == "function" and Plain((GetInstanceInfo())) or nil
+    if type(name) == "string" and name ~= "" then return name end
+    name = Plain(GetZoneText())
+    return type(name) == "string" and name or nil
+end
 local function Visit(name, waited)
     if waited < Activity.DUNGEON_WAIT[2] and not ns.Pets:OutKey() then
         local step = Activity.DUNGEON_WAIT[1]
@@ -660,8 +669,7 @@ Activity:Source({ id = "dungeon", events = { "PLAYER_ENTERING_WORLD" },
         local was = inside
         inside = now
         if not now or was or login or reload then return nil end
-        local name = Plain(GetZoneText())
-        name = type(name) == "string" and name or nil
+        local name = Activity.DungeonName()
         local t = GetTime()
         if name and name == lastDungeon and t - lastDungeonAt < Activity.DUNGEON_AGAIN then return nil end
         lastDungeon, lastDungeonAt = name, t

@@ -62,8 +62,8 @@ return function(test, H)
         local w, ola = Setup({ "huleboer", "glupsk" })
         local A = ola.ns.Activity
         local function Enter(kind, zone, login, reload)
-            ola.state.instance, ola.state.zone = kind, zone or (kind == "none" and "Desolace" or "Maraudon")
-            ola:Fire("PLAYER_ENTERING_WORLD", login or false, reload or false); w:Run(1)
+            ola:Travel(zone or (kind == "none" and "Desolace" or "Maraudon"), { instance = kind, login = login, reload = reload })
+            w:Run(1)
         end
         local before = ola:Points(PANDA)
         Enter("party")
@@ -83,16 +83,35 @@ return function(test, H)
         w:Run(A.DUNGEON_AGAIN)
         Enter("none"); Enter("party")
         eq(Count(ola, "dungeon"), 3, "Maraudon again, later: a new visit")
+        -- Two dungeons from one zone (review 2026-11-21: named by the zone outside, the zone's name still that at
+        -- the loading screen's end): each its own, by the instance's name.
+        Enter("none", "The Barrens"); Enter("party", "Wailing Caverns")
+        Enter("none", "The Barrens"); Enter("party", "Razorfen Kraul")
+        eq(Count(ola, "dungeon"), 5, "Wailing Caverns, then Razorfen Kraul")
+        ok(ola:Log("dungeon %+1 .*Razorfen Kraul")[1], "named by the instance")
+    end)
+
+    test("a dungeon's name: the instance's when it's plain, else the zone's", function()
+        local w, ola = Setup({ "huleboer" })
+        local A = ola.ns.Activity
+        ola.state.instance, ola.state.zone, ola.state.instanceName = "party", "Tanaris", "Zul'Farrak"
+        eq(A.DungeonName(), "Zul'Farrak")
+        ola.state.instanceName = H.SECRET
+        eq(A.DungeonName(), "Tanaris", "a secret name: the zone")
+        ola.state.instanceName = ""
+        eq(A.DungeonName(), "Tanaris")
+        ola.env.GetInstanceInfo = nil
+        eq(A.DungeonName(), "Tanaris", "no GetInstanceInfo")
     end)
 
     test("a dungeon waits for the pet the loading screen took (2026-11-20, Maraudon: counted to no pet)", function()
         local w, ola = Setup({ "huleboer", "glupsk" })
         local A = ola.ns.Activity
+        ola.ns.DB.char.places[PANDA] = { zMaraudon = true } -- (been there: no new place's points in the way)
         local before = ola:Points(PANDA)
         local guid = ola.summoned
         ola.summoned = nil -- (gone through the loading screen)
-        ola.state.instance, ola.state.zone = "party", "Maraudon"
-        ola:Fire("PLAYER_ENTERING_WORLD", false, false)
+        ola:Travel("Maraudon", { instance = "party" })
         eq(Count(ola, "dungeon"), 0, "not yet: no pet out")
         w:Run(3)
         ola.summoned = guid -- (Summon brings it back)
