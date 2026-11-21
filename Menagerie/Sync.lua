@@ -128,8 +128,11 @@ local function Halve(t)
     for i, k in ipairs(keys) do if i <= #keys / 2 then a[k] = t[k] else b[k] = t[k] end end
     return a, b, #keys
 end
+-- (measured with what SendFull and Comm:Send add to a part, at their biggest: a part that only just fitted without
+-- them was refused by Send, every time for the same data, review 2026-11-21)
+local SENT_WITH = { i = 999, of = 999, d = 4294967295, k = "SYNC", p = 999 }
 local function Fit(msg, out)
-    if ns.Comm.Fits(msg) then out[#out + 1] = msg; return end
+    if ns.Comm.Fits(msg, SENT_WITH) then out[#out + 1] = msg; return end
     local wire, most = nil, 0
     for w, t in pairs(msg) do
         local n = 0
@@ -161,7 +164,7 @@ local function SendFull()
     for i, msg in ipairs(parts) do
         msg.i, msg.of = i, #parts
         if i == #parts then msg.d = Sync:Digest() end
-        ns.Comm:Send("SYNC", msg, "GUILD")
+        if not ns.Comm:Send("SYNC", msg, "GUILD") then ns.Log("Sync", "SYNC part %d of %d not sent", i, #parts) end
     end
 end
 
@@ -203,12 +206,16 @@ end
 
 -- Ask the guild for bonds with a pet (its card is showing): once per pet a
 -- session, and not while flicking through pets (one ask per Config.BOND_ASK_GAP).
-local asked, lastAsk = {}, nil
+-- Once more, Sync.REASK later, if no answer came (review 2026-11-21: peers skip answering while their outbox has a
+-- queue, as it does right after someone logs in, and the card then went without its bonds all session).
+Sync.REASK = 60
+local asked, heard, lastAsk = {}, {}, nil -- pet -> { at, n }; pet -> a BONDS or BOND for it came
 function Sync:AskBonds(key)
-    if not key or asked[key] or not IsInGuild() then return end
-    local now = GetTime()
+    if not key or not IsInGuild() then return end
+    local now, a = GetTime(), asked[key]
+    if a and (heard[key] or a.n >= 2 or now - a.at < Sync.REASK) then return end
     if lastAsk and now - lastAsk < C.BOND_ASK_GAP then return end
-    asked[key], lastAsk = true, now
+    asked[key], lastAsk = { at = now, n = a and a.n + 1 or 1 }, now
     ns.Comm:Send("BONDS_REQ", { pet = key }, "GUILD")
 end
 
@@ -318,13 +325,16 @@ local function Ours(key)
     for carer, e in pairs(t) do out[carer] = { p = e.p, f = e.f, t = e.t } end
     return out
 end
--- Does `theirs` (carer -> entry) say all `mine` does? Our own entry aside: it's always freshest here (points go
--- out lazily, Bond.lua), and a little behind is fine, by design.
-local function Covers(theirs, mine)
+-- Does `theirs` (carer -> entry) say all `mine` does? Each entry one a merge would take (review 2026-11-21: one
+-- with p = math.huge or NaN "covered" every honest answer, and none went), as many points; ours only needs to be
+-- there: it's always freshest here (points go out lazily, Bond.lua), and a little behind is fine, by design. Ours
+-- missing (a bond with a pet we haven't adopted, which no SYNC carries) isn't covered: it went unheard.
+local function Covers(theirs, mine, key)
+    if type(theirs) ~= "table" then return false end
     local me = ns.PlayerKey()
     for carer, e in pairs(mine) do
-        local o = carer == me or (type(theirs) == "table" and theirs[carer])
-        if o ~= true and (type(o) ~= "table" or type(o.p) ~= "number" or o.p < e.p) then return false end
+        local o = theirs[carer]
+        if not R.ValidBond(key, carer, o) or (carer ~= me and o.p < e.p) then return false end
     end
     return true
 end
@@ -349,7 +359,8 @@ function Sync:OnBonds(key, b, sender)
     end
     MergeAll({ b = { [key] = b } }, sender)
     local t, mine = bondsT[key], Ours(key)
-    if t and (not mine or Covers(b, mine)) then
+    heard[key] = true
+    if t and (not mine or Covers(b, mine, key)) then
         t:Cancel(); bondsT[key] = nil
         ns.Log("Sync", "%s's BONDS for %s said it all: ours dropped", tostring(sender), key)
     end
@@ -370,7 +381,6 @@ function Sync:Init()
         end
         MergeAll(msg, sender)
         local i, of = tonumber(msg.i), tonumber(msg.of)
-        local mine = Sync:Digest()
         if i and of and i < of then
             -- More parts to come: judge when the last is in. A whole part arriving is progress,
             -- so it holds ours back again (a big SYNC can take longer than one hold). Only a
@@ -387,6 +397,7 @@ function Sync:Init()
         -- HELLO) cancelled the answer a newcomer was waiting for (found 2026-11-11).
         local whole = of and of >= 2 and progress[sender] == of - 1
         progress[sender] = nil
+        local mine = Sync:Digest() -- (once, at the last part)
         -- Still apart: one of our rosters may be older than the other's (someone joined or left
         -- in between), and what each keeps differs until both have read a newer one.
         if mine ~= msg.d then ns.Guild:Soon() end
@@ -420,6 +431,7 @@ function Sync:Init()
         MergeAll({ n = { [msg.pet] = { [sender] = msg.e } } }, sender)
     end, "GUILD", { pet = "key", e = "table" })
     ns.Comm:Register("BOND", function(msg, sender, channel)
+        heard[msg.pet] = true
         MergeAll({ b = { [msg.pet] = { [sender] = msg.e } } }, sender)
     end, "GUILD", { pet = "key", e = "table" })
     ns.Comm:Register("BONDS_REQ", function(msg, sender, channel) Sync:OnBondsReq(msg.pet, sender, channel) end,

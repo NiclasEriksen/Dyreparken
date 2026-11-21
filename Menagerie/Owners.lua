@@ -169,7 +169,8 @@ function Owners:Merge(owner, e, from)
             else
                 ns.Log("Owners", "a copy of ours from %s wasn't ours: ours again", tostring(from))
             end
-            cur.at = math.max(ns.Now(), e.at + 1)
+            -- (past theirs, within the clock slack peers allow: one second further, ours was refused too)
+            cur.at = math.max(ns.Now(), math.min(e.at + 1, ns.Now() + C.CLOCK_SLACK))
             ns.Comm:Send("OWN", { e = cur }, "GUILD")
         end
         return false
@@ -231,6 +232,7 @@ local function Send()
     ns.Log("Owners", "OWN_SYNC: %d members in %d parts", #owners, of)
 end
 
+local held -- the pending OWN_SYNC a chunk on its way held back already
 local function Later(delay)
     local token = {}
     if not pending then deadline = GetTime() + C.OWN_MAX_HOLD end
@@ -293,6 +295,15 @@ function Owners:Init()
         if Owners:Merge(sender, msg.e, sender) then Owners:Changed() end
     end, "GUILD", { e = "table" })
     ns.Comm:Register("OWN_SYNC", OnSync, "GUILD", { o = "table" })
+    -- Someone's long message is on its way (an OWN_SYNC, or the registry's SYNC): ours waits for it, once per
+    -- answer of ours (Sync's Hold). Held only once a whole part was in, every peer whose turn came while the
+    -- first part's chunks went out sent too (review 2026-11-21: 14 of 20 answered one login).
+    ns.Bus:On("COMM_INCOMING", function(_, channel)
+        if channel == "GUILD" and pending and pending ~= held then
+            Later(C.OWN_HOLD)
+            held = pending
+        end
+    end)
     ns.Bus:On("ROSTER", function() if Owners:Prune() then Owners:Changed() end end)
     -- Holders and bonds are part of who owns what (Build).
     ns.Bus:On("REGISTRY", function() dirty = true end)

@@ -86,4 +86,7 @@ ns.Start("loaded", function() Version:Init() end)
 ns.Start("hello", function()
     Version:Hello()
     ns.Events:On("PLAYER_GUILD_UPDATE", Version, ns.Debounce(2, function() Version:Rejoin() end))
+    -- A roster read too (review 2026-11-21): whether the client fires PLAYER_GUILD_UPDATE when a late name comes
+    -- is unverified, and opening the journal reads the roster. Nothing to do once the HELLO went to this guild.
+    ns.Bus:On("ROSTER", function() Version:Rejoin() end)
 end)

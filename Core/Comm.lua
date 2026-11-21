@@ -197,8 +197,16 @@ local function OnSent(kind, sent)
     if not sent then ns.Log("Comm", "send of %s not delivered", tostring(kind)) end
 end
 
--- Would every receiver take this message (it fits in MAX_PARTS chunks)? Sync splits a part that doesn't.
-function Comm.Fits(msg) return #Encode(msg) <= CHUNK * LIMITS.MAX_PARTS end
+-- Would every receiver take this message (it fits in MAX_PARTS chunks)? Sync splits a part that doesn't. with:
+-- fields it will carry too, as big as they get (Send's own among them). Compression makes the size wobble by a
+-- few bytes with the values, hence the margin.
+Comm.FIT_MARGIN = 64
+function Comm.Fits(msg, with)
+    local m = {}
+    for k, v in pairs(msg) do m[k] = v end
+    for k, v in pairs(with or {}) do m[k] = v end
+    return #Encode(m) <= CHUNK * LIMITS.MAX_PARTS - Comm.FIT_MARGIN
+end
 
 -- channel: "GUILD", "RAID", "PARTY", "INSTANCE_CHAT", "WHISPER". (No
 -- priorities: the outbox is first in, first out.)
@@ -255,8 +263,11 @@ local function Dispatch(data, sender, channel)
     end
 end
 
+-- The channels any registration reads (FROM): a whisper or a custom channel's message was put together, inflated
+-- and unpacked before the handlers turned it away (review 2026-11-21), so strangers could cost us that.
+local HEARD = { GUILD = true, PARTY = true, RAID = true }
 local function OnAddonMessage(_, _, prefix, text, channel, sender)
-    if prefix ~= PREFIX then return end
+    if prefix ~= PREFIX or not HEARD[channel] then return end
     local raw = sender
     sender = ns.NormalizeName(sender)
     if sender == ns.PlayerKey() then return end
