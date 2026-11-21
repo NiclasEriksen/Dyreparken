@@ -99,6 +99,7 @@ local CHAR_DEFAULTS = {
     -- [Sources]
     places = {},               -- [petKey] = { [zone] = true }: where each companion has been ("explore")
     lastPlace = {},            -- [petKey] = the newest place it discovered with you (Stats: the explore chip)
+    sourcesDay = nil,          -- { day, met, guildpet, guildgroup, emote }: today's "once a day" (and emotes' minutes)
     -- [Stats]
     chipRounds = {},           -- [petKey] = { [activity] = { m, day } }: a chip's round number reached
     -- [Playdate]

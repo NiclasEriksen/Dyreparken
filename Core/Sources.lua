@@ -121,6 +121,24 @@ local function Own(guid)
     return type(Plain(guid)) == "string" and guid == UnitGUID("player")
 end
 
+-- What "once a day" (and the emotes' few minutes) remembers, in the character's data for today only (review
+-- 2026-11-21: in memory, a /reload or a relog counted them again): { day, met = { ["owner\31species"] = true },
+-- guildpet = { ... }, guildgroup = true, emote = { [kind] = server time } }. A new day starts it empty.
+local function DayState()
+    local t, today = ns.DB.char.sourcesDay, Today()
+    if not t or t.day ~= today then
+        t = { day = today }
+        ns.DB.char.sourcesDay = t
+    end
+    return t
+end
+-- A set in today's state, made on its first use.
+local function DaySet(name)
+    local t = DayState()
+    t[name] = t[name] or {}
+    return t[name]
+end
+
 -- Emotes: CHAT_MSG_TEXT_EMOTE carries our own emote as text ("You dance
 -- with Panda Cub."); the DoEmote hook never fires for typed emotes. English
 -- text: the client is enUS. "cuddle" needs the companion out to be named in
@@ -149,14 +167,15 @@ function Activity.EmoteKind(text)
 end
 -- Each kind counts once per EMOTE_EVERY, like a dive (review 2026-11-19, the user: five /dance filled a 25-point
 -- like in seconds; a like you live with, not a macro).
+-- (Server time, kept with the day's state: through a /reload too. A new day forgets it, a few minutes at most.)
 Activity.EMOTE_EVERY = 300
-local lastEmote = {}
 for _, kind in ipairs({ "dance", "cuddle", "fun" }) do
     Activity:Source({ id = kind, events = { "CHAT_MSG_TEXT_EMOTE" }, filter = function(_, text, ...)
         if not Own((select(11, ...))) then return nil end
         if Activity.EmoteKind(text) ~= kind then return nil end
-        if lastEmote[kind] and GetTime() - lastEmote[kind] < Activity.EMOTE_EVERY - 0.01 then return nil end
-        lastEmote[kind] = GetTime()
+        local last, now = DaySet("emote"), ns.Now()
+        if last[kind] and now - last[kind] < Activity.EMOTE_EVERY then return nil end
+        last[kind] = now
         return 1
     end })
 end
@@ -208,32 +227,30 @@ Activity:Source({ id = "sneak", events = { "UNIT_AURA" }, unit = "player",
 
 -- Another player's companion met (Venneflokk, 2026-11-12): under the mouse (Tooltip's COMPANION_SEEN, out
 -- of combat), each owner's pet once a day.
-local met = {}
 Activity:Source({ id = "meet", hook = function(fire)
     ns.Bus:On("COMPANION_SEEN", function(species, owner) fire(species, owner) end)
 end, filter = function(_, species, owner)
     if type(owner) ~= "string" or owner == ns.PlayerKey() then return nil end
-    local id = Today() .. "\31" .. owner .. "\31" .. tostring(species)
+    local met, id = DaySet("met"), owner .. "\31" .. tostring(species)
     if met[id] then return nil end
     met[id] = true
     return 1, owner
 end })
 
 -- A guildmate's companion met (2026-11-14, a wish for social pets): as "meet", the owner in the guild.
-local metGuild = {}
 Activity:Source({ id = "guildpet", hook = function(fire)
     ns.Bus:On("COMPANION_SEEN", function(species, owner) fire(species, owner) end)
 end, filter = function(_, species, owner)
     if type(owner) ~= "string" or owner == ns.PlayerKey() or ns.Guild:IsMember(owner) ~= true then return nil end
-    local id = Today() .. "\31" .. owner .. "\31" .. tostring(species)
-    if metGuild[id] then return nil end
-    metGuild[id] = true
+    local met, id = DaySet("guildpet"), owner .. "\31" .. tostring(species)
+    if met[id] then return nil end
+    met[id] = true
     return 1, owner
 end })
 
--- In a group with a guildmate (2026-11-14, a wish for social pets): when the first one is there (a raid's
--- every roster change would count again otherwise). Already together with the wish made: Wish:Auto.
-local withGuild = false
+-- In a group with a guildmate (2026-11-14, a wish for social pets): once a day, when the first one is there (a
+-- raid's every roster change would count again otherwise; a regroup or a /reload too, review 2026-11-21). Already
+-- together with the wish made: Wish:Auto.
 function Activity.Guildmate()
     if not IsInGroup() then return nil end
     local me = ns.PlayerKey()
@@ -242,10 +259,12 @@ function Activity.Guildmate()
     end
 end
 Activity:Source({ id = "guildgroup", events = { "GROUP_ROSTER_UPDATE" }, filter = function()
+    local t = DayState()
+    if t.guildgroup then return nil end
     local who = Activity.Guildmate()
-    local was = withGuild
-    withGuild = who ~= nil
-    if who and not was then return 1, who end
+    if not who then return nil end
+    t.guildgroup = true
+    return 1, who
 end })
 
 -- Bad luck in a fight (2026-11-14, the user: "missing 5 weapon swings in a row, or 3 spells resisted by enemy in a

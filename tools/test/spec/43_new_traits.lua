@@ -149,4 +149,32 @@ return function(test, H)
         ok(P:Dislikes("s:44").taxi, "it minds flying instead")
         eq(table.concat((select(2, P:Of("s:125"))), " "), "nap dive", "Speedy: no family like")
     end)
+
+    -- Review 2026-11-21: kept in memory only, so a /reload (or a regroup) counted them again.
+    test("once a day stays once a day through a /reload: a pet met, a guildmate in the group, an emote", function()
+        local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }
+        local me = ola.env.UnitGUID("player")
+        local function WantAll()
+            for _, id in ipairs({ "meet", "guildpet", "guildgroup", "dance" }) do Want(ola.ns.Activity, id) end
+        end
+        local function Again()
+            ola.ns.Bus:Fire("COMPANION_SEEN", 40, "Kari Berg")
+            ola:Fire("CHAT_MSG_TEXT_EMOTE", "You dance.", "Ola Nord", "", "", "", "", 0, 0, "", 0, 0, me)
+            w:SetGroup({ "Ola Nord", "Kari Berg" }); ola:Fire("GROUP_ROSTER_UPDATE")
+            w:Run(1)
+        end
+        local function Counts()
+            local A = ola.ns.Activity
+            return table.concat({ (A:Count("meet")), (A:Count("guildpet")), (A:Count("guildgroup")), (A:Count("dance")) }, " ")
+        end
+        WantAll(); Again()
+        eq(Counts(), "1 1 1 1")
+        w:SetGroup(nil); ola:Fire("GROUP_ROSTER_UPDATE"); Again()
+        eq(Counts(), "1 1 1 1", "a regroup the same day: not again")
+        ola:Reload(); w:Settle("hello"); WantAll(); Again()
+        eq(Counts(), "1 1 1 1", "nor after a /reload")
+        w:SkipDays(1); Again()
+        eq(Counts(), "2 2 2 2", "a new day")
+        ok(ola.ns.DB.char.sourcesDay.day ~= nil, "kept per day in the character's data")
+    end)
 end
