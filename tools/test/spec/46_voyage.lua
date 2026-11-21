@@ -30,6 +30,7 @@ return function(test, H)
         if opts.cast then ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "x", opts.cast) end
         ola.state.mapPos = opts.fromPos
         ola:Fire("LOADING_SCREEN_ENABLED")
+        if opts.gone then ola:Summon(nil) end -- (the client takes the pet away on the way)
         ola.state.map = MAPS[to] -- (the map first; the zone's name a moment later)
         ola.state.mapPos = opts.toPos
         ola:Fire("PLAYER_ENTERING_WORLD", opts.login or false, false)
@@ -47,6 +48,19 @@ return function(test, H)
         eq(N(ola, "taxi") - taxi, 1, "flying: the flight lovers' points, the fearful's grumbles")
         ok(ola:Printed("endelig hjemme i lufta", true), "Skybåren's own line")
         eq(N(ola, "boat"), 0)
+    end)
+
+    test("the pet the loading screen took away still rode along (2026-11-21, the log: counted for no pet)", function()
+        local w, ola = Setup({ "skybaren" })
+        ola.ns.DB.char.autoSummon = false -- (back only after the ride is counted, as in game)
+        local A = ola.ns.Activity
+        Trip(w, ola, "Stranglethorn Vale", "Durotar", { gone = true })
+        eq(select(4, A:Count("zeppelin", "s:5159")), 1, "the panda's ride")
+        eq(select(4, A:Count("taxi", "s:5159")), 1, "and its flight")
+        eq(select(2, A:Count("zeppelin")), 1, "the adopted pet's")
+        -- No pet out as we left: none rides.
+        Trip(w, ola, "Durotar", "Stranglethorn Vale", { gone = true })
+        eq(N(ola, "zeppelin"), 2); eq(select(4, A:Count("zeppelin", "s:5159")), 1)
     end)
 
     test("a boat: Booty Bay to Ratchet (Stranglethorn has both: the other end decides); a cat gets seasick", function()

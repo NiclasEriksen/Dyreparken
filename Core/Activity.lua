@@ -164,15 +164,17 @@ function Activity.PetNow()
 end
 local PetNow = Activity.PetNow
 
--- Count n of an activity and tell the listeners. Out of combat only.
-function Activity:Emit(id, n, extra)
+-- Count n of an activity and tell the listeners. Out of combat only. pet: the pet it was done with, if none
+-- is out now (a ride: the pet the loading screen took away, Voyage.lua).
+function Activity:Emit(id, n, extra, pet)
     -- An undeclared id would reach every listener without its KIND row (Bond reads it).
     assert(self.KIND[id], "Activity:Emit: declare " .. tostring(id) .. " in Activity.KINDS")
     if ns.InCombat() then
-        return ns.Events:OutOfCombat(function() Activity:Emit(id, n, extra) end)
+        return ns.Events:OutOfCombat(function() Activity:Emit(id, n, extra, pet) end)
     end
     n = n or 1
     local key, mine = PetNow()
+    if not key and pet then key, mine = pet, ns.Registry:MyPet() == pet end
     -- Past midnight while online, the new day's visit comes with the first
     -- thing done (code review 2026-11-10: it waited for a summon, and a night
     -- player lost the day and its holiday eggs). First, so it counts first.

@@ -131,8 +131,10 @@ function Voyage:Arrived()
     end
     ns.Log("Voyage", "%s: %s at %s,%s -> %s at %s,%s", kind, tostring(a.zone), tostring(a.x), tostring(a.y),
         tostring(b.zone), tostring(b.x), tostring(b.y))
-    ns.Activity:Emit(kind, 1, a.zone .. "\31" .. b.zone)
-    if kind == "zeppelin" then ns.Activity:Emit("taxi", 1) end -- (flying: the flight lovers' and the fearful's)
+    -- (the pet out as we left: the loading screen takes it away, and auto-summon brings it back 3-6 s on, after
+    -- this or just before it; 2026-11-21, the log: a zeppelin counted for no pet)
+    ns.Activity:Emit(kind, 1, a.zone .. "\31" .. b.zone, a.pet)
+    if kind == "zeppelin" then ns.Activity:Emit("taxi", 1, nil, a.pet) end -- (flying: the flight lovers' and the fearful's)
 end
 
 -- Only while something wants the rides (Quirks' eggs, always): the events, on the shared frame.
@@ -145,6 +147,7 @@ function Voyage:Init()
         -- (where we leave from: the zone and continent are still ours here, not at PLAYER_LEAVING_WORLD)
         from = Here()
         from.cast = lastCast ~= nil and GetTime() - lastCast <= Voyage.CAST_FOR
+        from.pet = ns.Pets:OutKey()
         lastCast, arriving = nil, nil
     end)
     ns.Events:On("PLAYER_ENTERING_WORLD", Voyage, function(_, _, login, reload)
