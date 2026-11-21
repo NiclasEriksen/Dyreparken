@@ -198,7 +198,7 @@ function Fx:Hovered(species, owner)
     local scale = UIParent:GetEffectiveScale()
     local x, y = GetCursorPosition()
     local at = { UIParent, "BOTTOMLEFT", x / scale, y / scale }
-    self:Burst(at, "heart", { n = 3, color = self:HeartColor(species, owner), size = 0.7, rise = 60 })
+    self:Burst(at, "heart", { n = 3, color = self:HeartColor(species, owner), size = 0.49, rise = 60 }) -- (0.7 until 2026-11-20, the user: "a tiny bit much")
     ns.Log("Fx", "hover %s (%s)", tostring(species), tostring(owner))
 end
 
