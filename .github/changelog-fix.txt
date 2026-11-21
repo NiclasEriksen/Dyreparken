@@ -3,3 +3,4 @@ d8e46af69f7190aad5a411f47c0eeca6128eba14 A gathering wish counts only on foot wi
 5b65a951d884c2f9417c08fe1a231b8620e68d85 Tidy-up: The addon list shows a version for a git checkout ("dev") instead of @project-version@
 482e23a93e190c059a70bae3118a0f2b3b9f5ef5 Tidy-up: A visit to the bank should count as an errand now (as Forever's newer bank window opens)
 05b30189b3330a8cea4690fb221c8cffe5062fd3 Tidy-up: Going into a dungeon counts for the pet that's with you, after the loading screen brings it back, and once a visit
+0913074f21b9cd444a3013de588a4b699b91a6f0 A guildmate's made-up data can't take your pet, erase your bond or nickname, or free your adoption, and the journal asks before a change from elsewhere takes your pet
