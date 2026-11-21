@@ -125,6 +125,7 @@ Dev\Errors.lua
 Dev\State.lua
 Dev\Try.lua
 Dev\Perf.lua
+Dev\Verify.lua
 Dev\Commands.lua
 #@end-do-not-package@
 

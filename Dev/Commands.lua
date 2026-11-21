@@ -34,6 +34,7 @@ local PROBES = {
     { "perf", function(a) ns.Perf:Command(a) end, "[on|off|show]" },
     { "garden", function(a) ns.Commands.Garden(a) end, "<hour> [month]|off" },
     { "sound", function(a) ns.Commands.Sound(a) end, "[species id|set|quiet]" },
+    { "verify", function(a) ns.Verify:Command(a) end, "[area [all]|ok <id>|forget <id>|off|reset]" },
 }
 
 -- /dp probe sound: a pet's own sound (Data/PetSounds.lua), to check by ear: the card's pet (none given), a

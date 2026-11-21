@@ -21,6 +21,7 @@ local ns = select(2, ...)
 -- unmuted (Debug.QUIET): every animation step (the plan is logged) and every cast a sensor saw were three
 -- quarters of the 8000 lines, so the ring held three sessions.
 ---@class Dyreparken.Debug
+---@field tap fun(module: string, msg: string)? Dev/Verify.lua: every line written (a release leaves it nil)
 local Debug = { enabled = false }
 ns.Debug = Debug
 
@@ -43,6 +44,8 @@ local function Write(module, fmt, ...)
     if mute[module] or (Debug.QUIET[module] and not loud[module]) then return end
     local ok, msg = pcall(string.format, fmt, ...)
     if not ok then msg = tostring(fmt) end
+    -- (Dev/Verify.lua's checklist reads every line written; a release leaves it nil)
+    if Debug.tap then Debug.tap(module, msg) end
     local key = module .. "\t" .. msg
     if key == last and buf[buf.head] then
         again = again + 1
