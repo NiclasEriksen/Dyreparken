@@ -14,6 +14,7 @@ return function(test, H)
         local ids = { ... }
         local w, ola = H.Setup{ ola = { 5159, 40 }, settle = "bond", journal = true, each = function(c)
             c.ns.Decor.FAMILY, c.ns.Decor.FAMILY_ART = {}, {}
+            c.ns.Decor.CALM = 1 -- (the rules' counts and sizes; the toning down has a test of its own)
             c.ns.Bonds.PetOfTheDay = function() return nil end -- (its halo has a test of its own: 34_touches.lua)
             c:Traits(ids)
         end }
@@ -380,7 +381,7 @@ return function(test, H)
         D.TRAITS.kosete = { kind = "heart", n = 100, color = { 1, 0, 0 } } -- (45 at level 1: still past the pool)
         ola:Traits{ "kosete" }
         D:Apply(card, PANDA, 1)
-        eq(#Parts(d), #d.parts)
+        eq(#Parts(d), math.floor(#d.parts * D.CALM + 0.5), "the pool (as toned down: Decor.CALM)")
         for _, p in ipairs(Parts(d)) do eq(p.icon.tex, D.MEDIA .. "heart") end
     end)
 
@@ -460,6 +461,28 @@ return function(test, H)
         local ember = Parts(d)[1]
         eq(ember.icon.blend, "ADD"); ok(ember.throb:IsPlaying(), "it flickers")
         ok(ember.throb.steps[1].duration < 0.3, "quickly")
+    end)
+
+    test("every particle on the card a little smaller, and about one in seven left out (Decor.CALM)", function()
+        local w, ola, card, d = Setup("dykker")
+        local D = ola.ns.Decor
+        At(w, ola, 9, 21, 12)
+        local function Look(calm)
+            D.CALM = calm
+            D:Apply(card, nil) -- (the same pet and level again would leave them as they are)
+            D:Apply(card, PANDA, 7)
+            return #Parts(d)
+        end
+        local all = Look(1)
+        local fewer = Look(0.85)
+        eq(D.CALM, 0.85)
+        eq(fewer, math.floor(all * 0.85 + 0.5), ("%d of %d (the card's pool, full at 7, shrinks too)"):format(fewer, all))
+        ok(fewer >= 1)
+        for _, p in ipairs(Parts(d)) do
+            local top = 0
+            for _, k in pairs(D.KINDS) do if D.MEDIA .. k.tex == p.icon.tex then top = math.max(top, k.size[2]) end end
+            ok(p.size[1] <= top * 0.85 + 1e-6, p.icon.tex .. ": smaller")
+        end
     end)
 
     test("fewer everyday particles at the first levels, more than all of them at 7; the level's own rewards stay", function()

@@ -483,7 +483,7 @@ local function Launch(p, spec, rng, i, n, panel, s)
     if type(c[1]) == "table" then c = c[(i - 1) % #c + 1] end -- a palette
     icon:SetVertexColor(c[1], c[2], c[3], spec.alpha or 1)
     icon:SetRotation(0)
-    local size = rng(k.size[1], k.size[2]) * s
+    local size = rng(k.size[1], k.size[2]) * s * Decor.CALM
     p:SetSize(size, size)
     local dur = rng(k.dur[1], k.dur[2])
     local x, y, dx, dy = width * (i - 0.5) / n + rng(-20, 20) * s, 0, 0, 0
@@ -561,6 +561,12 @@ end
 -- level. The card's pool (POOL) still caps the total; the level's own rewards
 -- (sparks, hearts) keep their counts.
 Decor.DENSITY = { 0.45, 0.55, 0.7, 0.85, 1, 1.15, 1.3 }
+
+-- Every particle on the card a little smaller and fewer (2026-11-22, the user: "tone down ... by another 15% or
+-- so across the board (size and amount)"): sizes times CALM, and of the particles launched, about one in seven
+-- left out, evenly over the whole card (most kinds come two or three at a time, so rounding each kind's count
+-- would have left them as they were), and the pool that caps them CALM's share of itself.
+Decor.CALM = 0.85
 function Decor.Density(level)
     local d = Decor.DENSITY
     return d[math.max(1, math.min(#d, math.floor(level or 1)))]
@@ -675,14 +681,19 @@ function Decor:Apply(card, key, level, color)
     local amount = ns.Settings:Get("cardParticles")
     if amount == "none" then return end
     local rng = Rng((ns.Pets:SpeciesOfKey(key) or 1) * 7919 + level)
-    local pool, share = d.pool or POOL, d.share or 1
+    local pool, share = math.max(1, math.floor((d.pool or POOL) * Decor.CALM + 0.5)), d.share or 1
+    local tally = 1 - 1e-9 -- (Decor.CALM: a particle goes out each time the tally reaches 1; the first always)
     for _, spec in ipairs(specs) do
         local n = math.max(1, math.ceil(spec.n * share))
         if amount == "few" then n = math.max(1, math.ceil(n / 2)) end
         for i = 1, n do
             if d.used >= pool then break end
-            d.used = d.used + 1
-            Launch(d.parts[d.used], spec, rng, i, n, d.panel, d.scale)
+            tally = tally + Decor.CALM
+            if tally >= 1 then
+                tally = tally - 1
+                d.used = d.used + 1
+                Launch(d.parts[d.used], spec, rng, i, n, d.panel, d.scale)
+            end
         end
     end
 end
