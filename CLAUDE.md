@@ -363,7 +363,8 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    wheel) in Blizzard's Edit Mode, char.petFrame),
                    Settings (the settings page: a SidePage with no tab, opened by a cog in the Collections window's title
                    bar, shown on the pets, Parken, Prestasjoner and itself, "Tilbake" back to the page it came from
-                   (2026-11-15); the same rows, one column, in Blizzard's options too (Esc > Options > AddOns >
+                   (2026-11-15); five sections on faint panels in two even columns within the page (Settings.SECTIONS,
+                   Settings.PAGE; this character's settings marked *, 2026-11-21); the same two columns in Blizzard's options too (Esc > Options > AddOns >
                    Dyreparken: Settings.Canvas, a canvas category; c:OpenOptions in the tests); the four older per-character settings plus the account's DyreparkenDB.settings: chatter ("Småting i chatten", a slider of four steps, 2026-11-15: none hides the lines only; few doubles
                    the waits and halves every chance; many a third of the waits (an egg's stays) and half again the lines' chances,
                    not the eggs': Settings.CHATTER, Moments:Every; account migration 14 from chatLines),

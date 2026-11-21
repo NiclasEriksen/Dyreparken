@@ -62,58 +62,78 @@ local function Set(key, value)
     if ns.JournalUI then ns.JournalUI:Refresh() end -- (the card follows at once)
 end
 
--- The rows, top to bottom: a heading, or { label, tip, get, set } for a checkbox,
--- or { label, choices } for a row of choices; { column = 2 }: the rest in the right half.
-local ROWS = {
-    { head = "settings.head.pet", char = true },
-    { key = "settings.autosummon", get = function() return ns.DB.char.autoSummon and true or false end,
-        set = function(v) ns.Summon:SetEnabled(v) end, char = true },
-    { key = "settings.mute", get = function() return ns.DB.char.muteSummonSound and true or false end,
-        set = function(v) ns.Summon:SetMuteSound(v) end, char = true },
-    { head = "settings.head.guild", char = true },
-    { key = "settings.announce", get = function() return ns.DB.char.announce and true or false end,
-        set = function(v) ns.Bonds:SetAnnounce(v, true) end, char = true },
-    { key = "settings.achnotify", get = function() return ns.DB.char.achNotify and true or false end,
-        set = function(v) ns.Achievements:SetNotify(v, true) end, char = true },
-    { key = "settings.achothers", setting = "achOthers" },
-    { head = "settings.head.chat" },
-    { key = "settings.chatter", steps = Settings.CHATTER_STEPS, setting = "chatter" },
-    { key = "settings.hearts", setting = "worldHearts" },
-    -- (the client's chat windows, by their names: GetChatWindowInfo; one not set up isn't offered)
-    { key = "settings.chatframe", choices = { "1", "2", "3", "4" }, setting = "chatFrame",
-        label = function(choice)
-            local name = GetChatWindowInfo and ns.Plain((GetChatWindowInfo(tonumber(choice))))
-            return type(name) == "string" and name ~= "" and name or ns.T("settings.chatframe.n", { n = choice })
-        end },
-    { head = "settings.head.park" },
-    { key = "settings.hideunknown", setting = "hideUnknown",
-        set = function(v) Set("hideUnknown", v); ns.ParkPage:Refresh() end },
-    { column = 2 }, -- (2026-11-11: one column had outgrown the page)
-    { head = "settings.head.card" },
-    { key = "settings.particles", choices = { "all", "few", "none" }, setting = "cardParticles" },
-    -- (the pet frame's stage too: it reads the setting only when it poses the pet, and walked on)
-    { key = "settings.moves", setting = "cardMoves",
-        set = function(v) Set("cardMoves", v); ns.PetFrame:Apply() end },
-    { key = "settings.celebrate", setting = "celebrate" },
-    { key = "settings.petsounds", setting = "petSounds" },
-    { head = "settings.head.frame" },
-    { key = "settings.petframe", get = function() return ns.PetFrame:Enabled() end,
-        set = function(v) Set("petFrame", v); ns.PetFrame:Apply() end },
-    { key = "settings.petframeart", get = function() return ns.Settings:Get("petFrameArt") == true end,
-        set = function(v) Set("petFrameArt", v); ns.PetFrame:Apply() end,
-        needs = function() return ns.PetFrame:Enabled() end }, -- (greyed and indented while the frame is off)
-    { key = "settings.petframecombat", get = function() return ns.Settings:Get("petFrameCombat") == true end,
-        set = function(v) Set("petFrameCombat", v); ns.PetFrame:Apply() end,
-        needs = function() return ns.PetFrame:Enabled() end },
-    { key = "settings.petframefade", get = function() return ns.Settings:Get("petFrameFade") == true end,
-        set = function(v) Set("petFrameFade", v); ns.PetFrame:Apply() end,
-        needs = function() return ns.PetFrame:Enabled() end },
-    { key = "settings.petframealpha", slider = { 0.05, 0.9, 0.05 }, setting = "petFrameAlpha",
-        set = function(v) Set("petFrameAlpha", v); ns.PetFrame:Apply() end,
-        needs = function() return ns.PetFrame:Enabled() and ns.Settings:Get("petFrameFade") == true end },
+-- The page in sections (2026-11-21, the user: "messy, and often overlaps its container"): each on a faint panel
+-- with an icon and a gold line under its heading, in two columns of about the same height; settings for this
+-- character alone marked with a grey * and a note under the columns. A section: { head, icon, column, rows };
+-- a row: { key, tip, get, set } for a checkbox, { key, choices [, perLine] } for radio buttons, { key, steps }
+-- or { key, slider } for a slider; `char`: this character's; `needs`: greyed and indented while it's false.
+local SECTIONS = {
+    { head = "settings.head.pet", icon = "paw", column = 1, rows = {
+        { key = "settings.autosummon", get = function() return ns.DB.char.autoSummon and true or false end,
+            set = function(v) ns.Summon:SetEnabled(v) end, char = true },
+        { key = "settings.mute", get = function() return ns.DB.char.muteSummonSound and true or false end,
+            set = function(v) ns.Summon:SetMuteSound(v) end, char = true },
+    } },
+    { head = "settings.head.frame", icon = "star", column = 1, rows = {
+        -- (the hearts over a companion in the world: on screen too; here, the columns come out even, 2026-11-21)
+        { key = "settings.hearts", setting = "worldHearts" },
+        { key = "settings.petframe", get = function() return ns.PetFrame:Enabled() end,
+            set = function(v) Set("petFrame", v); ns.PetFrame:Apply() end },
+        { key = "settings.petframeart", get = function() return ns.Settings:Get("petFrameArt") == true end,
+            set = function(v) Set("petFrameArt", v); ns.PetFrame:Apply() end,
+            needs = function() return ns.PetFrame:Enabled() end }, -- (greyed and indented while the frame is off)
+        { key = "settings.petframecombat", get = function() return ns.Settings:Get("petFrameCombat") == true end,
+            set = function(v) Set("petFrameCombat", v); ns.PetFrame:Apply() end,
+            needs = function() return ns.PetFrame:Enabled() end },
+        { key = "settings.petframefade", get = function() return ns.Settings:Get("petFrameFade") == true end,
+            set = function(v) Set("petFrameFade", v); ns.PetFrame:Apply() end,
+            needs = function() return ns.PetFrame:Enabled() end },
+        { key = "settings.petframealpha", slider = { 0.05, 0.9, 0.05 }, setting = "petFrameAlpha",
+            set = function(v) Set("petFrameAlpha", v); ns.PetFrame:Apply() end,
+            needs = function() return ns.PetFrame:Enabled() and ns.Settings:Get("petFrameFade") == true end },
+    } },
+    { head = "settings.head.park", icon = "tree", column = 1, rows = {
+        { key = "settings.hideunknown", setting = "hideUnknown",
+            set = function(v) Set("hideUnknown", v); ns.ParkPage:Refresh() end },
+    } },
+    { head = "settings.head.card", icon = "sparkle", column = 2, rows = {
+        { key = "settings.particles", choices = { "all", "few", "none" }, setting = "cardParticles" },
+        -- (the pet frame's stage too: it reads the setting only when it poses the pet, and walked on)
+        { key = "settings.moves", setting = "cardMoves",
+            set = function(v) Set("cardMoves", v); ns.PetFrame:Apply() end },
+        { key = "settings.celebrate", setting = "celebrate" },
+        { key = "settings.petsounds", setting = "petSounds" },
+    } },
+    { head = "settings.head.chat", icon = "speech", column = 2, rows = {
+        { key = "settings.chatter", steps = Settings.CHATTER_STEPS, setting = "chatter" },
+        -- (the client's chat windows, by their names: GetChatWindowInfo; one not set up isn't offered)
+        { key = "settings.chatframe", choices = { "1", "2", "3", "4" }, perLine = 2, setting = "chatFrame",
+            label = function(choice)
+                local name = GetChatWindowInfo and ns.Plain((GetChatWindowInfo(tonumber(choice))))
+                return type(name) == "string" and name ~= "" and name or ns.T("settings.chatframe.n", { n = choice })
+            end },
+        { key = "settings.announce", get = function() return ns.DB.char.announce and true or false end,
+            set = function(v) ns.Bonds:SetAnnounce(v, true) end, char = true },
+        { key = "settings.achnotify", get = function() return ns.DB.char.achNotify and true or false end,
+            set = function(v) ns.Achievements:SetNotify(v, true) end, char = true },
+        { key = "settings.achothers", setting = "achOthers" },
+    } },
 }
+Settings.SECTIONS = SECTIONS
+-- Every row, in order, each section's heading row ({ head, section }) before its rows (the tests walk them).
+local ROWS = {}
+for _, sec in ipairs(SECTIONS) do
+    ROWS[#ROWS + 1] = { head = sec.head, section = sec }
+    for _, row in ipairs(sec.rows) do ROWS[#ROWS + 1] = row end
+end
 Settings.ROWS = ROWS
-Settings.COL_W = 330 -- a column's width (the page's inset is about 700)
+-- The page's room: the inset is about 580 x 500 (seen 2026-11-21); two columns and the gaps around them.
+Settings.PAGE = { w = 580, h = 500 }
+Settings.GAP = 12 -- between the columns and around them, and between sections
+Settings.COL_W = math.floor((Settings.PAGE.w - 3 * Settings.GAP) / 2)
+-- Heights: a heading, a checkbox row (a line), a label over its widget, a radio line, a slider, a section's
+-- padding below its last row.
+Settings.H = { head = 30, check = 24, label = 18, radio = 22, slider = 26, pad = 8 }
 
 local function Get(row)
     if row.get then return row.get() end
@@ -129,98 +149,98 @@ end
 
 local function Tip(self) ns.ShowTip(self, "ANCHOR_RIGHT", Settings.Lines(self.row)) end
 
--- The rows into a frame (the page's inset, or the options panel's scroll child: Canvas), each row's widgets
--- into `widgets`. one: a single column, for the options panel, narrower than the journal (its { column }
--- row is passed by). Returns the height the rows took.
-local function Fill(inset, widgets, one)
-    -- Two columns, each label within its own (2026-11-11, the user: "elements overlap and don't
-    -- wrap"): wrapped at COL_W, the row as tall as its text.
-    local COL_W = Settings.COL_W
-    local y, x, at = -16, 0, "TOPLEFT"
-    local deepest = 0
-    for i, row in ipairs(ROWS) do
-        if row.column then
-            if not one then y, x, at = -16, 10, "TOP" end
-        elseif row.head then
-            if i > 1 and not ROWS[i - 1].column then y = y - 8 end -- (a little air before a heading)
-            local h = inset:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-            h:SetPoint("TOPLEFT", inset, at, x + 20, y - 6)
-            h:SetText(L[row.head])
-            if row.char then -- (these are per character; the rest is for the account: UX review 2026-11-11)
-                -- (a note, not disabled: light grey, review 2026-11-19)
-                local note = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-                note:SetTextColor(0.7, 0.7, 0.7)
-                note:SetPoint("BOTTOMLEFT", h, "BOTTOMRIGHT", 8, 1)
-                note:SetText(L["settings.char.head"])
-            end
-            y = y - 34
-        elseif row.slider then
+-- One section's panel and rows, its top-left at x, y on `inset`; its widgets into `widgets`. Returns its height.
+local function Section(inset, widgets, sec, x, y)
+    local W, H = Settings.COL_W, Settings.H
+    local panel = CreateFrame("Frame", nil, inset)
+    panel:SetPoint("TOPLEFT", inset, "TOPLEFT", x, y)
+    panel:SetWidth(W)
+    panel.section = sec
+    local bg = panel:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints()
+    bg:SetColorTexture(0, 0, 0, 0.3)
+    local icon = panel:CreateTexture(nil, "ARTWORK")
+    icon:SetTexture(ns.Icon(sec.icon))
+    icon:SetSize(16, 16)
+    icon:SetPoint("TOPLEFT", panel, "TOPLEFT", 10, -7)
+    icon:SetVertexColor(1, 0.82, 0.3)
+    local h = panel:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    h:SetPoint("LEFT", icon, "RIGHT", 6, 0)
+    h:SetText(L[sec.head])
+    local line = panel:CreateTexture(nil, "ARTWORK")
+    line:SetPoint("TOPLEFT", panel, "TOPLEFT", 8, -H.head + 3)
+    line:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, -H.head + 3)
+    line:SetHeight(1)
+    local e = ns.BondBar.EDGE
+    line:SetColorTexture(e[1], e[2], e[3], e[4])
+    local top = -H.head - 2
+    local function Label(row, indent)
+        local label = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        label:SetPoint("TOPLEFT", panel, "TOPLEFT", indent, top - 2)
+        label:SetWidth(W - indent - 8)
+        label:SetJustifyH("LEFT")
+        label:SetText(L[row.key])
+        top = top - H.label
+        return label
+    end
+    local function Slider(row, label, lo, hi, step)
+        local s = CreateFrame("Slider", nil, panel, "OptionsSliderTemplate")
+        s:SetPoint("TOPLEFT", panel, "TOPLEFT", 18, top - 6)
+        s:SetSize(W - 100, 16)
+        s:SetOrientation("HORIZONTAL")
+        s:SetMinMaxValues(lo, hi)
+        s:SetValueStep(step)
+        s:SetObeyStepOnDrag(true)
+        -- (the template's ends say "Low" and "High", in English; the value is beside it)
+        for _, k in ipairs({ "Low", "High", "Text" }) do
+            local fs = rawget(s, k)
+            if fs and fs.SetText then fs:SetText("") end
+        end
+        s.pct = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+        s.pct:SetPoint("LEFT", s, "RIGHT", 8, 0)
+        s.row, s.label = row, label
+        s:SetScript("OnEnter", Tip)
+        s:SetScript("OnLeave", ns.HideTip)
+        top = top - H.slider
+        return s
+    end
+    for _, row in ipairs(sec.rows) do
+        if row.slider then
             -- A slider (2026-11-11: the pet frame's faded opacity), its value in percent beside it.
-            local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            label:SetPoint("TOPLEFT", inset, at, x + 54, y - 6)
-            label:SetText(L[row.key])
-            y = y - 26
-            local s = CreateFrame("Slider", nil, inset, "OptionsSliderTemplate")
-            s:SetPoint("TOPLEFT", inset, at, x + 58, y - 4)
-            s:SetSize(COL_W - 140, 16)
-            s:SetOrientation("HORIZONTAL")
-            s:SetMinMaxValues(row.slider[1], row.slider[2])
-            s:SetValueStep(row.slider[3])
-            s:SetObeyStepOnDrag(true)
-            s.pct = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            s.pct:SetPoint("LEFT", s, "RIGHT", 10, 0)
-            s.row, s.label = row, label
+            local s = Slider(row, Label(row, 14), row.slider[1], row.slider[2], row.slider[3])
             s:SetScript("OnValueChanged", function(self, v, user)
                 v = tonumber(("%.2f"):format(math.floor(v / row.slider[3] + 0.5) * row.slider[3])) -- (0.3, not 0.30000000000000004)
                 self.pct:SetText(("%d%%"):format(math.floor(v * 100 + 0.5)))
                 if user then row.set(v) end
             end)
-            s:SetScript("OnEnter", Tip)
-            s:SetScript("OnLeave", ns.HideTip)
             widgets[#widgets + 1] = { row = row, slider = s }
-            y = y - 34
         elseif row.steps then
             -- A slider of named steps (2026-11-15: "Småting i chatten"), the step's name beside it.
-            local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            label:SetPoint("TOPLEFT", inset, at, x + 40, y - 6)
-            label:SetText(L[row.key])
-            y = y - 26
-            local s = CreateFrame("Slider", nil, inset, "OptionsSliderTemplate")
-            s:SetPoint("TOPLEFT", inset, at, x + 44, y - 4)
-            s:SetSize(COL_W - 150, 16)
-            s:SetOrientation("HORIZONTAL")
-            s:SetMinMaxValues(1, #row.steps)
-            s:SetValueStep(1)
-            s:SetObeyStepOnDrag(true)
-            s.pct = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
-            s.pct:SetPoint("LEFT", s, "RIGHT", 10, 0)
-            s.row, s.label = row, label
+            local s = Slider(row, Label(row, 14), 1, #row.steps, 1)
             s:SetScript("OnValueChanged", function(self, v, user)
                 local step = row.steps[math.max(1, math.min(#row.steps, math.floor(v + 0.5)))]
                 self.pct:SetText(L[row.key .. "." .. step])
                 if user then Set(row.setting, step) end
             end)
-            s:SetScript("OnEnter", Tip)
-            s:SetScript("OnLeave", ns.HideTip)
             widgets[#widgets + 1] = { row = row, steps = s }
-            y = y - 34
         elseif row.choices then
-            local label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            label:SetPoint("TOPLEFT", inset, at, x + 40, y - 6)
-            label:SetText(L[row.key])
-            y = y - 24 -- (the choices on a line of their own, under it)
+            Label(row, 14)
             local w = { row = row, buttons = {} }
-            local prev
-            for _, choice in ipairs(row.choices) do
-                -- Radio buttons: one of three (they were checkboxes, UX review 2026-11-11). The template
+            local per = row.perLine or #row.choices
+            local cell = math.floor((W - 30) / per)
+            for i, choice in ipairs(row.choices) do
+                -- Radio buttons: one of a few (they were checkboxes, UX review 2026-11-11). The template
                 -- isn't probed on Forever yet: checkboxes if it's missing.
-                local okR, b = pcall(CreateFrame, "CheckButton", nil, inset, "UIRadioButtonTemplate")
+                local okR, b = pcall(CreateFrame, "CheckButton", nil, panel, "UIRadioButtonTemplate")
                 if okR and b then b:SetSize(18, 18)
-                else b = CreateFrame("CheckButton", nil, inset, "UICheckButtonTemplate"); b:SetSize(24, 24) end
-                if prev then b:SetPoint("LEFT", prev.label, "RIGHT", 14, 0)
-                else b:SetPoint("TOPLEFT", inset, at, x + 52, y) end
-                b.label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+                else b = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate"); b:SetSize(22, 22) end
+                local col, line = (i - 1) % per, math.floor((i - 1) / per)
+                b:SetPoint("TOPLEFT", panel, "TOPLEFT", 22 + col * cell, top - 2 - line * H.radio)
+                b.label = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
                 b.label:SetPoint("LEFT", b, "RIGHT", 2, 0)
+                b.label:SetWidth(cell - 26)
+                b.label:SetJustifyH("LEFT")
+                b.label:SetWordWrap(false)
                 b.label:SetText(row.label and row.label(choice) or L[row.key .. "." .. choice])
                 b.row, b.choice = row, choice
                 b:SetScript("OnClick", function()
@@ -230,20 +250,26 @@ local function Fill(inset, widgets, one)
                 b:SetScript("OnEnter", Tip)
                 b:SetScript("OnLeave", ns.HideTip)
                 w.buttons[#w.buttons + 1] = b
-                prev = b
             end
+            top = top - math.ceil(#row.choices / per) * H.radio - 4
             widgets[#widgets + 1] = w
-            y = y - 30
         else
-            local b = CreateFrame("CheckButton", nil, inset, "UICheckButtonTemplate")
-            b:SetSize(26, 26)
-            b:SetPoint("TOPLEFT", inset, at, x + 36 + (row.needs and 18 or 0), y)
-            b.label = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
-            b.label:SetPoint("TOPLEFT", b, "TOPRIGHT", 4, -6)
-            b.label:SetWidth(COL_W - 70)
+            local indent = 10 + (row.needs and 16 or 0)
+            local b = CreateFrame("CheckButton", nil, panel, "UICheckButtonTemplate")
+            b:SetSize(24, 24)
+            b:SetPoint("TOPLEFT", panel, "TOPLEFT", indent, top)
+            b.label = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+            b.label:SetPoint("TOPLEFT", b, "TOPRIGHT", 2, -5)
             b.label:SetJustifyH("LEFT")
             b.label:SetWordWrap(true)
+            b.label:SetWidth(W - indent - 24 - 22) -- (room for the * at the right)
             b.label:SetText(L[row.key])
+            if row.char then -- (this character's alone: the note under the columns says so)
+                b.mark = panel:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+                b.mark:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -10, top - 5)
+                b.mark:SetTextColor(0.6, 0.6, 0.6)
+                b.mark:SetText("*")
+            end
             b.row = row
             b:SetScript("OnClick", function(self)
                 local on = self:GetChecked() and true or false
@@ -253,11 +279,34 @@ local function Fill(inset, widgets, one)
             b:SetScript("OnEnter", Tip)
             b:SetScript("OnLeave", ns.HideTip)
             widgets[#widgets + 1] = { row = row, button = b }
-            y = y - math.max(30, b.label:GetStringHeight() + 16)
+            top = top - math.max(H.check, (b.label:GetStringHeight() or 0) + 10)
         end
-        deepest = math.min(deepest, y)
     end
-    return 16 - deepest
+    local height = -top + H.pad
+    panel:SetHeight(height)
+    return height, panel
+end
+
+-- The sections into a frame (the page's inset, or the options panel's scroll child: Canvas), each row's widgets
+-- into `widgets`, in their two columns (the options panel too: room for both, 2026-11-21, the user). Returns the
+-- height they took, and the sections' panels.
+local function Fill(inset, widgets)
+    local G = Settings.GAP
+    local tops, panels = { -G, -G }, {}
+    for _, sec in ipairs(SECTIONS) do
+        local col = sec.column
+        local x = G + (col - 1) * (Settings.COL_W + G)
+        local h, panel = Section(inset, widgets, sec, x, tops[col])
+        panels[#panels + 1] = panel
+        tops[col] = tops[col] - h - G
+    end
+    -- What the * means, under the columns.
+    local note = inset:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+    note:SetTextColor(0.6, 0.6, 0.6)
+    note:SetText(L["settings.char.note"])
+    local deepest = math.min(tops[1], tops[2])
+    note:SetPoint("TOPLEFT", inset, "TOPLEFT", G, deepest)
+    return -deepest + 20, panels
 end
 
 -- Where the page was opened from: one of our other pages (Parken, Prestasjoner), whose cog it was; "Tilbake"
@@ -277,7 +326,8 @@ local function Build(p)
     back:SetScript("OnClick", function() Settings:Back() end)
     p.back = back
     p.widgets = {}
-    Fill(inset, p.widgets)
+    p.height, p.panels = Fill(inset, p.widgets)
+    Settings.built = p -- (the tests read its sections' panels and height)
 end
 
 local function Draw(widgets)
@@ -370,8 +420,8 @@ function Settings:AttachCog(petJournal)
     self.cog = cog
 end
 
--- The same settings in Blizzard's options (Esc > Options > AddOns, 2026-11-15, the user): the rows in one
--- column, scrolling, on a canvas of our own (Settings.RegisterCanvasLayoutCategory: on Forever,
+-- The same settings in Blizzard's options (Esc > Options > AddOns, 2026-11-15, the user): the same two columns
+-- (2026-11-21: one left half the panel empty), scrolling, on a canvas of our own (Settings.RegisterCanvasLayoutCategory: on Forever,
 -- docs/FOREVER_API.md). Built the first time it shows; the journal's page and this one read the same
 -- settings, and a change on either redraws both. Nothing protected in it, so it works in combat too.
 function Settings.Canvas()
@@ -392,10 +442,12 @@ function Settings.Canvas()
             scroll:SetPoint("TOPLEFT", self, "TOPLEFT", 0, -46)
             scroll:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", -28, 8)
             local child = CreateFrame("Frame", nil, scroll)
-            child:SetSize(Settings.COL_W + 20, 1)
+            child:SetSize(2 * Settings.COL_W + 3 * Settings.GAP, 1)
             scroll:SetScrollChild(child)
             self.widgets = {}
-            child:SetHeight(Fill(child, self.widgets, true))
+            local height, panels = Fill(child, self.widgets)
+            child:SetHeight(height)
+            self.panels = panels
         end
         Draw(self.widgets)
     end)

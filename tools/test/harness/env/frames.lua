@@ -71,6 +71,12 @@ return function(c, env, S)
                 self.clearButton:SetShown(not empty)
             end)
         end
+        -- OptionsSliderTemplate: its label and its ends ("Low", "High" in English, as the real template's).
+        if template == "OptionsSliderTemplate" then
+            f.Text = f:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+            f.Low = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall"); f.Low.text = "Low"
+            f.High = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall"); f.High.text = "High"
+        end
         -- PortraitFrameMixin, mixed in (a plain field, like the real client).
         if template == "ButtonFrameTemplate" then f.SetTitle = function(self, t) self.titleText = t end end
         -- A model scene of our own (ModelSceneMixinTemplate, as on Forever: /dp probe api petframe):

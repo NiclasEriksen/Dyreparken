@@ -177,7 +177,7 @@ return function(test, H)
         end
     end)
 
-    test("the frame's art waits for the frame: greyed while it's off; the per-character sections say so", function()
+    test("the frame's art waits for the frame: greyed while it's off; this character's settings marked", function()
         local w, ola, S = Setup()
         S:Open()
         local art = Box(ola, "settings.petframeart")
@@ -187,9 +187,13 @@ return function(test, H)
         Box(ola, "settings.petframe"):Click()
         ok(art:IsEnabled())
         eq(label.color[1], 1)
-        local notes = 0
-        for _, row in ipairs(S.ROWS) do if row.char and row.head then notes = notes + 1 end end
-        eq(notes, 2, "Dyret ditt and Guilden")
+        for _, row in ipairs(S.ROWS) do
+            if row.key and not (row.slider or row.steps or row.choices) then
+                local b = Box(ola, row.key)
+                eq(b.mark ~= nil, row.char == true, row.key .. ": a * only for this character's")
+            end
+        end
+        ok(ola:Page("Innstillinger"):Text(ola.ns.L["settings.char.note"], true), "what the * means")
         -- The particles are radio buttons.
         eq(Box(ola, "settings.particles.all").template, "UIRadioButtonTemplate")
     end)
@@ -234,7 +238,34 @@ return function(test, H)
         no(ola.ns.SidePage:AnyOpen(), "the pets")
     end)
 
-    test("the same settings in Blizzard's options: one column, either place changes both", function()
+    -- 2026-11-21, the user: "messy, and often overlaps its container".
+    test("the page: sections in two columns within the page, no English slider ends", function()
+        local w, ola, S = Setup()
+        S:Open()
+        local p, G = S.built, S.GAP
+        eq(#p.panels, #S.SECTIONS)
+        ok(2 * S.COL_W + 3 * G <= S.PAGE.w, "both columns fit the page's width")
+        ok(p.height <= S.PAGE.h, "and its height (" .. p.height .. ")")
+        local lefts = {}
+        for _, panel in ipairs(p.panels) do
+            lefts[panel.points[1][4]] = true
+            eq(panel.size[1], S.COL_W)
+        end
+        ok(lefts[G] and lefts[2 * G + S.COL_W], "two columns")
+        for _, row in ipairs(S.ROWS) do
+            if row.key and not (row.slider or row.steps or row.choices) then
+                local b = Box(ola, row.key)
+                ok(b.points[1][4] + 24 + 2 + b.label.size[1] <= S.COL_W, row.key .. ": its label within its section")
+            end
+        end
+        local sliders = ola:Frames(function(f) return rawget(f, "Low") ~= nil end, p.frame)
+        eq(#sliders, 2, "the chatter and the faded opacity")
+        for _, f in ipairs(sliders) do
+            eq(f.Low.text or "", ""); eq(f.High.text or "", "")
+        end
+    end)
+
+    test("the same settings in Blizzard's options: the same two columns, either place changes both", function()
         local w, ola, S = Setup()
         local canvas = ola:OpenOptions("Dyreparken")
         ok(canvas, "Esc > Options > AddOns > Dyreparken")
@@ -243,15 +274,13 @@ return function(test, H)
         ok(box and box:GetChecked())
         ok(ola:Visible(L["settings.head.frame"], canvas), "every section")
         ok(ola:Labeled(L["settings.autosummon"], canvas), "the character's too")
-        -- One column: everything left-aligned under the first.
-        local lefts = {}
-        for _, row in ipairs(S.ROWS) do
-            if row.key and not row.slider and not row.steps and not row.choices then
-                local b = ola:Labeled(L[row.key], canvas)
-                lefts[b.points[1][3]] = true
-            end
+        -- Two columns, as on the journal's page (2026-11-21, the user: one left half the panel empty).
+        local lefts, n = {}, 0
+        for _, panel in ipairs(canvas.panels) do
+            local x = panel.points[1][4]
+            if not lefts[x] then lefts[x], n = true, n + 1 end
         end
-        no(lefts.TOP, "no second column")
+        eq(#canvas.panels, #S.SECTIONS); eq(n, 2, "two columns")
         -- A click redraws it: the frame's art waits for the frame, here as on the journal's page.
         local art = ola:Labeled(L["settings.petframeart"], canvas)
         no(art:IsEnabled())
