@@ -283,4 +283,25 @@ return function(test, H)
         c.env.GetPVPSessionStats = nil
         eq(Ach:Evaluate(any, {}), nil, "hidden while unavailable")
     end)
+
+    -- Review 2026-11-21: the login's look at 30 s found no pet, and the day was taken as checked: a pet out later
+    -- by a way no hook sees (SummonRandomPet, a macro) never had its visit that day.
+    test("the day's visit: a pet out only after the login's look still gets it, with the first thing done", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        ola.ns.DB.char.autoSummon = false
+        for _, how in ipairs({ "quest", "back out" }) do
+            w:SkipDays(1)
+            ola:Summon(nil)
+            ola:Reload(); w:Settle("day")
+            local A = ola.ns.Activity
+            eq(A:TodayWith("day", PANDA), 0, "no pet at the login's look")
+            ola:Summon(5159) -- (out unseen)
+            if how == "quest" then ola:Fire("QUEST_TURNED_IN", 123) else ola.ns.Bus:Fire("PET_OUT", PANDA) end
+            w:Run(1)
+            eq(A:TodayWith("day", PANDA), 1, how)
+            ola:Fire("QUEST_TURNED_IN", 124); w:Run(1)
+            eq(A:TodayWith("day", PANDA), 1, how .. ": once")
+        end
+    end)
 end

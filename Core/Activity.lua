@@ -174,11 +174,12 @@ function Activity:Emit(id, n, extra, pet)
     end
     n = n or 1
     local key, mine = PetNow()
+    local out = key
     if not key and pet then key, mine = pet, ns.Registry:MyPet() == pet end
     -- Past midnight while online, the new day's visit comes with the first
     -- thing done (code review 2026-11-10: it waited for a summon, and a night
     -- player lost the day and its holiday eggs). First, so it counts first.
-    if key and id ~= "day" then self:NewDay() end
+    if out and id ~= "day" then self:NewDay() end
     local c = Counter(id)
     local today = Today()
     if c.day ~= today or not c.petsToday then c.day, c.today, c.petsToday = today, c.day == today and c.today or 0, {} end
@@ -402,6 +403,7 @@ function Activity:CheckDay()
     if not (w and next(w)) then return end
     self.dayChecked = Today() -- (checked, pet or not: a day change after this brings the visit)
     local key = PetNow()
+    self.dayMissed = not key
     if not key then return end
     local c = Counter("day")
     c.on = c.on or {}
@@ -425,10 +427,11 @@ function Activity:Apart(key)
     return DayNumber(ns.Now()) - DayNumber(time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12 }))
 end
 
--- The day's visit if the date changed since the last check (none yet: the
--- login's check, 30 s in, comes first).
+-- The day's visit if the date changed since the last check, or the last check found no pet out (review
+-- 2026-11-21: one out after it by a way no hook sees, a macro's SummonRandomPet, had no visit that day; now it
+-- comes with the first thing done). None yet before the login's check, 30 s in: it comes first.
 function Activity:NewDay()
-    if self.dayChecked and Today() ~= self.dayChecked then self:CheckDay() end
+    if self.dayChecked and (Today() ~= self.dayChecked or self.dayMissed) then self:CheckDay() end
 end
 -- Our pet came back out on its own (a loading screen, landing), with no summon
 -- call for the hook in Init to see: its day's visit may be due (Summon fires this).
