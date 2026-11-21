@@ -33,11 +33,11 @@ return function(test, H)
         ola.state.faction = "Horde"
         eq(#W.Zones(OWL), 0, "never the other faction's land")
         ola.state.level = 50
-        eq(table.concat(W.Zones(OWL), ", "), "Moonglade")
+        eq(table.concat(W.Zones(OWL), ", "), "Moonglade, Shen'dralas", "Shen'dralas: Forever's own, the moon's (2026-11-20)")
         -- Vinterpels: the cold ones too (not Alterac Valley, a battleground).
         ola:Traits({ "vinterpels", "latsabb" }, 68)
         ola.state.level, ola.state.faction = 60, "Alliance"
-        eq(table.concat(W.Zones(OWL), ", "), "Alterac Mountains, Darnassus, Dun Morogh, Ironforge, Moonglade, Teldrassil, Winterspring")
+        eq(table.concat(W.Zones(OWL), ", "), "Alterac Mountains, Darnassus, Dun Morogh, Ironforge, Moonglade, Shen'dralas, Teldrassil, Winterspring")
         -- The panda's (a bear: Ashenvale 18, Feralas 40) at 10: none.
         ola.state.level = 10
         eq(#W.Zones(PANDA), 0)

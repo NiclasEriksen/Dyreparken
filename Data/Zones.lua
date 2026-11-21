@@ -37,6 +37,10 @@ ns.Zones = { rows = {
     ["Thousand Needles"] = { level = 25, climate = "warm" },
     ["Alterac Mountains"] = { level = 30, climate = "cold", home = { "wolf" } },
     ["Desolace"] = { level = 30, climate = "warm", home = { "demon" } },
+    -- Forever's own (2026-11-20, the user; its name seen in game): Desolace's mountains, druids and a moon temple,
+    -- more arcane than the rest; 30-40 but very late Desolace with quests of 40 and more at times (so 38), no
+    -- faction's, Desolace's climate. Home to the moon's families, as Moonglade.
+    ["Shen'dralas"] = { level = 38, climate = "warm", high = true, home = { "owl", "spirit" } },
     ["Stranglethorn Vale"] = { level = 30, climate = "warm", home = { "pirate" } },
     ["Badlands"] = { level = 35, climate = "warm" },
     ["Dustwallow Marsh"] = { level = 35, home = { "reptile" } },
