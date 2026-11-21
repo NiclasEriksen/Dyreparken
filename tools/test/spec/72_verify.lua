@@ -69,6 +69,8 @@ return function(test, H)
         eq(ola.env.DyreparkenDebugDB.verify.seen["api:campgain"].detail, "Camp Spirit 1229999 (3600 s)")
         -- Its own events: one, then no longer heard; a unit's (the target's RESIST).
         ola:Fire("PLAYER_CONTROL_GAINED"); w:Run(1)
+        eq(State(V, "api:control"), "open", "control back after a stun isn't a landing")
+        ola.state.taxi = true; ola:Fire("PLAYER_CONTROL_GAINED"); w:Run(1); ola.state.taxi = nil
         eq(State(V, "api:control"), "seen"); no(ola:Listening("PLAYER_CONTROL_GAINED"), "answered: not heard any more")
         ola:Fire("UNIT_COMBAT", "target", "WOUND", "", 10, 1); w:Run(1)
         eq(State(V, "api:resist"), "open", "a hit isn't one")
@@ -77,6 +79,15 @@ return function(test, H)
         -- Zones by the client's name; one Data/Zones lacks is collected.
         ola.state.zone = "Durotar"; ola:Fire("ZONE_CHANGED_NEW_AREA"); w:Run(1)
         eq(State(V, "zone:Durotar"), "seen")
+        -- A goblin town is a subzone, named at a subzone's change (review 2026-11-21).
+        ok(ola:Listening("ZONE_CHANGED"), "heard while a town is open")
+        ola.state.subzone = "Ratchet"; ola:Fire("ZONE_CHANGED"); w:Run(1)
+        eq(State(V, "zone:Ratchet"), "seen")
+        for _, town in ipairs({ "Booty Bay", "Everlook", "Gadgetzan", "Steamwheedle Port" }) do
+            ola.state.subzone = town; ola:Fire("ZONE_CHANGED"); w:Run(1)
+        end
+        no(ola:Listening("ZONE_CHANGED"), "every town seen: not heard any more")
+        ola.state.subzone = nil
         ola.state.instance, ola.state.zone = "party", "Maraudon"; ola:Fire("ZONE_CHANGED_NEW_AREA"); w:Run(1)
         eq(State(V, "new:zonenames"), "open", "a dungeon isn't a zone")
         ola.state.instance = "none"
@@ -118,6 +129,14 @@ return function(test, H)
         ola:Fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", T.Trainer); w:Run(1)
         rec = ola.env.DyreparkenDebugDB.verify.seen["new:interactions"]
         eq(rec.details[1], "Merchant " .. T.Merchant); eq(rec.details[2], "Trainer " .. T.Trainer)
+        -- Full (Verify.KEEP details): no longer heard (review 2026-11-21: npctalk went on).
+        local function Hears() return ola.ns.Events:Has("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", V.BY["new:interactions"]) end
+        ok(Hears())
+        for i = 1, V.KEEP do ola:Fire("PLAYER_INTERACTION_MANAGER_FRAME_SHOW", 900 + i); w:Run(0.1) end
+        eq(#rec.details, V.KEEP)
+        no(Hears(), "full: not heard")
+        ola:Reload(); w:Settle("hello"); V = ola.ns.Verify
+        no(Hears(), "nor after a reload")
         -- Read now: the calendar's clock.
         eq(State(V, "api:calendarclock"), "seen")
         match(ola.env.DyreparkenDebugDB.verify.seen["api:calendarclock"].detail, "^calendar %d%d:%d%d, date%(%) ")
@@ -172,6 +191,23 @@ return function(test, H)
         ola:Reload(); w:Settle("hello"); V = ola.ns.Verify
         eq(State(V, "new:mount"), "open", "the flight path's tick dropped")
         ola.ns.Log("Activity", "eat: Refreshment is spell 1234")
+        -- A tick of an item that's gone, dropped at the start; another class's isn't gone.
+        local seen = ola.env.DyreparkenDebugDB.verify.seen
+        seen["new:resting"] = { at = 1, who = "Ola Nord", detail = "x" }
+        seen["react:spokelsesulv"] = { at = 1, who = "Kari Berg", detail = "x" }
+        ola:Reload(); w:Settle("hello"); V = ola.ns.Verify
+        seen = ola.env.DyreparkenDebugDB.verify.seen
+        eq(seen["new:resting"], nil, "stale: dropped"); ok(seen["react:spokelsesulv"], "a shaman's: kept")
+        -- A line said after a wait ticks its egg from its key in the log (review 2026-11-21).
+        local text = ola.ns.PickLine("egg.baal", { pet = "Pepe" })
+        ola.ns.PickLine("egg.midnatt", { pet = "Pepe" })
+        ola.ns.PetSays(text)
+        eq(State(V, "egg:baal"), "seen")
+        -- Forgotten: a first time again is told, though it's counted now (known from the session's start).
+        ola.ns.Activity:Emit("duel", 1); w:Run(1)
+        ola:Slash("probe verify forget activity:duel")
+        ola.ns.Activity:Emit("duel", 1); w:Run(1)
+        eq(ola:CountPrinted("Verify: activity:duel (duel"), 2, "told again")
         ola:Slash("probe verify reset")
         eq(State(V, "api:refreshment"), "open", "forgotten")
         eq(State(V, "activity:dance"), "before", "the character's own counters stay")

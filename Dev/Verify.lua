@@ -97,8 +97,9 @@ local function Build()
                 before = function() return char.reacts[r.id] ~= nil end })
         end
     end
-    for name in pairs(ns.Zones.rows) do
-        Item({ id = "zone:" .. name, area = "zone", how = "go to " .. name, zone = name })
+    for name, row in pairs(ns.Zones.rows) do
+        -- (a goblin town is a subzone: GetSubZoneText names it, review 2026-11-21)
+        Item({ id = "zone:" .. name, area = "zone", how = "go to " .. name, zone = name, sub = row.neutral or nil })
     end
     for kind, list in pairs(ns.Voyage.ROUTES) do
         for _, r in ipairs(list) do
@@ -124,8 +125,10 @@ local function Build()
         for _, p in ipairs(explored) do if text:match(p) then return event .. ": " .. text end end
     end
     local api = {
+        -- (a landing only: control comes back after a stun or a fear too, review 2026-11-21; at the landing
+        -- UnitOnTaxi is still true, docs/FOREVER_API.md)
         { "control", "land from a flight path", events = { "PLAYER_CONTROL_GAINED" },
-            seen = function() return "on a taxi: " .. tostring(Plain(UnitOnTaxi("player"))) end },
+            seen = function() if Plain(UnitOnTaxi("player")) == true then return "landed, on a taxi: true" end end },
         { "discovered", "discover a new subzone (the yellow \"Discovered\" line)",
             events = { "UI_INFO_MESSAGE", "CHAT_MSG_SYSTEM" }, seen = Discovered },
         { "resist", "cast at a target until one spell is fully resisted", events = { "UNIT_COMBAT" }, unit = "target",
@@ -319,6 +322,7 @@ function Verify:Tick(item, detail)
         if #rec.details >= self.KEEP then return end
         rec.details[#rec.details + 1] = detail
         ns.Log("Verify", "%s also: %s", item.id, detail)
+        if #rec.details >= self.KEEP and item.events then ns.Events:OffAll(item) end -- (full: nothing more to keep)
         return
     end
     -- Known: this character's counters had it when the probe started (2026-11-20, the user: the verified ones
@@ -356,12 +360,20 @@ local function OnEvent(item)
     end
 end
 
--- Zones: ticked when the client names one (at the zone's change and at a loading screen's end).
+-- Zones: ticked when the client names one (at the zone's change and at a loading screen's end); a subzone's
+-- (the goblin towns) at a subzone's change too, heard only while one of them is open.
+local function SubOpen()
+    local seen = Store().seen
+    for _, item in ipairs(Verify.ITEMS) do if item.sub and not seen[item.id] then return true end end
+end
 local function ZoneNow()
     if not Verify.armed then return end
-    local z = Plain(GetZoneText())
-    local item = type(z) == "string" and Verify.BY["zone:" .. z]
-    if item then Verify:Tick(item, z) end
+    for _, read in ipairs({ GetZoneText, GetSubZoneText }) do
+        local z = Plain(read())
+        local item = type(z) == "string" and Verify.BY["zone:" .. z]
+        if item then Verify:Tick(item, z) end
+    end
+    if ns.Events:Has("ZONE_CHANGED", Verify) and not SubOpen() then ns.Events:Off("ZONE_CHANGED", Verify) end
 end
 
 local valid = C_EventUtils and C_EventUtils.IsEventValid
@@ -374,15 +386,27 @@ function Verify:Arm()
     if stale and stale.detail == "mounted true" then Store().seen["new:mount"] = nil end
     local names = Store().seen["new:zonenames"] -- (and Maraudon, a dungeon, collected before they were left out)
     if names and names.detail == "Maraudon" and #(names.details or {}) <= 1 then Store().seen["new:zonenames"] = nil end
+    -- A tick of an item that's gone (new:resting became new:inn, 2026-11-20). Only an area this character builds
+    -- all of: a react or a class's api item exists for other characters.
+    local whole = { activity = true, egg = true, zone = true, route = true, look = true, new = true }
+    for id in pairs(Store().seen) do
+        local area = id:match("^(%a+):")
+        if whole[area] and not self.BY[id] then Store().seen[id] = nil; Store().notes[id] = nil end
+    end
     if not ns.Debug.enabled then ns.Debug:SetEnabled(true, ns.Debug.echo) end
     byModule = {}
+    -- What this character's counters had at the session's first start, not at a forget's or reset's re-arm, when
+    -- what just happened is counted already (review 2026-11-21).
+    local baseline = not self.based
+    self.based = true
     for _, item in ipairs(self.ITEMS) do
-        item.known = item.before and item.before() or nil
+        if baseline then item.known = item.before and item.before() or nil end
         for _, l in ipairs(item.logs or {}) do
             byModule[l[1]] = byModule[l[1]] or {}
             table.insert(byModule[l[1]], { item, l[2] })
         end
-        if item.events and not Store().seen[item.id] or (item.events and item.collect) then
+        local rec = Store().seen[item.id]
+        if item.events and (not rec or (item.collect and #(rec.details or {}) < self.KEEP)) then
             item.missing = nil
             for _, ev in ipairs(item.events) do
                 if valid and not valid(ev) then
@@ -396,6 +420,7 @@ function Verify:Arm()
     ns.Debug.tap = Tap
     ns.Events:On("ZONE_CHANGED_NEW_AREA", self, ZoneNow)
     ns.Events:On("PLAYER_ENTERING_WORLD", self, ZoneNow)
+    if SubOpen() then ns.Events:On("ZONE_CHANGED", self, ZoneNow) end
     self:Now()
     ZoneNow()
 end

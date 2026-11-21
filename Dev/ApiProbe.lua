@@ -1116,12 +1116,13 @@ end
 -- has no API for being on a transport, so this watches what a ride looks like from the inside: every zone,
 -- subzone and world change (with the map, its continent, the instance, a flight path or not), the spells
 -- you cast (a hearthstone or a portal is no ride), and while it's on, a sample every SAMPLE seconds (zone,
--- position, speed: on a ship you move without moving). All to the debug log ("transport ..."), this
--- session. Ride a zeppelin or a boat with it on, then /reload.
+-- position, speed: on a ship you move without moving). All to the debug log ("transport ..."), for
+-- TRANSPORT_FOR seconds or until "transport off" (review 2026-11-21: a sample every 5 s went on all session).
+-- Ride a zeppelin or a boat with it on, then /reload.
 Api.TRANSPORT_EVENTS = { "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "PLAYER_ENTERING_WORLD",
     "PLAYER_LEAVING_WORLD", "LOADING_SCREEN_ENABLED", "LOADING_SCREEN_DISABLED", "NEW_WMO_CHUNK",
     "PLAYER_STARTED_MOVING", "PLAYER_STOPPED_MOVING", "PLAYER_CONTROL_LOST", "PLAYER_CONTROL_GAINED" }
-Api.TRANSPORT_SAMPLE = 5
+Api.TRANSPORT_SAMPLE, Api.TRANSPORT_FOR = 5, 1800
 function Api.Where()
     local function P(fn, ...) local ok, v = pcall(fn, ...); return ok and ns.Plain(v) or nil end
     local map = C_Map and P(C_Map.GetBestMapForUnit, "player")
@@ -1143,10 +1144,22 @@ function Api.Where()
         tostring(P(GetUnitSpeed, "player")), tostring(P(UnitOnTaxi, "player")), tostring(P(IsFlying)), tostring(P(IsMounted)),
         tostring(P(IsSwimming)), tostring(P(IsIndoors)), tostring(inst[2]), tostring(inst[3]))
 end
-function S.transport(out)
+local transportFrame, transportGen = nil, 0 -- (one frame for every watch: frames can't be freed)
+function Api.TransportOff()
+    local f = Api.transportWatch
+    if not f then return false end
+    Api.transportWatch = nil
+    f:UnregisterAllEvents()
+    ns.Log("Api", "transport watch over")
+    return true
+end
+function S.transport(out, arg)
     out.now = Api.Where()
+    if arg == "off" then return Api.TransportOff() and "watch over" or "not watching" end
     if Api.transportWatch then return "watching already: " .. out.now end
-    local f = CreateFrame("Frame")
+    transportFrame = transportFrame or CreateFrame("Frame")
+    transportGen = transportGen + 1
+    local f, started, gen = transportFrame, GetTime(), transportGen
     Api.transportWatch = f
     local refused = {}
     for _, e in ipairs(Api.TRANSPORT_EVENTS) do
@@ -1162,11 +1175,14 @@ function S.transport(out)
         ns.Log("Api", "transport %s (%s, %s) %s", event, Show(a), Show(b), Api.Where())
     end)
     local function Sample()
+        if not Api.transportWatch or gen ~= transportGen then return end -- (off, or a later watch's)
+        if GetTime() - started > Api.TRANSPORT_FOR then return Api.TransportOff() end
         ns.Log("Api", "transport sample %s", Api.Where())
         C_Timer.After(Api.TRANSPORT_SAMPLE, Sample)
     end
     C_Timer.After(Api.TRANSPORT_SAMPLE, Sample)
-    return ("watching this session (events refused: %s): %s"):format(#refused > 0 and table.concat(refused, " ") or "none", out.now)
+    return ("watching for %d s, \"transport off\" stops it (events refused: %s): %s"):format(Api.TRANSPORT_FOR,
+        #refused > 0 and table.concat(refused, " ") or "none", out.now)
 end
 
 ------------------------------------------------------------------------------
@@ -1203,7 +1219,11 @@ function S.fall(out)
             Show(e), landed and GetTime() - landed or -1, Api.Health())
     end)
     local function Tick()
-        if GetTime() - started > Api.FALL_FOR then return f:UnregisterAllEvents() end
+        if GetTime() - started > Api.FALL_FOR then
+            f:UnregisterAllEvents()
+            Api.fallWatch = nil -- (review 2026-11-21: left set, the probe said "watching already" all session)
+            return ns.Log("Api", "fall watch over")
+        end
         local falling = ns.Plain(IsFalling())
         if falling == true and not airFrom then airFrom = GetTime() end
         if falling ~= true and airFrom then
