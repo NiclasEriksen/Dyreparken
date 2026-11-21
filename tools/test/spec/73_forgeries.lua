@@ -32,6 +32,28 @@ return function(test, H)
         eq(ola.ns.Registry:MyPet(), nil)
     end)
 
+    -- The known limit (kept, the user, 2026-11-21): the refusal is judged against what a client holds, so one that
+    -- hasn't the holder's record yet when the forgery comes (a newcomer's first moments) takes it, and keeps it
+    -- until that pet's adoption changes. No rule on the data alone converges and can't be gamed (a forged copy of
+    -- the holder's record makes them write it again, as late as the forgery). What it costs is bounded: one SYNC
+    -- round a login between them, none more in a session; the holder and everyone who knew them keep theirs.
+    test("known limit: a newcomer who gets a backdated claim before the holder's record keeps it, quietly", function()
+        local w, ola, kari = World()
+        local E = kari.ns.Config.BOND_EPOCH
+        local nina = w:AddClient("Nina Ny", { pets = { 72 } })
+        w:InjectMessage("Per Hansen", { k = "UPD", p = kari.ns.PROTOCOL, r = { k = PANDA, at = E, ts = w:ServerTime() } })
+        w:Run(60)
+        eq(nina.ns.Registry:Holder(PANDA), "Per Hansen")
+        eq(kari.ns.Registry:Holder(PANDA), "Ola Nord")
+        eq(ola.ns.Registry:MyPet(), PANDA)
+        local m = w:Mark()
+        w:Run(1800)
+        eq(w:Sent("SYNC", nil, m), 0, "no SYNCs back and forth within the session")
+        nina:Reload(); w:Run(120)
+        ok(w:Sent("SYNC", nil, m) <= 2 * 3, "one round at the login (a SYNC is three parts)")
+        eq(nina.ns.Registry:Holder(PANDA), "Per Hansen")
+    end)
+
     test("a made-up lapse of someone online: they adopt the pet again at once", function()
         local w, ola, kari = World()
         local p = kari.ns.PROTOCOL

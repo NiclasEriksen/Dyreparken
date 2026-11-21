@@ -628,7 +628,8 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
 
 - **Forgeries by a member** (2026-11-21, review part A, the user): a claim written more than Config.CLAIM_RACE (an
   hour) after its date, new to us, can't take a pet from its holder (Registry Backdated; judged against what we hold,
-  only forgeries fail, no bump). A lapse of ours stamped since our login is made up: we adopt the pet again at once
+  only forgeries fail, no bump; known limit, kept: a client that hasn't the holder's record yet when the forgery
+  comes keeps it until that pet's adoption changes, a SYNC round a login, 73_forgeries pins it). A lapse of ours stamped since our login is made up: we adopt the pet again at once
   if it's free (its date starts over: lapses can't be refused). Trim evicts made-up keys (not journal species or
   familiars, Registry.Real) first, and a name naming a pet last. Our own bond's copy stamped since login is refused
   on our client. A pre-login copy that changes our pet asks on the pet journal's page whether to keep it
