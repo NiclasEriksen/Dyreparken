@@ -216,6 +216,7 @@ function Park.Lines(key)
     local nick = ns.Registry:Nickname(key)
     local lines = { { nick or ns.Pets:NameOfKey(key) } }
     if nick then lines[2] = { ns.Pets:NameOfKey(key), 0.7, 0.7, 0.7 } end
+    if ns.Bonds:PetOfTheDay() == key then lines[#lines + 1] = { ns.L["card.today"], 1, 0.82, 0 } end
     for _, l in ipairs(ns.JournalList.PetLines(key, "park.free")) do lines[#lines + 1] = l end
     -- Who else has one, as under the card's home line (Owners:Line; 2026-11-15, the user)
     local others = ns.Owners:Line(key)
@@ -333,6 +334,13 @@ local function NewCell()
     c.free:SetVertexColor(FREE_RGB[1], FREE_RGB[2], FREE_RGB[3])
     c.free:SetSize(14, 14)
     c.free:SetPoint("BOTTOMRIGHT", c.ring, "BOTTOMRIGHT", 2, -2)
+    -- Today's pet: the card's gold crown, small, on its top left corner (2026-11-21, the user), tilted a little.
+    c.crown = c:CreateTexture(nil, "OVERLAY", nil, 4)
+    c.crown:SetTexture(ns.Icon("crown"))
+    c.crown:SetVertexColor(ns.Scenes.GOLD[1], ns.Scenes.GOLD[2], ns.Scenes.GOLD[3], 1)
+    c.crown:SetSize(Park.CROWN_SIZE, Park.CROWN_SIZE)
+    c.crown:SetPoint("CENTER", c.ring, "TOPLEFT", 4, -3)
+    c.crown:SetRotation(0.35)
     Park.Mystery(c)
     -- Below the icon: ANCHOR_RIGHT grew upwards over the page's header from the top rows (UX review 2026-11-11).
     ns.SetTip(c, "ANCHOR_BOTTOMRIGHT", function(self) return Park.Lines(self.key) end)
@@ -494,8 +502,11 @@ function Park.Fences(grid, col, row)
     return out
 end
 
+Park.CROWN_SIZE = 16
+
 local function Redraw()
     local R = ns.Registry
+    local today = (ns.Bonds:PetOfTheDay())
     Park:Side(Park:Records())
     local top = 8
     local width = child:GetWidth() or 659
@@ -540,6 +551,8 @@ local function Redraw()
         c.mystery:SetShown(c.unknown)
         c.mystery:SetAlpha(match and Park.MYSTERY_COLOR[4] or Park.DIM)
         c.mine:SetShown(owner == me and match)
+        c.crown:SetShown(it.key == today and not c.unknown)
+        c.crown:SetAlpha(match and 1 or Park.DIM)
         Park.Walk(c, owner == me and match)
         -- A house on a free one someone in the guild owns, green where you could adopt it (review 2026-11-19:
         -- "needs a home" was told by its grey alone; the user: not on one nobody has, the question marks).
