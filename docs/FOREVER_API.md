@@ -125,9 +125,13 @@ checks the stub client lacks it. Add new finds there too.)
 - Relied on since 2026-11-10 (each degrades to nothing when missing). **Verified 2026-11-11** (the pet walks, runs
   and jumps with you on the card and the pet frame, the user): `PLAYER_STARTED_MOVING`, `PLAYER_STOPPED_MOVING`,
   `GetUnitSpeed("player")`, a `hooksecurefunc("JumpOrAscendStart")` firing on every jump, and `GetBindLocation()`.
-  Still unverified: `PLAYER_CONTROL_GAINED` (2026-11-10: after landing from a flight path no stop came, so landing
-  re-reads the speed); a flight path fires `PLAYER_MOUNT_DISPLAY_CHANGED` at take-off (~2 s after `TakeTaxiNode`)
-  and again at the landing (seen 2026-11-18, build 70959, a 3 min 20 s flight): the taxi activity counts there;
+  `PLAYER_CONTROL_GAINED` fires at a flight path's landing (verified 2026-11-20, `/dp probe verify`), but with
+  `UnitOnTaxi("player")` **still true** at that moment, so the taxi activity's landing waits for the dismount's
+  `PLAYER_MOUNT_DISPLAY_CHANGED` (2026-11-10: after landing no stop came, so landing re-reads the speed).
+  Still unverified: a flight path fires `PLAYER_MOUNT_DISPLAY_CHANGED` at take-off (~2 s after `TakeTaxiNode`)
+  and again at the landing (seen 2026-11-18, build 70959, a 3 min 20 s flight): the taxi activity counts there.
+  At that take-off `IsMounted()` is **true** (2026-11-20, `/dp probe verify`: a flight path ticked its "mount up"):
+  a flight path is a mount to the client, so anything that wants your own mount must also ask `UnitOnTaxi`;
   `ModelSceneActor:GetYaw/SetYaw` (the pet turning its back after a dislike); the enUS zone names in `Quirks.HOME_ZONES`; custom emotes (`SendChatMessage(..., "EMOTE")`)
   reaching nearby players as `CHAT_MSG_EMOTE` with a "First Surname" sender (a guildmate's /dp klapp, Bonds.lua).
 
@@ -453,7 +457,8 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
     `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` (errands); the meal buffs "Food" (spell 435) and "Drink" (spell 1135,
     2026-11-20; logged as "Food" until the log named the buff found) on UNIT_AURA, readable and plain.
   - Verified 2026-11-20: the bank opens as `CharacterBanker` (67), never `Banker` (8). Other windows seen: Gossip 3,
-    TaxiNode 6 (a window that isn't an errand logs its type: `-g "errand: not one"`).
+    TradePartner 1, Merchant 5, TaxiNode 6, MailInfo 17, Auctioneer 21, each with retail's number (a window that isn't an errand
+    logs its type: `-g "errand: not one"`).
   - Still unverified: "Food & Drink", "Refreshment"; `IsInInstance()`'s "raid".
   - Verified 2026-11-20: `IsInInstance()` gives true, "party" after `PLAYER_ENTERING_WORLD` into a dungeon
     (Maraudon, its name from `GetZoneText()`). The companion is gone through that loading screen and back only
@@ -630,8 +635,42 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   0/23 and 1/20 after visiting many zones. The probe read them by (category, index); whether
   `GetAchievementInfo(id)` with the id alone answers is unverified, so Wish.AchievementDone tries it and falls
   back to finding the id in the category once.
-- `ERR_ZONE_EXPLORED` is "Discovered: %s"; whether the line comes as UI_INFO_MESSAGE or in system chat is
-  unverified, so the explore wish reads both (like ERR_NEWTAXIPATH), and `ERR_ZONE_EXPLORED_XP` too.
+- **Verified 2026-11-20** (`/dp probe verify`, 1.60.1 build 70959): `GetAchievementInfo(62353)` with the id alone
+  answers ("Explore Eastern Kingdoms"), so Wish.AchievementDone's category search is only a fallback;
+  `C_PetJournal.GetPetInfoBySpeciesID(5179)` names the hidden Azurky; the calendar's clock
+  (`C_DateAndTime.GetCurrentCalendarTime`) and `date()` agree to the minute. `PLAYER_UPDATE_RESTING` exists and
+  fires for a sleeping bag as well as an inn or a city (`IsResting()` true for both). The bag makes you resting at
+  once and gives its Well-Rested (429959) only a minute later (the user), so the two can be told apart only after
+  that minute: still resting with no Well-Rested is an inn or a city. `CHAT_MSG_MONSTER_SAY`/`_YELL` exist and come
+  plain, the text first and the NPC's name second ("Griniblix the Spectator: Can that be The Razza down there in the
+  Maul?", Gurubashi Arena). `CHAT_MSG_TEXT_EMOTE` names a player you emote at ("You wave at Aye Heal."), with your own
+  name as the sender. `TRADE_SHOW` fires for a trade with a player. Zone names `GetZoneText()` gave as Data/Zones has
+  them: Feralas, Thunder Bluff, Desolace, Stranglethorn Vale, The Barrens. A Welcoming Campfire's countdown buff
+  (1229739) goes and comes back several times within a second as its minute ends (counted "campwarm +1 (x5)" until
+  Activity.AURA_AGAIN); each aura source logs its buff coming and going (module `Aura`, with the time left).
+  A sitting by a fire with a sleeping bag (2026-11-20, Ruins of Lordaeron, the `Aura` log): "Campfire" (1283391)
+  nearby has no end (duration 0); the Welcoming Campfire countdown (1229739) is 60 s; Well-Rested (429959) 7200 s,
+  about a minute after the bag; "Campfire's Warmth" (1229741) 3600 s when the countdown ends, and then the countdown
+  **starts again** 5 s later and keeps going while the hour lasts. How fires work (the user, the same day): the
+  minute's countdown, as it ends, gives "Camp Benefits", an hour or two, its bonuses (and length) from what's placed
+  around the camp, and a new countdown that renews it, for as long as you sit. Players sit down to renew a buff
+  running out or to get a better one, so a fire is new when the buff has under 45 minutes left
+  (Activity.CAMP_NEW): the countdown counts only then, and the buff counts as it comes or when renewed from under
+  that (logged "camp renewed"). An hour's buff still on explained a fire not counted again the same afternoon. `IsResting()` with no Well-Rested a
+  minute on was an inn or a city (Thunder Bluff, Elder Rise: `new:inn` told them apart). `QUEST_ACCEPTED` gives the
+  quest id; `NEW_PET_ADDED` gives the pet's GUID ("BattlePet-0-..."). A zone Data/Zones
+  lacks: "Shen'dralas" (`GetZoneText()`, not an instance).
+  Fires and sleeping bags are placed by players (the user, 2026-11-21): fires out in the world only, never in a
+  city, often just outside a city's gates (open world); a bag almost anywhere, often beside a fire for both buffs at
+  once. So a fire's place is wherever someone put one, and resting with Well-Rested on can be a bag in a city.
+  Two wipes at Overseer Wrex (Alcaz Prison, 2026-11-20) with only 2 and 3 of 5 dead as we fell were real (the
+  user): ENCOUNTER_END's failure while dead told them right.
+  Later the same day (build 70959): a fire just outside Thunder Bluff ran its countdown to the end with no "Camp Benefits"
+  after it and started it again 5 s on (left after 10 s); what came instead, if anything, is unknown: the probe's
+  `api:campgain` keeps UNIT_AURA's `addedAuras` in the 3 s after a countdown ends. The countdown counts once in ten
+  minutes (its row's `again`). `Discovered Jintha'Alor: 390 experience gained` came in CHAT_MSG_SYSTEM. Learning
+  to ride gave the riding feat (SPELLS_CHANGED).
+- `ERR_ZONE_EXPLORED` is "Discovered: %s"; it came in system chat (above; UI_INFO_MESSAGE unverified), and the explore wish reads both (like ERR_NEWTAXIPATH), and `ERR_ZONE_EXPLORED_XP` too.
 
 ## SavedVariables
 
