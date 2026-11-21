@@ -3,7 +3,8 @@
 -- get restless.
 return function(test, H)
     local eq, ok, no = H.eq, H.ok, H.no
-    local NAMES = { [1283391] = "Campfire", [1229741] = "Campfire's Warmth", [429959] = "Well-Rested", [1229739] = "Welcoming Campfire" }
+    local NAMES = { [1283391] = "Campfire", [1229741] = "Campfire's Warmth", [429959] = "Well-Rested", [1229739] = "Welcoming Campfire",
+        [1328375] = "Violet Flames" }
 
     -- Ola with her Bombay Cat adopted, with these traits (ids).
     local function Setup(ids)
@@ -115,6 +116,22 @@ return function(test, H)
         Buff(ola, "Campfire's Warmth", true); Buff(ola, "Campfire's Warmth", false); Buff(ola, "Campfire's Warmth", true)
         ok(ola.ns.DB.char.wish.done, "the wish came true")
         ok(ola:PrintedLine("wish.granted.full", { pet = "Bombay Cat", activity = "bålkos" }))
+    end)
+
+    test("Violet Flames (2026-11-21, the user: a powder on the fire): counted as it comes, and a line by nature", function()
+        local function Run(ids)
+            local w, ola = Setup(ids)
+            Buff(ola, "Violet Flames", false); Buff(ola, "Violet Flames", true); w:Run(1)
+            return ola
+        end
+        local cozy = Run({ "balkos", "rampete" })
+        eq(Count(cozy, "campviolet"), 1)
+        ok(cozy:Printed("Bombay Cat er i himmelen. Et lilla bål", true), "a Bålkos: its trait's line")
+        local cat = Run({ "rampete", "oppdager" })
+        ok(cat:Printed("Bombay Cat jakter på de fiolette gnistene", true), "no trait of the egg's: the cat's line")
+        -- Sitting on with it: the same powder, not counted again.
+        Buff(cat, "Campfire", true)
+        eq(Count(cat, "campviolet"), 1)
     end)
 
     test("eggs: a cozy pet enjoys the fire and the sleeping bag, an adventurous one gets restless, the rest say nothing", function()

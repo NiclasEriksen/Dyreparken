@@ -355,6 +355,12 @@ Quirks.EGGS = {
     { id = "baal", on = "camp", chance = 0.25, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.baal.eventyr" }) end },
+    -- The fire powdered violet (2026-11-21, the user: "flavor for the purple fires"): rare enough to be always
+    -- said when the day's roll wins; by nature, else a plain line.
+    { id = "fiolett", on = "campviolet", always = true, chance = 0.5,
+        traits = { "balkos", "tivolidyr", "nattugle", "skoyer", "glupsk", "latsabb" },
+        families = { "dragon", "demon", "ooze", "cat", "mechanical" },
+        test = function(ctx) return Quirks.ByNature(ctx) end },
     { id = "sovepose", on = "rested", chance = 0.3, test = function(ctx)
         local kind = Kind(ctx.key)
         return kind and (kind == "cozy" and {} or { _key = "egg.sovepose.eventyr" }) end },

@@ -77,6 +77,7 @@ Activity.KINDS = {
     { "campnear", wish = false }, -- a campfire nearby (pops up all the time out in the world): eggs only
     { "campwarm", wish = false }, -- sat down at one: Welcoming Campfire, a minute counting down
     { "camp", mark = "ember" },                   -- the campfire's buff, after that minute: a wish for any pet (Wish.lua)
+    { "campviolet", wish = false }, -- the fire powdered violet (Violet Flames, 2026-11-21): only the eggs watch it
     { "rested", mark = "moon" },                 -- Well-Rested, a night in a sleeping bag: a wish for cozy pets
     -- For the traits of 2026-11-12 (the user): Sjørøver, Skøyer, Røverdyr, Venneflokk.
     { "gold", icons = { ICON .. "INV_Misc_Coin_02", ICON .. "INV_Misc_Coin_01" } }, -- money looted

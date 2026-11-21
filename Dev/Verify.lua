@@ -50,6 +50,7 @@ Verify.HOW = {
     roll = "/roll a 1", hundred = "/roll a 100", epic = "loot an epic", fishfail = "let two fish in a row get away",
     duelwon = "win a duel", duellost = "lose a duel", duel = "fight a duel", newpath = "learn a new flight path",
     campnear = "stand near a campfire", campwarm = "sit at a Welcoming Campfire", camp = "stay a minute at one",
+    campviolet = "sit at a fire with Violet Flames powder on it",
     rested = "sleep in a sleeping bag (Well-Rested)", gold = "loot money", fun = "a silly emote (/silly, /chicken)",
     sneak = "go into stealth (rogue, druid, night elf's Shadowmeld)", meet = "hover another player's companion",
     dmgtop = "top damage at a boss kill in a group of 3+", healtop = "top healing at a raid boss kill",

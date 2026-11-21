@@ -689,6 +689,9 @@ Activity.AURAS = {
     -- same sitting: once in ten minutes.)
     campwarm = { id = 1229739, unless = "camp", again = 10 * 60 },
     camp = { id = 1229741, renew = true },
+    -- Violet Flames (2026-11-21, the user): a powder a player puts on the fire, for a two-hour Camp Benefits; the
+    -- aura (no end) comes to those sitting there. Eggs only.
+    campviolet = { id = 1328375 },
     rested = { id = 429959 },                          -- Well-Rested (a sleeping bag; two hours long)
 }
 -- Counted once a minute at most (2026-11-20, from the log: as a Welcoming Campfire's minute ends, its countdown
