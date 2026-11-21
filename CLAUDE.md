@@ -177,7 +177,7 @@ Dyreparken.toc     load order (each file only uses files above it)
 Libs/              LibStub, LibSerialize, LibDeflate. Don't edit. (ChatThrottleLib went 2026-11-12: unused since
                    Comm paces its own outbox, and it hooked every addon's sends.)
 Core/Init.lua      ns, Config tunables, Bus (internal events, each declared in Bus.EVENTS: the harness checks), helpers (Now = GetServerTime, Plain/IsSecret, Today/Date,
-                   Join, Gold/PrintGold, SpellName, GroupChannel, Debounce, SetTip/ShowTip/HideTip (tooltips as
+                   Join, Capital/LowerFirst (a first letter, æøå too), Gold/PrintGold, SpellName, GroupChannel, Debounce, SetTip/ShowTip/HideTip (tooltips as
                    data: lines from a pure XxxLines builder), Call (a method that may not exist), PlayFirstSound), the start-up
                    phases (ns.Start, ns.RunPhase): use these,
                    don't write them again

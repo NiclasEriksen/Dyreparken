@@ -405,7 +405,7 @@ function Personality:Doing(act)
     local what = self.EFFECT[act]
     if what then return what end
     local noun = self.NOUN[act] or act
-    return ns.T("effect.activity", { activity = noun:sub(1, 1):upper() .. noun:sub(2) })
+    return ns.T("effect.activity", { activity = ns.Capital(noun) })
 end
 
 -- What a like gives (minor: one your bond unlocked, worth less).
@@ -544,8 +544,8 @@ function Personality:LikesText(key, capital)
     if #likes > 0 then parts[1] = ns.T("card.likes", { list = Join(likes) }) end
     if #dislikes > 0 then parts[#parts + 1] = ns.T("card.dislikes", { list = Join(dislikes) }) end
     local line = table.concat(parts, " · ")
-    if capital then return (line:sub(1, 1):upper() .. line:sub(2)) end
-    return (line:sub(1, 1):lower() .. line:sub(2))
+    if capital then return ns.Capital(line) end
+    return ns.LowerFirst(line)
 end
 
 -- "Kosete og Nattugle · liker herbs og quests · liker ikke flyturer" (or that it's unknown yet)

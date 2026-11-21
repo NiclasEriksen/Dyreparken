@@ -675,11 +675,8 @@ Park.SIGN_W, Park.SIGN_H = 20, 15
 Park.SIGN_IN = { 4, 3 } -- px right of and below its corner post: on it, leaning into its own pen
 
 -- A family's name as a title ("Katter"), its Norwegian letters too.
-local CAP = { ["å"] = "Å", ["ø"] = "Ø", ["æ"] = "Æ" }
 function Park.FamilyName(family)
-    local name = family == "default" and ns.L["park.family.default"] or ns.AchTexts.generic.families[family] or family
-    local first = name:match("^[\195][\128-\191]") or name:sub(1, 1)
-    return (CAP[first] or first:upper()) .. name:sub(#first + 1)
+    return ns.Capital(family == "default" and ns.L["park.family.default"] or ns.AchTexts.generic.families[family] or family)
 end
 
 -- Its sign's tooltip: the name, its homes, what a click does.

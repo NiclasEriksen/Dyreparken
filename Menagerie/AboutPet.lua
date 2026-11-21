@@ -64,7 +64,7 @@ function About.For(key)
     return list
 end
 
-local function Cap(s) return (s:sub(1, 1):upper() .. s:sub(2)) end
+local Cap = ns.Capital
 
 -- A badge's tooltip.
 function About.Lines(key, b)

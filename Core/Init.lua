@@ -177,6 +177,18 @@ end
 
 function ns.T(key, vars) return ns.Fill(ns.L[key], vars) end
 
+-- A text's first letter in upper or lower case, Norwegian ones too (2026-11-20, the user: "å sove i sovepose" showed
+-- a box: string.upper on the first byte split the two bytes of an "å").
+local UPPER = { ["å"] = "Å", ["ø"] = "Ø", ["æ"] = "Æ" }
+local LOWER = { ["Å"] = "å", ["Ø"] = "ø", ["Æ"] = "æ" }
+local function First(s, map, fn)
+    if type(s) ~= "string" or s == "" then return s end
+    local first = s:match("^[\195][\128-\191]") or s:sub(1, 1)
+    return (map[first] or fn(first)) .. s:sub(#first + 1)
+end
+function ns.Capital(s) return First(s, UPPER, string.upper) end
+function ns.LowerFirst(s) return First(s, LOWER, string.lower) end
+
 -- "herbs, quests og flyturer" (Locale: list.sep, list.and)
 function ns.Join(words)
     if #words <= 1 then return words[1] or "" end

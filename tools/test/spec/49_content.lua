@@ -32,6 +32,47 @@ return function(test, H)
         return table.concat(out, ",")
     end
 
+    -- Whole UTF-8 letters only: a byte cut off a two-byte letter shows as a box in game.
+    local function UTF8(s)
+        local i, n = 1, #s
+        while i <= n do
+            local c = s:byte(i)
+            local len = c < 0x80 and 1 or (c >= 0xC2 and c <= 0xDF) and 2 or (c >= 0xE0 and c <= 0xEF) and 3
+                or (c >= 0xF0 and c <= 0xF4) and 4 or nil
+            if not len or i + len - 1 > n then return false end
+            for j = i + 1, i + len - 1 do
+                local b = s:byte(j); if b < 0x80 or b > 0xBF then return false end
+            end
+            i = i + len
+        end
+        return true
+    end
+
+    test("an activity's words with a capital first letter stay whole letters (2026-11-20: \"å sove\" showed a box)", function()
+        local ns = World()
+        local P = ns.Personality
+        -- (LuaJIT's upper leaves a lone byte of an "å" alone; the game's changed it: as the game does, for this test)
+        local upper = string.upper
+        string.upper = function(t) return (upper(t):gsub("[\128-\255]", function(c) return #t == 1 and "?" or c end)) end
+        local done, err = pcall(function()
+        local n = 0
+        for _, k in ipairs(ns.Activity.KINDS) do
+            local noun = P.NOUN[k[1]]
+            if noun then
+                n = n + 1
+                local cap = ns.Capital(noun)
+                ok(UTF8(cap), k[1] .. ": " .. cap); ok(UTF8(P:Doing(k[1])), k[1] .. " (Doing)")
+                eq(ns.LowerFirst(cap), noun:match("^[A-ZÆØÅ]") and ns.LowerFirst(noun) or noun, k[1])
+            end
+        end
+        ok(n > 20)
+        eq(ns.Capital("å sove i sovepose"), "Å sove i sovepose"); eq(ns.Capital("ærend"), "Ærend")
+        eq(ns.LowerFirst("Øl Øl"), "øl Øl"); eq(ns.Capital(""), "")
+        end)
+        string.upper = upper
+        if not done then error(err, 0) end
+    end)
+
     test("sources: every kind in Data/Companions.lua has its word; a store or subscription pet says where", function()
         local ns = World()
         local missing = {}
