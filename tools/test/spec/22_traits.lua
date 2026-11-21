@@ -108,14 +108,22 @@ return function(test, H)
         ola.state.afk = true
         ola:Fire("PLAYER_FLAGS_CHANGED", "player")
         eq(A:Count("nap"), 0, "AFK in the wild")
-        ola.state.resting = true
+        ola.state.afk = false
+        ola:Fire("PLAYER_FLAGS_CHANGED", "player")
+        ola.state.resting, ola.state.afk = true, true
         ola:Fire("PLAYER_FLAGS_CHANGED", "party1")
         eq(A:Count("nap"), 0, "someone else's flags never reach us")
         ola:Fire("PLAYER_FLAGS_CHANGED", "player")
         eq(A:Count("nap"), 1)
+        -- (review 2026-11-21: every flag change while AFK, DND or PvP, counted again)
+        ola:Fire("PLAYER_FLAGS_CHANGED", "player"); ola:Fire("PLAYER_FLAGS_CHANGED", "player")
+        eq(A:Count("nap"), 1, "another flag while AFK isn't another nap")
         ola.state.afk = false
         ola:Fire("PLAYER_FLAGS_CHANGED", "player")
         eq(A:Count("nap"), 1, "coming back isn't another")
+        ola.state.afk = true
+        ola:Fire("PLAYER_FLAGS_CHANGED", "player")
+        eq(A:Count("nap"), 2, "AFK again: another")
     end)
 
     test("new places: per companion, by map, or by zone name inside instances", function()

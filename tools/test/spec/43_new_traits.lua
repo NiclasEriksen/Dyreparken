@@ -150,6 +150,28 @@ return function(test, H)
         eq(table.concat((select(2, P:Of("s:125"))), " "), "nap dive", "Speedy: no family like")
     end)
 
+    -- Review 2026-11-21: a source's state was kept through a Drop and a Want, its start run only for an event
+    -- nobody listened to yet (UNIT_AURA is always heard): what changed unheard was missed.
+    test("a source wanted again starts afresh: a change while nobody listened isn't missed", function()
+        local w, ola, A = Setup()
+        ola:Traits({ "latsabb", "glupsk" })
+        A:SetDebug(false) -- (the debug log wants everything)
+        eq(A:Wanted().sneak, nil); eq(A:Wanted().dungeon, nil)
+        Want(A, "sneak"); Want(A, "dungeon")
+        ola:Fire("UNIT_AURA", "player")
+        ola.state.stealthed = true; ola:Fire("UNIT_AURA", "player"); w:Run(1)
+        ola:Travel("Maraudon", { instance = "party" }); w:Run(12)
+        eq((A:Count("sneak")), 1); eq((A:Count("dungeon")), 1)
+        A:Drop("sneak", "test"); A:Drop("dungeon", "test")
+        ola.state.stealthed = false; ola:Fire("UNIT_AURA", "player")
+        ola:Travel("Desolace"); w:Run(1)
+        Want(A, "sneak"); Want(A, "dungeon")
+        ola.state.stealthed = true; ola:Fire("UNIT_AURA", "player"); w:Run(1)
+        eq((A:Count("sneak")), 2, "into stealth again")
+        ola:Travel("Razorfen Downs", { instance = "party" }); w:Run(12)
+        eq((A:Count("dungeon")), 2, "into another dungeon")
+    end)
+
     -- Review 2026-11-21: kept in memory only, so a /reload (or a regroup) counted them again.
     test("once a day stays once a day through a /reload: a pet met, a guildmate in the group, an emote", function()
         local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }

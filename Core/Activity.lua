@@ -306,9 +306,21 @@ function Update()
     for slot, list in pairs(listening) do
         if not need[slot] then Unregister(slot, list) end
     end
+    -- A source starts afresh whenever it joins, not only with its event's first listener (review 2026-11-21:
+    -- UNIT_AURA stays heard for others, and a source dropped and wanted again kept a stale state).
+    local was = {}
+    for _, list in pairs(listening) do for _, src in ipairs(list) do was[src] = true end end
+    local started = {}
+    for _, list in pairs(need) do
+        for _, src in ipairs(list) do
+            if src.start and not was[src] and not started[src] then
+                started[src] = true
+                src.start()
+            end
+        end
+    end
     for e, list in pairs(need) do
         if not listening[e] then
-            for _, src in ipairs(list) do if src.start then src.start() end end
             if not Register(e, list) then
                 for _, src in ipairs(list) do unavailable[src.id] = true end
                 need[e] = nil

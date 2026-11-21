@@ -218,6 +218,9 @@ Activity:Source({ id = "gold", events = { "CHAT_MSG_MONEY" }, filter = function(
 local stealthed
 Activity:Source({ id = "sneak", events = { "UNIT_AURA" }, unit = "player",
     available = function() return type(IsStealthed) == "function" end,
+    start = function() -- (as it is now: the next stealth counts)
+        if type(IsStealthed) == "function" then stealthed = Plain(IsStealthed()) and true or false end
+    end,
     filter = function()
         local now = Plain(IsStealthed()) and true or false
         local was = stealthed
@@ -405,11 +408,19 @@ Activity:Source({ id = "wipe", events = { "ENCOUNTER_START", "ENCOUNTER_END", "P
         C_Timer.After(10, function() Activity:Emit(id, 1, boss) end)
     end })
 
--- AFK in a city or an inn: a nap.
-Activity:Source({ id = "nap", events = { "PLAYER_FLAGS_CHANGED" }, unit = "player", filter = function(_, unit)
-    if unit ~= "player" then return nil end
-    if Plain(UnitIsAFK("player")) and Plain(IsResting()) then return 1 end
-end })
+-- AFK in a city or an inn: a nap. As you go AFK only (review 2026-11-21: PLAYER_FLAGS_CHANGED comes for every
+-- flag, DND or PvP, and each one while AFK counted again).
+local afk
+Activity:Source({ id = "nap", events = { "PLAYER_FLAGS_CHANGED" }, unit = "player",
+    start = function() afk = Plain(UnitIsAFK("player")) == true end,
+    filter = function(_, unit)
+        if unit ~= "player" then return nil end
+        local now = Plain(UnitIsAFK("player"))
+        if type(now) ~= "boolean" then return nil end -- (unreadable: no change we can tell)
+        local was = afk
+        afk = now
+        if now and not was and Plain(IsResting()) then return 1 end
+    end })
 
 -- Going home: your own Hearthstone (8690, seen on Forever 2026-11-08), or a
 -- class's own way home: the shaman's Astral Recall (556) and the druid's
@@ -587,6 +598,7 @@ Activity:Source({ id = "epic", events = { "CHAT_MSG_LOOT" },
 -- between them. Once at the second; again only after a catch.
 local escaped = 0
 Activity:Source({ id = "fishfail", events = { "UI_ERROR_MESSAGE", "LOOT_OPENED" },
+    start = function() escaped = 0 end, -- (a catch unseen while nobody listened)
     filter = function(event, _, text)
         if event == "LOOT_OPENED" then escaped = 0; return nil end
         text = Plain(text)
@@ -680,11 +692,15 @@ local function Visit(name, waited)
     if not inside then return end -- (out again before it counted)
     Activity:Emit("dungeon", 1, name)
 end
+local function InDungeon()
+    local yes, kind = IsInInstance()
+    yes, kind = Plain(yes), Plain(kind)
+    return yes == true and (kind == "party" or kind == "raid")
+end
 Activity:Source({ id = "dungeon", events = { "PLAYER_ENTERING_WORLD" },
+    start = function() inside = InDungeon() end, -- (in or out unheard: as it is now)
     filter = function(_, login, reload)
-        local yes, kind = IsInInstance()
-        yes, kind = Plain(yes), Plain(kind)
-        local now = yes == true and (kind == "party" or kind == "raid")
+        local now = InDungeon()
         local was = inside
         inside = now
         if not now or was or login or reload then return nil end
@@ -803,6 +819,8 @@ end
 for id in pairs(Activity.AURAS) do
     Activity:Source({ id = id, events = { "UNIT_AURA" }, unit = "player",
         available = function() return Activity.AuraName(id) ~= nil end,
+        -- (wanted again: its first look only notes what's there, as at login; a buff come unheard isn't new)
+        start = function() auraHad[id], auraEnd[id] = nil, nil end,
         filter = function(_, _, updateInfo)
             if InCombatLockdown() or not LookAt(updateInfo) then return nil end
             local name = Activity.AuraName(id)
