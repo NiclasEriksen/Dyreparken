@@ -45,10 +45,17 @@ return function(test, H)
         Buff("Food", false); Buff("Food", true)
         eq(Count(ola, "eat"), 1)
         Buff("Food", false); Buff("Drink", true)
+        eq(Count(ola, "eat"), 1, "a drink right after: the same meal")
+        Buff("Drink", false); w:Run(ola.ns.Activity.AURA_AGAIN + 1); Buff("Drink", true)
         eq(Count(ola, "eat"), 2, "a drink is one too")
         eq(#ola:Log("eat: Drink is spell"), 1, "the log names the buff found (2026-11-20: a drink logged as Food)")
         Buff("Food & Drink", true)
         eq(Count(ola, "eat"), 2, "still eating: not again")
+        -- A buff going and coming several times in a second (a Welcoming Campfire's minute ending, 2026-11-20).
+        Buff("Food & Drink", false); Buff("Drink", false); w:Run(ola.ns.Activity.AURA_AGAIN + 1)
+        for _ = 1, 5 do Buff("Drink", false); Buff("Drink", true) end
+        eq(Count(ola, "eat"), 3, "once, not five times")
+        ok(#ola:Log("Aura\teat on") > 0, "each coming logged")
     end)
 
     test("a dungeon: going in, once a visit; not a reload or a login inside, nor the open world", function()

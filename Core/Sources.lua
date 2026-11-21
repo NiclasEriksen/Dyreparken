@@ -679,11 +679,30 @@ Activity.AURAS = {
     -- (Forever's English client; unverified there: the first one seen logs its spell id).
     eat = { names = { "Food", "Drink", "Food & Drink", "Refreshment" } },
     campnear = { id = 1283391 },                       -- a campfire nearby
-    campwarm = { id = 1229739 },                       -- Welcoming Campfire, the minute's countdown (seen 2026-11-11)
-    camp = { id = 1229741 },                           -- the buff after a minute by the fire
-    rested = { id = 429959 },                          -- Well-Rested (a sleeping bag)
+    -- How a fire works (2026-11-20, the user): sitting down gives the minute's countdown (Welcoming Campfire); as it
+    -- ends, Camp Benefits (an hour or two, its bonuses from what's around the camp), and a new countdown that
+    -- renews it, again and again while you sit. Sitting down to renew a buff that's running out, or for a better
+    -- one, is a new fire; one with Activity.CAMP_NEW or more left is the same sitting going on. So the countdown
+    -- counts only without such a buff (`unless`), and the buff counts as it comes or is renewed from under that
+    -- (`renew`).
+    -- (`again`: a countdown that brought no buff, as outside Thunder Bluff on 2026-11-20, loops on a minute apart, the
+    -- same sitting: once in ten minutes.)
+    campwarm = { id = 1229739, unless = "camp", again = 10 * 60 },
+    camp = { id = 1229741, renew = true },
+    rested = { id = 429959 },                          -- Well-Rested (a sleeping bag; two hours long)
 }
-local auraHad, auraNames = {}, {}
+-- Counted once a minute at most (2026-11-20, from the log: as a Welcoming Campfire's minute ends, its countdown
+-- buff goes and comes back several times within a second, counted "campwarm +1 (x5)"; food and a drink together
+-- are one meal).
+Activity.AURA_AGAIN = 60
+Activity.CAMP_NEW = 45 * 60
+local auraHad, auraNames, auraAt, auraEnd = {}, {}, {}, {}
+-- Seconds left on a buff looked at, or nil (no end, or not a number).
+local function Left(data, now)
+    local at, d = data and Plain(data.expirationTime), data and Plain(data.duration)
+    if type(at) ~= "number" or at <= 0 or (type(d) == "number" and d <= 0) then return nil end
+    return at - now
+end
 function Activity.AuraName(id)
     if auraNames[id] then return auraNames[id] end -- (UNIT_AURA comes often: looked up once)
     local a = Activity.AURAS[id]
@@ -751,7 +770,31 @@ for id in pairs(Activity.AURAS) do
             if has == nil then return nil end
             local before = auraHad[id]
             auraHad[id] = has
-            if has and (before == false or (before == nil and Fresh(data))) then
+            local row, now = Activity.AURAS[id], GetTime()
+            local left, endBefore = Left(data, now), auraEnd[id]
+            auraEnd[id] = has and left and (now + left) or nil
+            -- Renewed with little left: a new sitting (a renewal moves its end on by more than a minute).
+            local renewed = row.renew and has and before == true and left and endBefore
+                and now + left > endBefore + 60 and endBefore - now < Activity.CAMP_NEW
+            if renewed then
+                ns.Log("Aura", "%s renewed: %s %s, %d s were left, now %d", id, tostring(Plain(data.name)),
+                    tostring(Plain(data.spellId)), endBefore - now, left)
+            end
+            if has ~= before then -- (the developer's: when each buff comes and goes, and for how long)
+                local at, d = data and Plain(data.expirationTime), data and Plain(data.duration)
+                ns.Log("Aura", "%s %s%s%s", id, has and "on" or "off",
+                    has and (": %s %s"):format(tostring(data and Plain(data.name)), tostring(data and Plain(data.spellId))) or "",
+                    not has and "" or type(d) ~= "number" and "" or d <= 0 and ", no end"
+                        or (", %d of %d s left"):format(at - GetTime(), d))
+            end
+            if has and (before == false or (before == nil and Fresh(data)) or renewed) then
+                local unless = row.unless
+                if unless and auraLook.has[unless] then
+                    local l = Left(auraLook.data[unless], now)
+                    if not l or l >= Activity.CAMP_NEW then return nil end -- (the same sitting going on)
+                end
+                if auraAt[id] and now - auraAt[id] < (row.again or Activity.AURA_AGAIN) then return nil end
+                auraAt[id] = now
                 if not Activity.AURAS[id].id then -- (the buff found: one of the names, not always the first)
                     local found = data and Plain(data.name)
                     ns.Log("Activity", "%s: %s is spell %s", id, tostring(type(found) == "string" and found or name),

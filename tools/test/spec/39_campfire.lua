@@ -23,6 +23,46 @@ return function(test, H)
     end
     local function Count(ola, id) return (ola.ns.Activity:Count(id)) end
 
+    test("a sitting by the fire (2026-11-20, the user): the countdown renewing the buff isn't another; renewing one with little left is", function()
+        local w, ola = Setup()
+        local A = ola.ns.Activity
+        local function Camp(hours) -- (Camp Benefits, from now)
+            local now = ola.env.GetTime()
+            ola.state.auras["Campfire's Warmth"] = { name = "Campfire's Warmth", spellId = 1229741, duration = 3600 * hours,
+                expirationTime = now + 3600 * hours }
+        end
+        local function Minute() -- (the countdown runs out: the buff renewed, a new countdown 5 s later)
+            Buff(ola, "Welcoming Campfire", true); w:Run(60)
+            Camp(2); Buff(ola, "Welcoming Campfire", false); w:Run(5)
+        end
+        Buff(ola, "Campfire", true); Buff(ola, "Campfire", false); Buff(ola, "Campfire", true)
+        Minute()
+        eq(Count(ola, "campwarm"), 1); eq(Count(ola, "camp"), 1, "the buff")
+        for _ = 1, 3 do Minute() end
+        eq(Count(ola, "campwarm"), 1, "sitting on: the countdown again and again, not counted")
+        eq(Count(ola, "camp"), 1, "nor the buff renewed with nearly two hours left")
+        -- Up and away; back later with 50 minutes left: the same sitting, to the pet.
+        w:Run(3600 * 2 - 50 * 60 - 4 * 65)
+        Minute()
+        eq(Count(ola, "campwarm"), 1, "50 minutes left: not a new fire"); eq(Count(ola, "camp"), 1)
+        -- Back with 3 minutes left, to renew it: a new fire, its countdown and its buff.
+        w:Run(3600 * 2 - 3 * 60 - 65)
+        Minute()
+        eq(Count(ola, "campwarm"), 2, "3 minutes left: a new fire"); eq(Count(ola, "camp"), 2, "the buff renewed")
+        -- Run out altogether, then a fire: new, as always.
+        Buff(ola, "Campfire's Warmth", false); w:Run(600)
+        Minute()
+        eq(Count(ola, "campwarm"), 3); eq(Count(ola, "camp"), 3)
+        ok(A.CAMP_NEW == 45 * 60)
+        eq(#ola:Log("Aura\tcamp renewed: Campfire's Warmth 1229741, %d+ s were left, now %d+"), 1, "logged for the probe")
+        -- A countdown that brings no buff (outside Thunder Bluff, 2026-11-20) loops on a minute apart: one sitting.
+        Buff(ola, "Campfire's Warmth", false); w:Run(600)
+        for _ = 1, 4 do
+            Buff(ola, "Welcoming Campfire", true); w:Run(60); Buff(ola, "Welcoming Campfire", false); w:Run(5)
+        end
+        eq(Count(ola, "campwarm"), 4, "once for the four loops")
+    end)
+
     test("the buffs: counted as they come, not the ones already there, not in combat or while auras are secret", function()
         local w, ola = Setup()
         ola:Slash("debug on")
@@ -37,6 +77,7 @@ return function(test, H)
         Buff(ola, "Campfire", false); Buff(ola, "Campfire", true)
         eq(Count(ola, "campnear"), 1)
         -- Welcoming Campfire: by its id now (seen in game 2026-11-11), so nothing to log.
+        Buff(ola, "Campfire's Warmth", false)
         Buff(ola, "Welcoming Campfire", false); Buff(ola, "Welcoming Campfire", true)
         eq(Count(ola, "campwarm"), 1)
         no(ola:Log("campwarm: Welcoming Campfire is spell")[1])
@@ -117,6 +158,7 @@ return function(test, H)
         eq(Count(kari, "camp"), 1, "a buff added: looked at, and new")
         kari.state.auras["Campfire's Warmth"] = nil
         kari:Fire("UNIT_AURA", "player", { removedAuraInstanceIDs = { 8 } })
+        w2:Run(kari.ns.Activity.AURA_AGAIN + 1) -- (back within the minute: the same, Activity.AURA_AGAIN)
         kari.state.auras["Campfire's Warmth"] = true
         kari:Fire("UNIT_AURA", "player", { addedAuras = { {} } })
         eq(Count(kari, "camp"), 2, "gone and back: again")
