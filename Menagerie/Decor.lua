@@ -687,6 +687,14 @@ function Decor:Apply(card, key, level, color)
     end
 end
 
+-- The card's border at a bond level: from the border's level, its picture
+-- (family), greyed for the family color and silver, and its tint; nil below it. color: the family's tint.
+function Decor:BorderLook(level, family, color)
+    if not Reward(level, "border") then return nil end
+    local gold = Gold(level)
+    return self:Art("border", family), not gold, gold and { 1, 1, 1 } or ns.Scenes.Tier(level, Bright(color))
+end
+
 -- The card's frame by its bond level: the family's border and wash, corners, the ribbon, the rays, the shimmer.
 function Decor:Frame(d, level, color, art)
     -- The family's frame, the corners, the glow, the ribbon: set again each time, not only when they change
@@ -707,8 +715,8 @@ function Decor:Frame(d, level, color, art)
         local wash = gold and GOLD or Bright(color)
         if d.sliced then
             -- The frame is gold: grey it for the family color and silver.
-            d.border:SetDesaturated(not gold)
-            local tint = gold and { 1, 1, 1 } or e
+            local _, grey, tint = self:BorderLook(level, nil, color)
+            d.border:SetDesaturated(grey)
             d.border:SetVertexColor(tint[1], tint[2], tint[3], 1)
             d.border:Show()
         end

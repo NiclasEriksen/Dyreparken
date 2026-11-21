@@ -47,6 +47,19 @@ PF.DRAW_X, PF.DRAW_TOP = 60, 80
 -- average now, "shrink the clickable box"). The frame, its saved spot and the pet's view stay as they were, so
 -- nobody's pet moves. With the art, the whole box it draws.
 PF.HIT = { 40, 40, 50, 0 }
+-- The art's box (2026-11-21, the user: it reached "all the way to the animation area, now it's way too big"):
+-- around the pet and the footer, the frame less these; the pet draws past it as without the art.
+-- 2026-11-21 (the user: "a bit bulky and clumsy (but pretty!)"): narrower and lower, a thinner border, and the
+-- panel under the pet only as tall as the name while the bar is hidden (PF.FOOT_SHORT), the name in its middle.
+PF.ART = { 30, 30, 62, 0 }
+PF.FOOT_SHORT = 24
+-- With the art, the pet stands this much lower (2026-11-21, the user: over the short footer it was "framed too
+-- high", over the whole one low enough; "a middle ground between the two modes"): half the footer's change.
+PF.ART_DROP = (PF.FOOT - PF.FOOT_SHORT) / 2
+PF.MEDAL = 0.5            -- the level's medallion against the card's
+-- The shadow behind the name without the art: width, height, darkness (2026-11-21, the user: at 190 x 64 around the
+-- footer's middle it was "too big and off vertically (below the text)"; the bar has its own dark ground).
+PF.SHADE = { 120, 30, 0.5 }
 PF.DEFAULT_POINT = { "CENTER", "CENTER", -380, -160 }
 PF.ZZZ_EVERY = 2.5      -- seconds between the Zzz over a sleeping pet
 PF.ZZZ_AT = { 22, 66 }  -- where they rise from: right of the middle, about head height in the card's view
@@ -96,43 +109,29 @@ function PF:Build()
     Call(scene, "EnableMouseWheel", false)
     self.scene = scene
 
-    -- The footer (2026-11-11, the user: "improve the layout + visual language"): the name, and
-    -- under it the bond as on the card, a bar in its level's colors with a dark edge, the level on
-    -- a badge (a dark disc in a gold ring) at its left end.
+    -- The footer (2026-11-11, the user: "improve the layout + visual language"): the name, and under it the bond as
+    -- on the card (2026-11-21, the user: it "doesn't match the journal panel"): BondBar's bar and medallion, at
+    -- PF.MEDAL of the card's size, laid out within the art's box (PF.ART); a soft shadow behind the name without the art.
+    f.shade = f:CreateTexture(nil, "BACKGROUND", nil, -8)
+    f.shade:SetTexture(ns.Icon("dot"))
+    f.shade:SetVertexColor(0, 0, 0, self.SHADE[3])
+    f.shade:SetSize(self.SHADE[1], self.SHADE[2])
     f.name = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
     f.name:SetPoint("TOP", scene, "BOTTOM", 0, -2)
+    f.shade:SetPoint("CENTER", f.name, "CENTER", 0, 0)
     f.name:SetShadowColor(0, 0, 0, 1)
     f.name:SetShadowOffset(1, -1)
 
     -- (the fill, its growth and the rising numbers: BondBar.lua, as on the card)
-    local bar = ns.BondBar.New(f, { texture = "Interface\\TargetingFrame\\UI-StatusBar" })
-    bar:SetSize(self.W - 76, 9)
-    bar:SetPoint("TOP", f.name, "BOTTOM", 14, -9)
-    bar.edge = bar:CreateTexture(nil, "BACKGROUND", nil, -2)
-    bar.edge:SetPoint("TOPLEFT", bar, "TOPLEFT", -1, 1)
-    bar.edge:SetPoint("BOTTOMRIGHT", bar, "BOTTOMRIGHT", 1, -1)
-    bar.edge:SetColorTexture(0, 0, 0, 0.9)
-    bar.bg = bar:CreateTexture(nil, "BACKGROUND", nil, -1)
-    bar.bg:SetAllPoints()
-    bar.bg:SetColorTexture(0.12, 0.1, 0.08, 0.85)
-    bar.medal = bar:CreateTexture(nil, "ARTWORK")
-    bar.medal:SetTexture(ns.Icon("dot"))
-    bar.medal:SetSize(26, 26)
-    bar.medal:SetPoint("CENTER", bar, "LEFT", -19, 0) -- (clear of the bar)
-    bar.medal:SetVertexColor(0.08, 0.06, 0.04, 1)
-    bar.ring = bar:CreateTexture(nil, "OVERLAY")
-    bar.ring:SetTexture(ns.Icon("ring"))
-    bar.ring:SetSize(24, 24)
-    bar.ring:SetPoint("CENTER", bar.medal, "CENTER")
-    bar.level = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-    bar.level:SetPoint("CENTER", bar.medal, "CENTER", 0, 0)
-    -- The top level: a gold star for the level's number, and the loyalty points in the bar's place (2026-11-19).
-    bar.star = bar:CreateTexture(nil, "OVERLAY")
-    bar.star:SetTexture(ns.Icon("star"))
-    bar.star:SetSize(16, 16)
-    bar.star:SetPoint("CENTER", bar.medal, "CENTER", 0, 0)
-    bar.star:SetVertexColor(ns.Scenes.GOLD[1], ns.Scenes.GOLD[2], ns.Scenes.GOLD[3], 1)
-    bar.star:Hide()
+    local bar = ns.BondBar.New(f)
+    local box = self.W - self.ART[1] - self.ART[2]
+    local medal = 56 * self.MEDAL
+    bar:SetSize(box - medal - 22, 10)
+    bar:SetPoint("TOP", f.name, "BOTTOM", (self.ART[1] - self.ART[2] + medal + 6) / 2, -9)
+    ns.BondBar.Dress(bar, self.MEDAL * 1.4)
+    bar.medal = ns.BondBar.Medal(bar, self.MEDAL, "GameFontNormal")
+    bar.medal:SetPoint("CENTER", bar, "LEFT", -(medal / 2 + 6), 0)
+    bar.level, bar.star = bar.medal.num, bar.medal.star
     bar.count = bar:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
     bar.count:SetPoint("LEFT", bar, "LEFT", 2, 0)
     bar.count:SetTextColor(1, 0.85, 0.4)
@@ -205,42 +204,111 @@ function PF:Enter(b)
 end
 function PF:Leave(b) self.hover = nil; self:ShowBar(); self:Fade(); ns.HideTip(b) end
 
--- Frame art (2026-11-11, the user: "toggle background+border, in the same modern client style as
--- everything else uses"; Settings: petFrameArt, off by default): the rock of Blizzard's windows
--- behind the pet, and their nine-slice border (NineSliceUtil, NineSliceLayouts: both on Forever).
--- (SimplePanelTemplate first: ButtonFrameTemplateNoPortrait brought a title bar strip, 2026-11-11.)
-PF.ART_LAYOUTS = { "SimplePanelTemplate", "ButtonFrameTemplateNoPortrait" }
+-- Frame art (2026-11-11, the user: "toggle background+border"; Settings: petFrameArt, off by default). Since
+-- 2026-11-21 (the user: "should also fit better and match bond level") the card's look, small: its family's picture
+-- and tint behind the pet, the dark panel with a gold hairline under it, and an edge in your bond level's colors
+-- (Scenes.Tier: the family's, silver from 3, gold from 5; thin below the card border's level), in the box PF.ART.
+-- (Blizzard's rock and nine-slice until then; the card's own border, nine-sliced, was too thick this small even
+-- with smaller corners, 2026-11-21: so drawn lines, a dark one inside.)
+PF.ART_EDGE = { 2, 1 } -- the edge's width from the border's level, and below it
 function PF:Art()
     local f = self.frame
     local on = ns.Settings:Get("petFrameArt") == true
-    if on and not f.bg then
-        f.bg = f:CreateTexture(nil, "BACKGROUND", nil, -7) -- (on the frame itself: under the scene)
-        -- (to 2 px from the edge: the border covers it; at 4 a gap showed on the left, 2026-11-11)
-        f.bg:SetPoint("TOPLEFT", f, "TOPLEFT", 2, -2)
-        f.bg:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -2, 2)
-        f.bg:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock", "REPEAT", "REPEAT")
-        f.bg:SetHorizTile(true)
-        f.bg:SetVertTile(true)
-        local border = CreateFrame("Frame", nil, f, "NineSlicePanelTemplate")
-        border:SetAllPoints()
-        border:SetFrameLevel(self.scene:GetFrameLevel() + 2) -- (over the scene's edges, under the click layer)
-        local layouts = rawget(_G, "NineSliceLayouts")
-        local util = rawget(_G, "NineSliceUtil")
-        for _, name in ipairs(self.ART_LAYOUTS) do
-            local layout = layouts and layouts[name]
-            if layout and util and util.ApplyLayout then
-                local ok = pcall(util.ApplyLayout, border, layout)
-                ns.Log("PetFrame", "art: %s %s", name, ok and "applied" or "failed")
-                if ok then break end
-            end
+    if on and not f.art then
+        local A, art = self.ART, {}
+        local function Box(t, foot)
+            t:SetPoint("TOPLEFT", f, "TOPLEFT", A[1], -A[3])
+            t:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -A[2], foot and A[4] + self.FOOT or A[4])
         end
-        f.border = border
+        art.base = f:CreateTexture(nil, "BACKGROUND", nil, -7) -- (on the frame itself: under the scene)
+        Box(art.base)
+        art.base:SetColorTexture(0.03, 0.025, 0.02, 0.92)
+        art.panel = f:CreateTexture(nil, "BACKGROUND", nil, -4)
+        art.panel:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", A[1], A[4])
+        art.panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -A[2], A[4])
+        art.panel:SetHeight(self.FOOT)
+        art.panel:SetColorTexture(0, 0, 0, 0.6)
+        -- The picture and tint down to the panel, whatever its height (PF:Footer).
+        art.pic = f:CreateTexture(nil, "BACKGROUND", nil, -6)
+        art.tint = f:CreateTexture(nil, "BACKGROUND", nil, -5)
+        for _, t in ipairs({ art.pic, art.tint }) do
+            t:SetPoint("TOPLEFT", f, "TOPLEFT", A[1], -A[3])
+            t:SetPoint("BOTTOMRIGHT", art.panel, "TOPRIGHT")
+        end
+        art.pic:SetAlpha(0.6)
+        art.line = f:CreateTexture(nil, "BACKGROUND", nil, -3)
+        art.line:SetPoint("BOTTOMLEFT", art.panel, "TOPLEFT"); art.line:SetPoint("BOTTOMRIGHT", art.panel, "TOPRIGHT")
+        art.line:SetHeight(1)
+        local e = ns.BondBar.EDGE
+        art.line:SetColorTexture(e[1], e[2], e[3], e[4])
+        -- Over the scene's edges, under the click layer.
+        local top = CreateFrame("Frame", nil, f)
+        top:SetFrameLevel(self.scene:GetFrameLevel() + 2)
+        Box(top)
+        art.top = top
+        -- The edge (its width set by level: PF:ArtLook) and a dark line just inside it.
+        art.edges, art.inner = {}, {}
+        for i, side in ipairs({ "TOP", "BOTTOM", "LEFT", "RIGHT" }) do
+            local across = side == "TOP" or side == "BOTTOM"
+            local a1 = across and side .. "LEFT" or "TOP" .. side
+            local a2 = across and side .. "RIGHT" or "BOTTOM" .. side
+            local t = top:CreateTexture(nil, "BORDER", nil, 1)
+            t:SetPoint(a1, top, a1); t:SetPoint(a2, top, a2)
+            t:SetColorTexture(1, 1, 1, 1)
+            t.across = across
+            art.edges[i] = t
+            local d = top:CreateTexture(nil, "BORDER", nil, 0)
+            d:SetPoint(a1, t, across and (side == "TOP" and "BOTTOMLEFT" or "TOPLEFT") or (side == "LEFT" and "TOPRIGHT" or "TOPLEFT"))
+            d:SetPoint(a2, t, across and (side == "TOP" and "BOTTOMRIGHT" or "TOPRIGHT") or (side == "LEFT" and "BOTTOMRIGHT" or "BOTTOMLEFT"))
+            if across then d:SetHeight(1) else d:SetWidth(1) end
+            d:SetColorTexture(0, 0, 0, 0.7)
+            art.inner[i] = d
+        end
+        f.art = art
     end
-    if f.bg then
-        f.bg:SetShown(on)
-        f.border:SetShown(on)
+    if f.art then
+        local art = f.art
+        for _, k in ipairs({ "base", "pic", "tint", "panel", "line" }) do art[k]:SetShown(on) end
+        art.top:SetShown(on)
     end
-    self:Draw(not on)
+    f.shade:SetShown(not on)
+    if on then self:ArtLook() end
+    self:ShowBar() -- (the footer: PF:Footer)
+    self:Draw(true) -- (the pet the same with the art or without: 2026-11-21)
+end
+
+-- How much lower the pet stands now (PF.ART_DROP with the art).
+function PF:Drop()
+    local art = self.frame and self.frame.art
+    return art and art.top:IsShown() and self.ART_DROP or 0
+end
+
+-- The art's look for the pet out and your bond with it: the family's picture and tint, the border by level.
+function PF:ArtLook()
+    local art, key = self.frame and self.frame.art, self.key
+    if not (art and art.top:IsShown() and key) then return end
+    local Scenes = ns.Scenes
+    local family = Scenes:Families(key)[1] or "default"
+    local color = Scenes.TINT[family] or Scenes.TINT.default
+    local pic = Scenes:For(key)
+    if pic then
+        art.pic:SetTexture(pic)
+        art.pic:SetTexCoord(Scenes.Crop(pic))
+    end
+    art.pic:SetShown(pic ~= nil)
+    local c = color
+    ns.Gradient(art.tint, "VERTICAL", { c[1] * 0.3, c[2] * 0.3, c[3] * 0.3, 0.55 }, { c[1], c[2], c[3], 0.6 })
+    local _, level = ns.Bond:Own(key)
+    level = level or 0
+    local bordered = ns.Scenes.Reward(level, "border") and true or false
+    local width = self.ART_EDGE[bordered and 1 or 2]
+    local e = Scenes.Tier(level, Scenes.Bright(color))
+    for _, t in ipairs(art.edges) do
+        if t.across then t:SetHeight(width) else t:SetWidth(width) end
+        t:SetVertexColor(e[1], e[2], e[3], bordered and 1 or 0.6)
+    end
+    art.edgeWidth = width
+    ns.Log("PetFrame", "art: %s, level %d, edge %d", family, level, width)
 end
 
 -- The scene: past the frame's sides and top (wide), or just the frame's model area (with the art).
@@ -258,8 +326,8 @@ end
 
 -- The part of the frame that takes the mouse: { left, right, top, bottom } in from its edges.
 function PF:HitInsets()
-    if (self.drawX or 0) > 0 then return self.HIT end -- (without the art: the pet drawn past the frame)
-    return { 0, 0, 0, 0 }
+    if self.frame and self.frame.art and self.frame.art.top:IsShown() then return self.ART end -- (the box it draws)
+    return self.HIT
 end
 
 -- Where a box set in by these insets has its `point`, from where the frame has it (the secure button is
@@ -287,8 +355,8 @@ end
 
 -- The card's view, wherever the scene reaches: the same box as on a frame of W x H.
 function PF:Insets()
-    local x, top = self.drawX or 0, self.drawTop or 0
-    Call(self.scene, "SetViewInsets", x, x, top + self.H - self.VIEW_TOP, self.VIEW_BOTTOM)
+    local x, top, d = self.drawX or 0, self.drawTop or 0, self:Drop()
+    Call(self.scene, "SetViewInsets", x, x, top + self.H - self.VIEW_TOP + d, self.VIEW_BOTTOM - d)
     self:Camera()
 end
 
@@ -362,6 +430,7 @@ end
 -- Your bond with it: the bar, the level, and the points that came since (rising, as on the card).
 function PF:Bond(animate)
     local bar, key = self.frame.bar, self.key
+    self:ArtLook() -- (its border by your level)
     local points, level, _, from, nextAt = ns.Bond:Own(key)
     if not points then self.points = nil; bar:Hide(); return end
     local tier = ns.Scenes.Tier(level)
@@ -370,16 +439,14 @@ function PF:Bond(animate)
     local fill = bar:GetStatusBarTexture()
     if fill then fill:SetAlpha(lp and 0 or 1) end
     bar.bg:SetShown(not lp); bar.edge:SetShown(not lp)
+    bar.spark:SetShown(not lp and nextAt ~= nil and points > from)
     bar.count:SetShown(lp and true or false)
     if lp then
         points, from, nextAt = lp, lp - 1, lp + 1
         bar.count:SetText(ns.T("bond.loyal", { n = ns.Grouped(lp) }))
     end
     bar:Set(points, from, nextAt or math.max(points, 1), tier) -- (a rise to these points goes on)
-    bar.ring:SetVertexColor(tier[1], tier[2], tier[3], 1)
-    bar.level:SetText(level)
-    local top = level == #ns.Bond.LEVELS
-    bar.star:SetShown(top); bar.level:SetShown(not top)
+    ns.BondBar.Tint(bar.medal, level, tier)
     local last = self.points
     self.points = points
     if animate and last and points > last then
@@ -393,7 +460,24 @@ end
 function PF:ShowBar()
     local bar = self.frame and self.frame.bar
     if not bar then return end
-    bar:SetShown(self.points ~= nil and (self.hover or self.peek) and true or false)
+    local shown = self.points ~= nil and (self.hover or self.peek) and true or false
+    bar:SetShown(shown)
+    self:Footer(shown)
+end
+
+-- With the art, the panel under the pet is as tall as what it holds: the name alone in its middle, or the name
+-- over the bar (PF.FOOT); without it, the name stays under the pet.
+function PF:Footer(barShown)
+    local f = self.frame
+    local short = not barShown and f.art and f.art.top:IsShown()
+    f.name:ClearAllPoints()
+    if short then
+        -- (+1: a line's glyphs sit low in its box, descenders' room; seen centered low, 2026-11-21)
+        f.name:SetPoint("CENTER", f, "BOTTOM", (self.ART[1] - self.ART[2]) / 2, self.ART[4] + self.FOOT_SHORT / 2 + 1)
+    else
+        f.name:SetPoint("TOP", self.scene, "BOTTOM", 0, -2)
+    end
+    if f.art then f.art.panel:SetHeight(short and self.FOOT_SHORT or self.FOOT) end
 end
 
 -- Faded or not, now (Settings: petFrameFade).
@@ -492,7 +576,7 @@ function PF:Sleepy()
             return
         end
         local s = f:GetScale() -- (the particles live on UIParent: the frame's size is theirs to follow)
-        ns.Fx:Burst({ self.scene, "BOTTOM", self.ZZZ_AT[1] * s, self.ZZZ_AT[2] * s }, "zee",
+        ns.Fx:Burst({ self.scene, "BOTTOM", self.ZZZ_AT[1] * s, self.ZZZ_AT[2] * s - self:Drop() }, "zee",
             { n = 1, color = { 0.8, 0.85, 1 }, alpha = 0.9, size = 0.7 * s, spread = 6 * s, rise = 40 * s })
         C_Timer.After(self.ZZZ_EVERY, Tick)
     end

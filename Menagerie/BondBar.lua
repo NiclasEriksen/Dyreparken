@@ -74,6 +74,82 @@ function BondBar.New(parent, opts)
     return b
 end
 
+------------------------------------------------------------------------------
+-- The look, one for the card and the pet frame (2026-11-21, the user: the pet frame's bar "doesn't match the
+-- journal panel"): the bar dark in a thin gold edge, a spark at the fill's tip; the medallion a dark disc in
+-- Blizzard's gold ring, the level's number on it (the top level's: a gold star), glowing once gold. s: the
+-- size against the card's.
+------------------------------------------------------------------------------
+BondBar.DISC = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
+BondBar.RING = "communities-ring-gold"
+BondBar.EDGE = { 1, 0.82, 0, 0.35 }
+
+-- The bar's background, edge and spark (b.bg, b.edge, b.spark).
+function BondBar.Dress(b, s)
+    s = s or 1
+    b.bg = b:CreateTexture(nil, "BACKGROUND", nil, 1)
+    b.bg:SetAllPoints()
+    b.bg:SetColorTexture(0, 0, 0, 0.6)
+    b.edge = b:CreateTexture(nil, "BACKGROUND", nil, 0)
+    b.edge:SetPoint("TOPLEFT", b, "TOPLEFT", -1, 1)
+    b.edge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 1, -1)
+    local e = BondBar.EDGE
+    b.edge:SetColorTexture(e[1], e[2], e[3], e[4])
+    b.spark = b:CreateTexture(nil, "OVERLAY")
+    b.spark:SetTexture(ns.Icon("sparkle"))
+    b.spark:SetBlendMode("ADD")
+    b.spark:SetSize(20 * s, 20 * s)
+    b.spark:SetPoint("CENTER", b:GetStatusBarTexture(), "RIGHT", 0, 0)
+end
+
+-- The medallion (m.glow with its pulse, m.disc, m.ring, m.num, m.star), on parent; size and place it there.
+function BondBar.Medal(parent, s, font)
+    s = s or 1
+    local GOLD = ns.Scenes.GOLD
+    local m = CreateFrame("Frame", nil, parent)
+    m:SetSize(56 * s, 56 * s)
+    m.glow = m:CreateTexture(nil, "BACKGROUND")
+    m.glow:SetTexture(ns.Icon("dot"))
+    m.glow:SetBlendMode("ADD")
+    m.glow:SetPoint("CENTER")
+    m.glow:SetSize(110 * s, 110 * s)
+    m.glow:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
+    m.glow.pulse = ns.Anim.Pulse(m.glow, 0.5, 1, 3)
+    m.disc = m:CreateTexture(nil, "BORDER")
+    m.disc:SetTexture(BondBar.DISC)
+    m.disc:SetPoint("CENTER")
+    m.disc:SetSize(44 * s, 44 * s)
+    m.ring = m:CreateTexture(nil, "ARTWORK")
+    m.ring:SetAtlas(BondBar.RING)
+    m.ring:SetAllPoints()
+    m.num = m:CreateFontString(nil, "OVERLAY", font or "GameFontNormalHuge")
+    m.num:SetPoint("CENTER", m, "CENTER", 0, 1)
+    -- The top level: a gold star for the number (2026-11-19, the user: "we reach the top, now we're just building
+    -- highscores").
+    m.star = m:CreateTexture(nil, "OVERLAY")
+    m.star:SetTexture(ns.Icon("star"))
+    m.star:SetSize(30 * s, 30 * s)
+    m.star:SetPoint("CENTER", m, "CENTER", 0, 0)
+    m.star:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
+    m.star:Hide()
+    return m
+end
+
+-- The medallion at a level: its number or star, the ring greyed and tinted below gold, its disc dark in the
+-- tier, the glow from gold.
+function BondBar.Tint(m, level, tier)
+    local top = level == #ns.Bond.LEVELS
+    m.num:SetText(level)
+    m.star:SetShown(top); m.num:SetShown(not top)
+    local gold = ns.Scenes.Gold(level)
+    m.ring:SetDesaturated(not gold)
+    if gold then m.ring:SetVertexColor(1, 1, 1, 1) else m.ring:SetVertexColor(tier[1], tier[2], tier[3], 1) end
+    m.disc:SetVertexColor(tier[1] * 0.25, tier[2] * 0.25, tier[3] * 0.25, 0.95)
+    m.num:SetTextColor(math.min(1, tier[1] * 1.2), math.min(1, tier[2] * 1.2), math.min(1, tier[3] * 1.2))
+    m.glow:SetShown(gold)
+    if gold then m.glow.pulse:Play() else m.glow.pulse:Stop() end
+end
+
 -- The growth ends where it was going (numbers already rising finish).
 local function EndGrowth(self)
     self.timers:Cancel()

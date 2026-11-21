@@ -1501,7 +1501,7 @@ L["settings.petframefade"] = "Ton ned dyret når ingenting skjer"
 L["settings.petframefade.tip"] = "Dyret er svakt på skjermen, og blir helt synlig når du holder musen over det, når båndet ditt vokser eller når det får et nytt level."
 L["settings.petframealpha"] = "Synlighet når det er tonet ned"
 L["settings.petframealpha.tip"] = "Hvor synlig dyret er når ingenting skjer."
-L["settings.petframeart.tip"] = "Steinbakgrunn og ramme som på vinduene i spillet. Av: kun dyret og navnet på skjermen."
+L["settings.petframeart.tip"] = "Bakgrunn og ramme som på dyrekortet, i fargene til båndet ditt. Av: kun dyret og navnet på skjermen."
 L["petframe.tip"] = "Klikk for å se dyret."
 L["petframe.today"] = "I dag: {n} av {max} båndpoeng"
 -- (2026-11-13: a draft, for the user to edit) A click on the pet frame with the Pets page closed.

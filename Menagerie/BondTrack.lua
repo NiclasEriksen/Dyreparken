@@ -18,8 +18,6 @@ local ns = select(2, ...)
 local Track = {}
 ns.BondTrack = Track
 
-local DISC = "Interface\\CHARACTERFRAME\\TempPortraitAlphaMask"
-local RING = "communities-ring-gold"
 local GOLD = ns.Scenes.GOLD
 local BAR_W, PIP, PIP_GAP = 128, 14, 5
 local STRIP_X = 12 -- the strip's left edge on the panel, with the rows' text
@@ -116,24 +114,13 @@ function Track:Build(card, c, panel)
     local y = ns.JournalUI.ROW_Y.strip
     b:SetSize(BAR_W, 13)
     b:SetPoint("TOPLEFT", panel, "TOPLEFT", STRIP_X + #ns.Bond.LEVELS * (PIP + PIP_GAP) + 4, y - 1)
-    b.bg = b:CreateTexture(nil, "BACKGROUND", nil, 1)
-    b.bg:SetAllPoints()
-    b.bg:SetColorTexture(0, 0, 0, 0.6)
-    b.edge = b:CreateTexture(nil, "BACKGROUND", nil, 0)
-    b.edge:SetPoint("TOPLEFT", b, "TOPLEFT", -1, 1)
-    b.edge:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT", 1, -1)
-    b.edge:SetColorTexture(1, 0.82, 0, 0.35)
+    ns.BondBar.Dress(b) -- (b.bg, b.edge, b.spark: the pet frame's too)
     -- Today's points, lit up on the bar (your own pet).
     b.today = b:CreateTexture(nil, "ARTWORK", nil, 2)
     b.today:SetColorTexture(1, 1, 1, 1)
     b.today:SetBlendMode("ADD")
     b.today:SetVertexColor(1, 1, 0.8, 0.35)
     b.today:Hide()
-    b.spark = b:CreateTexture(nil, "OVERLAY")
-    b.spark:SetTexture(ns.Icon("sparkle"))
-    b.spark:SetBlendMode("ADD")
-    b.spark:SetSize(20, 20)
-    b.spark:SetPoint("CENTER", b:GetStatusBarTexture(), "RIGHT", 0, 0)
     -- The points, on the bar only while you hover it (on all the time, it
     -- was noise: seen 2026-11-08).
     b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -160,35 +147,11 @@ function Track:Build(card, c, panel)
     b.count:SetTextColor(1, 0.85, 0.4)
     b.count:Hide()
 
-    -- The medallion, rising out of the panel's top right.
-    local m = CreateFrame("Frame", nil, b)
-    m:SetSize(56, 56)
+    -- The medallion, rising out of the panel's top right (BondBar.Medal: the pet frame's too; "level 7/7" in its
+    -- tooltip at the top).
+    local m = ns.BondBar.Medal(b)
     m:SetPoint("TOPRIGHT", panel, "TOPRIGHT", -8, 18)
     m:SetFrameLevel(panel:GetFrameLevel() + 3)
-    m.glow = m:CreateTexture(nil, "BACKGROUND")
-    m.glow:SetTexture(ns.Icon("dot"))
-    m.glow:SetBlendMode("ADD")
-    m.glow:SetPoint("CENTER")
-    m.glow:SetSize(110, 110)
-    m.glow:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
-    m.glow.pulse = Pulse(m.glow, 0.5, 1, 3)
-    m.disc = m:CreateTexture(nil, "BORDER")
-    m.disc:SetTexture(DISC)
-    m.disc:SetPoint("CENTER")
-    m.disc:SetSize(44, 44)
-    m.ring = m:CreateTexture(nil, "ARTWORK")
-    m.ring:SetAtlas(RING)
-    m.ring:SetAllPoints()
-    m.num = m:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
-    m.num:SetPoint("CENTER", m, "CENTER", 0, 1)
-    -- The top level: a gold star for the number (2026-11-19, the user: "we reach the top, now we're just building
-    -- highscores"); "level 7/7" in its tooltip.
-    m.star = m:CreateTexture(nil, "OVERLAY")
-    m.star:SetTexture(ns.Icon("star"))
-    m.star:SetSize(30, 30)
-    m.star:SetPoint("CENTER", m, "CENTER", 0, 0)
-    m.star:SetVertexColor(GOLD[1], GOLD[2], GOLD[3], 1)
-    m.star:Hide()
     m:EnableMouse(true)
     ns.SetTip(m, "ANCHOR_TOP", function() return Track.BondLines(card.key) end)
     b.medal = m
@@ -254,9 +217,6 @@ function Track:Update(card, key, color)
     local _, yourLevel, yourName = ns.Bond:Yours(key)
     b.yours:SetText(yourLevel and ns.T("bond.yours", { level = yourName, n = yourLevel,
         icon = "|T" .. ns.Icon("heart") .. ":10|t" }) or "")
-    b.level:SetText(level)
-    local top = level == #ns.Bond.LEVELS
-    b.medal.star:SetShown(top); b.level:SetShown(not top)
     -- Your own bond at the top level: the loyalty points, counting on (Bond:Loyalty).
     local lp = shownMine and not quiet and ns.Bond:Loyalty(key)
     self:Counter(b, lp)
@@ -313,15 +273,7 @@ function Track:Update(card, key, color)
             b.edge:SetColorTexture(1, 0.82, 0, 0.35)
         end
     end
-    -- The medallion: the ring greyed and tinted below gold, its disc dark in the tier.
-    local m = b.medal
-    local gold = ns.Scenes.Gold(level)
-    m.ring:SetDesaturated(not gold)
-    if gold then m.ring:SetVertexColor(1, 1, 1, 1) else m.ring:SetVertexColor(tier[1], tier[2], tier[3], 1) end
-    m.disc:SetVertexColor(tier[1] * 0.25, tier[2] * 0.25, tier[3] * 0.25, 0.95)
-    m.num:SetTextColor(math.min(1, tier[1] * 1.2), math.min(1, tier[2] * 1.2), math.min(1, tier[3] * 1.2))
-    m.glow:SetShown(gold)
-    if gold then m.glow.pulse:Play() else m.glow.pulse:Stop() end
+    ns.BondBar.Tint(b.medal, level, tier) -- (the number or star, the ring, the disc, the glow)
     -- The track.
     for i, p in ipairs(b.pips) do
         if i < level then

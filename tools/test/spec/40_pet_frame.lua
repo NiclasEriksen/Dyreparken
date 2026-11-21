@@ -128,10 +128,11 @@ return function(test, H)
             eq(layer.points[1][4], H[1]); eq(layer.points[1][5], -H[3])
             eq(layer.points[2][4], -H[2]); eq(layer.points[2][5], H[4])
         end
-        -- With the art: the whole box it draws.
+        -- With the art: the box it draws.
         ola.ns.DB.global.settings.petFrameArt = true; PF:Apply()
-        eq(b.size[1], f.size[1]); eq(b.size[2], f.size[2]); eq(b.points[#b.points][5], f.points[1][5])
-        eq(f.click.points[1][4], 0)
+        local A = PF.ART
+        eq(b.size[1], f.size[1] - A[1] - A[2]); eq(b.size[2], f.size[2] - A[3] - A[4])
+        eq(f.click.points[1][4], A[1])
         ola.ns.DB.global.settings.petFrameArt = false; PF:Apply()
         eq(b.size[1], f.size[1] - H[1] - H[2])
         ok(b:TakesClick("LeftButton", true), "the down, as ActionButtonUseKeyDown (1) says ...")
@@ -621,24 +622,45 @@ return function(test, H)
         eq(#actor.played, played)
     end)
 
-    test("frame art, off by default: the window rock behind the pet and Blizzard's nine-slice border", function()
+    -- 2026-11-21, the user: the bond "doesn't match the journal panel", and the art "should also fit better and match
+    -- bond level", not reaching "all the way to the animation area".
+    test("the bond as on the card; frame art, off by default: the card's look, small, its border by your level", function()
         local w, ola, PF = Setup(14, false)
-        local applied
-        rawset(ola.env, "NineSliceLayouts", { ButtonFrameTemplateNoPortrait = { name = "bftnp" } })
-        rawset(ola.env, "NineSliceUtil", { ApplyLayout = function(frame, layout) applied = layout.name end })
         ola.ns.DB.global.settings.petFrame = true; PF:Apply()
         local f = PF.frame
-        eq(f.bg, nil, "off: it floats")
+        local m = f.bar.medal
+        eq(m.ring.atlas, "communities-ring-gold", "the card's medallion, small")
+        eq(m.size[1], 56 * PF.MEDAL); ok(f.bar.edge and f.bar.spark, "the card's bar: its gold edge and spark")
+        eq(f.art, nil, "off: it floats ...")
+        ok(f.shade:IsShown(), "... on a soft shadow behind the name")
+        eq(f.shade.points[1][2], f.name, "on the name, not below it")
         ola.ns.DB.global.settings.petFrameArt = true; PF:Apply()
-        ok(f.bg:IsShown() and f.border:IsShown())
-        eq(applied, "bftnp", "the modern window border")
-        ok(f.border:GetFrameLevel() > PF.scene:GetFrameLevel(), "over the scene's edges")
-        ok(f.click:GetFrameLevel() > f.border:GetFrameLevel(), "under the click layer")
-        eq(table.concat(PF.scene.insets, " "), "0 0 " .. (PF.H - 86) .. " -50", "framed: the pet stays within the border")
-        eq(PF.scene.size[1], PF.W)
+        local art = f.art
+        ok(art.base:IsShown() and art.panel:IsShown() and art.top:IsShown()); no(f.shade:IsShown())
+        eq(art.base.points[1][4], PF.ART[1]); eq(art.base.points[1][5], -PF.ART[3], "the box: smaller than the frame")
+        eq(art.pic.points[2][2], art.panel, "the picture down to the panel")
+        eq(art.panel.size[2], PF.FOOT_SHORT, "the bar hidden: a short panel ...")
+        eq(f.name.points[1][1], "CENTER", "... the name in its middle")
+        PF:Enter(f.click)
+        eq(art.panel.size[2], PF.FOOT, "the bar shown: the whole footer")
+        eq(f.name.points[1][1], "TOP", "the name over the bar")
+        PF:Leave(f.click)
+        ok(art.top:GetFrameLevel() > PF.scene:GetFrameLevel(), "over the scene's edges")
+        ok(f.click:GetFrameLevel() > art.top:GetFrameLevel(), "under the click layer")
+        eq(PF.scene.size[1], PF.W + 2 * PF.DRAW_X, "the pet drawn as without the art ...")
+        eq(PF.scene.insets[4], PF.VIEW_BOTTOM - PF.ART_DROP, "... a little lower: between the two footers")
+        -- By your level: an edge below the border's level; the family's border greyed and tinted, gold from 5.
+        local function Edge() return art.edges[1].size[2], art.edges[1].vertexColor end
+        eq((Edge()), PF.ART_EDGE[2], "level 1: a hairline")
+        ola:SetBond(PANDA, 300); ola.ns.Bus:Fire("BOND", PANDA)
+        local width, c = Edge()
+        eq(width, PF.ART_EDGE[1], "from the border's level: thicker")
+        eq(c[3], ola.ns.Scenes.SILVER[3], "silver at 3")
+        ola:SetBond(PANDA, 1000); ola.ns.Bus:Fire("BOND", PANDA)
+        eq(select(2, Edge())[1], ola.ns.Scenes.GOLD[1], "gold at 5"); ok(m.glow:IsShown(), "the medallion glows")
         ola.ns.DB.global.settings.petFrameArt = false; PF:Apply()
-        no(f.bg:IsShown()); no(f.border:IsShown())
-        eq(PF.scene.size[1], PF.W + 120, "unframed: wide again")
+        no(art.base:IsShown()); no(art.top:IsShown()); ok(f.shade:IsShown())
+        eq(PF.scene.insets[4], PF.VIEW_BOTTOM, "where it was without")
     end)
 
     -- The wheel in Edit Mode keeps the frame's centre on screen (2026-11-11, a review): the client counts
