@@ -670,6 +670,18 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   `api:campgain` keeps UNIT_AURA's `addedAuras` in the 3 s after a countdown ends. The countdown counts once in ten
   minutes (its row's `again`). `Discovered Jintha'Alor: 390 experience gained` came in CHAT_MSG_SYSTEM. Learning
   to ride gave the riding feat (SPELLS_CHANGED).
+  2026-11-21 (build 71037): a fire outside Orgrimmar renewed a Camp Benefits with 2345 s left to 3600 (an hour, not
+  its first 7200: the renewal is an updated aura, not an added one), and a second later an aura "Violet Flames"
+  (1328375, no end) was added: a powder a player uses on the fire (the user), which makes its Camp Benefits last two
+  hours instead of one. It didn't lengthen the hour just given (that buff ended at 10:56, an hour on); the 7200 s
+  buffs (a fresh one at a fire near Gadgetzan, one at login) were likely fires with the powder. After a
+  zeppelin's loading screen the pet is gone and auto-summon brings it back 3-6 s later; ZONE_CHANGED_NEW_AREA can
+  come before that summon (the ride then counted with no pet out) or just after it (counted with the pet).
+  `PLAYER_INTERACTION_MANAGER_FRAME_SHOW` gave type 8 for a banker (retail's numbering).
+  Camp Benefits doesn't run down while logged out (7122 s left at 11:13, 6359 s at 12:05 after 40 minutes away).
+  A fire placed next to another one can be bugged (the user, 2026-11-21: the game's own, may get fixed): in the Ruins
+  of Lordaeron its countdown gave nothing, a Camp Benefits still on went 5 s after, and the next countdown brought
+  "Boosted Disenchanting" (1283701, no end). Not handled on purpose: the game doesn't either.
 - `ERR_ZONE_EXPLORED` is "Discovered: %s"; it came in system chat (above; UI_INFO_MESSAGE unverified), and the explore wish reads both (like ERR_NEWTAXIPATH), and `ERR_ZONE_EXPLORED_XP` too.
 
 ## SavedVariables

@@ -90,6 +90,7 @@
 ---@field Try Dyreparken.Try Dev/Try.lua
 ---@field Unlisted Dyreparken.Unlisted Menagerie/Unlisted.lua
 ---@field UnlockPins any Data/Unlocks.lua
+---@field Verify Dyreparken.Verify Dev/Verify.lua
 ---@field Version Dyreparken.Version Core/Version.lua
 ---@field Voyage Dyreparken.Voyage Menagerie/Voyage.lua
 ---@field Wire Dyreparken.Wire Core/Wire.lua
