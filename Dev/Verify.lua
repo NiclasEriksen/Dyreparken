@@ -225,7 +225,7 @@ local function Build()
         { "emoteboop", "/boop your pet that's out (targeted; does Forever have /boop?)", logs = { { "Bonds", "^emote boop" } } },
         { "emotepat", "/pat your pet that's out (targeted)", logs = { { "Bonds", "^emote pat" } } },
         -- Holidays:Running (2026-11-22): the contest's lines and bonus stop at the calendar's end, 15:00 by the user.
-        { "fishingend", "log in on a Sunday: the fishing contest's end read from the calendar (15:00 expected)",
+        { "fishingend", "log in on a Sunday: the fishing contest's end read from the calendar (16:00 seen 2026-11-22)",
             logs = { { "Holidays", "fishing contest until %d+" } } },
         { "addonlink", "run /dp probe api links and click the addon link in chat",
             logs = { { "Api", "^links .*addon:Dyreparken" } } },

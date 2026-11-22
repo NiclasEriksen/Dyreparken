@@ -62,9 +62,10 @@ function Holidays.Stamp(t)
     return ((y * 100 + m) * 100 + d) * 10000 + (ns.Plain(t.hour) or 0) * 100 + (ns.Plain(t.minute) or 0)
 end
 
--- Is that event still going on now: today's (Holidays:Has) and not past its end? The weekly fishing contest is
--- an hour, 14:00-15:00 (the user, 2026-11-22: "after that time it's irrelevant"). Its end is the calendar's,
--- on the realm's clock, so it's read against the calendar's now; without an end read, the whole day.
+-- Is that event still going on now: today's (Holidays:Has) and not past its end? The weekly fishing contest runs
+-- 14:00-16:00 (its end read from the calendar, 2026-11-22; the calendar's window shows only the start), and after
+-- it "it's irrelevant" (the user). The end is on the realm's clock, so it's read against the calendar's now;
+-- without an end read, the whole day.
 function Holidays:Running(word)
     local ends = self:Has(ns.Now(), word)
     if type(ends) ~= "number" then return ends and true or false end

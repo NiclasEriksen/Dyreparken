@@ -486,7 +486,7 @@ return function(test, H)
         no(kari:Printed("jubler over at du fisket", true))
     end)
 
-    -- 2026-11-22, the user: the contest is 14:00-15:00 by the calendar; "after that time it's irrelevant".
+    -- 2026-11-22, the user: after the contest "it's irrelevant" (its end from the calendar; 16:00 on Forever, here 15:00).
     test("the fishing contest ends at 15:00: no looking forward to it, and no bonus, after", function()
         local w, ola = Setup({ "vannhund", "glupsk" })
         local B = ola.ns.Bond
