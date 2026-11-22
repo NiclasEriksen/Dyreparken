@@ -15,8 +15,13 @@ local COG = "|TInterface\\AddOns\\Dyreparken\\Media\\Particles\\gear:14:14:0:0:6
 -- (activity.dance.flavor), and its variants, numbered without gaps (activity.dance.flavor.1, .2, ...: one past a
 -- gap is never said), each as likely. The player's own are mixed in too: <key>.class.<class>.N and
 -- <key>.race.<race>.N, by the client's English names in lower case (warrior, paladin, hunter, rogue, priest,
--- shaman, mage, warlock, druid; human, dwarf, nightelf, gnome, orc, scourge (undead), tauren, troll).
+-- shaman, mage, warlock, druid; human, dwarf, nightelf, gnome, orc, scourge (undead), tauren, troll, skyborne).
 -- That goes for the eggs, dislikes, class reactions, liked activities, trait moments and pat answers.
+-- Mixed in the same way, when the moment fits (2026-11-22): <key>.morning.N, .evening.N, .night.N (the card's
+-- light: 05-08, 17-22, 22-05), <key>.winter.N, .spring.N, .summer.N, .autumn.N, <key>.cold.N and .warm.N (the
+-- zone's climate, Data/Zones.lua), and <key>.remember.N once the pet has done it 10 times with you, with {count}
+-- (a liked activity, a first boss or place). A nature's lines (<key>.<trait|family>.N) come 60% of the time, the
+-- general ones the rest.
 --
 -- Achievements have their own table at the end (ns.AchTexts).
 

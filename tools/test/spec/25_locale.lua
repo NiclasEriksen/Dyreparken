@@ -164,6 +164,32 @@ return function(test, H)
         eq(ns.PickLine("t.line"), "one", "kept across a reload (char.lastLines)")
     end)
 
+    test("a line's texts: the moment's (time of day, season, the zone's climate) and a pet's memory mixed in", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord")
+        w:Run(5)
+        local ns, L = c.ns, c.ns.L
+        L["t.m.1"] = "plain"; L["t.m.night.1"] = "night"; L["t.m.evening.1"] = "evening"; L["t.m.morning.1"] = "morning"
+        L["t.m.winter.1"] = "winter"; L["t.m.summer.1"] = "summer"; L["t.m.cold.1"] = "cold"; L["t.m.warm.1"] = "warm"
+        L["t.m.remember.1"] = "{count} times"
+        local function Lines(vars) return table.concat(ns.Lines("t.m", vars), " ") end
+        w:SetDate(2027, 1, 10, 23)
+        c:Set("zone", "Dun Morogh")
+        eq(Lines(), "t.m.1 t.m.night.1 t.m.winter.1 t.m.cold.1", "a winter night in a cold zone")
+        w:SetDate(2027, 7, 10, 12)
+        c:Set("zone", "Durotar")
+        eq(Lines(), "t.m.1 t.m.summer.1 t.m.warm.1", "a summer's day, warm: no part of the day for the day itself")
+        w:SetDate(2027, 8, 10, 6)
+        c:Set("zone", "Elwynn Forest")
+        eq(Lines(), "t.m.1 t.m.morning.1 t.m.summer.1", "a summer morning in a zone with no climate")
+        w:SetDate(2027, 10, 10, 18)
+        eq(Lines(), "t.m.1 t.m.evening.1", "an autumn evening (Scenes.SKY's evening; no autumn lines)")
+        eq(Lines({ count = ns.Config.LINES_REMEMBER - 1 }), "t.m.1 t.m.evening.1", "not yet a memory")
+        eq(Lines({ count = ns.Config.LINES_REMEMBER }), "t.m.1 t.m.evening.1 t.m.remember.1", "a memory from LINES_REMEMBER on")
+        c:Dice(0, 3)
+        eq(ns.PickLine("t.m", { count = 12 }), "12 times")
+    end)
+
     test("the new place's and the wish's lines have the class's and race's too", function()
         local w = H.World()
         local c = w:AddClient("Ola Nord", { pets = { 5159 } })

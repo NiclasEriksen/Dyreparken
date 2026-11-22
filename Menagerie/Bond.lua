@@ -385,9 +385,10 @@ local function Flavor(d, key, text)
 end
 
 -- The line for a liked activity: one of its own (activity.<id>.flavor and its variants, ns.Lines), else
--- the plain "koste seg med ...".
-function Bond.LikedLine(id, name)
-    return ns.PickLine("activity." .. id .. ".flavor", { pet = name })
+-- the plain "koste seg med ...". {count}: how many times the pet has done it with you (its .remember lines).
+function Bond.LikedLine(id, name, key)
+    local count = key and select(4, ns.Activity:Count(id, key)) or nil
+    return ns.PickLine("activity." .. id .. ".flavor", { pet = name, count = count })
         or ns.T("bond.liked", { pet = name, activity = ns.Personality.NOUN[id] })
 end
 
@@ -510,7 +511,7 @@ function Bond:OnActivity(id, n, key)
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then
         per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP
-        flavor = Bond.LikedLine(id, name)
+        flavor = Bond.LikedLine(id, name, key)
         -- Home by name (2026-11-10): the inn you're bound to (GetBindLocation works on Forever: /dp probe api, 2026-11-11).
         local home = id == "hearth" and type(GetBindLocation) == "function" and ns.Plain(GetBindLocation())
         if type(home) == "string" and home ~= "" then flavor = ns.PickLine("activity.hearth.flavor_home", { pet = name, home = home }) end
@@ -530,7 +531,7 @@ function Bond:OnActivity(id, n, key)
     if minor and capKey == id then
         per, cap = C.BOND_MINOR_POINTS, C.BOND_MINOR_CAP
         if not d.got[capKey] and ns.random() < ns.Settings:Chance(Bond.MINOR_FLAVOR, "flavor") then
-            flavor = Bond.LikedLine(id, name)
+            flavor = Bond.LikedLine(id, name, key)
         end
     end
     per, cap = Scaled(per), Scaled(cap)
@@ -580,9 +581,10 @@ end
 -- with the player's class's and race's mixed in (ns.Lines).
 function Bond:PlaceLine(key, place)
     local family = ns.Scenes:Families(key)[1]
-    local own = family and ns.Lines("first.place." .. family) or {}
-    local list = (#own > 0 and ns.random() < self.PLACE_OWN) and own or ns.Lines("first.place")
-    return ns.T(list[ns.random(#list)], { pet = ns.Registry:NameOf(key), place = place })
+    local own = family and #ns.Lines("first.place." .. family) > 0 and ns.random() < self.PLACE_OWN
+    local places = ns.DB.char.places[key]
+    return ns.PickLine(own and "first.place." .. family or "first.place",
+        { pet = ns.Registry:NameOf(key), place = place, count = places and Count(places) or nil })
 end
 
 function Bond:First(id, key, extra)
@@ -593,7 +595,7 @@ function Bond:First(id, key, extra)
         if firsts[key][extra] then return end
         firsts[key][extra] = true
         Bond.justFirst, Bond.justFirstAt = key .. "\31" .. extra, ns.Now() -- (Quirks' trophy: a boss new to this pet, whoever hears it first)
-        text = ns.PickLine("first.boss", { pet = ns.Registry:NameOf(key), boss = extra })
+        text = ns.PickLine("first.boss", { pet = ns.Registry:NameOf(key), boss = extra, count = Count(firsts[key]) })
         if Count(firsts[key]) == 1 then ns.Story:Mine(key, "first.boss", extra) end -- (its very first)
     elseif id == "explore" and type(extra) == "string" then
         -- Its very first new place: the second it has seen with you (the first is where it came out).

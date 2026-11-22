@@ -248,10 +248,27 @@ local function Own()
     return own.class, own.race
 end
 
+-- The moment as the line keys spell it (2026-11-22, the content review §1c): the part of the day (Scenes.SKY's
+-- hours, so a line's evening is the card's: morning, evening, night; the day itself has none), the season
+-- (Parken's months: winter, spring, summer, autumn) and the zone's climate (Data/Zones: cold, warm), each nil
+-- when it has none.
+local PART = { morgen = "morning", kveld = "evening", skumring = "evening", natt = "night" }
+local SEASON = { "winter", "winter", "spring", "spring", "spring", "summer", "summer", "summer", "autumn", "autumn",
+    "autumn", "winter" }
+function ns.LineMoment(t)
+    local d = date("*t", t or ns.Now())
+    local sky = ns.Scenes and ns.Scenes:Sky(d.hour)
+    local zone = ns.Zones and GetZoneText and ns.Zones.rows[ns.Plain(GetZoneText()) or ""]
+    return sky and PART[sky[2]], SEASON[d.month], zone and zone.climate
+end
+
 -- Every text a line can be, as keys (2026-11-17, the user: more variety in what the pets say): the bare key
 -- when it has one text, its variants (prefix.N), and the player's own, mixed in with the rest:
--- prefix.class.<class>.N and prefix.race.<race>.N (a mage's pet has a mage's lines too).
-function ns.Lines(prefix)
+-- prefix.class.<class>.N and prefix.race.<race>.N (a mage's pet has a mage's lines too). Mixed in the same way
+-- (2026-11-22): the moment's (prefix.<morning|evening|night>.N, prefix.<season>.N, prefix.<cold|warm>.N: an
+-- evening's fishing, a winter's flight), and a pet's memory, prefix.remember.N, once `vars.count` (how many
+-- times it has done this with you) reaches Config.LINES_REMEMBER: those lines say {count}.
+function ns.Lines(prefix, vars)
     local list = {}
     if strings[prefix] then list[1] = prefix end
     local function Add(p) for _, k in ipairs(ns.Variants(p)) do list[#list + 1] = k end end
@@ -259,6 +276,11 @@ function ns.Lines(prefix)
     local class, race = Own()
     if class then Add(prefix .. ".class." .. class) end
     if race then Add(prefix .. ".race." .. race) end
+    local part, season, climate = ns.LineMoment()
+    if part then Add(prefix .. "." .. part) end
+    Add(prefix .. "." .. season)
+    if climate then Add(prefix .. "." .. climate) end
+    if vars and type(vars.count) == "number" and vars.count >= ns.Config.LINES_REMEMBER then Add(prefix .. ".remember") end
     return list
 end
 
@@ -273,7 +295,7 @@ local function Uncolored(msg) return (msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|
 -- line with two variants said the same one three times in a row about one time in four). Per character, one
 -- key per line (char.lastLines); a line picked before the saved data loads is picked freely.
 function ns.PickLine(prefix, vars)
-    local list = ns.Lines(prefix)
+    local list = ns.Lines(prefix, vars)
     if #list == 0 then return nil end
     local char = ns.DB and ns.DB.char
     local last = char and char.lastLines and char.lastLines[prefix]
@@ -381,6 +403,7 @@ ns.Config = {
     NICKNAME_MAX_LEN = 20,        -- characters (UTF-8 aware, see ns.Utf8Len)
     NICKNAME_FIX = 600,           -- seconds after the day's first new name when changes are free (a typo); then tomorrow
     NAME_LINES = 3,               -- name lines in guild chat a day, at most (Bonds:Announce)
+    LINES_REMEMBER = 10,          -- a line's .remember variants ("{count} ganger sammen") join it from this many times on
     BOND_DAY_POINTS = 10,         -- bond points for a day with your adopted companion out
     BOND_LIKED_POINTS = 5,        -- an activity your companion likes (Personality.lua), with it out
     BOND_LIKED_CAP = 25,          -- ... at most this many points a day per activity

@@ -67,12 +67,32 @@ for _, r in ipairs(kind == "egg" and ns.Quirks.EGGS or kind == "react" and ns.Re
     if r.id == id then row = r end
 end
 
+-- The moment's own lines (ns.Lines mixes in those of now: the time of day, the season, the zone's climate, and a
+-- pet's memory once it has done something often), each group listed apart, whenever it would come.
+local MOMENTS = { morning = "in the morning", evening = "in the evening", night = "at night", winter = "in winter",
+    spring = "in spring", summer = "in summer", autumn = "in autumn", cold = "in a cold zone", warm = "in a warm zone",
+    remember = "once it has done it " .. ns.Config.LINES_REMEMBER .. " times with you ({count})" }
+local MOMENT_ORDER = { "morning", "evening", "night", "winter", "spring", "summer", "autumn", "cold", "warm", "remember" }
 local function Texts(prefix)
     local list = ns.Lines(prefix)
+    for n = #list, 1, -1 do
+        local sfx = list[n]:match("^" .. prefix:gsub("%p", "%%%0") .. "%.(%a+)%.%d+$")
+        if sfx and MOMENTS[sfx] then table.remove(list, n) end
+    end
     for n, k in ipairs(list) do
         local text = ns.Strings[k]:gsub("{pet}", name)
         print(("  %-34s %s"):format(k, text))
         list[n] = nil
+    end
+end
+
+local function Moments(prefix)
+    for _, m in ipairs(MOMENT_ORDER) do
+        local list = ns.Variants(prefix .. "." .. m)
+        if #list > 0 then
+            print("-- mixed in " .. MOMENTS[m] .. ":")
+            for _, k in ipairs(list) do print(("  %-34s %s"):format(k, (ns.Strings[k]:gsub("{pet}", name)))) end
+        end
     end
 end
 
@@ -90,6 +110,7 @@ if row and opt.all then
     end
     print("-- the plain ones:")
     Texts(opt.prefix)
+    Moments(opt.prefix)
     os.exit(0)
 end
 local nature, which = nil, nil
@@ -108,3 +129,5 @@ if mixed then
     print("-- the plain ones:")
     Texts(opt.prefix)
 end
+Moments(nature or opt.prefix)
+if mixed then Moments(opt.prefix) end
