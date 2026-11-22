@@ -155,7 +155,7 @@ return function(test, H)
         for _ = 1, 6 do ola:Fire("QUEST_TURNED_IN", 1) end -- quests (liked now): 15 of 25 fit
         eq(ola:Points(PANDA), 375, "75 in a day, no more")
         -- (Ola has the Bombay Cat too, never out with Ola: the line names it, Bonds:FullLine)
-        ok(ola:Printed("Panda Cub er fornøyd for i dag. Bombay Cat har aldri vært ute med deg: kanskje det er dets tur?", true))
+        ok(ola:Printed("Panda Cub er fornøyd for i dag. Bombay Cat har aldri vært ute med deg: kanskje det er dens tur?", true))
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2575)
         eq(ola:Points(PANDA), 375)
         eq(ola:CountPrinted("fornøyd for i dag"), 1, "said once")

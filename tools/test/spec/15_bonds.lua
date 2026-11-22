@@ -22,11 +22,11 @@ return function(test, H)
         local function Line() return (B:FullLine(PANDA)) end
         -- (Ola's login put the kitten or the cat out first: forget who has been out, so each case is set here)
         char.activity.day.on = {}
-        eq(Line(), "Panda Cub er fornøyd for i dag. Bombay Cat har aldri vært ute med deg: kanskje det er dets tur?",
+        eq(Line(), "Panda Cub er fornøyd for i dag. Bombay Cat har aldri vært ute med deg: kanskje det er dens tur?",
             "never out: the first by name")
         char.activity.day.on["s:40"] = Day(1)
         char.activity.day.on["s:46"] = Day(4)
-        eq(Line(), "Panda Cub er fornøyd for i dag. White Kitten har ikke vært ute på 4 dager: kanskje det vil være med?",
+        eq(Line(), "Panda Cub er fornøyd for i dag. White Kitten har ikke vært ute på 4 dager: kanskje den vil være med?",
             "the longest since out first")
         char.activity.day.on["s:46"] = ns.Today()
         char.bondToday.pets["s:46"] = { got = {}, total = ns.Bond:DailyMax("s:46") }
