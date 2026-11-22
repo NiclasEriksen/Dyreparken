@@ -367,23 +367,34 @@ end
 -- The pet to suggest when the one out has a full day (2026-11-22, the content review §4.2, the user: the full
 -- day's line a nudge toward another pet): one of yours with room today, the one longest since its last day
 -- out with you, else one that has never been out with you (the first by name). Returns key and the days since
--- (nil for never), or nil when there's none.
+-- (nil for never), or nil when there's none. Your Turnus pets first, in their turn after the one out (2026-11-22, the
+-- user: the pet frame named a pet outside it).
 function Bond:NextOpen(except)
     local today = DayNumberOf(ns.Today())
     local best, bestDays, fresh, freshName
+    local fits = {} -- key -> days since (false: never out)
     for key in pairs(ns.Pets:Owned()) do
         if key ~= except and self:Open(key) then
             local last = ns.Activity:LastVisit(key)
             if last then
                 local days = today - DayNumberOf(last)
-                if days > 0 and (not bestDays or days > bestDays or (days == bestDays and key < best)) then
-                    best, bestDays = key, days
+                if days > 0 then
+                    fits[key] = days
+                    if not bestDays or days > bestDays or (days == bestDays and key < best) then best, bestDays = key, days end
                 end
             else
+                fits[key] = false
                 local name = ns.Pets:NameOfKey(key) or key
                 if not freshName or name < freshName then fresh, freshName = key, name end
             end
         end
+    end
+    local list = ns.Turnus and ns.Turnus:List() or {}
+    local at = 0
+    for i, k in ipairs(list) do if k == except then at = i end end
+    for step = 1, #list do
+        local key = list[(at + step - 1) % #list + 1]
+        if fits[key] ~= nil then return key, fits[key] or nil end
     end
     if best then return best, bestDays end
     return fresh, nil

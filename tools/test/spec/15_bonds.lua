@@ -36,6 +36,22 @@ return function(test, H)
         eq(Line(), nil, "none with room: the plain line, its first three times only")
     end)
 
+    -- 2026-11-22, the user: the pet frame's swap named a pet outside the Turnus.
+    test("a full day's suggestion: your Turnus pets first, the next in turn with room; others only when none has", function()
+        local w, ola = H.Setup{ ola = { 5159, 46, 40 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local ns = ola.ns
+        local char = ns.DB.char
+        local function Day(n) return ns.Today(ns.Now() - n * 86400) end
+        char.activity.day.on = { ["s:46"] = Day(9), ["s:40"] = Day(1) }
+        eq((ns.Bond:NextOpen(PANDA)), "s:46", "no Turnus: the longest since out")
+        ns.Turnus:Toggle(PANDA); ns.Turnus:Toggle("s:40")
+        local key, days = ns.Bond:NextOpen(PANDA)
+        eq(key, "s:40", "the Turnus pet, though the kitten waited longer"); eq(days, 1)
+        ns.Bond:Today("s:40"); char.bondToday.pets["s:40"].total = ns.Bond:DailyMax("s:40")
+        eq((ns.Bond:NextOpen(PANDA)), "s:46", "the Turnus pets full: anyone with room")
+    end)
+
     test("a full day's nudge has a link: a click takes that pet out; a made-up key or a pet you don't own does nothing", function()
         local w, ola = H.Setup{ ola = { 5159, 46 } }
         ola:Slash("adopter panda"); w:Run(5)
