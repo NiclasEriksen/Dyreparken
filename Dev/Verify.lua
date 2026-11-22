@@ -24,7 +24,7 @@ ns.Verify = Verify
 
 local Plain = ns.Plain
 Verify.ITEMS, Verify.BY = {}, {}
-Verify.AREAS = { "activity", "api", "react", "egg", "zone", "route", "look", "new" }
+Verify.AREAS = { "activity", "api", "react", "egg", "zone", "route", "named", "look", "new" }
 Verify.KEEP = 12 -- details kept for an item that collects (interaction types, unknown zone names)
 Verify.CAMP_GAIN = 3 -- seconds after a fire's countdown ends: the buffs that came then (api:campgain)
 Verify.INN_AFTER = 70 -- seconds: resting that long with no sleeping bag's Well-Rested is an inn or a city
@@ -96,6 +96,15 @@ local function Build()
                 how = r.spells and ("cast " .. table.concat(r.spells, " or ")) or ("its moment: " .. tostring(r.on)),
                 logs = { { "Reactions", "^" .. Esc(r.id) .. "[:,]" }, { "Chat", "^react%." .. Esc(r.id) .. "%." } },
                 before = function() return char.reacts[r.id] ~= nil end })
+        end
+    end
+    -- Named bosses and dungeons (Bond.NAMED_*, 2026-11-22): their own line said, so the name is Forever's.
+    for what, list in pairs({ boss = ns.Bond.NAMED_BOSSES, place = ns.Bond.NAMED_PLACES }) do
+        for slug, names in pairs(list) do
+            Item({ id = ("named:%s:%s"):format(what, slug), area = "named",
+                how = (what == "boss" and "see %s fall with a pet out, its first time" or "take a pet into %s, its first time")
+                    :format(table.concat(names, " or ")),
+                logs = { { "Chat", "^first%." .. what .. "%." .. Esc(slug) .. "%." } } })
         end
     end
     for name, row in pairs(ns.Zones.rows) do
@@ -499,7 +508,7 @@ function Verify:Summary()
     local parts = {}
     for _, a in ipairs(self.AREAS) do if open[a] then parts[#parts + 1] = a .. " " .. open[a] end end
     ns.Print(("Verify: %d of %d confirmed. Open: %s."):format(done, all, #parts > 0 and table.concat(parts, ", ") or "none"))
-    ns.Print("/dp probe verify <area> lists one (activity, api, react, egg, zone, route, look, new; \"all\" after it: "
+    ns.Print("/dp probe verify <area> lists one (activity, api, react, egg, zone, route, named, look, new; \"all\" after it: "
         .. "the done ones too), ok <id> ticks a look by hand, forget <id> undoes a wrong tick, off, reset.")
 end
 

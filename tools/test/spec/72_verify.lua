@@ -18,7 +18,7 @@ return function(test, H)
         for _, k in ipairs(ola.ns.Activity.KINDS) do
             ok(V.HOW[k[1]], "what to do for " .. k[1])
         end
-        for _, area in ipairs({ "activity", "api", "react", "egg", "zone", "route", "look", "new" }) do
+        for _, area in ipairs({ "activity", "api", "react", "egg", "zone", "route", "named", "look", "new" }) do
             local n = 0
             for _, item in ipairs(V.ITEMS) do if item.area == area then n = n + 1 end end
             ok(n > 0, "items in " .. area)

@@ -228,4 +228,27 @@ return function(test, H)
         local added = kari:Hover({ species = 5159, owner = "Ola Nord" })
         match(added[#added - 1], " · Sjelevenn$")
     end)
+
+    -- Named bosses and dungeons (2026-11-22, 0.10.0): a line of their own, a named place always.
+    test("a named boss or dungeon, the first time with a pet: its own line; a named place always speaks", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local ns, B = ola.ns, ola.ns.Bond
+        ola:Dice(0.99) -- (a general place line wouldn't come: its chance said no)
+        B:First("boss", PANDA, "Ragnaros"); w:RunTimers()
+        ok(ola:PrintedLine("first.boss.ragnaros", { pet = "Panda Cub" }), "Ragnaros's own")
+        B:First("boss", PANDA, "Hogger"); w:RunTimers()
+        ok(ola:PrintedLine("first.boss", { pet = "Panda Cub", boss = "Hogger" }), "anyone else: the general ones")
+        ns.DB.char.places[PANDA] = { Durotar = true, ["Molten Core"] = true }
+        B:First("explore", PANDA, "Molten Core"); w:RunTimers()
+        ok(ola:PrintedLine("first.place.moltencore", { pet = "Panda Cub" }), "a named place: always, its own")
+        ns.DB.char.places[PANDA]["Ashenvale"] = true
+        ola:ClearPrinted()
+        B:First("explore", PANDA, "Ashenvale"); w:RunTimers()
+        no(ola:PrintedLine("first.place", { pet = "Panda Cub", place = "Ashenvale" }), "elsewhere: its chance")
+        -- Every name resolves to its slug, and every slug has two lines at least.
+        for slug in pairs(B.NAMED_BOSSES) do ok(#ns.Variants("first.boss." .. slug) >= 2, slug) end
+        for slug in pairs(B.NAMED_PLACES) do ok(#ns.Variants("first.place." .. slug) >= 2, slug) end
+        eq(B.PLACE_SLUG["Sunken Temple"], "sunken"); eq(B.PLACE_SLUG["The Temple of Atal'Hakkar"], "sunken")
+    end)
 end

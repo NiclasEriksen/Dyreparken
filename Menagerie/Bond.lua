@@ -651,9 +651,40 @@ function Bond:PlaceChance(key)
     return math.min(p, self.PLACE_MAX)
 end
 
--- Its line: a family's own now and then (first.place.<family>.N), else a general one (first.place.N); each
--- with the player's class's and race's mixed in (ns.Lines).
+-- Named bosses and dungeons (2026-11-22, 0.10.0, the content review §2.3: "{boss} falt!" read the same for Hogger
+-- and Ragnaros): the first time with a pet, a line of their own (first.boss.<slug>.N, first.place.<slug>.N), and
+-- a named place always speaks. Names as Forever gives them: the encounter's (ENCOUNTER_END, the classic names: the
+-- log has "Avatar of Hakkar"), a dungeon's GetZoneText ("The Temple of Atal'Hakkar"; its instance is "Sunken
+-- Temple", so both). Unverified ones are on Verify's list ("named").
+Bond.NAMED_BOSSES = {
+    vancleef = { "Edwin VanCleef" }, arugal = { "Archmage Arugal" }, mutanus = { "Mutanus the Devourer" },
+    thermaplugg = { "Mekgineer Thermaplugg" }, whitemane = { "High Inquisitor Whitemane" }, archaedas = { "Archaedas" },
+    hakkar = { "Avatar of Hakkar", "Hakkar", "Hakkar the Soulflayer" }, eranikus = { "Shade of Eranikus" },
+    thaurissan = { "Emperor Dagran Thaurissan" }, rivendare = { "Baron Rivendare" }, gandling = { "Darkmaster Gandling" },
+    ragnaros = { "Ragnaros" }, onyxia = { "Onyxia" }, nefarian = { "Nefarian" }, cthun = { "C'Thun" },
+    kelthuzad = { "Kel'Thuzad" },
+}
+Bond.NAMED_PLACES = {
+    deadmines = { "The Deadmines", "Deadmines" }, wailing = { "Wailing Caverns" }, shadowfang = { "Shadowfang Keep" },
+    stockade = { "The Stockade", "Stormwind Stockade" }, scarlet = { "Scarlet Monastery" }, uldaman = { "Uldaman" },
+    zulfarrak = { "Zul'Farrak" }, maraudon = { "Maraudon" }, sunken = { "The Temple of Atal'Hakkar", "Sunken Temple" },
+    brd = { "Blackrock Depths" }, stratholme = { "Stratholme" }, scholomance = { "Scholomance" },
+    moltencore = { "Molten Core" }, onyxialair = { "Onyxia's Lair" },
+}
+local function Slugs(t)
+    local out = {}
+    for slug, names in pairs(t) do for _, n in ipairs(names) do out[n] = slug end end
+    return out
+end
+Bond.BOSS_SLUG, Bond.PLACE_SLUG = Slugs(Bond.NAMED_BOSSES), Slugs(Bond.NAMED_PLACES)
+
+-- Its line: a named place's own (always), else a family's own now and then (first.place.<family>.N), else a general
+-- one (first.place.N); each with the player's class's and race's mixed in (ns.Lines).
 function Bond:PlaceLine(key, place)
+    local slug = self.PLACE_SLUG[place]
+    if slug and #ns.Lines("first.place." .. slug) > 0 then
+        return ns.PickLine("first.place." .. slug, { pet = ns.Registry:NameOf(key), place = place })
+    end
     local family = ns.Scenes:Families(key)[1]
     local own = family and #ns.Lines("first.place." .. family) > 0 and ns.random() < self.PLACE_OWN
     local places = ns.DB.char.places[key]
@@ -669,7 +700,9 @@ function Bond:First(id, key, extra)
         if firsts[key][extra] then return end
         firsts[key][extra] = true
         Bond.justFirst, Bond.justFirstAt = key .. "\31" .. extra, ns.Now() -- (Quirks' trophy: a boss new to this pet, whoever hears it first)
-        text = ns.PickLine("first.boss", { pet = ns.Registry:NameOf(key), boss = extra, count = Count(firsts[key]) })
+        local slug = self.BOSS_SLUG[extra]
+        local prefix = slug and #ns.Lines("first.boss." .. slug) > 0 and "first.boss." .. slug or "first.boss"
+        text = ns.PickLine(prefix, { pet = ns.Registry:NameOf(key), boss = extra, count = Count(firsts[key]) })
         if Count(firsts[key]) == 1 then ns.Story:Mine(key, "first.boss", extra) end -- (its very first)
     elseif id == "explore" and type(extra) == "string" then
         -- Its very first new place: the second it has seen with you (the first is where it came out).
@@ -677,7 +710,8 @@ function Bond:First(id, key, extra)
         -- Its line only now and then (2026-11-12, the user: every new place read like an achievement, as if
         -- the pet should see them all; "we could still award exploration points, just not output it to chat
         -- every time"): by chance, likelier for a curious family and trait. The points come either way.
-        text = ns.random() < self:PlaceChance(key) and self:PlaceLine(key, extra) or false
+        local named = self.PLACE_SLUG[extra] ~= nil
+        text = (named or ns.random() < self:PlaceChance(key)) and self:PlaceLine(key, extra) or false
     else
         return
     end
