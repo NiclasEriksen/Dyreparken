@@ -109,7 +109,7 @@ return function(test, H)
         -- it is never said), and the player's own lines under a class or race the client has (a typo, .shamen.,
         -- would never be said either). Keys numbered by an id (holiday.0101, source.where.5159) have no .1.
         local CLASSES = { warrior = 1, paladin = 1, hunter = 1, rogue = 1, priest = 1, shaman = 1, mage = 1, warlock = 1, druid = 1 }
-        local RACES = { human = 1, dwarf = 1, nightelf = 1, gnome = 1, orc = 1, scourge = 1, tauren = 1, troll = 1 }
+        local RACES = { human = 1, dwarf = 1, nightelf = 1, gnome = 1, orc = 1, scourge = 1, tauren = 1, troll = 1, skyborne = 1 }
         for key in pairs(ns.Strings) do
             local prefix, n = key:match("^(.+)%.(%d+)$")
             if prefix and ns.Strings[prefix .. ".1"] and tonumber(n) > 1 then

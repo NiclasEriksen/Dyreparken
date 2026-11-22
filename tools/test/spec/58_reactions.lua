@@ -216,7 +216,7 @@ return function(test, H)
         local ns = ola.ns
         local CLASSES = { WARRIOR = 0, ROGUE = 0, HUNTER = 0, WARLOCK = 0, MAGE = 0, PRIEST = 0, PALADIN = 0, DRUID = 0, SHAMAN = 0 }
         local RACES = { Human = true, Dwarf = true, NightElf = true, Gnome = true, Orc = true, Scourge = true, Tauren = true,
-            Troll = true }
+            Troll = true, Skyborne = true }
         for _, row in ipairs(ns.Reactions.ROWS) do
             ok(CLASSES[row.class] or (row.class == nil and RACES[row.race]), row.id .. ": a class or a race")
             if row.class then CLASSES[row.class] = CLASSES[row.class] + 1 end

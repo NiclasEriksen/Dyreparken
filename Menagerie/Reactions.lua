@@ -128,6 +128,34 @@ Reactions.ROWS = {
     -- Race: a row with a race and no class is every class's of that race (UnitRace's second, the client's
     -- English file name: Forever's undead are "Scourge", /dp probe sense 2026-11-15)
     { id = "krigsstamp", race = "Tauren", on = "cast", spells = { "War Stomp" }, traits = { "hoppetass" }, families = { "rabbit", "rodent" } },
+    -- Every race's (2026-11-22, 0.10.0, the content review §2.1): Forever's own racials from its tables (wago.tools,
+    -- 1.60.1.71037, the racial skill lines), the classic ones and the new. A Tauren knows both (the API probe), so
+    -- every race is taken to (the user: "I won't check every race either"): a row for a spell a race lacks, or a
+    -- passive one, just never comes. Each is on Verify's list (react:<id>), ticked the first time it's said.
+    { id = "skarpsyn", race = "Human", on = "cast", spells = { "Perception" }, traits = { "oppdager", "jeger" } },
+    { id = "overleve", race = "Human", on = "cast", spells = { "Will to Survive" }, traits = { "trofast", "steinhard" } },
+    { id = "steinform", race = "Dwarf", on = "cast", spells = { "Stoneform" }, traits = { "steinhard", "kjaelen" } },
+    { id = "skattejakt", race = "Dwarf", on = "cast", spells = { "Find Treasure" }, calm = true, traits = { "sjorover", "oppdager" } },
+    { id = "maanelys", race = "NightElf", on = "cast", spells = { "Elune's Light" }, traits = { "nattugle" } },
+    { id = "fluktkunst", race = "Gnome", on = "cast", spells = { "Escape Artist" }, traits = { "skoyer", "hoppetass" } },
+    { id = "eureka", race = "Gnome", on = "cast", spells = { "Eureka!" }, traits = { "handverker", "ambisios" },
+        families = { "mechanical" } },
+    { id = "blodrus", race = "Orc", on = "cast", spells = { "Blood Fury" }, traits = { "kosete", "roverdyr" } },
+    { id = "forbannelse", race = "Orc", on = "cast", spells = { "Shatter Curse" }, traits = { "trofast" } },
+    { id = "viljestyrke", race = "Scourge", on = "cast", spells = { "Will of the Forsaken" }, traits = { "steinhard" } },
+    { id = "kannibal", race = "Scourge", on = "cast", spells = { "Cannibalize" }, calm = true, traits = { "glupsk", "kosete" },
+        apart = { "glupsk" } },
+    { id = "dyrking", race = "Tauren", on = "cast", spells = { "Cultivation" }, calm = true, traits = { "gronnfinger" },
+        families = { "plant", "rabbit" } },
+    { id = "slettelop", race = "Tauren", on = "cast", spells = { "Plainsrunning" }, traits = { "hoppetass", "latsabb" },
+        apart = { "latsabb" } },
+    { id = "berserk", race = "Troll", on = "cast", spells = { "Berserking" }, traits = { "rampete", "latsabb" } },
+    { id = "lekning", race = "Troll", on = "cast", spells = { "Rapid Regeneration" }, traits = { "kjaelen" } },
+    { id = "luftgang", race = "Skyborne", on = "cast", spells = { "Walk on Air" }, traits = { "skybaren", "hoppetass" },
+        families = { "bird" } },
+    { id = "himmelsyn", race = "Skyborne", on = "cast", spells = { "Skysight" }, traits = { "skybaren", "oppdager" } },
+    { id = "leylinje", race = "Skyborne", on = "cast", spells = { "Read Leyline" }, calm = true, traits = { "handverker" },
+        families = { "spirit" } },
 }
 local byId = {}
 for _, r in ipairs(Reactions.ROWS) do
