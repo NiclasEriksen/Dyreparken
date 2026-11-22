@@ -1515,12 +1515,17 @@ end
 -- WEATHER_CHANGED. Neither's values are documented. This reads GetCurrentWeather now (every value it returns),
 -- and for WEATHER_FOR seconds logs WEATHER_CHANGED with its payload, every zone change, and every
 -- WEATHER_SAMPLE seconds the reading if it changed (does it change with no event?). To the log ("weather ...").
+-- 2026-11-22, an hour in Un'Goro: {intensity=0, type=0} throughout, no WEATHER_CHANGED; the first version compared
+-- the whole line, where you stand too, so every step was a "change" (and ticked Verify's item falsely).
 Api.WEATHER_FOR, Api.WEATHER_SAMPLE = 3600, 20
-function Api.Weather()
+function Api.WeatherNow()
     local W = rawget(_G, "C_Weather")
     local fn = W and W.GetCurrentWeather
     if type(fn) ~= "function" then return "no C_Weather.GetCurrentWeather" end
-    return ("weather %s | %s"):format(Try(fn), Api.Where and Api.Where() or tostring(Raw(GetZoneText)))
+    return Try(fn)
+end
+function Api.Weather()
+    return ("weather %s | %s"):format(Api.WeatherNow(), Api.Where and Api.Where() or tostring(Raw(GetZoneText)))
 end
 function S.weather(out)
     out.now = Api.Weather()
@@ -1538,7 +1543,7 @@ function S.weather(out)
         for i = 1, args.n do shown[#shown + 1] = Show(args[i]) end
         ns.Log("Api", "weather %s (%s) %s", event, table.concat(shown, ", "), Api.Weather())
     end)
-    local started, last = GetTime(), out.now
+    local started, last = GetTime(), Api.WeatherNow()
     local function Sample()
         if Api.weatherWatch ~= f then return end
         if GetTime() - started > Api.WEATHER_FOR then
@@ -1546,8 +1551,8 @@ function S.weather(out)
             Api.weatherWatch = nil
             return ns.Log("Api", "weather watch over")
         end
-        local now = Api.Weather()
-        if now ~= last then ns.Log("Api", "weather sample changed: %s", now); last = now end
+        local now = Api.WeatherNow()
+        if now ~= last then ns.Log("Api", "weather turned: %s", Api.Weather()); last = now end
         C_Timer.After(Api.WEATHER_SAMPLE, Sample)
     end
     C_Timer.After(Api.WEATHER_SAMPLE, Sample)

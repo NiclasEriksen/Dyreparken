@@ -426,7 +426,7 @@ return function(test, H)
     test("weather, links and racials: read-only probes for 0.10.0, each by name", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         ola:Slash("probe api weather")
-        match(ola:Printed("api probe weather", true), "watching for 3600 s %(events refused: WEATHER_CHANGED%): no C_Weather")
+        match(ola:Printed("api probe weather", true), "watching for 3600 s %(events refused: WEATHER_CHANGED%): weather no C_Weather")
         ola:Fire("ZONE_CHANGED_NEW_AREA")
         ok(ola:Log("weather ZONE_CHANGED_NEW_AREA")[1])
         ola:Slash("probe api weather")

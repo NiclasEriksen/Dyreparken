@@ -192,11 +192,22 @@ local function Build()
                 local r = { pcall(W.GetCurrentWeather) }
                 if not r[1] then return false, "error" end
                 local out = {}
-                for i = 2, #r do out[#out + 1] = ns.IsSecret(r[i]) and "<secret>" or tostring(r[i]) end
+                -- A table on Forever ({ type, intensity }, 2026-11-22): its fields, not its address.
+                for i = 2, #r do
+                    local v = r[i]
+                    if ns.IsSecret(v) then out[#out + 1] = "<secret>"
+                    elseif type(v) == "table" then
+                        local f = {}
+                        for k, x in pairs(v) do f[#f + 1] = tostring(k) .. "=" .. (ns.IsSecret(x) and "<secret>" or tostring(x)) end
+                        table.sort(f)
+                        out[#out + 1] = "{" .. table.concat(f, ", ") .. "}"
+                    else out[#out + 1] = tostring(v) end
+                end
                 return true, #out > 0 and table.concat(out, ", ") or "(nothing)"
             end },
-        { "weatherchange", "run /dp probe api weather, then see the weather change (rain, snow, a sandstorm)",
-            logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather sample changed" } } },
+        -- weatherturn, not weatherchange: the first probe ticked that one on any step you took (2026-11-22).
+        { "weatherturn", "run /dp probe api weather, then see the weather change (rain, snow, a sandstorm)",
+            logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather turned" } } },
         { "addonlink", "run /dp probe api links and click the addon link in chat",
             logs = { { "Api", "^links .*addon:Dyreparken" } } },
         { "racials", "(read now) which of Forever's racials this character knows (/dp probe api racials: all)",
