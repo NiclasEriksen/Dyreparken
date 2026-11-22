@@ -250,5 +250,13 @@ return function(test, H)
         for slug in pairs(B.NAMED_BOSSES) do ok(#ns.Variants("first.boss." .. slug) >= 2, slug) end
         for slug in pairs(B.NAMED_PLACES) do ok(#ns.Variants("first.place." .. slug) >= 2, slug) end
         eq(B.PLACE_SLUG["Sunken Temple"], "sunken"); eq(B.PLACE_SLUG["The Temple of Atal'Hakkar"], "sunken")
+        -- An iconic zone: by the pet's family where it has lines, else the zone's own (a new day: firsts' lines a day
+        -- are Config.FIRST_LINES).
+        ola:Companions{ [5159] = { a = true, t = { "frog" } } }
+        w:SkipDays(1)
+        B:First("explore", PANDA, "Swamp of Sorrows"); w:RunTimers()
+        ok(ola:PrintedLine("first.place.swamp.frog", { pet = "Panda Cub" }), "a frog in the swamp")
+        B:First("explore", PANDA, "Winterspring"); w:RunTimers()
+        ok(ola:PrintedLine("first.place.winterspring", { pet = "Panda Cub" }), "no frog lines there: the zone's")
     end)
 end

@@ -669,7 +669,13 @@ Bond.NAMED_PLACES = {
     stockade = { "The Stockade", "Stormwind Stockade" }, scarlet = { "Scarlet Monastery" }, uldaman = { "Uldaman" },
     zulfarrak = { "Zul'Farrak" }, maraudon = { "Maraudon" }, sunken = { "The Temple of Atal'Hakkar", "Sunken Temple" },
     brd = { "Blackrock Depths" }, stratholme = { "Stratholme" }, scholomance = { "Scholomance" },
-    moltencore = { "Molten Core" }, onyxialair = { "Onyxia's Lair" },
+    moltencore = { "Molten Core" }, onyxialair = { "Onyxia's Lair" }, gnomeregan = { "Gnomeregan" },
+    -- Iconic zones (the content review §2.3: "a frog in Swamp of Sorrows, a mechanical pet in Gnomeregan"): a line
+    -- by the pet's family where it has one (first.place.<slug>.<family>.N), else the zone's own.
+    swamp = { "Swamp of Sorrows" }, winterspring = { "Winterspring" }, ungoro = { "Un'Goro Crater" },
+    stranglethorn = { "Stranglethorn Vale" }, tanaris = { "Tanaris" }, felwood = { "Felwood" }, moonglade = { "Moonglade" },
+    silithus = { "Silithus" }, steppes = { "Burning Steppes" }, duskwood = { "Duskwood" }, elwynn = { "Elwynn Forest" },
+    ashenvale = { "Ashenvale" },
 }
 local function Slugs(t)
     local out = {}
@@ -683,7 +689,11 @@ Bond.BOSS_SLUG, Bond.PLACE_SLUG = Slugs(Bond.NAMED_BOSSES), Slugs(Bond.NAMED_PLA
 function Bond:PlaceLine(key, place)
     local slug = self.PLACE_SLUG[place]
     if slug and #ns.Lines("first.place." .. slug) > 0 then
-        return ns.PickLine("first.place." .. slug, { pet = ns.Registry:NameOf(key), place = place })
+        local prefix = "first.place." .. slug
+        for _, f in ipairs(ns.Scenes:Families(key)) do
+            if #ns.Variants(prefix .. "." .. f) > 0 then prefix = prefix .. "." .. f; break end
+        end
+        return ns.PickLine(prefix, { pet = ns.Registry:NameOf(key), place = place })
     end
     local family = ns.Scenes:Families(key)[1]
     local own = family and #ns.Lines("first.place." .. family) > 0 and ns.random() < self.PLACE_OWN
