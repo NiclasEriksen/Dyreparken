@@ -93,8 +93,25 @@ function Turnus:TakeOver(key)
     return true
 end
 
+-- Turnusvakt (2026-11-22, 0.10.0, the content review §4.4): days in a row, each with a day's visit from a pet not
+-- yet out in that run (any of yours, Turnus or not). A day counts at its first such visit; a day without one
+-- doesn't break the run until it's over (the run holds while its last day is today or yesterday).
+function Turnus:Visit(key, today)
+    local t = ns.DB.char.turnusvakt or { n = 0, best = 0, pets = {} }
+    ns.DB.char.turnusvakt = t
+    if t.last == today then return end
+    if t.last ~= ns.DayBefore(today) then t.n, t.pets = 0, {} end
+    if t.pets[key] then return end
+    t.pets[key], t.n, t.last = true, t.n + 1, today
+    t.best = math.max(t.best or 0, t.n)
+end
+
 ns.Start("settled", function()
     Turnus:Day()
     -- (past midnight: the new day's first visit)
-    ns.Bus:On("ACTIVITY", function(id) if id == "day" then Turnus:Day() end end)
+    ns.Bus:On("ACTIVITY", function(id, _, key)
+        if id ~= "day" then return end
+        if key then Turnus:Visit(key, ns.Today()) end
+        Turnus:Day()
+    end)
 end)

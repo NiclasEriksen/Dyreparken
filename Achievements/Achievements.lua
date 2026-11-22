@@ -229,6 +229,75 @@ function Eval.wishes(d)
     local have = ns.DB.char.wishes.n or 0
     return have >= d.n, math.min(have, d.n), d.n
 end
+-- Many pets (2026-11-22, 0.10.0): your own bond levels with every pet of yours, adopted or not.
+local function OwnLevels()
+    local g, me, out = ns.DB:Guild(), ns.PlayerKey(), {}
+    for key, carers in pairs(g and g.life or {}) do
+        local e = type(carers) == "table" and carers[me]
+        if type(e) == "table" and type(e.p) == "number" then out[key] = ns.Bond:Level(e.p) end
+    end
+    return out
+end
+function Eval.herd(d)
+    local have = 0
+    for _, level in pairs(OwnLevels()) do if level >= d.level then have = have + 1 end end
+    return have >= d.n, math.min(have, d.n), d.n
+end
+-- One family whole: the closest of the families with ns.AchFamily.MIN or more counting pets.
+function Eval.wholefamily(d, ctx)
+    local levels, fams = OwnLevels(), {}
+    for sid in pairs(ctx and ctx.counting or Counting()) do -- (a character check's ctx has no collection)
+        local key = ns.Pets:KeyOfSpecies(sid)
+        local high = (levels[key] or 0) >= d.level
+        for _, f in ipairs(ns.Scenes:Families(key)) do
+            local a = fams[f] or { n = 0, total = 0 }
+            fams[f] = a
+            a.total = a.total + 1
+            if high then a.n = a.n + 1 end
+        end
+    end
+    local best
+    for _, a in pairs(fams) do
+        if a.total >= ns.AchFamily.MIN and (not best or a.n / a.total > best.n / best.total
+            or (a.n / a.total == best.n / best.total and a.total < best.total)) then best = a end
+    end
+    if not best then return nil end
+    return best.n >= best.total, best.n, best.total
+end
+local function Sum(t, fn)
+    local n = 0
+    for k, v in pairs(t or {}) do n = n + fn(k, v) end
+    return n
+end
+function Eval.firsts(d)
+    local have = Sum(ns.DB.char.firsts, function(_, bosses) return Sum(bosses, function() return 1 end) end)
+    return have >= d.n, math.min(have, d.n), d.n
+end
+function Eval.playfriends(d)
+    local friends = {}
+    for _, list in pairs(ns.DB.char.playmates or {}) do
+        for id in pairs(list) do friends[tostring(id):match("^(.-)\31") or id] = true end
+    end
+    local have = Sum(friends, function() return 1 end)
+    return have >= d.n, math.min(have, d.n), d.n
+end
+function Eval.patsgiven(d)
+    local have = Sum(ns.DB.char.patsGiven, function() return 1 end)
+    return have >= d.n, math.min(have, d.n), d.n
+end
+function Eval.wishkinds(d)
+    local have = Sum(ns.DB.char.wishes.kinds, function() return 1 end)
+    return have >= d.n, math.min(have, d.n), d.n
+end
+function Eval.cuddledays(d)
+    local have = ns.DB.char.cuddleDays or 0
+    return have >= d.n, math.min(have, d.n), d.n
+end
+function Eval.turnusvakt(d)
+    local t = ns.DB.char.turnusvakt
+    local have = t and t.best or 0
+    return have >= d.n, math.min(have, d.n), d.n
+end
 function Eval.activity(d)
     if not ns.Activity:Available(d.act) then return nil end
     local total, mine = ns.Activity:Count(d.act)
@@ -766,6 +835,10 @@ function Ach:Init()
     ns.Bus:On("DISLIKE_FOUND", function() Ach:Check("DISLIKE_FOUND", "char") end)
     ns.Bus:On("EGG_FOUND", function() Ach:Check("EGG_FOUND", "char") end)
     ns.Bus:On("WISH_DONE", function() Ach:Check("WISH_DONE", "char") end)
+    -- (2026-11-22: a pat given, Bonds:Pat; a day's visit, Turnusvakt's run: Turnus.lua)
+    ns.Bus:On("PAT_GIVEN", function() Ach:CheckCharSoon("PAT_GIVEN") end)
+    ns.Bus:On("CUDDLED", function() Ach:CheckCharSoon("CUDDLED") end)
+    ns.Bus:On("ACTIVITY", function(id) if id == "day" then Ach:CheckCharSoon("day") end end)
     ns.Bus:On("MY_NAME", function()
         grew.nick = true
         Ach:Check("MY_NAME", "char")

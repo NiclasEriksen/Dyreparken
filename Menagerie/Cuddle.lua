@@ -148,7 +148,10 @@ function Cuddle:Pet(card, x, y)
     local today = ns.Today()
     if ns.Pets:OutKey() == key and ns.DB.char.cardCuddle ~= today then
         ns.DB.char.cardCuddle = today
+        ns.DB.char.cuddleDays = (ns.DB.char.cuddleDays or 0) + 1 -- (the achievement cuddle:30: not the /cuddle emote,
+        -- which only a pet that likes it listens for: every emote nearby)
         ns.Activity:Emit("cuddle", 1, "card")
+        ns.Bus:Fire("CUDDLED", key)
     end
 end
 

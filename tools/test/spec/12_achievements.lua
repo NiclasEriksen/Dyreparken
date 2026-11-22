@@ -28,6 +28,83 @@ return function(test, H)
 
     local function Got(c, id) return c.ns.Achievements:Got(id) end
 
+    -- 0.10.0 (2026-11-22, the content review §2.5 and §4.4).
+    test("0.10.0: Bestevenn and Sjelevenn; bonds with many pets; a whole family; firsts, playmates, pats, wishes", function()
+        local w, ola = Setup(Pets(CATS, { 5159 }))
+        local A, ns = ola.ns.Achievements, ola.ns
+        local function Def(id) for _, d in ipairs(ns.AchDefs) do if d.id == id then return d end end end
+        local function Ev(id) return table.concat({ tostring((A:Evaluate(Def(id)))), select(2, A:Evaluate(Def(id))), select(3, A:Evaluate(Def(id))) }, " ") end
+        local L = ns.Bond.LEVELS
+        ola:Slash("adopter panda"); w:Run(2)
+        ola:SetBond("s:5159", L[5][1])
+        eq(Ev("bond:5"), "true 900 900"); eq(Ev("bond:7"), "false 900 2250")
+        -- Many pets: your own bonds, adopted or not.
+        ola:SetBond("s:40", L[3][1]); ola:SetBond("s:41", L[5][1]); ola:SetBond("s:42", L[7][1])
+        eq(Ev("herd:3:5"), "false 4 5"); eq(Ev("herd:5:3"), "true 3 3", "the panda, the 41 and the 42")
+        eq(Ev("herd:7:3"), "false 1 3")
+        ola:SetBond("s:46", L[3][1]); ola:SetBond("s:7", L[3][1])
+        eq(Ev("herd:3:5"), "true 5 5")
+        ola:SetBond("s:42", L[3][1], { who = "Kari Berg" }) -- (someone else's bond doesn't count)
+        eq(Ev("herd:3:5"), "true 5 5")
+        -- A whole family (four cats here) at level 2: the closest family of three or more.
+        eq(Ev("wholefamily:2"), "true 4 4")
+        ola:SetBond("s:46", 10)
+        eq(Ev("wholefamily:2"), "false 3 4")
+        -- Firsts, playmates, pats, wish kinds: their own counters.
+        ns.DB.char.firsts = { ["s:40"] = { Hogger = true, VanCleef = true }, ["s:41"] = { Hogger = true } }
+        eq(Ev("firsts:25"), "false 3 25")
+        ns.DB.char.playmates = { ["s:40"] = { ["Kari Berg\31s:5"] = 2, ["Per Hansen\31s:7"] = 1 }, ["s:41"] = { ["Kari Berg\31s:9"] = 1 } }
+        eq(Ev("playfriends:5"), "false 2 5")
+        ns.DB.char.wishes.kinds = { herb = true, fish = true }
+        eq(Ev("wishkinds:10"), "false 2 10")
+        ns.DB.char.cuddleDays = 30
+        eq(Ev("cuddle:30"), "true 30 30")
+        -- Data-driven families: the real data's with three or more, after the written ones; never one under three.
+        local fam = {}
+        for _, d in ipairs(ns.AchDefs) do if d.kind == "family" then fam[#fam + 1] = d.tag end end
+        match(table.concat(fam, " "), "pirate .*rodent"); ok(Def("family:festive")); ok(Def("family:wolf")); ok(Def("family:bug"))
+        no(Def("family:murloc"), "one pet: too small")
+        local defs = { { id = "family:cat", kind = "family", tag = "cat" }, { id = "x", kind = "bond" } }
+        ns.Companions = { species = { [1] = { a = true, t = { "ooze" } }, [2] = { a = true, t = { "ooze" } }, [3] = { a = false, t = { "ooze" } },
+            [4] = { a = true, t = { "bear" } }, [5] = { a = true, t = { "bear" } }, [6] = { a = true, t = { "bear" } } } }
+        ns.AchFamily.Build(defs)
+        eq(defs[2].id, "family:bear", "a family grown to three: after the written ones"); eq(defs[3].id, "x")
+        eq(#defs, 3, "two oozes that count: not yet")
+    end)
+
+    test("0.10.0: a pat for a guildmate's pet counts once per pet; Turnusvakt: a new pet's visit seven days in a row", function()
+        local w, ola, kari = H.Setup{ ola = { 5159, 46, 40, 41, 42, 7, 84, 68 }, kari = { 40 }, each = Fix, settle = "hello" }
+        local ns = ola.ns
+        local function Def(id) for _, d in ipairs(ns.AchDefs) do if d.id == id then return d end end end
+        local function Have(id) return (select(2, ns.Achievements:Evaluate(Def(id)))) end
+        -- /dp klapp on Kari's cat (targeted): counted once.
+        ola:Target({ species = 40, owner = "Kari Berg" })
+        ola:Slash("klapp"); ola:Slash("klapp")
+        eq(Have("pats:10"), 1, "a guildmate's cat, once")
+        ola:Target({ species = 46, owner = "Per Hansen" }) -- (not in the guild)
+        ola:Slash("klapp")
+        ola:Target({ species = 5159, owner = "Ola Nord" }) -- (your own)
+        ola:Slash("klapp")
+        eq(Have("pats:10"), 1)
+        -- Turnusvakt.
+        local T = ns.Turnus
+        local day = "20270301"
+        local function Visit(key) T:Visit(key, day) end
+        local function Next() day = os.date("%Y%m%d", os.time({ year = tonumber(day:sub(1, 4)),
+            month = tonumber(day:sub(5, 6)), day = tonumber(day:sub(7, 8)) + 1, hour = 12 })) end
+        for i, sid in ipairs({ 5159, 46, 40, 41, 42, 7 }) do Visit("s:" .. sid); if i < 6 then Next() end end
+        eq(Have("turnusvakt:7"), 6)
+        Next(); Visit("s:46") -- (out before in this run: the day doesn't count yet)
+        eq(ns.DB.char.turnusvakt.n, 6)
+        Visit("s:84") -- (a new one the same day: it does)
+        eq(Have("turnusvakt:7"), 7)
+        Next(); Next(); Visit("s:68") -- (a day missed: a new run)
+        eq(ns.DB.char.turnusvakt.n, 1); eq(ns.DB.char.turnusvakt.best, 7)
+        -- Through the real day's visit (Activity's "day"): counted.
+        w:SkipDays(1); ola:Summon(84); ns.Activity:CheckDay(); w:RunTimers()
+        eq(ns.DB.char.turnusvakt.last, ns.Today())
+    end)
+
     test("first run: what you already have is recorded quietly, with one summary line", function()
         local w, ola, kari = Setup(Pets(CATS, { 5159 }))
         local g = Got(ola, "family:cat")

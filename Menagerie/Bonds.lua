@@ -289,7 +289,7 @@ function Bonds:PatText()
         owner = owner or ns.Tooltip:OwnerOf("target")
         if owner == me or not owner then return ns.T("pat.own", { pet = nick or species }), nick or species, key end
         return ns.T(nick and "pat.other_nick" or "pat.other", { nick = nick, owner = owner, species = species }),
-            nick or species, key
+            nick or species, key, owner
     end
     local key = ns.Pets:OutKey()
     if not key then return nil end
@@ -341,9 +341,16 @@ end
 
 function Bonds:Pat()
     if ns.InCombat() then return ns.Print(ns.L["pat.combat"]) end
-    local text, name, key = self:PatText()
+    local text, name, key, owner = self:PatText()
     if not text then return ns.Print(ns.L["pat.nothing"]) end
     SendChatMessage(text, "EMOTE")
+    -- A guildmate's pet (2026-11-22, 0.10.0: the achievement pats:10): each pet of each guildmate once.
+    if owner and key and ns.Guild:IsMember(owner) then
+        local given = ns.DB.char.patsGiven or {}
+        ns.DB.char.patsGiven = given
+        local id = owner .. "\31" .. key
+        if not given[id] then given[id] = true; ns.Bus:Fire("PAT_GIVEN", key, owner) end
+    end
     local voice = self:Voice(key, name)
     if voice then ns.PetSays(voice, nil, nil, true) end -- (always: your own /dp klapp)
 end

@@ -81,6 +81,11 @@ end
 -- A calendar day as "YYYYMMDD" (the local clock, from server time): the
 -- day the daily limit, the wish, the cuddle and the counters belong to.
 function ns.Today(t) return date("%Y%m%d", t or ns.Now()) end
+-- The calendar day before a day ("YYYYMMDD"): noon of the day before, safe around DST (Wish's runs, Turnusvakt).
+function ns.DayBefore(day)
+    local y, m, d = day:match("^(%d%d%d%d)(%d%d)(%d%d)$")
+    return date("%Y%m%d", time({ year = tonumber(y), month = tonumber(m), day = tonumber(d) - 1, hour = 12 }))
+end
 
 -- lower() leaves Æ, Ø and Å alone (bytes, not letters): "/dp KUNNGJØR PÅ".
 function ns.Lower(s)
@@ -512,6 +517,8 @@ ns.Bus.EVENTS = {
     ADOPTED = "key: this character adopted a pet (Registry)",
     ACTIVE_PET = "key: the pet auto-summon keeps out changed (Summon)",
     FAMILIAR = "key or nil: a mage's familiar came out, or went (Familiar)",
+    CUDDLED = "key: the card's cuddle of the day for the pet out (Cuddle; char.cuddleDays)",
+    PAT_GIVEN = "key, owner: you patted a guildmate's pet (Bonds:Pat; char.patsGiven)",
     PET_SWAP = "new, old: another pet out than the last one seen out this session (Activity:CheckDay)",
     PET_OUT = "key: auto-summon found its pet already out (Summon:Check); Activity starts the day's visit if due, before Check goes on",
     COMPANION_SEEN = "speciesID, owner: a companion's tooltip showed in the world (Tooltip)",

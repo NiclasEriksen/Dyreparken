@@ -94,6 +94,7 @@ local CHAR_DEFAULTS = {
     -- [Bonds]
     announce = true,           -- post adoptions and nicknames to guild chat (Announce; SetAnnounce)
     nameLines = nil,           -- { day, n }: name lines posted to guild chat today (Announce)
+    patsGiven = nil,           -- ["owner\31petKey"] = true: guildmates' pets you patted (/dp klapp; achievement pats:10)
     unlocksTold = {},          -- [petKey] = { like, dislike, trait }: its minor ones and third trait told at the level-up (TellUnlocks)
     toldNameUnlock = nil,      -- the adoption (its record's `at`) whose nickname unlock was told (TellNameUnlock)
     bondDay = nil,             -- the day the login's milestone and pet-of-the-day lines last showed
@@ -101,6 +102,7 @@ local CHAR_DEFAULTS = {
     -- [Turnus]
     turnus = nil,              -- { petKey, ... }: the pets that take turns being out, in order (Turnus.lua)
     turnusDay = nil,           -- { day, key }: the day Turnus last picked a pet, and which
+    turnusvakt = nil,          -- { last, n, best, pets = { [petKey] = true } }: days in a row, each a new pet's visit
     -- [Activity]
     activity = {},             -- activity counters
     -- [Sources]
@@ -143,9 +145,11 @@ local CHAR_DEFAULTS = {
     -- [Wish]
     wish = nil,                -- { day, pet, id, done }: today's wish (Today)
     company = nil,             -- when a guildmate was last with you (a group, their pet met, a playdate): social wishes
-    wishes = { n = 0, streak = 0, best = 0 }, -- wishes come true: in all, days in a row (to `last`, a day), the best run
+    wishes = { n = 0, streak = 0, best = 0 }, -- wishes come true: in all, days in a row (to `last`, a day), the best run;
+                               -- kinds = { [activity] = true }: the kinds come true (since 2026-11-22)
     -- [Cuddle]
     cardCuddle = nil,          -- the day a click on the card last counted as a cuddle
+    cuddleDays = nil,          -- days with the card's cuddle for the bond, in all (achievement cuddle:30)
     -- [PetFrame]
     petFrame = nil,            -- { point, relativePoint, x, y, scale }: where the pet frame stands, how big (Edit Mode)
     -- [Version]

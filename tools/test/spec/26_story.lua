@@ -310,6 +310,7 @@ return function(test, H)
         eq(A:Count("cuddle"), 1, "a cuddle: our adopted pet, out with us")
         Click()
         eq(A:Count("cuddle"), 1, "once a day")
+        eq(ola.ns.DB.char.cuddleDays, 1, "a day for the achievement cuddle:30")
         -- Where you clicked: the card at 300,200 on the screen, scale 1.25.
         local c = ola.env.PetJournalPetCard
         c.geo, c.scale = { l = 300, r = 700, t = 700, b = 200 }, 1.25

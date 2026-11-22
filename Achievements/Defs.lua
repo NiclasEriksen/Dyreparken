@@ -21,6 +21,14 @@ local ns = select(2, ...)
 --   eggs      n       have found n different easter eggs (Quirks.lua, char.eggs)        (char)
 --   wishstreak n      today's wish come true n days in a row (Wish.lua, char.wishes.best) (char)
 --   wishes    n       n wishes come true in all, a day each (char.wishes.n)            (char)
+--   herd   level n    your own bonds at level `level` or more with n different pets, adopted or not (char)
+--   wholefamily level every counting pet of one family (one with FAMILY_MIN or more) at that level with you (char)
+--   firsts    n       n different bosses seen fall for the first time with a pet, all your pets together (char.firsts)
+--   playfriends n     playdates with n different guildmates (char.playmates)                        (char)
+--   patsgiven n       a pat (/dp klapp) for n different guildmates' pets (char.patsGiven)            (char)
+--   wishkinds n       wishes of n different kinds come true (char.wishes.kinds)                      (char)
+--   cuddledays n      the card's cuddle for the pet out on n days (char.cuddleDays; not the /cuddle emote)  (char)
+--   turnusvakt n      n days in a row, each with a day's visit from a pet not yet out that run (char.turnusvakt)
 --   activity act n    n of an activity (Core/Activity.lua: "boss", "quest", ...); pet = true counts
 --                     only with your adopted companion out. Hidden while the client can't produce it.
 --                                                                    (char)
@@ -57,10 +65,14 @@ ns.AchDefs = {
     { id = "family:dragon", kind = "family", tag = "dragon", cat = "family", icon = "INV_Misc_Head_Dragon_01" },
     { id = "family:bird", kind = "family", tag = "bird", cat = "family", icon = "Spell_Nature_RavenForm" },
     { id = "family:pirate", kind = "family", tag = "pirate", cat = "family", icon = { "INV_Helmet_66", "INV_Misc_Bandana_03", CARRIER } },
+    -- (the other families with FAMILY_MIN or more counting pets: from the data, below)
 
     { id = "loyal:30", kind = "bond", level = 3, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCandy", "Spell_Holy_SealOfSacrifice" } },
     { id = "loyal:100", kind = "bond", level = 4, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCard02", "Spell_Holy_SealOfSacrifice" } },
     { id = "loyal:365", kind = "bond", level = 6, scope = "char", cat = "loyalty", icon = { "Achievement_WorldEvent_Valentine", "Spell_Holy_SealOfSacrifice" } },
+    -- (2026-11-22, 0.10.0, the content review §2.5: Bestevenn and the summit, Sjelevenn; after Uatskillelig on the page)
+    { id = "bond:5", kind = "bond", level = 5, scope = "char", cat = "loyalty", icon = { "INV_ValentinesCard01", "Spell_Holy_SealOfSacrifice" } },
+    { id = "bond:7", kind = "bond", level = 7, scope = "char", cat = "loyalty", icon = { "INV_Jewelry_Necklace_27", "Spell_Holy_PrayerOfSpirit", "Spell_Holy_SealOfSacrifice" } },
     { id = "nick", kind = "nick", scope = "char", cat = "loyalty", icon = { "INV_Inscription_Parchment", "INV_Misc_Note_01" } },
     { id = "dislikes", kind = "dislikes", scope = "char", cat = "loyalty", icon = { "Spell_Misc_EmotionSad", "INV_Misc_Book_09", "INV_Misc_Note_01" } },
     -- Together (2026-11-10): with your adopted pet out (numbers set by the user: a dungeon has many bosses).
@@ -81,6 +93,24 @@ ns.AchDefs = {
     { id = "wish:7", kind = "wishstreak", n = 7, scope = "char", cat = "loyalty", icon = { "INV_Misc_Coin_02", "INV_Misc_Coin_01" } },
     { id = "wish:30", kind = "wishstreak", n = 30, scope = "char", cat = "loyalty", icon = { "INV_Misc_Coin_04", "INV_Misc_Coin_03" } },
     { id = "wish:100", kind = "wishes", n = 100, scope = "char", cat = "loyalty", icon = { "INV_Misc_Coin_17", "INV_Misc_Coin_06", "INV_Misc_Coin_01" } },
+    -- More together (2026-11-22, 0.10.0, the content review §2.5): with any of your pets out.
+    { id = "wishkinds:10", kind = "wishkinds", n = 10, scope = "char", cat = "together", icon = { "INV_Misc_Coin_05", "INV_Misc_Coin_02" } },
+    { id = "playdate:10", kind = "activity", act = "playmate", n = 10, scope = "char", cat = "together", icon = { "INV_Misc_Toy_10", "INV_Misc_Toy_07", CARRIER } },
+    { id = "playdate:50", kind = "activity", act = "playmate", n = 50, scope = "char", cat = "together", icon = { "INV_Misc_Toy_07", "INV_Misc_Toy_10", CARRIER } },
+    { id = "playfriends:5", kind = "playfriends", n = 5, scope = "char", cat = "together", icon = { "Achievement_GuildPerk_EverybodysFriend", "INV_Misc_Toy_10" } },
+    { id = "pats:10", kind = "patsgiven", n = 10, scope = "char", cat = "together", icon = { "Spell_Holy_LayOnHands", "INV_Misc_Bandage_15" } },
+    { id = "patted:50", kind = "activity", act = "patted", n = 50, scope = "char", cat = "together", icon = { "Spell_Holy_BlessingOfProtection", "Spell_Holy_LayOnHands" } },
+    { id = "cuddle:30", kind = "cuddledays", n = 30, scope = "char", cat = "together", icon = { "INV_ValentinesCandy", "Spell_Holy_LayOnHands" } },
+    { id = "places:50", kind = "activity", act = "explore", n = 50, scope = "char", cat = "together", icon = { "INV_Misc_Map_01", "INV_Misc_Map02" } },
+    { id = "firsts:25", kind = "firsts", n = 25, scope = "char", cat = "together", icon = { "INV_Misc_Head_Dragon_01", "Achievement_Boss_Onyxia" } },
+    -- Many pets (2026-11-22, 0.10.0, the content review §4.4): bonds with several of your pets, adopted or not.
+    { id = "herd:3:5", kind = "herd", level = 3, n = 5, scope = "char", cat = "herd", icon = { "Ability_Hunter_BeastCall", CARRIER } },
+    { id = "herd:3:15", kind = "herd", level = 3, n = 15, scope = "char", cat = "herd", icon = { "Ability_Hunter_BeastMastery", CARRIER } },
+    { id = "herd:3:30", kind = "herd", level = 3, n = 30, scope = "char", cat = "herd", icon = { "Ability_Hunter_BeastTaming", CARRIER } },
+    { id = "herd:5:3", kind = "herd", level = 5, n = 3, scope = "char", cat = "herd", icon = { "INV_ValentinesCard02", "Spell_Holy_SealOfSacrifice" } },
+    { id = "herd:7:3", kind = "herd", level = 7, n = 3, scope = "char", cat = "herd", icon = { "Spell_Holy_PrayerOfSpirit", "Spell_Holy_SealOfSacrifice" } },
+    { id = "wholefamily:2", kind = "wholefamily", level = 2, scope = "char", cat = "herd", icon = { "Ability_Hunter_BeastSoothe", CARRIER } },
+    { id = "turnusvakt:7", kind = "turnusvakt", n = 7, scope = "char", cat = "herd", icon = { "INV_Misc_PocketWatch_01", "Spell_Holy_BorrowedTime" } },
 
     { id = "guild:count:10", kind = "guildcount", n = 10, scope = "guild", cat = "guild",
         icon = { "Achievement_GuildPerk_EverybodysFriend", CARRIER } },
@@ -103,3 +133,40 @@ ns.AchDefs = {
     { id = "guild:family:bird", kind = "guildfamily", tag = "bird", scope = "guild", cat = "guild", icon = "Spell_Nature_RavenForm" },
     { id = "guild:family:pirate", kind = "guildfamily", tag = "pirate", scope = "guild", cat = "guild", icon = { "INV_Helmet_66", "INV_Misc_Bandana_03", CARRIER } },
 }
+
+-- A family's "have them all" from the data (2026-11-22, 0.10.0, the user: families grow, "keep in mind once a new
+-- family / existing family becomes 3+ large later"): every family in Scenes.ORDER with FAMILY_MIN or more pets that
+-- count, and no achievement written above, gets one, after the written ones. Ids family:<tag>, permanent like all;
+-- its texts in Locale's ns.AchTexts (49_content fails until they're there).
+ns.AchFamily = { MIN = 3, ICONS = {
+    rodent = { "INV_Misc_Food_03", "Ability_Hunter_Pet_Rat" }, wolf = { "Ability_Mount_WhiteDireWolf", "Ability_Hunter_Pet_Wolf" },
+    bug = { "INV_Misc_AhnQirajTrinket_01", "Ability_Hunter_Pet_Scorpid" }, festive = { "INV_Holiday_Christmas_Present_01", "INV_Misc_Gift_01" },
+    plant = { "INV_Misc_Herb_03", "INV_Misc_Flower_01" }, reptile = { "Ability_Hunter_Pet_Crocolisk", "INV_Misc_MonsterScales_15" },
+    demon = { "Spell_Shadow_SummonImp", "Spell_Shadow_SummonFelHunter" }, spirit = { "Spell_Nature_SpiritWolf", "Spell_Holy_SpiritHeal" },
+    ooze = { "INV_Misc_Slime_01", "Spell_Nature_Acid_01" }, bear = { "Ability_Racial_BearForm", "Ability_Hunter_Pet_Bear" },
+    murloc = { "INV_Misc_Head_Murloc_01", CARRIER },
+} }
+function ns.AchFamily.Build(defs)
+    local alias, species = ns.Scenes.ALIAS, ns.Companions and ns.Companions.species or {}
+    local counts, has, last = {}, {}, 0
+    for _, e in pairs(species) do
+        if type(e) == "table" and e.a then
+            local seen = {}
+            for _, t in ipairs(e.t or {}) do
+                t = alias[t] or t
+                if not seen[t] then seen[t] = true; counts[t] = (counts[t] or 0) + 1 end
+            end
+        end
+    end
+    for i, d in ipairs(defs) do
+        if d.kind == "family" then has[d.tag] = true; last = i end
+    end
+    for _, family in ipairs(ns.Scenes.ORDER) do
+        if not has[family] and (counts[family] or 0) >= ns.AchFamily.MIN then
+            last = last + 1
+            table.insert(defs, last, { id = "family:" .. family, kind = "family", tag = family, cat = "family",
+                icon = ns.AchFamily.ICONS[family] or CARRIER })
+        end
+    end
+end
+ns.AchFamily.Build(ns.AchDefs)

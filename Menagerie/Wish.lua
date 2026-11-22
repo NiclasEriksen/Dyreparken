@@ -230,6 +230,8 @@ function Wish:Grant(w, textKey, fullKey, vars)
     local all = { pet = ns.Registry:NameOf(w.pet), activity = Wish.Noun(w) }
     for k, v in pairs(vars or {}) do all[k] = v end
     ns.Bond:Reward("wish", w.pet, ns.Bond.Line(textKey, fullKey, all))
+    local s = ns.DB.char.wishes
+    if w.id then s.kinds = s.kinds or {}; s.kinds[w.id] = true end
     self:Count(w.day)
 end
 
@@ -484,11 +486,7 @@ end
 function Wish:Watching() return armed == "explore" or armed == "zone" end
 function Wish:Armed() return armed end -- (/dp state)
 
--- The calendar day before a day ("YYYYMMDD"): noon of the day before, safe around DST.
-local function DayBefore(day)
-    local y, m, d = day:match("^(%d%d%d%d)(%d%d)(%d%d)$")
-    return date("%Y%m%d", time({ year = tonumber(y), month = tonumber(m), day = tonumber(d) - 1, hour = 12 }))
-end
+local DayBefore = ns.DayBefore
 
 -- A wish came true on `day`: counted once a day (another pet's wish the same day, after a swap, isn't
 -- a second day).
