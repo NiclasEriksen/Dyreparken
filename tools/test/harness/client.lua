@@ -27,6 +27,7 @@ local function SpeciesName(sid) return H.SPECIES[sid] or ("Species " .. tostring
 --   at every login; see Client:Fixture),
 --   release (true: a packaged release: the TOC without its #@do-not-package@ blocks, so no Dev/
 --   files, and a release's version, so ns.DEV is false),
+--   realVisit (a pet you haven't adopted waits Config.VISIT_AFTER out for its day's visit, as shipped; else at once)
 --   from (a release tag, "v0.7.1": that release's own code from git, as packaged, with its version and
 --   protocol: an older client, to test that newer ones still get along with it; the stubs are today's)
 function World:AddClient(name, opts)
@@ -42,7 +43,7 @@ function World:AddClient(name, opts)
         release = opts.release or opts.from ~= nil, from = opts.from, toc = toc or TOC,
         protocol = opts.protocol or (toc or TOC).meta["X-Protocol"],
         floor = opts.floor or (not opts.protocol and (toc or TOC).meta["X-Protocol-Floor"]) or nil,
-        trial = opts.trial, addons = opts.addons or {}, saved = {}, online = false,
+        trial = opts.trial, addons = opts.addons or {}, saved = {}, online = false, realVisit = opts.realVisit,
         pets = {}, errors = {}, printed = {},
         state = { stand = 0, auras = {}, instance = "none" },
         idx = #self.clients + 1, patch = opts.patch, rank = opts.rank or 3, oldTemplates = opts.oldTemplates,
@@ -177,6 +178,9 @@ function Client:Login()
     self.ns.Config.BOND_EPOCH = self.world.epoch or (1790000000 - 1000 * 86400)
     -- Bonds shipped as the world starts: its adoptions are new (a test moves it to have them seeded).
     self.ns.Config.BONDS_SHIPPED = self.world.bondsShipped or 1790000000
+    -- A pet you haven't adopted has its day's visit at once, as before 2026-11-22: most tests are about what the
+    -- day brings, not the wait for it (Activity:CheckDay). { realVisit = true } keeps the shipped wait.
+    if not self.realVisit then self.ns.Config.VISIT_AFTER = 0 end
     for _, fn in ipairs(self.fixtures) do fn(self.ns, self) end
     self:Fire("ADDON_LOADED", ADDON)
     self:Fire("PLAYER_LOGIN")

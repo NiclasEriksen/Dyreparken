@@ -396,15 +396,39 @@ ns.Bus:On("DEBUG", function(on) if ns.DB.char then Activity:SetDebug(on) end end
 -- out (checked after login, after any summon, when auto-summon finds it back
 -- out, and before any other activity). Every pet of yours has
 -- its own day (2026-11-09; before, only the adopted one).
+-- A pet you haven't adopted has its visit once it has been out Config.VISIT_AFTER (2026-11-22, the content
+-- review §3.3: the visit paid on the summon, so summoning every pet in turn gave each its day's points for a
+-- minute of clicking). One wait at a time: another pet out, or none, and it starts over with the next check.
+-- The adopted pet's comes at once, as before.
 ------------------------------------------------------------------------------
 local apart = {} -- key -> the day ("YYYYMMDD") of its visit before today's, until Activity:Apart asks
+local visitWait, waiting = ns.Timers(), nil -- the pet whose visit waits for its time out
 function Activity:CheckDay()
     local w = wanted.day
     if not (w and next(w)) then return end
     self.dayChecked = Today() -- (checked, pet or not: a day change after this brings the visit)
-    local key = PetNow()
+    local key, mine = PetNow()
     self.dayMissed = not key
+    if waiting and waiting ~= key then visitWait:Cancel(); waiting = nil end
     if not key then return end
+    local c = Counter("day")
+    c.on = c.on or {}
+    if c.on[key] == Today() then return end
+    if not mine and ns.Config.VISIT_AFTER > 0 then
+        if waiting == key then return end
+        waiting = key
+        ns.Log("Activity", "day: %s's visit in %d s, if it stays out", key, ns.Config.VISIT_AFTER)
+        visitWait:After(ns.Config.VISIT_AFTER, function()
+            waiting = nil
+            if PetNow() == key then Activity:Visit(key) end
+        end)
+        return
+    end
+    self:Visit(key)
+end
+
+-- The day's visit for a pet out now (CheckDay: at once for the adopted one, after its wait for the others).
+function Activity:Visit(key)
     local c = Counter("day")
     c.on = c.on or {}
     local today = Today()

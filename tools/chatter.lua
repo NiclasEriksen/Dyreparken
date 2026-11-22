@@ -71,7 +71,7 @@ end
 local name = H.SPECIES[opt.pet] or ("Species " .. opt.pet)
 
 local w = H.World()
-local c = w:AddClient("Ola Nord", { pets = { opt.pet }, login = false })
+local c = w:AddClient("Ola Nord", { pets = { opt.pet }, login = false, realVisit = true })
 c.state.class, c.state.race = opt.class:upper(), RACES[opt.race] or opt.race
 if opt.traits then
     local list = {}

@@ -418,6 +418,7 @@ ns.Config = {
     REP_LINE_MIN = 100,           -- a reputation gain the pet says something about in chat (2026-11-17, the user: a
                                   -- kill's few points shouldn't; the points and the wish count any gain)
     BOND_TRAIT_CAP = 10,          -- a trait's moment (Friluftsdyr outdoors...): this many a day per trait (25 until 2026-11-10)
+    VISIT_AFTER = 600,            -- seconds a pet you haven't adopted is out before its day's visit (Activity:CheckDay)
     BOND_OTHER_RATE = 0.5,        -- a pet you own but haven't adopted earns this share (points rounded up, its day 37)
     REPORT_TO = "Hjelp Plask",    -- who to tell about a companion we don't know (Unlisted.lua; the user's pick, 2026-11-14)
     BOND_WISH_POINTS = 10,        -- today's wish done (Wish.lua), past the daily limit (Bond.REWARDS)
