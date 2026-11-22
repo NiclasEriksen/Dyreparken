@@ -388,13 +388,29 @@ Quirks.EGGS = {
     -- `always`: a few days apart is rare by nature, and the visit comes once a day.
     { id = "gjensyn", on = "day", always = true, traits = { "hjemlengsel", "trofast", "kjaelen", "latsabb" }, apart = { "latsabb" },
         cheer = function(vars) return vars._key ~= "egg.gjensyn.latsabb" end,
+        -- A long time apart (2026-11-22, 0.10.0, the content review §4.2): a pet of yours at level REUNION_LEVEL or
+        -- more, back after REUNION_LONG days, always greets you, with lines of their own (a Latsabb still barely looks up).
         test = function(ctx)
             local days = ns.Activity:Apart(ctx.key)
-            if not (days and days >= Quirks.REUNION_DAYS) or ns.random() >= Quirks.REUNION_CHANCE then return nil end
+            if not (days and days >= Quirks.REUNION_DAYS) then return nil end
+            local long = days >= Quirks.REUNION_LONG and (select(2, ns.Bond:Own(ctx.key)) or 0) >= Quirks.REUNION_LEVEL
+            if not long and ns.random() >= Quirks.REUNION_CHANCE then return nil end
             local vars = Quirks.ByNature(ctx)
+            if long and vars._key ~= "egg.gjensyn.latsabb" then vars._key = "egg.gjensyn.lenge" end
             vars.n = days
             return vars
         end },
+    -- Two pets of yours that know each other (2026-11-22, 0.10.0, the content review §2.4): you swap one for the
+    -- other in a session (Activity's PET_SWAP), both at bond level SWAP_LEVEL or more with you; the new one greets
+    -- the old. Half the days, once a day.
+    { id = "bytte", on = "swap", chance = 0.5, test = function(ctx)
+        local old = ctx.extra
+        if not (old and ns.Pets:IsOwned(old)) then return nil end
+        if (select(2, ns.Bond:Own(ctx.key)) or 0) < Quirks.SWAP_LEVEL or (select(2, ns.Bond:Own(old)) or 0) < Quirks.SWAP_LEVEL then
+            return nil
+        end
+        return { old = ns.Registry:NameOf(old) }
+    end },
     -- The Sunday fishing contest, for a pet that likes fishing: excited about the day (the bonus for
     -- fishing there is Bond's, Bond:Contest).
     { id = "fiskedag", on = "day", always = true, chance = 0.5, test = function(ctx)
@@ -494,7 +510,7 @@ Quirks.EGGS = {
     end },
 }
 -- Eggs on moments that aren't activities: "*" eggs don't ride on them.
-local MOMENTS = { seen = true, name = true, party = true, playdate = true }
+local MOMENTS = { seen = true, name = true, party = true, playdate = true, swap = true }
 
 local eggsOn, eggById = {}, {} -- activity -> its eggs; id -> egg
 for _, e in ipairs(Quirks.EGGS) do
@@ -516,6 +532,8 @@ end
 -- (a boss seen fall before 0.05 since 2026-11-19, from 0.15: a dungeon's five bosses had it on 8 of 9 days)
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.05, 0.5
 Quirks.REUNION_DAYS, Quirks.REUNION_CHANCE = 3, 0.35 -- (gjensyn: Monday's pet back on Thursday)
+Quirks.REUNION_LONG, Quirks.REUNION_LEVEL = 14, 3 -- (gjensyn, certain: two weeks apart, a Venn or more)
+Quirks.SWAP_LEVEL = 2 -- (bytte: both pets)
 Quirks.WIPE_BOSS = 0.5 -- a wipe at a boss: the chance its line names it
 Quirks.WAKE_CHANCE = 0.15 -- the pet frame's pet woken after you were AFK: the chance of a line (egg "vaken")
 -- Lines by nature, from the egg's own lists (EGGS: traits, families): the first of its
@@ -657,6 +675,7 @@ function Quirks:Init()
     ns.Bus:On("MY_NAME", function(key, e)
         if type(e) == "table" and e.n then Quirks:Egg("name", key, e.n) end
     end)
+    ns.Bus:On("PET_SWAP", function(new, old) Quirks:Egg("swap", new, old) end)
     ns.Bus:On("MY_RECORD", function() Quirks:Watch() end)
     ns.Bus:On("ACTIVE_PET", function() Quirks:Watch() end)
     ns.Bus:On("BOND_LEVEL", function() Quirks:Watch() end) -- (a minor dislike unlocked: Personality)

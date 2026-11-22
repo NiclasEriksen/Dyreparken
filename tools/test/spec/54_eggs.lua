@@ -118,4 +118,54 @@ return function(test, H)
         ok(ola:Printed("Å, var du borte?", true))
         eq(cheers, 0, "a Latsabb doesn't jump for it")
     end)
+
+    test("gjensyn, two weeks apart with a pet at level 3 or more: always, with lines of its own", function()
+        local function Away(days, points, roll, traits)
+            local w, ola = Setup("cat", traits)
+            ola:SetBond(PANDA, points)
+            ola.ns.Activity:Emit("herb"); w:RunTimers()
+            w:SkipDays(days)
+            ola:Dice(roll)
+            ola.ns.Activity:Emit("herb"); w:RunTimers()
+            return ola
+        end
+        local LV3 = 600
+        local ola = Away(14, LV3, 0.9)
+        eq(select(2, ola.ns.Bond:Own(PANDA)) >= 3, true)
+        ok(ola:PrintedLine("egg.gjensyn.lenge", { pet = "Panda Cub", n = 14 }), "certain: the dice said no")
+        ola = Away(13, LV3, 0.9)
+        no(ola:Printed("dager", true), "13 days: the usual chance, and the dice said no")
+        ola = Away(20, 50, 0.9)
+        no(ola:Printed("dager", true), "level 1: the usual chance")
+        ola = Away(20, LV3, 0.9, { "latsabb", "glupsk" })
+        ok(ola:Printed("Å, var du borte?", true), "a Latsabb barely looks up, however long")
+    end)
+
+    test("bytte: you swap one of your pets for another in a session, both at level 2+: the new one greets the old", function()
+        local w, ola = H.Setup{ ola = { 5159, 46 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local ns = ola.ns
+        ola:SetBond(PANDA, 300); ola:SetBond("s:46", 300)
+        ola:QuirksNow()
+        local function Out(sid) ola:Summon(sid); ns.Activity:CheckDay(); w:RunTimers() end
+        Out(5159)
+        ola:Dice(0)
+        Out(46)
+        ok(ola:PrintedLine("egg.bytte", { pet = "White Kitten", old = "Panda Cub" }), "the kitten greets the panda")
+        -- Once a day.
+        ola:ClearPrinted(); ola:Dice(0); ola:QuirksNow()
+        Out(5159)
+        no(ola:Printed("Panda Cub", true))
+        -- Not across a login (yesterday's last pet for today's first), nor with a pet below level 2.
+        w:SkipDays(1); ola:Reload(); w:Settle("bond"); ns = ola.ns
+        ola:ClearPrinted(); ola:Dice(0); ola:QuirksNow()
+        Out(46)
+        no(ola:PrintedLine("egg.bytte", { pet = "White Kitten", old = "Panda Cub" }), "a login starts afresh")
+        ola:Dice(0); Out(5159)
+        ok(ola:PrintedLine("egg.bytte", { pet = "Panda Cub", old = "White Kitten" }), "then a swap again")
+        ola:SetBond("s:46", 10)
+        w:SkipDays(1); ola:ClearPrinted(); ola:Dice(0); ola:QuirksNow()
+        Out(5159); Out(46)
+        no(ola:PrintedLine("egg.bytte", { pet = "White Kitten", old = "Panda Cub" }), "the kitten at level 1")
+    end)
 end

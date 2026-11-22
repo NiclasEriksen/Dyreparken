@@ -403,6 +403,10 @@ ns.Bus:On("DEBUG", function(on) if ns.DB.char then Activity:SetDebug(on) end end
 ------------------------------------------------------------------------------
 local apart = {} -- key -> the day ("YYYYMMDD") of its visit before today's, until Activity:Apart asks
 local visitWait, waiting = ns.Timers(), nil -- the pet whose visit waits for its time out
+-- A swap (2026-11-22, 0.10.0, the content review §2.4/§4.2: pets of your own that know each other): another pet out
+-- than the last one seen out this session (a login starts afresh: yesterday's pet isn't swapped for today's).
+-- Bus PET_SWAP (new, old); Quirks' egg bytte. (No time limit: the last sighting is its summon, hours ago maybe.)
+local lastOut
 function Activity:CheckDay()
     local w = wanted.day
     if not (w and next(w)) then return end
@@ -411,6 +415,8 @@ function Activity:CheckDay()
     self.dayMissed = not key
     if waiting and waiting ~= key then visitWait:Cancel(); waiting = nil end
     if not key then return end
+    if lastOut and lastOut ~= key then ns.Bus:Fire("PET_SWAP", key, lastOut) end
+    lastOut = key
     local c = Counter("day")
     c.on = c.on or {}
     if c.on[key] == Today() then return end

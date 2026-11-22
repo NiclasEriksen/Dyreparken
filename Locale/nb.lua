@@ -1209,6 +1209,14 @@ L["egg.gjensyn.hjemlengsel.1"] = "{pet} er så glad for å se deg igjen at det i
 L["egg.gjensyn.trofast.1"] = "{pet} har ventet på deg hver eneste dag. Det visste at du ville komme tilbake."
 L["egg.gjensyn.kjaelen.1"] = "{pet} vil ha kos. Masse kos. Det har mye å ta igjen."
 L["egg.gjensyn.latsabb.1"] = "{pet} åpner det ene øyet. Å, var du borte?"
+-- A pet at bond level 3+ back after 14+ days ({n}: days apart).
+L["egg.gjensyn.lenge.1"] = "{pet} stopper, ser på deg, og så kommer det i full fart. {n} dager! Det har ikke glemt deg."
+L["egg.gjensyn.lenge.2"] = "{pet} kjenner deg igjen med en gang, selv etter {n} dager. Det har ventet."
+L["egg.gjensyn.lenge.3"] = "Etter {n} dager er {pet} ute med deg igjen, og det vil ikke slippe deg av syne."
+-- You swap one of your pets for another, both at bond level 2+ ({pet}: the new one, {old}: the one it takes over from).
+L["egg.bytte.1"] = "{old} vinker til {pet}. Din tur nå!"
+L["egg.bytte.2"] = "{pet} overtar etter {old}. De snuser kort på hverandre i forbifarten."
+L["egg.bytte.3"] = "{pet} ser seg tilbake etter {old}. Kanskje de leker sammen en annen dag."
 L["egg.kake.1"] = "{pet} har bakt kake til level {level}!"
 L["egg.kake.2"] = "{pet} hopper rundt deg. Level {level}!"
 L["egg.kake.3"] = "{pet} har pyntet seg til level {level}."
