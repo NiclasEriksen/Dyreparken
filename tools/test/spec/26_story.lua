@@ -196,9 +196,15 @@ return function(test, H)
         before = ola:Points(PANDA)
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2366)
         eq(ola:Points(PANDA) - before, 5, "just a herb")
-        local lines = 0
+        -- Every variant's text, so a new one counts too.
+        local texts, lines = {}, 0
+        for _, key in ipairs(ola.ns.Lines("wish.granted")) do
+            texts[#texts + 1] = ola.ns.T(key, { pet = "Panda Cub", activity = "herbs", n = 10 })
+        end
         for _, line in ipairs(ola.printed) do
-            if line:find("ønsket sitt oppfylt", 1, true) or line:find("Ønsket gikk i oppfyllelse", 1, true) then lines = lines + 1 end
+            for _, text in ipairs(texts) do
+                if line:find(text, 1, true) then lines = lines + 1 end
+            end
         end
         eq(lines, 1, "one wish line")
     end)
