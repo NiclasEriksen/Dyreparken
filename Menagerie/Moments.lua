@@ -131,22 +131,39 @@ function Moments:Say(m)
     end)
 end
 
--- Lines by nature: { _key = "<prefix>.<id>.<trait|family>" } for the first the pet has with lines, else {}.
+-- A pet's nature for a row's lines: "<prefix>.<id>.<trait|family>" for the first the pet has with lines, else
+-- nil (the line it would say by its nature, never rolled: tools/lines.lua and the content spec read it).
 -- Traits first, then families; the families in a row's `first` come before its traits (seilas' reptiles, both
 -- Dykker, 2026-11-19, the user).
-function Moments.ByNature(prefix, row, key)
+function Moments.Nature(prefix, row, key)
     local has = {}
     for _, f in ipairs(row.families and ns.Scenes:Families(key) or {}) do has[f] = true end
     local function Line(x) return prefix .. "." .. row.id .. "." .. x end
     for _, f in ipairs(row.first or {}) do
-        if has[f] and ns.Strings[Line(f) .. ".1"] then return { _key = Line(f) } end
+        if has[f] and ns.Strings[Line(f) .. ".1"] then return Line(f), f end
     end
     for _, t in ipairs(row.traits or {}) do
-        if ns.Personality:Has(key, t) and ns.Strings[Line(t) .. ".1"] then return { _key = Line(t) } end
+        if ns.Personality:Has(key, t) and ns.Strings[Line(t) .. ".1"] then return Line(t), t end
     end
     for _, f in ipairs(row.families or {}) do
-        if has[f] and ns.Strings[Line(f) .. ".1"] then return { _key = Line(f) } end
+        if has[f] and ns.Strings[Line(f) .. ".1"] then return Line(f), f end
     end
+end
+
+-- How often a pet with a nature's lines says one of them; else one of the row's general lines (2026-11-22, the
+-- user: a nature's one or two lines replaced the four or five general ones, so the pets with the most personality
+-- said the fewest things; the content review, §1a). A row's `apart` lists natures whose lines say the opposite of
+-- the general ones (a pet scared of flying doesn't enjoy the view from a zeppelin): those always replace them.
+Moments.NATURE_SHARE = 0.6
+
+-- Lines by nature, as a row's test returns them: { _key = <its nature's key> }, or {} for the general lines.
+function Moments.ByNature(prefix, row, key)
+    local k, nature = Moments.Nature(prefix, row, key)
+    if not k then return {} end
+    for _, x in ipairs(row.apart or {}) do
+        if x == nature then return { _key = k } end
+    end
+    if #ns.Lines(prefix .. "." .. row.id) == 0 or ns.random() < Moments.NATURE_SHARE then return { _key = k } end
     return {}
 end
 

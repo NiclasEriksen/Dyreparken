@@ -1,5 +1,5 @@
 -- What a pet can say, outside the game (2026-11-19, review: the text side of /dp try, for editing Locale/nb.lua).
--- Runs the real ns.Lines and Moments.ByNature in a harness client, so a pet's traits, families, class and race
+-- Runs the real ns.Lines and Moments.Nature in a harness client, so a pet's traits, families, class and race
 -- pick the same texts they would in the game. Run from the addon folder:
 --
 --   luajit tools/lines.lua egg.trofe --pet 70              every text the egg can be for that species
@@ -8,8 +8,9 @@
 --   luajit tools/lines.lua voice.cat --race orc            any line group: its own text, variants, class and race
 --   luajit tools/lines.lua egg.trofe --all                 the egg's lines for every nature that has some
 --
--- An egg (egg.<id>) or a reaction (react.<id>) with lines by nature says those instead of its plain ones when
--- the pet has the first trait (then family) of its row that has lines (Moments.ByNature).
+-- An egg (egg.<id>) or a reaction (react.<id>) with lines by nature says one of those Moments.NATURE_SHARE of the
+-- time, else a plain one, when the pet has the first trait (then family) of its row that has lines
+-- (Moments.ByNature); a nature in the row's `apart` always replaces the plain ones.
 package.path = "tools/test/?.lua;" .. package.path
 local args, opt = { ... }, { pet = 5159, class = "warrior", race = "human" }
 local i = 1
@@ -91,7 +92,19 @@ if row and opt.all then
     Texts(opt.prefix)
     os.exit(0)
 end
-local nature = row and ns.Moments.ByNature(kind, row, key)._key
-if nature then print("-- by its nature (" .. nature .. "), instead of the plain ones:") end
+local nature, which = nil, nil
+if row then nature, which = ns.Moments.Nature(kind, row, key) end
+local apart = false
+for _, x in ipairs(row and row.apart or {}) do if x == which then apart = true end end
+local mixed = nature and not apart and #ns.Lines(opt.prefix) > 0
+if nature then
+    print(("-- by its nature (%s), %s:"):format(nature, mixed
+        and ("%d%% of the time, else the plain ones below"):format(math.floor(ns.Moments.NATURE_SHARE * 100 + 0.5))
+        or "instead of the plain ones"))
+end
 if #ns.Lines(nature or opt.prefix) == 0 then print("  (no text: " .. (nature or opt.prefix) .. " has no lines for this pet)") end
 Texts(nature or opt.prefix)
+if mixed then
+    print("-- the plain ones:")
+    Texts(opt.prefix)
+end

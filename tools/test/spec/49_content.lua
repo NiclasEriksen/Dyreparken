@@ -168,8 +168,24 @@ return function(test, H)
         end
     end)
 
+    test("eggs and reactions: every nature in a row's apart is one of its own, with lines", function()
+        local ns = World()
+        local function Check(prefix, row)
+            for _, x in ipairs(row.apart or {}) do
+                local listed = false
+                for _, v in ipairs(row.traits or {}) do listed = listed or v == x end
+                for _, v in ipairs(row.families or {}) do listed = listed or v == x end
+                for _, v in ipairs(row.first or {}) do listed = listed or v == x end
+                ok(listed, prefix .. "." .. row.id .. ": apart " .. x .. " isn't in its traits or families")
+                ok(ns.Strings[prefix .. "." .. row.id .. "." .. x .. ".1"], prefix .. "." .. row.id .. "." .. x .. ": no lines")
+            end
+        end
+        for _, e in ipairs(ns.Quirks.EGGS) do Check("egg", e) end
+        for _, r in ipairs(ns.Reactions.ROWS) do Check("react", r) end
+    end)
+
     test("eggs and reactions: every trait or family they list is the one picked for some species", function()
-        -- Moments.ByNature takes the first the pet has, so one listed after another that every such pet also has
+        -- Moments.Nature takes the first the pet has, so one listed after another that every such pet also has
         -- is never said (review 2026-11-19: every owl is a bird, and bird came first; both reptiles are Dykker).
         -- (Ola owns every species: a personality is known only then, Personality:Known)
         local sids = {}
@@ -181,7 +197,7 @@ return function(test, H)
         local function Walk(prefix, row)
             local picked = {}
             for _, key in ipairs(keys) do
-                local k = ns.Moments.ByNature(prefix, row, key)._key
+                local k = ns.Moments.Nature(prefix, row, key)
                 if k then picked[k] = true end
             end
             for _, list in ipairs({ row.traits or {}, row.families or {} }) do

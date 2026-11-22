@@ -112,7 +112,8 @@ end
 -- `always`: not held back by the quirks' 45 minutes, nor spending them (rare by nature, and a day late is lost).
 -- `fight`: about the fight just over: unsaid if it ended with your death.
 -- `traits`, `families`: an egg that speaks by the pet's nature (Quirks.ByNature),
--- in this order, first match wins. `watch = false`: its activity isn't watched for it
+-- in this order, first match wins, mixed with the general lines (Moments.NATURE_SHARE); `apart`: natures whose
+-- lines say the opposite of the general ones, and always replace them. `watch = false`: its activity isn't watched for it
 -- (the rest are: Quirks.WATCH is built from the eggs). `on` must be an activity in
 -- Activity.KINDS, a moment (MOMENTS) or "*": checked at load.
 -- Egg ids are permanent: char.eggs, a pet's story and the eggs:N achievements count them.
@@ -371,7 +372,7 @@ Quirks.EGGS = {
     -- REUNION_DAYS calendar days or more apart (Activity:Apart), by a chance, the pet greets you by its
     -- nature, with a cheer on its card and the pet frame; a Latsabb barely looks up, so no cheer there.
     -- `always`: a few days apart is rare by nature, and the visit comes once a day.
-    { id = "gjensyn", on = "day", always = true, traits = { "hjemlengsel", "trofast", "kjaelen", "latsabb" },
+    { id = "gjensyn", on = "day", always = true, traits = { "hjemlengsel", "trofast", "kjaelen", "latsabb" }, apart = { "latsabb" },
         cheer = function(vars) return vars._key ~= "egg.gjensyn.latsabb" end,
         test = function(ctx)
             local days = ns.Activity:Apart(ctx.key)
@@ -440,7 +441,7 @@ Quirks.EGGS = {
     -- (the reptiles before the traits, 2026-11-19, the user: both are Dykker, so the trait's line hid theirs)
     { id = "seilas", on = "boat", always = true, chance = 0.4, first = { "reptile" },
         traits = { "sjorover", "vannhund", "dykker", "hjemlengsel", "eventyrlysten" },
-        families = { "pirate", "cat", "frog", "murloc", "reptile", "bird" },
+        families = { "pirate", "cat", "frog", "murloc", "reptile", "bird" }, apart = { "cat" },
         test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Back from AFK with the pet frame on (2026-11-13, the user: "Yes, with rare chance (don't want to
     -- consume too many egg windows)"): the frame's pet slept while you were away (PetFrame.lua: every

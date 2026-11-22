@@ -61,7 +61,7 @@ end
 function Try:Row(kind, row, which)
     local key = ns.Pets:OutKey() or ns.Registry:MyPet()
     if which == "all" then return Show(Prefixes(kind, row), "all", key) end
-    local nature = key and ns.Moments.ByNature(kind, row, key) or {}
+    local nature = { _key = key and ns.Moments.Nature(kind, row, key) }
     local ok = Show({ nature._key or (kind .. "." .. row.id) }, which, key, row.bubble)
     if ok and row.cheer and key and ns.Moves then ns.Moves:Cheer(key) end
     return ok

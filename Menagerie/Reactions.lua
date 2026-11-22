@@ -9,7 +9,8 @@ local ns = select(2, ...)
 -- A row: id (permanent: char.reacts, a pet's story and the achievements to come count them), class or race, on (a
 -- sensor), spells / starts / ends (a cast's or buff's name: exactly, or how it starts or ends; names, not ids:
 -- Forever has ids of its own), test (fn(subject, row, key) -> vars or nil; vars._key a line of its own), calm (only
--- when it happened out of combat), rare, chance, traits / families (lines by nature, the first the pet has),
+-- when it happened out of combat), rare, chance, traits / families (lines by nature, the first the pet has, mixed
+-- with the general ones: Moments.ByNature), apart (natures whose lines always replace the general ones),
 -- delay (Moments.DELAY's).
 -- Pacing (the user's answer 2): common rows at most one line every 20 minutes (Moments' "react" budget,
 -- char.reactAt), beside the eggs' 45; rare ones always. Each row once a day, on a share of days (its chance,
@@ -52,9 +53,10 @@ Reactions.ROWS = {
         end },
     { id = "blodraseri", class = "WARRIOR", on = "cast", spells = { "Bloodrage" }, calm = true, traits = { "kjaelen", "trofast" } },
     -- Rogue
-    { id = "lommetyv", class = "ROGUE", on = "cast", spells = { "Pick Pocket" }, traits = { "roverdyr", "ordensdyr", "sjorover" } },
+    { id = "lommetyv", class = "ROGUE", on = "cast", spells = { "Pick Pocket" }, traits = { "roverdyr", "ordensdyr", "sjorover" },
+        apart = { "ordensdyr" } },
     { id = "lasedirk", class = "ROGUE", on = "cast", spells = { "Pick Lock" }, traits = { "sjorover", "oppdager" } },
-    { id = "spurt", class = "ROGUE", on = "cast", spells = { "Sprint" }, calm = true, traits = { "hoppetass", "latsabb" } },
+    { id = "spurt", class = "ROGUE", on = "cast", spells = { "Sprint" }, calm = true, traits = { "hoppetass", "latsabb" }, apart = { "latsabb" } },
     -- Hunter
     { id = "spilldod", class = "HUNTER", on = "cast", spells = { "Feign Death" }, traits = { "trofast", "skoyer" } },
     { id = "mating", class = "HUNTER", on = "cast", spells = { "Feed Pet" }, traits = { "glupsk" } },
@@ -70,7 +72,8 @@ Reactions.ROWS = {
             return { _key = "react.demonen." .. s.name:match("^Summon (%a+)$"):lower() }
         end },
     { id = "helsestein", class = "WARLOCK", on = "cast", starts = { "Create Healthstone" }, traits = { "glupsk" } },
-    { id = "inferno", class = "WARLOCK", on = "cast", spells = { "Inferno", "Ritual of Doom" }, rare = true, traits = { "balkos" } },
+    -- (inferno and forfedre were rare until 2026-11-22, the user: "common-ish", so they only have a chance now)
+    { id = "inferno", class = "WARLOCK", on = "cast", spells = { "Inferno", "Ritual of Doom" }, traits = { "balkos" }, apart = { "balkos" } },
     -- Mage
     { id = "trylleskaffet", class = "MAGE", on = "cast", starts = { "Conjure Food", "Conjure Water" }, traits = { "glupsk" } },
     { id = "sau", class = "MAGE", on = "cast", starts = { "Polymorph" }, families = { "farm", "reptile", "rabbit" } },
@@ -80,7 +83,8 @@ Reactions.ROWS = {
     { id = "svev", class = "PRIEST", on = "cast", spells = { "Levitate" }, traits = { "skybaren", "hjemlengsel" } },
     { id = "skyggeform", class = "PRIEST", on = "cast", spells = { "Shadowform" }, traits = { "ordensdyr", "kjaelen" },
         families = { "spirit" } },
-    { id = "indreild", class = "PRIEST", on = "cast", spells = { "Inner Fire" }, calm = true, traits = { "balkos", "vinterpels" } },
+    { id = "indreild", class = "PRIEST", on = "cast", spells = { "Inner Fire" }, calm = true, traits = { "balkos", "vinterpels" },
+        apart = { "vinterpels" } },
     -- Paladin: the bubble-hearth (Divine Shield, then a hearthstone that ends within BUBBLE_SPAN)
     { id = "boblehjem", class = "PALADIN", on = "cast", spells = { "Hearthstone" }, rare = true, traits = { "skoyer", "ordensdyr" },
         test = function(_, row, key)
@@ -93,7 +97,8 @@ Reactions.ROWS = {
     { id = "velsignet", class = "PALADIN", on = "buff", starts = { "Blessing of ", "Greater Blessing of " }, calm = true,
         traits = { "ordensdyr" } },
     -- Druid: the forms are casts as well
-    { id = "kattedyr", class = "DRUID", on = "cast", spells = { "Cat Form" }, families = { "cat", "rodent", "bird", "frog" } },
+    { id = "kattedyr", class = "DRUID", on = "cast", spells = { "Cat Form" }, families = { "cat", "rodent", "bird", "frog" },
+        apart = { "rodent", "bird", "frog" } },
     { id = "bjornemor", class = "DRUID", on = "cast", spells = { "Bear Form", "Dire Bear Form" }, families = { "bear" } },
     { id = "kjempeugle", class = "DRUID", on = "cast", spells = { "Moonkin Form" }, rare = true, traits = { "nattugle" },
         families = { "owl" } },
@@ -117,7 +122,7 @@ Reactions.ROWS = {
     { id = "astral", class = "SHAMAN", on = "cast", spells = { "Astral Recall" }, traits = { "hjemlengsel" } },
     -- (2026-11-15, from a shaman's evening in the log: the spells cast most with nothing to say; the heals left
     -- out, cast too often to stay fun)
-    { id = "forfedre", class = "SHAMAN", on = "cast", spells = { "Ancestral Spirit" }, rare = true, traits = { "trofast" },
+    { id = "forfedre", class = "SHAMAN", on = "cast", spells = { "Ancestral Spirit" }, traits = { "trofast" },
         families = { "spirit" } },
     { id = "renselse", class = "SHAMAN", on = "cast", spells = { "Purge" }, traits = { "skoyer", "rampete" } },
     -- Race: a row with a race and no class is every class's of that race (UnitRace's second, the client's

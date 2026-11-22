@@ -63,6 +63,27 @@ return function(test, H)
         ok(per:Printed("Det var visst litt for høyt", true), "the end of you: its own line")
         for _, id in ipairs(ola.ns.Quirks.EggById("stup").traits) do ok(ola.ns.Strings["egg.stup." .. id .. ".1"], id) end
     end)
+    -- Its nature's lines mix with the general ones (Moments.NATURE_SHARE, 2026-11-22, the user); a nature in the
+    -- row's `apart` says the opposite of them, so it always replaces them.
+    test("its nature's lines come most of the time, the general ones the rest; an apart nature always its own", function()
+        local w, ola = Setup({ "hoppetass" })
+        local M = ola.ns.Moments
+        ola:Dice(M.NATURE_SHARE + 0.01)
+        Fall(w, ola)
+        no(ola:Printed("Det hoppet skal det prøve selv", true), "a roll past the share: not its nature's line")
+        ok(ola:Printed("Gikk det bra?", true) or ola:Printed("Var det virkelig", true) or ola:Printed("bekymret", true)
+            or ola:Printed("Neste gang tar dere trappa", true), "one of the general lines instead")
+        local row = { id = "stup", traits = { "hoppetass" } }
+        eq(M.Nature("egg", row, "s:5159"), "egg.stup.hoppetass", "the nature, never rolled")
+        eq(M.ByNature("egg", row, "s:5159")._key, nil, "rolled past the share: the general lines")
+        row.apart = { "hoppetass" }
+        eq(M.ByNature("egg", row, "s:5159")._key, "egg.stup.hoppetass", "apart: its own, whatever the roll")
+        ola:Dice(M.NATURE_SHARE - 0.01)
+        row.apart = nil
+        eq(M.ByNature("egg", row, "s:5159")._key, "egg.stup.hoppetass", "within the share: its own")
+        -- A row with no general lines at all (the demon's summons): always the nature's.
+        eq(M.ByNature("react", { id = "demonen", families = { "bear" } }, "s:5159")._key, nil, "no such nature: none")
+    end)
     -- From the log (review 2026-11-21): 12 of 26 falls came 0.5-1.1 s after a fight's end (a mob's last swing
     -- landing as it ended), the three fatal ones a wipe at a boss, and two hits were two falls.
     test("no fall: a fight's last swings, hits on you already dead, a second hit right after", function()
