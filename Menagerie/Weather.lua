@@ -7,7 +7,13 @@ local ns = select(2, ...)
 -- read 0.94; docs/FOREVER_API.md). Read at WEATHER_CHANGED (it fires as the weather turns, with no payload: the
 -- probe, 2026-11-22, rain ending in Un'Goro), at a zone or subzone change and a loading screen (another zone's
 -- weather; whether the event comes with those too isn't known). No polling. (Built first with a read at every
--- activity as well, while the event was unknown: gone once the probe saw it fire.)
+-- activity as well, while the event was unknown: gone once the probe saw it fire.) It fires a moment after you
+-- enter a zone with other weather too, sometimes twice (the probe, the same day, a flight across Tanaris and the
+-- Barrens): sand read 0.59, rain 0.81.
+--
+-- Only with a pet out (2026-11-22, the probe: a flight path's zones read with no pet out, and their sandstorm and
+-- rain spent the half hour for nothing): without one, nothing is noted, and it's read again when one comes out
+-- (a summon, Bus PET_OUT: after a flight or a loading screen), so landing in the rain is still a moment.
 --
 -- Rain, snow or a sandstorm starting (not under a roof: IsIndoors, nor too light: MIN_INTENSITY) is a moment: Bus
 -- WEATHER (kind, old, intensity), the activity of the same name (a pet can like or dislike it) and Quirks' weather
@@ -43,6 +49,7 @@ function Weather:Now() return now end
 function Weather:Check(why)
     local kind, intensity = self.Read()
     if not kind or kind == now then return end
+    if not ns.Pets:OutKey() then return end -- (read again once one is: Init)
     local old = now
     now = kind
     ns.Log("Weather", "%s -> %s (%.2f, %s)", tostring(old), kind, intensity, why)
@@ -60,6 +67,9 @@ function Weather:Init()
     for _, e in ipairs({ "WEATHER_CHANGED", "ZONE_CHANGED", "ZONE_CHANGED_NEW_AREA", "PLAYER_ENTERING_WORLD" }) do
         ns.Events:On(e, Weather, function(_, event) Weather:Check(event) end)
     end
+    -- A pet out again: a summon (it lands a moment later, as Activity's day check waits too), or back on its own.
+    hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() C_Timer.After(2, function() Weather:Check("summon") end) end)
+    ns.Bus:On("PET_OUT", function() Weather:Check("pet out") end)
     self:Check("login")
 end
 
