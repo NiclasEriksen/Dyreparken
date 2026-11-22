@@ -484,6 +484,11 @@ Bond.MINOR_FLAVOR = 0.3   -- a minor like's first time in a day: the chance of i
 
 -- Points for an activity done with a pet of ours out (half for one we
 -- haven't adopted: Bond:Rate).
+-- Seconds between two activities of a kind that give points (2026-11-22, the content review §3.2, the user: "more
+-- like each minute"): the free ones, a keypress each. The activity still counts (the eggs' jumps, the stats); only
+-- the points wait. Dance, cuddle and the silly emotes are spaced where they're heard (Activity.EMOTE_EVERY).
+Bond.SPACED = { jump = 60, chat = 60 }
+
 function Bond:OnActivity(id, n, key)
     if id == "fish" then self:Contest(key) end
     local C, P = ns.Config, ns.Personality
@@ -508,6 +513,14 @@ function Bond:OnActivity(id, n, key)
     local minor = not likes[id] and P:MinorLike(key) == id
     if not likes[id] and not minor and not ns.Activity.KIND[id].always then return end
     local d = Ledger(key)
+    -- Likes that cost nothing count once a minute at most (Bond.SPACED; the emotes are spaced at their source).
+    local gap = Bond.SPACED[id]
+    if gap then
+        d.spaced = d.spaced or {}
+        local now = ns.Now()
+        if d.spaced[id] and now - d.spaced[id] < gap then return end
+        d.spaced[id] = now
+    end
     local capKey, per, cap, flavor = id, C.BOND_OTHER_POINTS, C.BOND_OTHER_CAP, nil
     if likes[id] then
         per, cap = C.BOND_LIKED_POINTS, C.BOND_LIKED_CAP

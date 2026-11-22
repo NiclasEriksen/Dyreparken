@@ -83,6 +83,27 @@ return function(test, H)
         eq(A:Count("jump"), 2, "one per ten jumps")
     end)
 
+    -- The free likes (2026-11-22, the content review §3.2, the user: "more like each minute"): a keypress each, so
+    -- their points come once a minute at most; the activity still counts (the eggs' jumps, the stats).
+    test("a liked jump or guild line gives points once a minute at most, and still counts every time", function()
+        local w, ola, A = Setup()
+        ola:Slash("adopter panda"); w:Run(5)
+        ola:Traits({ "hoppetass", "pratsom" })
+        local me = ola.env.UnitGUID("player")
+        local function Jump10() for _ = 1, 10 do ola.env.JumpOrAscendStart() end; w:Run(1) end
+        local function Liked(id) return ola.ns.DB.char.bondToday.pets[PANDA].got[id] or 0 end
+        Jump10(); Jump10(); Jump10()
+        eq(A:Count("jump"), 3, "every tenth jump counts")
+        eq(Liked("jump"), ola.ns.Config.BOND_LIKED_POINTS, "points for the first only")
+        w:Run(ola.ns.Bond.SPACED.jump)
+        Jump10()
+        eq(Liked("jump"), 2 * ola.ns.Config.BOND_LIKED_POINTS, "a minute on: again")
+        Chat(ola, "CHAT_MSG_GUILD", "hei", me); Chat(ola, "CHAT_MSG_GUILD", "hallo", me); w:Run(1)
+        eq(A:Count("chat"), 2)
+        eq(Liked("chat"), ola.ns.Config.BOND_LIKED_POINTS)
+        eq(A.EMOTE_EVERY, 60, "the emotes: a minute too")
+    end)
+
     test("back on your feet after dying, not after every loading screen", function()
         local w, ola, A = Setup()
         ola:Fire("PLAYER_ALIVE")

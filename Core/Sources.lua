@@ -177,9 +177,10 @@ function Activity.EmoteKind(text)
     return nil
 end
 -- Each kind counts once per EMOTE_EVERY, like a dive (review 2026-11-19, the user: five /dance filled a 25-point
--- like in seconds; a like you live with, not a macro).
--- (Server time, kept with the day's state: through a /reload too. A new day forgets it, a few minutes at most.)
-Activity.EMOTE_EVERY = 300
+-- like in seconds; a like you live with, not a macro). A minute since 2026-11-22 (the user: five was "a bit
+-- harsh"; jumps and chat are spaced as much in Bond.SPACED).
+-- (Server time, kept with the day's state: through a /reload too. A new day forgets it, a minute at most.)
+Activity.EMOTE_EVERY = 60
 for _, kind in ipairs({ "dance", "cuddle", "fun" }) do
     Activity:Source({ id = kind, events = { "CHAT_MSG_TEXT_EMOTE" }, filter = function(_, text, ...)
         if not Own((select(11, ...))) then return nil end
