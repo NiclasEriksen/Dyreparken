@@ -33,14 +33,42 @@ return function(test, H)
         ola.state.faction = "Horde"
         eq(#W.Zones(OWL), 0, "never the other faction's land")
         ola.state.level = 50
-        eq(table.concat(W.Zones(OWL), ", "), "Moonglade, Shen'dralas", "Shen'dralas: Forever's own, the moon's (2026-11-20)")
+        eq(table.concat(W.Zones(OWL), ", "), "Dalaran, Moonglade, Shen'dralas, Stonetalon Mountains, The Hinterlands",
+            "Shen'dralas and Dalaran: Forever's own, the moon's and the mages'; an owl is a bird too (2026-11-22)")
         -- Vinterpels: the cold ones too (not Alterac Valley, a battleground).
         ola:Traits({ "vinterpels", "latsabb" }, 68)
         ola.state.level, ola.state.faction = 60, "Alliance"
-        eq(table.concat(W.Zones(OWL), ", "), "Alterac Mountains, Darnassus, Dun Morogh, Ironforge, Moonglade, Shen'dralas, Teldrassil, Winterspring")
-        -- The panda's (a bear: Ashenvale 18, Feralas 40) at 10: none.
-        ola.state.level = 10
+        eq(table.concat(W.Zones(OWL), ", "), "Alterac Mountains, Dalaran, Darnassus, Dun Morogh, Ironforge, Moonglade, Shen'dralas, Stonetalon Mountains, Teldrassil, The Hinterlands, Winterspring")
+        -- The panda's (a bear: Loch Modan 10, Ashenvale 18, Feralas 40) at 9: none; at 10, Loch Modan.
+        ola.state.level = 9
         eq(#W.Zones(PANDA), 0)
+        ola.state.level = 10
+        eq(table.concat(W.Zones(PANDA), ", "), "Loch Modan")
+    end)
+
+    test("every choice gets its days: each of four extra wishes, each of four likes (2026-11-22: Adler32's never)", function()
+        local w, ola, kari, W = Setup()
+        local function Days(fn)
+            local n = {}
+            for d = 0, 364 do
+                local id = fn(os.date("%Y%m%d", os.time({ year = 2026, month = 1, day = 1 + d, hour = 12 })))
+                if id then n[id] = (n[id] or 0) + 1 end
+            end
+            return n
+        end
+        -- Flokkdyr with company lately, at 10: three kinds of company and a trip (Loch Modan), four choices.
+        ola:Traits({ "flokkdyr", "latsabb" }, 5159)
+        ola.ns.DB.char.company = ola.ns.Now()
+        local extra = Days(function(day) return (W:Extra(PANDA, day)) end)
+        for _, id in ipairs({ "guildgroup", "playmate", "guildpet", "zone" }) do
+            ok((extra[id] or 0) >= 10, ("a wish by nature, %s: %d days of 365"):format(id, extra[id] or 0))
+        end
+        ola.ns.DB.char.company = nil
+        ola.ns.Personality.Of = function() return {}, { "herb", "fish", "quest", "skin" } end
+        local likes = Days(function(day) return (W:For(PANDA, day)) end)
+        for _, id in ipairs({ "herb", "fish", "quest", "skin" }) do
+            ok((likes[id] or 0) >= 40, ("a like, %s: %d days of 365"):format(id, likes[id] or 0))
+        end
     end)
 
     test("company from the guild: for a social trait or family, never a loner", function()
@@ -82,6 +110,7 @@ return function(test, H)
         end
         ok(n >= 25 and n <= 75, "about one day in four (less the campfire's): " .. n)
         ola:Traits({ "latsabb", "glupsk" }, 5159)
+        ola.state.level = 9 -- (under the bear's first trip, Loch Modan at 10: likes only)
         for d = 1, 28 do
             local id = W:For(PANDA, ("202602%02d"):format(d))
             no(extra[id] or id == "zone", "nothing fits: its likes and the campfire only, " .. tostring(id))
@@ -215,6 +244,6 @@ return function(test, H)
         eq(ns.Sense.CAPITALS["Orgrimmar"], "Horde"); ok(ns.Sense.NEUTRAL["Booty Bay"])
         ok(ns.Personality.COLD["Winterspring"]); ok(ns.Personality.CITIES["Undercity"])
         eq(ns.Wish.ZONES["Tanaris"][1], 40); eq(ns.Wish.ZONES["Gnomeregan"], nil, "an instance: never a trip")
-        ok(table.concat(ns.Quirks.HOME_ZONES.pirate, ",") == "Stranglethorn Vale,Tanaris")
+        eq(table.concat(ns.Quirks.HOME_ZONES.pirate, ","), "Stranglethorn Vale,Tanaris,The Barrens")
     end)
 end

@@ -83,7 +83,7 @@ return function(test, H)
         ok(ola:Listening("ZONE_CHANGED"), "heard while a town is open")
         ola.state.subzone = "Ratchet"; ola:Fire("ZONE_CHANGED"); w:Run(1)
         eq(State(V, "zone:Ratchet"), "seen")
-        for _, town in ipairs({ "Booty Bay", "Everlook", "Gadgetzan", "Steamwheedle Port" }) do
+        for _, town in ipairs({ "Booty Bay", "Everlook", "Gadgetzan", "Steamwheedle Port", "Powderfuse Port", "Dalaran" }) do
             ola.state.subzone = town; ola:Fire("ZONE_CHANGED"); w:Run(1)
         end
         no(ola:Listening("ZONE_CHANGED"), "every town seen: not heard any more")

@@ -205,6 +205,7 @@ return function(test, H)
     test("a wish is never for something this client can't see happen", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         local W, A = ola.ns.Wish, ola.ns.Activity
+        ola.state.level = 9 -- (under the bear's first trip, Loch Modan at 10: likes only)
         ola.ns.Personality.Of = function() return {}, { "herb", "fish" } end
         local seen = {}
         for d = 1, 30 do seen[W:For(PANDA, ("202611%02d"):format(d))] = true end

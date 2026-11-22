@@ -87,6 +87,7 @@ return function(test, H)
         -- A wish is something the pet likes and you can do: never dying, a level or the day itself.
         ola:Traits{ "trofast", "ambisios" } -- likes revive, level (+ herbs)
         P.BY_FAMILY.bear = nil -- (the panda's own herbs only, not a bear's fishing)
+        ola.state.level = 9 -- (under the bear's first trip, Loch Modan at 10: likes only)
         for d = 1, 30 do eq(W:For(PANDA, ("202611%02d"):format(d)), "herb", "the one doable like") end
         P.BY_SPECIES = {}
         P.BY_FAMILY, P.DEFAULT = {}, {}
