@@ -492,6 +492,9 @@ L["play.rabbit.rabbit.2"] = "{pet} og {friend} vasket ørene til hverandre. Det 
 L["play.owl.owl.1"] = "{pet} og {friend} hoet til hverandre hele natta. Ingen vet hva de snakket om."
 L["play.owl.owl.2"] = "{pet} og {friend} satt på samme grein og så kloke ut sammen."
 L["bond.liked"] = "{pet} koste seg med {activity}!"   -- the first liked thing of the day
+-- Back after a week or more away (any character of the account): the first pet out has its day's points twice.
+L["bond.comeback"] = "Velkommen tilbake! {pet} har savnet deg, og dagens besøk teller dobbelt. (+{n} båndpoeng)"
+L["bond.comeback.full"] = "Velkommen tilbake! {pet} har savnet deg."
 L["bond.full"] = "|cffffd100Båndet med {pet} er fullt for i dag. Fortsett i morgen!|r"
 
 ------------------------------------------------------------------------------

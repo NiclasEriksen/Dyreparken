@@ -497,6 +497,7 @@ ns.Bus.EVENTS = {
     MY_BOND = "key, entry: this character's bond entry to publish to the guild (Bond)",
     BOND_LEVEL = "key, level, levelName: a bond of yours reached a new level (Bond)",
     BOND_FULL = "key: a pet's day is full (Bond)",
+    COMEBACK = "key, given: back after a week away, this pet's day counted double (Bond; given: its points, or nil)",
     BOND_LINE = "key, text, kind: a bond reward's line to show (Bond: a like, a wish, a first, a playdate ...)",
     PET_SAID = "key, bubble, text: a pet's line, for the pet frame's bubble (say, dislike, like, major, or an egg's own)",
     WISH_DONE = "(none): a wish came true, counted for the day (Wish)",

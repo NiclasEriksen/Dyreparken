@@ -117,6 +117,13 @@ end)
 ns.Bus:On("BOND_FULL", function(key)
     if key == ns.Registry:MyPet() then ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end
 end)
+ns.Bus:On("COMEBACK", function(key, given)
+    local name = ns.Registry:NameOf(key)
+    local text = given and ns.PickLine("bond.comeback", { pet = name, n = given })
+        or ns.PickLine("bond.comeback.full", { pet = name })
+    ns.PrintGold(text)
+    ns.Bus:Fire("PET_SAID", key, "major", text)
+end)
 ns.Bus:On("BOND_LINE", function(key, text, kind)
     if ns.Settings:Chatty() then ns.PrintGold(text) end
     ns.Bus:Fire("PET_SAID", key, kind or "like", text)

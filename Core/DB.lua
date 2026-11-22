@@ -49,6 +49,9 @@ local ACCOUNT_DEFAULTS = {
     },
     -- [Onboarding]
     welcomed = nil, -- told what Dyreparken is, once an account (account migration 15: not for an old install)
+    -- [Bond]
+    played = nil,   -- "YYYYMMDD": the last day a character of the account played (Bond:CheckComeback)
+    comeback = nil, -- "YYYYMMDD": back after a week or more that day, the first pet out's double day still owed
     -- [SceneGallery] (developer galleries, through their picks tables; Scenes and Decor read them)
     scenePicks = {}, -- family -> background path, picked in /dp probe bg
     decorPicks = {}, -- slot -> texture path or "atlas:<name>", picked in /dp probe decor

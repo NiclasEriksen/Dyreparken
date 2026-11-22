@@ -489,6 +489,25 @@ Bond.MINOR_FLAVOR = 0.3   -- a minor like's first time in a day: the chance of i
 -- the points wait. Dance, cuddle and the silly emotes are spaced where they're heard (Activity.EMOTE_EVERY).
 Bond.SPACED = { jump = 60, chat = 60 }
 
+-- Back after a while (2026-11-22, the content review §3.3, the user: "you" away, not since you last saw that
+-- pet, so a rotation of pets never brings it): no character of the account played for COMEBACK_DAYS or more,
+-- and the first pet out on the day you're back has its day's points COMEBACK_X times, within the day's limit.
+-- account.played: the last day a character logged in or had a visit; account.comeback: the day one is owed.
+Bond.COMEBACK_DAYS, Bond.COMEBACK_X = 7, 2
+local function DayOf(s)
+    local y, m, d = s:match("^(%d%d%d%d)(%d%d)(%d%d)$")
+    return y and ns.Bonds.DayNumber(time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12 }))
+end
+function Bond:CheckComeback()
+    local account, today = ns.DB.global, ns.Today()
+    local last = type(account.played) == "string" and DayOf(account.played)
+    if last and DayOf(today) - last >= self.COMEBACK_DAYS then
+        account.comeback = today
+        ns.Log("Bond", "back after %d days: the first pet out today has a double day", DayOf(today) - last)
+    end
+    account.played = today
+end
+
 function Bond:OnActivity(id, n, key)
     if id == "fish" then self:Contest(key) end
     local C, P = ns.Config, ns.Personality
@@ -501,8 +520,15 @@ function Bond:OnActivity(id, n, key)
         local x, why = P:DayFactor(key, now)
         local d = Ledger(key)
         d.dayX = x -- (Bond:DayAgain: the calendar may answer later)
+        local account = ns.DB.global
+        account.played = ns.Today() -- (a session that runs past midnight plays the new day too)
+        local back = account.comeback == ns.Today()
+        if back then account.comeback, d.comeback = nil, true end
         if why and why.dayFlavor then Flavor(d, key, why.dayFlavor(name, now)) end
-        return Grant(d, Scaled(C.BOND_DAY_POINTS * n * x), key)
+        local before = d.total
+        local result = Grant(d, Scaled(C.BOND_DAY_POINTS * n * x * (d.comeback and Bond.COMEBACK_X or 1)), key)
+        if back then ns.Bus:Fire("COMEBACK", key, d.total > before and d.total - before or nil) end
+        return result
     end
     local likes = P:Of(key)
     -- The bond counts what it watches itself (Bond:Watch): the activities
@@ -636,7 +662,7 @@ function Bond:DayAgain()
         local x, why = 1, nil
         if p.dayX then x, why = ns.Personality:DayFactor(key, now) end
         if x > (p.dayX or x) then
-            local day, rate = ns.Config.BOND_DAY_POINTS, self:Rate(key)
+            local day, rate = ns.Config.BOND_DAY_POINTS * (p.comeback and Bond.COMEBACK_X or 1), self:Rate(key)
             local more = math.ceil(day * x * rate) - math.ceil(day * p.dayX * rate)
             ns.Log("Bond", "day again for %s: x%d (+%d)", key, x, more)
             p.dayX = x
@@ -647,6 +673,7 @@ function Bond:DayAgain()
 end
 
 function Bond:Init()
+    self:CheckComeback() -- (first: the day's visit 30 s in takes what it owes)
     ns.Bus:On("HOLIDAYS", function() Bond:DayAgain() end)
     -- Any pet of ours that's out: its own bond (the summoned pet is always ours).
     ns.Bus:On("ACTIVITY", function(id, n, key, _, extra)
