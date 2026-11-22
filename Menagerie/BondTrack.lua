@@ -121,6 +121,9 @@ function Track:Build(card, c, panel)
     b.today:SetBlendMode("ADD")
     b.today:SetVertexColor(1, 1, 0.8, 0.35)
     b.today:Hide()
+    -- Its width from the bar's, which stretches to the goal's text (laid out after the card updates): set again
+    -- when that changes, else it stopped short of the fill's tip, a third color (2026-11-22, the user).
+    b:SetScript("OnSizeChanged", function(self, w) if self.todayShare then self.today:SetWidth(w * self.todayShare) end end)
     -- The points, on the bar only while you hover it (on all the time, it
     -- was noise: seen 2026-11-08).
     b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
@@ -240,12 +243,15 @@ function Track:Update(card, key, color)
         local lo = math.max(0, math.min(1, (points - today - from) / span))
         local hi = math.max(0, math.min(1, (points - from) / span))
         if mine and today > 0 and hi > lo then
+            -- Ending at the fill's tip, wherever the fill is (its growth too).
+            local fill = b:GetStatusBarTexture()
             b.today:ClearAllPoints()
-            local w = b:GetWidth() or BAR_W -- (it stretches to the goal's text)
-            b.today:SetPoint("TOPLEFT", b, "TOPLEFT", w * lo, 0)
-            b.today:SetSize(w * (hi - lo), b:GetHeight() or 13)
+            b.today:SetPoint("TOPRIGHT", fill, "TOPRIGHT"); b.today:SetPoint("BOTTOMRIGHT", fill, "BOTTOMRIGHT")
+            b.todayShare = hi - lo
+            b.today:SetWidth((b:GetWidth() or BAR_W) * b.todayShare)
             b.today:Show()
         else
+            b.todayShare = nil
             b.today:Hide()
         end
         local vars = { have = points, need = nextAt, today = today }

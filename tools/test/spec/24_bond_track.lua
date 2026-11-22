@@ -141,8 +141,14 @@ return function(test, H)
         eq(ola:Points(PANDA), 310)
         eq(b.text.text, "310 / 530  (+10)", "today's points on the bar")
         ok(b.today:IsShown(), "lit up")
-        local lo, width = b.today.points[1][4], b.today.size[1]
-        ok(math.abs(lo - 128 * 30 / 260) < 1e-6, "from where today began"); ok(math.abs(width - 128 * 10 / 260) < 1e-6)
+        local fill = b:GetStatusBarTexture()
+        eq(b.today.points[1][1] .. " " .. b.today.points[1][3], "TOPRIGHT TOPRIGHT"); eq(b.today.points[1][2], fill,
+            "it ends at the fill's tip")
+        ok(math.abs(b.today.size[1] - 128 * 10 / 260) < 1e-6, "today's share of the bar")
+        -- 2026-11-22, the user: three colors on the bar. It stretches to the goal's text once laid out: today's
+        -- part follows, so it still reaches back to where today began.
+        b.scripts.OnSizeChanged(b, 200, 13)
+        ok(math.abs(b.today.size[1] - 200 * 10 / 260) < 1e-6, "the bar's new width")
         eq(b.next.text, "220 poeng til God venn")
         match(ola:TipOf(b).text, "I dag: %+10 av 75 mulige poeng%.")
         -- Herbs (liked, 25 a day), boss-kills, quests: the day's 75 is the limit.
