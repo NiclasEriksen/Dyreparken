@@ -491,6 +491,12 @@ function Client:Drive()
         end
     end
 end
+-- The weather here: type (Enum.WeatherType: 0 clear, 1 rain, 2 snow, 3 sand) and intensity (0-1); indoors: under
+-- a roof. Read at the addon's own moments (a zone change here, as a step in the rain would bring one).
+function Client:Weather(type, intensity, indoors)
+    self.state.weather, self.state.indoors = { type, intensity or (type == 0 and 0 or 0.9) }, indoors or nil
+    self:Fire("ZONE_CHANGED")
+end
 function Client:Mount() self.state.mounted = true; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 function Client:Dismount() self.state.mounted = false; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 -- Moving: the client's start and stop events, and GetUnitSpeed.

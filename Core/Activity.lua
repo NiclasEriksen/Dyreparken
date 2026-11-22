@@ -92,6 +92,10 @@ Activity.KINDS = {
     -- (likes since 2026-11-19: Skybåren's zeppelins, the pirates' boats; never a wish, a ride can't be had on demand)
     { "zeppelin", wish = false, mark = "cloud" }, -- a zeppelin ride (Menagerie/Voyage.lua; it counts as flying, "taxi", too)
     { "boat", wish = false, mark = "drop" },      -- a boat ride (Menagerie/Voyage.lua); cats mind it
+    -- The weather starting (Menagerie/Weather.lua, 2026-11-22): not on demand, so never a wish.
+    { "rain", wish = false, mark = "rain" },
+    { "snow", wish = false, mark = "snowflake" },
+    { "sand", wish = false, mark = "grain" },
     -- A character's big moments (Menagerie/Feats.lua, 2026-11-12, the user).
     { "feat", wish = false },     -- a class quest's reward, riding, level 60 (extra: the feat's id): Feats' points
     { "train", wish = false },    -- a trainer visit (its learned-spell lines as one): only the eggs watch it

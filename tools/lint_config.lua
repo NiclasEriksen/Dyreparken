@@ -29,7 +29,7 @@ local OPTIONAL = {
     "BugGrabber",            -- Dev/Errors: the other addon, when loaded
     "C_AddOnProfiler",       -- Dev/Perf
     "C_SpecializationInfo", "GetNumSpecializations", -- Dev/ApiProbe: what the client has
-    "GetRealZoneText", "GetMinimapZoneText", "IsIndoors", "IsCurrentSpell", "IsAutoRepeatSpell",
+    "GetRealZoneText", "GetMinimapZoneText", "IsCurrentSpell", "IsAutoRepeatSpell",
 }
 local OPTIONAL_FIELDS = { C_ChatInfo = { "SendChatMessage" }, C_ClassTalents = { "HasUnspentTalentPoints" } }
 local OURS = { DyreparkenDB = true, DyreparkenDebugDB = true, DyreparkenCharDB = true, SlashCmdList = true,

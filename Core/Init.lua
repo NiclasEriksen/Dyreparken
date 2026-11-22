@@ -518,6 +518,7 @@ ns.Bus.EVENTS = {
     ACTIVE_PET = "key: the pet auto-summon keeps out changed (Summon)",
     FAMILIAR = "key or nil: a mage's familiar came out, or went (Familiar)",
     CUDDLED = "key: the card's cuddle of the day for the pet out (Cuddle; char.cuddleDays)",
+    WEATHER = "kind, old, intensity: rain, snow or a sandstorm started here (Weather.lua)",
     PAT_GIVEN = "key, owner: you patted a guildmate's pet (Bonds:Pat; char.patsGiven)",
     PET_SWAP = "new, old: another pet out than the last one seen out this session (Activity:CheckDay)",
     PET_OUT = "key: auto-summon found its pet already out (Summon:Check); Activity starts the day's visit if due, before Check goes on",

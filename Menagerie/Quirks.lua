@@ -198,6 +198,7 @@ function Quirks.Easter(y)
     return ("%02d%02d"):format(math.floor(n / 31), n % 31 + 1)
 end
 
+local WEATHER_CHANCE = 0.6 -- (the weather eggs: the share of days; a rainy zone is rainy often)
 Quirks.EGGS = {
     { id = "mai17", on = "day", always = true, test = On("0517") },
     { id = "jul", on = "day", always = true, test = On("1224") },
@@ -400,6 +401,18 @@ Quirks.EGGS = {
             vars.n = days
             return vars
         end },
+    -- The weather turning (2026-11-22, 0.10.0, Weather.lua: rain, snow or a sandstorm starting, not under a roof): by
+    -- its nature, on WEATHER_CHANCE of days each. Those that mind it (a cat in the rain, a Solelsker in snow) say
+    -- only their own lines (apart).
+    { id = "regn", on = "weather", chance = WEATHER_CHANCE,
+        traits = { "solelsker", "vannhund", "friluftsdyr", "latsabb" }, families = { "cat", "frog", "plant", "murloc", "ooze", "bird" },
+        apart = { "cat", "solelsker" }, test = function(ctx) return ctx.extra == "rain" and Quirks.ByNature(ctx) or nil end },
+    { id = "snofall", on = "weather", chance = WEATHER_CHANCE,
+        traits = { "vinterpels", "solelsker", "hoppetass", "kosete" }, families = { "reptile", "wolf", "bird", "cat" },
+        apart = { "solelsker", "reptile" }, test = function(ctx) return ctx.extra == "snow" and Quirks.ByNature(ctx) or nil end },
+    { id = "sandstorm", on = "weather", chance = WEATHER_CHANCE,
+        traits = { "vinterpels", "steinhard", "huleboer" }, families = { "reptile", "snake", "cat", "bird" },
+        apart = { "vinterpels" }, test = function(ctx) return ctx.extra == "sand" and Quirks.ByNature(ctx) or nil end },
     -- Two pets of yours that know each other (2026-11-22, 0.10.0, the content review §2.4): you swap one for the
     -- other in a session (Activity's PET_SWAP), both at bond level SWAP_LEVEL or more with you; the new one greets
     -- the old. Half the days, once a day.
@@ -510,7 +523,7 @@ Quirks.EGGS = {
     end },
 }
 -- Eggs on moments that aren't activities: "*" eggs don't ride on them.
-local MOMENTS = { seen = true, name = true, party = true, playdate = true, swap = true }
+local MOMENTS = { seen = true, name = true, party = true, playdate = true, swap = true, weather = true }
 
 local eggsOn, eggById = {}, {} -- activity -> its eggs; id -> egg
 for _, e in ipairs(Quirks.EGGS) do
@@ -676,6 +689,10 @@ function Quirks:Init()
         if type(e) == "table" and e.n then Quirks:Egg("name", key, e.n) end
     end)
     ns.Bus:On("PET_SWAP", function(new, old) Quirks:Egg("swap", new, old) end)
+    ns.Bus:On("WEATHER", function(kind)
+        local key = ns.Pets:OutKey()
+        if key then Quirks:Egg("weather", key, kind) end
+    end)
     ns.Bus:On("MY_RECORD", function() Quirks:Watch() end)
     ns.Bus:On("ACTIVE_PET", function() Quirks:Watch() end)
     ns.Bus:On("BOND_LEVEL", function() Quirks:Watch() end) -- (a minor dislike unlocked: Personality)

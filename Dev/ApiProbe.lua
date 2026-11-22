@@ -1517,7 +1517,7 @@ end
 -- WEATHER_SAMPLE seconds the reading if it changed (does it change with no event?). To the log ("weather ...").
 -- 2026-11-22, an hour in Un'Goro: {intensity=0, type=0} throughout, no WEATHER_CHANGED; the first version compared
 -- the whole line, where you stand too, so every step was a "change" (and ticked Verify's item falsely).
-Api.WEATHER_FOR, Api.WEATHER_SAMPLE = 3600, 20
+Api.WEATHER_FOR, Api.WEATHER_SAMPLE = 4 * 3600, 20 -- (an evening: a turn of the weather is what's wanted)
 function Api.WeatherNow()
     local W = rawget(_G, "C_Weather")
     local fn = W and W.GetCurrentWeather

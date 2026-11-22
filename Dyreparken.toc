@@ -90,6 +90,7 @@ Menagerie\Fx.lua
 Menagerie\Feats.lua
 Menagerie\Meter.lua
 Menagerie\Voyage.lua
+Menagerie\Weather.lua
 Menagerie\Reactions.lua
 
 Achievements\Defs.lua

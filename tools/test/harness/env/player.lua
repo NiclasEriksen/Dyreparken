@@ -34,6 +34,13 @@ return function(c, env, S)
         return (c.world.dead or {})[name] == true
     end
     env.IsFlying = function() return S.flying or false end
+    -- The weather (2026-11-22, the probe: one table, { type = Enum.WeatherType, intensity = a fraction }); clear
+    -- unless a test sets it (c:Weather).
+    env.C_Weather = { GetCurrentWeather = function()
+        local w = S.weather or { 0, 0 }
+        return { type = w[1], intensity = w[2] }
+    end }
+    env.IsIndoors = function() return S.indoors or false end
     env.IsStealthed = function() return S.stealthed or false end
     env.UnitHealth = function() return S.health or 100 end
     env.UnitHealthMax = function() return S.healthMax or 100 end

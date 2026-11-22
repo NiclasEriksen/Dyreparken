@@ -421,14 +421,20 @@ return function(test, H)
         match(ola:Printed("api probe glance", true), "watching already")
     end)
 
-    -- For 0.10.0 (2026-11-22): what the weather, chat links and racials really are on Forever. The stubs don't know
-    -- C_Weather or WEATHER_CHANGED yet (their values are what the probe is for): the probe says so, no error.
+    -- For 0.10.0 (2026-11-22): what the weather, chat links and racials really are on Forever.
     test("weather, links and racials: read-only probes for 0.10.0, each by name", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         ola:Slash("probe api weather")
-        match(ola:Printed("api probe weather", true), "watching for 3600 s %(events refused: WEATHER_CHANGED%): weather no C_Weather")
+        local said = ola:Printed("api probe weather", true)
+        match(said, "watching for 14400 s %(events refused: none%): weather {"); match(said, "type=0"); match(said, "intensity=0")
         ola:Fire("ZONE_CHANGED_NEW_AREA")
         ok(ola:Log("weather ZONE_CHANGED_NEW_AREA")[1])
+        w:Run(ola.ns.ApiProbe.WEATHER_SAMPLE + 1)
+        no(ola:Log("weather turned")[1], "the same weather: nothing")
+        ola.state.weather = { 1, 0.5 }
+        w:Run(ola.ns.ApiProbe.WEATHER_SAMPLE + 1)
+        local turned = ola:Log("weather turned: weather {")[1]
+        ok(turned and turned:find("type=1", 1, true) and turned:find("intensity=0.5", 1, true), "rain: a turn")
         ola:Slash("probe api weather")
         match(ola:Printed("api probe weather", true), "watching already")
         w:Run(ola.ns.ApiProbe.WEATHER_FOR + 30)

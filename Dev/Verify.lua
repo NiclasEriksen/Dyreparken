@@ -56,6 +56,7 @@ Verify.HOW = {
     dmgtop = "top damage at a boss kill in a group of 3+", healtop = "top healing at a raid boss kill",
     kicktop = "most interrupts at a boss kill in a group", fall = "fall hard out of combat",
     zeppelin = "ride a zeppelin", boat = "ride a boat",
+    rain = "be outdoors when rain starts", snow = "be outdoors when snow starts", sand = "be outdoors when a sandstorm starts",
     feat = "a class quest's reward, learning to ride, or level 60", train = "learn spells at a trainer",
     specswap = "switch your dual spec", respec = "reset your talents",
     wake = "come back from /afk with the pet frame on", guildgroup = "group with a guildmate",
@@ -207,7 +208,8 @@ local function Build()
             end },
         -- weatherturn, not weatherchange: the first probe ticked that one on any step you took (2026-11-22).
         { "weatherturn", "run /dp probe api weather, then see the weather change (rain, snow, a sandstorm)",
-            logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather turned" } } },
+            logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather turned" }, { "Weather", "^WEATHER_CHANGED" },
+                { "Weather", "^clear %-> " }, { "Weather", "^%a%a%a%a+ %-> clear" } } }, -- (a turn seen live, not the login's first read)
         { "addonlink", "run /dp probe api links and click the addon link in chat",
             logs = { { "Api", "^links .*addon:Dyreparken" } } },
         { "racials", "(read now) which of Forever's racials this character knows (/dp probe api racials: all)",

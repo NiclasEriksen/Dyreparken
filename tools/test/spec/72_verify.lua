@@ -80,13 +80,13 @@ return function(test, H)
         ola.state.zone = "Durotar"; ola:Fire("ZONE_CHANGED_NEW_AREA"); w:Run(1)
         eq(State(V, "zone:Durotar"), "seen")
         -- A goblin town is a subzone, named at a subzone's change (review 2026-11-21).
-        ok(ola:Listening("ZONE_CHANGED"), "heard while a town is open")
+        ok(ola.ns.Events:Has("ZONE_CHANGED", V), "heard while a town is open") -- (the weather hears it always: Weather.lua)
         ola.state.subzone = "Ratchet"; ola:Fire("ZONE_CHANGED"); w:Run(1)
         eq(State(V, "zone:Ratchet"), "seen")
         for _, town in ipairs({ "Booty Bay", "Everlook", "Gadgetzan", "Steamwheedle Port", "Powderfuse Port", "Dalaran" }) do
             ola.state.subzone = town; ola:Fire("ZONE_CHANGED"); w:Run(1)
         end
-        no(ola:Listening("ZONE_CHANGED"), "every town seen: not heard any more")
+        no(ola.ns.Events:Has("ZONE_CHANGED", V), "every town seen: not heard any more")
         ola.state.subzone = nil
         ola.state.instance, ola.state.zone = "party", "Maraudon"; ola:Fire("ZONE_CHANGED_NEW_AREA"); w:Run(1)
         eq(State(V, "new:zonenames"), "open", "a dungeon isn't a zone")
