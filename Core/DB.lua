@@ -125,6 +125,7 @@ local CHAR_DEFAULTS = {
     eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Moves plays dead once: EggPlayed)
     -- [Reactions]
     reacts = {},               -- [row id] = { n, day, key }: class reactions said (Reactions.lua; once a day each)
+    homeAt = nil,              -- when you were last in one of your faction's capitals (Reactions' hjemby)
     -- [Familiar]
     familiar = nil,            -- { key, ends }: the mage's familiar out and when its buff ends (Familiar.lua)
     -- [Moments]

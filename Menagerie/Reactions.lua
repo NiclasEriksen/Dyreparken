@@ -11,7 +11,8 @@ local ns = select(2, ...)
 -- Forever has ids of its own), test (fn(subject, row, key) -> vars or nil; vars._key a line of its own), calm (only
 -- when it happened out of combat), rare, chance, traits / families (lines by nature, the first the pet has, mixed
 -- with the general ones: Moments.ByNature), apart (natures whose lines always replace the general ones),
--- delay (Moments.DELAY's).
+-- delay (Moments.DELAY's), everyone (a row for every character, no class or race: the faction rows), any (no name to
+-- match: its test decides, on a glance or a zone).
 -- Pacing (the user's answer 2): common rows at most one line every 20 minutes (Moments' "react" budget,
 -- char.reactAt), beside the eggs' 45; rare ones always. Each row once a day, on a share of days (its chance,
 -- rolled once a day: Moments.Rolled). Something done in a fight is said
@@ -156,7 +157,47 @@ Reactions.ROWS = {
     { id = "himmelsyn", race = "Skyborne", on = "cast", spells = { "Skysight" }, traits = { "skybaren", "oppdager" } },
     { id = "leylinje", race = "Skyborne", on = "cast", spells = { "Read Leyline" }, calm = true, traits = { "handverker" },
         families = { "spirit" } },
+    -- The factions (2026-11-22, 0.10.0, the content review §2.1, all four moments): a pet or a player of the other
+    -- faction under the mouse (the player only in a neutral town: elsewhere they're everywhere), the other
+    -- faction's capital, and your own after HOME_AWAY days or more away (char.homeAt). Who's the other faction:
+    -- UnitFactionGroup, against your own. A companion's faction is unverified (its owner's, presumably): Verify.
+    { id = "fiendedyr", everyone = true, any = true, on = "glance", calm = true, traits = { "diplomat", "roverdyr", "venneflokk" },
+        test = function(s, row, key)
+            if s.kind ~= "companion" or not Reactions.Other(s.faction) then return nil end
+            return Reactions.ByNature(row, key)
+        end },
+    { id = "fremmed", everyone = true, any = true, on = "glance", calm = true, traits = { "diplomat", "einstoing", "pratsom" },
+        test = function(s, row, key)
+            if s.kind ~= "player" or not Reactions.Other(s.faction) or Reactions.PlaceNow() ~= "neutral" then return nil end
+            return Reactions.ByNature(row, key)
+        end },
+    { id = "fiendeby", everyone = true, any = true, on = "zone", traits = { "eventyrlysten", "hjemlengsel", "ordensdyr", "diplomat" },
+        apart = { "hjemlengsel" }, test = function(s, row, key)
+            if s.place ~= "enemy" then return nil end
+            return Reactions.ByNature(row, key)
+        end },
+    { id = "hjemby", everyone = true, any = true, on = "zone", traits = { "hjemlengsel", "reiseglad", "ordensdyr" },
+        test = function(s, row, key)
+            if s.place ~= "home" then return nil end
+            local at = ns.DB.char.homeAt -- (set after the rows, OnSense: with a pet out or not)
+            local away = at and ns.Now() - at
+            if not (away and away >= Reactions.HOME_AWAY * 86400) then return nil end
+            return Reactions.ByNature(row, key)
+        end },
 }
+Reactions.HOME_AWAY = 3 -- days away from your own capitals before coming back is a moment (hjemby)
+
+-- A faction that's the other one, not yours (nil, unknown, or a neutral one: no).
+function Reactions.Other(faction)
+    faction = ns.Plain(faction)
+    local mine = ns.Plain(UnitFactionGroup("player"))
+    return (faction == "Alliance" or faction == "Horde") and (mine == "Alliance" or mine == "Horde") and faction ~= mine
+end
+-- Where you are now, as Sense names a place (neutral: a goblin town).
+function Reactions.PlaceNow()
+    local _, instance = IsInInstance()
+    return ns.Sense.Place(ns.Plain(GetZoneText()), ns.Plain(GetSubZoneText()), ns.Plain(instance))
+end
 local byId = {}
 for _, r in ipairs(Reactions.ROWS) do
     assert(not byId[r.id], "Reactions.ROWS: two rows " .. r.id)
@@ -168,6 +209,7 @@ function Reactions.ById(id) return byId[id] end
 
 -- Whether a name is one of the row's.
 local function Named(row, name)
+    if row.any then return true end
     if type(name) ~= "string" then return false end
     for _, n in ipairs(row.spells or {}) do if name == n then return true end end
     for _, n in ipairs(row.starts or {}) do if name:sub(1, #n) == n then return true end end
@@ -246,6 +288,7 @@ function Reactions:OnSense(kind, s)
             if why then ns.Log("Reactions", "%s: %s (%s)", row.id, why, tostring(s.name)) end
         end
     end
+    if kind == "zone" and s.place == "home" then ns.DB.char.homeAt = ns.Now() end
 end
 
 -- Your class's rows, and the sensors they need (wanted for good: the ones that cost nothing until used).

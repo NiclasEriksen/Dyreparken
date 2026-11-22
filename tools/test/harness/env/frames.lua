@@ -190,6 +190,7 @@ return function(c, env, S)
     env.StaticPopup_Visible = function(which) return c.popup and c.popup.which == which and "StaticPopup1" or nil end
     env.ACCEPT, env.CANCEL = "Accept", "Cancel"
     env.UNITNAME_TITLE_COMPANION = "%s's Companion"
+    env.UNITNAME_TITLE_PET, env.UNITNAME_TITLE_MINION = "%s's Pet", "%s's Minion" -- (the glance reads whose pet it is)
     env.UNKNOWNOBJECT = "Unknown" -- a unit the client has no name for yet
 
 end

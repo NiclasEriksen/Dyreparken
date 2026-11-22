@@ -32,7 +32,7 @@ return function(test, H)
 
     test("a warrior's Battle Shout: a line, once a day; not in a fight (calm), not without a pet, not for a mage", function()
         local w, ola, R = Setup("WARRIOR")
-        ok(ola.ns.Sense:Wants("cast")); no(ola.ns.Sense:Wants("glance"), "only what the class's rows need")
+        ok(ola.ns.Sense:Wants("cast")); no(ola.ns.Sense:Wants("form"), "only what the rows need (glance and zone: everyone's faction rows)")
         ola.state.combat = true
         Cast(ola, 1)
         ola.state.combat = false
@@ -218,9 +218,10 @@ return function(test, H)
         local RACES = { Human = true, Dwarf = true, NightElf = true, Gnome = true, Orc = true, Scourge = true, Tauren = true,
             Troll = true, Skyborne = true }
         for _, row in ipairs(ns.Reactions.ROWS) do
-            ok(CLASSES[row.class] or (row.class == nil and RACES[row.race]), row.id .. ": a class or a race")
+            ok(CLASSES[row.class] or (row.class == nil and RACES[row.race]) or (row.everyone and not row.class and not row.race),
+                row.id .. ": a class or a race (or everyone's)")
             if row.class then CLASSES[row.class] = CLASSES[row.class] + 1 end
-            ok(row.spells or row.starts or row.ends, row.id .. ": a name to match")
+            ok(row.spells or row.starts or row.ends or (row.any and row.test), row.id .. ": a name to match (or any, with a test)")
             if row.id ~= "demonen" then ok(#ns.Variants("react." .. row.id) >= 2, row.id .. ": two lines at least") end
             for _, x in ipairs(row.traits or {}) do ok(ns.Strings["react." .. row.id .. "." .. x .. ".1"], row.id .. "." .. x) end
             for _, x in ipairs(row.families or {}) do ok(ns.Strings["react." .. row.id .. "." .. x .. ".1"], row.id .. "." .. x) end
@@ -323,5 +324,47 @@ return function(test, H)
         ola.state.combat = false; ola:Fire("PLAYER_REGEN_ENABLED")
         w:Run(5)
         eq(ola.ns.DB.char.reacts.kjempeugle.n, 1)
+    end)
+
+    -- The factions (2026-11-22, 0.10.0): for every character, whatever its class.
+    test("factions: the other side's pet, its player in a goblin town, its capital, your own after three days", function()
+        local w, ola, R = Setup("MAGE")
+        ola.state.faction = "Horde"
+        local function Go(zone, subzone) ola.state.zone, ola.state.subzone = zone, subzone; ola:Fire("ZONE_CHANGED_NEW_AREA"); w:RunTimers() end
+        local function Elkid(faction)
+            ola:Hover{ companion = false, who = { player = true, name = "Elkid", class = "MAGE", race = "Gnome", faction = faction,
+                guid = "Player-6939-012B8EA" .. faction:sub(1, 1) } }
+            w:RunTimers()
+        end
+        -- A player of the other side: only in a neutral town.
+        Go("Durotar")
+        Elkid("Alliance")
+        no(Said(ola, "fremmed"), "out in the world: not a moment")
+        Go("Stranglethorn Vale", "Booty Bay")
+        ola.ns.Sense.last = nil
+        ola:Hover{ companion = false, who = { player = true, name = "Ulla", class = "MAGE", race = "Human", faction = "Alliance",
+            guid = "Player-6939-0AAA" } }
+        w:RunTimers()
+        ok(Said(ola, "fremmed"), "a goblin town")
+        -- One of your own side: nothing.
+        ola:Hover{ companion = false, who = { player = true, name = "Grok", class = "WARRIOR", race = "Orc", faction = "Horde",
+            guid = "Player-6939-0BBB" } }
+        eq(ola.ns.DB.char.reacts.fremmed.n, 1)
+        -- The other side's pet (20 minutes on: common reactions are spaced so).
+        w:Run(1201); ola:Dice(0); ola:QuirksNow()
+        ola:Hover{ species = 40, owner = "Ulla", who = { name = "Bombay Cat", faction = "Alliance", guid = "Creature-0-1-2-3-7385-AC" } }
+        w:RunTimers()
+        ok(Said(ola, "fiendedyr"))
+        -- The other side's capital; then your own, the first time (nothing to miss yet), and after three days away.
+        w:Run(1201); ola:Dice(0); ola:QuirksNow()
+        Go("Stormwind City")
+        ok(Said(ola, "fiendeby"))
+        Go("Orgrimmar")
+        no(Said(ola, "hjemby"), "never home before: nothing to come back to")
+        ok(ola.ns.DB.char.homeAt)
+        Go("Durotar")
+        w:SkipDays(R.HOME_AWAY); ola:Dice(0); ola:QuirksNow()
+        Go("Orgrimmar")
+        ok(Said(ola, "hjemby"), "three days away")
     end)
 end

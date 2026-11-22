@@ -3,8 +3,8 @@ local ns = select(2, ...)
 
 -- Sensors (docs/CLASS_INTERACTIONS.md, part 1; built 2026-11-14, the user: "start building the sensors for
 -- the class interactions"): moments that each describe what happened as a small table, the subject, for the
--- class, race and faction reactions to match (Sense.Match). The class reactions (Reactions.lua) read the
--- cast, form and buff sensors; the race and faction ones don't exist yet.
+-- class, race and faction reactions to match (Sense.Match). The reactions (Reactions.lua) read the cast, form and
+-- buff sensors for classes and races, and the glance and zone for the factions (2026-11-22: every character's).
 --
 --   glance  a unit under the mouse, out of combat: kind (player, companion, pet: a hunter's, demon: a
 --           warlock's, totem, critter, npc), guid, npc, name, class/race (file names), faction, reaction,
