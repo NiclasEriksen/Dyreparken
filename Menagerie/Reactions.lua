@@ -208,7 +208,16 @@ Reactions.ROWS = {
             if not (away and away >= Reactions.HOME_AWAY * 86400) then return nil end
             return Reactions.ByNature(row, key)
         end },
+    -- The Darkmoon Faire (2026-11-22, 0.10.0, the content review §2.3: Holidays leaves it out, "too often", but a
+    -- Tivolidyr pet gets its own moment there): you walk into the faire (its subzone, Reactions.FAIRE: unverified on
+    -- Forever) on one of its days (the calendar, Holidays' "darkmoon"), with a Tivolidyr pet out. Once a day, always.
+    { id = "tivoli", everyone = true, any = true, on = "zone", rare = true, test = function(s, row, key)
+        if s.subzone ~= Reactions.FAIRE or not ns.Holidays:Has(ns.Now(), "darkmoon") then return nil end
+        if not ns.Personality:Has(key, "tivolidyr") then return nil end
+        return {}
+    end },
 }
+Reactions.FAIRE = "Darkmoon Faire"
 Reactions.HOME_AWAY = 3 -- days away from your own capitals before coming back is a moment (hjemby)
 
 -- A faction that's the other one, not yours (nil, unknown, or a neutral one: no).

@@ -367,4 +367,27 @@ return function(test, H)
         Go("Orgrimmar")
         ok(Said(ola, "hjemby"), "three days away")
     end)
+
+    -- The Darkmoon Faire (2026-11-22, 0.10.0): a Tivolidyr pet, walking into the faire on one of its days.
+    test("tivoli: a Tivolidyr pet at the faire on a faire day, always; not another day, not another pet", function()
+        local w, ola, R = Setup("MAGE")
+        local function Faire(sub)
+            ola.state.zone, ola.state.subzone = "Elwynn Forest", sub
+            ola:Fire("ZONE_CHANGED"); w:RunTimers()
+        end
+        ola:Traits({ "tivolidyr", "glupsk" }, 5159)
+        Faire("Goldshire"); Faire(R.FAIRE)
+        no(Said(ola, "tivoli"), "not a faire day")
+        w:SkipDays(1) -- (the calendar is read once a day: today's answer is in)
+        ola.state.holidays = { [ola.ns.Today()] = { 263 } }
+        ola.ns.Holidays:On(w:ServerTime()); w:Run(1.1)
+        Faire("Goldshire"); Faire(R.FAIRE)
+        ok(Said(ola, "tivoli"), "the faire, on its day")
+        ola:Traits({ "glupsk", "rampete" }, 5159)
+        w:SkipDays(1); ola.state.holidays[ola.ns.Today()] = { 263 }
+        ola.ns.Holidays:On(w:ServerTime()); w:Run(1.1)
+        ola:ClearPrinted()
+        Faire("Goldshire"); Faire(R.FAIRE)
+        no(Said(ola, "tivoli"), "not a Tivolidyr")
+    end)
 end

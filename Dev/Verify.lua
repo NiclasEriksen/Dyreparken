@@ -91,7 +91,7 @@ local function Build()
     local _, class = UnitClass("player")
     local _, race = UnitRace("player")
     for _, r in ipairs(ns.Reactions.ROWS) do
-        if (r.class and r.class == class) or (r.race and r.race == race) then
+        if (r.class and r.class == class) or (r.race and r.race == race) or r.everyone then
             Item({ id = "react:" .. r.id, area = "react",
                 how = r.spells and ("cast " .. table.concat(r.spells, " or ")) or ("its moment: " .. tostring(r.on)),
                 logs = { { "Reactions", "^" .. Esc(r.id) .. "[:,]" }, { "Chat", "^react%." .. Esc(r.id) .. "%." } },

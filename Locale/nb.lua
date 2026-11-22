@@ -1991,6 +1991,10 @@ L["react.hjemby.2"] = "{pet} drar deg mot torget. Den har savnet byen."
 L["react.hjemby.hjemlengsel.1"] = "{pet} er så glad for å være hjemme at den nesten ikke vet hva den skal gjøre."
 L["react.hjemby.reiseglad.1"] = "{pet} er glad for å være hjemme. Men bare en liten stund, så må dere ut igjen."
 L["react.hjemby.ordensdyr.1"] = "{pet} sjekker at alt står der det skal. Jo, alt er i orden."
+-- A Tivolidyr pet at the Darkmoon Faire, on one of its days (Reactions' tivoli).
+L["react.tivoli.1"] = "{pet} hører musikken og ser lysene. Tivoli! Den vil prøve alt!"
+L["react.tivoli.2"] = "{pet} drar deg mot karusellen. Bare én tur. Eller ti."
+L["react.tivoli.3"] = "{pet} har allerede sukkerspinn i pelsen. Hvordan skjedde det?"
 
 ------------------------------------------------------------------------------
 -- The pet journal: list tooltips and the world tooltip
