@@ -65,7 +65,7 @@ end
 
 local function Tip(self) ns.ShowTip(self, "ANCHOR_LEFT", OutBadge.Lines(self.card.key, self.on, self.notOwned)) end
 
--- Turnus' toggle (2026-11-22, 0.10.0, the user: "a toggle on each, small one"): a small badge left of "Med deg".
+-- Turnus' toggle (2026-11-22, 0.10.0, the user: "a toggle on each, small one"): a small badge on "Med deg"'s corner.
 OutBadge.TURNUS_SIZE = 20
 local TURNUS_GOLD = { 1, 0.82, 0.3 }
 function OutBadge.TurnusLines(key)
@@ -92,8 +92,10 @@ end
 
 local function BuildTurnus(card, b)
     local t = ns.RoundBadge(b:GetParent(), OutBadge.TURNUS_SIZE, { disc = 2, ring = true, icon = ns.Icon("turnus"), iconSize = 0.62 })
-    t:SetPoint("RIGHT", b, "LEFT", -3, 6)
-    t:SetFrameLevel(b:GetFrameLevel())
+    -- On the paw badge's top-right corner, a small one riding it (2026-11-22, the user: left of it, it crowded the
+    -- chips and badges on the card's left).
+    t:SetPoint("CENTER", b, "TOPRIGHT", -2, -2)
+    t:SetFrameLevel(b:GetFrameLevel() + 2)
     t:SetMotionScriptsWhileDisabled(true)
     t:SetScript("OnClick", function(self)
         if not card.key then return end

@@ -22,6 +22,9 @@ return function(test, H)
         local card = ola:SelectPet(5159)
         local t = card.auto.turnus
         ok(t:IsShown()); eq(t.size[1], ola.ns.OutBadge.TURNUS_SIZE)
+        local at = t.points[#t.points]
+        eq(at[1] .. " " .. at[3], "CENTER TOPRIGHT", "on Med deg's top-right corner (the user: not among the badges)")
+        eq(at[2], card.auto)
         ok(t.ring.desaturated, "not in it: dim")
         local tip = ola:TipOf(t)
         eq(tip[1], "Ta Panda Cub med i turnusen")
