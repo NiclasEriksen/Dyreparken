@@ -421,6 +421,27 @@ return function(test, H)
         match(ola:Printed("api probe glance", true), "watching already")
     end)
 
+    -- For 0.10.0 (2026-11-22): what the weather, chat links and racials really are on Forever. The stubs don't know
+    -- C_Weather or WEATHER_CHANGED yet (their values are what the probe is for): the probe says so, no error.
+    test("weather, links and racials: read-only probes for 0.10.0, each by name", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("probe api weather")
+        match(ola:Printed("api probe weather", true), "watching for 3600 s %(events refused: WEATHER_CHANGED%): no C_Weather")
+        ola:Fire("ZONE_CHANGED_NEW_AREA")
+        ok(ola:Log("weather ZONE_CHANGED_NEW_AREA")[1])
+        ola:Slash("probe api weather")
+        match(ola:Printed("api probe weather", true), "watching already")
+        w:Run(ola.ns.ApiProbe.WEATHER_FOR + 30)
+        ok(ola:Log("weather watch over")[1], "over by itself")
+        ola:Slash("probe api links")
+        ok(ola:Printed("|Haddon:Dyreparken:probe:1|h[Dyreparken: addon-lenke]|h", true), "the addon link")
+        ok(ola:Printed("|Hgarrmission:dyreparken:probe:2|h", true), "the old trick")
+        ola.state.race = "Tauren"
+        ola.state.spells = { [20549] = true, [1259918] = true }
+        ola:Slash("probe api racials")
+        match(ola:Printed("api probe racials", true), "Tauren: knows Tauren 1259918 .-, Tauren 20549 .-; not Tauren 20550")
+    end)
+
     test("transport: where you are, logged at every zone and world change, each cast, and every few seconds", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         ola.state.zone = "Durotar"

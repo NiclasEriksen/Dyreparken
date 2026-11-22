@@ -184,6 +184,27 @@ local function Build()
                 if type(name) == "string" and name ~= "" then return true, name end
                 return false, ok and "no name" or "error"
             end },
+        -- For 0.10.0 (2026-11-22): weather, a clickable link, the racials (Dev/ApiProbe.lua's sections of the same names).
+        { "weathernow", "(read now) the weather, C_Weather.GetCurrentWeather()",
+            now = function()
+                local W = rawget(_G, "C_Weather")
+                if not (W and type(W.GetCurrentWeather) == "function") then return false, "no C_Weather.GetCurrentWeather" end
+                local r = { pcall(W.GetCurrentWeather) }
+                if not r[1] then return false, "error" end
+                local out = {}
+                for i = 2, #r do out[#out + 1] = ns.IsSecret(r[i]) and "<secret>" or tostring(r[i]) end
+                return true, #out > 0 and table.concat(out, ", ") or "(nothing)"
+            end },
+        { "weatherchange", "run /dp probe api weather, then see the weather change (rain, snow, a sandstorm)",
+            logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather sample changed" } } },
+        { "addonlink", "run /dp probe api links and click the addon link in chat",
+            logs = { { "Api", "^links .*addon:Dyreparken" } } },
+        { "racials", "(read now) which of Forever's racials this character knows (/dp probe api racials: all)",
+            now = function()
+                local ok, summary = pcall(function() return ns.ApiProbe and ns.ApiProbe.Racials and ns.ApiProbe.Racials() end)
+                if ok and summary then return true, summary end
+                return false, "run /dp probe api racials"
+            end },
         { "calendarclock", "(read now) the calendar's clock against date()",
             now = function()
                 local ok, t = pcall(C_DateAndTime.GetCurrentCalendarTime)

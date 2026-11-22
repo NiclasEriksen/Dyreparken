@@ -36,6 +36,9 @@ local ns = select(2, ...)
 --   glance      (2026-11-13) units under the mouse, your forms, pet, PvP flag, casts and buffs, this session:
 --               for docs/CLASS_INTERACTIONS.md (S.glance)
 --   legacy      (2026-11-13) Forever's legacy points: professions, exploration achievements (S.legacy)
+--   weather     (2026-11-22) C_Weather now, and WEATHER_CHANGED and zone changes this session (S.weather)
+--   links       (2026-11-22) two clickable test lines in chat, and which ways a click reaches us (S.links)
+--   racials     (2026-11-22) which of Forever's racials this character knows (S.racials)
 --   meter       (2026-11-12, the user: could the pet react to the built-in damage meter, a first place in
 --               damage or healing?) C_DamageMeter now (every session, damage/healing/interrupts: secret or
 --               not, the sources, your place), saved; and from then on, this session, every DAMAGE_METER_*
@@ -1505,6 +1508,126 @@ function S.legacy(out)
         #out.categories, #out.achievements, #out.globals)
 end
 
+------------------------------------------------------------------------------
+-- weather (2026-11-22, for 0.10.0: pets that react to the weather, the user: "the weather system was reworked
+-- in Forever and is now much more dramatic"). The client has C_Weather.GetCurrentWeather and Enum.WeatherType
+-- (Clear 0, Rain 1, Snow 2, Sandstorm 3, Miscellaneous 4: /dp probe api, 2026-11-19); retail's event list has
+-- WEATHER_CHANGED. Neither's values are documented. This reads GetCurrentWeather now (every value it returns),
+-- and for WEATHER_FOR seconds logs WEATHER_CHANGED with its payload, every zone change, and every
+-- WEATHER_SAMPLE seconds the reading if it changed (does it change with no event?). To the log ("weather ...").
+Api.WEATHER_FOR, Api.WEATHER_SAMPLE = 3600, 20
+function Api.Weather()
+    local W = rawget(_G, "C_Weather")
+    local fn = W and W.GetCurrentWeather
+    if type(fn) ~= "function" then return "no C_Weather.GetCurrentWeather" end
+    return ("weather %s | %s"):format(Try(fn), Api.Where and Api.Where() or tostring(Raw(GetZoneText)))
+end
+function S.weather(out)
+    out.now = Api.Weather()
+    if Api.weatherWatch then return "watching already: " .. out.now end
+    local f = CreateFrame("Frame")
+    Api.weatherWatch = f
+    local refused = {}
+    for _, e in ipairs({ "WEATHER_CHANGED", "ZONE_CHANGED_NEW_AREA", "ZONE_CHANGED" }) do
+        if not pcall(f.RegisterEvent, f, e) then refused[#refused + 1] = e end
+    end
+    out.refused = refused
+    f:SetScript("OnEvent", function(_, event, ...)
+        local args = Pack(...)
+        local shown = {}
+        for i = 1, args.n do shown[#shown + 1] = Show(args[i]) end
+        ns.Log("Api", "weather %s (%s) %s", event, table.concat(shown, ", "), Api.Weather())
+    end)
+    local started, last = GetTime(), out.now
+    local function Sample()
+        if Api.weatherWatch ~= f then return end
+        if GetTime() - started > Api.WEATHER_FOR then
+            f:UnregisterAllEvents()
+            Api.weatherWatch = nil
+            return ns.Log("Api", "weather watch over")
+        end
+        local now = Api.Weather()
+        if now ~= last then ns.Log("Api", "weather sample changed: %s", now); last = now end
+        C_Timer.After(Api.WEATHER_SAMPLE, Sample)
+    end
+    C_Timer.After(Api.WEATHER_SAMPLE, Sample)
+    return ("watching for %d s (events refused: %s): %s"):format(Api.WEATHER_FOR,
+        #refused > 0 and table.concat(refused, " ") or "none", out.now)
+end
+
+------------------------------------------------------------------------------
+-- links (2026-11-22, for 0.10.0: a "take this pet out" link in the full day's line). Prints two clickable test
+-- lines, an addon link (|Haddon:Dyreparken:...|h, retail's kind) and the old garrmission trick, and logs each
+-- way a click could reach us: hooksecurefunc on SetItemRef, EventRegistry's "SetItemRef" callback, and
+-- ChatFrame_OnHyperlinkShow / the chat frame's OnHyperlinkClick. Click both, then /reload: the log says
+-- which ways fired ("links ..."), and whether the click did anything else (an error, a popup).
+function S.links(out)
+    local hooked = {}
+    local function Seen(how) return function(...)
+        local args = Pack(...)
+        local shown = {}
+        for i = 1, math.min(args.n, 4) do shown[#shown + 1] = Show(args[i]) end
+        ns.Log("Api", "links %s (%s)", how, table.concat(shown, ", "))
+    end end
+    if not Api.linksHooked then
+        Api.linksHooked = true
+        if type(rawget(_G, "SetItemRef")) == "function" then
+            hooksecurefunc("SetItemRef", Seen("SetItemRef hook")); hooked[#hooked + 1] = "SetItemRef"
+        end
+        local ER = rawget(_G, "EventRegistry")
+        if ER and ER.RegisterCallback then
+            local ok = pcall(ER.RegisterCallback, ER, "SetItemRef", Seen("EventRegistry SetItemRef"), Api)
+            if ok then hooked[#hooked + 1] = "EventRegistry" end
+        end
+        if type(rawget(_G, "ChatFrame_OnHyperlinkShow")) == "function" then
+            hooksecurefunc("ChatFrame_OnHyperlinkShow", Seen("ChatFrame_OnHyperlinkShow hook"))
+            hooked[#hooked + 1] = "ChatFrame_OnHyperlinkShow"
+        end
+        local cf = rawget(_G, "DEFAULT_CHAT_FRAME")
+        if cf and cf.HookScript then
+            pcall(cf.HookScript, cf, "OnHyperlinkClick", Seen("OnHyperlinkClick"))
+            hooked[#hooked + 1] = "OnHyperlinkClick"
+        end
+    end
+    out.hooked = hooked
+    ns.Print("api probe links: |cff71d5ff|Haddon:Dyreparken:probe:1|h[Dyreparken: addon-lenke]|h|r  "
+        .. "|cff71d5ff|Hgarrmission:dyreparken:probe:2|h[Dyreparken: garrmission-lenke]|h|r")
+    return "two test links printed, click both, then /reload (hooked: " .. table.concat(hooked, " ") .. ")"
+end
+
+------------------------------------------------------------------------------
+-- racials (2026-11-22, for 0.10.0: race reactions). Forever's racials, from its tables (wago.tools, 1.60.1.71037,
+-- the racial skill lines): both the classic ones and Forever's own are listed for each race, and the tables
+-- don't say which the server gives. This says which this character knows (IsPlayerSpell, IsSpellKnown), by id
+-- and name. Run it on a character of each race you have; casts then show in /dp probe sense as usual.
+Api.RACIALS = {
+    Human = { 20600, 1259718, 20597, 20598 }, Dwarf = { 20594, 2481, 1259719, 1259721 },
+    NightElf = { 20580, 1259799, 20582, 20585 }, Gnome = { 20589, 1259812, 1259813, 1259817, 1259821, 1259823, 20591 },
+    Orc = { 20572, 1299026, 20573, 20576 }, Scourge = { 7744, 20577, 1260189, 5227 },
+    Tauren = { 20549, 20552, 1259918, 20550 }, Troll = { 20554, 1260270, 20555, 20557 },
+    Skyborne = { 1259416, 1259686, 1259705, 1259707, 1259710 },
+}
+function Api.Racials()
+    return S.racials({})
+end
+function S.racials(out)
+    local race = ns.Plain((select(2, UnitRace("player"))))
+    local known, unknown = {}, {}
+    local IPS, ISK = rawget(_G, "IsPlayerSpell"), rawget(_G, "IsSpellKnown")
+    for r, ids in pairs(Api.RACIALS) do
+        for _, id in ipairs(ids) do
+            local has = (type(IPS) == "function" and ns.Plain(IPS(id)) == true)
+                or (type(ISK) == "function" and ns.Plain(ISK(id)) == true)
+            local line = ("%s %d %s"):format(r, id, tostring(ns.SpellName(id)))
+            if has then known[#known + 1] = line elseif r == race then unknown[#unknown + 1] = line end
+        end
+    end
+    table.sort(known); table.sort(unknown)
+    out.race, out.known, out.unknown = race, known, unknown
+    return ("%s: knows %s; not %s"):format(tostring(race), #known > 0 and table.concat(known, ", ") or "none",
+        #unknown > 0 and table.concat(unknown, ", ") or "-")
+end
+
 Api.ORDER = { "globals", "namespaces", "enum", "events", "widgets", "templates", "strings", "values", "card",
     "calendar", "model" }
 
@@ -1523,7 +1646,7 @@ function Api:Run(arg)
     rest = rest ~= "" and rest or nil
     for _, name in ipairs(list) do
         local fn = S[name]
-        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], boxes [ids], petframe, meter, feats, transport, combat, fall, glance, legacy)") end
+        if not fn then return ns.Print("api probe: sections are " .. table.concat(self.ORDER, " ") .. " (and holidays, lengths [all|ids], boxes [ids], petframe, meter, feats, transport, combat, fall, glance, legacy, weather, links, racials)") end
         local out = {}
         db[name] = out
         local ok, summary = pcall(fn, out, rest)
