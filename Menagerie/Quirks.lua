@@ -39,6 +39,10 @@ Quirks.DISLIKE_CHANCE = 0.35 -- a dislike not yet found: per time it happens (th
 Quirks.DISLIKE_AGAIN = 0.25
 -- A minor dislike (Personality: unlocked by your bond at level 6), a third as often (the user, 2026-11-12).
 Quirks.MINOR_CHANCE, Quirks.MINOR_AGAIN = 0.15, 0.1
+-- Getting used to it (2026-11-22, the content review §3.2: a pet that dislikes boss kills, out with a raider,
+-- complained every raid night): once a dislike has been said USED_AFTER times, at most once every USED_EVERY
+-- days, and the time it gets there it says so (dislike.used). Counted in char.dislikeSaid.
+Quirks.USED_AFTER, Quirks.USED_EVERY = 10, 7
 -- How long a line waits: Moments.DELAY (the same table). An egg names its own (delay = ...), day eggs
 -- are "day"; Quirks.DISLIKE_DELAY per activity.
 Quirks.DELAY = ns.Moments.DELAY
@@ -79,6 +83,8 @@ function Quirks:Dislike(key, id, minor)
         return M:Later(("dislike %s %s"):format(key, id), function() Quirks:Dislike(key, id, minor) end)
     end
     if not first and not self:Ready() then return end
+    local count = ns.DB.char.dislikeSaid[key] and ns.DB.char.dislikeSaid[key][id]
+    if count and count.n >= self.USED_AFTER and ns.Now() - (count.at or 0) < self.USED_EVERY * 86400 then return end
     local chance = minor and (first and self.MINOR_CHANCE or self.MINOR_AGAIN)
         or (first and self.DISLIKE_CHANCE or self.DISLIKE_AGAIN)
     -- (a discovery counts toward an achievement, as an egg; a known one again is only a line, the day's roll)
@@ -97,6 +103,14 @@ function Quirks:Dislike(key, id, minor)
         seen[key][id] = true
         ns.Moments.Spend(day) -- (once a day)
         ns.Moves:Owe(key, "sulk") -- (its back turned on the card, once)
+        local all = ns.DB.char.dislikeSaid
+        all[key] = all[key] or {}
+        local c = all[key][id] or { n = 0 }
+        c.n, c.at = c.n + 1, ns.Now()
+        all[key][id] = c
+        if c.n == self.USED_AFTER then
+            ns.PetSays(Pick("dislike.used", { pet = name, what = ns.Personality.NOUN[id] }) or "")
+        end
         if not first then return end
         ns.Bus:Fire("DISLIKE_FOUND", key, id)
         ns.PetSays(T("dislike.found", { pet = name, what = ns.Personality.NOUN[id] }))

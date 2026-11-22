@@ -890,6 +890,7 @@ L["personality.line"] = "{traits} · {likes}"                   -- {likes}: "lik
 -- egg.<id>.N: the easter eggs. {pet}: its nickname, else its species.
 ------------------------------------------------------------------------------
 L["dislike.found"] = "Nå vet du det: {pet} liker ikke {what}."
+L["dislike.used"] = "{pet} har nesten vent seg til {what}. Nesten."  -- said once, the tenth time a dislike speaks (it speaks once a week from then on)
 -- Minor likes and dislikes (Personality.lua: your bond unlocks them at levels 4 and 6; dimmed on the card)
 L["unlock.like"] = "{pet} har åpnet seg mer for deg: det liker {what} også, litt."
 L["unlock.dislike"] = "Det er noe nytt {pet} ikke liker. Hva kan det være?"

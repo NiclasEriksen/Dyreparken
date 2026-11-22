@@ -110,6 +110,7 @@ local CHAR_DEFAULTS = {
     owed = {},                 -- [petKey] = { [move] = day }: a move a moment earned it today, played once (Moves:Owe)
     -- [Quirks]
     dislikes = {},             -- [petKey] = { [activity] = true }: dislikes seen happen (the card shows these)
+    dislikeSaid = {},          -- [petKey] = { [activity] = { n, at } }: how often each was said, the last when (Quirks: getting used to it)
     eggs = {},                 -- [egg id] = { n, day, ... }: easter eggs found (Moves plays dead once: EggPlayed)
     -- [Reactions]
     reacts = {},               -- [row id] = { n, day, key }: class reactions said (Reactions.lua; once a day each)

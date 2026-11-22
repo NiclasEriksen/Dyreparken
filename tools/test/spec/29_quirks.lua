@@ -35,6 +35,29 @@ return function(test, H)
         ok(ola:Said("Nå vet du det: Bombay Cat liker ikke dykking."), "after the other line")
     end)
 
+    -- Getting used to it (2026-11-22, the content review §3.2): a dislike said USED_AFTER times speaks once a week.
+    test("a dislike said ten times: the pet says it has nearly got used to it, and from then on speaks once a week", function()
+        local w, ola, Q = Setup()
+        local function Day()
+            w:SkipDays(1); w:Run(61)
+            ola:Dice(0)
+            Dive(ola)
+            w:Run(ola.ns.Moments.LATER_MAX or 60) -- (a day's egg on its way first: the dislike waits its turn)
+        end
+        Dive(ola) -- (found)
+        w:Run(60)
+        ok(ola:Said("Nå vet du det: Bombay Cat liker ikke dykking."))
+        for _ = 2, Q.USED_AFTER do Day() end
+        eq(ola.ns.DB.char.dislikeSaid[CAT].dive.n, Q.USED_AFTER)
+        eq(ola:CountPrinted("har nesten vent seg til dykking. Nesten."), 1, "the tenth time: nearly used to it")
+        local said = ola.ns.DB.char.dislikeSaid[CAT].dive.n
+        for _ = 1, Q.USED_EVERY - 1 do Day() end
+        eq(ola.ns.DB.char.dislikeSaid[CAT].dive.n, said, "within the week: not a word")
+        Day()
+        eq(ola.ns.DB.char.dislikeSaid[CAT].dive.n, said + 1, "a week on: once")
+        eq(ola:CountPrinted("har nesten vent seg til"), 1, "said once only")
+    end)
+
     test("a dislike doesn't stop the eggs: a wolf that minds naps still has its fifth nap's", function()
         local w, ola = Setup()
         ola:Companions{ [40] = { a = true, t = { "wolf" } } }
