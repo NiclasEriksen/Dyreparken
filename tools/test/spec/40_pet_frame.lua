@@ -543,27 +543,25 @@ return function(test, H)
         eq(tip[#tip], ola.ns.L["petframe.tip"])
     end)
 
-    test("the day beside the name: a dim ring with room, a gold check when full, green arrows when another pet has room", function()
+    test("the day in the name: nothing while it has room, a gold check when full, green arrows when another pet has room", function()
         local w, ola, PF = Setup(14)
-        local ns, day = ola.ns, PF.frame.day
-        ok(day:IsShown(), "shown at rest, not only under the mouse")
-        eq(PF:DayState(), "open"); no(day.icon:IsShown())
+        local ns, name = ola.ns, PF.frame.name
+        eq(PF:DayState(), "open"); eq(name.text, "Panda Cub", "nothing while the day has room")
         -- The panda's day fills (Bond's BOND_FULL refreshes the frame); the kitten still has room.
         ns.Bond:Today("s:46"); ns.Bond:Today(PANDA)
         ns.DB.char.bondToday.pets[PANDA].total = ns.Bond:DailyMax(PANDA)
         ns.Bus:Fire("BOND_FULL", PANDA)
         eq(PF:DayState(), "swap")
-        ok(day.icon:IsShown()); H.match(day.icon:GetTexture(), "swap$")
+        H.match(name.text, "^Panda Cub |T.-swap:0:0:0:0:64:64:0:64:0:64:114:242:140|t$")
         local tip = ola:TipOf(PF.frame.click)
         ok(tip.text:find("White Kitten har fortsatt plass i dag.", 1, true), tip.text)
         -- The kitten full too: a check, and no swap in the tooltip.
         ns.DB.char.bondToday.pets["s:46"].total = ns.Bond:DailyMax("s:46")
         PF:Refresh()
-        eq(PF:DayState(), "full"); H.match(day.icon:GetTexture(), "check$")
+        eq(PF:DayState(), "full"); H.match(name.text, "^Panda Cub |T.-check:")
         no(ola:TipOf(PF.frame.click).text:find("plass i dag", 1, true))
-        -- No bond to show: no mark.
-        PF.points = nil; PF:Day()
-        no(day:IsShown())
+        -- A new name keeps the mark.
+        ns.Bus:Fire("REGISTRY", {}); H.match(name.text, "check:")
     end)
 
     test("the bar and level show only under the mouse, and while points rise (a level comes with them)", function()

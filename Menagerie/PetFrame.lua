@@ -79,8 +79,13 @@ local cameraT, activeT, peekT, changeT = ns.Timers(), ns.Timers(), ns.Timers(), 
 
 local Call = ns.Call
 
-PF.DAY_SIZE = 14
+-- The day in the name (2026-11-22, 0.10.0, the content review §4.2: "so you know when to swap without opening the
+-- journal"): once full, a small gold check after it, or the card's swap arrows in green when another pet of yours
+-- still has room today; nothing while it has room. An inline texture, so it sits on the text's line and the two stay
+-- centered together (a ring of its own beside the name, the same day, was the wrong size and place, and showed
+-- always: the user).
 PF.SWAP_COLOR = { 0.45, 0.95, 0.55 } -- (OutBadge's)
+PF.FULL_COLOR = { 1, 0.82, 0.3 }
 
 -- The day's mark: nil (no bond: hidden), "open", "full", or "swap" and the pet with room.
 function PF:DayState()
@@ -91,19 +96,17 @@ function PF:DayState()
     return "full"
 end
 
-function PF:Day()
-    local day = self.frame and self.frame.day
-    if not day then return end
+function PF:NameText()
+    local name = ns.Registry:NameOf(self.key)
     local state = self:DayState()
-    day:SetShown(state ~= nil)
-    if not state then return end
-    local c = state == "swap" and self.SWAP_COLOR or state == "full" and { 1, 0.82, 0.3 } or { 0.7, 0.7, 0.7 }
-    day.ring:SetVertexColor(c[1], c[2], c[3], state == "open" and 0.45 or 1)
-    day.icon:SetShown(state ~= "open")
-    if state ~= "open" then
-        day.icon:SetTexture(ns.Icon(state == "swap" and "swap" or "check"))
-        day.icon:SetVertexColor(c[1], c[2], c[3], 1)
-    end
+    if state ~= "swap" and state ~= "full" then return name end
+    local c = state == "swap" and self.SWAP_COLOR or self.FULL_COLOR
+    return ("%s |T%s:0:0:0:0:64:64:0:64:0:64:%d:%d:%d|t"):format(name, ns.Icon(state == "swap" and "swap" or "check"),
+        c[1] * 255, c[2] * 255, c[3] * 255)
+end
+
+function PF:Day()
+    if self.frame and self.key then self.frame.name:SetText(self:NameText()) end
 end
 
 function PF:Enabled() return ns.Settings:Get("petFrame") == true end
@@ -164,22 +167,6 @@ function PF:Build()
     bar.count:SetTextColor(1, 0.85, 0.4)
     bar.count:Hide()
     f.bar = bar
-
-    -- The day beside the name, always (2026-11-22, 0.10.0, the content review §4.2: "so you know when to swap
-    -- without opening the journal"): a dim ring while it has room, a gold check once full, and the card's swap
-    -- arrows, green, when another pet of yours still has room today (PF:Day).
-    local day = CreateFrame("Frame", nil, f)
-    day:SetSize(self.DAY_SIZE, self.DAY_SIZE)
-    day:SetPoint("LEFT", f.name, "RIGHT", 4, 0)
-    day:SetFrameLevel(scene:GetFrameLevel() + 2)
-    day.ring = day:CreateTexture(nil, "ARTWORK")
-    day.ring:SetTexture(ns.Icon("ring"))
-    day.ring:SetAllPoints()
-    day.icon = day:CreateTexture(nil, "OVERLAY")
-    day.icon:SetPoint("CENTER")
-    day.icon:SetSize(self.DAY_SIZE * 0.7, self.DAY_SIZE * 0.7)
-    day:Hide()
-    f.day = day
 
     -- Edit Mode's highlight, like Blizzard's own frames there: a blue wash, a bright edge, a label.
     -- (2026-11-11, the user: a faint wash alone wasn't seen.)
@@ -596,7 +583,7 @@ function PF:Refresh()
         self.stage:Update(f, nil) -- (the last pet's pose ends)
         self:Load(key)
     end
-    f.name:SetText(ns.Registry:NameOf(key))
+    f.name:SetText(ns.Registry:NameOf(key)) -- (its day's mark: PF:Day, once its bond is read)
     if self.combat and not self.editing then -- (Settings: petFrameCombat)
         self.stage:Update(f, nil) -- (else it walked and jumped with you on the hidden actor; posed anew after)
         return f:Hide()
@@ -1069,7 +1056,7 @@ ns.Start("settled", function()
     -- Its day full: it sits (Moves:Rest), as on the card.
     ns.Bus:On("BOND_FULL", function(key) if PF.frame and PF.frame:IsShown() and key == PF.key then PF:Refresh() end end)
     ns.Bus:On("ACTIVE_PET", function() if PF.on then PF:Refresh() end end) -- ("Med deg" on or off, or another pet)
-    ns.Bus:On("REGISTRY", function() if PF.frame and PF.key then PF.frame.name:SetText(ns.Registry:NameOf(PF.key)) end end)
+    ns.Bus:On("REGISTRY", function() if PF.frame and PF.key then PF:Day() end end)
     PF:HookEditMode()
     PF:Apply()
 end)
