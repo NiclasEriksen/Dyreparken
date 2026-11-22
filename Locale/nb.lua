@@ -1576,6 +1576,7 @@ L["settings.petframealpha.tip"] = "Hvor synlig dyret er når ingenting skjer."
 L["settings.petframeart.tip"] = "Bakgrunn og ramme som på dyrekortet, i fargene til båndet ditt. Av: kun dyret og navnet på skjermen."
 L["petframe.tip"] = "Klikk for å se dyret."
 L["petframe.today"] = "I dag: {n} av {max} båndpoeng"
+L["petframe.swap"] = "{pet} har fortsatt plass i dag. Bytt inn på kortet til {pet}."   -- the day full, another with room
 -- (2026-11-13: a draft, for the user to edit) A click on the pet frame with the Pets page closed.
 L["petframe.open_hint"] = "Åpne pet-samlingen, så viser jeg {pet}."
 -- (2026-11-13: drafts) The window opened (or was open) on another page; a click in combat.

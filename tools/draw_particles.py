@@ -670,6 +670,14 @@ def swap():
     return m
 
 
+def check():
+    """A check mark (2026-11-22, 0.10.0: the pet frame's day, full)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    pts = [(-0.72, 0.05), (-0.25, -0.42), (0.72, 0.55)]
+    d.line([P(x, y) for x, y in pts], fill=255, width=int(BIG * 0.15), joint="curve")
+    return m
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
           "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays,
           "feather": feather, "ember": ember, "gear": gear, "wisp": wisp, "coin": coin, "grain": grain,
@@ -678,7 +686,7 @@ SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble"
           "butterfly": butterfly, "mist": mist, "house": house, "cake": cake, "crown": crown,
           "speechblank": speechblank, "thought": thought, "shout": shout, "rain": rain, "yarn": yarn, "petal": petal,
           "shell": shell, "banana": banana, "mask": mask, "sun": sun, "badge": badge,
-          "snake": snake, "cheese": cheese, "horseshoe": horseshoe, "lilypad": lilypad, "egg": egg, "swap": swap}
+          "snake": snake, "cheese": cheese, "horseshoe": horseshoe, "lilypad": lilypad, "egg": egg, "swap": swap, "check": check}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 

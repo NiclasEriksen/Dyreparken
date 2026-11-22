@@ -543,6 +543,29 @@ return function(test, H)
         eq(tip[#tip], ola.ns.L["petframe.tip"])
     end)
 
+    test("the day beside the name: a dim ring with room, a gold check when full, green arrows when another pet has room", function()
+        local w, ola, PF = Setup(14)
+        local ns, day = ola.ns, PF.frame.day
+        ok(day:IsShown(), "shown at rest, not only under the mouse")
+        eq(PF:DayState(), "open"); no(day.icon:IsShown())
+        -- The panda's day fills (Bond's BOND_FULL refreshes the frame); the kitten still has room.
+        ns.Bond:Today("s:46"); ns.Bond:Today(PANDA)
+        ns.DB.char.bondToday.pets[PANDA].total = ns.Bond:DailyMax(PANDA)
+        ns.Bus:Fire("BOND_FULL", PANDA)
+        eq(PF:DayState(), "swap")
+        ok(day.icon:IsShown()); H.match(day.icon:GetTexture(), "swap$")
+        local tip = ola:TipOf(PF.frame.click)
+        ok(tip.text:find("White Kitten har fortsatt plass i dag.", 1, true), tip.text)
+        -- The kitten full too: a check, and no swap in the tooltip.
+        ns.DB.char.bondToday.pets["s:46"].total = ns.Bond:DailyMax("s:46")
+        PF:Refresh()
+        eq(PF:DayState(), "full"); H.match(day.icon:GetTexture(), "check$")
+        no(ola:TipOf(PF.frame.click).text:find("plass i dag", 1, true))
+        -- No bond to show: no mark.
+        PF.points = nil; PF:Day()
+        no(day:IsShown())
+    end)
+
     test("the bar and level show only under the mouse, and while points rise (a level comes with them)", function()
         local w, ola, PF = Setup(14)
         local f, bar = PF.frame, PF.frame.bar

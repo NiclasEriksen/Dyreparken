@@ -79,6 +79,33 @@ local cameraT, activeT, peekT, changeT = ns.Timers(), ns.Timers(), ns.Timers(), 
 
 local Call = ns.Call
 
+PF.DAY_SIZE = 14
+PF.SWAP_COLOR = { 0.45, 0.95, 0.55 } -- (OutBadge's)
+
+-- The day's mark: nil (no bond: hidden), "open", "full", or "swap" and the pet with room.
+function PF:DayState()
+    if not (self.key and self.points) then return nil end
+    if ns.Bond:Open(self.key) then return "open" end
+    local other = ns.Bond:NextOpen(self.key)
+    if other then return "swap", other end
+    return "full"
+end
+
+function PF:Day()
+    local day = self.frame and self.frame.day
+    if not day then return end
+    local state = self:DayState()
+    day:SetShown(state ~= nil)
+    if not state then return end
+    local c = state == "swap" and self.SWAP_COLOR or state == "full" and { 1, 0.82, 0.3 } or { 0.7, 0.7, 0.7 }
+    day.ring:SetVertexColor(c[1], c[2], c[3], state == "open" and 0.45 or 1)
+    day.icon:SetShown(state ~= "open")
+    if state ~= "open" then
+        day.icon:SetTexture(ns.Icon(state == "swap" and "swap" or "check"))
+        day.icon:SetVertexColor(c[1], c[2], c[3], 1)
+    end
+end
+
 function PF:Enabled() return ns.Settings:Get("petFrame") == true end
 
 -- The pet the frame shows now, on screen, or nil: Fight's. With petFrameCombat on, nil: the frame hides in
@@ -137,6 +164,22 @@ function PF:Build()
     bar.count:SetTextColor(1, 0.85, 0.4)
     bar.count:Hide()
     f.bar = bar
+
+    -- The day beside the name, always (2026-11-22, 0.10.0, the content review §4.2: "so you know when to swap
+    -- without opening the journal"): a dim ring while it has room, a gold check once full, and the card's swap
+    -- arrows, green, when another pet of yours still has room today (PF:Day).
+    local day = CreateFrame("Frame", nil, f)
+    day:SetSize(self.DAY_SIZE, self.DAY_SIZE)
+    day:SetPoint("LEFT", f.name, "RIGHT", 4, 0)
+    day:SetFrameLevel(scene:GetFrameLevel() + 2)
+    day.ring = day:CreateTexture(nil, "ARTWORK")
+    day.ring:SetTexture(ns.Icon("ring"))
+    day.ring:SetAllPoints()
+    day.icon = day:CreateTexture(nil, "OVERLAY")
+    day.icon:SetPoint("CENTER")
+    day.icon:SetSize(self.DAY_SIZE * 0.7, self.DAY_SIZE * 0.7)
+    day:Hide()
+    f.day = day
 
     -- Edit Mode's highlight, like Blizzard's own frames there: a blue wash, a bright edge, a label.
     -- (2026-11-11, the user: a faint wash alone wasn't seen.)
@@ -432,7 +475,7 @@ function PF:Bond(animate)
     local bar, key = self.frame.bar, self.key
     self:ArtLook() -- (its border by your level)
     local points, level, _, from, nextAt = ns.Bond:Own(key)
-    if not points then self.points = nil; bar:Hide(); return end
+    if not points then self.points = nil; bar:Hide(); return self:Day() end
     local tier = ns.Scenes.Tier(level)
     -- At the top level: the loyalty points, counting on, instead of the bar (its numbers rise as before).
     local lp = ns.Bond:Loyalty(key)
@@ -454,6 +497,7 @@ function PF:Bond(animate)
         bar:Gains(last, { points - last })
     end
     self:ShowBar()
+    self:Day()
 end
 
 -- The bar shows while the mouse is over the frame or during a peek, and only with a bond to show.
@@ -658,6 +702,11 @@ function PF:Lines()
     if self.key then
         local got, max = ns.Bond:Today(self.key)
         lines[#lines + 1] = { ns.T("petframe.today", { n = got, max = max }), 0.8, 0.8, 0.8 }
+        local state, other = self:DayState()
+        if state == "swap" then
+            local c = self.SWAP_COLOR
+            lines[#lines + 1] = { ns.T("petframe.swap", { pet = ns.Registry:NameOf(other) }), c[1], c[2], c[3], true }
+        end
     end
     local w = self.key and self.key == ns.Registry:MyPet() and ns.Wish:Today()
     if w and w.id then
