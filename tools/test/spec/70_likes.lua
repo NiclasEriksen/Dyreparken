@@ -10,6 +10,8 @@ return function(test, H)
         if traits then ola:Traits(traits, sid or 5159) end
         ola.state.auras = {}
         ola:Slash("adopter " .. (sid and "kitten" or "panda")); w:Run(5)
+        -- (today's wish done already: these count likes, and a wish for one would add its 10)
+        ola.ns.DB.char.wish = { done = true, pet = ola.ns.Registry:MyPet(), day = ola.ns.Today() }
         return w, ola
     end
     local function Count(ola, id) return (ola.ns.Activity:Count(id)) end

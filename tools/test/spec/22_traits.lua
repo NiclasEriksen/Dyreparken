@@ -165,6 +165,8 @@ return function(test, H)
         ola:Slash("debug off") -- the debug log wants everything
         ola:Slash("adopter panda")
         w:Run(40)
+        -- (today's wish done already: these count likes, and a wish for one would add its 10)
+        ola.ns.DB.char.wish = { done = true, pet = PANDA, day = ola.ns.Today() }
         local P = ola.ns.Personality
         eq(P:Names(PANDA), "Klengete og Grønnfinger")
         ok(A:IsListening("QUEST_TURNED_IN"))

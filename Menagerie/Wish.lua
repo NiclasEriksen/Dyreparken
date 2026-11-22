@@ -108,7 +108,18 @@ function Wish.Social(key)
     return list
 end
 
-local function Hash(text) return LibStub("LibDeflate"):Adler32(text) end
+-- A day's rolls, the same for a pet all day. Not Adler32 (until 2026-11-22): mod a small number it is the text's
+-- byte sum, so two rolls of one day ("extra ...", "extra pick ...") moved together. A pet with four likes never
+-- wished for its fourth, and with four extra choices always got the last. A polynomial hash, then squarings
+-- (nonlinear, so a shared suffix doesn't tie the rolls), mod a prime under 2^26: h * h stays exact in a double.
+Wish.HASH_M = 67108859
+function Wish.Hash(text)
+    local M, h = Wish.HASH_M, 0
+    for i = 1, #text do h = (h * 31 + text:byte(i)) % M end
+    for _ = 1, 3 do h = (h * h + 12345) % M end
+    return h
+end
+local Hash = Wish.Hash
 
 -- A wish by nature on this day, or nil: its id, and the zone for a trip.
 function Wish:Extra(key, day)

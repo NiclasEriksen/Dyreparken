@@ -10,6 +10,8 @@ return function(test, H)
     local function Setup()
         local w, ola = H.Setup{ ola = { 5159, 46 }, journal = true }
         ola:Slash("adopter panda"); w:Run(5)
+        -- (today's wish done already: these count likes, and a wish for one would add its 10)
+        ola.ns.DB.char.wish = { done = true, pet = PANDA, day = ola.ns.Today() }
         return w, ola, ola.ns.Bond
     end
     -- n of a liked activity (the panda likes herbs and fishing: Personality), each counted.
