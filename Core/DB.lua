@@ -97,6 +97,7 @@ local CHAR_DEFAULTS = {
     unlocksTold = {},          -- [petKey] = { like, dislike, trait }: its minor ones and third trait told at the level-up (TellUnlocks)
     toldNameUnlock = nil,      -- the adoption (its record's `at`) whose nickname unlock was told (TellNameUnlock)
     bondDay = nil,             -- the day the login's milestone and pet-of-the-day lines last showed
+    fullHints = nil,           -- how often the plain "full for today" line has shown (its first Bonds.FULL_HINTS times only)
     -- [Activity]
     activity = {},             -- activity counters
     -- [Sources]

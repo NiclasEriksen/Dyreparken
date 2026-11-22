@@ -427,6 +427,12 @@ function Activity:CheckDay()
     self:Visit(key)
 end
 
+-- The last day ("YYYYMMDD") this pet had its day's visit with this character, or nil for never.
+function Activity:LastVisit(key)
+    local c = ns.DB.char.activity.day
+    return c and c.on and c.on[key]
+end
+
 -- The day's visit for a pet out now (CheckDay: at once for the adopted one, after its wait for the others).
 function Activity:Visit(key)
     local c = Counter("day")

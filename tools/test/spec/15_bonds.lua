@@ -12,6 +12,30 @@ return function(test, H)
         return w, ola, kari
     end
 
+    -- The full day's line (2026-11-22, the content review §4.2): a nudge toward a pet of yours with room today.
+    test("a full day: the line names another pet with room today, the longest since out; else the plain line, three times", function()
+        local w, ola = H.Setup{ ola = { 5159, 46, 40 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local ns, B = ola.ns, ola.ns.Bonds
+        local char = ns.DB.char
+        local function Day(n) return ns.Today(ns.Now() - n * 86400) end
+        local function Line() return (B:FullLine(PANDA)) end
+        -- (Ola's login put the kitten or the cat out first: forget who has been out, so each case is set here)
+        char.activity.day.on = {}
+        eq(Line(), "Panda Cub er fornøyd for i dag. Bombay Cat har aldri vært ute med deg: kanskje det er dets tur?",
+            "never out: the first by name")
+        char.activity.day.on["s:40"] = Day(1)
+        char.activity.day.on["s:46"] = Day(4)
+        eq(Line(), "Panda Cub er fornøyd for i dag. White Kitten har ikke vært ute på 4 dager: kanskje det vil være med?",
+            "the longest since out first")
+        char.activity.day.on["s:46"] = ns.Today()
+        char.bondToday.pets["s:46"] = { got = {}, total = ns.Bond:DailyMax("s:46") }
+        eq(Line(), "Panda Cub er fornøyd for i dag. Bombay Cat var med i går, og vil gjerne ut igjen.", "a full one left out")
+        char.bondToday.pets["s:40"] = { got = {}, total = ns.Bond:DailyMax("s:40") }
+        for _ = 1, B.FULL_HINTS do eq(Line(), "Båndet med Panda Cub er fullt for i dag. Fortsett i morgen!") end
+        eq(Line(), nil, "none with room: the plain line, its first three times only")
+    end)
+
     test("milestones: by calendar day, 1 month, 100 days, every year", function()
         local w = H.World()
         local B = w:AddClient("Ola Nord").ns.Bonds

@@ -351,6 +351,44 @@ function Bond:Today(key)
     return Ledger(key).total, self:DailyMax(key)
 end
 
+-- A "YYYYMMDD" as a day number (Bonds.DayNumber at noon).
+local function DayNumberOf(s)
+    local y, m, d = s:match("^(%d%d%d%d)(%d%d)(%d%d)$")
+    return ns.Bonds.DayNumber(time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12 }))
+end
+
+-- Whether a pet's day still has room (read only: Bond:Today makes the pet's entry for the day).
+function Bond:Open(key)
+    local d = ns.DB.char.bondToday
+    local p = d and d.day == ns.Today() and d.pets and d.pets[key]
+    return (p and p.total or 0) < self:DailyMax(key)
+end
+
+-- The pet to suggest when the one out has a full day (2026-11-22, the content review §4.2, the user: the full
+-- day's line a nudge toward another pet): one of yours with room today, the one longest since its last day
+-- out with you, else one that has never been out with you (the first by name). Returns key and the days since
+-- (nil for never), or nil when there's none.
+function Bond:NextOpen(except)
+    local today = DayNumberOf(ns.Today())
+    local best, bestDays, fresh, freshName
+    for key in pairs(ns.Pets:Owned()) do
+        if key ~= except and self:Open(key) then
+            local last = ns.Activity:LastVisit(key)
+            if last then
+                local days = today - DayNumberOf(last)
+                if days > 0 and (not bestDays or days > bestDays or (days == bestDays and key < best)) then
+                    best, bestDays = key, days
+                end
+            else
+                local name = ns.Pets:NameOfKey(key) or key
+                if not freshName or name < freshName then fresh, freshName = key, name end
+            end
+        end
+    end
+    if best then return best, bestDays end
+    return fresh, nil
+end
+
 -- What the pet's day still has room for, of points.
 local function Grantable(d, points, key)
     return math.max(0, math.min(points, Bond:DailyMax(key) - d.total, Bond:Room(key)))
@@ -494,10 +532,7 @@ Bond.SPACED = { jump = 60, chat = 60 }
 -- and the first pet out on the day you're back has its day's points COMEBACK_X times, within the day's limit.
 -- account.played: the last day a character logged in or had a visit; account.comeback: the day one is owed.
 Bond.COMEBACK_DAYS, Bond.COMEBACK_X = 7, 2
-local function DayOf(s)
-    local y, m, d = s:match("^(%d%d%d%d)(%d%d)(%d%d)$")
-    return y and ns.Bonds.DayNumber(time({ year = tonumber(y), month = tonumber(m), day = tonumber(d), hour = 12 }))
-end
+local function DayOf(s) return s:match("^%d%d%d%d%d%d%d%d$") and DayNumberOf(s) end
 function Bond:CheckComeback()
     local account, today = ns.DB.global, ns.Today()
     local last = type(account.played) == "string" and DayOf(account.played)

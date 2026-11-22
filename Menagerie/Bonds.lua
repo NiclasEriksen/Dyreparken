@@ -113,9 +113,27 @@ ns.Bus:On("BOND_LEVEL", function(key, level, name)
     if ns.Personality:Known(key) then Bonds:TellUnlocks(key, level) end
 end)
 -- Only for the adopted pet (2026-11-19, the user: each pet out earns its own day, and every swap brought a line;
--- the card's tick shows the others').
+-- the card's tick shows the others'). A nudge toward another pet with room today when there is one (2026-11-22,
+-- the content review §4.2), else the plain line, only its first FULL_HINTS times (char.fullHints): daily, it read
+-- as "stop playing".
+Bonds.FULL_HINTS = 3
+function Bonds:FullLine(key)
+    local pet = ns.Registry:NameOf(key)
+    local other, days = ns.Bond:NextOpen(key)
+    if other then
+        local vars = { pet = pet, other = ns.Registry:NameOf(other), n = days }
+        local which = not days and "bond.full.next.new" or days == 1 and "bond.full.next.yesterday" or "bond.full.next"
+        return ns.PickLine(which, vars), other
+    end
+    local char = ns.DB.char
+    if (char.fullHints or 0) >= self.FULL_HINTS then return nil end
+    char.fullHints = (char.fullHints or 0) + 1
+    return ns.T("bond.full", { pet = pet })
+end
 ns.Bus:On("BOND_FULL", function(key)
-    if key == ns.Registry:MyPet() then ns.Print(ns.T("bond.full", { pet = ns.Registry:NameOf(key) })) end
+    if key ~= ns.Registry:MyPet() then return end
+    local line = Bonds:FullLine(key)
+    if line then ns.PrintGold(line) end
 end)
 ns.Bus:On("COMEBACK", function(key, given)
     local name = ns.Registry:NameOf(key)

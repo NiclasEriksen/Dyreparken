@@ -27,7 +27,7 @@ return function(test, H)
         Liked(w, ola, "herb", 6); Liked(w, ola, "fish", 6); Liked(w, ola, "cuddle", 6)
         local today, max = B:Today(PANDA)
         eq(today, max, "the day full at 75")
-        ok(ola:Printed("fullt for i dag", true), "and said so")
+        ok(ola:Printed("fullt for i dag", true) or ola:Printed("fornøyd for i dag", true), "and said so")
     end)
 
     test("at the top: counting on from the bond's points, past the day's 75, each like still at most 25 a day", function()

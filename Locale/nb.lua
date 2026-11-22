@@ -495,7 +495,11 @@ L["bond.liked"] = "{pet} koste seg med {activity}!"   -- the first liked thing o
 -- Back after a week or more away (any character of the account): the first pet out has its day's points twice.
 L["bond.comeback"] = "Velkommen tilbake! {pet} har savnet deg, og dagens besøk teller dobbelt. (+{n} båndpoeng)"
 L["bond.comeback.full"] = "Velkommen tilbake! {pet} har savnet deg."
-L["bond.full"] = "|cffffd100Båndet med {pet} er fullt for i dag. Fortsett i morgen!|r"
+L["bond.full"] = "Båndet med {pet} er fullt for i dag. Fortsett i morgen!"
+-- The day full, with another pet of yours that still has room today ({other}; {n}: days since it was last out with you).
+L["bond.full.next"] = "{pet} er fornøyd for i dag. {other} har ikke vært ute på {n} dager: kanskje det vil være med?"
+L["bond.full.next.yesterday"] = "{pet} er fornøyd for i dag. {other} var med i går, og vil gjerne ut igjen."
+L["bond.full.next.new"] = "{pet} er fornøyd for i dag. {other} har aldri vært ute med deg: kanskje det er dets tur?"
 
 ------------------------------------------------------------------------------
 -- Auto-summon

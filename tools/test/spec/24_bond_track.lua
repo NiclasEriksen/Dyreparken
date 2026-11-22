@@ -151,15 +151,14 @@ return function(test, H)
         for _ = 1, 6 do ola:Fire("ENCOUNTER_END", 1, "Hogger", 1, 5, 1) end -- 25 (boss, liked now)
         ola:Traits{ "glupsk", "steinhard" }
         eq(ola:Points(PANDA), 360)
-        ok(not ola:Printed("fullt for i dag", true))
+        ok(not ola:Printed("fornøyd for i dag", true))
         for _ = 1, 6 do ola:Fire("QUEST_TURNED_IN", 1) end -- quests (liked now): 15 of 25 fit
         eq(ola:Points(PANDA), 375, "75 in a day, no more")
-        ok(ola:Printed("Båndet med Panda Cub er fullt for i dag. Fortsett i morgen!", true))
+        -- (Ola has the Bombay Cat too, never out with Ola: the line names it, Bonds:FullLine)
+        ok(ola:Printed("Panda Cub er fornøyd for i dag. Bombay Cat har aldri vært ute med deg: kanskje det er dets tur?", true))
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 2575)
         eq(ola:Points(PANDA), 375)
-        local fulls = 0
-        for _, l in ipairs(ola.printed) do if l:find("fullt for i dag", 1, true) then fulls = fulls + 1 end end
-        eq(fulls, 1, "said once")
+        eq(ola:CountPrinted("fornøyd for i dag"), 1, "said once")
         card = ola:SelectPet(5159)
         match(b.next.text, "ReadyCheck%-Ready:12|t 155 poeng til God venn$", "the goal stays, with a check")
         eq(b.next.color[2], 1, "in green")
