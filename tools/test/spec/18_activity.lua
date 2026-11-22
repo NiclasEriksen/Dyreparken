@@ -19,6 +19,9 @@ return function(test, H)
             c.ns.Activity:Drop(k.id, c.ns.Quirks)
             c.ns.Activity:Drop(k.id, c.ns.Achievements) -- (and the achievements': boss, pvp, quest)
         end
+        -- Bonds hears your emotes always, as it does guildmates' pats (no event says a pet of ours came out): not
+        -- the activity engine's, so not here (2026-11-22, Bonds:EmotedAt).
+        c.ns.Events:Off("CHAT_MSG_TEXT_EMOTE", c.ns.Bonds)
         return w, c, c.ns.Activity
     end
 

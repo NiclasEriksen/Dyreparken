@@ -269,9 +269,35 @@ function Bonds:Patted(text, sender)
     ns.Activity:Emit("patted", 1, sender)
 end
 
+-- Your own /bonk, /boop or /pat at the pet that's out (2026-11-22, the user, before 0.10.x): it answers, a line of
+-- emote.<kind>.N, at most once a minute per kind (a session's memory). No points: flavor. CHAT_MSG_TEXT_EMOTE
+-- names the pet by its name in the world (as "cuddle" reads it, Activity.EmoteKind); the enUS texts: "You bonk %s on
+-- the noggin. Doh!", "You gently pat %s.", and /boop's "You boop %s..." unverified (Verify: emote:<kind>).
+Bonds.EMOTES = { bonk = "^you bonk ", boop = "^you boop ", pat = "^you [%a ]-pat " }
+Bonds.EMOTE_AGAIN = 60
+local emoted = {} -- kind -> GetTime()
+function Bonds:EmotedAt(text, guid)
+    text = Plain(text)
+    if type(text) ~= "string" or not (type(Plain(guid)) == "string" and guid == UnitGUID("player")) then return end
+    local lower, kind = text:lower(), nil
+    for k, pat in pairs(self.EMOTES) do if lower:find(pat) then kind = k end end
+    if not kind then return end
+    local key, out = ns.Pets:OutKey()
+    local name = out and ns.Pets:WorldName(out)
+    if not (key and name and text:find(name, 1, true)) then return end
+    local now = GetTime()
+    if emoted[kind] and now - emoted[kind] < self.EMOTE_AGAIN then return end
+    emoted[kind] = now
+    ns.Log("Bonds", "emote %s at %s", kind, key)
+    ns.PetSays(ns.PickLine("emote." .. kind, { pet = ns.Registry:NameFor(key, ns.PlayerKey()) }), key,
+        kind == "bonk" and "say" or "like", true)
+end
+
 function Bonds:Init()
     C_Timer.After(SHOW_AFTER, function() Bonds:Celebrate() end)
     ns.Events:On("CHAT_MSG_EMOTE", Bonds, function(_, _, text, sender) Bonds:Patted(text, sender) end)
+    -- (always: emotes are rare, and Activity's emote sources listen only while a like wants them)
+    ns.Events:On("CHAT_MSG_TEXT_EMOTE", Bonds, function(_, _, text, ...) Bonds:EmotedAt(text, (select(11, ...))) end)
 end
 
 -- The emote text for petting the target companion, or our own. nil if

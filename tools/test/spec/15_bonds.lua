@@ -352,4 +352,33 @@ return function(test, H)
         eq(D(T(2027, 1, 1, 0, 5)) - D(T(2026, 12, 31, 23, 55)), 1)
         eq(D(T(2028, 3, 1, 12)) - D(T(2028, 2, 28, 12)), 2, "a leap year's 29 February")
     end)
+
+    -- 2026-11-22, the user: /bonk, /boop and /pat at the pet, three answers each.
+    test("your /bonk, /boop and /pat at the pet that's out: it answers, once a minute per emote; not someone else's", function()
+        local w, ola = Setup()
+        ola:Summon(5159); w:Run(1)
+        local me = ola.env.UnitGUID("player")
+        local function Emote(text, guid) ola:Fire("CHAT_MSG_TEXT_EMOTE", text, "Ola Nord", "", "", "", "", 0, 0, "", 0, 1, guid or me) end
+        local before = #ola.printed
+        Emote("You bonk Panda Cub on the noggin. Doh!")
+        Emote("You boop Panda Cub on the nose.")
+        Emote("You gently pat Panda Cub.")
+        local said = {}
+        for i = before + 1, #ola.printed do said[#said + 1] = ola.printed[i] end
+        eq(#said, 3, "an answer each")
+        for _, kind in ipairs({ "bonk", "boop", "pat" }) do
+            local hit = false
+            for n = 1, 3 do
+                local want = ola.ns.T("emote." .. kind .. "." .. n, { pet = "Panda Cub" })
+                for _, line in ipairs(said) do if line:find(want, 1, true) then hit = true end end
+            end
+            ok(hit, kind .. ": one of its lines")
+        end
+        Emote("You gently pat Panda Cub."); eq(#ola.printed, before + 3, "again within the minute: nothing")
+        w:Run(61); Emote("You gently pat Panda Cub."); eq(#ola.printed, before + 4, "a minute on: again")
+        w:Run(61)
+        Emote("You gently pat Bombay Cat."); Emote("You bonk Kari Berg on the noggin. Doh!")
+        Emote("Kari Berg gently pats Panda Cub.", "Player-0000-00000099")
+        eq(#ola.printed, before + 4, "another pet, a player, someone else's emote: nothing")
+    end)
 end

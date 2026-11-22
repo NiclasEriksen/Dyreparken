@@ -1649,6 +1649,17 @@ L["egg.motstand.class.warlock.1"] = "{pet} lurer på om fienden har en sterkere 
 -- Class reactions (Menagerie/Reactions.lua, 2026-11-14): your pet reacts to what your class does. react.<id>.N,
 -- and by nature react.<id>.<trait|family>.N. Drafts, edited by the user 2026-11-14.
 -- Warrior
+-- Your own /bonk, /boop and /pat at the pet (Bonds:EmotedAt, 2026-11-22; batch E).
+L["emote.bonk.1"] = "{pet} gnir seg på hodet og ser fornærmet på deg. Au!"
+L["emote.bonk.2"] = "{pet} blunker et par ganger og har helt glemt hva den tenkte på."
+L["emote.bonk.3"] = "{pet} bonker deg tilbake. Den når akkurat opp til kneet ditt."
+L["emote.boop.1"] = "{pet} myser, rynker på nesen og nyser. Atsjo!"
+L["emote.boop.2"] = "{pet} ser i kryss på nesetippen sin. Hva var det?"
+L["emote.boop.3"] = "{pet} prøver å boope deg tilbake, men når bare fram til støvlene dine."
+L["emote.pat.1"] = "{pet} lukker øynene og lener seg inn i hånden din."
+L["emote.pat.2"] = "{pet} blir helt myk og vil ha mer."
+L["emote.pat.3"] = "{pet} later som den ikke bryr seg, men lener seg inn for en til."
+
 L["react.krigsrop.1"] = "{pet} hopper høyt da du brøler Battle Shout. Så skummel du er!"
 L["react.krigsrop.2"] = "{pet} holder seg for ørene. Må du rope så høyt?"
 L["react.krigsrop.3"] = "{pet} retter seg opp og ser modig ut, akkurat som deg."

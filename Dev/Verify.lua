@@ -220,6 +220,10 @@ local function Build()
             logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather turned" }, { "Weather", "^WEATHER_CHANGED" },
                 { "Weather", "^clear %-> " }, { "Weather", "^%a%a%a%a+ %-> clear" } } }, -- (a turn seen live, not the login's first read;
             -- seen 2026-11-22: WEATHER_CHANGED fires as it turns)
+        -- Bonds:EmotedAt (2026-11-22): /boop's text on Forever is a guess, /bonk's and /pat's from the classic client.
+        { "emotebonk", "/bonk your pet that's out (targeted)", logs = { { "Bonds", "^emote bonk" } } },
+        { "emoteboop", "/boop your pet that's out (targeted; does Forever have /boop?)", logs = { { "Bonds", "^emote boop" } } },
+        { "emotepat", "/pat your pet that's out (targeted)", logs = { { "Bonds", "^emote pat" } } },
         -- Holidays:Running (2026-11-22): the contest's lines and bonus stop at the calendar's end, 15:00 by the user.
         { "fishingend", "log in on a Sunday: the fishing contest's end read from the calendar (15:00 expected)",
             logs = { { "Holidays", "fishing contest until %d+" } } },
