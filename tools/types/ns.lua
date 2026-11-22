@@ -74,6 +74,7 @@
 ---@field Quirks Dyreparken.Quirks Menagerie/Quirks.lua
 ---@field Reactions Dyreparken.Reactions Menagerie/Reactions.lua
 ---@field Registry Dyreparken.Registry Menagerie/Registry.lua
+---@field SceneArt any Dev/SceneArt.lua
 ---@field SceneGallery Dyreparken.SceneGallery Dev/SceneGallery.lua
 ---@field Scenes Dyreparken.Scenes Menagerie/Scenes.lua
 ---@field Sense Dyreparken.Sense Menagerie/Sense.lua
