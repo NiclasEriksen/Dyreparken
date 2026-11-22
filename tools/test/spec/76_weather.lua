@@ -1,5 +1,5 @@
--- The weather (Menagerie/Weather.lua, 2026-11-22, 0.10.0): read at moments we have (a zone change, a loading screen,
--- an activity), rain, snow or a sandstorm starting is a moment: the activity, and the pet's line by its nature.
+-- The weather (Menagerie/Weather.lua, 2026-11-22, 0.10.0): read as it turns (WEATHER_CHANGED), at a zone change and a
+-- loading screen; rain, snow or a sandstorm starting is a moment: the activity, and the pet's line by its nature.
 return function(test, H)
     local eq, ok, no = H.eq, H.ok, H.no
     local PANDA = "s:5159"
@@ -34,7 +34,7 @@ return function(test, H)
         eq((ola.ns.Activity:Count("rain")), 2, "half an hour on: new again")
     end)
 
-    test("not under a roof, nor a drizzle; snow and sand are their own; read at an activity, at most every 20 s", function()
+    test("not under a roof, nor a drizzle; snow and sand are their own; WEATHER_CHANGED reads it; nothing polls", function()
         local w, ola, fired = Setup()
         ola:Weather(1, 0.9, true)
         eq(#fired, 0, "indoors: sheltered")
@@ -42,17 +42,15 @@ return function(test, H)
         eq(#fired, 0, "a drizzle")
         ola:Weather(2, 0.5)
         eq(fired[1], "snow<clear")
-        -- No event as it turns: the next activity reads it, not sooner than READ_EVERY after the last read.
+        -- Turned with no event: unseen until one comes (no timer, no read at an activity).
         ola.state.weather = { 3, 0.8 }
-        ola.ns.Activity:Emit("herb")
-        eq(#fired, 1, "read a moment ago")
-        w:Run(ola.ns.Weather.READ_EVERY + 1)
-        ola.ns.Activity:Emit("herb")
+        ola.ns.Activity:Emit("herb"); w:Run(600)
+        eq(#fired, 1, "nothing polls")
+        ola:Fire("WEATHER_CHANGED") -- (as the client does when it turns: no payload)
         eq(fired[2], "sand<snow")
-        -- WEATHER_CHANGED, should the client fire it: logged, read.
         ola.state.weather = { 0, 0 }
         ola:Fire("WEATHER_CHANGED")
-        ok(ola:Log("WEATHER_CHANGED")[1]); eq(ola.ns.Weather:Now(), "clear")
+        eq(ola.ns.Weather:Now(), "clear")
     end)
 
     test("a cat in the rain minds it, a Solelsker snow: only their own lines", function()

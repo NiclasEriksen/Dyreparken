@@ -209,7 +209,8 @@ local function Build()
         -- weatherturn, not weatherchange: the first probe ticked that one on any step you took (2026-11-22).
         { "weatherturn", "run /dp probe api weather, then see the weather change (rain, snow, a sandstorm)",
             logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather turned" }, { "Weather", "^WEATHER_CHANGED" },
-                { "Weather", "^clear %-> " }, { "Weather", "^%a%a%a%a+ %-> clear" } } }, -- (a turn seen live, not the login's first read)
+                { "Weather", "^clear %-> " }, { "Weather", "^%a%a%a%a+ %-> clear" } } }, -- (a turn seen live, not the login's first read;
+            -- seen 2026-11-22: WEATHER_CHANGED fires as it turns)
         { "addonlink", "run /dp probe api links and click the addon link in chat",
             logs = { { "Api", "^links .*addon:Dyreparken" } } },
         { "racials", "(read now) which of Forever's racials this character knows (/dp probe api racials: all)",
