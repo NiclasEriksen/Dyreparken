@@ -259,7 +259,7 @@ Personality.TRAITS = {
     { id = "nattugle", like = "explore", when = function(ctx) return Personality.IsNight(ctx.t) end },
     { id = "festglad", like = "dance", day = function(t) return Personality.Holiday(t) and 3 or 1 end, dayX = 3,
         dayFlavor = function(name, t)
-            return ns.T("trait.festglad.dayflavor", { pet = name, holiday = Personality.Holiday(t) })
+            return ns.PickLine("trait.festglad.dayflavor", { pet = name, holiday = Personality.Holiday(t) })
         end },
     { id = "helgedyr", like = "rested", day = function(t) return Personality.IsWeekend(t) and 2 or 1 end,
         dayX = 2, dayFlavor = function(name) return ns.PickLine("trait.helgedyr.dayflavor", { pet = name }) end },
@@ -277,7 +277,7 @@ Personality.TRAITS = {
     { id = "vinterpels", like = "eat", against = "solelsker", when = function(ctx) return Personality.COLD[ctx.zone] end },
     { id = "solelsker", like = "eat", against = "vinterpels", when = function(ctx) return Personality.WARM[ctx.zone] end },
     { id = "tivolidyr", like = "fun", is = { "social" }, day = function(t) return ns.Holidays:Has(t, "darkmoon") and 2 or 1 end, dayX = 2,
-        dayFlavor = function(name) return ns.T("trait.tivolidyr.dayflavor", { pet = name }) end },
+        dayFlavor = function(name) return ns.PickLine("trait.tivolidyr.dayflavor", { pet = name }) end },
     { id = "balkos", is = { "cozy" }, like = "camp" },
     { id = "skybaren", like = "zeppelin", is = { "adventurous" }, place = 1.3, when = function(ctx) return Personality.HIGH[ctx.zone] end }, -- the Skyborne, Zephras Isle
     { id = "jeger", is = { "fighter" }, like = "skin" },

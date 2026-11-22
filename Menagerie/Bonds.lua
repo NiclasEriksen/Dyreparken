@@ -263,7 +263,7 @@ function Bonds:Patted(text, sender)
     if patted[sender] and now - patted[sender] < self.PAT_AGAIN then return end
     patted[sender] = now
     -- (always: an answer to a guildmate's pat; the name it has for us, as our own /klapp says it)
-    ns.PetSays(ns.T("pat.thanks", { pet = ns.Registry:NameFor(key, me), who = sender }), key, "like", true)
+    ns.PetSays(ns.PickLine("pat.thanks", { pet = ns.Registry:NameFor(key, me), who = sender }), key, "like", true)
     if ns.Fx then ns.Fx:Burst({ DEFAULT_CHAT_FRAME, "TOPRIGHT", -24, -8 }, "heart", { n = 4, color = ns.Fx.PINK, size = 0.7 }) end
     ns.Bond:Reward("pat", key)
     ns.Activity:Emit("patted", 1, sender)

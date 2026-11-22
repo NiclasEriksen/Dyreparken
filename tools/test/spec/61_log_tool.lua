@@ -112,6 +112,6 @@ return function(test, H)
         ok(out:find("day   1  played", 1, true) and out:find("day   2        ", 1, true), out)
         ok(out:find("(2 of 3 days played, 1 h each), chatter normal, seed 3", 1, true), out)
         ok(out:find("Bond level reached (2250 points at 7): 2: ", 1, true), out)
-        ok(out:find("\n +%d+ +%d+%%  activity%.herb%.flavor\n"), out)
+        ok(out:find("\n +%d+ +%d+%%  activity%.herb%.flavor[%.%a]*\n"), out) -- (or a moment's variant: .autumn)
     end)
 end

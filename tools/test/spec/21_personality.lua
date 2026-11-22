@@ -138,7 +138,7 @@ return function(test, H)
         w:Run(40)
         ola.ns.Activity:CheckDay()
         eq(ola.ns.Registry:Life(PANDA, "Ola Nord").p, 30)
-        ok(ola:Printed("Panda Cub feirer testdagen med deg!", true))
+        ok(ola:PrintedLine("trait.festglad.dayflavor", { pet = "Panda Cub", holiday = "testdagen" }))
     end)
 
     test("when traits: anything done at the right moment is liked, with one cap per trait", function()

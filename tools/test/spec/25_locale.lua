@@ -132,6 +132,10 @@ return function(test, H)
             -- (a numbered variant of a line the code picks by its bare key: ns.PickLine reads them all; Bond.Line
             -- picks too, for the keys given to it: the wish's from Wish:Grant)
             local base = key:match("^(.+)%.%d+$")
+            -- (a moment's variant: ns.Lines mixes prefix.<moment> in, 2026-11-22: .remember, .spring, .cold...)
+            for _, m in ipairs({ "morning", "evening", "night", "winter", "spring", "summer", "autumn", "cold", "warm", "remember" }) do
+                if base and base:sub(-#m - 1) == "." .. m then base = base:sub(1, -#m - 2) end
+            end
             local variant = base and (all:find('ns.PickLine("' .. base .. '"', 1, true)
                 or ({ ["wish.granted"] = 1, ["wish.granted.full"] = 1 })[base])
             ok(dynamic or variant or used[key] or all:find('"' .. key .. '"', 1, true), key .. " is never used")
