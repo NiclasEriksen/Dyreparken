@@ -13,7 +13,7 @@ local ns = select(2, ...)
 --
 -- A swap (2026-11-22, 0.10.0, the user: "The swap button should replace 'ta med ut', basically making the 'ta med
 -- ut' button label/icon/color situationally reactive"): while the pet out now has a full day, the card of a pet of
--- yours with room today shows "Bytt inn" instead, green, with two arrows. The click is the same (it takes the pet
+-- yours with room today shows "Bytt til" instead, green, with two arrows. The click is the same (it takes the pet
 -- out, Summon:SetActive); only the badge tells you it's worth it.
 ---@class Dyreparken.OutBadge
 local OutBadge = {}

@@ -1367,7 +1367,7 @@ L["egg.snofall.1"] = "Det begynner å snø. {pet} prøver å fange snøfnuggene.
 L["egg.snofall.2"] = "{pet} setter små spor i den ferske snøen bak deg."
 L["egg.snofall.vinterpels.1"] = "Snø! {pet} ruller seg rundt og ser mer fornøyd ut enn på lenge."
 L["egg.snofall.solelsker.1"] = "{pet} skjelver og ser på deg som om dette er din feil."
-L["egg.snofall.hoppetass.1"] = "{pet} hopper fra snøfnugg til snøfnugg. Det rekker ikke alle, men det prøver."
+L["egg.snofall.hoppetass.1"] = "{pet} hopper fra snøfnugg til snøfnugg. Den rekker ikke alle, men den prøver."
 L["egg.snofall.kosete.1"] = "{pet} vil inn under kappa di til snøen gir seg."
 L["egg.snofall.reptile.1"] = "{pet} beveger seg sakte i kulda og vil helst hjem til et varmt sted."
 L["egg.snofall.wolf.1"] = "{pet} snuser i snøen og uler lavt. Dette er ulvevær."
@@ -1820,8 +1820,8 @@ L["card.out.on"] = "Med deg"                                 -- the badge on the
 L["card.out.off"] = "Ta med ut"                             -- ... and when it isn't
 L["card.out.on.title"] = "{pet} er med deg"
 L["card.out.off.title"] = "Ta med {pet} ut"
-L["card.out.swap"] = "Bytt inn"                              -- ... and when the pet out is full for today and this one isn't
-L["card.out.swap.title"] = "Bytt inn {pet}"
+L["card.out.swap"] = "Bytt til"                              -- ... and when the pet out is full for today and this one isn't
+L["card.out.swap.title"] = "Bytt til {pet}"
 L["card.out.swap.tip"] = "{other} er fornøyd for i dag. {pet} kan fortsatt få {n} båndpoeng i dag."
 L["card.out.swap.click"] = "Klikk for å ta {pet} med ut i stedet."
 L["card.out.on.click"] = "Klikk for å slutte å summone automatisk."
@@ -2224,7 +2224,7 @@ ns.AchTexts = {
     ["family:pirate"] = { name = "Kaptein Sabeltann", desc = "Ha alle piratdyrene.",
         flavor = "Det var en meget gledelig overraskelse, {player}, med alle piratdyrene om bord! {name}" },
     -- (2026-11-22: the families with three or more pets that count, from the data: Defs' ns.AchFamily)
-    ["family:rodent"] = { name = "Musehullet", desc = "Ha alle gnagerne.",
+    ["family:rodent"] = { name = "Musematta", desc = "Ha alle gnagerne.",
         flavor = "{player} har samlet alle gnagerne. Hold osten unna! {name}" },
     ["family:wolf"] = { name = "Ulveflokken", desc = "Ha alle ulvene.",
         flavor = "Auuu! {player} har samlet hele ulveflokken. {name}" },
