@@ -287,6 +287,45 @@ return function(test, H)
         ola.env.PetJournal_UpdatePetCard(c)
         eq(card.personality.text, ""); no(card.badges:IsShown(), "no pet: no badges")
     end)
+    -- Family affinity (2026-11-22, 0.10.0): a badge at the row's end at 3, 5 and all of a family's species at level 3.
+    test("family affinity: a badge for the pet's family at 3, 5 and all of its species at level 3 with you", function()
+        local cats = { [40] = { a = true, t = { "cat" } }, [41] = { a = true, t = { "cat" } }, [42] = { a = true, t = { "cat" } },
+            [43] = { a = true, t = { "cat" } }, [44] = { a = true, t = { "cat" } }, [45] = { a = true, t = { "cat" } },
+            [46] = { a = false, t = { "cat" } }, [5159] = { a = false, t = { "bear" } } }
+        local w, ola = H.Setup{ ola = { 5159, 40 }, each = function(c) c:Companions(cats) end }
+        local A = ola.ns.AboutPet
+        local LV3 = 600
+        ola:OpenJournal()
+        local function Family()
+            local card = ola:SelectPet(40)
+            for _, b in ipairs(card.badges.badges) do
+                if b:IsShown() and b.data.kind == "family" then return b, ola:TipOf(b) end
+            end
+        end
+        ola:SetBond("s:40", LV3); ola:SetBond("s:41", LV3); ola:SetBond("s:42", 200) -- (level 2)
+        eq(Family(), nil, "two at level 3: not yet")
+        ola:SetBond("s:46", LV3)
+        eq(Family(), nil, "one that doesn't count toward achievements doesn't count here")
+        ola:SetBond("s:42", LV3)
+        local b, tip = Family()
+        eq(b.data.tier, 1); eq(b.data.n, 3); eq(b.data.total, 6, "all: the ones that count toward achievements")
+        eq(tip.text, "Katter / Familien kjenner deg. / Du har bånd på level 3 eller mer med 3 av 6 katter. / "
+            .. "2 til for neste merke. / Klikk for mer om Bombay Cat")
+        ola:SetBond("s:43", LV3); ola:SetBond("s:44", LV3)
+        b, tip = Family()
+        eq(b.data.tier, 2); match(tip.text, "Familien stoler på deg%. / .* 5 av 6 katter%. / 1 til for neste merke%.")
+        ola:SetBond("s:45", LV3)
+        b, tip = Family()
+        eq(b.data.tier, 3); match(tip.text, "Hele familien er venner med deg! / .* 6 av 6 katter%. / Klikk")
+        no(tip.text:find("neste merke", 1, true), "nothing past all")
+        -- Not on another family's card; a small family's gold comes at all of it.
+        local card = ola:SelectPet(5159)
+        for _, x in ipairs(card.badges.badges) do if x:IsShown() then ok(x.data.kind ~= "family", "the bear's card") end end
+        eq(A.Affinity({ n = 3, total = 3 }), 3, "three of three: gold")
+        eq(A.Affinity({ n = 4, total = 4 }), 3)
+        eq(A.Affinity({ n = 2, total = 2 }), 0, "under three: never, even all of it")
+    end)
+
     -- (since X-Protocol 11, a guildmate who owns it is enough: Owners)
     test("a personality is a surprise until you or a guildmate have the pet", function()
         local w, ola, kari = H.Setup{ ola = { 5159 }, kari = { 40 } }

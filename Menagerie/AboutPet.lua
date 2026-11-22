@@ -8,6 +8,9 @@ local ns = select(2, ...)
 -- still secret. Each badge explains itself on hover; a click opens the panel beside the window (Story.lua)
 -- on "Personlighet", which tells all of it in words. "Bånd" there lists everyone's bond with the pet.
 -- Room is left at the row's end for a mood or temperament, next to each other (the user, the same day).
+-- Family affinity (2026-11-22, 0.10.0, the content review §4.3): at the row's end, a badge per family of the pet's
+-- where you have bonds at level AFFINITY_LEVEL with AFFINITY[1], [2] or all of its species (About.Affinity); its
+-- mark (Decor.Mark) in a bronze, silver or gold ring. Pure flavor, this character's own bonds.
 ---@class Dyreparken.AboutPet
 local About = {}
 ns.AboutPet = About
@@ -35,10 +38,49 @@ function About.TraitIcon(trait)
 end
 
 ------------------------------------------------------------------------------
+-- Family affinity
+------------------------------------------------------------------------------
+About.AFFINITY, About.AFFINITY_LEVEL = { 3, 5 }, 3
+About.TIER_LINE = { "about.family.tier1", "about.family.tier2", "about.family.tier3" }
+About.TIER_RING = { { 0.85, 0.55, 0.3 }, { 0.8, 0.86, 0.95 }, { 1, 0.82, 0.3 } }
+
+-- family -> { n = species with your bond at AFFINITY_LEVEL+, total = the family's species }, both of the species
+-- that count toward achievements (limited ones do; one nobody can get doesn't), so "all" can be had and n never
+-- passes it. Built on each call.
+function About.Affinities()
+    local out = {}
+    local data = ns.Companions and ns.Companions.species or {}
+    local me = ns.PlayerKey()
+    for sid, e in pairs(data) do
+        if type(e) == "table" and e.a then
+            local key = ns.Pets:KeyOfSpecies(sid)
+            local life = ns.Registry:Life(key, me)
+            local high = life and ns.Bond:Level(life.p or 0) >= About.AFFINITY_LEVEL
+            for _, f in ipairs(ns.Scenes:Families(key)) do
+                local a = out[f] or { n = 0, total = 0 }
+                out[f] = a
+                a.total = a.total + 1
+                if high then a.n = a.n + 1 end
+            end
+        end
+    end
+    return out
+end
+
+-- A family's tier for you: 0 to 3 (3: all of it), and its counts. A small family's tiers past its size go: three
+-- species, all three are the gold one.
+function About.Affinity(a)
+    if not a or a.n < About.AFFINITY[1] then return 0, a end
+    if a.total > 0 and a.n >= a.total then return 3, a end
+    if a.n >= About.AFFINITY[2] then return 2, a end
+    return 1, a
+end
+
+------------------------------------------------------------------------------
 -- The row's badges, as data
 ------------------------------------------------------------------------------
--- { kind = "trait" | "like" | "dislike" | "secret", trait, act, minor, n }, in the row's order; nil while
--- the personality is a surprise (Personality:Known).
+-- { kind = "trait" | "like" | "dislike" | "secret" | "family", trait, act, minor, n, family, tier, total }, in
+-- the row's order; nil while the personality is a surprise (Personality:Known).
 function About.For(key)
     local P = ns.Personality
     if not (key and P:Known(key)) then return nil end
@@ -61,6 +103,14 @@ function About.For(key)
         end
     end
     if #all > shown then list[#list + 1] = { kind = "secret", n = #all - shown } end
+    local families = ns.Scenes:Families(key)
+    if #families > 0 then
+        local aff = About.Affinities()
+        for _, f in ipairs(families) do
+            local tier, a = About.Affinity(aff[f])
+            if tier > 0 then list[#list + 1] = { kind = "family", family = f, tier = tier, n = a.n, total = a.total } end
+        end
+    end
     return list
 end
 
@@ -80,6 +130,16 @@ function About.Lines(key, b)
         lines = { { Cap(ns.T("card.dislikes", { list = P.NOUN[b.act] })), 0.9, 0.5, 0.45 },
             { ns.T("about.dislike.tip", { pet = pet }), 1, 1, 1, true } }
         if b.minor then lines[3] = { ns.T("about.minor.dislike", { pet = pet }), 0.6, 0.6, 0.6, true } end
+    elseif b.kind == "family" then
+        local c = About.TIER_RING[b.tier]
+        local names = ns.AchTexts.generic.families
+        local vars = { family = names[b.family] or b.family, n = b.n, total = b.total, level = About.AFFINITY_LEVEL }
+        lines = { { Cap(vars.family), c[1], c[2], c[3] }, { ns.L[About.TIER_LINE[b.tier]], 1, 1, 1, true },
+            { ns.T("about.family.count", vars), 0.85, 0.85, 0.85, true } }
+        local nextAt = b.tier == 1 and math.min(About.AFFINITY[2], b.total) or b.tier == 2 and b.total or nil
+        if nextAt and nextAt > b.n then
+            lines[#lines + 1] = { ns.T("about.family.next", { n = nextAt - b.n }), 0.6, 0.6, 0.6, true }
+        end
     else
         lines = { { ns.T(b.n == 1 and "card.dislikes.secret_one" or "card.dislikes.secret", { pet = pet, n = b.n }),
             0.9, 0.6, 0.55, true } }
@@ -127,7 +187,7 @@ local function Draw(b, d)
     b:SetSize(size, size)
     b.bg:SetSize(size - 2, size - 2)
     b.icon:SetSize(size * 0.68, size * 0.68)
-    local ring = RING[d.kind]
+    local ring = d.kind == "family" and About.TIER_RING[d.tier] or RING[d.kind]
     b.ring:SetDesaturated(d.kind ~= "trait")
     b.ring:SetVertexColor(ring[1], ring[2], ring[3], 1)
     b.q:SetShown(d.kind == "secret")
@@ -138,6 +198,11 @@ local function Draw(b, d)
         b.icon:SetTexCoord(0, 1, 0, 1)
         b.icon:SetVertexColor(color[1], color[2], color[3], 1)
         b.icon:SetSize(size * 0.74, size * 0.74)
+    elseif d.kind == "family" then
+        local tex, r, g, bl = ns.Decor.Mark(d.family)
+        b.icon:SetTexture(tex)
+        b.icon:SetTexCoord(0, 1, 0, 1)
+        b.icon:SetVertexColor(r, g, bl, 1)
     elseif d.act then
         local tex, ours = About.ActIcon(d.act)
         b.icon:SetTexture(tex)
