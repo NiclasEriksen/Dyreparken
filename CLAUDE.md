@@ -257,7 +257,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Familiar (2026-11-17: which mage's familiar is out, read from its buff by id and name and
                    remembered until its end, through secret or failed reads, a /reload, and a "gone" until a second read
                    3 s later agrees (flight paths, mounts); Bus FAMILIAR; a mage watches the scrolls' casts; read its header),
-                   Summon (auto-summon, defers to AutoCompanion; never replaces a familiar), OutBadge (the "Med deg" badge: which pet is kept out),
+                   Summon (auto-summon, defers to AutoCompanion; never replaces a familiar), OutBadge (the "Med deg" badge: which pet is kept out;
+                   "Bytt inn" when the pet out is full and this one has room; Turnus' small toggle beside it), Turnus (2026-11-22:
+                   2 to 5 pets take turns as the "Med deg" pet, a new one each day and the next with room when one's day
+                   fills, Summon:Rotate; listed at the top of the story panel's Flokk tab, AboutPet),
                    JournalList (the journal's list: markers, bond rings, nicknames, tooltips), CardActions (the card's
                    Adopter / Gi slipp and Kallenavn buttons and popups), JournalUI (the card and the wiring),
                    Card (the card's widgets: one ns.Card.Register{ id, build, update, pause, stop } each, run in

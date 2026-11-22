@@ -426,6 +426,32 @@ end
 About.HERD = { adopt = true, level = true, milestone = true, ["first.boss"] = true, ["first.place"] = true,
     ["first.play"] = true, ach = true, feat = true }
 About.HERD_MAX = 60
+-- Turnus (Turnus.lua) at the top of Flokk: its pets in order, today's first in gold, and how each one's day stands.
+local function PetIcon(key)
+    local sid = ns.Pets:SpeciesOfKey(key)
+    local icon = sid and C_PetJournal.GetPetInfoBySpeciesID and select(2, C_PetJournal.GetPetInfoBySpeciesID(sid))
+    return icon or ns.Icon("paw"), not icon
+end
+function About.TurnusEntries()
+    local T = ns.Turnus
+    local out = { { head = L["about.turnus.head"] } }
+    local list = T:List()
+    if #list == 0 then
+        out[#out + 1] = { text = ns.T("about.turnus.none", { min = T.MIN, max = T.MAX }), textColor = GREY }
+        return out
+    end
+    local active = ns.Summon:ActiveKey()
+    for _, key in ipairs(list) do
+        local icon, ours = PetIcon(key)
+        local state = key == active and "about.turnus.now" or ns.Bond:Open(key) and "about.turnus.open" or "about.turnus.full"
+        out[#out + 1] = { icon = icon, ours = ours, title = ns.Registry:NameOf(key),
+            tc = key == active and { 1, 0.82, 0 } or nil, text = L[state] }
+    end
+    if #list < T.MIN then out[#out + 1] = { text = L["turnus.card.more"], textColor = GREY }
+    elseif not ns.Summon:Enabled() then out[#out + 1] = { text = L["about.turnus.paused"], textColor = GREY } end
+    return out
+end
+
 function About.HerdEntries()
     local g, me = ns.DB:Guild(), ns.PlayerKey()
     local all = {}
@@ -434,17 +460,18 @@ function About.HerdEntries()
             if e.w == me and About.HERD[e.k] then all[#all + 1] = { key = key, e = e } end
         end
     end
-    if #all == 0 then return { { text = L["about.herd.none"], textColor = GREY } } end
+    local out = About.TurnusEntries()
+    out[#out + 1] = { head = L["about.herd.head"] }
+    if #all == 0 then out[#out + 1] = { text = L["about.herd.none"], textColor = GREY }; return out end
     table.sort(all, function(a, b)
         if a.e.t ~= b.e.t then return a.e.t > b.e.t end
         return a.key < b.key
     end)
-    local out = { { text = L["about.herd.intro"], textColor = GREY } }
+    out[#out + 1] = { text = L["about.herd.intro"], textColor = GREY }
     for i = 1, math.min(#all, About.HERD_MAX) do
         local x = all[i]
-        local sid = ns.Pets:SpeciesOfKey(x.key)
-        local icon = sid and C_PetJournal.GetPetInfoBySpeciesID and select(2, C_PetJournal.GetPetInfoBySpeciesID(sid))
-        out[#out + 1] = { icon = icon or ns.Icon("paw"), ours = not icon, title = ns.Registry:NameOf(x.key),
+        local icon, ours = PetIcon(x.key)
+        out[#out + 1] = { icon = icon, ours = ours, title = ns.Registry:NameOf(x.key),
             tc = { 1, 0.82, 0 }, text = ns.Date(x.e.t) .. ": " .. ns.Story:Text(x.key, x.e) }
     end
     return out

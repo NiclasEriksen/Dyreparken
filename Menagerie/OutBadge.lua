@@ -65,6 +65,48 @@ end
 
 local function Tip(self) ns.ShowTip(self, "ANCHOR_LEFT", OutBadge.Lines(self.card.key, self.on, self.notOwned)) end
 
+-- Turnus' toggle (2026-11-22, 0.10.0, the user: "a toggle on each, small one"): a small badge left of "Med deg".
+OutBadge.TURNUS_SIZE = 20
+local TURNUS_GOLD = { 1, 0.82, 0.3 }
+function OutBadge.TurnusLines(key)
+    local T, pet = ns.Turnus, ns.Registry:NameOf(key)
+    local has = T:Has(key)
+    local lines = {
+        { ns.T(has and "turnus.card.on" or "turnus.card.off", { pet = pet }), TURNUS_GOLD[1], TURNUS_GOLD[2], TURNUS_GOLD[3] },
+        { ns.T("turnus.card.tip", { min = T.MIN, max = T.MAX }), 1, 1, 1, true },
+    }
+    local list = T:List()
+    if #list > 0 then
+        local names = {}
+        for _, k in ipairs(list) do names[#names + 1] = ns.Registry:NameOf(k) end
+        lines[#lines + 1] = { ns.T("turnus.card.list", { list = ns.Join(names) }), 0.7, 0.7, 0.7, true }
+        if #list < T.MIN then lines[#lines + 1] = { ns.L["turnus.card.more"], 0.7, 0.7, 0.7, true } end
+    end
+    if not has and T:Full() then
+        lines[#lines + 1] = { ns.T("turnus.card.full", { max = T.MAX }), 1, 0.5, 0.4, true }
+    else
+        lines[#lines + 1] = { ns.T(has and "turnus.card.click.on" or "turnus.card.click.off", { pet = pet }), 0.5, 0.8, 0.5, true }
+    end
+    return lines
+end
+
+local function BuildTurnus(card, b)
+    local t = ns.RoundBadge(b:GetParent(), OutBadge.TURNUS_SIZE, { disc = 2, ring = true, icon = ns.Icon("turnus"), iconSize = 0.62 })
+    t:SetPoint("RIGHT", b, "LEFT", -3, 6)
+    t:SetFrameLevel(b:GetFrameLevel())
+    t:SetMotionScriptsWhileDisabled(true)
+    t:SetScript("OnClick", function(self)
+        if not card.key then return end
+        if ns.Turnus:Toggle(card.key) then ns.PlayFirstSound(OutBadge.SOUNDS) end
+        OutBadge:Update(card, card.key)
+        if GameTooltip:IsOwned(self) then ns.ShowTip(self, "ANCHOR_LEFT", OutBadge.TurnusLines(card.key)) end
+        if ns.Story:IsOpen() then ns.Story:Redraw() end -- (Flokk lists it)
+    end)
+    ns.SetTip(t, "ANCHOR_LEFT", function() return card.key and OutBadge.TurnusLines(card.key) end)
+    t:Hide()
+    return t
+end
+
 function OutBadge:Build(card, c)
     local b = ns.RoundBadge(c, SIZE, { disc = 4, ring = true, icon = ns.Icon("paw"), iconSize = 0.55 })
     b.paw = b.icon
@@ -101,6 +143,18 @@ function OutBadge:Build(card, c)
     b:SetScript("OnLeave", ns.HideTip)
     b:Hide()
     card.auto = b
+    b.turnus = BuildTurnus(card, b)
+end
+
+local function UpdateTurnus(t, key, show)
+    if not show then return t:Hide() end
+    local on = ns.Turnus:Has(key)
+    t.ring:SetDesaturated(not on)
+    t.ring:SetAlpha(on and 1 or 0.6)
+    if on then t.icon:SetVertexColor(TURNUS_GOLD[1], TURNUS_GOLD[2], TURNUS_GOLD[3], 1)
+    else t.icon:SetVertexColor(0.6, 0.6, 0.6, 0.8) end
+    t:SetEnabled(on or not ns.Turnus:Full())
+    t:Show()
 end
 
 -- The pet on the card: is it the one kept out?
@@ -109,8 +163,9 @@ function OutBadge:Update(card, key)
     if not b then return end
     b.on = false
     b.glow.pulse:Stop()
-    if not key then return b:Hide() end
+    if not key then UpdateTurnus(b.turnus, key, false); return b:Hide() end
     b.notOwned = not ns.Pets:IsOwned(key)
+    UpdateTurnus(b.turnus, key, not b.notOwned and not ns.Summon:Deferring())
     if b.notOwned then
         b:SetEnabled(false)
         b.ring:SetDesaturated(true); b.ring:SetAlpha(0.35)

@@ -72,6 +72,20 @@ function Summon:SetActive(key, on)
     if on then self:Check("active") end
 end
 
+-- Turnus' pick (Turnus.lua): the pet kept out from now on. Unlike a choice on its card it replaces only the pet
+-- auto-summon put out (the one kept out until now), never one you summoned yourself.
+function Summon:Rotate(key)
+    local old = self:ActiveKey()
+    if not old or old == key then return end
+    ns.DB.char.activePet = key
+    ns.Log("Summon", "rotate: %s -> %s", old, key)
+    self:Watch()
+    ns.Bus:Fire("ACTIVE_PET", key)
+    local out = ns.Plain(ns.Pets:Summoned())
+    swapTo = out and ns.Pets:KeyOf(out) == old and key or nil
+    self:Check("active")
+end
+
 function Summon:Enabled()
     return ns.DB.char.autoSummon and not self:Deferring()
 end

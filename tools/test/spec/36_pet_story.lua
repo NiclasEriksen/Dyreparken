@@ -152,20 +152,22 @@ return function(test, H)
         -- (the story so far: the panda's adoption is Kari's below, not ours)
         local g = ola.ns.DB:Guild()
         g.story = {}
-        eq(ola:About(PANDA, "herd").text, "Når dyrene dine opplever noe sammen med deg, står det her.")
+        local TOP = "Turnus / Velg 2 til 5 dyr med den lille turnusknappen på kortene deres, så bytter de på å være med deg. / "
+            .. "Sammen med deg"
+        eq(ola:About(PANDA, "herd").text, TOP .. " / Når dyrene dine opplever noe sammen med deg, står det her.")
         S:Mine(PANDA, "first.boss", "Hogger"); w:Run(60)
         S:Mine("s:40", "first.place", "Goldshire"); w:Run(60)
         S:Mine(PANDA, "egg", "Panda Cub sier hei.") -- (flavor: its own story only)
         local now = w:ServerTime()
         table.insert(g.story[PANDA].e, { t = now + 1, k = "adopt", w = "Kari Berg" }) -- (someone else's)
         local lines = ola:About("s:40", "herd")
-        eq(lines[1], "Det du har opplevd med alle dyrene dine, nyeste først.")
-        eq(lines[2], "Bombay Cat"); match(lines[3], "^%d%d%.%d%d%.%d%d%d%d: Første nye sted sammen med deg: Goldshire$")
-        eq(lines[4], "Panda Cub"); match(lines[5], ": Første boss sammen med deg: Hogger$")
-        eq(#lines, 5, "not the egg, not Kari's adoption")
+        eq(lines[3], "Sammen med deg"); eq(lines[4], "Det du har opplevd med alle dyrene dine, nyeste først.")
+        eq(lines[5], "Bombay Cat"); match(lines[6], "^%d%d%.%d%d%.%d%d%d%d: Første nye sted sammen med deg: Goldshire$")
+        eq(lines[7], "Panda Cub"); match(lines[8], ": Første boss sammen med deg: Hogger$")
+        eq(#lines, 8, "not the egg, not Kari's adoption")
         eq(ola:About(PANDA, "herd").text, lines.text, "the same from the panda's panel")
         ola.ns.AboutPet.HERD_MAX = 1
-        eq(#ola:About(PANDA, "herd"), 3, "the newest HERD_MAX")
+        eq(#ola:About(PANDA, "herd"), 6, "the newest HERD_MAX")
     end)
 
     test("the guild's part: homes, moves, names, levels, as this client sees them", function()

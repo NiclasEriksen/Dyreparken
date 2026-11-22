@@ -132,6 +132,7 @@ function Bonds:FullLine(key)
 end
 -- The nudge's pet, clickable (2026-11-22, 0.10.0, §4.2): the link takes it out, as its card's swap badge does.
 ns.Bus:On("BOND_FULL", function(key)
+    if ns.Turnus:TakeOver(key) then return end -- (Turnus' next pet takes over, and says so)
     if key ~= ns.Registry:MyPet() then return end
     local line, other = Bonds:FullLine(key)
     if not line then return end

@@ -82,6 +82,7 @@ Menagerie\Unlisted.lua
 Menagerie\Bonds.lua
 Menagerie\Moments.lua
 Menagerie\Bond.lua
+Menagerie\Turnus.lua
 Menagerie\Wish.lua
 Menagerie\Playdate.lua
 Menagerie\Quirks.lua

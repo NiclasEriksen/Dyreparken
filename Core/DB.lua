@@ -98,6 +98,9 @@ local CHAR_DEFAULTS = {
     toldNameUnlock = nil,      -- the adoption (its record's `at`) whose nickname unlock was told (TellNameUnlock)
     bondDay = nil,             -- the day the login's milestone and pet-of-the-day lines last showed
     fullHints = nil,           -- how often the plain "full for today" line has shown (its first Bonds.FULL_HINTS times only)
+    -- [Turnus]
+    turnus = nil,              -- { petKey, ... }: the pets that take turns being out, in order (Turnus.lua)
+    turnusDay = nil,           -- { day, key }: the day Turnus last picked a pet, and which
     -- [Activity]
     activity = {},             -- activity counters
     -- [Sources]
