@@ -420,7 +420,39 @@ function About.BondEntries(key)
     return out
 end
 
+-- Flokk (2026-11-22, 0.10.0, the content review §4.3): your moments with all your pets, interleaved, newest first,
+-- from every pet's story (Story.lua): adoptions, levels, milestones, firsts, feats and achievements, yours only.
+-- Not the flavor (eggs, pet of the day: each pet's own story has those). The same on every pet's panel.
+About.HERD = { adopt = true, level = true, milestone = true, ["first.boss"] = true, ["first.place"] = true,
+    ["first.play"] = true, ach = true, feat = true }
+About.HERD_MAX = 60
+function About.HerdEntries()
+    local g, me = ns.DB:Guild(), ns.PlayerKey()
+    local all = {}
+    for key, s in pairs(g and g.story or {}) do
+        for _, e in ipairs(type(s) == "table" and s.e or {}) do
+            if e.w == me and About.HERD[e.k] then all[#all + 1] = { key = key, e = e } end
+        end
+    end
+    if #all == 0 then return { { text = L["about.herd.none"], textColor = GREY } } end
+    table.sort(all, function(a, b)
+        if a.e.t ~= b.e.t then return a.e.t > b.e.t end
+        return a.key < b.key
+    end)
+    local out = { { text = L["about.herd.intro"], textColor = GREY } }
+    for i = 1, math.min(#all, About.HERD_MAX) do
+        local x = all[i]
+        local sid = ns.Pets:SpeciesOfKey(x.key)
+        local icon = sid and C_PetJournal.GetPetInfoBySpeciesID and select(2, C_PetJournal.GetPetInfoBySpeciesID(sid))
+        out[#out + 1] = { icon = icon or ns.Icon("paw"), ours = not icon, title = ns.Registry:NameOf(x.key),
+            tc = { 1, 0.82, 0 }, text = ns.Date(x.e.t) .. ": " .. ns.Story:Text(x.key, x.e) }
+    end
+    return out
+end
+
 ns.Story:AddTab({ id = "personality", title = L["about.tab.personality"],
     draw = function(page, key, width) return Render(page, width, About.PersonalityEntries(key)) end })
 ns.Story:AddTab({ id = "bonds", title = L["about.tab.bonds"],
     draw = function(page, key, width) return Render(page, width, About.BondEntries(key)) end })
+ns.Story:AddTab({ id = "herd", title = L["about.tab.herd"],
+    draw = function(page, _, width) return Render(page, width, About.HerdEntries()) end })

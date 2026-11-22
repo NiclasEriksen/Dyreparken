@@ -115,7 +115,7 @@ return function(test, H)
         local p, S = ola.ns.Story.panel, ola.ns.Story
         local titles = {}
         for _, b in ipairs(p.tabs) do titles[#titles + 1] = b.text.text end
-        eq(table.concat(titles, " "), "Historie Personlighet Bånd")
+        eq(table.concat(titles, " "), "Historie Personlighet Bånd Flokk")
         ok(p.tabs[1].line:IsShown(), "the story first"); no(p.tabs[2].line:IsShown())
         ok(p.pages.story:IsShown())
         p.tabs[2]:Click()
@@ -142,6 +142,30 @@ return function(test, H)
         -- A pet whose personality is a surprise says so.
         eq(ola:About("s:84", "personality").text, "Ukjent personlighet / Personligheten er en overraskelse. "
             .. "Den blir kjent når du eller noen i guilden har dyret.")
+    end)
+
+    test("Flokk: your moments with all your pets, newest first, the same on every pet's panel; not the flavor nor others'", function()
+        local w, ola, kari = H.Setup{ ola = { 5159, 40 }, kari = { 5159 }, journal = true }
+        ola.ns.Bonds.PetOfTheDay = function() end
+        local S = ola.ns.Story
+        ola:SelectPet(5159)
+        -- (the story so far: the panda's adoption is Kari's below, not ours)
+        local g = ola.ns.DB:Guild()
+        g.story = {}
+        eq(ola:About(PANDA, "herd").text, "Når dyrene dine opplever noe sammen med deg, står det her.")
+        S:Mine(PANDA, "first.boss", "Hogger"); w:Run(60)
+        S:Mine("s:40", "first.place", "Goldshire"); w:Run(60)
+        S:Mine(PANDA, "egg", "Panda Cub sier hei.") -- (flavor: its own story only)
+        local now = w:ServerTime()
+        table.insert(g.story[PANDA].e, { t = now + 1, k = "adopt", w = "Kari Berg" }) -- (someone else's)
+        local lines = ola:About("s:40", "herd")
+        eq(lines[1], "Det du har opplevd med alle dyrene dine, nyeste først.")
+        eq(lines[2], "Bombay Cat"); match(lines[3], "^%d%d%.%d%d%.%d%d%d%d: Første nye sted sammen med deg: Goldshire$")
+        eq(lines[4], "Panda Cub"); match(lines[5], ": Første boss sammen med deg: Hogger$")
+        eq(#lines, 5, "not the egg, not Kari's adoption")
+        eq(ola:About(PANDA, "herd").text, lines.text, "the same from the panda's panel")
+        ola.ns.AboutPet.HERD_MAX = 1
+        eq(#ola:About(PANDA, "herd"), 3, "the newest HERD_MAX")
     end)
 
     test("the guild's part: homes, moves, names, levels, as this client sees them", function()
