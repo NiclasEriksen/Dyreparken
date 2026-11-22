@@ -90,6 +90,21 @@ return function(test, H)
         ok(Lines("nope.x"):find("no text: nope.x", 1, true))
     end)
 
+    test("tools/variants.lua: the line groups below their minimum, furthest first", function()
+        local function Run(flags)
+            local p = io.popen("luajit tools/variants.lua " .. flags .. " 2>&1")
+            local out = p:read("*a")
+            p:close()
+            return out
+        end
+        local out = Run("-g activity.rested")
+        ok(out:find("activity.rested.flavor +%d+ of 5") or out:find("0 groups below"), out)
+        out = Run("--all -g egg.stup")
+        ok(out:find("egg.stup +4 of 5  daily"), out)
+        ok(out:find("egg.stup.kosete +2 of 2  nature"), out)
+        ok(Run("--nope"):find("unknown option", 1, true))
+    end)
+
     test("tools/chatter.lua: days of play in a harness client, the bond's pace and how often each line came", function()
         local p = io.popen("luajit tools/chatter.lua --days 3 --profile casual --seed 3 2>&1")
         local out = p:read("*a")

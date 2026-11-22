@@ -168,6 +168,18 @@ return function(test, H)
         end
     end)
 
+    test("lines: every group in tools/variants_rules.lua's ENFORCED has its minimum of texts", function()
+        local ns = World()
+        local V = dofile("tools/variants_rules.lua")
+        local groups = {}
+        for _, g in ipairs(V.Groups(ns)) do groups[g.key] = g end
+        for _, key in ipairs(V.ENFORCED) do
+            local g = groups[key]
+            ok(g, key .. ": not a line group (tools/variants.lua --all lists them)")
+            if g then ok(g.n >= g.min, ("%s: %d of %d texts (%s)"):format(key, g.n, g.min, g.why)) end
+        end
+    end)
+
     test("eggs and reactions: every nature in a row's apart is one of its own, with lines", function()
         local ns = World()
         local function Check(prefix, row)
