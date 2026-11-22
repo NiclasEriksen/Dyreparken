@@ -437,7 +437,7 @@ Quirks.EGGS = {
     -- fishing there is Bond's, Bond:Contest).
     { id = "fiskedag", on = "day", always = true, chance = 0.5, test = function(ctx)
         return ns.Personality:Known(ctx.key) and ns.Personality:Of(ctx.key).fish
-            and ns.Holidays:Has(ctx.t, "stvfishing") and {} end },
+            and ns.Holidays:Running("stvfishing") and {} end }, -- (not after it ends, 15:00)
     { id = "kattefisk", delay = "now", on = "fish", chance = 0.3, test = function(ctx) return ctx.family.cat and {} end },
     { id = "vinger", on = "taxi", chance = 0.25,
         test = function(ctx) return (ctx.family.bird or ctx.family.owl or ctx.family.dragon) and {} end },

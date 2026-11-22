@@ -462,9 +462,9 @@ Bond.REWARDS = {
 
 -- A pet that likes fishing, out while you fish in Stranglethorn on the fishing contest's day
 -- (the calendar's Stranglethorn Fishing Extravaganza, Holidays.lua): a bonus, once that day
--- (the user, 2026-11-11).
+-- (the user, 2026-11-11), until the contest ends (15:00, Holidays:Running).
 function Bond:Contest(key)
-    if not (key and ns.Personality:Of(key).fish and ns.Holidays:Has(ns.Now(), "stvfishing")) then return end
+    if not (key and ns.Personality:Of(key).fish and ns.Holidays:Running("stvfishing")) then return end
     if ns.Plain(GetZoneText()) ~= "Stranglethorn Vale" then return end
     self:Reward("contest", key, Bond.Line("bond.contest", "bond.contest.full", { pet = ns.Registry:NameOf(key) }))
 end

@@ -55,6 +55,23 @@ function Holidays:Has(t, word)
     return today and today.day == day and today.events and today.events[word] or false
 end
 
+-- A calendar time as one number to compare (YYYYMMDDhhmm), or nil.
+function Holidays.Stamp(t)
+    local y, m, d = t and ns.Plain(t.year), t and ns.Plain(t.month), t and ns.Plain(t.monthDay)
+    if not (y and m and d) then return nil end
+    return ((y * 100 + m) * 100 + d) * 10000 + (ns.Plain(t.hour) or 0) * 100 + (ns.Plain(t.minute) or 0)
+end
+
+-- Is that event still going on now: today's (Holidays:Has) and not past its end? The weekly fishing contest is
+-- an hour, 14:00-15:00 (the user, 2026-11-22: "after that time it's irrelevant"). Its end is the calendar's,
+-- on the realm's clock, so it's read against the calendar's now; without an end read, the whole day.
+function Holidays:Running(word)
+    local ends = self:Has(ns.Now(), word)
+    if type(ends) ~= "number" then return ends and true or false end
+    local now = C_DateAndTime and C_DateAndTime.GetCurrentCalendarTime and self.Stamp(C_DateAndTime.GetCurrentCalendarTime())
+    return not now or now < ends
+end
+
 function Holidays:Ask()
     if self.asking then return end
     local C = C_Calendar
@@ -89,11 +106,12 @@ function Holidays:Read()
             local e = C_Calendar.GetDayEvent(offset, mine.day, i)
             local id = e and ns.Plain(e.eventID)
             if id and self.IDS[id] then word = word or self.IDS[id]; events[self.IDS[id]] = true end
-            if id and self.EVENTS[id] then events[self.EVENTS[id]] = true end
+            if id and self.EVENTS[id] then events[self.EVENTS[id]] = Holidays.Stamp(e.endTime) or true end
         end
     end)
     today = { day = day, word = word, events = events }
-    ns.Log("Holidays", "today: %s%s", tostring(word), ok and "" or " (calendar failed)")
+    ns.Log("Holidays", "today: %s%s%s", tostring(word), events.stvfishing and (" fishing contest until " .. tostring(events.stvfishing)) or "",
+        ok and "" or " (calendar failed)")
     ns.Bus:Fire("HOLIDAYS")
 end
 

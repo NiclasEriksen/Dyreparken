@@ -7,6 +7,7 @@ return function(c, env, S)
     -- OpenCalendar. S.holidays: "YYYYMMDD" -> { event ids }; S.calendarMonth: the month it shows
     -- ({ month, year }; default this one). S.calendarSilent: it never says it has loaded
     -- (no CALENDAR_UPDATE_EVENT_LIST); S.calendarBroken: OpenCalendar throws.
+    -- S.eventTimes: { [id] = { start hour, end hour } } (default the whole day).
     -- S.realmOffset: seconds the realm's clock (the calendar's) is ahead of the player's.
     local function CalendarNow() local d = os.date("*t", w:ServerTime() + (S.realmOffset or 0)); return d end
     env.C_DateAndTime = { GetCurrentCalendarTime = function()
@@ -34,7 +35,13 @@ return function(c, env, S)
         GetNumDayEvents = function(offset, day) return #DayEvents(offset, day) end,
         GetDayEvent = function(offset, day, i)
             local id = DayEvents(offset, day)[i]
-            return id and { eventID = id, eventType = 4, title = "holiday " .. id } or nil
+            if not id then return nil end
+            -- Its start and end (CalendarTime, the realm's clock): S.eventTimes[id] = { start hour, end hour } on
+            -- that day (the fishing contest: 14 to 15); else the whole day.
+            local y, m = Shown(offset)
+            local h = S.eventTimes and S.eventTimes[id] or { 0, 23.99 }
+            local function At(x) return { year = y, month = m, monthDay = day, hour = math.floor(x), minute = math.floor((x % 1) * 60 + 0.5) } end
+            return { eventID = id, eventType = 4, title = "holiday " .. id, startTime = At(h[1]), endTime = At(h[2]) }
         end,
     }
 end

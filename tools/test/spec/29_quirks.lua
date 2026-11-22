@@ -486,6 +486,30 @@ return function(test, H)
         no(kari:Printed("jubler over at du fisket", true))
     end)
 
+    -- 2026-11-22, the user: the contest is 14:00-15:00 by the calendar; "after that time it's irrelevant".
+    test("the fishing contest ends at 15:00: no looking forward to it, and no bonus, after", function()
+        local w, ola = Setup({ "vannhund", "glupsk" })
+        local B = ola.ns.Bond
+        ola.state.eventTimes = { [301] = { 14, 15 } }
+        ola.state.zone = "Stranglethorn Vale"
+        local function Fish() local was = B:Today("s:40"); ola.ns.Activity:Emit("fish"); w:Run(1); return B:Today("s:40") - was end
+        -- Logged in after it ended: nothing.
+        w:SkipDays(1); w:SetHour(15, 30)
+        ola.state.holidays = { [ola.ns.Today()] = { 301 } }
+        ola.ns.Activity:Emit("day"); w:Run(2)
+        ok(ola.ns.Holidays:Has(ola.ns.Now(), "stvfishing"), "still the contest's day in the calendar")
+        no(ola.ns.Holidays:Running("stvfishing"))
+        eq(ola:Eggs("fiskedag"), 0, "not after it ended")
+        Fish(); eq(ola:CountPrinted("jubler over at du fisket"), 0, "no bonus after it ended")
+        -- The next one, in the morning: it looks forward to it; fishing during it, the bonus.
+        w:SkipDays(6); w:SetHour(9) -- (the next 9:00: a week on)
+        ola.state.holidays[ola.ns.Today()] = { 301 }
+        ola.ns.Activity:Emit("day"); w:Run(2)
+        ok(ola.ns.Holidays:Running("stvfishing"), "before the end")
+        w:SetHour(14, 30)
+        Fish(); eq(ola:CountPrinted("jubler over at du fisket"), 1, "during it: the bonus")
+    end)
+
     test("tiers: a dislike's discovery and the clock's eggs aren't held back; a known dislike, the fire and the trophy are", function()
         local w, ola, Q = Setup({ "latsabb", "glupsk" }) -- (a cozy cat: the fire's lines)
         local A = ola.ns.Activity

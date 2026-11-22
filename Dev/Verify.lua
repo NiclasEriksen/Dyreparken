@@ -220,6 +220,9 @@ local function Build()
             logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather turned" }, { "Weather", "^WEATHER_CHANGED" },
                 { "Weather", "^clear %-> " }, { "Weather", "^%a%a%a%a+ %-> clear" } } }, -- (a turn seen live, not the login's first read;
             -- seen 2026-11-22: WEATHER_CHANGED fires as it turns)
+        -- Holidays:Running (2026-11-22): the contest's lines and bonus stop at the calendar's end, 15:00 by the user.
+        { "fishingend", "log in on a Sunday: the fishing contest's end read from the calendar (15:00 expected)",
+            logs = { { "Holidays", "fishing contest until %d+" } } },
         { "addonlink", "run /dp probe api links and click the addon link in chat",
             logs = { { "Api", "^links .*addon:Dyreparken" } } },
         { "racials", "(read now) which of Forever's racials this character knows (/dp probe api racials: all)",
