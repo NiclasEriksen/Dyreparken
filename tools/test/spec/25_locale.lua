@@ -149,6 +149,19 @@ return function(test, H)
         for pick = 1, 5 do c:Dice(0, pick); seen[#seen + 1] = ns.PickLine("t.line") end
         eq(table.concat(seen, " "), "bare one two mage elf")
         eq(#ns.Lines("t.none"), 0); eq(ns.PickLine("t.none"), nil)
+        -- Never the same variant twice in a row (2026-11-22): the same pick takes the next one instead.
+        c:Dice(0, 1)
+        eq(ns.PickLine("t.line"), "bare")
+        eq(ns.PickLine("t.line"), "one", "the last one is left out")
+        eq(ns.PickLine("t.line"), "bare", "and only the last")
+        L["t.solo"] = "solo"
+        eq(ns.PickLine("t.solo"), "solo"); eq(ns.PickLine("t.solo"), "solo", "a line with one text says it again")
+        c:Reload()
+        c:Dice(0, 1)
+        ns = c.ns
+        ns.L["t.line"] = "bare"; ns.L["t.line.1"] = "one"
+        ns.DB.char.lastLines = { ["t.line"] = "t.line" }
+        eq(ns.PickLine("t.line"), "one", "kept across a reload (char.lastLines)")
     end)
 
     test("the new place's and the wish's lines have the class's and race's too", function()

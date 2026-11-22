@@ -119,6 +119,7 @@ local CHAR_DEFAULTS = {
     quirkAt = nil,             -- when the last quirk line was shown (at most one every 45 minutes)
     reactAt = nil,             -- when the last common reaction line was said (at most one every 20 minutes)
     rolls = nil,               -- { day, [line id] = won }: today's roll per line, rolled at its first moment
+    lastLines = nil,           -- [line prefix] = the variant said last (ns.PickLine: never the same twice in a row)
     -- [Registry]
     named = nil,               -- { day, at = { [petKey] = when } }: today's first new name per pet (once a day)
     ownChange = nil,           -- { k, at, who, to }: a copy from someone else took our pet; asked in the journal (Registry, CardActions)

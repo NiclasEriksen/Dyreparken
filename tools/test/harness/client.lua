@@ -356,9 +356,11 @@ end
 
 -- Pin every chance the addon rolls (ns.random, Core/Init.lua): a roll without arguments
 -- gives `roll` (default 0: every chance comes up), a pick from n gives the `pick`th (default 1,
--- kept within n: the first line). Call again to change them mid-test.
+-- kept within n: the first line). Call again to change them mid-test. It also forgets the variant each line said
+-- last (ns.PickLine never says it twice in a row), so a pinned pick says the same line again after a Dice call.
 function Client:Dice(roll, pick)
     roll, pick = roll or 0, pick or 1
+    if self.ns.DB and self.ns.DB.char then self.ns.DB.char.lastLines = nil end
     self.ns.random = function(a, b)
         if not a then return roll end
         local lo, hi = b and a or 1, b or a

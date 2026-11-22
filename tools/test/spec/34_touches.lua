@@ -547,6 +547,7 @@ return function(test, H)
         ok(ola:PrintedLine("activity.hearth.flavor_home", { pet = "Bombay Cat", home = "Goldshire" }))
         ola:Set("home", nil)
         w:SkipDays(1)
+        ola:Dice()
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 8690)
         ok(ola:Printed("Bombay Cat er glad for å være hjemme!", true), "no bind location: the plain line")
         -- A cat, the first time in Winterspring.

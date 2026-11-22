@@ -269,10 +269,24 @@ end
 local PICKS = 16
 local picks, pickAt = {}, 0
 local function Uncolored(msg) return (msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+-- Never the variant said last time for the same line, when it has others (2026-11-22, the content review §1a: a
+-- line with two variants said the same one three times in a row about one time in four). Per character, one
+-- key per line (char.lastLines); a line picked before the saved data loads is picked freely.
 function ns.PickLine(prefix, vars)
     local list = ns.Lines(prefix)
     if #list == 0 then return nil end
+    local char = ns.DB and ns.DB.char
+    local last = char and char.lastLines and char.lastLines[prefix]
+    if last and #list > 1 then
+        local rest = {}
+        for _, k in ipairs(list) do if k ~= last then rest[#rest + 1] = k end end
+        list = rest
+    end
     local key = list[ns.random(#list)]
+    if char then
+        char.lastLines = char.lastLines or {}
+        char.lastLines[prefix] = key
+    end
     local text = ns.T(key, vars)
     if type(text) == "string" and ns.Debug and ns.Debug.enabled then
         pickAt = pickAt % PICKS + 1

@@ -127,6 +127,7 @@ return function(test, H)
         Dive(ola)
         eq(ola:CountPrinted("dukkert"), 0, "and no all that day")
         w:SkipDays(1); w:Run(61)
+        ola:Dice(0, 2)
         Dive(ola)
         ok(ola:Said("Bombay Cat nekter å se på deg etter den dukkerten."), "another line, another day")
         eq(ola:CountPrinted("Nå vet du det"), 1, "found once")
@@ -291,6 +292,7 @@ return function(test, H)
         ola:Hover{ species = 40, owner = "Ola Nord" }
         ola:Hover{ species = 40 }
         eq(ola:CountPrinted("speil"), 1, "not another species, not your own, not one without an owner")
+        ola:Dice()
         ola:Hover{ species = 40, owner = "Kari Berg" }
         eq(ola:CountPrinted("speil"), 2)
     end)
@@ -309,6 +311,7 @@ return function(test, H)
         eq(ola:CountPrinted(LINE), 1, "someone else's")
         ola:Fire("CHAT_MSG_LOOT", "|HlootHistory:1|h[Loot]|h: Need Roll - 55 for [Linen Cloth] by Ola Nord"); w:Run(1)
         eq(ola:CountPrinted(LINE), 1, "a 55 (the 1 in the loot history link isn't the roll)")
+        ola:Dice()
         ola:Fire("CHAT_MSG_LOOT", "|HlootHistory:12|h[Loot]|h: Need Roll - 1 for [Linen Cloth] by Ola Nord"); w:Run(1)
         eq(ola:CountPrinted(LINE), 2, "a loot roll")
         -- Fishing: once at the second fish in a row that got away; a catch starts over.
