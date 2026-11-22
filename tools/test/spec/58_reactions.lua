@@ -326,46 +326,17 @@ return function(test, H)
         eq(ola.ns.DB.char.reacts.kjempeugle.n, 1)
     end)
 
-    -- The factions (2026-11-22, 0.10.0): for every character, whatever its class.
-    test("factions: the other side's pet, its player in a goblin town, its capital, your own after three days", function()
-        local w, ola, R = Setup("MAGE")
+    -- The factions (2026-11-22, 0.10.0): for every character, whatever its class. (The other three moments wait for
+    -- their lines: docs/line-suggestions-0.10-d.md.)
+    test("factions: the other faction's capital, not your own", function()
+        local w, ola = Setup("MAGE")
         ola.state.faction = "Horde"
-        local function Go(zone, subzone) ola.state.zone, ola.state.subzone = zone, subzone; ola:Fire("ZONE_CHANGED_NEW_AREA"); w:RunTimers() end
-        local function Elkid(faction)
-            ola:Hover{ companion = false, who = { player = true, name = "Elkid", class = "MAGE", race = "Gnome", faction = faction,
-                guid = "Player-6939-012B8EA" .. faction:sub(1, 1) } }
-            w:RunTimers()
-        end
-        -- A player of the other side: only in a neutral town.
-        Go("Durotar")
-        Elkid("Alliance")
-        no(Said(ola, "fremmed"), "out in the world: not a moment")
-        Go("Stranglethorn Vale", "Booty Bay")
-        ola.ns.Sense.last = nil
-        ola:Hover{ companion = false, who = { player = true, name = "Ulla", class = "MAGE", race = "Human", faction = "Alliance",
-            guid = "Player-6939-0AAA" } }
-        w:RunTimers()
-        ok(Said(ola, "fremmed"), "a goblin town")
-        -- One of your own side: nothing.
-        ola:Hover{ companion = false, who = { player = true, name = "Grok", class = "WARRIOR", race = "Orc", faction = "Horde",
-            guid = "Player-6939-0BBB" } }
-        eq(ola.ns.DB.char.reacts.fremmed.n, 1)
-        -- The other side's pet (20 minutes on: common reactions are spaced so).
-        w:Run(1201); ola:Dice(0); ola:QuirksNow()
-        ola:Hover{ species = 40, owner = "Ulla", who = { name = "Bombay Cat", faction = "Alliance", guid = "Creature-0-1-2-3-7385-AC" } }
-        w:RunTimers()
-        ok(Said(ola, "fiendedyr"))
-        -- The other side's capital; then your own, the first time (nothing to miss yet), and after three days away.
-        w:Run(1201); ola:Dice(0); ola:QuirksNow()
+        local function Go(zone) ola.state.zone, ola.state.subzone = zone, nil; ola:Fire("ZONE_CHANGED_NEW_AREA"); w:RunTimers() end
+        Go("Orgrimmar")
+        no(Said(ola, "fiendeby"), "your own")
         Go("Stormwind City")
-        ok(Said(ola, "fiendeby"))
-        Go("Orgrimmar")
-        no(Said(ola, "hjemby"), "never home before: nothing to come back to")
-        ok(ola.ns.DB.char.homeAt)
-        Go("Durotar")
-        w:SkipDays(R.HOME_AWAY); ola:Dice(0); ola:QuirksNow()
-        Go("Orgrimmar")
-        ok(Said(ola, "hjemby"), "three days away")
+        ok(Said(ola, "fiendeby"), "theirs")
+        ok(ola.ns.DB.char.homeAt, "a visit home is still noted (for its moment, when it has lines)")
     end)
 
     -- The Darkmoon Faire (2026-11-22, 0.10.0): a Tivolidyr pet, walking into the faire on one of its days.

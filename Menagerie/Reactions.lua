@@ -128,25 +128,20 @@ Reactions.ROWS = {
     { id = "renselse", class = "SHAMAN", on = "cast", spells = { "Purge" }, traits = { "skoyer", "rampete" } },
     -- More for the classes that had three (2026-11-22, 0.10.0, the content review §2.1): classic spell names (Forever's
     -- are matched by name); each on Verify's list until seen.
-    { id = "storm", class = "WARRIOR", on = "cast", spells = { "Charge" }, traits = { "hoppetass", "latsabb" }, apart = { "latsabb" } },
     { id = "brol", class = "WARRIOR", on = "cast", spells = { "Intimidating Shout" }, traits = { "kjaelen", "pratsom" } },
     { id = "skjoldmur", class = "WARRIOR", on = "cast", spells = { "Shield Wall" }, traits = { "trofast", "kosete" } },
     { id = "forsvinn", class = "ROGUE", on = "cast", spells = { "Vanish" }, traits = { "skoyer", "kjaelen" } },
     { id = "distraksjon", class = "ROGUE", on = "cast", spells = { "Distract" }, traits = { "rampete", "oppdager" } },
     { id = "sap", class = "ROGUE", on = "cast", spells = { "Sap" }, calm = true, traits = { "ordensdyr", "roverdyr" } },
-    { id = "sjelestein", class = "WARLOCK", on = "cast", spells = { "Soulstone Resurrection" }, calm = true,
-        traits = { "trofast", "hjemlengsel" } },
     { id = "kilrogg", class = "WARLOCK", on = "cast", spells = { "Eye of Kilrogg" }, calm = true, traits = { "oppdager", "kjaelen" } },
     { id = "innkalling", class = "WARLOCK", on = "cast", spells = { "Ritual of Summoning" }, calm = true,
         traits = { "flokkdyr", "einstoing" } },
     { id = "undervann", class = "WARLOCK", on = "cast", spells = { "Unending Breath" }, calm = true, traits = { "dykker", "vannhund" } },
-    { id = "styrkeord", class = "PRIEST", on = "cast", spells = { "Power Word: Fortitude", "Prayer of Fortitude" }, calm = true,
-        traits = { "steinhard", "latsabb" } },
     { id = "skrik", class = "PRIEST", on = "cast", spells = { "Psychic Scream" }, traits = { "kjaelen", "roverdyr" } },
     { id = "tankesyn", class = "PRIEST", on = "cast", spells = { "Mind Vision" }, calm = true, traits = { "oppdager", "nattugle" } },
     { id = "gjenoppliv", class = "PRIEST", on = "cast", spells = { "Resurrection" }, calm = true, traits = { "trofast" },
         families = { "spirit" } },
-    { id = "hendene", class = "PALADIN", on = "cast", spells = { "Lay on Hands" }, traits = { "kjaelen", "trofast" } },
+    { id = "hendene", class = "PALADIN", on = "cast", spells = { "Lay on Hands" }, traits = { "trofast" } },
     { id = "forlosning", class = "PALADIN", on = "cast", spells = { "Redemption" }, calm = true, traits = { "trofast" },
         families = { "spirit" } },
     { id = "rettferd", class = "PALADIN", on = "cast", spells = { "Hammer of Justice" }, traits = { "ordensdyr", "skoyer" } },
@@ -159,53 +154,26 @@ Reactions.ROWS = {
     -- passive one, just never comes. Each is on Verify's list (react:<id>), ticked the first time it's said.
     { id = "skarpsyn", race = "Human", on = "cast", spells = { "Perception" }, traits = { "oppdager", "jeger" } },
     { id = "overleve", race = "Human", on = "cast", spells = { "Will to Survive" }, traits = { "trofast", "steinhard" } },
-    { id = "steinform", race = "Dwarf", on = "cast", spells = { "Stoneform" }, traits = { "steinhard", "kjaelen" } },
+    { id = "steinform", race = "Dwarf", on = "cast", spells = { "Stoneform" }, traits = { "steinhard" } },
     { id = "skattejakt", race = "Dwarf", on = "cast", spells = { "Find Treasure" }, calm = true, traits = { "sjorover", "oppdager" } },
     { id = "maanelys", race = "NightElf", on = "cast", spells = { "Elune's Light" }, traits = { "nattugle" } },
     { id = "fluktkunst", race = "Gnome", on = "cast", spells = { "Escape Artist" }, traits = { "skoyer", "hoppetass" } },
     { id = "eureka", race = "Gnome", on = "cast", spells = { "Eureka!" }, traits = { "handverker", "ambisios" },
         families = { "mechanical" } },
-    { id = "blodrus", race = "Orc", on = "cast", spells = { "Blood Fury" }, traits = { "kosete", "roverdyr" } },
-    { id = "forbannelse", race = "Orc", on = "cast", spells = { "Shatter Curse" }, traits = { "trofast" } },
-    { id = "viljestyrke", race = "Scourge", on = "cast", spells = { "Will of the Forsaken" }, traits = { "steinhard" } },
+    { id = "blodrus", race = "Orc", on = "cast", spells = { "Blood Fury" }, traits = { "kosete" } },
     { id = "kannibal", race = "Scourge", on = "cast", spells = { "Cannibalize" }, calm = true, traits = { "glupsk", "kosete" },
         apart = { "glupsk" } },
     { id = "dyrking", race = "Tauren", on = "cast", spells = { "Cultivation" }, calm = true, traits = { "gronnfinger" },
         families = { "plant", "rabbit" } },
-    { id = "slettelop", race = "Tauren", on = "cast", spells = { "Plainsrunning" }, traits = { "hoppetass", "latsabb" },
-        apart = { "latsabb" } },
-    { id = "berserk", race = "Troll", on = "cast", spells = { "Berserking" }, traits = { "rampete", "latsabb" } },
-    { id = "lekning", race = "Troll", on = "cast", spells = { "Rapid Regeneration" }, traits = { "kjaelen" } },
     { id = "luftgang", race = "Skyborne", on = "cast", spells = { "Walk on Air" }, traits = { "skybaren", "hoppetass" },
         families = { "bird" } },
     { id = "himmelsyn", race = "Skyborne", on = "cast", spells = { "Skysight" }, traits = { "skybaren", "oppdager" } },
-    { id = "leylinje", race = "Skyborne", on = "cast", spells = { "Read Leyline" }, calm = true, traits = { "handverker" },
-        families = { "spirit" } },
-    -- The factions (2026-11-22, 0.10.0, the content review §2.1, all four moments): a pet or a player of the other
-    -- faction under the mouse (the player only in a neutral town: elsewhere they're everywhere), the other
-    -- faction's capital, and your own after HOME_AWAY days or more away (char.homeAt). Who's the other faction:
-    -- UnitFactionGroup, against your own. A companion's faction is unverified (its owner's, presumably): Verify.
-    { id = "fiendedyr", everyone = true, any = true, on = "glance", calm = true, traits = { "diplomat", "roverdyr", "venneflokk" },
-        test = function(s, row, key)
-            if s.kind ~= "companion" or not Reactions.Other(s.faction) then return nil end
-            return Reactions.ByNature(row, key)
-        end },
-    { id = "fremmed", everyone = true, any = true, on = "glance", calm = true, traits = { "diplomat", "einstoing", "pratsom" },
-        test = function(s, row, key)
-            if s.kind ~= "player" or not Reactions.Other(s.faction) or Reactions.PlaceNow() ~= "neutral" then return nil end
-            return Reactions.ByNature(row, key)
-        end },
+    -- The factions (2026-11-22, 0.10.0, the content review §2.1): the other faction's capital. Its pets, its players
+    -- in a neutral town, and your own capital after HOME_AWAY days away wait for their lines (the user's audit, batch C:
+    -- docs/line-suggestions-0.10-d.md; Reactions.Other, PlaceNow and char.homeAt are kept for them).
     { id = "fiendeby", everyone = true, any = true, on = "zone", traits = { "eventyrlysten", "hjemlengsel", "ordensdyr", "diplomat" },
         apart = { "hjemlengsel" }, test = function(s, row, key)
             if s.place ~= "enemy" then return nil end
-            return Reactions.ByNature(row, key)
-        end },
-    { id = "hjemby", everyone = true, any = true, on = "zone", traits = { "hjemlengsel", "reiseglad", "ordensdyr" },
-        test = function(s, row, key)
-            if s.place ~= "home" then return nil end
-            local at = ns.DB.char.homeAt -- (set after the rows, OnSense: with a pet out or not)
-            local away = at and ns.Now() - at
-            if not (away and away >= Reactions.HOME_AWAY * 86400) then return nil end
             return Reactions.ByNature(row, key)
         end },
     -- The Darkmoon Faire (2026-11-22, 0.10.0, the content review §2.3: Holidays leaves it out, "too often", but a
