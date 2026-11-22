@@ -152,6 +152,31 @@ Personality.DISLIKE_BY_FAMILY = {
     ooze = { "jump" }, spirit = { "dive" }, bear = { "boss" }, reptile = { "taxi" }, murloc = { "taxi" },
 }
 
+-- The weather (2026-11-22, 0.10.0, the user's pick: Weather.lua's rain, snow and sand), on top of the pinned likes
+-- and dislikes: a trait gives one like and a family one pick, so these are a table of their own, by trait and by
+-- family. Only into room a species has (Personality:WeatherRoom): 6 likes and 3 dislikes at level 7 (43_new_traits);
+-- all of them on top went past it for 24 species (every cat's dislikes among them), and the pinned ones are never
+-- reshuffled. A pet without the room still has its say: Quirks' weather eggs (regn, snofall, sandstorm) by its
+-- nature, which keep quiet for a pet that likes or dislikes that weather (its own like or dislike line speaks).
+Personality.WEATHER = {
+    likes = { traits = { vannhund = { "rain" }, vinterpels = { "snow" } },
+        families = { frog = { "rain" }, murloc = { "rain" }, reptile = { "sand" }, snake = { "sand" } } },
+    dislikes = { traits = { solelsker = { "rain", "snow" }, vinterpels = { "sand" } },
+        families = { cat = { "rain" }, reptile = { "snow" } } },
+}
+Personality.MAX_LIKES, Personality.MAX_DISLIKES = 6, 3
+-- { act, trait id or nil (a family's) }, in order: the traits' first, then the families'.
+local function WeatherCandidates(which, traits, families)
+    local out = {}
+    for _, t in ipairs(traits) do
+        for _, act in ipairs(Personality.WEATHER[which].traits[t.id] or {}) do out[#out + 1] = { act, t.id } end
+    end
+    for _, f in ipairs(families) do
+        for _, act in ipairs(Personality.WEATHER[which].families[f] or {}) do out[#out + 1] = { act } end
+    end
+    return out
+end
+
 -- A family dislike a species doesn't have (2026-11-12, the user: likes and dislikes together, the minor
 -- ones counted, 4 to 6 per species; these were over). The parrots and the Ancona Chicken liked PvP or
 -- flying until FAMILY_PICK, which hid the bird's dislike; the holiday pets with a family of their own
@@ -172,7 +197,7 @@ Personality.NO_DISLIKE = {
     -- 2026-11-19 (the user: two or three dislikes each): cats mind boats, but these have three already.
     [40] = { "boat" },   -- Bombay
     [41] = { "boat" },   -- Cornish Rex
-    [44] = { "boat" },   -- Siamese: a ship's cat (Cookie's, in the Deadmines' pirate ship); DISLIKE_BY_SPECIES instead
+    [44] = { "boat", "rain" }, -- Siamese: a ship's cat (Cookie's, in the Deadmines' pirate ship); DISLIKE_BY_SPECIES instead
 }
 
 -- Dislikes of a species' own (2026-11-19, the user: at least two each): where its family's is something it likes.
@@ -323,14 +348,14 @@ function Personality:Traits(key, all)
     return { first }
 end
 
--- likes: { activity = true }, the ordered list, and the traits.
-function Personality:Of(key)
+-- The likes before the weather's: { activity = true }, the list, the traits (all: the third whether unlocked or not).
+function Personality:BaseOf(key, all)
     local likes, list = {}, {}
     local function Add(act)
         if act and not likes[act] then likes[act] = true; list[#list + 1] = act end
     end
     local sid = ns.Pets:SpeciesOfKey(key)
-    local traits = self:Traits(key)
+    local traits = self:Traits(key, all)
     for _, act in ipairs(sid and self.BY_SPECIES[sid] or {}) do Add(act) end
     -- One of the families' (FAMILY_PICK, if its families still give it; a species not pinned yet: the
     -- first one not liked already).
@@ -352,6 +377,83 @@ function Personality:Of(key)
     end
     if #list == 0 then for _, act in ipairs(self.DEFAULT) do Add(act) end end
     for _, t in ipairs(traits) do Add(t.like) end
+    return likes, list, traits
+end
+
+-- The dislikes before the weather's (the minor one left out), never a like in `likes`.
+local function BaseDislikes(self, key, likes, traits)
+    local set, list = {}, {}
+    local function Add(act)
+        if act and not likes[act] and not set[act] then set[act] = true; list[#list + 1] = act end
+    end
+    for _, t in ipairs(traits) do Add(t.dislike) end
+    local sid = ns.Pets:SpeciesOfKey(key) or 0
+    for _, act in ipairs(self.DISLIKE_BY_SPECIES[sid] or {}) do Add(act) end
+    local no = {}
+    for _, act in ipairs(self.NO_DISLIKE[sid] or {}) do no[act] = true end
+    for _, f in ipairs(ns.Scenes:Families(key)) do
+        for _, act in ipairs(self.DISLIKE_BY_FAMILY[f] or {}) do if not no[act] then Add(act) end end
+    end
+    return set, list, no
+end
+
+-- The weather's likes and dislikes this species has room for at level 7 (everything unlocked), the same at every
+-- level: { { act, trait } } each (a trait's only once that trait is the pet's: the third one at level 7).
+function Personality:WeatherRoom(key)
+    local likes, list, traits = self:BaseOf(key, true)
+    local pin = self.MINOR_PINS[ns.Pets:SpeciesOfKey(key) or 0] or {}
+    local all = {}
+    for act in pairs(likes) do all[act] = true end
+    local nLikes = #list + ((pin[1] and not likes[pin[1]]) and 1 or 0)
+    if pin[1] then all[pin[1]] = true end
+    local families = ns.Scenes:Families(key)
+    local outLikes, outDislikes = {}, {}
+    for _, c in ipairs(WeatherCandidates("likes", traits, families)) do
+        if not all[c[1]] and nLikes < self.MAX_LIKES then
+            all[c[1]] = true; nLikes = nLikes + 1
+            outLikes[#outLikes + 1] = c
+        end
+    end
+    local set, dlist, no = BaseDislikes(self, key, all, traits)
+    local nDislikes = #dlist + ((pin[2] and not all[pin[2]] and not set[pin[2]]) and 1 or 0)
+    if pin[2] then set[pin[2]] = true end
+    for _, c in ipairs(WeatherCandidates("dislikes", traits, families)) do
+        if not all[c[1]] and not set[c[1]] and not no[c[1]] and nDislikes < self.MAX_DISLIKES then
+            set[c[1]] = true; nDislikes = nDislikes + 1
+            outDislikes[#outDislikes + 1] = c
+        end
+    end
+    return outLikes, outDislikes
+end
+
+-- The weather's picks for a pet: pinned per species (Data/WeatherPins.lua, tools/pin_weather.lua: once picked, kept,
+-- so a like seen on its card never goes when something else is added later); a species not pinned yet (a new one
+-- before the tool has run, a test's own) from WeatherRoom. Returns its likes and dislikes, { { act, trait } } each.
+Personality.WEATHER_PINS = ns.WeatherPins or {}
+function Personality:WeatherPicks(key)
+    local pin = self.WEATHER_PINS[ns.Pets:SpeciesOfKey(key) or 0]
+    if not pin then return self:WeatherRoom(key) end
+    local likes, dislikes = {}, {}
+    for _, v in ipairs(pin) do
+        local sign, act, trait = v:match("^([+-])(%a+):?(%a*)$")
+        if sign then table.insert(sign == "+" and likes or dislikes, { act, trait ~= "" and trait or nil }) end
+    end
+    return likes, dislikes
+end
+
+-- Whether a weather pick's trait is one the pet has now (a family's always).
+local function Holds(traits, c)
+    if not c[2] then return true end
+    for _, t in ipairs(traits) do if t.id == c[2] then return true end end
+    return false
+end
+
+-- likes: { activity = true }, the ordered list, and the traits.
+function Personality:Of(key)
+    local likes, list, traits = self:BaseOf(key)
+    for _, c in ipairs((self:WeatherPicks(key))) do
+        if Holds(traits, c) and not likes[c[1]] then likes[c[1]] = true; list[#list + 1] = c[1] end
+    end
     return likes, list, traits
 end
 
@@ -448,6 +550,9 @@ function Personality:Dislikes(key, all)
         for _, act in ipairs(self.DISLIKE_BY_FAMILY[f] or {}) do
             if not no[act] then Add(act) end
         end
+    end
+    for _, c in ipairs(select(2, self:WeatherPicks(key))) do
+        if Holds(traits, c) then Add(c[1]) end
     end
     local _, minor = self:Minor(key)
     if minor and (all or self.YourLevel(key) >= ns.Config.MINOR_DISLIKE_LEVEL) then Add(minor, "minor") end

@@ -695,6 +695,16 @@ L["activity.camp.flavor.4"] = "{pet} lytter til knitringen fra bålet og blir he
 L["activity.boat.flavor.1"] = "{pet} står helt fremme i baugen og kjenner sjøsprøyten."
 L["activity.boat.flavor.2"] = "{pet} speider etter land, eller skatter. Helst skatter."
 L["activity.boat.flavor.3"] = "{pet} gynger i takt med bølgene og nyter hvert minutt."
+-- The weather (Weather.lua), for a pet that likes it.
+L["activity.rain.flavor.1"] = "Regn! {pet} hopper rett i nærmeste vannpytt."
+L["activity.rain.flavor.2"] = "{pet} løfter ansiktet mot regnet og ser ut som det har ventet på det hele dagen."
+L["activity.rain.flavor.3"] = "{pet} plasker fornøyd rundt beina dine. Endelig ordentlig vær!"
+L["activity.snow.flavor.1"] = "Snø! {pet} ruller seg rundt og ser mer fornøyd ut enn på lenge."
+L["activity.snow.flavor.2"] = "{pet} fanger snøfnugg og tramper små spor i den nye snøen."
+L["activity.snow.flavor.3"] = "{pet} kjenner kulda i pelsen og blir helt opprømt."
+L["activity.sand.flavor.1"] = "{pet} nyter varmen og lar sanden blåse forbi. Dette er godt vær."
+L["activity.sand.flavor.2"] = "{pet} graver seg halvveis ned i den varme sanden, fornøyd."
+L["activity.sand.flavor.3"] = "{pet} myser inn i stormen og ser ut som det føler seg hjemme."
 L["activity.zeppelin.flavor.1"] = "{pet} kikker ned på skyene fra zeppelineren, helt rolig."
 L["activity.zeppelin.flavor.2"] = "{pet} synes zeppelinere er den beste måten å se verden på."
 L["activity.zeppelin.flavor.3"] = "{pet} kjenner vinden høyt der oppe og vil aldri lande."
@@ -924,6 +934,13 @@ L["personality.line"] = "{traits} · {likes}"                   -- {likes}: "lik
 -- numbered lines is picked; add more freely, numbered without gaps).
 -- egg.<id>.N: the easter eggs. {pet}: its nickname, else its species.
 ------------------------------------------------------------------------------
+-- The weather (Weather.lua), for a pet that dislikes it.
+L["dislike.rain.1"] = "{pet} rister på labbene og ser anklagende på deg. Hvem bestilte dette regnet?"
+L["dislike.rain.2"] = "{pet} ser surt opp på skyene. Hvor ble sola av?"
+L["dislike.snow.1"] = "{pet} skjelver og ser på deg som om snøen er din feil."
+L["dislike.snow.2"] = "{pet} beveger seg sakte i kulda og vil helst hjem til et varmt sted."
+L["dislike.sand.1"] = "{pet} peser i den tørre varmen. Pelsen var ikke laget for dette."
+L["dislike.sand.2"] = "{pet} har sand overalt og vil gjerne at du finner et annet sted å være."
 L["dislike.found"] = "Nå vet du det: {pet} liker ikke {what}."
 L["dislike.used"] = "{pet} har nesten vent seg til {what}. Nesten."  -- said once, the tenth time a dislike speaks (it speaks once a week from then on)
 -- Minor likes and dislikes (Personality.lua: your bond unlocks them at levels 4 and 6; dimmed on the card)

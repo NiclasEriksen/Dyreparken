@@ -244,6 +244,8 @@ Data/Zones.lua     zones, one row each (level, faction, capital, climate, high, 
 Data/Unlocks.lua   every species' minor like and minor dislike (your bond unlocks them at levels 4 and 6), PINNED
                    for good like the traits (2026-11-12): luajit tools/pin_unlocks.lua adds new species (from
                    fitting lists per family and species, never a major like or dislike) and never changes a line
+Data/WeatherPins.lua every species' weather likes and dislikes (rain, snow, sand: Personality.WEATHER, only where it had
+                   room), PINNED like the unlocks (2026-11-22): luajit tools/pin_weather.lua adds new species, never changes a line
 Data/Traits.lua    every species' two personality traits, PINNED for good (decided 2026-11-08): never reshuffle.
                    After regenerating Data/Companions.lua, run `luajit tools/pin_traits.lua`: it adds new species
                    (least-used traits) and never changes an existing line. Change a species by hand only.

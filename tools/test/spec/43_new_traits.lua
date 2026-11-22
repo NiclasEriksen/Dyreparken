@@ -147,7 +147,7 @@ return function(test, H)
         ok(P:Dislikes("s:42").boat, "and boats")
         no(P:Dislikes("s:44").boat, "but not the Siamese, a ship's cat")
         ok(P:Dislikes("s:44").taxi, "it minds flying instead")
-        eq(table.concat((select(2, P:Of("s:125"))), " "), "nap dive", "Speedy: no family like")
+        eq(table.concat((select(2, P:Of("s:125"))), " "), "nap dive sand", "Speedy: no family like (sand: a reptile's weather, 2026-11-22)")
     end)
 
     -- Review 2026-11-21: a source's state was kept through a Drop and a Want, its start run only for an event
@@ -198,5 +198,26 @@ return function(test, H)
         w:SkipDays(1); Again()
         eq(Counts(), "2 2 2 2", "a new day")
         ok(ola.ns.DB.char.sourcesDay.day ~= nil, "kept per day in the character's data")
+    end)
+
+    -- The weather's likes and dislikes (2026-11-22): pinned per species, only where there was room, never changed.
+    test("the weather's likes and dislikes: every species pinned (tools/pin_weather.lua), the pins within the rules", function()
+        local w, ola = Setup()
+        local P = ola.ns.Personality
+        for sid in pairs(ola.ns.Companions.species) do
+            local pin = P.WEATHER_PINS[sid]
+            ok(pin, sid .. ": not pinned: luajit tools/pin_weather.lua")
+            for _, v in ipairs(pin or {}) do
+                local _, act, trait = v:match("^([+-])(%a+):?(%a*)$")
+                ok(act and ola.ns.Activity.KIND[act], sid .. ": " .. v)
+                if trait ~= "" then ok(P.ById(trait), sid .. ": " .. v .. " (no such trait)") end
+            end
+        end
+        -- A trait's only while the pet has it: the Panda Cub's Vinterpels is its third, at your bond's level 7.
+        no(P:Of("s:5159").snow, "not before the third trait"); no(P:Dislikes("s:5159").sand)
+        P.YourLevel = function() return 7 end
+        ok(P:Of("s:5159").snow); ok(P:Dislikes("s:5159").sand)
+        ok(P:Of("s:64").rain, "a frog's, always")
+        no(P:Dislikes("s:40").rain, "the Bombay had no room: its rain is the weather egg's line, not a dislike")
     end)
 end

@@ -42,6 +42,7 @@ Core\Sources.lua
 Data\Companions.lua
 Data\Traits.lua
 Data\Unlocks.lua
+Data\WeatherPins.lua
 Data\PetMoves.lua
 Data\AnimLengths.lua
 Data\PetBoxes.lua

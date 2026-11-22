@@ -75,6 +75,9 @@ return function(test, H)
         local P, dislikes = ns.Personality, {}
         for _, list in pairs(P.DISLIKE_BY_FAMILY) do for _, a in ipairs(list) do dislikes[a] = true end end
         for _, t in ipairs(P.TRAITS) do if t.dislike then dislikes[t.dislike] = true end end
+        for _, by in pairs(P.WEATHER.dislikes) do
+            for _, list in pairs(by) do for _, a in ipairs(list) do dislikes[a] = true end end
+        end
         -- (the minor ones too: without lines one could never be found, 2026-11-12)
         for _, pin in pairs(ns.UnlockPins or {}) do if pin[2] then dislikes[pin[2]] = true end end
         for a in pairs(dislikes) do ok(ns.Strings["dislike." .. a .. ".1"], "dislike." .. a); ok(P.NOUN[a], a) end

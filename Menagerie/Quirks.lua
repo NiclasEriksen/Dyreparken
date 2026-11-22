@@ -199,6 +199,15 @@ function Quirks.Easter(y)
 end
 
 local WEATHER_CHANCE = 0.6 -- (the weather eggs: the share of days; a rainy zone is rainy often)
+-- A pet that likes or dislikes this weather (Personality.WEATHER) says its like's or dislike's line instead.
+local function WeatherEgg(kind)
+    return function(ctx)
+        if ctx.extra ~= kind then return nil end
+        local P = ns.Personality
+        if P:Of(ctx.key)[kind] or P:Dislikes(ctx.key)[kind] then return nil end
+        return Quirks.ByNature(ctx)
+    end
+end
 Quirks.EGGS = {
     { id = "mai17", on = "day", always = true, test = On("0517") },
     { id = "jul", on = "day", always = true, test = On("1224") },
@@ -406,13 +415,13 @@ Quirks.EGGS = {
     -- only their own lines (apart).
     { id = "regn", on = "weather", chance = WEATHER_CHANCE,
         traits = { "solelsker", "vannhund", "friluftsdyr", "latsabb" }, families = { "cat", "frog", "plant", "murloc", "ooze", "bird" },
-        apart = { "cat", "solelsker" }, test = function(ctx) return ctx.extra == "rain" and Quirks.ByNature(ctx) or nil end },
+        apart = { "cat", "solelsker" }, test = WeatherEgg("rain") },
     { id = "snofall", on = "weather", chance = WEATHER_CHANCE,
         traits = { "vinterpels", "solelsker", "hoppetass", "kosete" }, families = { "reptile", "wolf", "bird", "cat" },
-        apart = { "solelsker", "reptile" }, test = function(ctx) return ctx.extra == "snow" and Quirks.ByNature(ctx) or nil end },
+        apart = { "solelsker", "reptile" }, test = WeatherEgg("snow") },
     { id = "sandstorm", on = "weather", chance = WEATHER_CHANCE,
         traits = { "vinterpels", "steinhard", "huleboer" }, families = { "reptile", "snake", "cat", "bird" },
-        apart = { "vinterpels" }, test = function(ctx) return ctx.extra == "sand" and Quirks.ByNature(ctx) or nil end },
+        apart = { "vinterpels" }, test = WeatherEgg("sand") },
     -- Two pets of yours that know each other (2026-11-22, 0.10.0, the content review §2.4): you swap one for the
     -- other in a session (Activity's PET_SWAP), both at bond level SWAP_LEVEL or more with you; the new one greets
     -- the old. Half the days, once a day.
