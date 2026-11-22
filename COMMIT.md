@@ -3,7 +3,7 @@
 <!-- The changelog players read for v0.10.0 (CurseForge, GitHub). Edit freely: reword, merge, reorder, drop. -->
 <!-- Lines like this one are left out. Commit it before tagging: release.yml uses it for v0.10.0 as written. -->
 <!-- Keep secrets out: no egg's or hidden achievement's name (CLAUDE.md, Releasing). -->
-<!-- through 21961ca6327318b49e6a6165e5173ace479f813b -->
+<!-- through 53764564ba155a2746070f9b275aed84d70c6462 -->
 
 _Developed with the help of Claude (Anthropic)._
 
@@ -26,3 +26,10 @@ _Developed with the help of Claude (Anthropic)._
 - A pet you haven't adopted gets its day's points once it has been out with you for ten minutes, not the moment it's summoned
 - A pet never says the same line twice in a row: with more than one way to say something, it picks another than last time
 - Pets with a personality of their own say more different things: their own lines now mix with everyone's, and a shaman's resurrect and a warlock's Inferno get a reaction only now and then
+- A Tivolidyr pet loves the Darkmoon Faire: walk into it on a faire day and it tells you
+- A pet's first visit to an iconic zone gets its own line, by its family where it fits: a frog in Swamp of Sorrows, a mechanical pet in Gnomeregan, a wolf in Winterspring
+- The big bosses and dungeons get lines of their own the first time a pet is there: VanCleef, Ragnaros, Onyxia, the Deadmines, Molten Core and more
+- More for pets to react to in five classes: a warrior's Charge and Shield Wall, a rogue's Vanish, a warlock's Soulstone, a priest's Psychic Scream, a paladin's Lay on Hands and more
+- Pets notice the other faction: its pets, its players in a goblin town, its capital, and your own capital after a few days away
+- Every race's racials get a reaction from your pet: a Dwarf's Stoneform, a Gnome's Escape Artist, an Orc's Blood Fury, a Troll's Berserking, the Skyborne's Walk on Air and more
+- The Turnus button sits on the corner of "Med deg" now, out of the way of the badges
