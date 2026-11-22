@@ -257,6 +257,7 @@ function PF:Art()
         art.panel:SetPoint("BOTTOMLEFT", f, "BOTTOMLEFT", A[1], A[4])
         art.panel:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", -A[2], A[4])
         art.panel:SetHeight(self.FOOT)
+        art.foot = self.FOOT
         art.panel:SetColorTexture(0, 0, 0, 0.6)
         -- The picture and tint down to the panel, whatever its height (PF:Footer).
         art.pic = f:CreateTexture(nil, "BACKGROUND", nil, -6)
@@ -320,12 +321,13 @@ function PF:ArtLook()
     local Scenes = ns.Scenes
     local family = Scenes:Families(key)[1] or "default"
     local color = Scenes.TINT[family] or Scenes.TINT.default
-    local pic = Scenes:For(key)
-    if pic then
-        art.pic:SetTexture(pic)
-        art.pic:SetTexCoord(Scenes.Crop(pic))
+    local file, l, r, t, b, w, h = Scenes:Art(Scenes:For(key))
+    if file then
+        art.pic:SetTexture(file)
+        art.crop = { l, r, t, b, w, h }
+        self:ArtCrop()
     end
-    art.pic:SetShown(pic ~= nil)
+    art.pic:SetShown(file ~= nil)
     local c = color
     ns.Gradient(art.tint, "VERTICAL", { c[1] * 0.3, c[2] * 0.3, c[3] * 0.3, 0.55 }, { c[1], c[2], c[3], 0.6 })
     local _, level = ns.Bond:Own(key)
@@ -508,7 +510,24 @@ function PF:Footer(barShown)
     else
         f.name:SetPoint("TOP", self.scene, "BOTTOM", 0, -2)
     end
-    if f.art then f.art.panel:SetHeight(short and self.FOOT_SHORT or self.FOOT) end
+    if f.art then
+        f.art.foot = short and self.FOOT_SHORT or self.FOOT
+        f.art.panel:SetHeight(f.art.foot)
+    end
+    self:ArtCrop()
+end
+
+-- The picture's part that fills the box above the panel at its own shape, as on the card (Scenes.Cover): the
+-- whole file had a loading screen's black bars in it and stretched the rest (2026-11-22, the user). The box's
+-- shape from the layout (PF.ART, the panel's height), so it's right before the client has laid it out.
+function PF:ArtCrop()
+    local art = self.frame and self.frame.art
+    local c = art and art.crop
+    if not c then return end
+    local A = self.ART
+    local W = self.W - A[1] - A[2]
+    local H = self.H + self.FOOT - A[3] - A[4] - art.foot
+    art.pic:SetTexCoord(ns.Scenes.Cover(c[1], c[2], c[3], c[4], c[5], c[6], W, H))
 end
 
 -- Faded or not, now (Settings: petFrameFade).

@@ -679,6 +679,25 @@ return function(test, H)
         eq(c[3], ola.ns.Scenes.SILVER[3], "silver at 3")
         ola:SetBond(PANDA, 1000); ola.ns.Bus:Fire("BOND", PANDA)
         eq(select(2, Edge())[1], ola.ns.Scenes.GOLD[1], "gold at 5"); ok(m.glow:IsShown(), "the medallion glows")
+        -- 2026-11-22, the user: black bars above and below the picture. The art's part only (a loading screen's
+        -- bars left out), cut to the box's shape as on the card, and cut again when the panel changes height.
+        ola:Summon(46); ola:Fire("COMPANION_UPDATE", "CRITTER"); w:Run(0.4)
+        eq(PF.key, "s:46")
+        local S = ola.ns.Scenes
+        local function Shape()
+            local c, row = art.pic.texCoord, S.ART[1984118]
+            ok(c[3] >= row[3] - 1e-9 and c[4] <= row[4] + 1e-9, "within the art: no black bars")
+            local wide = (c[2] - c[1]) / (row[2] - row[1]) * row[5]
+            local tall = (c[4] - c[3]) / (row[4] - row[3]) * row[6]
+            return wide / tall
+        end
+        local A = PF.ART
+        local function Box(foot) return (PF.W - A[1] - A[2]) / (PF.H + PF.FOOT - A[3] - A[4] - foot) end
+        eq(art.pic:GetTexture(), 1984118, "the cats' Waycrest Manor")
+        ok(math.abs(Shape() - Box(PF.FOOT_SHORT)) < 1e-6, "the short panel's box, not stretched")
+        PF:Enter(f.click)
+        ok(math.abs(Shape() - Box(PF.FOOT)) < 1e-6, "the whole footer: a shorter box, cut again")
+        PF:Leave(f.click)
         ola.ns.DB.global.settings.petFrameArt = false; PF:Apply()
         no(art.base:IsShown()); no(art.top:IsShown()); ok(f.shade:IsShown())
         eq(PF.scene.insets[4], PF.VIEW_BOTTOM, "where it was without")
