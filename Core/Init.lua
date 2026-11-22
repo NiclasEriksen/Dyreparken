@@ -206,6 +206,29 @@ function ns.Grouped(n)
 end
 function ns.PrintGold(text) ns.Print(ns.Gold(text)) end
 
+-- Clickable words in our chat lines (2026-11-22, 0.10.0: "take this pet out" in the full day's line). An addon link,
+-- |Haddon:Dyreparken:<kind>:<data>|h, reaches EventRegistry's "SetItemRef" when clicked, as on retail (/dp probe api
+-- links, docs/FOREVER_API.md); nothing else happens with it. ns.OnLink(kind, fn) handles a kind: fn(data). Nobody
+-- else can put one in our chat frame (the server strips links it doesn't know from what players type), but data
+-- is still checked by each handler. The callback is registered at the first OnLink.
+local linkKinds
+function ns.Link(kind, data, text, hex)
+    return ("|cff%s|Haddon:Dyreparken:%s:%s|h[%s]|h|r"):format(hex or "71d5ff", kind, data, text)
+end
+function ns.OnLink(kind, fn)
+    if not linkKinds then
+        linkKinds = {}
+        local ER = rawget(_G, "EventRegistry")
+        if not (ER and ER.RegisterCallback) then return end
+        ER:RegisterCallback("SetItemRef", function(_, link)
+            local k, data = tostring(link):match("^addon:Dyreparken:([^:]+):(.*)$")
+            local handler = k and linkKinds[k]
+            if handler then handler(data) end
+        end, linkKinds)
+    end
+    linkKinds[kind] = fn
+end
+
 
 -- A spell's name by id (nil for a secret or missing id, or without C_Spell).
 -- Kept once read (2026-11-14, the performance review: each cast of yours was looked up four or five times,
@@ -290,7 +313,7 @@ end
 -- took the one slot, so the line came out with no key (egg.ridning.3 after feat.riding). Only while logging.
 local PICKS = 16
 local picks, pickAt = {}, 0
-local function Uncolored(msg) return (msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", "")) end
+local function Uncolored(msg) return (msg:gsub("|c%x%x%x%x%x%x%x%x", ""):gsub("|r", ""):gsub("|H.-|h(.-)|h", "%1")) end
 -- Never the variant said last time for the same line, when it has others (2026-11-22, the content review §1a: a
 -- line with two variants said the same one three times in a row about one time in four). Per character, one
 -- key per line (char.lastLines); a line picked before the saved data loads is picked freely.

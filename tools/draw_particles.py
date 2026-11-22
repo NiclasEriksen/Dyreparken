@@ -651,6 +651,25 @@ def egg():
     return m
 
 
+def swap():
+    """Two arrows chasing each other round a circle (2026-11-22, 0.10.0: the card's badge when it's a swap)."""
+    m = canvas(); d = ImageDraw.Draw(m)
+    R, w = 0.58, 0.17
+    for start in (math.radians(40), math.radians(220)):
+        end = start + math.radians(115)
+        n = 40
+        pts = [((R + w) * math.cos(start + (end - start) * i / n), (R + w) * math.sin(start + (end - start) * i / n)) for i in range(n + 1)]
+        pts += [((R - w) * math.cos(start + (end - start) * i / n), (R - w) * math.sin(start + (end - start) * i / n)) for i in range(n, -1, -1)]
+        poly(d, pts)
+        # the head: a triangle at the arc's end, pointing along it (counter-clockwise)
+        cx, cy = R * math.cos(end), R * math.sin(end)
+        tx, ty = -math.sin(end), math.cos(end)  # the tangent
+        rx, ry = math.cos(end), math.sin(end)   # outward
+        h, b = 0.36, 0.34
+        poly(d, [(cx + rx * b, cy + ry * b), (cx - rx * b, cy - ry * b), (cx + tx * h, cy + ty * h)])
+    return m
+
+
 SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble": bubble, "confetti": confetti,
           "note": note, "paw": paw, "leaf": leaf, "moon": moon, "snowflake": snowflake, "ring": ring, "rays": rays,
           "feather": feather, "ember": ember, "gear": gear, "wisp": wisp, "coin": coin, "grain": grain,
@@ -659,7 +678,7 @@ SHAPES = {"heart": heart, "sparkle": sparkle, "star": star, "dot": dot, "bubble"
           "butterfly": butterfly, "mist": mist, "house": house, "cake": cake, "crown": crown,
           "speechblank": speechblank, "thought": thought, "shout": shout, "rain": rain, "yarn": yarn, "petal": petal,
           "shell": shell, "banana": banana, "mask": mask, "sun": sun, "badge": badge,
-          "snake": snake, "cheese": cheese, "horseshoe": horseshoe, "lilypad": lilypad, "egg": egg}
+          "snake": snake, "cheese": cheese, "horseshoe": horseshoe, "lilypad": lilypad, "egg": egg, "swap": swap}
 BIGGER = {"rays": 128}  # drawn at this size instead of SIZE
 SOFTER = {"ember": 3.5, "wisp": 4, "cloud": 2.5, "mist": 9}  # blurred more: they glow or drift
 

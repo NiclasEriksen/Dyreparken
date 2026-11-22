@@ -10,11 +10,25 @@ local ns = select(2, ...)
 -- from Parken, Dagens dyr), a dim "Ikke samlet" in its place (2026-11-09:
 -- nothing said whose pet you were looking at); greyed while AutoCompanion
 -- does the summoning.
+--
+-- A swap (2026-11-22, 0.10.0, the user: "The swap button should replace 'ta med ut', basically making the 'ta med
+-- ut' button label/icon/color situationally reactive"): while the pet out now has a full day, the card of a pet of
+-- yours with room today shows "Bytt inn" instead, green, with two arrows. The click is the same (it takes the pet
+-- out, Summon:SetActive); only the badge tells you it's worth it.
 ---@class Dyreparken.OutBadge
 local OutBadge = {}
 ns.OutBadge = OutBadge
 
 local SIZE = 40
+local SWAP_COLOR = { 0.45, 0.95, 0.55 }
+
+-- The pet out now, when a swap to key is worth it: the one out has a full day and key has room. Else nil.
+function OutBadge.Swap(key)
+    local out = ns.Pets:OutKey()
+    if not (key and out) or out == key or not ns.Pets:IsOwned(key) then return end
+    if ns.Bond:Open(out) or not ns.Bond:Open(key) then return end
+    return out
+end
 OutBadge.SOUNDS = { "IG_MAINMENU_OPTION_CHECKBOX_ON", "IG_CHARACTER_INFO_TAB" }
 
 -- The badge's tooltip for the pet on the card: on (kept out), or not owned.
@@ -26,6 +40,15 @@ function OutBadge.Lines(key, on, notOwned)
         return { { ns.L["card.auto.deferred"], 1, 1, 1, true } }
     end
     local pet = key and ns.Registry:NameOf(key) or ""
+    local out = not on and OutBadge.Swap(key)
+    if out then
+        local today, max = ns.Bond:Today(key)
+        return {
+            { ns.T("card.out.swap.title", { pet = pet }), SWAP_COLOR[1], SWAP_COLOR[2], SWAP_COLOR[3] },
+            { ns.T("card.out.swap.tip", { other = ns.Registry:NameOf(out), pet = pet, n = max - today }), 1, 1, 1, true },
+            { ns.T("card.out.swap.click", { pet = pet }), 0.5, 0.8, 0.5, true },
+        }
+    end
     local lines = {
         { on and ns.T("card.out.on.title", { pet = pet }) or ns.T("card.out.off.title", { pet = pet }), 1, 0.82, 0 },
         { ns.T("card.auto.tip", { pet = pet }), 1, 1, 1, true },
@@ -98,15 +121,23 @@ function OutBadge:Update(card, key)
     end
     local deferring = ns.Summon:Deferring()
     local on = not deferring and ns.Summon:ActiveKey() == key
-    b.on = on
+    local swap = not on and not deferring and OutBadge.Swap(key) and true or false
+    b.on, b.swap = on, swap
     b:SetEnabled(not deferring)
+    b.paw:SetTexture(ns.Icon(swap and "swap" or "paw"))
     b.ring:SetDesaturated(not on)
-    b.ring:SetAlpha(on and 1 or 0.6)
-    if on then b.paw:SetVertexColor(1, 0.82, 0.3, 1) else b.paw:SetVertexColor(0.6, 0.6, 0.6, 0.8) end
-    b.label:SetText(on and ns.L["card.out.on"] or ns.L["card.out.off"])
-    if on then b.label:SetTextColor(1, 0.82, 0) else b.label:SetTextColor(0.6, 0.6, 0.6) end
-    b.glow:SetShown(on)
-    if on then b.glow.pulse:Play() else b.glow.pulse:Stop() end
+    b.ring:SetAlpha((on or swap) and 1 or 0.6)
+    if swap then b.ring:SetVertexColor(SWAP_COLOR[1], SWAP_COLOR[2], SWAP_COLOR[3]) else b.ring:SetVertexColor(1, 1, 1) end
+    if on then b.paw:SetVertexColor(1, 0.82, 0.3, 1)
+    elseif swap then b.paw:SetVertexColor(SWAP_COLOR[1], SWAP_COLOR[2], SWAP_COLOR[3], 1)
+    else b.paw:SetVertexColor(0.6, 0.6, 0.6, 0.8) end
+    b.label:SetText(on and ns.L["card.out.on"] or swap and ns.L["card.out.swap"] or ns.L["card.out.off"])
+    if on then b.label:SetTextColor(1, 0.82, 0)
+    elseif swap then b.label:SetTextColor(SWAP_COLOR[1], SWAP_COLOR[2], SWAP_COLOR[3])
+    else b.label:SetTextColor(0.6, 0.6, 0.6) end
+    b.glow:SetShown(on or swap)
+    if swap then b.glow:SetVertexColor(SWAP_COLOR[1], SWAP_COLOR[2], SWAP_COLOR[3], 1) else b.glow:SetVertexColor(1, 0.75, 0.3, 1) end
+    if on or swap then b.glow.pulse:Play() else b.glow.pulse:Stop() end
     b:Show()
 end
 

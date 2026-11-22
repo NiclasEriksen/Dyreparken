@@ -466,6 +466,8 @@ local function OnJournalLoaded()
         end
     end)
     ns.Bus:On("BOND", function(key) JournalUI:Refresh({ [key] = true }) end)
+    -- (a full day turns other pets' "Ta med ut" into a swap: OutBadge)
+    ns.Bus:On("BOND_FULL", function() JournalUI:Refresh() end)
 end
 
 function JournalUI:Init()

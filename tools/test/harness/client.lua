@@ -410,6 +410,18 @@ function Client:PrintedLine(prefix, vars)
     end
 end
 function Client:ClearPrinted() self.printed = {} end
+-- Clicks the newest printed chat link whose words are text, as the client does: EventRegistry's "SetItemRef"
+-- with the link, its whole text and the button (docs/FOREVER_API.md, 2026-11-22). Returns the link, nil if none.
+function Client:ClickLink(text)
+    for i = #self.printed, 1, -1 do
+        for whole, link, words in self.printed[i]:gmatch("(|H(.-)|h%[(.-)%]|h)") do
+            if words == text then
+                Hardware(self, function() self.env.EventRegistry:TriggerEvent("SetItemRef", link, whole, "LeftButton") end)
+                return link
+            end
+        end
+    end
+end
 
 function Client:Slash(text) return Hardware(self, self.env.SlashCmdList.DYREPARKEN, text) end
 -- A line typed in the chat box, as the client reads it: "/word rest" runs the slash command whose SLASH_<NAME>n is

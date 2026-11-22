@@ -499,6 +499,7 @@ L["bond.full"] = "Båndet med {pet} er fullt for i dag. Fortsett i morgen!"
 -- The day full, with another pet of yours that still has room today ({other}; {n}: days since it was last out with you).
 L["bond.full.next"] = "{pet} er fornøyd for i dag. {other} har ikke vært ute på {n} dager: kanskje det vil være med?"
 L["bond.full.next.yesterday"] = "{pet} er fornøyd for i dag. {other} var med i går, og vil gjerne ut igjen."
+L["bond.full.swap"] = "Ta med {pet} ut"                     -- the nudge's clickable words after it: takes that pet out
 L["bond.full.next.new"] = "{pet} er fornøyd for i dag. {other} har aldri vært ute med deg: kanskje det er dets tur?"
 
 ------------------------------------------------------------------------------
@@ -1606,6 +1607,10 @@ L["card.out.on"] = "Med deg"                                 -- the badge on the
 L["card.out.off"] = "Ta med ut"                             -- ... and when it isn't
 L["card.out.on.title"] = "{pet} er med deg"
 L["card.out.off.title"] = "Ta med {pet} ut"
+L["card.out.swap"] = "Bytt inn"                              -- ... and when the pet out is full for today and this one isn't
+L["card.out.swap.title"] = "Bytt inn {pet}"
+L["card.out.swap.tip"] = "{other} er fornøyd for i dag. {pet} kan fortsatt få {n} båndpoeng i dag."
+L["card.out.swap.click"] = "Klikk for å ta {pet} med ut i stedet."
 L["card.out.on.click"] = "Klikk for å slutte å summone automatisk."
 L["card.out.off.click"] = "Klikk for å ta {pet} med ut."
 L["card.auto.tip"] = "Summoner {pet} når det er fraværende og du ikke er opptatt. Kun ett dyr kan holdes ute om gangen; det du adopterer blir automatisk valgt."

@@ -184,6 +184,44 @@ return function(test, H)
         eq(card.counter.text, "2 av 0 (0%)", "no data: no division by zero")
     end)
 
+    -- The swap (2026-11-22, 0.10.0, the user: "Ta med ut" made situationally reactive).
+    test("Med deg: with the pet out full for today, another pet's badge with room is a swap, green, its own words", function()
+        local w, ola = Setup()
+        ola:Summon(5159)
+        local ns = ola.ns
+        local card = ola:SelectPet(46)
+        local b = card.auto
+        eq(b.label.text, "Ta med ut", "the panda's day has room: no swap yet")
+        no(b.swap)
+        -- The panda's day fills: the kitten's card (shown) turns into a swap at once.
+        ns.Bond:Today("s:5159"); ns.Bond:Today("s:46")
+        ns.DB.char.bondToday.pets["s:5159"].total = ns.Bond:DailyMax("s:5159")
+        ns.Bus:Fire("BOND_FULL", "s:5159")
+        ok(b.swap); eq(b.label.text, "Bytt inn"); match(b.paw:GetTexture(), "swap$"); ok(b.glow:IsShown())
+        local tip = ola:TipOf(b)
+        eq(tip[1], "Bytt inn White Kitten")
+        eq(tip[2], ("Panda Cub er fornøyd for i dag. White Kitten kan fortsatt få %d båndpoeng i dag.")
+            :format(ns.Bond:DailyMax("s:46") - ns.Bond:Today("s:46")))
+        eq(tip[3], "Klikk for å ta White Kitten med ut i stedet.")
+        -- The panda's own card: it's the one out, no swap.
+        no(ola:SelectPet(5159).auto.swap)
+        -- The kitten full too: nothing to gain, the plain badge.
+        ns.DB.char.bondToday.pets["s:46"].total = ns.Bond:DailyMax("s:46")
+        card = ola:SelectPet(46)
+        no(b.swap); eq(b.label.text, "Ta med ut"); match(b.paw:GetTexture(), "paw$")
+        -- Room again, and a click swaps it in, as "Ta med ut" does.
+        ns.DB.char.bondToday.pets["s:46"].total = 0
+        card = ola:SelectPet(46)
+        ok(b.swap)
+        b:Click()
+        w:Run(2)
+        eq(ns.Pets:KeyOf(ola.summoned), "s:46")
+        ok(b.on); no(b.swap); eq(b.label.text, "Med deg")
+        -- No pet out: nothing to swap from.
+        ola:Summon(nil)
+        no(ola:SelectPet(5159).auto.swap)
+    end)
+
     test("Med deg: the badge on the card picks the pet kept out; adopting makes it so; one at a time", function()
         local w, ola = Setup()
         local posts = #w.chat

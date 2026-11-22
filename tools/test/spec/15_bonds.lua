@@ -36,6 +36,27 @@ return function(test, H)
         eq(Line(), nil, "none with room: the plain line, its first three times only")
     end)
 
+    test("a full day's nudge has a link: a click takes that pet out; a made-up key or a pet you don't own does nothing", function()
+        local w, ola = H.Setup{ ola = { 5159, 46 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local ns = ola.ns
+        ola:Summon(5159)
+        ns.Bond:Today(PANDA); ns.Bond:Today("s:46")
+        ns.DB.char.bondToday.pets["s:46"].total = 0
+        ns.Bus:Fire("BOND_FULL", PANDA)
+        match(ola:Printed("er fornøyd for i dag", true), "|Haddon:Dyreparken:swap:s:46|h%[Ta med White Kitten ut%]|h")
+        ok(ola:ClickLink("Ta med White Kitten ut"))
+        w:Run(2)
+        eq(ns.Summon:ActiveKey(), "s:46"); eq(ns.Pets:KeyOf(ola.summoned), "s:46")
+        -- Forged data: nothing.
+        local env = ola.env
+        env.EventRegistry:TriggerEvent("SetItemRef", "addon:Dyreparken:swap:s:40", "", "LeftButton") -- (not ours)
+        env.EventRegistry:TriggerEvent("SetItemRef", "addon:Dyreparken:swap:x:junk", "", "LeftButton")
+        env.EventRegistry:TriggerEvent("SetItemRef", "addon:Dyreparken:nosuch:s:5159", "", "LeftButton")
+        env.EventRegistry:TriggerEvent("SetItemRef", "item:1234", "", "LeftButton")
+        eq(ns.Summon:ActiveKey(), "s:46")
+    end)
+
     test("milestones: by calendar day, 1 month, 100 days, every year", function()
         local w = H.World()
         local B = w:AddClient("Ola Nord").ns.Bonds

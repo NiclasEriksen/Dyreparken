@@ -130,10 +130,19 @@ function Bonds:FullLine(key)
     char.fullHints = (char.fullHints or 0) + 1
     return ns.T("bond.full", { pet = pet })
 end
+-- The nudge's pet, clickable (2026-11-22, 0.10.0, §4.2): the link takes it out, as its card's swap badge does.
 ns.Bus:On("BOND_FULL", function(key)
     if key ~= ns.Registry:MyPet() then return end
-    local line = Bonds:FullLine(key)
-    if line then ns.PrintGold(line) end
+    local line, other = Bonds:FullLine(key)
+    if not line then return end
+    line = ns.Gold(line)
+    if other then line = line .. " " .. ns.Link("swap", other, ns.T("bond.full.swap", { pet = ns.Registry:NameOf(other) }), "73f28c") end
+    ns.Print(line)
+end)
+ns.OnLink("swap", function(key)
+    if not (ns.Registry.Real(key) and ns.Pets:IsOwned(key)) then return end
+    ns.Summon:SetActive(key, true)
+    ns.JournalUI:Refresh()
 end)
 ns.Bus:On("COMEBACK", function(key, given)
     local name = ns.Registry:NameOf(key)
