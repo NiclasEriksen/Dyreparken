@@ -148,6 +148,12 @@ per commit), in a temporary worktree, and refuses the push if it fails. CI runs 
 
 ## Releasing
 
+- **Commit subjects and COMMIT.md** (2026-11-22, the user): every commit's subject is one line a player could read
+  (what changed for them, not how), or starts with `Tests:`, `Tidy-up:`, `Notes:`, `Docs:` or `Developer probe` for
+  what players don't see. For a release, `tools/changelog.sh --draft vX.Y.Z` writes `COMMIT.md` from the subjects
+  since the last tag; the user edits it (reword, merge, reorder, drop), and running it again later adds only the
+  commits since (their edits stay; `--force` writes it anew). Commit it before tagging: for that tag, release.yml
+  uses it word for word (its `<!-- -->` lines left out) instead of the subjects. Keep it up to date as work lands.
 - Before tagging, `tools/changelog.sh` prints what players will read (since the newest tag) and warns on stderr when a
   subject names an egg id, a hidden achievement or says egg/hidden/secret (a warning only). release.yml writes the
   changelog with the same script, and refuses a tag that isn't on main or isn't newer than the last.

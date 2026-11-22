@@ -47,8 +47,9 @@ jobs:
 
       # The changelog players read on CurseForge and GitHub (tools/changelog.sh: run it before tagging to see it):
       # one line per commit subject since the previous tag, without the developer-only ones, {{...}} as *****,
-      # .github/changelog-fix.txt's rewordings, and the Claude credit once at the top. .pkgmeta points the
-      # packager at this file (manual-changelog).
+      # .github/changelog-fix.txt's rewordings, and the Claude credit once at the top; or COMMIT.md, as written,
+      # when it's for this tag (tools/changelog.sh --draft writes it to edit). .pkgmeta points the packager at
+      # this file (manual-changelog).
       - name: Changelog
         run: |
           bash tools/changelog.sh "${GITHUB_REF_NAME}" > CHANGELOG.md

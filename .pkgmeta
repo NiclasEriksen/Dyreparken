@@ -9,6 +9,7 @@ ignore:
   - tools
   - docs
   - CLAUDE.md
+  - COMMIT.md
   - README.md
   - .claude
   - .luarc.json

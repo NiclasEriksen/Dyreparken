@@ -97,6 +97,7 @@
 ---@field Version Dyreparken.Version Core/Version.lua
 ---@field Voyage Dyreparken.Voyage Menagerie/Voyage.lua
 ---@field Weather Dyreparken.Weather Menagerie/Weather.lua
+---@field WeatherPins any Data/WeatherPins.lua
 ---@field Wire Dyreparken.Wire Core/Wire.lua
 ---@field Wish Dyreparken.Wish Menagerie/Wish.lua
 ---@field Zones any Data/Zones.lua
