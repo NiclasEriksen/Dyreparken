@@ -685,6 +685,12 @@ Bond.NAMED_PLACES = {
     zulfarrak = { "Zul'Farrak" }, maraudon = { "Maraudon" }, sunken = { "The Temple of Atal'Hakkar", "Sunken Temple" },
     brd = { "Blackrock Depths" }, stratholme = { "Stratholme" }, scholomance = { "Scholomance" },
     moltencore = { "Molten Core" }, onyxialair = { "Onyxia's Lair" }, gnomeregan = { "Gnomeregan" },
+    -- Forever's own nine (2026-11-23, the user; names from the saved data where visited, the rest as the user or
+    -- Blizzard's article gave them: Verify's "named" ticks each when its line is said)
+    hallofthanes = { "Hall of Thanes", "The Hall of Thanes" }, lordaeron = { "Ruins of Lordaeron" },
+    excavation = { "Excavation Site: Wetlands", "Excavation Site" }, dalaran = { "City of Dalaran" },
+    drowned = { "The Drowned City" }, kroldok = { "Krol'dok Stronghold" }, alcaz = { "Alcaz Prison" },
+    blackmaw = { "Blackmaw Hold" }, shaper = { "The Shaper's Terrace", "Shaper's Terrace" },
     -- Iconic zones (the content review §2.3: "a frog in Swamp of Sorrows, a mechanical pet in Gnomeregan"): a line
     -- by the pet's family where it has one (first.place.<slug>.<family>.N), else the zone's own.
     swamp = { "Swamp of Sorrows" }, winterspring = { "Winterspring" }, ungoro = { "Un'Goro Crater" },
