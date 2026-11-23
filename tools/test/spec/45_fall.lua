@@ -108,8 +108,9 @@ return function(test, H)
         -- A jump long ago, then a fall: not this fall's air time.
         w:SkipDays(1); ola.env.JumpOrAscendStart(); w:Run(A.FALL_AIR_MAX + 1); Fall(w, ola, false, true)
         eq(Mild(), 3); eq(Big(), 0, "a jump long before: not a big fall")
-        -- Long in the air: big, by its nature.
-        w:SkipDays(1); w:Run(A.FALL_AGAIN); Fall(w, ola)
+        -- Long in the air: big, by its nature, the same day as a mild one (its own egg: the mild line used to use up
+        -- the day's, and the real fall said nothing).
+        w:Run(A.FALL_AGAIN); Fall(w, ola)
         eq(Big(), 1, "a big one")
     end)
 

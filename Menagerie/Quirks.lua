@@ -474,17 +474,19 @@ Quirks.EGGS = {
     { id = "sparket", delay = "now", on = "kicktop", chance = 0.3, test = function() return {} end },
     -- A big fall (2026-11-12, the user: pets react "according to traits"): the first of its traits with a line
     -- of its own (Quirks.FALL_TRAITS), else a worried one; the end of you, its own.
-    -- Big: a long time in the air since a jump (Activity.FALL_HIGH); any other fall that hurt gets a mild line now
-    -- and then (Quirks.FALL_SMALL; 2026-11-23, the user: "such a height" after 5% of health).
+    -- Big: a long time in the air since a jump (Activity.FALL_HIGH). Any other fall that hurt gets a mild line now
+    -- and then, an egg of its own, common (Quirks.FALL_SMALL; 2026-11-23, the user: "such a height" after 5% of
+    -- health): one egg for both, a walk-off's line used up the day, and a real fall later said nothing.
     { id = "stup", delay = "now", on = "fall", always = true,
-        chance = function(ctx) return ctx.extra and 1 or Quirks.FALL_SMALL end,
         traits = { "hoppetass", "skybaren", "rampete", "skoyer", "eventyrlysten", "latsabb", "hjemlengsel", "kjaelen",
             "kosete", "trofast" },
         test = function(ctx)
             if ctx.extra == "dead" then return { _key = "egg.stup.dod" } end
-            if ctx.extra ~= "high" then return { _key = "egg.stup.liten" } end
+            if ctx.extra ~= "high" then return nil end
             return Quirks.ByNature(ctx)
         end },
+    { id = "stupliten", delay = "now", on = "fall", chance = function() return Quirks.FALL_SMALL end,
+        test = function(ctx) return not ctx.extra and {} or nil end },
     -- Zeppelins and boats (Voyage.lua, 2026-11-12, the user): by trait, then family, else a plain one. A pet
     -- afraid of flying is afraid up there too.
     { id = "luftskip", on = "zeppelin", always = true, chance = 0.4,
