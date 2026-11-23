@@ -73,7 +73,9 @@ function Summon:SetActive(key, on)
 end
 
 -- Turnus' pick (Turnus.lua): the pet kept out from now on. Unlike a choice on its card it replaces only the pet
--- auto-summon put out (the one kept out until now), never one you summoned yourself.
+-- auto-summon put out (the one kept out until now), never one you summoned yourself. That swap waits for its moment
+-- (2026-11-23, seen: the day turned while mounted, the dismount's check forgot it, and yesterday's pet stayed out
+-- all day): char.swapFrom remembers the pet to replace, for today, until the new one is out or you put out another.
 function Summon:Rotate(key)
     local old = self:ActiveKey()
     if not old or old == key then return end
@@ -82,8 +84,19 @@ function Summon:Rotate(key)
     self:Watch()
     ns.Bus:Fire("ACTIVE_PET", key)
     local out = ns.Plain(ns.Pets:Summoned())
-    swapTo = out and ns.Pets:KeyOf(out) == old and key or nil
+    ns.DB.char.swapFrom = out and ns.Pets:KeyOf(out) == old and { day = ns.Today(), key = old } or nil
+    swapTo = nil
     self:Check("active")
+end
+
+-- The pet out may be replaced: a choice on its card just now, or Turnus' swap still waiting (above).
+local function MayReplace(outKey, key)
+    if swapTo == key then return true end
+    local char = ns.DB.char
+    local from = char.swapFrom
+    if not from then return false end
+    if from.day ~= ns.Today() or outKey ~= from.key then char.swapFrom = nil; return false end
+    return true
 end
 
 function Summon:Enabled()
@@ -181,8 +194,9 @@ function Summon:Check(reason)
     ns.Log("Summon", "check (%s): out=%s", tostring(reason), tostring(out))
     -- (ours came back on its own, after a loading screen or landing: its day's
     -- visit may be due, with no summon call to say so)
-    if out and ns.Pets:KeyOf(out) == key then swapTo = nil; ns.Bus:Fire("PET_OUT", key) end
-    if out and swapTo ~= key then return end
+    local outKey = out and ns.Pets:KeyOf(out)
+    if outKey == key then swapTo, ns.DB.char.swapFrom = nil, nil; ns.Bus:Fire("PET_OUT", key) end
+    if out and not MayReplace(outKey, key) then return end
     local guid = ns.Pets:Owned()[key]
     if not guid then return end
 

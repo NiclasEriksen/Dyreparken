@@ -74,6 +74,33 @@ return function(test, H)
         eq(ola.ns.Summon:ActiveKey(), PANDA)
     end)
 
+    test("the day's swap waits for its moment: mounted at midnight, the next pet comes out once you're down", function()
+        local w, ola, T = Setup()
+        local ns = ola.ns
+        T:Toggle(PANDA); T:Toggle(KITTEN)
+        ola:Summon(5159); w:Run(2)
+        -- (seen 2026-11-23: the day turned on a mount, and yesterday's pet stayed out all day)
+        w:SkipDays(1); ola:Mount()
+        T:Day()
+        eq(ns.Summon:ActiveKey(), KITTEN)
+        eq(ns.Pets:KeyOf(ola.summoned), PANDA, "not on a mount")
+        ola:Dismount(); w:Run(3)
+        eq(ns.Pets:KeyOf(ola.summoned), KITTEN, "the kitten once down")
+        eq(ns.DB.char.swapFrom, nil, "done")
+        -- Once out, the panda put out again by hand stays.
+        ola:Summon(5159); ola:Mount(); ola:Dismount(); w:Run(3)
+        eq(ns.Pets:KeyOf(ola.summoned), PANDA, "yours by hand")
+        -- A pet you put out while it waits: yours stays, and the swap is off.
+        w:SkipDays(1); ola:Mount()
+        T:Day()
+        eq(ns.Summon:ActiveKey(), PANDA)
+        ok(ns.DB.char.swapFrom == nil, "the kitten wasn't the one out: nothing to swap")
+        ola:Summon(46); ns.DB.char.swapFrom = { day = ns.Today(), key = KITTEN }
+        ola:Summon(40); ola:Dismount(); w:Run(3)
+        eq(ns.Pets:KeyOf(ola.summoned), CAT, "the cat, by hand, stays")
+        eq(ns.DB.char.swapFrom, nil)
+    end)
+
     test("never in place of a pet you summoned yourself; nobody with room: it stays; off with auto-summon", function()
         local w, ola, T = Setup()
         local ns = ola.ns

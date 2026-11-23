@@ -84,6 +84,7 @@ local CHAR_DEFAULTS = {
     autoSummon = true,         -- may be overridden at runtime if AutoCompanion is loaded (SetEnabled)
     activePet = nil,           -- the pet auto-summon keeps out ("Med deg" on its card); nil: the adopted one
     muteSummonSound = true,    -- the clank when a companion is summoned (QuietSummon; SetMuteSound)
+    swapFrom = nil,            -- { day, key }: Turnus' swap waiting for its moment: the pet out to replace (Rotate)
     toldDeferral = nil,        -- the AutoCompanion notice, said once a character (AnnounceDeferral)
     -- [Onboarding]
     toldAdoptHow = nil,        -- how the bond grows, said after the character's first adoption (char migration 4)
