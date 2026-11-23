@@ -48,7 +48,7 @@ return function(test, H)
         no(ola:SelectPet(68).auto.turnus:IsShown())
     end)
 
-    test("each day the next pet in the list; full mid-day, the next with room takes over, instead of the nudge", function()
+    test("each day your adopted pet first, then the others in turn as each one's day fills, instead of the nudge", function()
         local w, ola, T = Setup()
         local ns = ola.ns
         T:Toggle(PANDA); T:Toggle(KITTEN); T:Toggle(CAT)
@@ -61,23 +61,32 @@ return function(test, H)
         eq(ns.Summon:ActiveKey(), KITTEN); eq(ns.Pets:KeyOf(ola.summoned), KITTEN)
         ok(ola:Printed("Panda Cub er fornøyd for i dag. Nå er det White Kitten sin tur!", true))
         no(ola:Printed("har aldri vært ute", true), "not the nudge too")
-        -- A new day: the one after the last pick (the cat).
+        -- A new day: the adopted panda again (the user, 2026-11-23: "Adopted pet first").
         w:SkipDays(1); ola:Reload(); w:Settle("hello")
         ns = ola.ns
+        eq(ns.Summon:ActiveKey(), PANDA)
+        ok(ola:Printed("Turnus: Panda Cub er med deg i dag.", true))
+        -- Its day full: the one after the last turn (the cat), not the kitten again.
+        Fill(ola, PANDA)
         eq(ns.Summon:ActiveKey(), CAT)
-        ok(ola:Printed("Turnus: Bombay Cat er med deg i dag.", true))
         -- Again the same day: no change.
         ola:Reload(); w:Settle("hello")
         eq(ola.ns.Summon:ActiveKey(), CAT)
-        -- The next day: round to the panda.
+        -- The next day: the panda, and the kitten's turn after it.
         w:SkipDays(1); ola:Reload(); w:Settle("hello")
-        eq(ola.ns.Summon:ActiveKey(), PANDA)
+        ns = ola.ns
+        eq(ns.Summon:ActiveKey(), PANDA)
+        Fill(ola, PANDA)
+        eq(ns.Summon:ActiveKey(), KITTEN)
+        -- The kitten full too: the cat, then nobody with room.
+        Fill(ola, KITTEN)
+        eq(ns.Summon:ActiveKey(), CAT)
     end)
 
     test("the day's swap waits for its moment: mounted at midnight, the next pet comes out once you're down", function()
         local w, ola, T = Setup()
         local ns = ola.ns
-        T:Toggle(PANDA); T:Toggle(KITTEN)
+        T:Toggle(KITTEN); T:Toggle(CAT) -- (the adopted panda isn't in it: the turnus goes round)
         ola:Summon(5159); w:Run(2)
         -- (seen 2026-11-23: the day turned on a mount, and yesterday's pet stayed out all day)
         w:SkipDays(1); ola:Mount()
@@ -90,14 +99,19 @@ return function(test, H)
         -- Once out, the panda put out again by hand stays.
         ola:Summon(5159); ola:Mount(); ola:Dismount(); w:Run(3)
         eq(ns.Pets:KeyOf(ola.summoned), PANDA, "yours by hand")
-        -- A pet you put out while it waits: yours stays, and the swap is off.
+        -- The next day the panda (yours) is out, not the kitten: nothing to swap.
         w:SkipDays(1); ola:Mount()
         T:Day()
-        eq(ns.Summon:ActiveKey(), PANDA)
-        ok(ns.DB.char.swapFrom == nil, "the kitten wasn't the one out: nothing to swap")
-        ola:Summon(46); ns.DB.char.swapFrom = { day = ns.Today(), key = KITTEN }
-        ola:Summon(40); ola:Dismount(); w:Run(3)
-        eq(ns.Pets:KeyOf(ola.summoned), CAT, "the cat, by hand, stays")
+        eq(ns.Summon:ActiveKey(), CAT)
+        eq(ns.DB.char.swapFrom, nil)
+        ola:Dismount(); w:Run(3)
+        eq(ns.Pets:KeyOf(ola.summoned), PANDA, "the panda stays")
+        -- A pet you put out while it waits: yours stays, and the swap is off.
+        ola:Summon(40); w:SkipDays(1); ola:Mount()
+        T:Day()
+        ok(ns.DB.char.swapFrom, "the cat's to go")
+        ola:Summon(5159); ola:Dismount(); w:Run(3)
+        eq(ns.Pets:KeyOf(ola.summoned), PANDA, "the panda, by hand, stays")
         eq(ns.DB.char.swapFrom, nil)
     end)
 

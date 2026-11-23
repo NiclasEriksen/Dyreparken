@@ -104,7 +104,7 @@ local CHAR_DEFAULTS = {
     weather = nil,             -- [kind] = when it last started (Weather.AGAIN: the same weather again isn't new)
     -- [Turnus]
     turnus = nil,              -- { petKey, ... }: the pets that take turns being out, in order (Turnus.lua)
-    turnusDay = nil,           -- { day, key }: the day Turnus last picked a pet, and which
+    turnusDay = nil,           -- { day, key, turn }: the day Turnus last picked a pet, which, and whose turn it is after the adopted one
     turnusvakt = nil,          -- { last, n, best, pets = { [petKey] = true } }: days in a row, each a new pet's visit
     -- [Activity]
     activity = {},             -- activity counters
