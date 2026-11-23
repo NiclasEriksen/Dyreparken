@@ -221,17 +221,33 @@ function Bonds:Celebrate()
     ns.Print(ns.T("milestone.others", { list = list }))
 end
 
--- key, owner of today's pet, or nil when nobody has adopted one.
+-- A string's 32-bit FNV-1a hash, with a final mix: the same number on every client. (The multiply by the FNV prime,
+-- 2^24 + 403, in two parts: a double holds 53 bits exactly, not 56.)
+local M32 = 4294967296
+local function Times(h) return ((h % 256) * 16777216 + h * 403) % M32 end
+function Bonds.Hash(s)
+    local bxor, rshift = bit.bxor, bit.rshift
+    local h = 2166136261
+    for i = 1, #s do h = Times(bxor(h, s:byte(i)) % M32) end
+    h = Times(bxor(h, rshift(h, 15)) % M32)
+    return bxor(h, rshift(h, 13)) % M32
+end
+
+-- key, owner of today's pet, or nil when nobody has adopted one. Each adopted pet's score for the day, the highest
+-- wins (2026-11-23, the user: it changed at random times: the day's number picked a place in the list of adopted
+-- pets, and every adoption, letting go or lapse anywhere in the guild moved them all). Now a new adoption takes the
+-- crown only if it outscores today's pet (1 in n), and letting go moves it only if it was today's.
 function Bonds:PetOfTheDay(now)
-    local keys = {}
     local known = ns.Companions and ns.Companions.species
-    for key in pairs(ns.Registry:Holders()) do
-        if not known or known[ns.Pets:SpeciesOfKey(key) or false] then keys[#keys + 1] = key end
-    end
-    if #keys == 0 then return nil end
-    table.sort(keys)
     local day = ns.Today(now)
-    local pick = keys[LibStub("LibDeflate"):Adler32("dagens dyr " .. day) % #keys + 1]
+    local pick, best
+    for key in pairs(ns.Registry:Holders()) do
+        if not known or known[ns.Pets:SpeciesOfKey(key) or false] then
+            local score = Bonds.Hash("dagens dyr " .. day .. " " .. key)
+            if not best or score > best or (score == best and key < pick) then pick, best = key, score end
+        end
+    end
+    if not pick then return nil end
     return pick, (ns.Registry:Holder(pick))
 end
 

@@ -222,7 +222,9 @@ return function(test, H)
         ok(ola.ns.ParkPage.Legend():find(ola.ns.Icon("house"), 1, true), "and in the legend")
         -- Sorted by name; laid out in rows.
         eq(SpeciesOf(Cells(ola)[1]), 42, "Black Tabby Cat first")
-        match(Tip(ola, kitty), "^Cornish Rex Cat / Dagens dyr / Flyttet inn hos Kari Berg i dag / Bånd: Bekjent %(level 1%) / %S+ og %S+ · liker [^/]* / Klikk for å se dyret%.$", "the traits by name; no effect paragraphs; no source without data; today's pet says so")
+        local kittyToday = ola.ns.Bonds:PetOfTheDay() == "s:41"
+        match(Tip(ola, kitty), "^Cornish Rex Cat / " .. (kittyToday and "Dagens dyr / " or "") .. "Flyttet inn hos Kari Berg i dag / Bånd: Bekjent %(level 1%) / %S+ og %S+ · liker [^/]* / Klikk for å se dyret%.$", "the traits by name; no effect paragraphs; no source without data")
+        ok(Tip(ola, kittyToday and kitty or panda):find(" / Dagens dyr / ", 1, true), "today's pet says so")
         no(Tip(ola, rabbit):find("Dagens dyr", 1, true), "only today's")
         match(Tip(ola, rabbit), "Trenger et hjem / .* / Kilde: Quest – Waskily Wabbits! %(Dun Morogh%) / Du har dette dyret, og kan adoptere det%.")
         match(Tip(ola, panda), "Flyttet inn hos deg i dag")

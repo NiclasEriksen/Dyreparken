@@ -333,6 +333,34 @@ return function(test, H)
         local n = 0
         for _ in pairs(seen) do n = n + 1 end
         eq(n, 3, "over 20 days every pet gets its day")
+        -- Someone else's adoption or letting go mid-day: today's pet stays unless it was theirs or theirs outscores it
+        -- (2026-11-23, the user: it changed at random times). Over days, with ten pets adopted: it rarely moves.
+        local B = ola.ns.Bonds
+        eq(B.Hash("dagens dyr"), 4046441398, "the same number on every client (a fixed hash)")
+        local keys = {}
+        for i = 1, 10 do keys[i] = "s:" .. (100 + i) end
+        local function Pick(list, day)
+            local p, b
+            for _, k in ipairs(list) do
+                local sc = B.Hash("dagens dyr " .. day .. " " .. k)
+                if not b or sc > b then p, b = k, sc end
+            end
+            return p
+        end
+        local moved = 0
+        for d = 1, 200 do
+            local day = ola.ns.Today(ola.ns.Now() + d * 86400)
+            local more = { unpack(keys) }; more[#more + 1] = "s:999"
+            if Pick(more, day) ~= Pick(keys, day) then moved = moved + 1 end
+        end
+        ok(moved > 0 and moved < 50, "a new pet took the crown on " .. moved .. " of 200 days (about 1 in 11)")
+        -- And in the world: a guildmate whose pet isn't today's lets it go: the same pick, for everyone.
+        local before = B:PetOfTheDay()
+        local other = before ~= "s:40" and kari or per
+        other:Slash("gislipp"); w:Run(10)
+        eq(B:PetOfTheDay(), before, "letting go of another pet: today's stays")
+        eq(kari.ns.Bonds:PetOfTheDay(), before)
+        other:Slash("adopter"); w:Run(10)
         -- The card names it, by nickname.
         w:SkipDays(7)
         w:Befriend()
