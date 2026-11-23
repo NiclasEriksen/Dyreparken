@@ -50,6 +50,10 @@ return function(test, H)
         eq(key, "s:40", "the Turnus pet, though the kitten waited longer"); eq(days, 1)
         ns.Bond:Today("s:40"); char.bondToday.pets["s:40"].total = ns.Bond:DailyMax("s:40")
         eq((ns.Bond:NextOpen(PANDA)), "s:46", "the Turnus pets full: anyone with room")
+        -- Your adopted pet first, then whose turn it is today (not the list's order: what Turnus takes over with).
+        ns.Turnus:Toggle("s:46"); char.bondToday.pets["s:40"].total = 0
+        char.turnusDay.turn = "s:46"
+        eq((ns.Bond:NextOpen(PANDA)), "s:46", "today's turn")
     end)
 
     test("a full day's nudge has a link: a click takes that pet out; a made-up key or a pet you don't own does nothing", function()

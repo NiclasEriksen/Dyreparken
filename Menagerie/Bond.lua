@@ -389,6 +389,10 @@ function Bond:NextOpen(except)
             end
         end
     end
+    -- (whose turn it is after your adopted pet first: the one Turnus:TakeOver goes to)
+    local d = ns.DB.char.turnusDay
+    local turn = d and d.day == ns.Today() and d.turn
+    if turn and fits[turn] ~= nil then return turn, fits[turn] or nil end
     local list = ns.Turnus and ns.Turnus:List() or {}
     local at = 0
     for i, k in ipairs(list) do if k == except then at = i end end
