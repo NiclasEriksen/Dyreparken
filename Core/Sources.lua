@@ -203,10 +203,21 @@ end
 -- wipe at a boss, two hits two falls): a hit within FALL_AFTER_FIGHT of a fight's end (a mob's last swing lands as
 -- it ends; dying ends one too), a hit on you dead since before it (a fatal fall's PLAYER_DEAD comes with its hit),
 -- and a second hit within FALL_AGAIN of one (the landing and a bounce).
+-- How big (2026-11-23, the user: a line about "such a height" after 5% of health): the amount is secret, so the
+-- air time since your last jump (JumpOrAscendStart, hooked once the fall is watched) is the one measure. From
+-- FALL_HIGH s in the air and no longer than FALL_AIR_MAX (a jump long before isn't this fall) it was a big one,
+-- extra "high"; a fall with no jump to time it, or a short one, has none. The physics' guess: damage starts near
+-- 1.7 s of air after a jump (about 16 yards), a third of your health near 2.2 s; logged to tune.
 Activity.FALL_CHECK = 0.5
 Activity.FALL_AFTER_FIGHT, Activity.FALL_AGAIN = 2.5, 5
+Activity.FALL_HIGH, Activity.FALL_AIR_MAX = 2.2, 8
 local lastFall
 Activity:Source({ id = "fall", events = { "UNIT_COMBAT" }, unit = "player", when = "peace",
+    hook = function()
+        if type(JumpOrAscendStart) == "function" then
+            hooksecurefunc("JumpOrAscendStart", function() Activity.jumpAt = GetTime() end)
+        end
+    end,
     filter = function(_, unit, action, _, _, school)
         if Plain(unit) ~= "player" or Plain(action) ~= "WOUND" or Plain(school) ~= 1 then return nil end
         local at = GetTime()
@@ -214,9 +225,13 @@ Activity:Source({ id = "fall", events = { "UNIT_COMBAT" }, unit = "player", when
         if Activity.deadAt and Activity.deadAt < at - 0.05 and Plain(UnitIsDeadOrGhost("player")) == true then return nil end
         if lastFall and at - lastFall < Activity.FALL_AGAIN then return nil end
         lastFall = at
+        local air = Activity.jumpAt and at - Activity.jumpAt
+        if air and air > Activity.FALL_AIR_MAX then air = nil end
         C_Timer.After(Activity.FALL_CHECK, function()
             if ns.InCombat() or (Activity.fightAt and Activity.fightAt >= at - 0.05) then return end
-            Activity:Emit("fall", 1, Plain(UnitIsDeadOrGhost("player")) == true and "dead" or nil)
+            local dead = Plain(UnitIsDeadOrGhost("player")) == true
+            ns.Log("Activity", "fall: air %s%s", air and ("%.2f s"):format(air) or "unknown (no jump)", dead and ", dead" or "")
+            Activity:Emit("fall", 1, dead and "dead" or (air and air >= Activity.FALL_HIGH and "high") or nil)
         end)
         return nil
     end })

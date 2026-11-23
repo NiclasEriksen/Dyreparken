@@ -220,6 +220,9 @@ local function Build()
             logs = { { "Api", "^weather WEATHER_CHANGED" }, { "Api", "^weather turned" }, { "Weather", "^WEATHER_CHANGED" },
                 { "Weather", "^clear %-> " }, { "Weather", "^%a%a%a%a+ %-> clear" } } }, -- (a turn seen live, not the login's first read;
             -- seen 2026-11-22: WEATHER_CHANGED fires as it turns)
+        -- The fall's size from air time (Activity.FALL_HIGH, 2026-11-23): a guess to tune from the log's "fall: air".
+        { "fallhigh", "jump off something high (a third of your health or more), then read the log's \"fall: air\"",
+            logs = { { "Activity", "^fall: air [3-9]" }, { "Activity", "^fall: air 2%.[2-9]" } } },
         -- Bonds:EmotedAt (2026-11-22): /boop's text on Forever is a guess, /bonk's and /pat's from the classic client.
         { "emotebonk", "/bonk your pet that's out (targeted)", logs = { { "Bonds", "^emote bonk" } } },
         { "emoteboop", "/boop your pet that's out (targeted; does Forever have /boop?)", logs = { { "Bonds", "^emote boop" } } },

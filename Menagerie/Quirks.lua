@@ -474,11 +474,15 @@ Quirks.EGGS = {
     { id = "sparket", delay = "now", on = "kicktop", chance = 0.3, test = function() return {} end },
     -- A big fall (2026-11-12, the user: pets react "according to traits"): the first of its traits with a line
     -- of its own (Quirks.FALL_TRAITS), else a worried one; the end of you, its own.
+    -- Big: a long time in the air since a jump (Activity.FALL_HIGH); any other fall that hurt gets a mild line now
+    -- and then (Quirks.FALL_SMALL; 2026-11-23, the user: "such a height" after 5% of health).
     { id = "stup", delay = "now", on = "fall", always = true,
+        chance = function(ctx) return ctx.extra and 1 or Quirks.FALL_SMALL end,
         traits = { "hoppetass", "skybaren", "rampete", "skoyer", "eventyrlysten", "latsabb", "hjemlengsel", "kjaelen",
             "kosete", "trofast" },
         test = function(ctx)
             if ctx.extra == "dead" then return { _key = "egg.stup.dod" } end
+            if ctx.extra ~= "high" then return { _key = "egg.stup.liten" } end
             return Quirks.ByNature(ctx)
         end },
     -- Zeppelins and boats (Voyage.lua, 2026-11-12, the user): by trait, then family, else a plain one. A pet
@@ -553,6 +557,8 @@ end
 
 -- (a boss seen fall before 0.05 since 2026-11-19, from 0.15: a dungeon's five bosses had it on 8 of 9 days)
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.05, 0.5
+-- A fall that hurt with no sign it was a big one (egg stup): a mild line, now and then.
+Quirks.FALL_SMALL = 0.35
 Quirks.REUNION_DAYS, Quirks.REUNION_CHANCE = 3, 0.35 -- (gjensyn: Monday's pet back on Thursday)
 Quirks.REUNION_LONG, Quirks.REUNION_LEVEL = 14, 3 -- (gjensyn, certain: two weeks apart, a Venn or more)
 Quirks.SWAP_LEVEL = 2 -- (bytte: both pets)
