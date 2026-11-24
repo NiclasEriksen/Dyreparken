@@ -65,7 +65,7 @@ return function(test, H)
         w:SkipDays(1); ola:Reload(); w:Settle("hello")
         ns = ola.ns
         eq(ns.Summon:ActiveKey(), PANDA)
-        ok(ola:Printed("Turnus: Panda Cub er med deg i dag.", true))
+        ok(ola:Printed("I dag er det Panda Cub sin tur til å være med deg.", true))
         -- Its day full: the one after the last turn (the cat), not the kitten again.
         Fill(ola, PANDA)
         eq(ns.Summon:ActiveKey(), CAT)
@@ -132,6 +132,27 @@ return function(test, H)
         no(T:On())
         w:SkipDays(1); ola:Reload(); w:Settle("hello")
         eq(ola.ns.DB.char.activePet, KITTEN, "nothing picked while off")
+    end)
+
+    -- Review 2026-11-24 Q14, Q15: the tip said "a new one each day" with the adopted pet first every day; with "Med deg"
+    -- off the Turnus stood still, its badge gold, nothing said.
+    test("the toggle's tip: the adopted pet first when it's in it; paused with Med deg off, dim and said", function()
+        local w, ola, T = Setup()
+        local card = ola:SelectPet(5159)
+        T:Toggle(PANDA); T:Toggle(KITTEN)
+        ola.ns.OutBadge:Update(card, PANDA)
+        local tip = ola:TipOf(card.auto.turnus)
+        match(tip.text, "Panda Cub er adoptert og er med deg først hver dag")
+        no(tip.text:find("står stille"))
+        no(card.auto.turnus.ring.desaturated, "on: gold")
+        ola.ns.Summon:SetEnabled(false)
+        ola.ns.OutBadge:Update(card, PANDA)
+        tip = ola:TipOf(card.auto.turnus)
+        match(tip.text, "Turnusen står stille: slå på «Med deg» igjen")
+        ok(card.auto.turnus.ring.desaturated, "paused: dim")
+        T:Toggle(PANDA)
+        card = ola:SelectPet(46)
+        match(ola:TipOf(card.auto.turnus).text, "Hver dag er et nytt av dem med deg", "the adopted pet out of it: the plain tip")
     end)
 
     -- Review 2026-11-24 Q2-Q4 (repros in docs/review-2026-11-24/repro).

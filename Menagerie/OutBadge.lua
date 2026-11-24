@@ -73,8 +73,11 @@ function OutBadge.TurnusLines(key)
     local has = T:Has(key)
     local lines = {
         { ns.T(has and "turnus.card.on" or "turnus.card.off", { pet = pet }), TURNUS_GOLD[1], TURNUS_GOLD[2], TURNUS_GOLD[3] },
-        { ns.T("turnus.card.tip", { min = T.MIN, max = T.MAX }), 1, 1, 1, true },
+        -- (your adopted pet in it starts every day: the tip says so, review 2026-11-24 Q14)
+        { T:Mine() and ns.T("turnus.card.tip.mine", { min = T.MIN, max = T.MAX, pet = ns.Registry:NameOf(T:Mine()) })
+            or ns.T("turnus.card.tip", { min = T.MIN, max = T.MAX }), 1, 1, 1, true },
     }
+    if OutBadge.TurnusPaused() then lines[#lines + 1] = { ns.L["turnus.card.paused"], 1, 0.5, 0.4, true } end
     local list = T:List()
     if #list > 0 then
         local names = {}
@@ -148,12 +151,19 @@ function OutBadge:Build(card, c)
     b.turnus = BuildTurnus(card, b)
 end
 
+-- Turnus has its pets, and stands still: auto-summon ("Med deg") is off (review 2026-11-24 Q15: silent, its badge gold).
+function OutBadge.TurnusPaused()
+    return #ns.Turnus:List() >= ns.Turnus.MIN and not ns.Summon:Enabled()
+end
+
 local function UpdateTurnus(t, key, show)
     if not show then return t:Hide() end
     local on = ns.Turnus:Has(key)
-    t.ring:SetDesaturated(not on)
-    t.ring:SetAlpha(on and 1 or 0.6)
-    if on then t.icon:SetVertexColor(TURNUS_GOLD[1], TURNUS_GOLD[2], TURNUS_GOLD[3], 1)
+    local gold = on and not OutBadge.TurnusPaused() -- (in it, but paused: dim)
+    t.ring:SetDesaturated(not gold)
+    t.ring:SetAlpha(gold and 1 or 0.6)
+    if gold then t.icon:SetVertexColor(TURNUS_GOLD[1], TURNUS_GOLD[2], TURNUS_GOLD[3], 1)
+    elseif on then t.icon:SetVertexColor(TURNUS_GOLD[1], TURNUS_GOLD[2], TURNUS_GOLD[3], 0.5)
     else t.icon:SetVertexColor(0.6, 0.6, 0.6, 0.8) end
     t:SetEnabled(on or not ns.Turnus:Full())
     t:Show()
