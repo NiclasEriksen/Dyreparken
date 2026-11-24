@@ -154,6 +154,19 @@ return function(test, H)
         no(active == turn)
     end)
 
+    test("with no Med deg pet yet, Turnus' pick becomes it and comes out", function()
+        local w, ola = H.Setup{ ola = { 5159, 46, 40 }, journal = true }
+        local ns = ola.ns
+        eq(ns.Summon:ActiveKey(), nil, "no adoption, no pick")
+        ns.Turnus:Toggle(KITTEN); ns.Turnus:Toggle(CAT)
+        ola:Summon(nil) -- (one you summoned yourself is never replaced)
+        w:SkipDays(1); ola:Reload(); w:Settle("day")
+        ns = ola.ns
+        local active = ns.Summon:ActiveKey()
+        ok(active == KITTEN or active == CAT, "a Turnus pet is Med deg: " .. tostring(active))
+        eq(ns.Pets:KeyOf(ola.summoned), active, "and out")
+    end)
+
     test("Flokk lists the Turnus pets: today's in gold, and how each one's day stands", function()
         local w, ola, T = Setup()
         T:Toggle(PANDA); T:Toggle(KITTEN)

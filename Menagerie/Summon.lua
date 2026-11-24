@@ -78,9 +78,10 @@ end
 -- all day): char.swapFrom remembers the pet to replace, for today, until the new one is out or you put out another.
 function Summon:Rotate(key)
     local old = self:ActiveKey()
-    if not old or old == key then return end
+    -- (no "Med deg" pet yet, auto-summon on: Turnus' pick becomes it, review 2026-11-24 Q3)
+    if old == key or not self:Enabled() then return end
     ns.DB.char.activePet = key
-    ns.Log("Summon", "rotate: %s -> %s", old, key)
+    ns.Log("Summon", "rotate: %s -> %s", tostring(old), key)
     self:Watch()
     ns.Bus:Fire("ACTIVE_PET", key)
     local out = ns.Plain(ns.Pets:Summoned())
