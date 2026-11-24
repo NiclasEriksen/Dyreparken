@@ -52,9 +52,11 @@ quirks. When you learn something new about the client, add it there with the dat
   logged as `Chat`, with the line's key when `ns.PickLine` chose it (`-m Chat`: what the player was told).
 - `luajit tools/lines.lua egg.stup --pet 70` (or `--traits a,b`, `--class`, `--race`, `--all`): every text a pet can
   say for a line, by its nature, through the real ns.Lines and Moments.ByNature; for editing Locale/nb.lua.
-- `luajit tools/chatter.lua --pet 70 --class shaman --days 28 --profile casual|regular|grinder [--chatter few]`: days of
-  scripted play (activities at guessed rates, fights with the class's casts) in a harness client: the bond's pace
-  (days to each level) and every line group with how often it came and on what share of days. Run it after
+- `luajit tools/chatter.lua --pet 70 --class shaman --days 28 --profile casual|regular|grinder|max [--chatter few]
+  [--set boss=1,quest=2]`: days of scripted play (activities at guessed rates, fights with the class's casts) in a
+  harness client: the bond's pace (days to each level), every line group with how often it came and on what share of
+  days, and the groups heard first each week. The first three profiles are a levelling triple gatherer; `max` is a
+  level 60 with no gathering (2026-11-24), the pace most players see; `--set` overrides an hour's rates. Run it after
   changing a chance, a cooldown or a REWARDS row. Our own Lua errors go into the log
   with their stack (Dev/Errors.lua, through BugGrabber), and `--errors` also reads BugGrabber's saved ones.
 - The saved data itself: **`luajit tools/sv.lua`** (read-only; `summary`: claims, bonds, names, owners, each table's
