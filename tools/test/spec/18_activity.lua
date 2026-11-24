@@ -271,6 +271,27 @@ return function(test, H)
         eq(select(4, A:Count("day", "s:40")), 0)
     end)
 
+    -- Review 2026-11-24 Q5: away at the ten-minute mark (the game took it, and brought it back with no call), no
+    -- visit all day after an hour out.
+    test("a pet away at its visit's moment waits anew once it's back: the next thing done, or its return", function()
+        local w, c, A = Setup({ 5159, 46 })
+        c.ns.Config.VISIT_AFTER = c.shippedConfig.VISIT_AFTER
+        local WAIT = c.ns.Config.VISIT_AFTER
+        A:Want("day", ME)
+        A:Want("quest", ME)
+        c:Summon(46)
+        A:CheckDay()
+        w:Run(WAIT - 10)
+        local guid = c.summoned
+        c.summoned = nil -- (a flight path)
+        w:Run(30)
+        eq(select(4, A:Count("day", "s:46")), 0, "away: none")
+        c.summoned = guid -- (landed: the game's own return)
+        A:Emit("quest", 1)
+        w:Run(WAIT + 5)
+        eq(select(4, A:Count("day", "s:46")), 1, "back out: its wait again, then its visit")
+    end)
+
     test("a missing event makes its activity unavailable; a broken filter switches off once", function()
         local w, c, A = Setup()
         A.KIND.ghost, A.KIND.bad = { id = "ghost" }, { id = "bad" } -- (test kinds)

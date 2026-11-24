@@ -430,7 +430,10 @@ function Activity:CheckDay()
         ns.Log("Activity", "day: %s's visit in %d s, if it stays out", key, ns.Config.VISIT_AFTER)
         visitWait:After(ns.Config.VISIT_AFTER, function()
             waiting = nil
-            if PetNow() == key then Activity:Visit(key) end
+            if PetNow() == key then return Activity:Visit(key) end
+            -- (away at that moment: a flight path, a loading screen, and back with no summon call to hear; the next
+            -- thing done or its return waits anew, review 2026-11-24 Q5: no visit all day after an hour out)
+            Activity.dayMissed = true
         end)
         return
     end
