@@ -378,3 +378,14 @@ The plan:
   later.
 - **Park week** (4 §3.4.5): the guild's combined bond points this week, from the BOND messages heard. Open: an event
   posted in chat, or a panel on the Parken tab?
+
+## From the review of 2026-11-24 (docs/review-2026-11-24, the user: "put that in Ideas for later")
+
+- **Dagens dyr in chat** (Q24): one gold line a day on each player's own screen (not guild chat), "Dagens dyr: Pepe hos
+  Putrid Oatz. Gi det en /klapp om du ser det!"; today only its holder hears of it. It pairs with the pat wish shown to
+  guildmates (Q25, built).
+- **More achievements** (Q30, the user: "we should wait with those also"): `eggs:40`/`eggs:60` (the ladder stops at
+  25 of 79), herd steps past `herd:3:30` (`herd:5:10`, `herd:7:5`, every pet you own at 2), and a note on the page for
+  the ones that need other Dyreparken users (19 of 70). Ids are permanent: decide the ladder before building.
+- Not wanted (the user, 2026-11-24): a line to owners when a pet they have needs a home again (Q27), and a hint at
+  adoption of what grows the pet fastest (Q28).
