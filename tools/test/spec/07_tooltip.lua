@@ -47,6 +47,41 @@ return function(test, H)
         no(table.concat(all, " / "):find("Dyreparken"), "not a guild member")
     end)
 
+    -- Review 2026-11-24 Q25 (the user: "Kan ønske seg en klapp"): a guildmate's adopted pet may wish for a pat today.
+    test("a guildmate's adopted pet that may wish for a pat today says so: in the world, on Parken; never your own", function()
+        local w, ola, kari = Setup()
+        local KITTEN = "s:46"
+        local W = kari.ns.Wish
+        -- A day it may, and one it can't (the rolls are every client's: the date and the pet).
+        local yes, no_
+        for d = 0, 120 do
+            local t = kari.ns.Now() + d * 86400
+            local day = kari.ns.Today(t)
+            if W:MayWishPat(KITTEN, day) then yes = yes or t elseif yes then no_ = no_ or t end -- (the clock only goes on)
+        end
+        ok(yes and no_, "both kinds of day in four months")
+        local function On(t) local d = os.date("*t", t); w:SetDate(d.year, d.month, d.day, 12) end
+        On(yes)
+        local _, _, all = kari:Hover({ species = 46, owner = "Ola Nord" })
+        eq(all[#all], "Kan ønske seg en klapp i dag")
+        local _, _, own = ola:Hover({ species = 46, owner = "Ola Nord" })
+        no(table.concat(own, " / "):find("klapp"), "your own: the card has its wish")
+        kari:OpenJournal()
+        match(table.concat((function() local t = {} for _, l in ipairs(kari.ns.ParkPage.Lines(KITTEN)) do t[#t + 1] = l[1] end return t end)(), " / "),
+            "Kan ønske seg en klapp i dag", "on Parken")
+        On(no_)
+        _, _, all = kari:Hover({ species = 46, owner = "Ola Nord" })
+        no(table.concat(all, " / "):find("klapp"), "a day it can't")
+        -- With company (the one thing only the owner knows), "may" is exactly the owner's own wish: never a pat wish
+        -- unshown, and no false hope from the day's other rolls.
+        local OW = ola.ns.Wish
+        ola.ns.DB.char.company = ola.ns.Now()
+        for d = 0, 365 do
+            local day = ola.ns.Today(ola.ns.Now() + d * 86400)
+            eq(W:MayWishPat(KITTEN, day), OW:For(KITTEN, day) == "patted", day)
+        end
+    end)
+
     test("the nickname shift moves right-side text and colors down with their line", function()
         local w, ola, kari = Setup()
         local env, T = kari.env, kari.ns.Tooltip

@@ -166,6 +166,8 @@ local function OnUnitTooltip(tooltip, data)
         0.5, 0.8, 0.5)
     -- Its traits, once its personality is known (creative review 2026-11-09): a reason to hover.
     if ns.Personality:Known(r.k) then tooltip:AddLine(ns.Personality:Names(r.k), 0.95, 0.75, 0.45) end
+    local pat = ns.Wish:PatHint(r.k) -- (a guildmate's: Q25)
+    if pat then tooltip:AddLine(pat, 1, 0.82, 0.3) end
     -- Resizes the tooltip to the changed lines, not only the added ones.
     if nick then tooltip:Show() end
 end

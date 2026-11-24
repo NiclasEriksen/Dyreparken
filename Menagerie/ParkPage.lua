@@ -218,6 +218,8 @@ function Park.Lines(key)
     if nick then lines[2] = { ns.Pets:NameOfKey(key), 0.7, 0.7, 0.7 } end
     if ns.Bonds:PetOfTheDay() == key then lines[#lines + 1] = { ns.L["card.today"], 1, 0.82, 0 } end
     for _, l in ipairs(ns.JournalList.PetLines(key, "park.free")) do lines[#lines + 1] = l end
+    local pat = ns.Wish:PatHint(key) -- (a guildmate's pet may wish for a pat today: review 2026-11-24 Q25)
+    if pat then lines[#lines + 1] = { pat, 1, 0.82, 0.3 } end
     -- Who else has one, as under the card's home line (Owners:Line; 2026-11-15, the user)
     local others = ns.Owners:Line(key)
     if others then lines[#lines + 1] = { others, 0.8, 0.76, 0.66, true } end

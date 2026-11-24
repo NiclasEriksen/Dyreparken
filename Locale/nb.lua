@@ -2238,6 +2238,7 @@ L["stats.round"] = "Rundt tall i dag: {m}!"
 L["wish.line"] = "{pet} ønsker seg {activity} i dag"
 L["wish.done"] = "Ønsket er oppfylt!"
 L["wish.title"] = "Dagens ønske"
+L["wish.pat.maybe"] = "Kan ønske seg en klapp i dag"   -- a guildmate's pet, in tooltips: may (their company is theirs to know)
 L["wish.today"] = "Dagens ønske: {line}. Gjør det sammen i dag for {n} ekstra båndpoeng."   -- said once a day, at the day's first visit
 L["wish.tip"] = "Gjør det med {pet} ute i dag, så får dere {n} ekstra båndpoeng."
 L["wish.tip.done"] = "Oppfylt! {pet} er fornøyd. Et nytt ønske kommer i morgen."

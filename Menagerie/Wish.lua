@@ -147,6 +147,23 @@ function Wish:For(key, day)
     return choices[Hash("wish " .. day .. " " .. key) % #choices + 1]
 end
 
+-- Whether a guildmate's adopted pet may wish for a pat today (review 2026-11-24 Q25, the user: "Kan ønske seg en
+-- klapp"). The day's rolls are For's, the same on every client; only the owner's company (Company: char.company) is
+-- theirs alone, so this can rule a pat wish out, never be sure of one. Keep it in step with For's first rolls.
+function Wish:MayWishPat(key, day)
+    day = day or ns.Today()
+    local roll = Hash("camp " .. day .. " " .. key) % self.CAMP_EVERY
+    if roll == 0 and ns.Activity:Available("camp") then return false end
+    if roll == 1 and Sleeper(key) and ns.Activity:Available("rested") then return false end
+    return Hash("pat " .. day .. " " .. key) % self.PAT_EVERY == 0 and ns.Activity:Available("patted") == true
+end
+-- (a guildmate's pet, adopted by them: the line for their tooltips; nil when it can't be today)
+function Wish:PatHint(key)
+    local holder = key and ns.Registry:Holder(key)
+    if not holder or holder == ns.PlayerKey() or not self:MayWishPat(key) then return nil end
+    return ns.L["wish.pat.maybe"]
+end
+
 -- What a pet may wish for on a plain day: its likes, and for a pet with fewer than MIN_CHOICES of them that can be
 -- wished for, more to the wish's pool only (review 2026-11-24 Q29, the user: "we need more types of wishes for
 -- those": with one, it wished for the same thing on half its days): its minor like once your bond has unlocked it
