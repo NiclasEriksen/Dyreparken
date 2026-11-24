@@ -436,8 +436,13 @@ end
 
 -- One line of flavor a day, for the first thing the pet loved, at the chatter step's chance (review 2026-11-24 Q9:
 -- "Litt" promised fewer things it loves, and this day's line never asked: one roll a day, not one a moment).
+-- Not right after another line of this pet's (review 2026-11-24 Q10: a boss kill printed the first's line and this one
+-- in the same second): kept for a later moment that day.
+Bond.LINE_GAP = 5
+local lineAt = {} -- key -> GetTime() of its last bond line
 local function Flavor(d, key, text)
     if d.flavor or not text then return end
+    if lineAt[key] and GetTime() - lineAt[key] < Bond.LINE_GAP then return end
     d.flavor = true
     local chance = ns.Settings:Chance(1, "flavor")
     if chance < 1 and ns.random() >= chance then return end
@@ -525,7 +530,10 @@ function Bond:Reward(kind, key, text, named)
     end
     if text then
         d.had[kind] = n
-        if named or not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text, def.kind or "like") end
+        if named or not def.lines or n <= ns.Config[def.lines] then
+            lineAt[key] = GetTime()
+            ns.Bus:Fire("BOND_LINE", key, text, def.kind or "like")
+        end
     end
     ns.Log("Bond", "reward %s for %s", kind, key)
     if def.beyond then
@@ -826,8 +834,8 @@ function Bond:Init()
     -- Any pet of ours that's out: its own bond (the summoned pet is always ours).
     ns.Bus:On("ACTIVITY", function(id, n, key, _, extra)
         if not key then return end
+        Bond:First(id, key, extra) -- (first: its line goes out, and the day's flavor waits, Flavor)
         Bond:OnActivity(id, n, key)
-        Bond:First(id, key, extra)
     end)
     ns.Bus:On("MY_RECORD", function()
         Bond:Seed()

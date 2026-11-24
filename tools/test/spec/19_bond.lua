@@ -275,6 +275,23 @@ return function(test, H)
         ok(ola:PrintedLine("first.boss.ragnaros", { pet = "Panda Cub" }), "Ragnaros speaks anyway")
     end)
 
+    -- Review 2026-11-24 Q10: a boss kill printed a first's line and the day's liked line in the same second.
+    test("a first's line and the day's liked line don't come together: the liked one waits for a later moment", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Traits{ "eventyrlysten", "glupsk" } -- (likes bosses)
+        ola:Slash("adopter panda"); w:Run(40)
+        local ns = ola.ns
+        ns.DB.char.wish = { day = ns.Today(), pet = PANDA, id = "quest", done = false } -- (not a boss wish: its own line)
+        local lines = {}
+        ns.Bus:On("BOND_LINE", function(key, text) if key == PANDA then lines[#lines + 1] = text end end)
+        ns.Activity:Emit("boss", 1, "Hogger")
+        eq(#lines, 1, "one line: the first's")
+        match(lines[1], "Hogger")
+        w:Run(ns.Bond.LINE_GAP + 1)
+        ns.Activity:Emit("boss", 1, "Hogger")
+        eq(#lines, 2, "the liked line, later")
+    end)
+
     -- Review 2026-11-24 Q23: a leader met on a character with no guild was used up for no points.
     test("a faction leader met with no guild is kept for later: no line, nothing marked", function()
         local w = H.World()
