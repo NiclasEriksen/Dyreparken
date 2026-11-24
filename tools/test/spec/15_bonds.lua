@@ -51,6 +51,24 @@ return function(test, H)
         eq((ns.Bond:NextOpen(PANDA)), nil, "its day full too: nobody")
     end)
 
+    -- Review 2026-11-24 Q11: with a second pet, the nudge came every full day, forever.
+    test("a full day's nudge stops after three days of it unheeded; a swap brings it back", function()
+        local w, ola = H.Setup{ ola = { 5159, 46 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local ns = ola.ns
+        local function Nudged() return ((ns.Bonds:FullLine(PANDA)) or ""):find("White Kitten") ~= nil end
+        for day = 1, ns.Bonds.NUDGES_IGNORED do
+            ok(Nudged(), "day " .. day); w:SkipDays(1)
+        end
+        eq((ns.Bonds:FullLine(PANDA)), "Båndet med Panda Cub er fullt for i dag. Fortsett i morgen!",
+            "unheeded three times: no nudge, the plain line (itself only its first three times)")
+        ns.Bus:Fire("PET_SWAP", "s:46", PANDA)
+        w:SkipDays(1)
+        match((ns.Bonds:FullLine(PANDA)), "White Kitten", "after a swap: the nudge again")
+        ns.Bus:Fire("PET_SWAP", "s:46", PANDA) -- (heeded the same day)
+        for _ = 1, ns.Bonds.NUDGES_IGNORED do w:SkipDays(1); match((ns.Bonds:FullLine(PANDA)), "White Kitten") end
+    end)
+
     -- 2026-11-22, the user: the pet frame's swap named a pet outside the Turnus.
     test("a full day's suggestion: your Turnus pets first, the next in turn with room; others only when none has", function()
         local w, ola = H.Setup{ ola = { 5159, 46, 40 } }

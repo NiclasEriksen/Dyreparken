@@ -117,10 +117,24 @@ end)
 -- the content review §4.2), else the plain line, only its first FULL_HINTS times (char.fullHints): daily, it read
 -- as "stop playing".
 Bonds.FULL_HINTS = 3
+-- The nudge stops after NUDGES_IGNORED days of it with no other pet out after it (review 2026-11-24 Q11: with a
+-- second pet, it came every full day, forever). Any swap brings it back (char.nudges: { ignored, day }).
+Bonds.NUDGES_IGNORED = 3
+local function Nudge()
+    local char, today = ns.DB.char, ns.Today()
+    local n = char.nudges or { ignored = 0 }
+    char.nudges = n
+    if n.day and n.day ~= today then n.ignored, n.day = n.ignored + 1, nil end -- (the last one went unheeded)
+    if n.ignored >= Bonds.NUDGES_IGNORED then return false end
+    n.day = today
+    return true
+end
+ns.Bus:On("PET_SWAP", function() if ns.DB.char then ns.DB.char.nudges = nil end end)
+
 function Bonds:FullLine(key)
     local pet = ns.Registry:NameOf(key)
     local other, days = ns.Bond:NextOpen(key)
-    if other then
+    if other and Nudge() then
         local vars = { pet = pet, other = ns.Registry:NameOf(other), n = days }
         local which = not days and "bond.full.next.new" or days == 0 and "bond.full.next.today"
             or days == 1 and "bond.full.next.yesterday" or "bond.full.next"

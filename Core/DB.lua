@@ -100,6 +100,7 @@ local CHAR_DEFAULTS = {
     toldNameUnlock = nil,      -- the adoption (its record's `at`) whose nickname unlock was told (TellNameUnlock)
     bondDay = nil,             -- the day the login's milestone and pet-of-the-day lines last showed
     fullHints = nil,           -- how often the plain "full for today" line has shown (its first Bonds.FULL_HINTS times only)
+    nudges = nil,              -- the full day's nudge: { ignored = days unheeded, day = the last one's } (Bonds, review 2026-11-24 Q11)
     -- [Weather]
     weather = nil,             -- [kind] = when it last started (Weather.AGAIN: the same weather again isn't new)
     -- [Turnus]
