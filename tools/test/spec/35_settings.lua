@@ -167,6 +167,31 @@ return function(test, H)
         eq(ola:Eggs("midnatt"), 1, "Vanlig, the next night")
     end)
 
+    -- Review 2026-11-24 Q9: Litt changed little; the day's line for a loved thing never asked the setting.
+    test("Småting i chatten: the day's line for a loved thing comes at Litt's half chance, once a day either way", function()
+        local w, ola = Setup()
+        local ns = ola.ns
+        local PANDA = "s:5159"
+        local liked = select(2, ns.Personality:Of(PANDA))[1]
+        local lines = 0
+        ns.Bus:On("BOND_LINE", function(key, _, kind) if key == PANDA and kind == "like" then lines = lines + 1 end end)
+        ns.DB.global.settings.chatter = "few"
+        ola:Dice(0.6)
+        ns.Bond:OnActivity(liked, 1, PANDA)
+        eq(lines, 0, "Litt, a roll over half: none")
+        ns.Bond:OnActivity(liked, 1, PANDA)
+        eq(lines, 0, "and not rolled again today")
+        w:SkipDays(1)
+        ola:Dice(0.4)
+        ns.Bond:OnActivity(liked, 1, PANDA)
+        eq(lines, 1, "under half: it speaks")
+        w:SkipDays(1)
+        ns.DB.global.settings.chatter = "normal"
+        ola:Dice(0.99)
+        ns.Bond:OnActivity(liked, 1, PANDA)
+        eq(lines, 2, "Vanlig: always")
+    end)
+
     test("migration 14: Småting i chatten off becomes Ingenting, on becomes Vanlig", function()
         local w = H.World()
         for _, v in ipairs({ { false, "none" }, { true, "normal" } }) do

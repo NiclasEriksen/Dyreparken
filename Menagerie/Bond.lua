@@ -434,9 +434,13 @@ local function Grant(d, points, key)
     return Bond:Add(points, key)
 end
 
+-- One line of flavor a day, for the first thing the pet loved, at the chatter step's chance (review 2026-11-24 Q9:
+-- "Litt" promised fewer things it loves, and this day's line never asked: one roll a day, not one a moment).
 local function Flavor(d, key, text)
     if d.flavor or not text then return end
     d.flavor = true
+    local chance = ns.Settings:Chance(1, "flavor")
+    if chance < 1 and ns.random() >= chance then return end
     ns.Bus:Fire("BOND_LINE", key, text, "like")
 end
 
