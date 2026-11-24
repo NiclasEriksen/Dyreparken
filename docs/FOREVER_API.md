@@ -751,7 +751,7 @@ For `/dp probe watch` (Dev/Watch.lua), which asks the rest in game:
 - **Sitting:** a summon of another pet while seated takes the pet that was out away at once, then fails with
   "You must be standing to do that" (`SPELL_FAILED_NOT_STANDING`, UI_ERROR_MESSAGE type 57). AutoCompanion was right.
   Summon now follows sitting from the sit key, the sit emotes, a jump and moving, and reads that refusal for a seat
-  it couldn't see (a chair); the harness has no UnitStandState any more (H.MISSING).
+  it couldn't see (a chair); the harness has no UnitStandState any more (H.MISSING). Seen working in game at 15:11.
 - **Summon cooldown:** a second `SummonPetByGUID` within ~0.7 s of the first is dropped silently: no UI error.
   "Spell is not ready yet." (type 61) is a spell's cooldown, not the companion's.
 - **Mounts:** a ground mount keeps the pet out.
@@ -759,7 +759,13 @@ For `/dp probe watch` (Dev/Watch.lua), which asks the rest in game:
   `PLAYER_CONTROL_GAINED`, with no call.
 - **Crafting:** `TRADE_SKILL_UPDATE`, `CRAFT_SHOW` and `CRAFT_CLOSE` are refused. `TRADE_SKILL_SHOW` fires again
   before every item of a queue; `TRADE_SKILL_CLOSE` fires twice at a close. `C_TradeSkillUI` exists after all (the
-  api probe's list missed it); `GetNumTradeSkills` and `GetTradeSkillLine` don't.
+  api probe's list missed it); `GetNumTradeSkills` and `GetTradeSkillLine` don't. (Second run, 14:50, Enchanting:)
+  opening a profession is an instant cast of its spell ("Enchanting" 13920) that fires `TRADE_SKILL_SHOW` in the
+  same frame. `UnitCastingInfo`'s 6th value, `isTradeSkill`, is true for a craft with a cast time (Enchanted
+  Leather, Wizard Oil) and false for others (Learning, a mount); instant crafts (Lesser Eternal Essence) have no
+  START at all. A queue's next item starts 0.1-0.2 s after the last one's SUCCEEDED. A pet summoned by hand mid-craft
+  came out during the cast and that item finished, and **the rest of the queue was dropped** (the user pressed
+  Create again; AutoCompanion was right). Summon waits while a trade skill window is open.
 - **Known (registered fine):** `READY_CHECK`, `READY_CHECK_CONFIRM`, `READY_CHECK_FINISHED`,
   `START_PLAYER_COUNTDOWN`, `CANCEL_PLAYER_COUNTDOWN`, `START_TIMER`, `TRADE_SKILL_CLOSE`, `STOP_MOVIE`,
   `UPDATE_STEALTH`, `UNIT_SPELLCAST_STOP`/`FAILED`/`INTERRUPTED`/`CHANNEL_STOP` (not fired yet: solo, no scenes).

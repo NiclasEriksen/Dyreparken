@@ -504,6 +504,12 @@ function Client:Move() self.state.moving, self.state.seated = true, false; self:
 -- Sitting: the sit key (X; it toggles) as pressed, and a chair or bench, which nothing in the client tells of.
 function Client:SitKey() Hardware(self, self.env.SitStandOrDescendStart) end
 function Client:SitOnChair() self.state.seated = true end
+-- A profession's window (its spell cast opens it): open, or closed, with TRADE_SKILL_CLOSE twice, as on Forever.
+function Client:TradeSkill(open)
+    if open then return self:Fire("TRADE_SKILL_SHOW") end
+    self:Fire("TRADE_SKILL_CLOSE")
+    self:Fire("TRADE_SKILL_CLOSE")
+end
 function Client:Halt() self.state.moving = false; self:Fire("PLAYER_STOPPED_MOVING") end
 function Client:Summon(sid) self.summoned = sid and self:GuidOf(sid) or nil end
 -- A summon by another player, accepted on Blizzard's popup (its OnAccept: secure); the loading screen is the

@@ -5,7 +5,7 @@ local ns = select(2, ...)
 --
 -- As unintrusive as possible: only when you're idle (decided 2026-11-06).
 -- Not in combat, mounted, on a taxi, flying, dead, stealthed, sitting,
--- eating/drinking, casting or channeling, or in a battleground/arena.
+-- eating/drinking, casting or channeling, crafting, or in a battleground/arena.
 --
 -- Only when NO companion is out: one you summoned yourself is left alone.
 --
@@ -35,8 +35,9 @@ local Summon = {}
 ns.Summon = Summon
 
 local RETRY_EVERY, RETRY_FOR = 3, 60
--- Busy states whose end is a trigger (PLAYER_REGEN_ENABLED, dismounting, PLAYER_ALIVE/UNGHOST, standing up): no retries.
-Summon.WAITS_FOR = { combat = true, mounted = true, dead = true, familiar = true, sitting = true }
+-- Busy states whose end is a trigger (PLAYER_REGEN_ENABLED, dismounting, PLAYER_ALIVE/UNGHOST, standing up, the
+-- trade skill window closing): no retries.
+Summon.WAITS_FOR = { combat = true, mounted = true, dead = true, familiar = true, sitting = true, crafting = true }
 local MAX_ATTEMPTS = 3 -- actual summon calls per trigger; each failure shows an error
 
 function Summon:Deferring()
@@ -230,6 +231,24 @@ local function HookSitting()
     Hook("JumpOrAscendStart", function() Summon:StoodUp("jump") end)
 end
 
+-- Crafting (2026-11-24, /dp probe watch; AC2 of docs/review-2026-11-24): a summon during a queue lets the item being
+-- made finish and drops the rest (seen: Create pressed again by hand). Between two items there's no cast for 0.1-0.2 s,
+-- and instant crafts have none at all, so "casting" doesn't cover a queue: while a trade skill window is open we wait,
+-- and its closing is a trigger. On Forever TRADE_SKILL_CLOSE comes twice, and also at loading screens with no window
+-- (AutoCompanion): one check a moment after the last.
+Summon.CRAFTED_AFTER = 1
+local crafting = false
+local craftT = ns.Timers()
+
+local function CraftOpen() crafting = true end
+local function CraftClosed()
+    local was = crafting
+    crafting = false
+    if not was then return end
+    craftT:Cancel()
+    craftT:After(Summon.CRAFTED_AFTER, function() Summon:Check("crafted") end)
+end
+
 -- Why we can't summon right now, or nil when idle.
 local function Busy()
     if ns.InCombat() then return "combat" end
@@ -240,6 +259,7 @@ local function Busy()
     if IsStealthed and Truthy(IsStealthed()) then return "stealthed" end
     if Truthy(UnitCastingInfo("player")) or Truthy(UnitChannelInfo("player")) then return "casting" end
     if Sitting() then return "sitting" end
+    if crafting then return "crafting" end
     if Eating() then return "eating" end
     if ns.Familiar:Out() then return "familiar" end
     local _, kind = IsInInstance()
@@ -376,13 +396,17 @@ function Summon:Watch()
     if not want then
         ns.Events:OffAll(Summon)
         Unseat()
+        crafting = false
         return
     end
+    ns.Events:On("TRADE_SKILL_SHOW", Summon, CraftOpen)
+    ns.Events:On("TRADE_SKILL_CLOSE", Summon, CraftClosed)
     -- After a loading screen the summon can fail: give the world a moment. The game
     -- brings the last pet back by itself there, clank and all (2026-11-10, as
     -- AutoCompanion does: longer after a login or /reload).
     ns.Events:On("PLAYER_ENTERING_WORLD", Summon, function(_, _, login, reload)
-        Unseat() -- (a loading screen stands you up)
+        Unseat() -- (a loading screen stands you up, and closes a trade skill window)
+        crafting = false
         Summon:QuietSummon((login or reload) and Summon.LOGIN_RESTORE or Summon.GAME_RESTORE)
         C_Timer.After(3, function() Summon:Check("PLAYER_ENTERING_WORLD") end)
     end)
