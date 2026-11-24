@@ -211,11 +211,22 @@ end
 Activity.FALL_CHECK = 0.5
 Activity.FALL_AFTER_FIGHT, Activity.FALL_AGAIN = 2.5, 5
 Activity.FALL_HIGH, Activity.FALL_AIR_MAX = 2.2, 8
+-- A jump that has landed isn't a later fall's (review 2026-11-24 Q22: hop about, step off a ledge 3 s later, and
+-- "such a height"). /dp probe watch, 2026-11-24: 138 jumps, IsFalling 1 at 0.3 s in nearly all, a plain jump back on
+-- its feet by 1 s. So one read a second after the jump key: down already, it's forgotten.
+Activity.JUMP_LANDED = 1
 local lastFall
 Activity:Source({ id = "fall", events = { "UNIT_COMBAT" }, unit = "player", when = "peace",
     hook = function()
         if type(JumpOrAscendStart) == "function" then
-            hooksecurefunc("JumpOrAscendStart", function() Activity.jumpAt = GetTime() end)
+            hooksecurefunc("JumpOrAscendStart", function()
+                local at = GetTime()
+                Activity.jumpAt = at
+                if type(IsFalling) ~= "function" then return end
+                C_Timer.After(Activity.JUMP_LANDED, function()
+                    if Activity.jumpAt == at and Plain(IsFalling()) == false then Activity.jumpAt = nil end
+                end)
+            end)
         end
     end,
     filter = function(_, unit, action, _, _, school)

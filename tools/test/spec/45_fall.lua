@@ -13,10 +13,17 @@ return function(test, H)
         ola:QuirksNow()
         return w, ola
     end
+    -- A jump, then `secs` in the air (IsFalling all the while), down at the end.
+    local function Air(w, ola, secs)
+        ola.state.falling = true
+        ola.env.JumpOrAscendStart()
+        w:Run(secs)
+        ola.state.falling = nil
+    end
     -- A landing that hurt, as the client reports it (/dp probe api fall); dead: it was the end of you.
     -- A big one unless `small`: a jump, then long enough in the air (Activity.FALL_HIGH).
     local function Fall(w, ola, dead, small)
-        if not small then ola.env.JumpOrAscendStart(); w:Run(ola.ns.Activity.FALL_HIGH + 0.3) end
+        if not small then Air(w, ola, ola.ns.Activity.FALL_HIGH + 0.3) end
         ola.state.dead = dead
         ola:Fire("UNIT_COMBAT", "player", "WOUND", "", H.SECRET, 1)
         w:Run(1)
@@ -102,11 +109,11 @@ return function(test, H)
         w:Run(A.FALL_AGAIN); Fall(w, ola, false, true)
         eq(Mild(), 1, "the roll won: a mild line"); eq(Big(), 0)
         -- A jump, a short time in the air: small too. (An egg comes once a day: a day on for each; SkipDays leaves GetTime, so the wait between falls too.)
-        w:SkipDays(1); w:Run(A.FALL_AGAIN); ola.env.JumpOrAscendStart(); w:Run(A.FALL_HIGH - 0.5)
+        w:SkipDays(1); w:Run(A.FALL_AGAIN); Air(w, ola, A.FALL_HIGH - 0.5)
         ola:Fire("UNIT_COMBAT", "player", "WOUND", "", H.SECRET, 1); w:Run(1)
         eq(Mild(), 2, "short: mild"); ok(ola:Log("fall: air 1%.")[1], "its air time logged")
         -- A jump long ago, then a fall: not this fall's air time.
-        w:SkipDays(1); ola.env.JumpOrAscendStart(); w:Run(A.FALL_AIR_MAX + 1); Fall(w, ola, false, true)
+        w:SkipDays(1); Air(w, ola, A.FALL_AIR_MAX + 1); Fall(w, ola, false, true)
         eq(Mild(), 3); eq(Big(), 0, "a jump long before: not a big fall")
         -- Long in the air: big, by its nature, the same day as a mild one (its own egg: the mild line used to use up
         -- the day's, and the real fall said nothing).
@@ -119,6 +126,12 @@ return function(test, H)
         eq(Mild(), 3, "a small fall right after a big one: quiet")
         w:Run(Q.FALL_QUIET); Fall(w, ola, false, true)
         eq(Mild(), 4, "later, the small one's line")
+        -- Review 2026-11-24 Q22: a hop that landed, then a step off a ledge 3 s later: not a big one either.
+        w:SkipDays(1); w:Run(A.FALL_AGAIN)
+        ola.env.JumpOrAscendStart(); w:Run(3) -- (down by a second: IsFalling false)
+        Fall(w, ola, false, true)
+        eq(Big(), 2, "the hop had landed: not big")
+        ok(ola:Log("fall: air unknown %(no jump%)")[2], "no jump to time it")
     end)
 
     -- From the log (review 2026-11-21): 12 of 26 falls came 0.5-1.1 s after a fight's end (a mob's last swing
