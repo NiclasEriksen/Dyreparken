@@ -7,7 +7,8 @@
 -- and "none" (no end within the probe's time-out: a loop or a held pose), are written as
 -- false: measured, no length (the fixed time). A test checks every move in Data/PetMoves.lua
 -- has an entry, so a changed move asks for the probe again.
-local path = arg[1] or "../../../WTF/Account/NIKKERN/SavedVariables/Dyreparken.lua"
+local path = arg[1] or ".wow/WTF/Account/NIKKERN/SavedVariables/Dyreparken.lua"
+if not arg[1] and not io.open(path) then path = "../../../WTF/Account/NIKKERN/SavedVariables/Dyreparken.lua" end
 local chunk = assert(loadfile(path))
 chunk()
 local data = assert(DyreparkenDebugDB and DyreparkenDebugDB.animLengths, "no animLengths: run /dp probe api lengths and /reload")

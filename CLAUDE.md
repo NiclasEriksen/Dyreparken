@@ -42,7 +42,7 @@ quirks. When you learn something new about the client, add it there with the dat
   unique data is slow under coverage (27_hardening's big message was 31 s of it).
 - The game can't run from here. For in-game checks, ask the user to `/reload` and run `/dp debug on`, then
   `/dp probe` or the feature. Then read the log at
-  `../../../WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
+  `.wow/WTF/Account/*/SavedVariables/Dyreparken.lua` (account folder: `NIKKERN`) (`DyreparkenDebugDB.lines`, tab-separated
   `serverTime  GetTime  module  message`, ring buffer of `Config.DEBUG_RING_SIZE` (8000); `head` is the newest index).
   **Read it with `luajit tools/log.lua`** (`-h`: the newest session by default, `--sessions`, `-m/-x` modules, `-g`
   text, `--summary`, `--errors`, `--dump api.glance`, `--db settings`, `--at 22:08` the lines around a time, `--rate`). Each login writes a `Session start` line first of all, and a
@@ -182,6 +182,10 @@ per commit), in a temporary worktree, and refuses the push if it fails. CI runs 
 
 ```
 Dyreparken.toc     load order (each file only uses files above it)
+                   (2026-11-24: the repo lives in ~/PyCharmProjects/Dyreparken, not the game folder: Battle.net balked
+                   at .git's read-only files. AddOns/Dyreparken holds a symlink per shipped entry (the TOC, Main.lua,
+                   the module folders, Dev, LICENSE): a new top-level folder needs one too. `.wow` (untracked) links
+                   the game's _forever_ folder; the tools read WTF through it)
 Libs/              LibStub, LibSerialize, LibDeflate. Don't edit. (ChatThrottleLib went 2026-11-12: unused since
                    Comm paces its own outbox, and it hooked every addon's sends.)
 Core/Init.lua      ns, Config tunables, Bus (internal events, each declared in Bus.EVENTS: the harness checks), helpers (Now = GetServerTime, Plain/IsSecret, Today/Date,

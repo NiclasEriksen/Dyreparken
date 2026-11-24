@@ -3,7 +3,8 @@
 -- (default: the NIKKERN account's). Merged: the species the run measured are written anew, every other line in
 -- the file is kept, so a run of only new species ("boxes <ids>") is enough. A species the run couldn't read
 -- (no scene, no box) keeps its old line, if any.
-local path = arg[1] or "../../../WTF/Account/NIKKERN/SavedVariables/Dyreparken.lua"
+local path = arg[1] or ".wow/WTF/Account/NIKKERN/SavedVariables/Dyreparken.lua"
+if not arg[1] and not io.open(path) then path = "../../../WTF/Account/NIKKERN/SavedVariables/Dyreparken.lua" end
 local chunk = assert(loadfile(path))
 chunk()
 local data = assert(DyreparkenDebugDB and DyreparkenDebugDB.petBoxes, "no petBoxes: run /dp probe api boxes and /reload")

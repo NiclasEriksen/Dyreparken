@@ -3,3 +3,4 @@ DesignDocument.md
 *.swp
 tools/test/.timings*
 tools/.scene_art/
+.wow

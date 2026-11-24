@@ -59,7 +59,9 @@ end
 local function Die(...) io.stderr:write(...); io.stderr:write("\n"); os.exit(1) end
 
 local here = arg[0]:match("^(.*)/tools/sv%.lua$") or "."
-local wtf = here .. "/../../../WTF/Account/"
+-- .wow: a link to the game's folder (_forever_), for a checkout outside it; else the AddOns folder's own
+local wtf = here .. "/.wow/WTF/Account/"
+if not io.open(here .. "/.wow/WTF") then wtf = here .. "/../../../WTF/Account/" end
 local file = opt.file
 if not file then
     file = Glob('"' .. wtf .. '"*/SavedVariables/Dyreparken.lua')[1]

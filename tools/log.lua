@@ -73,7 +73,9 @@ end
 local here = arg[0]:match("^(.*)/tools/log%.lua$") or "."
 local file = opt.file
 if not file then
-    local found = Glob('"' .. here .. '/../../../WTF/Account/"*/SavedVariables/Dyreparken.lua')
+    -- .wow: a link to the game's folder (_forever_), for a checkout outside it; else the AddOns folder's own
+    local found = Glob('"' .. here .. '/.wow/WTF/Account/"*/SavedVariables/Dyreparken.lua')
+    if not found[1] then found = Glob('"' .. here .. '/../../../WTF/Account/"*/SavedVariables/Dyreparken.lua') end
     file = found[1]
     if not file then io.stderr:write("no WTF/Account/*/SavedVariables/Dyreparken.lua: give one with -f\n"); os.exit(1) end
 end
