@@ -219,6 +219,7 @@ return function(test, H)
     test("auto-summon keeps the active pet out, adopted or not", function()
         local w, ola = Setup()
         ola.ns.Summon:SetActive(KITTEN, true)
+        w:Run(2) -- (one call per moment: Summon.CALL_GAP)
         ola.summoned = nil
         ola.ns.Summon:Check("test")
         w:Run(2)

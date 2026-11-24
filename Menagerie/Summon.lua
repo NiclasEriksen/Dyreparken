@@ -36,7 +36,9 @@ ns.Summon = Summon
 
 local RETRY_EVERY, RETRY_FOR = 3, 60
 -- Busy states whose end is a trigger (PLAYER_REGEN_ENABLED, dismounting, PLAYER_ALIVE/UNGHOST, standing up, the
-Summon.WAITS_FOR = { combat = true, mounted = true, dead = true, familiar = true, sitting = true, crafting = true }
+-- trade skill window closing, PLAYER_ENTERING_WORLD): no retries.
+Summon.WAITS_FOR = { combat = true, mounted = true, dead = true, familiar = true, sitting = true, crafting = true,
+    loading = true }
 local MAX_ATTEMPTS = 3 -- actual summon calls per trigger; each failure shows an error
 
 function Summon:Deferring()
@@ -76,6 +78,8 @@ end
 -- auto-summon put out (the one kept out until now), never one you summoned yourself. That swap waits for its moment
 -- (2026-11-23, seen: the day turned while mounted, the dismount's check forgot it, and yesterday's pet stayed out
 -- all day): char.swapFrom remembers the pet to replace, for today, until the new one is out or you put out another.
+Summon.ROTATE_AFTER = 1
+local rotateT = ns.Timers()
 function Summon:Rotate(key)
     local old = self:ActiveKey()
     -- (no "Med deg" pet yet, auto-summon on: Turnus' pick becomes it, review 2026-11-24 Q3)
@@ -87,7 +91,10 @@ function Summon:Rotate(key)
     local out = ns.Plain(ns.Pets:Summoned())
     ns.DB.char.swapFrom = out and ns.Pets:KeyOf(out) == old and { day = ns.Today(), key = old } or nil
     swapTo = nil
-    self:Check("active")
+    -- (a moment later: a hearth that fills the day rotates as it lands, and the loading screen starts just after;
+    -- by then Busy knows, review 2026-11-24 Q16: four failed calls into a teleport)
+    rotateT:Cancel()
+    rotateT:After(Summon.ROTATE_AFTER, function() Summon:Check("active") end)
 end
 
 -- The pet out may be replaced: a choice on its card just now, or Turnus' swap still waiting (above).
@@ -238,6 +245,7 @@ end
 -- (AutoCompanion): one check a moment after the last.
 Summon.CRAFTED_AFTER = 1
 local crafting = false
+local loading = false -- (PLAYER_LEAVING_WORLD until PLAYER_ENTERING_WORLD: a summon into a loading screen fails)
 local craftT = ns.Timers()
 
 local function CraftOpen() crafting = true end
@@ -260,6 +268,7 @@ local function Busy()
     if Truthy(UnitCastingInfo("player")) or Truthy(UnitChannelInfo("player")) then return "casting" end
     if Sitting() then return "sitting" end
     if crafting then return "crafting" end
+    if loading then return "loading" end
     if Eating() then return "eating" end
     if ns.Familiar:Out() then return "familiar" end
     local _, kind = IsInInstance()
@@ -270,6 +279,8 @@ Summon.Busy = Busy
 
 local retryUntil, retrying
 local attempts = 0
+local lastCall -- GetTime() of our last SummonPetByGUID
+Summon.CALL_GAP = 1.5 -- (the companion's own cooldown is ~1.1 s; a second call within 0.7 s is dropped silently: /dp probe watch)
 
 function Summon:Check(reason)
     -- (a swap lasts only for its own attempts, never into a later trigger)
@@ -303,6 +314,13 @@ function Summon:Check(reason)
         retryUntil, swapTo = nil, nil
         return
     end
+    -- One call per CALL_GAP (review 2026-11-24 Q16: Turnus' rotate and leaving combat checked in the same frame, and
+    -- called twice; the call toggles, so a second that lands sends the pet home). The next check sees it out.
+    if lastCall and GetTime() - lastCall < Summon.CALL_GAP then
+        ns.Log("Summon", "a call just now: waiting (%s)", tostring(reason))
+        return self:Retry("verify")
+    end
+    lastCall = GetTime()
     attempts = attempts + 1
     ns.Log("Summon", "summoning %s (%s, attempt %d)", key, tostring(reason), attempts)
     HearRefusal()
@@ -396,9 +414,10 @@ function Summon:Watch()
     if not want then
         ns.Events:OffAll(Summon)
         Unseat()
-        crafting = false
+        crafting, loading = false, false
         return
     end
+    ns.Events:On("PLAYER_LEAVING_WORLD", Summon, function() loading = true end)
     ns.Events:On("TRADE_SKILL_SHOW", Summon, CraftOpen)
     ns.Events:On("TRADE_SKILL_CLOSE", Summon, CraftClosed)
     -- After a loading screen the summon can fail: give the world a moment. The game
@@ -406,7 +425,7 @@ function Summon:Watch()
     -- AutoCompanion does: longer after a login or /reload).
     ns.Events:On("PLAYER_ENTERING_WORLD", Summon, function(_, _, login, reload)
         Unseat() -- (a loading screen stands you up, and closes a trade skill window)
-        crafting = false
+        crafting, loading = false, false
         Summon:QuietSummon((login or reload) and Summon.LOGIN_RESTORE or Summon.GAME_RESTORE)
         C_Timer.After(3, function() Summon:Check("PLAYER_ENTERING_WORLD") end)
     end)
