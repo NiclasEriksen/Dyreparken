@@ -167,6 +167,22 @@ return function(test, H)
         eq(ns.Pets:KeyOf(ola.summoned), active, "and out")
     end)
 
+    test("a caged adopted pet doesn't hold the Turnus: the others take their turns", function()
+        local w, ola, T = Setup()
+        T:Toggle(PANDA); T:Toggle(KITTEN); T:Toggle(CAT)
+        for i, p in ipairs(ola.pets) do if p.sid == 5159 then table.remove(ola.pets, i) break end end
+        ola:Summon(46)
+        local seen = {}
+        for _ = 1, 2 do
+            w:SkipDays(1); ola:Reload(); w:Settle("day")
+            local ns = ola.ns
+            eq(ns.Turnus:Mine(), nil, "not owned: not first")
+            seen[#seen + 1] = ns.DB.char.turnusDay.key
+        end
+        no(seen[1] == PANDA or seen[2] == PANDA)
+        no(seen[1] == seen[2], "a new one each day: " .. table.concat(seen, ","))
+    end)
+
     test("Flokk lists the Turnus pets: today's in gold, and how each one's day stands", function()
         local w, ola, T = Setup()
         T:Toggle(PANDA); T:Toggle(KITTEN)

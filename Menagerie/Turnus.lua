@@ -81,7 +81,8 @@ end
 -- the others take their turns behind it, char.turnusDay.turn being whose turn it is among them.
 function Turnus:Mine()
     local mine = ns.Registry:MyPet()
-    return mine and self:Has(mine) and mine or nil
+    -- (owned too: a caged adopted pet keeps its claim, and can't come out to fill its day, review 2026-11-24 Q4)
+    return mine and self:Listed(mine) and mine or nil
 end
 
 -- A new calendar day: the next pet's turn (once a day).
