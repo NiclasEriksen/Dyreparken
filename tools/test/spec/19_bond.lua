@@ -260,6 +260,21 @@ return function(test, H)
         ok(ola:PrintedLine("first.place.winterspring", { pet = "Panda Cub" }), "no frog lines there: the zone's")
     end)
 
+    -- Review 2026-11-24 Q1: the trash bosses and the dungeon used up the day's three first lines; the end boss
+    -- came last, gave points, said nothing, and was done for good.
+    test("a named boss speaks past the day's first lines; an unnamed one doesn't", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local B = ola.ns.Bond
+        for i = 1, ola.ns.Config.FIRST_LINES do B:First("boss", PANDA, "Trash " .. i) end
+        w:RunTimers()
+        ola:ClearPrinted()
+        B:First("boss", PANDA, "Hogger"); w:RunTimers()
+        no(ola:PrintedLine("first.boss", { pet = "Panda Cub", boss = "Hogger" }), "the cap holds for the rest")
+        B:First("boss", PANDA, "Ragnaros"); w:RunTimers()
+        ok(ola:PrintedLine("first.boss.ragnaros", { pet = "Panda Cub" }), "Ragnaros speaks anyway")
+    end)
+
     -- Faction leaders (2026-11-24, the user, batch G): a first together, your own faction's only.
     test("a faction leader under the mouse, your own side's: a first with its own line, once per pet", function()
         local w, ola = H.Setup{ ola = { 5159 } }

@@ -496,7 +496,9 @@ end
 -- at the pet's rate. False if a once-a-day one was had today. text false: the
 -- points without a line (a new place most of the time); not counted in `lines`.
 -- text a function (Bond.Line): called with the points it gives, worked out first.
-function Bond:Reward(kind, key, text)
+-- named: a line that always speaks, past the kind's lines a day (review 2026-11-24 Q1: a dungeon's trash bosses and
+-- its place used up the firsts' three, so its named end boss, which comes last, never spoke, and was done for good).
+function Bond:Reward(kind, key, text, named)
     local def = assert(self.REWARDS[kind], "undeclared reward")
     local d = Ledger(key)
     d.had = d.had or {}
@@ -513,7 +515,7 @@ function Bond:Reward(kind, key, text)
     end
     if text then
         d.had[kind] = n
-        if not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text, def.kind or "like") end
+        if named or not def.lines or n <= ns.Config[def.lines] then ns.Bus:Fire("BOND_LINE", key, text, def.kind or "like") end
     end
     ns.Log("Bond", "reward %s for %s", kind, key)
     if def.beyond then
@@ -733,7 +735,7 @@ function Bond:Leader(s)
     local own = #ns.Lines("first.leader." .. slug) > 0 and ns.random() < self.LEADER_OWN
     ns.Log("Bond", "leader %s: %s meets %s", slug, key, s.name)
     self:Reward("first", key, ns.PickLine(own and "first.leader." .. slug or "first.leader",
-        { pet = ns.Registry:NameOf(key), leader = s.name }))
+        { pet = ns.Registry:NameOf(key), leader = s.name }), true)
 end
 
 -- Its line: a named place's own (always), else a family's own now and then (first.place.<family>.N), else a general
@@ -755,7 +757,7 @@ function Bond:PlaceLine(key, place)
 end
 
 function Bond:First(id, key, extra)
-    local text
+    local text, named
     if id == "boss" and type(extra) == "string" and extra ~= "" and extra ~= "?" then
         local firsts = ns.DB.char.firsts
         firsts[key] = firsts[key] or {}
@@ -764,6 +766,7 @@ function Bond:First(id, key, extra)
         Bond.justFirst, Bond.justFirstAt = key .. "\31" .. extra, ns.Now() -- (Quirks' trophy: a boss new to this pet, whoever hears it first)
         local slug = self.BOSS_SLUG[extra]
         local prefix = slug and #ns.Lines("first.boss." .. slug) > 0 and "first.boss." .. slug or "first.boss"
+        named = prefix ~= "first.boss"
         text = ns.PickLine(prefix, { pet = ns.Registry:NameOf(key), boss = extra, count = Count(firsts[key]) })
         if Count(firsts[key]) == 1 then ns.Story:Mine(key, "first.boss", extra) end -- (its very first)
     elseif id == "explore" and type(extra) == "string" then
@@ -772,12 +775,13 @@ function Bond:First(id, key, extra)
         -- Its line only now and then (2026-11-12, the user: every new place read like an achievement, as if
         -- the pet should see them all; "we could still award exploration points, just not output it to chat
         -- every time"): by chance, likelier for a curious family and trait. The points come either way.
-        local named = self.PLACE_SLUG[extra] ~= nil
-        text = (named or ns.random() < self:PlaceChance(key)) and self:PlaceLine(key, extra) or false
+        local slug = self.PLACE_SLUG[extra]
+        named = slug ~= nil and #ns.Lines("first.place." .. slug) > 0 -- (its own words: past the cap)
+        text = (slug or ns.random() < self:PlaceChance(key)) and self:PlaceLine(key, extra) or false
     else
         return
     end
-    self:Reward("first", key, text)
+    self:Reward("first", key, text, named)
 end
 
 -- Past midnight the day's visit comes with the first thing done, and asks the calendar for the
