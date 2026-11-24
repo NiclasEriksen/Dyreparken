@@ -96,6 +96,7 @@
 ---@field Verify Dyreparken.Verify Dev/Verify.lua
 ---@field Version Dyreparken.Version Core/Version.lua
 ---@field Voyage Dyreparken.Voyage Menagerie/Voyage.lua
+---@field Watch Dyreparken.Watch Dev/Watch.lua
 ---@field Weather Dyreparken.Weather Menagerie/Weather.lua
 ---@field WeatherPins any Data/WeatherPins.lua
 ---@field Wire Dyreparken.Wire Core/Wire.lua
