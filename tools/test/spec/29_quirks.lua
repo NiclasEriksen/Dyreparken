@@ -508,7 +508,7 @@ return function(test, H)
         ola.ns.Activity:Emit("day"); w:Run(2)
         ok(ola.ns.Holidays:Running("stvfishing"), "before the end")
         w:SetHour(14, 30)
-        Fish(); eq(ola:CountPrinted("jubler over at du fisket"), 1, "during it: the bonus")
+        Fish(); ola:LinesOut(); eq(ola:CountPrinted("jubler over at du fisket"), 1, "during it: the bonus")
     end)
 
     test("tiers: a dislike's discovery and the clock's eggs aren't held back; a known dislike, the fire and the trophy are", function()

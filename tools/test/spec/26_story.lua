@@ -88,6 +88,7 @@ return function(test, H)
         ola:Traits{ "trofast", "ambisios" } -- likes revive, level (+ herbs)
         P.BY_FAMILY.bear = nil -- (the panda's own herbs only, not a bear's fishing)
         ola.state.level = 9 -- (under the bear's first trip, Loch Modan at 10: likes only)
+        W.MIN_CHOICES = 0 -- (its likes alone: the pool's top-up for a pet with few is 56_wish_nature's)
         for d = 1, 30 do eq(W:For(PANDA, ("202611%02d"):format(d)), "herb", "the one doable like") end
         P.BY_SPECIES = {}
         P.BY_FAMILY, P.DEFAULT = {}, {}

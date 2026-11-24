@@ -143,17 +143,42 @@ function Wish:For(key, day)
     end
     local extra, zone = self:Extra(key, day)
     if extra then return extra, zone end
-    local _, list = ns.Personality:Of(key)
-    local choices = {}
-    for _, act in ipairs(list) do
+    local choices = self:Choices(key)
+    return choices[Hash("wish " .. day .. " " .. key) % #choices + 1]
+end
+
+-- What a pet may wish for on a plain day: its likes, and for a pet with fewer than MIN_CHOICES of them that can be
+-- wished for, more to the wish's pool only (review 2026-11-24 Q29, the user: "we need more types of wishes for
+-- those": with one, it wished for the same thing on half its days): its minor like once your bond has unlocked it
+-- (never a secret told by a wish), its families' likes, then GENERAL. No points come from these but the wish's.
+Wish.MIN_CHOICES = 3
+Wish.GENERAL = { "quest", "explore", "taxi" }
+function Wish:Choices(key)
+    local choices, seen = {}, {}
+    local function Add(act)
         -- (and only what this client can see happen: a wish nobody can fulfil wastes the day)
         -- (company, only with guildmates about lately: Flokkdyr's like since 2026-11-19, as the extra wishes)
-        if not self.NEVER[act] and ns.Activity:Available(act) and not (self.COMPANY[act] and not self.Company()) then
+        if act and not seen[act] and not self.NEVER[act] and ns.Activity:Available(act)
+            and not (self.COMPANY[act] and not self.Company()) then
+            seen[act] = true
             choices[#choices + 1] = act
         end
     end
+    local _, list = ns.Personality:Of(key)
+    for _, act in ipairs(list) do Add(act) end
+    if #choices < self.MIN_CHOICES then
+        Add(ns.Personality:MinorLike(key))
+        for _, f in ipairs(ns.Scenes:Families(key)) do
+            for _, act in ipairs(ns.Personality.BY_FAMILY[f] or {}) do
+                if #choices < self.MIN_CHOICES then Add(act) end
+            end
+        end
+        for _, act in ipairs(self.GENERAL) do
+            if #choices < self.MIN_CHOICES then Add(act) end
+        end
+    end
     if #choices == 0 then choices = { "quest" } end
-    return choices[Hash("wish " .. day .. " " .. key) % #choices + 1]
+    return choices
 end
 
 -- Today's wish for your adopted pet: { pet, id, done }, or nil without one.

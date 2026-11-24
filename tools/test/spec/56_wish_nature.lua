@@ -267,4 +267,36 @@ return function(test, H)
         ola.ns.Activity:CheckDay(); w:Run(ola.ns.Wish.TELL_AFTER + 20)
         eq(Told(), 1, "done: quiet")
     end)
+
+    -- Review 2026-11-24 Q29: a pet with one wishable like wished for it on half its days.
+    test("a pet with few likes to wish for gets more in its wish pool: the unlocked minor like, its families', then general ones", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        local W, P = ola.ns.Wish, ola.ns.Personality
+        ola:Traits{ "trofast", "ambisios" } -- (likes revive and level: never wished for)
+        ola.state.level = 9 -- (under the bear's first trip: likes only)
+        local own = {}
+        for _, act in ipairs(select(2, P:Of(PANDA))) do
+            if not W.NEVER[act] and ola.ns.Activity:Available(act) then own[#own + 1] = act end
+        end
+        ok(#own < W.MIN_CHOICES, "few of its own: " .. table.concat(own, ","))
+        local c = W:Choices(PANDA)
+        eq(#c, W.MIN_CHOICES, "topped up: " .. table.concat(c, ","))
+        for i, act in ipairs(own) do eq(c[i], act, "its own likes first") end
+        eq(P:MinorLike(PANDA), nil, "the minor like not unlocked yet")
+        for _, act in ipairs(c) do ok(act ~= P:Minor(PANDA) or own[1] == act, "a secret isn't told by a wish") end
+        -- Your bond unlocks the minor like: it comes before the families' and the general ones.
+        ola:SetBond(PANDA, 600)
+        local minor = P:MinorLike(PANDA)
+        ok(minor, "unlocked")
+        local seen = {}
+        for _, act in ipairs(W:Choices(PANDA)) do seen[act] = true end
+        ok(seen[minor] or not ola.ns.Activity:Available(minor) or W.NEVER[minor], "the minor like joins the pool")
+        -- Over a month: more than its one or two likes.
+        local days, n = {}, 0
+        for d = 1, 30 do
+            local id = W:For(PANDA, ("202611%02d"):format(d))
+            if not days[id] then days[id], n = true, n + 1 end
+        end
+        ok(n >= W.MIN_CHOICES, "several wishes in a month: " .. n)
+    end)
 end

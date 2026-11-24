@@ -207,6 +207,7 @@ return function(test, H)
         local W, A = ola.ns.Wish, ola.ns.Activity
         ola.state.level = 9 -- (under the bear's first trip, Loch Modan at 10: likes only)
         ola.ns.Personality.Of = function() return {}, { "herb", "fish" } end
+        W.MIN_CHOICES = 0 -- (its likes alone: the pool's top-up for a pet with few is 56_wish_nature's)
         local seen = {}
         for d = 1, 30 do seen[W:For(PANDA, ("202611%02d"):format(d))] = true end
         ok(seen.herb and seen.fish)
