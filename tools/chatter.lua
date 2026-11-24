@@ -6,8 +6,12 @@
 --   luajit tools/chatter.lua                                 the Panda Cub, a warrior, 14 days, "regular"
 --   luajit tools/chatter.lua --pet 70 --class shaman --days 28 --profile casual --chatter few
 --   luajit tools/chatter.lua --traits latsabb,kosete --seed 7 --days 60 --quiet
+--   luajit tools/chatter.lua --profile max --set boss=1,quest=2 --days 28
 --
--- Profiles: casual (1 h, 4 days a week), regular (2 h every day), grinder (5 h every day). --quiet: the summary
+-- Profiles: casual (1 h, 4 days a week), regular (2 h every day), grinder (5 h every day), and max (2 h every day at
+-- level 60, no gathering: no levels, skill-ups or gathering, fewer new places; review 2026-11-24 Q31: the others are a
+-- levelling triple gatherer, so a pace read from them was too fast for most). --set id=rate,...: an hour's rate of
+-- activities, over the profile's (RATES below). --quiet: the summary
 -- only, no day by day. It prints, per day, the points earned and the bond level, then the days to each level, the
 -- lines per played hour, and every line group (a key without its number) with how many times it was said and on
 -- what share of the played days. The rates are guesses for a levelling character: RATES below, tune them.
@@ -26,6 +30,7 @@ while i <= #args do
     elseif a == "--chatter" then opt.chatter = Next()
     elseif a == "--traits" then opt.traits = Next()
     elseif a == "--seed" then opt.seed = tonumber(Next())
+    elseif a == "--set" then opt.set = Next()
     elseif a == "--quiet" then opt.quiet = true
     elseif a == "-h" or a == "--help" then
         for line in io.lines(arg[0]) do
@@ -43,9 +48,11 @@ local PROFILES = {
     casual = { hours = 1, week = { true, false, true, false, true, true, false } },
     regular = { hours = 2, week = { true, true, true, true, true, true, true } },
     grinder = { hours = 5, week = { true, true, true, true, true, true, true } },
+    max = { hours = 2, week = { true, true, true, true, true, true, true },
+        rates = { level = 0, skill = 0, herb = 0, mine = 0, skin = 0, explore = 0.1, newpath = 0, taxi = 1.2, boss = 1 } },
 }
 local profile = PROFILES[opt.profile]
-if not profile then io.stderr:write("profiles: casual, regular, grinder\n"); os.exit(2) end
+if not profile then io.stderr:write("profiles: casual, regular, grinder, max\n"); os.exit(2) end
 
 -- Activities an hour, for a character levelling in the open world with a dungeon now and then (guesses). A
 -- "jump" is ten jumps (Core/Sources.lua).
@@ -55,6 +62,12 @@ local RATES = {
     dive = 0.3, nap = 0.1, campnear = 2, campwarm = 0.3, camp = 0.3, rested = 0.1, meet = 0.5, guildpet = 0.3,
     roll = 0.05, hundred = 0.05, epic = 0.05, newpath = 0.2, misses = 0.2, wipe = 0.05, fall = 0.1,
 }
+for id, rate in pairs(profile.rates or {}) do RATES[id] = rate end
+for pair in (opt.set or ""):gmatch("[^,]+") do
+    local id, rate = pair:match("^([%w_]+)=([%d%.]+)$")
+    if not (id and RATES[id]) then io.stderr:write("--set: unknown activity or rate: ", pair, "\n"); os.exit(2) end
+    RATES[id] = tonumber(rate)
+end
 local FIGHT_EVERY, FIGHT_CASTS = 4, 4 -- a fight every 4 minutes, with 4 of the class's casts
 
 local H = require("harness")
@@ -112,7 +125,7 @@ local function Collect(day)
         local msg = line:match("\tChat\t(.*)$")
         local k = msg:match("^([%w%._]+)%.%d+: ") or msg:match("^([%w%._]+): ")
         local g = k or ("(text) " .. Short(msg:gsub("%d+", "N")))
-        local e = groups[g] or { n = 0, days = {} }
+        local e = groups[g] or { n = 0, days = {}, first = day }
         groups[g] = e
         e.n, e.days[day] = e.n + 1, true
         said = said + 1
@@ -170,6 +183,12 @@ for l = 2, #LEVELS do levels[#levels + 1] = ("%d: %s"):format(l, reached[l] and 
 print("Bond level reached (" .. LEVELS[#LEVELS][1] .. " points at 7): " .. table.concat(levels, ", "))
 local hours = playedDays * profile.hours
 print(("Lines: %d, %.1f per played hour"):format(said, said / math.max(hours, 1)))
+-- (how much is new later on: a group first heard in each week; week 4's few is the long run's freshness)
+local weeks = {}
+for _, e in pairs(groups) do local wk = math.floor((e.first - 1) / 7) + 1; weeks[wk] = (weeks[wk] or 0) + 1 end
+local byWeek = {}
+for wk = 1, math.ceil(opt.days / 7) do byWeek[#byWeek + 1] = ("%d: %d"):format(wk, weeks[wk] or 0) end
+print("Line groups heard first, by week: " .. table.concat(byWeek, ", "))
 local list = {}
 for g, e in pairs(groups) do
     local d = 0
