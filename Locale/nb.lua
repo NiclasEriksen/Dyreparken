@@ -2062,6 +2062,7 @@ L["tip.named_by"] = "Navngitt av {who}, {date}"           -- {who}: a name, or h
 L["tip.yours"] = "Ditt bånd: {label}"                      -- your own, with a pet someone else holds (or nobody)
 L["tip.bond"] = "Bånd: {label}"                           -- {label}: bond.label
 L["tip.world"] = "Dyreparken: {home} · {level}"           -- {home} starts with a small letter here
+L["tip.world.carer"] = "Dyreparken: {owner} · {level}"     -- a guildmate's pet they haven't adopted: their bond with it
 
 ------------------------------------------------------------------------------
 -- The pet card

@@ -32,6 +32,21 @@ return function(test, H)
         eq(own[5], "Dyreparken: har bodd hos deg i 7 dager · Venn")
     end)
 
+    -- Review 2026-11-24 Q26: a guildmate's pet they haven't adopted showed nothing.
+    test("a guildmate's pet they haven't adopted: their bond with it, when it's known; not a stranger's", function()
+        local w, ola, kari = Setup({ 5159, 40 })
+        local CAT = "s:40"
+        local _, _, all = ola:Hover({ species = 40, owner = "Kari Berg" })
+        no(table.concat(all, " / "):find("Dyreparken"), "no bond known: nothing")
+        ola:SetBond(CAT, 300, { who = "Kari Berg" })
+        _, _, all = ola:Hover({ species = 40, owner = "Kari Berg" })
+        eq(all[#all - 1], "Dyreparken: Kari Berg · Venn", "their bond's level")
+        match(all[#all], " og ", "and its traits (someone in the guild has it: known)")
+        ola:SetBond(CAT, 300, { who = "Per Fremmed" })
+        _, _, all = ola:Hover({ species = 40, owner = "Per Fremmed" })
+        no(table.concat(all, " / "):find("Dyreparken"), "not a guild member")
+    end)
+
     test("the nickname shift moves right-side text and colors down with their line", function()
         local w, ola, kari = Setup()
         local env, T = kari.env, kari.ns.Tooltip

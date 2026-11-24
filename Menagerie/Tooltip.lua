@@ -157,7 +157,7 @@ local function OnUnitTooltip(tooltip, data)
         and Plain(UnitBattlePetSpeciesID and UnitBattlePetSpeciesID(unit))
     if sid then ns.Bus:Fire("COMPANION_SEEN", sid, Tooltip:OwnerOf(unit, data and data.lines)) end
     local owner, r = Tooltip:ReservationOf(unit, data and data.lines)
-    if not owner then return end
+    if not owner then return Tooltip:CarerLine(tooltip, unit, sid, data) end
     local nick = ns.Registry:Nickname(r.k)
     if nick then Tooltip:ShowNickname(tooltip, nick, data) end
     local who = owner == ns.PlayerKey() and ns.L["home.you"] or owner
@@ -168,6 +168,20 @@ local function OnUnitTooltip(tooltip, data)
     if ns.Personality:Known(r.k) then tooltip:AddLine(ns.Personality:Names(r.k), 0.95, 0.75, 0.45) end
     -- Resizes the tooltip to the changed lines, not only the added ones.
     if nick then tooltip:Show() end
+end
+
+-- A guildmate's pet they haven't adopted (review 2026-11-24 Q26: it showed nothing, though its bond with them is
+-- known; with Turnus, a growing share of the pets out): its owner's bond with it, and its traits once known. Only
+-- when we know that bond (their BOND messages, a card's BONDS_REQ): no line is better than a made-up level.
+function Tooltip:CarerLine(tooltip, unit, sid, data)
+    if not sid then return end
+    local owner = self:OwnerOf(unit, data and data.lines)
+    if not owner or owner == ns.PlayerKey() or ns.Guild:IsMember(owner) ~= true then return end
+    local key = ns.Pets:KeyOfSpecies(sid)
+    local e = key and ns.Registry:Life(key, owner)
+    if not (e and e.p) then return end
+    tooltip:AddLine(ns.T("tip.world.carer", { owner = owner, level = select(2, ns.Bond:Level(e.p)) }), 0.5, 0.8, 0.5)
+    if ns.Personality:Known(key) then tooltip:AddLine(ns.Personality:Names(key), 0.95, 0.75, 0.45) end
 end
 
 function Tooltip:Init()
