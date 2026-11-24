@@ -35,8 +35,8 @@ local Summon = {}
 ns.Summon = Summon
 
 local RETRY_EVERY, RETRY_FOR = 3, 60
--- Busy states whose end is a trigger (PLAYER_REGEN_ENABLED, dismounting, PLAYER_ALIVE/UNGHOST): no retries.
-Summon.WAITS_FOR = { combat = true, mounted = true, dead = true, familiar = true }
+-- Busy states whose end is a trigger (PLAYER_REGEN_ENABLED, dismounting, PLAYER_ALIVE/UNGHOST, standing up): no retries.
+Summon.WAITS_FOR = { combat = true, mounted = true, dead = true, familiar = true, sitting = true }
 local MAX_ATTEMPTS = 3 -- actual summon calls per trigger; each failure shows an error
 
 function Summon:Deferring()
@@ -151,12 +151,83 @@ end
 -- replaced it. While one is out (ns.Familiar: its buff, remembered through what can't be read), nothing is
 -- summoned; its going (Bus FAMILIAR nil) is a trigger. Never summoned back: the scroll is the mage's to read.
 
--- Stand state: AutoCompanion treats 0 and 7 as standing, anything else as
--- sitting/lying. (Forever has no UnitStandState: /dp probe api, 2026-11-11. Kept for a later client.)
-local function Sitting()
-    if type(UnitStandState) ~= "function" then return false end
-    local ok, state = pcall(UnitStandState, "player")
-    return ok and type(state) == "number" and state ~= 0 and state ~= 7
+-- Sitting (2026-11-24, /dp probe watch; AC1 of docs/review-2026-11-24): Forever has no UnitStandState, and a
+-- summon of another pet while seated takes the pet that was out away, then fails ("You must be standing to do
+-- that"). So we follow what you do: the sit key (it toggles: a guess, as AutoCompanion's), the sit emotes and
+-- /stand, a jump, and moving (heard only while seated). A chair, a bench or idling into AFK can't be seen: the
+-- refusal itself says so (UI_ERROR_MESSAGE, heard only for a moment after our call), and we wait for you to move.
+-- Standing up again is a trigger.
+Summon.SIT_EMOTES = { SIT = true, SLEEP = true, KNEEL = true, LAYDOWN = true, DEAD = true }
+Summon.SITTING_ERRORS = { "SPELL_FAILED_NOT_STANDING", "ERR_CANT_DO_THAT_WHILE_SITTING", "ERR_NOT_WHILE_SITTING" }
+Summon.REFUSAL_FOR, Summon.STOOD_AFTER = 1.5, 1
+local seated = false
+local watching = false -- (Summon:Watch: auto-summon has something to do)
+local Stand, Refusal = {}, {} -- (event owners: moving while seated, the refusal's moment)
+local standT, refusalT = ns.Timers(), ns.Timers()
+
+local function Sitting() return seated end
+
+-- (no trigger: turned off, or a loading screen, whose own check follows)
+local function Unseat()
+    seated = false
+    ns.Events:OffAll(Stand)
+end
+
+function Summon:SitDown(why)
+    if seated then return end
+    seated = true
+    ns.Log("Summon", "seated (%s)", why)
+    ns.Events:On("PLAYER_STARTED_MOVING", Stand, function() Summon:StoodUp("moved") end)
+end
+
+function Summon:StoodUp(why)
+    if not seated then return end
+    Unseat()
+    ns.Log("Summon", "standing (%s)", why)
+    standT:Cancel()
+    standT:After(Summon.STOOD_AFTER, function() Summon:Check("stood") end)
+end
+
+-- The sit key also swims or flies down, and does nothing on a mount.
+local function SitKey()
+    if Truthy(IsMounted()) or (IsSwimming and Truthy(IsSwimming())) or (IsFlying and Truthy(IsFlying()))
+        or (IsFalling and Truthy(IsFalling())) then return end
+    if seated then Summon:StoodUp("key") else Summon:SitDown("key") end
+end
+
+local function Emote(token)
+    token = type(token) == "string" and token:upper() or ""
+    if Summon.SIT_EMOTES[token] then Summon:SitDown("emote " .. token)
+    elseif token == "STAND" then Summon:StoodUp("emote") end
+end
+
+local function SittingError(text)
+    text = ns.Plain(text)
+    if type(text) ~= "string" then return false end
+    for _, name in ipairs(Summon.SITTING_ERRORS) do
+        if rawget(_G, name) == text then return true end
+    end
+    return false
+end
+
+-- Our call's answer: a sitting refusal is a seat we couldn't see (and the pet out is already gone).
+local function HearRefusal()
+    refusalT:Cancel()
+    ns.Events:On("UI_ERROR_MESSAGE", Refusal, function(_, _, _, text)
+        if SittingError(text) then Summon:SitDown("refused") end
+    end)
+    refusalT:After(Summon.REFUSAL_FOR, function() ns.Events:OffAll(Refusal) end)
+end
+
+local function HookSitting()
+    -- (hooks can't be undone: each does nothing while auto-summon has nothing to do)
+    local function Hook(name, fn)
+        if type(rawget(_G, name)) ~= "function" then return end
+        hooksecurefunc(name, function(...) if watching then fn(...) end end)
+    end
+    Hook("SitStandOrDescendStart", SitKey)
+    Hook("DoEmote", Emote)
+    Hook("JumpOrAscendStart", function() Summon:StoodUp("jump") end)
 end
 
 -- Why we can't summon right now, or nil when idle.
@@ -178,7 +249,6 @@ end
 Summon.Busy = Busy
 
 local retryUntil, retrying
-local watching = false -- (Summon:Watch)
 local attempts = 0
 
 function Summon:Check(reason)
@@ -215,6 +285,7 @@ function Summon:Check(reason)
     end
     attempts = attempts + 1
     ns.Log("Summon", "summoning %s (%s, attempt %d)", key, tostring(reason), attempts)
+    HearRefusal()
     C_PetJournal.SummonPetByGUID(guid)
     -- Verify, and retry if the cooldown or something else refused it.
     self:Retry("verify")
@@ -281,6 +352,7 @@ function Summon:Init()
     -- A post-hook: the sound comes later, with the server's answer. Also
     -- catches the journal's Summon button and other addons.
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Summon:QuietSummon() end)
+    HookSitting()
     self:Watch()
     -- Just adopted one: it becomes the active pet, auto-summon on, and out it
     -- comes in place of the one out (decided 2026-11-09). Only the adoption:
@@ -303,12 +375,14 @@ function Summon:Watch()
     watching = want
     if not want then
         ns.Events:OffAll(Summon)
+        Unseat()
         return
     end
     -- After a loading screen the summon can fail: give the world a moment. The game
     -- brings the last pet back by itself there, clank and all (2026-11-10, as
     -- AutoCompanion does: longer after a login or /reload).
     ns.Events:On("PLAYER_ENTERING_WORLD", Summon, function(_, _, login, reload)
+        Unseat() -- (a loading screen stands you up)
         Summon:QuietSummon((login or reload) and Summon.LOGIN_RESTORE or Summon.GAME_RESTORE)
         C_Timer.After(3, function() Summon:Check("PLAYER_ENTERING_WORLD") end)
     end)

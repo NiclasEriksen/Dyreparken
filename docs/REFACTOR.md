@@ -294,7 +294,8 @@ This is the payoff for "easier to add pets, traits and eggs".
   sub-family row (parrot, chicken, whelp) goes before its broad family's, for species added from now on.
 - **Q4 timing** (2026-11-13): the bump goes in with the release itself, not before (no desync from the guild
   until it ships).
-- **Open after the plan**: Q11 (UnitStandState stub), the combat taint (MountJournal:SetShown, 2026-11-12 22:19; waiting for a
+- **Open after the plan**: Q11 (UnitStandState stub; settled 2026-11-24: gone from the stubs, in H.MISSING, and Summon
+  follows sitting from the sit key, emotes and the refusal instead), the combat taint (MountJournal:SetShown, 2026-11-12 22:19; waiting for a
   taint log or Blizzard's exported source).
 - **Bug hunt and ideas (2026-11-13)**: four reviewers; fixed: roster held batches (stale/partial reads,
   midnight, age), forged versions, page switches spending celebrations, cardMoves on the pet frame, bubbles

@@ -500,7 +500,10 @@ end
 function Client:Mount() self.state.mounted = true; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 function Client:Dismount() self.state.mounted = false; self:Fire("PLAYER_MOUNT_DISPLAY_CHANGED") end
 -- Moving: the client's start and stop events, and GetUnitSpeed.
-function Client:Move() self.state.moving = true; self:Fire("PLAYER_STARTED_MOVING") end
+function Client:Move() self.state.moving, self.state.seated = true, false; self:Fire("PLAYER_STARTED_MOVING") end
+-- Sitting: the sit key (X; it toggles) as pressed, and a chair or bench, which nothing in the client tells of.
+function Client:SitKey() Hardware(self, self.env.SitStandOrDescendStart) end
+function Client:SitOnChair() self.state.seated = true end
 function Client:Halt() self.state.moving = false; self:Fire("PLAYER_STOPPED_MOVING") end
 function Client:Summon(sid) self.summoned = sid and self:GuidOf(sid) or nil end
 -- A summon by another player, accepted on Blizzard's popup (its OnAccept: secure); the loading screen is the

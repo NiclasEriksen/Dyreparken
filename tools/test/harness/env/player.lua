@@ -57,7 +57,6 @@ return function(c, env, S)
         return S.instanceName or S.zone or "Elwynn Forest", S.instance, raid and 9 or 1, raid and "40 Player" or "Normal",
             raid and 40 or 5, 0, false, S.instanceID or 0, raid and 40 or 5, nil, false
     end
-    env.UnitStandState = function() return S.stand end
     env.IsSwimming = function() return S.swimming or false end
     env.IsResting = function() return S.resting or false end
     env.UnitIsAFK = function(u) return u == "player" and S.afk or false end
@@ -161,10 +160,20 @@ return function(c, env, S)
         end,
     }
     -- Emotes and jumps: what the player pressed (hooked by the addon).
-    env.DoEmote = function(token, target) S.lastEmote = token end
-    env.JumpOrAscendStart = function() S.jumps = (S.jumps or 0) + 1 end
-    -- The sit key (X): Forever has it, and no UnitStandState to read the result (docs/FOREVER_API.md).
-    env.SitStandOrDescendStart = function() S.sitKeys = (S.sitKeys or 0) + 1 end
+    -- S.seated: sitting, as the game knows it (nothing reads it: Forever has no UnitStandState). The sit key toggles
+    -- it (swimming, flying or mounted it doesn't), the sit emotes, /stand, a jump and moving (c:Move) too; a chair
+    -- (c:SitOnChair) is seen by nothing. A summon while seated: SummonPetByGUID below (env/journal.lua).
+    local SIT = { SIT = true, SLEEP = true, KNEEL = true, LAYDOWN = true, DEAD = true }
+    env.DoEmote = function(token, target)
+        S.lastEmote = token
+        local t = type(token) == "string" and token:upper()
+        if SIT[t] then S.seated = true elseif t == "STAND" then S.seated = false end
+    end
+    env.JumpOrAscendStart = function() S.jumps = (S.jumps or 0) + 1; S.seated = false end
+    env.SitStandOrDescendStart = function()
+        S.sitKeys = (S.sitKeys or 0) + 1
+        if not (S.swimming or S.flying or S.mounted) then S.seated = not S.seated end
+    end
     env.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
     -- The cursor, in screen pixels (c.cursor = { x, y }).
     env.GetCursorPosition = function() local p = c.cursor or { 0, 0 }; return p[1], p[2] end

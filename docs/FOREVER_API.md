@@ -750,6 +750,8 @@ For `/dp probe watch` (Dev/Watch.lua), which asks the rest in game:
 **Seen in game with `/dp probe watch` (2026-11-24, 1.60.1 71037, solo):**
 - **Sitting:** a summon of another pet while seated takes the pet that was out away at once, then fails with
   "You must be standing to do that" (`SPELL_FAILED_NOT_STANDING`, UI_ERROR_MESSAGE type 57). AutoCompanion was right.
+  Summon now follows sitting from the sit key, the sit emotes, a jump and moving, and reads that refusal for a seat
+  it couldn't see (a chair); the harness has no UnitStandState any more (H.MISSING).
 - **Summon cooldown:** a second `SummonPetByGUID` within ~0.7 s of the first is dropped silently: no UI error.
   "Spell is not ready yet." (type 61) is a spell's cooldown, not the companion's.
 - **Mounts:** a ground mount keeps the pet out.

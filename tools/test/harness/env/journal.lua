@@ -43,6 +43,12 @@ return function(c, env, S)
         SummonPetByGUID = function(guid)
             c.summonCalls = c.summonCalls + 1
             if (c.summonFails or 0) > 0 then c.summonFails = c.summonFails - 1; return end
+            -- Seated, another pet: the one out goes at once, then the summon fails (/dp probe watch, 2026-11-24).
+            if S.seated and c.summoned ~= guid then
+                c.summoned = nil
+                env.C_Timer.After(0.2, function() c:Fire("UI_ERROR_MESSAGE", 57, env.SPELL_FAILED_NOT_STANDING) end)
+                return
+            end
             c.summoned = c.summoned ~= guid and guid or nil
         end,
         PetIsSummonable = function() return true end,

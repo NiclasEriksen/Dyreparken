@@ -22,12 +22,11 @@ H.SECRET_TABLE = setmetatable({}, { __tostring = function() return "<secret tabl
 
 -- What Forever doesn't have (docs/FOREVER_API.md, "Missing"): the stub client must lack it too
 -- (01_core checks), so the addon can't come to rely on it. Keep this in step with the doc.
--- (UnitStandState is missing too, but still stubbed: an open question, docs/REFACTOR.md Q11.)
 H.MISSING = {
     globals = { "GetSpellInfo", "GetItemInfo", "UnitAura", "GetMerchantItemInfo", "GetSpecialization",
         "GetItemCount", "GetContainerNumSlots", "GetNumFactions", "GetWatchedFactionInfo", "GetNumSkillLines",
         "GetSkillLineInfo", "GetZonePVPInfo", "GetNumAddOns", "IsCurrentSpell", "IsAutoRepeatSpell",
-        "CombatLogGetCurrentEventInfo", "require", "dofile", "loadfile", "io" },
+        "CombatLogGetCurrentEventInfo", "UnitStandState", "require", "dofile", "loadfile", "io" },
     fields = { { "C_Calendar", "GetDate" } },
     events = { "COMBAT_LOG_EVENT_UNFILTERED", "PLAYER_TARGET_SET_ATTACKING" },
 }
