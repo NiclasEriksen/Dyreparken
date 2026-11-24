@@ -54,8 +54,8 @@ ns.Zones = { rows = {
     ["Badlands"] = { level = 35, climate = "warm", home = { "dragon" } },
     ["Dustwallow Marsh"] = { level = 35, home = { "reptile", "ooze" } },
     ["Swamp of Sorrows"] = { level = 35, home = { "frog", "reptile" } },
-    -- Forever's own (its name seen in game), by boat from Steamwheedle Port: a river country. Its level is a
-    -- guess (2026-11-22), unverified.
+    -- Forever's own (its name seen in game), by boat from Steamwheedle Port: a river country, level 35 (the
+    -- user, 2026-11-22).
     ["Riverglades"] = { level = 35, climate = "warm", home = { "frog", "murloc" } },
     ["Feralas"] = { level = 40, home = { "bear", "plant" } },
     ["Tanaris"] = { level = 40, climate = "warm", home = { "pirate", "snake" } },
@@ -84,7 +84,7 @@ ns.Zones = { rows = {
     ["Naxxramas"] = { home = { "ooze" } },
     ["Onyxia's Lair"] = { home = { "dragon" } },
     ["Ratchet"] = { neutral = true },
-    ["Powderfuse Port"] = { neutral = true }, -- (Riverglades' goblin port; its name unverified)
+    ["Powderfuse Port"] = { neutral = true }, -- (Riverglades' goblin port; its name as GetSubZoneText gives it, the user 2026-11-22)
     ["Ruins of Ahn'Qiraj"] = { home = { "bug" } },
     ["Steamwheedle Port"] = { neutral = true },
     ["The Temple of Atal'Hakkar"] = { home = { "reptile" } },
