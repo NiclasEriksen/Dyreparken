@@ -12,7 +12,8 @@ local ns = select(2, ...)
 -- too; the answer can't start a ping-pong, since the first side just spoke.
 -- Guild members only (the roster must say so); the group channels only.
 -- GROUP_ROSTER_UPDATE stays registered: it's how we learn we've joined, and
--- the handler returns at once outside a group or with no pet out.
+-- the handler returns at once outside a group or with no pet out. In a group, a zone or subzone change looks
+-- again too (Watch), and an announcement waits until a guildmate is near (AnyoneNear).
 ---@class Dyreparken.Playdate
 local Playdate = {}
 ns.Playdate = Playdate
@@ -41,9 +42,33 @@ function Playdate:Announce(to)
         lastAnswer = now
     else
         if lastSent and now - lastSent < PLAY_EVERY then return end
+        -- (nobody to play with near us: kept for when there is, review 2026-11-24 Q7: a group formed from afar
+        -- announced to nobody, then waited ten minutes, and no later moment announced again)
+        if not self:AnyoneNear() then return end
         lastSent = now
     end
     ns.Comm:Send("PLAY", { pet = key }, channel)
+end
+
+-- A guildmate in our group near us (Near).
+function Playdate:AnyoneNear()
+    local me = ns.PlayerKey()
+    for _, name in ipairs(ns.GroupKeys()) do
+        if name ~= me and ns.Guild:IsMember(name) == true and self:Near(name) then return true end
+    end
+    return false
+end
+
+-- While in a group, a new place is a moment to look again: walking or flying to each other ends in one.
+local Places = {} -- (its owner)
+function Playdate:Watch()
+    if IsInGroup() then
+        for _, e in ipairs({ "ZONE_CHANGED", "ZONE_CHANGED_NEW_AREA", "PLAYER_ENTERING_WORLD" }) do
+            ns.Events:On(e, Places, function() Playdate:Soon() end)
+        end
+    else
+        ns.Events:OffAll(Places)
+    end
 end
 
 -- Soon, once: group changes come in bursts.
@@ -141,7 +166,8 @@ function Playdate:Init()
     ns.Comm:Register("PLAY", function(msg, sender)
         Playdate:Heard(sender, msg.pet)
     end, "GROUP", { pet = "key" })
-    ns.Events:On("GROUP_ROSTER_UPDATE", Playdate, function() Playdate:Soon() end)
+    ns.Events:On("GROUP_ROSTER_UPDATE", Playdate, function() Playdate:Watch(); Playdate:Soon() end)
+    self:Watch() -- (a /reload in a group)
     hooksecurefunc(C_PetJournal, "SummonPetByGUID", function() Playdate:Soon() end)
 end
 

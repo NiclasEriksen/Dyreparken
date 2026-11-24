@@ -392,6 +392,23 @@ return function(test, H)
         eq(ola:Points(PANDA), 15, "close by: the playdate")
     end)
 
+    -- Review 2026-11-24 Q7: invited across a zone, then together for half an hour: no playdate.
+    test("playdates: a group formed from afar plays once they meet, at the next place they come to", function()
+        local w, ola, kari = Setup()
+        ola:Summon(5159); kari:Summon(40)
+        w.apart = { ["Kari Berg"] = true }
+        w:SetGroup({ "Ola Nord", "Kari Berg" })
+        local m = w:Mark()
+        ola:Fire("GROUP_ROSTER_UPDATE"); kari:Fire("GROUP_ROSTER_UPDATE")
+        w:Run(30)
+        eq(w:Sent("PLAY", nil, m), 0, "nobody near: nothing said")
+        w.apart = nil -- (Kari flies over)
+        kari:Fire("ZONE_CHANGED")
+        w:Run(5)
+        eq(ola:Points(PANDA), 15, "met: the playdate")
+        eq(kari:Points("s:40"), 8, "both")
+    end)
+
     test("playdates: not without a pet out, not with strangers, not from junk or the guild channel", function()
         local w, ola, kari = Setup()
         ola:Summon(5159); kari:Summon(nil)
