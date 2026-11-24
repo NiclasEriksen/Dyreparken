@@ -27,6 +27,10 @@ function Onboarding:Welcome(force, solo)
     ns.Print(L["welcome.where"])
 end
 
+-- A minute after the login, out of a fight (review 2026-11-24 Q17: at 10 s it came among the guild's message of the
+-- day, other addons' banners and the login's own lines).
+Onboarding.WELCOME_AFTER = 60
+
 function Onboarding:AfterAdopt(key, force)
     local char = ns.DB.char
     if char.toldAdoptHow and not force then return end
@@ -99,4 +103,7 @@ ns.Start("loaded", function()
     ns.Bus:On("ADOPTED", function(key) Onboarding:AfterAdopt(key) end)
 end)
 -- (after the login's own lines: the milestones and the pet of the day come at 30 s, Bonds.lua)
-ns.Start("settled", function() Onboarding:Welcome() end)
+ns.Start("settled", function()
+    if ns.DB.global.welcomed then return end
+    C_Timer.After(Onboarding.WELCOME_AFTER, function() ns.Events:OutOfCombat(function() Onboarding:Welcome() end) end)
+end)

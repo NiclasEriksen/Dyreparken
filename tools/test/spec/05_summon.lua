@@ -293,6 +293,7 @@ return function(test, H)
 
     test("several triggers while busy share one retry", function()
         local w, c = Reserved()
+        w:Run(c.ns.Onboarding.WELCOME_AFTER) -- (past the welcome's own timer: not a summon timer)
         c:Set("casting", "Fishing")
         c:Slash("adopter panda")
         c:Zone(); c:LeaveCombat(); c:Dismount()
