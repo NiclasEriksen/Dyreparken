@@ -105,13 +105,15 @@ return function(test, H)
         ola.state.resting = true; ola:Fire("PLAYER_UPDATE_RESTING"); w:Run(10)
         ola.state.resting = false; ola:Fire("PLAYER_UPDATE_RESTING"); w:Run(V.INN_AFTER)
         eq(State(V, "new:inn"), "open", "resting only a moment: nothing told")
+        -- (Well-Rested left over from a bag earlier, on before the resting began: a city all the same, 2026-11-24)
         ola.state.zone, ola.state.subzone = "Feralas", "Camp Mojache"
+        ola.state.auras = { [429959] = true }
         ola.state.resting = true; ola:Fire("PLAYER_UPDATE_RESTING"); w:Run(V.INN_AFTER - 5)
         eq(State(V, "new:inn"), "open", "not yet")
         w:Run(10)
         eq(State(V, "new:inn"), "seen")
         match(ola.env.DyreparkenDebugDB.verify.seen["new:inn"].detail, "in Feralas / Camp Mojache$")
-        ola.state.resting = false
+        ola.state.resting, ola.state.auras = false, {}
         -- Mounted: your own mount, not a flight path, where IsMounted() is true too (2026-11-20, the user).
         ola.state.mounted = true; ola:Fire("PLAYER_MOUNT_DISPLAY_CHANGED"); w:Run(1)
         ola.state.taxi = true; w:Run(V.MOUNT_AFTER)

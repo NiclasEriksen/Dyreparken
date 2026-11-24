@@ -286,6 +286,8 @@ function Reactions:OnSense(kind, s)
             if why == "said today" then
                 if quiet[row.id] == ns.Today() then why = nil else quiet[row.id] = ns.Today() end
             end
+            -- (a zone row's "no pet out" or "not its moment" is every zone change: 100-250 lines a session, 2026-11-24)
+            if kind == "zone" and (why == "no pet out" or why == "not its moment") then why = nil end
             if why then ns.Log("Reactions", "%s: %s (%s)", row.id, why, tostring(s.name)) end
         end
     end

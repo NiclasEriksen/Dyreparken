@@ -334,6 +334,7 @@ return function(test, H)
         local function Go(zone) ola.state.zone, ola.state.subzone = zone, nil; ola:Fire("ZONE_CHANGED_NEW_AREA"); w:RunTimers() end
         Go("Orgrimmar")
         no(Said(ola, "fiendeby"), "your own")
+        no(ola:Log("fiendeby: not its moment")[1], "a zone row's every zone change isn't logged (2026-11-24)")
         Go("Stormwind City")
         ok(Said(ola, "fiendeby"), "theirs")
         ok(ola.ns.DB.char.homeAt, "a visit home is still noted (for its moment, when it has lines)")

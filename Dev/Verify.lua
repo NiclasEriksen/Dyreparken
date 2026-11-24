@@ -284,10 +284,13 @@ local function Build()
             seen = function()
                 if Plain(IsResting()) ~= true then return end
                 local where = tostring(Plain(GetZoneText())) .. " / " .. tostring(Plain(GetSubZoneText()))
+                -- (2026-11-24, from the log: Well-Rested lasts long after the bag, and Orgrimmar and Thunder Bluff were
+                -- taken for a bag. Already on as resting began: left over, not this bag's.)
+                local before = ns.Activity.HasAura(ns.Activity.AuraName("rested"))
                 innT:Cancel()
                 innT:After(Verify.INN_AFTER, function()
                     if Plain(IsResting()) ~= true then return ns.Log("Verify", "resting in %s: over before it was told", where) end
-                    if ns.Activity.HasAura(ns.Activity.AuraName("rested")) then
+                    if not before and ns.Activity.HasAura(ns.Activity.AuraName("rested")) then
                         return ns.Log("Verify", "resting in %s: the sleeping bag's", where)
                     end
                     Verify:Tick(Verify.BY["new:inn"], "resting in " .. where)
