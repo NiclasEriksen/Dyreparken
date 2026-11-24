@@ -71,6 +71,9 @@ elif [[ -n $draft ]]; then
         echo
         echo "_Developed with the help of Claude (Anthropic)._"
         echo
+        echo "<!-- Write a very short summary here first (the user, 2026-11-24): one or two sentences, \"**In short:** ...\". -->"
+        echo "**In short:** "
+        echo
         echo "${lines:-- Small fixes and polish.}"
     } > COMMIT.md
     echo "COMMIT.md written for $draft ($(grep -c '^- ' COMMIT.md) lines)" >&2

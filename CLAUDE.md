@@ -156,6 +156,8 @@ per commit), in a temporary worktree, and refuses the push if it fails. CI runs 
   since the last tag; the user edits it (reword, merge, reorder, drop), and running it again later adds only the
   commits since (their edits stay; `--force` writes it anew). Commit it before tagging: for that tag, release.yml
   uses it word for word (its `<!-- -->` lines left out) instead of the subjects. Keep it up to date as work lands.
+- **Every release note opens with a very short summary** (2026-11-24, the user): one or two sentences under the
+  Claude line, `**In short:** ...`, before the list. The draft leaves the slot; fill it before committing COMMIT.md.
 - Before tagging, `tools/changelog.sh` prints what players will read (since the newest tag) and warns on stderr when a
   subject names an egg id, a hidden achievement or says egg/hidden/secret (a warning only). release.yml writes the
   changelog with the same script, and refuses a tag that isn't on main or isn't newer than the last.
