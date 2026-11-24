@@ -20,17 +20,29 @@ ns.Playdate = Playdate
 local PLAY_EVERY = 600 -- seconds between our own announcements
 local ANSWER_EVERY = 60 -- ... and between answers
 local SETTLE = 2 -- a group just formed: the server refuses PARTY messages for a moment
-local lastSent
+local lastSent, lastAnswer -- our own announcement, and our last answer
+-- An answer has its own time (review 2026-11-24 Q6: one for both, so an announcement just before kept us from
+-- answering a guildmate whose pet came out after it, and only one side had its playdate). A message that comes
+-- within ANSWER_GRACE of our announcement is taken for an answer to it, and gets none: no ping-pong, and one answer
+-- each in a full group.
+local ANSWER_GRACE = 10
 
 local Channel = ns.GroupChannel
 local function PetOut() return (ns.Pets:OutKey()) end
 
-function Playdate:Announce(answer)
+-- Tell the group which pet we have out (to: the sender we answer).
+function Playdate:Announce(to)
     local channel, key = Channel(), PetOut()
     if not (channel and key) or ns.InCombat() then return end
     local now = GetTime()
-    if lastSent and now - lastSent < (answer and ANSWER_EVERY or PLAY_EVERY) then return end
-    lastSent = now
+    if to then
+        if lastAnswer and now - lastAnswer < ANSWER_EVERY then return end
+        if lastSent and now - lastSent < ANSWER_GRACE then return end
+        lastAnswer = now
+    else
+        if lastSent and now - lastSent < PLAY_EVERY then return end
+        lastSent = now
+    end
     ns.Comm:Send("PLAY", { pet = key }, channel)
 end
 
@@ -122,7 +134,7 @@ function Playdate:Heard(sender, theirs)
     ns.Quirks:Egg("playdate", mine, { key = theirs, owner = sender }) -- (a hunter and its prey: Hakkebakkeloven)
     ns.Activity:Emit("playmate", 1, sender) -- (a social pet's wish, Wish.SOCIAL)
     self:Party(sender, mine)
-    self:Announce(true) -- so theirs happens too (they may not have heard us)
+    self:Announce(sender) -- so theirs happens too (they may not have heard us)
 end
 
 function Playdate:Init()

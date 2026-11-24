@@ -320,9 +320,25 @@ return function(test, H)
         -- Another of Ola's pets has its own playdate.
         ola:Summon(46)
         w:Run(61)
-        kari.ns.Playdate:Announce(true)
+        kari.ns.Playdate:Announce("Ola Nord")
         w:Run(3)
         eq(ola:Points(KITTEN), 8)
+    end)
+
+    -- Review 2026-11-24 Q6: Ola's announcement came first, with Kari's pet not out yet; Kari's then went unanswered.
+    test("playdates: both sides, though one announced just before the other's pet came out", function()
+        local w, ola, kari = Setup()
+        local KARI = "s:40"
+        local m = w:Mark()
+        ola:Summon(5159); kari:Summon(nil)
+        w:SetGroup({ "Ola Nord", "Kari Berg" })
+        ola:Fire("GROUP_ROSTER_UPDATE"); kari:Fire("GROUP_ROSTER_UPDATE")
+        w:Run(30)
+        kari:Summon(40); kari.ns.Playdate:Soon()
+        w:Run(30)
+        eq(kari:Points(KARI), 8, "Kari's playdate")
+        eq(ola:Points(PANDA), 15, "and Ola's: she answered")
+        ok(w:Sent("PLAY", nil, m) <= 4, "no ping-pong: " .. w:Sent("PLAY", nil, m))
     end)
 
     -- Two families that meet have their own lines (2026-11-18, the user: "Cats should react differently to rodents
