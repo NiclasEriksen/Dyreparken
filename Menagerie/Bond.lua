@@ -727,7 +727,8 @@ function Bond:Leader(s)
     local slug = self.LEADER_SLUG[s.name]
     if not slug or self.LEADERS[slug][1] ~= ns.Plain(UnitFactionGroup("player")) then return end
     local key = ns.Pets:OutKey()
-    if not key then return end
+    -- (no guild, no bond: kept for when there is one, review 2026-11-24 Q23)
+    if not key or not ns.DB:Guild() then return end
     local met = ns.DB.char.leaders
     met[key] = met[key] or {}
     if met[key][slug] then return end

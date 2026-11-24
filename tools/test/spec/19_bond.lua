@@ -275,6 +275,20 @@ return function(test, H)
         ok(ola:PrintedLine("first.boss.ragnaros", { pet = "Panda Cub" }), "Ragnaros speaks anyway")
     end)
 
+    -- Review 2026-11-24 Q23: a leader met on a character with no guild was used up for no points.
+    test("a faction leader met with no guild is kept for later: no line, nothing marked", function()
+        local w = H.World()
+        local c = w:AddClient("Ola Nord", { pets = { 5159 }, guild = false })
+        w:Settle("day")
+        c:Summon(5159); w:Run(5)
+        c.state.faction = "Horde"
+        c:Dice(0)
+        c:Hover{ companion = false, who = { name = "Thrall", type = { "Humanoid", 7 }, guid = "Creature-0-1-2-3-4949-1" } }
+        w:RunTimers()
+        no(c.ns.DB.char.leaders[PANDA] and c.ns.DB.char.leaders[PANDA].thrall)
+        no(c:PrintedLine("first.leader.thrall", { pet = "Panda Cub" }))
+    end)
+
     -- Faction leaders (2026-11-24, the user, batch G): a first together, your own faction's only.
     test("a faction leader under the mouse, your own side's: a first with its own line, once per pet", function()
         local w, ola = H.Setup{ ola = { 5159 } }
