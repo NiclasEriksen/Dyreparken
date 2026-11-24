@@ -259,4 +259,38 @@ return function(test, H)
         B:First("explore", PANDA, "Winterspring"); w:RunTimers()
         ok(ola:PrintedLine("first.place.winterspring", { pet = "Panda Cub" }), "no frog lines there: the zone's")
     end)
+
+    -- Faction leaders (2026-11-24, the user, batch G): a first together, your own faction's only.
+    test("a faction leader under the mouse, your own side's: a first with its own line, once per pet", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local ns, B = ola.ns, ola.ns.Bond
+        ola.state.faction = "Horde"
+        local n = 0
+        local function Meet(name)
+            n = n + 1
+            ola:Hover{ companion = false, who = { name = name, type = { "Humanoid", 7 }, guid = "Creature-0-1-2-3-4949-" .. n } }
+            w:RunTimers()
+        end
+        ola:Dice(0)
+        local before = ola:Points(PANDA)
+        Meet("Thrall")
+        ok(ola:PrintedLine("first.leader.thrall", { pet = "Panda Cub" }), "Thrall's own line")
+        ok(ola:Points(PANDA) > before, "a first's points")
+        ok(ns.DB.char.leaders[PANDA].thrall)
+        ola:ClearPrinted(); before = ola:Points(PANDA)
+        Meet("Thrall")
+        no(ola:PrintedLine("first.leader.thrall", { pet = "Panda Cub" }), "once per pet")
+        eq(ola:Points(PANDA), before)
+        Meet("King Magni Bronzebeard")
+        eq(ola:Points(PANDA), before, "the other side's: nothing")
+        no(ns.DB.char.leaders[PANDA].magni)
+        ola:Dice(0.99)
+        Meet("Cairne Bloodhoof")
+        ok(ola:PrintedLine("first.leader", { pet = "Panda Cub" }), "now and then a general line")
+        for slug, row in pairs(B.LEADERS) do
+            ok(#ns.Variants("first.leader." .. slug) >= 1, slug)
+            ok(row[1] == "Horde" or row[1] == "Alliance", slug .. "'s faction")
+        end
+    end)
 end

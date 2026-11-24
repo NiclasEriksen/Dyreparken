@@ -538,13 +538,17 @@ Quirks.EGGS = {
         test = function(ctx) return Quirks.ByNature(ctx) end },
     -- Every hundredth quest with this pet out (the hour doesn't hold it back:
     -- the next chance is a hundred quests away).
+    -- A new home inn (2026-11-24, the user, batch G; an idea from the log's binder interaction): your hearthstone set
+    -- at another inn than before, with your pet out. Every new inn, by chance, once a day as other eggs (the user).
+    { id = "nyttjem", delay = "now", on = "home", chance = 0.5,
+        traits = { "hjemlengsel", "reiseglad", "eventyrlysten" }, test = function(ctx) return Quirks.ByNature(ctx) end },
     { id = "oppdrag", on = "quest", always = true, test = function(ctx)
         local n = select(4, ns.Activity:Count("quest", ctx.key))
         return n > 0 and n % 100 == 0 and { n = n }
     end },
 }
 -- Eggs on moments that aren't activities: "*" eggs don't ride on them.
-local MOMENTS = { seen = true, name = true, party = true, playdate = true, swap = true, weather = true }
+local MOMENTS = { seen = true, name = true, party = true, playdate = true, swap = true, weather = true, home = true }
 
 local eggsOn, eggById = {}, {} -- activity -> its eggs; id -> egg
 for _, e in ipairs(Quirks.EGGS) do
@@ -717,6 +721,15 @@ function Quirks:Init()
     ns.Bus:On("WEATHER", function(kind)
         local key = ns.Pets:OutKey()
         if key then Quirks:Egg("weather", key, kind) end
+    end)
+    -- (the inn as at login: it can't change while you're away; HEARTHSTONE_BOUND is rare, so always heard)
+    local home = ns.Plain(GetBindLocation())
+    ns.Events:On("HEARTHSTONE_BOUND", Quirks, function()
+        local now, was = ns.Plain(GetBindLocation()), home
+        home = now
+        ns.Log("Quirks", "hearthstone bound: %s (was %s)", tostring(now), tostring(was))
+        local key = ns.Pets:OutKey()
+        if key and type(now) == "string" and now ~= was then Quirks:Egg("home", key, now) end
     end)
     ns.Bus:On("MY_RECORD", function() Quirks:Watch() end)
     ns.Bus:On("ACTIVE_PET", function() Quirks:Watch() end)

@@ -24,7 +24,7 @@ return function(test, H)
     test("dormant unless wanted: no events, and the tooltip glance does nothing", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         local S = ola.ns.Sense
-        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions) end -- (a warrior's reactions want casts)
+        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions); S:Drop(kind, ola.ns.Bond) end -- (a warrior's reactions want casts; Bond the glance: leaders)
         local n = 0
         ola.ns.Bus:On("SENSE", function() n = n + 1 end)
         for _, kind in ipairs(S.KINDS) do no(S:Listening(kind), kind) end
@@ -44,7 +44,7 @@ return function(test, H)
     test("/dp probe sense: every sensor on, each subject in the debug log; off again", function()
         local w, ola = H.Setup{ ola = { 5159 } }
         local S = ola.ns.Sense
-        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions) end -- (a warrior's reactions want casts)
+        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions); S:Drop(kind, ola.ns.Bond) end -- (a warrior's reactions want casts; Bond the glance: leaders)
         ola:Slash("probe sense")
         for _, kind in ipairs(S.KINDS) do if kind ~= "glance" then ok(S:Listening(kind), kind) end end
         ok(S:Wants("glance"))
@@ -56,7 +56,7 @@ return function(test, H)
         ola.ns.Log("Sense.cast", "a cast after the reload")
         eq(#ola:Log("a cast after the reload"), 0, "quiet again")
         S = ola.ns.Sense
-        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions) end
+        for _, kind in ipairs(S.KINDS) do S:Drop(kind, ola.ns.Reactions); S:Drop(kind, ola.ns.Bond) end
         for _, kind in ipairs(S.KINDS) do no(S:Wants(kind), kind) end
     end)
 

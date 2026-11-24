@@ -642,4 +642,20 @@ return function(test, H)
         Die(w, ola, nil, { keep = true })
         eq(ola.ns.Activity:Count("wipe") + ola.ns.Activity:Count("routed"), 1, "an arena: neither")
     end)
+
+    -- A new home inn (2026-11-24, the user, batch G): every new inn by chance, once a day; not the same inn again.
+    test("a new home inn: a line by nature now and then, once a day; the same inn again says nothing", function()
+        local w, ola = Setup({ "reiseglad", "glupsk" })
+        local function Bind(inn) ola.state.home = inn; ola:Fire("HEARTHSTONE_BOUND"); w:Run(5) end
+        local function Said() return ola:CountPrinted("Et nytt sted å komme hjem til!") end
+        Bind(ola.env.GetBindLocation())
+        eq(Said(), 0, "the same inn as before: no line")
+        Bind("Crossroads")
+        eq(Said(), 1, "a new inn: its line, by nature")
+        Bind("Ratchet")
+        eq(Said(), 1, "once a day")
+        w:SkipDays(1); ola:Dice(0.99)
+        Bind("Camp Taurajo")
+        eq(Said(), 1, "the day's roll lost")
+    end)
 end

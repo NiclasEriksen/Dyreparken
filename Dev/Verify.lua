@@ -107,6 +107,11 @@ local function Build()
                 logs = { { "Chat", "^first%." .. what .. "%." .. Esc(slug) .. "%." } } })
         end
     end
+    for slug, row in pairs(ns.Bond.LEADERS) do
+        Item({ id = "named:leader:" .. slug, area = "named",
+            how = ("meet %s (%s) with a pet out, its first time"):format(table.concat(row, " or ", 2), row[1]),
+            logs = { { "Bond", "^leader " .. Esc(slug) .. ":" } } })
+    end
     for name, row in pairs(ns.Zones.rows) do
         -- (a goblin town is a subzone: GetSubZoneText names it, review 2026-11-21)
         Item({ id = "zone:" .. name, area = "zone", how = "go to " .. name, zone = name, sub = row.neutral or nil })

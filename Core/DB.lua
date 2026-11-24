@@ -141,6 +141,7 @@ local CHAR_DEFAULTS = {
     bondToday = nil,           -- { day, pets = { [petKey] = { got = { [cap] = n }, total } } }: today's points (Ledger)
     bondGains = {},            -- [petKey] = { gains not yet shown on its card } (Add; BondTrack: TakeGains)
     firsts = {},               -- [petKey] = { [boss name] = true }: bosses it has seen fall with you (First)
+    leaders = {},              -- [petKey] = { [leader slug] = true }: your faction's leaders it has met (Leader)
     -- [BondTrack]
     bondLook = {},             -- [petKey] = the bond points its card last showed (the bar grows from there)
     bondSeen = {},             -- [petKey] = the bond level last shown on its card (celebrate once)

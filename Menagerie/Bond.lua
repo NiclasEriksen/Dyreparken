@@ -705,6 +705,40 @@ local function Slugs(t)
 end
 Bond.BOSS_SLUG, Bond.PLACE_SLUG = Slugs(Bond.NAMED_BOSSES), Slugs(Bond.NAMED_PLACES)
 
+-- Faction leaders (2026-11-24, the user, batch G; an idea from the log: Thrall under the mouse): the first time a pet
+-- meets one of your own faction's (under the mouse: the glance), a first together, points and a line of its own
+-- (first.leader.<slug>.N) or now and then a general one (first.leader.N). The other side's don't count (the user).
+-- The Skyborne have no single ruler (the user). Names unverified: Verify's "named" list.
+Bond.LEADERS = {
+    thrall = { "Horde", "Thrall", "Warchief Thrall" }, cairne = { "Horde", "Cairne Bloodhoof" },
+    sylvanas = { "Horde", "Lady Sylvanas Windrunner", "Sylvanas Windrunner" }, voljin = { "Horde", "Vol'jin" },
+    magni = { "Alliance", "King Magni Bronzebeard", "Magni Bronzebeard" },
+    tyrande = { "Alliance", "Tyrande Whisperwind", "High Priestess Tyrande Whisperwind" },
+    stormwind = { "Alliance", "Highlord Bolvar Fordragon", "Bolvar Fordragon", "King Anduin Wrynn", "Anduin Wrynn" },
+    mekkatorque = { "Alliance", "High Tinker Mekkatorque", "Gelbin Mekkatorque" },
+}
+Bond.LEADER_SLUG = {}
+for slug, row in pairs(Bond.LEADERS) do
+    for i = 2, #row do Bond.LEADER_SLUG[row[i]] = slug end
+end
+Bond.LEADER_OWN = 0.7 -- the chance of the leader's own line, else a general one
+
+function Bond:Leader(s)
+    if s.kind ~= "npc" or type(s.name) ~= "string" then return end
+    local slug = self.LEADER_SLUG[s.name]
+    if not slug or self.LEADERS[slug][1] ~= ns.Plain(UnitFactionGroup("player")) then return end
+    local key = ns.Pets:OutKey()
+    if not key then return end
+    local met = ns.DB.char.leaders
+    met[key] = met[key] or {}
+    if met[key][slug] then return end
+    met[key][slug] = true
+    local own = #ns.Lines("first.leader." .. slug) > 0 and ns.random() < self.LEADER_OWN
+    ns.Log("Bond", "leader %s: %s meets %s", slug, key, s.name)
+    self:Reward("first", key, ns.PickLine(own and "first.leader." .. slug or "first.leader",
+        { pet = ns.Registry:NameOf(key), leader = s.name }))
+end
+
 -- Its line: a named place's own (always), else a family's own now and then (first.place.<family>.N), else a general
 -- one (first.place.N); each with the player's class's and race's mixed in (ns.Lines).
 function Bond:PlaceLine(key, place)
@@ -775,6 +809,8 @@ end
 function Bond:Init()
     self:CheckComeback() -- (first: the day's visit 30 s in takes what it owes)
     ns.Bus:On("HOLIDAYS", function() Bond:DayAgain() end)
+    ns.Bus:On("SENSE", function(kind, s) if kind == "glance" then Bond:Leader(s) end end)
+    ns.Sense:Want("glance", Bond)
     -- Any pet of ours that's out: its own bond (the summoned pet is always ours).
     ns.Bus:On("ACTIVITY", function(id, n, key, _, extra)
         if not key then return end
