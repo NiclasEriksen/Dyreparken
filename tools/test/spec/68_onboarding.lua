@@ -71,6 +71,12 @@ return function(test, H)
         tip = ola:TipOf(card.help)
         match(tip.text, "Personligheten er ukjent")
         match(tip.text, "Adopter dyret, så får det et ønske")
+        -- Review 2026-11-24 Q13: one you haven't adopted earns half, and its "?" says so.
+        match(tip.text, "5 båndpoeng om dagen, og opptil 37")
+        match(tip.text, "halvparten%. Adopter Great Horned Owl for full fart")
+        match(tip.text, "leker dyrene sammen: %+8")
+        card = ola:SelectPet(5159)
+        no(ola:TipOf(card.help).text:find("halvparten"), "the adopted one: full")
     end)
 
     test("/dp fresh: the welcome and the adoption line now; reset: a new player's again at the next login", function()

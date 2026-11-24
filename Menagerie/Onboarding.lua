@@ -44,8 +44,12 @@ function Onboarding:Forget() ns.DB.global.welcomed, ns.DB.char.toldAdoptHow = ni
 function Onboarding.HelpLines(key)
     if not key then return nil end
     local C, name = ns.Config, ns.Registry:NameOf(key)
+    -- (at this pet's rate: one you haven't adopted earns half, review 2026-11-24 Q13: every card said an adopted pet's)
+    local rate = ns.Bond:Rate(key)
+    local function At(v) return math.ceil(v * rate) end
     local lines = { { ns.T("help.title", { pet = name }), 1, 0.82, 0 },
-        { ns.T("help.day", { pet = name, n = C.BOND_DAY_POINTS, max = C.BOND_DAILY_MAX }), 1, 1, 1, true } }
+        { ns.T("help.day", { pet = name, n = At(C.BOND_DAY_POINTS), max = ns.Bond:DailyMax(key) }), 1, 1, 1, true } }
+    if rate < 1 then lines[#lines + 1] = { ns.T("help.half", { pet = name }), 0.8, 0.8, 0.8, true } end
     if ns.Personality:Known(key) then
         local likes = ns.Personality:LikedWords(key)
         if #likes > 0 then
@@ -61,8 +65,8 @@ function Onboarding.HelpLines(key)
     elseif ns.Registry:Status(key) ~= "mine" then
         lines[#lines + 1] = { L["help.wish.adopt"], 0.8, 0.8, 0.8, true }
     end
-    lines[#lines + 1] = { ns.T("help.play", { n = C.BOND_PLAY_POINTS }), 1, 1, 1, true }
-    lines[#lines + 1] = { ns.T("help.pat", { n = C.BOND_PAT_POINTS }), 1, 1, 1, true }
+    lines[#lines + 1] = { ns.T("help.play", { n = At(C.BOND_PLAY_POINTS) }), 1, 1, 1, true }
+    lines[#lines + 1] = { ns.T("help.pat", { n = At(C.BOND_PAT_POINTS) }), 1, 1, 1, true }
     return lines
 end
 

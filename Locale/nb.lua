@@ -93,6 +93,7 @@ L["welcome.where"] = "Parken og Prestasjoner er fanene til høyre i samlingen, o
 L["welcome.adopted"] = "Ha {pet} ute med deg: {day} poeng om dagen, mer når dere gjør noe det liker (opptil {max}). Hold over ? på kortet for mer."
 L["help.title"] = "Slik blir du venn med {pet}"
 L["help.day"] = "Ha {pet} ute med deg: {n} båndpoeng om dagen, og opptil {max} med alt dere gjør."
+L["help.half"] = "Et dyr du ikke har adoptert, får halvparten. Adopter {pet} for full fart."
 L["help.likes"] = "{pet} liker {list}: mer poeng for det."
 L["help.unknown"] = "Personligheten er ukjent til noen i guilden har dyret."
 L["help.wish"] = "I dag: {line} (+{n})"
