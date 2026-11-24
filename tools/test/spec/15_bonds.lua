@@ -36,6 +36,21 @@ return function(test, H)
         eq(Line(), nil, "none with room: the plain line, its first three times only")
     end)
 
+    -- Review 2026-11-24 Q8: "nobody has room" while a pet out this morning had room left.
+    test("a full day: a pet out earlier today with room left is named last, with its own line", function()
+        local w, ola = H.Setup{ ola = { 5159, 46, 40 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local ns, char = ola.ns, ola.ns.DB.char
+        char.activity.day.on = { ["s:46"] = ns.Today(), ["s:40"] = ns.Today(ns.Now() - 2 * 86400) }
+        eq((ns.Bond:NextOpen(PANDA)), "s:40", "one out on another day first")
+        ns.Bond:Today("s:40"); char.bondToday.pets["s:40"].total = ns.Bond:DailyMax("s:40")
+        local key, days = ns.Bond:NextOpen(PANDA)
+        eq(key, "s:46"); eq(days, 0)
+        eq((ns.Bonds:FullLine(PANDA)), "Panda Cub er fornøyd for i dag. White Kitten var ute tidligere i dag, og har fortsatt plass til mer.")
+        ns.Bond:Today("s:46"); char.bondToday.pets["s:46"].total = ns.Bond:DailyMax("s:46")
+        eq((ns.Bond:NextOpen(PANDA)), nil, "its day full too: nobody")
+    end)
+
     -- 2026-11-22, the user: the pet frame's swap named a pet outside the Turnus.
     test("a full day's suggestion: your Turnus pets first, the next in turn with room; others only when none has", function()
         local w, ola = H.Setup{ ola = { 5159, 46, 40 } }

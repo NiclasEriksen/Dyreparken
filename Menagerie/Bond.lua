@@ -366,10 +366,12 @@ end
 
 -- The pet to suggest when the one out has a full day (2026-11-22, the content review §4.2, the user: the full
 -- day's line a nudge toward another pet): one of yours with room today, the one longest since its last day
+-- out with you, else one that has never been out with you (the first by name), else one out earlier today. Returns
+-- key and the days since (nil for never, 0 for today), or nil when there's none. Your Turnus pets first, in their turn after the one out (2026-11-22, the
 -- user: the pet frame named a pet outside it).
 function Bond:NextOpen(except)
     local today = DayNumberOf(ns.Today())
-    local best, bestDays, fresh, freshName
+    local best, bestDays, fresh, freshName, again
     local fits = {} -- key -> days since (false: never out)
     for key in pairs(ns.Pets:Owned()) do
         if key ~= except and self:Open(key) then
@@ -379,6 +381,9 @@ function Bond:NextOpen(except)
                 if days > 0 then
                     fits[key] = days
                     if not bestDays or days > bestDays or (days == bestDays and key < best) then best, bestDays = key, days end
+                elseif not again or key < again then
+                    -- (out earlier today, room left: the last resort, review 2026-11-24 Q8; it said nobody had room)
+                    again = key
                 end
             else
                 fits[key] = false
@@ -399,7 +404,8 @@ function Bond:NextOpen(except)
         if fits[key] ~= nil then return key, fits[key] or nil end
     end
     if best then return best, bestDays end
-    return fresh, nil
+    if fresh then return fresh, nil end
+    if again then return again, 0 end
 end
 
 -- What the pet's day still has room for, of points.

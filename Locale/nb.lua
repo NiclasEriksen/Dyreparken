@@ -702,6 +702,7 @@ L["bond.full"] = "Båndet med {pet} er fullt for i dag. Fortsett i morgen!"
 L["bond.full.next"] = "{pet} er fornøyd for i dag. {other} har ikke vært ute på {n} dager: kanskje den vil være med?"
 L["bond.full.next.yesterday"] = "{pet} er fornøyd for i dag. {other} var med i går, og vil gjerne ut igjen."
 L["bond.full.swap"] = "Ta med {pet} ut"                     -- the nudge's clickable words after it: takes that pet out
+L["bond.full.next.today"] = "{pet} er fornøyd for i dag. {other} var ute tidligere i dag, og har fortsatt plass til mer."
 L["bond.full.next.new"] = "{pet} er fornøyd for i dag. {other} har aldri vært ute med deg: kanskje det er dens tur?"
 
 ------------------------------------------------------------------------------

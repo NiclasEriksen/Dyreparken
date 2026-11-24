@@ -122,7 +122,8 @@ function Bonds:FullLine(key)
     local other, days = ns.Bond:NextOpen(key)
     if other then
         local vars = { pet = pet, other = ns.Registry:NameOf(other), n = days }
-        local which = not days and "bond.full.next.new" or days == 1 and "bond.full.next.yesterday" or "bond.full.next"
+        local which = not days and "bond.full.next.new" or days == 0 and "bond.full.next.today"
+            or days == 1 and "bond.full.next.yesterday" or "bond.full.next"
         return ns.PickLine(which, vars), other
     end
     local char = ns.DB.char
