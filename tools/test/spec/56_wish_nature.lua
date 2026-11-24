@@ -185,6 +185,7 @@ return function(test, H)
         ola:Fire("GROUP_ROSTER_UPDATE")
         w:Run(5)
         ok(W:Today().done)
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:PrintedLine("wish.granted.full", { pet = "Panda Cub", activity = "en lekeavtale" }))
         w:SetGroup(nil)
 
@@ -197,6 +198,7 @@ return function(test, H)
         ola:Hover{ species = 40, owner = "Kari Berg" }
         w:Run(1)
         ok(W:Today().done)
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:PrintedLine("wish.granted.full", { pet = "Panda Cub", activity = "dyrevenner fra guilden" }))
     end)
 

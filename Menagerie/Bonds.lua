@@ -167,9 +167,25 @@ ns.Bus:On("COMEBACK", function(key, given)
     ns.PrintGold(text)
     ns.Bus:Fire("PET_SAID", key, "major", text)
 end)
+-- One at a time (review 2026-11-24 Q10, the user: "build that queue"): a boss kill printed the first's line, the wish's
+-- and a reaction's in the same second. A bond line comes LINE_GAP after the one before it, in order, and none is lost
+-- (a /reload in the wait drops what waits: the points are given already, only the words go).
+Bonds.LINE_GAP = 4
+local nextLineAt, waiting = 0, 0
+-- Lines waiting their turn (/dp state; the tests' c:LinesOut).
+function Bonds:Waiting() return waiting end
 ns.Bus:On("BOND_LINE", function(key, text, kind)
-    if ns.Settings:Chatty() then ns.PrintGold(text) end
-    ns.Bus:Fire("PET_SAID", key, kind or "like", text)
+    local now = GetTime()
+    local at = math.max(now, nextLineAt)
+    nextLineAt = at + Bonds.LINE_GAP
+    local function Say()
+        if ns.Settings:Chatty() then ns.PrintGold(text) end
+        ns.Bus:Fire("PET_SAID", key, kind or "like", text)
+    end
+    if at <= now then return Say() end
+    ns.Log("Bonds", "a line waits %.1f s", at - now)
+    waiting = waiting + 1
+    C_Timer.After(at - now, function() waiting = waiting - 1; Say() end)
 end)
 
 -- The park's birthday (2026-11-10): the day of the guild's first adoption we

@@ -549,6 +549,7 @@ return function(test, H)
         w:SkipDays(1)
         ola:Dice()
         ola:Fire("UNIT_SPELLCAST_SUCCEEDED", "player", "Cast", 8690)
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:Printed("Bombay Cat er glad for å være hjemme!", true), "no bind location: the plain line")
         -- A cat, the first time in Winterspring.
         ola.ns.Activity:Emit("explore", 1, "Winterspring")

@@ -238,9 +238,11 @@ return function(test, H)
         B:First("boss", PANDA, "Ragnaros"); w:RunTimers()
         ok(ola:PrintedLine("first.boss.ragnaros", { pet = "Panda Cub" }), "Ragnaros's own")
         B:First("boss", PANDA, "Hogger"); w:RunTimers()
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:PrintedLine("first.boss", { pet = "Panda Cub", boss = "Hogger" }), "anyone else: the general ones")
         ns.DB.char.places[PANDA] = { Durotar = true, ["Molten Core"] = true }
         B:First("explore", PANDA, "Molten Core"); w:RunTimers()
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:PrintedLine("first.place.moltencore", { pet = "Panda Cub" }), "a named place: always, its own")
         ns.DB.char.places[PANDA]["Ashenvale"] = true
         ola:ClearPrinted()
@@ -255,8 +257,10 @@ return function(test, H)
         ola:Companions{ [5159] = { a = true, t = { "frog" } } }
         w:SkipDays(1)
         B:First("explore", PANDA, "Swamp of Sorrows"); w:RunTimers()
+        ola:LinesOut()
         ok(ola:PrintedLine("first.place.swamp.frog", { pet = "Panda Cub" }), "a frog in the swamp")
         B:First("explore", PANDA, "Winterspring"); w:RunTimers()
+        ola:LinesOut()
         ok(ola:PrintedLine("first.place.winterspring", { pet = "Panda Cub" }), "no frog lines there: the zone's")
     end)
 
@@ -272,6 +276,7 @@ return function(test, H)
         B:First("boss", PANDA, "Hogger"); w:RunTimers()
         no(ola:PrintedLine("first.boss", { pet = "Panda Cub", boss = "Hogger" }), "the cap holds for the rest")
         B:First("boss", PANDA, "Ragnaros"); w:RunTimers()
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:PrintedLine("first.boss.ragnaros", { pet = "Panda Cub" }), "Ragnaros speaks anyway")
     end)
 
@@ -290,6 +295,27 @@ return function(test, H)
         w:Run(ns.Bond.LINE_GAP + 1)
         ns.Activity:Emit("boss", 1, "Hogger")
         eq(#lines, 2, "the liked line, later")
+    end)
+
+    -- Review 2026-11-24 Q10, the user: "build that queue".
+    test("bond lines come one at a time, LINE_GAP apart, in order; none is lost", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda"); w:Run(40)
+        local ns = ola.ns
+        local said = {}
+        ns.Bus:On("PET_SAID", function(key, _, text) if key == PANDA then said[#said + 1] = { t = ola.env.GetTime(), text = text } end end)
+        ns.Bus:Fire("BOND_LINE", PANDA, "en", "like")
+        ns.Bus:Fire("BOND_LINE", PANDA, "to", "major")
+        ns.Bus:Fire("BOND_LINE", PANDA, "tre", "like")
+        eq(#said, 1, "the first at once"); eq(ns.Bonds:Waiting(), 2)
+        ola:LinesOut()
+        eq(#said, 3, "none lost")
+        eq(said[2].text .. said[3].text, "totre", "in order")
+        for i = 2, 3 do ok(said[i].t - said[i - 1].t >= ns.Bonds.LINE_GAP - 1e-6, "apart") end
+        ok(ola:Printed("tre", true), "printed too")
+        w:Run(ns.Bonds.LINE_GAP + 1)
+        ns.Bus:Fire("BOND_LINE", PANDA, "fire", "like")
+        eq(#said, 4, "after a pause: at once again")
     end)
 
     -- Review 2026-11-24 Q23: a leader met on a character with no guild was used up for no points.
@@ -333,6 +359,7 @@ return function(test, H)
         no(ns.DB.char.leaders[PANDA].magni)
         ola:Dice(0.99)
         Meet("Cairne Bloodhoof")
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:PrintedLine("first.leader", { pet = "Panda Cub" }), "now and then a general line")
         for slug, row in pairs(B.LEADERS) do
             ok(#ns.Variants("first.leader." .. slug) >= 1, slug)

@@ -457,6 +457,7 @@ return function(test, H)
         eq(ola:CountPrinted("jubler over at du fisket"), 0, "not in Elwynn")
         ola.state.zone = "Stranglethorn Vale"
         ok(Fish() >= ola.ns.Config.BOND_CONTEST_POINTS, "the bonus, on top of the fishing")
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         eq(ola:CountPrinted("Bombay Cat jubler over at du fisket i fiskekonkurransen! (+10 båndpoeng)"), 1)
         ok(Fish() < ola.ns.Config.BOND_CONTEST_POINTS, "once a day")
         eq(ola:CountPrinted("jubler over at du fisket"), 1)

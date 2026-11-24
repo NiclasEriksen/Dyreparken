@@ -963,6 +963,9 @@ return function(test, H)
         Q:Say("Pandaen gjesper.", "test", "egg", nil, nil, "s:5159")
         Q:Say("Pandaen grøsser.", "test", "dislike", nil, nil, "s:5159")
         w:Run(1)
-        eq(table.concat(kinds, " "), "like major major say dislike")
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
+        -- (the wish's line waits its turn after the first bond line, review 2026-11-24 Q10: the level and the quirks
+        -- aren't bond lines, and come at once)
+        eq(table.concat(kinds, " "), "like major say dislike major")
     end)
 end

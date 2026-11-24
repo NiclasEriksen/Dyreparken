@@ -65,9 +65,11 @@ return function(test, H)
         -- (code review 2026-11-15).
         e.p = e.p + B:Room(PANDA) - 10
         Learn(w, ola, 712)
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:Printed("var med da du lærte Summon Succubus! %(%+10 båndpoeng%)"), "the 10 it had room for")
         e.p = e.p + B:Room(PANDA)
         Learn(w, ola, 71)
+        ola:LinesOut() -- (bond lines one at a time: Bonds.LINE_GAP)
         ok(ola:Printed("var med da du lærte Defensive Stance!$"), "none left: no points in the line")
     end)
 

@@ -339,6 +339,15 @@ end
 
 -- Chat lines said by now: the pending timers run first (a quirk line waits a moment).
 function Client:Said(text) self.world:RunTimers(); return self:Printed(text, true) end
+-- The bond lines waiting their turn (Bonds' queue, LINE_GAP apart) all said: the clock runs until none waits.
+function Client:LinesOut()
+    for _ = 1, 200 do
+        self.world:RunTimers()
+        if self.ns.Bonds:Waiting() == 0 then return end
+        self.world:Run(0.5)
+    end
+    error("bond lines still waiting")
+end
 -- How many printed lines hold this text (plain), the pending timers run first.
 function Client:CountPrinted(text)
     self.world:RunTimers()
