@@ -15,7 +15,7 @@ return function(test, H)
         } }
     end
 
-    -- (hidden: true keeps "Skjul ukjente dyr" on, the default: 46 and 84, which nobody has, are question
+    -- (hidden: true keeps "Ukjente dyr som spørsmålstegn" on, the default: 46 and 84, which nobody has, are question
     -- marks. The older tests look at every portrait: off.)
     local function Setup(hidden)
         local w = H.World({ members = H.FOLK }) -- (only members' adoptions are kept)
@@ -1005,9 +1005,9 @@ return function(test, H)
         w:Run(ola.ns.Config.OWN_LEARN_DELAY + 1)
         eq(#Marks(), 1)
         ok(Cell(ola, 84), "its portrait")
-        -- "Skjul ukjente dyr" off: the White Kitten's portrait too, and the legend says nothing of marks.
+        -- "Ukjente dyr som spørsmålstegn" off: the White Kitten's portrait too, and the legend says nothing of marks.
         ola.ns.Settings.cog:Click()
-        local box = ola:Page("Innstillinger"):Labeled("Skjul ukjente dyr")
+        local box = ola:Page("Innstillinger"):Labeled("Ukjente dyr som spørsmålstegn")
         ok(box:GetChecked(), "on by default")
         box:Click()
         eq(ola.env.DyreparkenDB.settings.hideUnknown, false)

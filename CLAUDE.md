@@ -379,7 +379,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Dyreparken: Settings.Canvas, a canvas category; c:OpenOptions in the tests); the four older per-character settings plus the account's DyreparkenDB.settings: chatter ("Småting i chatten", a slider of four steps, 2026-11-15: none hides the lines only; few doubles
                    the waits and halves every chance; many a third of the waits (an egg's stays) and half again the lines' chances,
                    not the eggs': Settings.CHATTER, Moments:Every; account migration 14 from chatLines),
-                   worldHearts, cardParticles all/few/none, cardMoves, celebrate, hideUnknown ("Skjul ukjente dyr", on by default: Parken's
+                   worldHearts, cardParticles all/few/none, cardMoves, celebrate, hideUnknown ("Ukjente dyr som spørsmålstegn", on by default: Parken's
                    question marks), and the pet frame's (petFrame, petFrameArt,
                    petFrameCombat, petFrameFade, petFrameAlpha); modules ask Settings:On(key)),
                    Bond (the bond score between a carer and their pet: levels, daily points, seeding; data in
@@ -641,7 +641,7 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   grows). Older clients keep syncing (the user): the protocol is per kind now (X-Protocol-Floor 10; Wire.SINCE, Stamp,
   Compatible), so a 0.7 client reads every kind it knows and drops OWN and OWN_SYNC. Parken shows a pet nobody in the
   guild has as a small question mark (no ring, no name in its tooltip, a wiggle on a click, not on the stage, not found
-  by a search; "Skjul ukjente dyr", on by default, turns it off). The card's home line tooltip names the others who
+  by a search; "Ukjente dyr som spørsmålstegn", on by default, turns it off). The card's home line tooltip names the others who
   have it (not you or the holder): two by name, from three a count. A pet someone in the guild owns has a known
   personality (Personality:Known). A non-member's list is dropped, not held (the next OWN_SYNC brings it again).
 
