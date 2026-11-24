@@ -112,6 +112,13 @@ return function(test, H)
         -- the day's, and the real fall said nothing).
         w:Run(A.FALL_AGAIN); Fall(w, ola)
         eq(Big(), 1, "a big one")
+        -- 2026-11-24, from the log: a big fall's line, then a small one's 5 s later. Soon after a big one, quiet.
+        w:SkipDays(1); w:Run(A.FALL_AGAIN); Fall(w, ola)
+        eq(Big(), 2, "the next day's big one")
+        w:Run(A.FALL_AGAIN); Fall(w, ola, false, true)
+        eq(Mild(), 3, "a small fall right after a big one: quiet")
+        w:Run(Q.FALL_QUIET); Fall(w, ola, false, true)
+        eq(Mild(), 4, "later, the small one's line")
     end)
 
     -- From the log (review 2026-11-21): 12 of 26 falls came 0.5-1.1 s after a fight's end (a mob's last swing

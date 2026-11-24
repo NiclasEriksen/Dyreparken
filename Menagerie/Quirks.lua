@@ -28,6 +28,7 @@ local ns = select(2, ...)
 -- Lines: Locale/nb.lua, dislike.<activity>.N and egg.<id>.N (one is picked).
 -- The activities they need are watched like the bond's (Activity:Want).
 ---@class Dyreparken.Quirks
+---@field bigFallAt number? (ns.Now() at the last big fall: FALL_QUIET)
 local Quirks = {}
 ns.Quirks = Quirks
 
@@ -485,8 +486,13 @@ Quirks.EGGS = {
             if ctx.extra ~= "high" then return nil end
             return Quirks.ByNature(ctx)
         end },
+    -- (2026-11-24, from the log: a big fall's line, then a small one's 5 s later. A small fall soon after a big
+    -- one stays quiet: Quirks.FALL_QUIET.)
     { id = "stupliten", delay = "now", on = "fall", chance = function() return Quirks.FALL_SMALL end,
-        test = function(ctx) return not ctx.extra and {} or nil end },
+        test = function(ctx)
+            if ctx.extra or (Quirks.bigFallAt and ns.Now() - Quirks.bigFallAt < Quirks.FALL_QUIET) then return nil end
+            return {}
+        end },
     -- Zeppelins and boats (Voyage.lua, 2026-11-12, the user): by trait, then family, else a plain one. A pet
     -- afraid of flying is afraid up there too.
     { id = "luftskip", on = "zeppelin", always = true, chance = 0.4,
@@ -561,6 +567,7 @@ end
 Quirks.TROPHY, Quirks.TROPHY_NEW = 0.05, 0.5
 -- A fall that hurt with no sign it was a big one (egg stup): a mild line, now and then.
 Quirks.FALL_SMALL = 0.35
+Quirks.FALL_QUIET = 600 -- seconds after a big fall (or the end of you) when a small one says nothing
 Quirks.REUNION_DAYS, Quirks.REUNION_CHANCE = 3, 0.35 -- (gjensyn: Monday's pet back on Thursday)
 Quirks.REUNION_LONG, Quirks.REUNION_LEVEL = 14, 3 -- (gjensyn, certain: two weeks apart, a Venn or more)
 Quirks.SWAP_LEVEL = 2 -- (bytte: both pets)
@@ -646,6 +653,7 @@ function Quirks:OnActivity(id, key, extra)
         table.insert(chatTimes, GetTime())
         if #chatTimes > self.CHAT_BURST then table.remove(chatTimes, 1) end
     end
+    if id == "fall" and extra then self.bigFallAt = ns.Now() end -- (pet out or not)
     if not key then return end
     -- A dislike doesn't stop the eggs (2026-11-12, the user: "why not?"): a wolf that minds naps
     -- still has its fifth nap's egg. The dislike speaks first; the hour it takes holds back the
