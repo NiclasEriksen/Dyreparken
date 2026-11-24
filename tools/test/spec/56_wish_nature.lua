@@ -246,4 +246,23 @@ return function(test, H)
         eq(ns.Wish.ZONES["Tanaris"][1], 40); eq(ns.Wish.ZONES["Gnomeregan"], nil, "an instance: never a trip")
         eq(table.concat(ns.Quirks.HOME_ZONES.pirate, ","), "Stranglethorn Vale,Tanaris,The Barrens")
     end)
+    -- Review 2026-11-24 Q12: the wish showed only on the card and the pet frame (off by default).
+    test("today's wish is said once, at the adopted pet's day's visit; not once it's done", function()
+        local w, ola = H.Setup{ ola = { 5159 } }
+        ola:Slash("adopter panda"); w:Run(5)
+        local function Told() return ola:CountPrinted("Dagens ønske:") end
+        w:SkipDays(1); ola:Reload(); w:Settle("day"); w:Run(ola.ns.Wish.TELL_AFTER + 20)
+        eq(Told(), 1, "the day's first visit, a minute on")
+        local w1 = ola.ns.Wish:Today()
+        match(ola:Printed("Dagens ønske:", true), ola.ns.Wish.Line(w1), "its card line")
+        ok(w1.told)
+        ola:Reload(); w:Settle("day"); w:Run(ola.ns.Wish.TELL_AFTER + 20)
+        eq(Told(), 1, "once a day, through a /reload")
+        -- Done already when the day's visit comes: nothing to say.
+        w:SkipDays(1)
+        local w2 = ola.ns.Wish:Today()
+        w2.done = true
+        ola.ns.Activity:CheckDay(); w:Run(ola.ns.Wish.TELL_AFTER + 20)
+        eq(Told(), 1, "done: quiet")
+    end)
 end

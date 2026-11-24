@@ -509,9 +509,33 @@ function Wish:Streak()
     return 0, false
 end
 
+-- Said once a day, at your adopted pet's day's visit (review 2026-11-24 Q12: only the card and the pet frame, off by
+-- default, showed it; wishes came true by accident, and a casual player couldn't chase a streak). Not once it's done,
+-- and through Moments, one line at a time, a minute after the visit: the day's own lines (a holiday, an egg) go first.
+-- Chatter "Ingenting" hides it as every other.
+Wish.TELL_AFTER = 60
+local tellT = ns.Timers()
+function Wish:Tell()
+    local w = self:Today()
+    if not w or w.done or w.told then return end
+    tellT:Cancel()
+    tellT:After(Wish.TELL_AFTER, function() Wish:TellNow() end)
+end
+function Wish:TellNow()
+    local w = Stored()
+    if not w or w.done or w.told then return end
+    local function Say()
+        if w.done or w.told or w ~= Stored() then return end
+        ns.Moments:Say({ text = ns.T("wish.today", { line = Wish.Line(w), n = ns.Config.BOND_WISH_POINTS }), key = w.pet,
+            why = "the wish", id = "wish", delay = "day", said = function() w.told = true end })
+    end
+    if ns.Moments:Pending() then ns.Moments:Later("wish", Say) else Say() end
+end
+
 function Wish:Init()
     -- (OnActivity checks the pet out is today's wisher: your adopted pet.)
     ns.Bus:On("ACTIVITY", function(id, _, key)
+        if id == "day" and key and key == ns.Registry:MyPet() then Wish:Tell() end
         if Wish.COMPANY[id] then ns.DB.char.company = ns.Now() end
         if Wish.GATHER[id] then Wish:Gathered(id) end
         Wish:OnActivity(id, key)
