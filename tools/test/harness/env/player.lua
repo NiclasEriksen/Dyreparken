@@ -79,6 +79,9 @@ return function(c, env, S)
     env.LOOT_ITEM_PUSHED_SELF = "You receive item: %s"
     env.LOOT_ITEM_SELF_MULTIPLE = "You receive loot: %sx%d."
     env.ERR_FISH_ESCAPED = "Your fish got away!"
+    -- A summon refused (AutoCompanion's, Dev/Watch.lua): the companion cooldown, and sitting.
+    env.ERR_ABILITY_COOLDOWN = "Ability is not ready yet."
+    env.SPELL_FAILED_NOT_STANDING = "You must be standing to do that"
     env.DUEL_WINNER_KNOCKOUT = "%1$s has defeated %2$s in a duel" -- (Forever's, /dp probe api 2026-11-11)
     env.DUEL_WINNER_RETREAT = "%2$s has fled from %1$s in a duel"
     env.ERR_NEWTAXIPATH = "New flight path discovered!"
@@ -160,6 +163,8 @@ return function(c, env, S)
     -- Emotes and jumps: what the player pressed (hooked by the addon).
     env.DoEmote = function(token, target) S.lastEmote = token end
     env.JumpOrAscendStart = function() S.jumps = (S.jumps or 0) + 1 end
+    -- The sit key (X): Forever has it, and no UnitStandState to read the result (docs/FOREVER_API.md).
+    env.SitStandOrDescendStart = function() S.sitKeys = (S.sitKeys or 0) + 1 end
     env.CreateColor = function(r, g, b, a) return { r = r, g = g, b = b, a = a } end
     -- The cursor, in screen pixels (c.cursor = { x, y }).
     env.GetCursorPosition = function() local p = c.cursor or { 0, 0 }; return p[1], p[2] end

@@ -495,7 +495,8 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   Kingdoms and the zone still "Tanaris", then `ZONE_CHANGED_NEW_AREA` "Riverglades", map 2548, "Eastwind Shore").
   Forever's 14 routes (wowforever.be, from the 1.60.1 game files): new are Steamwheedle Port to Powderfuse Port,
   Stormwind Harbor to Auberdine, Menethil to Southshore to Auberdine, and Zephras Isle's zeppelins (Valanaar to
-  Dalaran and to Skywatcher Plateau); their zone names other than Riverglades are unverified.
+  Dalaran and to Skywatcher Plateau); their zone names other than Riverglades are unverified. Riverglades is a
+  level 35 zone, and its goblin port's subzone is "Powderfuse Port" (the user, 2026-11-22).
 - **A summon isn't a ride** (2026-11-21, review): `C_SummonInfo` is in the client (the API probe: ConfirmSummon,
   CancelSummon, GetSummonConfirmSummoner, GetSummonConfirmAreaName, GetSummonConfirmTimeLeft, GetSummonReason,
   IsSummonSkippingStartExperience). Voyage hooks `ConfirmSummon` as a cast that takes you somewhere. **Assumed** from
@@ -704,6 +705,66 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   of Lordaeron its countdown gave nothing, a Camp Benefits still on went 5 s after, and the next countdown brought
   "Boosted Disenchanting" (1283701, no end). Not handled on purpose: the game doesn't either.
 - `ERR_ZONE_EXPLORED` is "Discovered: %s"; it came in system chat (above; UI_INFO_MESSAGE unverified), and the explore wish reads both (like ERR_NEWTAXIPATH), and `ERR_ZONE_EXPLORED_XP` too.
+
+## Weather, chat links and racials (`/dp probe api weather|links|racials`, 2026-11-22, build 1.60.1 71037, Tauren shaman)
+
+- **Weather**: `C_Weather.GetCurrentWeather()` returns one table, `{ type = n, intensity = n }` (type from
+  `Enum.WeatherType`: Clear 0, Rain 1, Snow 2, Sandstorm 3, Miscellaneous 4). An hour in Un'Goro Crater read
+  `{type=0, intensity=0}` throughout, and `WEATHER_CHANGED` registered without an error but never fired. Rain, the
+  same day in Un'Goro: `{type=1, intensity=0.9395...}`, so intensity is a fraction (0 to 1, presumably), steady over
+  half a minute and through subzone changes. **`WEATHER_CHANGED` fires as the weather turns**, with no payload: rain
+  in Un'Goro held at 0.9395 for at least 53 minutes (17:01-17:54), then the event came and the reading was
+  `{type=0, intensity=0}` at once. Not yet seen: snow, sand, whether intensity ever moves within a spell, and whether
+  the event also comes when you walk into another zone's weather (Weather.lua reads at zone changes too). It does
+  (later the same day, a flight Un'Goro, Tanaris, Thousand Needles, the Barrens, Mulgore): a second or so after
+  ZONE_CHANGED_NEW_AREA, sometimes twice. A sandstorm reads `{type=3, intensity=0.59}` (Tanaris), rain 0.81 (the
+  Barrens). Snow not seen yet.
+- **Addon links in chat work**: a printed `|cff71d5ff|Haddon:Dyreparken:<data>|h[text]|h|r` is clickable, and the click
+  reaches `EventRegistry:RegisterCallback("SetItemRef", fn, owner)` as `(owner, link, text, button)` with
+  link `"addon:Dyreparken:<data>"`, as on retail; `hooksecurefunc("SetItemRef")` and the chat frame's
+  `OnHyperlinkClick` see it too. No error, nothing else happens. The old `garrmission:` trick reaches the same hooks.
+- **Racials**: a Tauren knows Plainsrunning (1259918, Forever's own), War Stomp (20549), Endurance (20550) and
+  Cultivation (20552) (`IsPlayerSpell`). The other races are unchecked.
+
+## Sitting, crafting, scenes (read from the saved `/dp probe api` data, 2026-11-24, build 1.60.1 71037)
+
+For `/dp probe watch` (Dev/Watch.lua), which asks the rest in game:
+- **There:** `SitStandOrDescendStart` (the sit key, hookable), `DoEmote`, `JumpOrAscendStart`, `IsFalling`,
+  `UnitInVehicle`, `IsStealthed`, `CheckInteractDistance` and `UnitInRange`.
+- **Known events:** `CINEMATIC_START`/`STOP`, `PLAY_MOVIE`, `TRADE_SKILL_SHOW`, `UNIT_ENTERED_VEHICLE`/`EXITED`,
+  `PLAYER_CONTROL_LOST`, `ZONE_CHANGED_INDOORS`, `UNIT_SPELLCAST_START`, `UNIT_SPELLCAST_CHANNEL_START` and
+  `PET_BATTLE_OPENING_START`.
+- **Missing:** `UnitStandState` (no stand state to read), `GetTradeskillRepeatCount` and `C_TradeSkillUI`.
+- **Not in the events probe's list, so unknown:** `READY_CHECK*`, `START_PLAYER_COUNTDOWN`,
+  `CANCEL_PLAYER_COUNTDOWN`, `TRADE_SKILL_CLOSE`, `STOP_MOVIE`, `UPDATE_STEALTH` and `UNIT_SPELLCAST_STOP`/`FAILED`/
+  `INTERRUPTED`/`CHANNEL_STOP`. The watch registers each with a pcall, and its first line names the ones refused.
+
+**From AutoCompanion (`../AutoCompanion` Core.lua, its own play on Forever; not checked by us yet):**
+- A summon refused for sitting also takes away the pet that was out.
+- Going AFK by idling sits you down; typing /afk doesn't.
+- Two presses of the sit key less than ~0.5 s apart can be dropped, so their result is unknown.
+- A chair or bench sit can't be seen.
+- A summon ends a crafting queue: the current item finishes, and the rest are dropped.
+- The game can take the pet away a split second before `PLAYER_LEAVING_WORLD`.
+
+**Seen in game with `/dp probe watch` (2026-11-24, 1.60.1 71037, solo):**
+- **Sitting:** a summon of another pet while seated takes the pet that was out away at once, then fails with
+  "You must be standing to do that" (`SPELL_FAILED_NOT_STANDING`, UI_ERROR_MESSAGE type 57). AutoCompanion was right.
+- **Summon cooldown:** a second `SummonPetByGUID` within ~0.7 s of the first is dropped silently: no UI error.
+  "Spell is not ready yet." (type 61) is a spell's cooldown, not the companion's.
+- **Mounts:** a ground mount keeps the pet out.
+- **Flight paths:** the game takes the pet at `PLAYER_CONTROL_LOST` and summons it back itself ~0.3 s after
+  `PLAYER_CONTROL_GAINED`, with no call.
+- **Crafting:** `TRADE_SKILL_UPDATE`, `CRAFT_SHOW` and `CRAFT_CLOSE` are refused. `TRADE_SKILL_SHOW` fires again
+  before every item of a queue; `TRADE_SKILL_CLOSE` fires twice at a close. `C_TradeSkillUI` exists after all (the
+  api probe's list missed it); `GetNumTradeSkills` and `GetTradeSkillLine` don't.
+- **Known (registered fine):** `READY_CHECK`, `READY_CHECK_CONFIRM`, `READY_CHECK_FINISHED`,
+  `START_PLAYER_COUNTDOWN`, `CANCEL_PLAYER_COUNTDOWN`, `START_TIMER`, `TRADE_SKILL_CLOSE`, `STOP_MOVIE`,
+  `UPDATE_STEALTH`, `UNIT_SPELLCAST_STOP`/`FAILED`/`INTERRUPTED`/`CHANNEL_STOP` (not fired yet: solo, no scenes).
+- **Swimming:** `IsSwimming()` flips in and out within a second or two at a shore's edge.
+- **Jumping:** `IsFalling()` is 1 at 0.3 s after the jump key, and a plain jump has landed by 1 s.
+- **Subzones** come in English, and one name can belong to several zones ("Southfury River": The Barrens,
+  Ashenvale, Azshara).
 
 ## SavedVariables
 

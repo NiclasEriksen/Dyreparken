@@ -130,6 +130,7 @@ Dev\State.lua
 Dev\Try.lua
 Dev\Perf.lua
 Dev\Verify.lua
+Dev\Watch.lua
 Dev\Commands.lua
 #@end-do-not-package@
 
