@@ -25,7 +25,6 @@ local lastSent
 local Channel = ns.GroupChannel
 local function PetOut() return (ns.Pets:OutKey()) end
 
--- Tell the group which pet we have out (answer: replying to someone's).
 function Playdate:Announce(answer)
     local channel, key = Channel(), PetOut()
     if not (channel and key) or ns.InCombat() then return end

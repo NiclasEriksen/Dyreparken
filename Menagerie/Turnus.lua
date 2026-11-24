@@ -22,6 +22,12 @@ function Turnus:List()
     return out
 end
 
+-- In the list and owned (a removed or caged pet's turn isn't taken).
+function Turnus:Listed(key)
+    for _, k in ipairs(self:List()) do if k == key then return true end end
+    return false
+end
+
 function Turnus:Has(key)
     for _, k in ipairs(ns.DB.char.turnus or {}) do if k == key then return true end end
     return false
@@ -37,6 +43,9 @@ function Turnus:Toggle(key)
         if k == key then
             table.remove(list, i)
             char.turnus = #list > 0 and list or nil
+            -- (taken out: it isn't anyone's turn today any more, review 2026-11-24 Q2)
+            local d = char.turnusDay
+            if d and d.turn == key then d.turn = nil end
             ns.Log("Turnus", "out: %s (%d left)", key, #list)
             return true
         end
@@ -97,7 +106,7 @@ function Turnus:TakeOver(key)
     if not (self:On() and key == ns.Summon:ActiveKey() and self:Has(key)) then return false end
     local d = ns.DB.char.turnusDay
     local turn = d and d.day == ns.Today() and d.turn
-    local nextKey = turn and turn ~= key and ns.Bond:Open(turn) and turn or self:Next(key)
+    local nextKey = turn and turn ~= key and self:Listed(turn) and ns.Bond:Open(turn) and turn or self:Next(key)
     if not nextKey then return false end
     ns.DB.char.turnusDay = { day = ns.Today(), key = nextKey, turn = nextKey ~= self:Mine() and nextKey or turn }
     ns.Summon:Rotate(nextKey)

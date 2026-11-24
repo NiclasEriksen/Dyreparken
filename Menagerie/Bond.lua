@@ -366,8 +366,6 @@ end
 
 -- The pet to suggest when the one out has a full day (2026-11-22, the content review §4.2, the user: the full
 -- day's line a nudge toward another pet): one of yours with room today, the one longest since its last day
--- out with you, else one that has never been out with you (the first by name). Returns key and the days since
--- (nil for never), or nil when there's none. Your Turnus pets first, in their turn after the one out (2026-11-22, the
 -- user: the pet frame named a pet outside it).
 function Bond:NextOpen(except)
     local today = DayNumberOf(ns.Today())
@@ -392,7 +390,7 @@ function Bond:NextOpen(except)
     -- (whose turn it is after your adopted pet first: the one Turnus:TakeOver goes to)
     local d = ns.DB.char.turnusDay
     local turn = d and d.day == ns.Today() and d.turn
-    if turn and fits[turn] ~= nil then return turn, fits[turn] or nil end
+    if turn and fits[turn] ~= nil and ns.Turnus and ns.Turnus:Listed(turn) then return turn, fits[turn] or nil end
     local list = ns.Turnus and ns.Turnus:List() or {}
     local at = 0
     for i, k in ipairs(list) do if k == except then at = i end end
@@ -430,7 +428,6 @@ local function Grant(d, points, key)
     return Bond:Add(points, key)
 end
 
--- One line of flavor a day, for the first thing the pet loved.
 local function Flavor(d, key, text)
     if d.flavor or not text then return end
     d.flavor = true

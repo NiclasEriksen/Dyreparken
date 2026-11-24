@@ -134,6 +134,26 @@ return function(test, H)
         eq(ola.ns.DB.char.activePet, KITTEN, "nothing picked while off")
     end)
 
+    -- Review 2026-11-24 Q2-Q4 (repros in docs/review-2026-11-24/repro).
+    test("a pet taken out of the Turnus isn't today's turn any more, nor named as the one with room", function()
+        local w, ola, T = Setup()
+        T:Toggle(PANDA); T:Toggle(KITTEN); T:Toggle(CAT)
+        w:SkipDays(1); ola:Reload(); w:Settle("hello")
+        local ns = ola.ns
+        T = ns.Turnus
+        local turn = ns.DB.char.turnusDay.turn
+        ok(turn == KITTEN or turn == CAT, "a turn after the panda")
+        T:Toggle(turn)
+        eq(ns.DB.char.turnusDay.turn, nil, "cleared")
+        ola:Summon(5159)
+        no(ns.Bond:NextOpen(PANDA) == turn and T:Has(turn), "the hint")
+        Fill(ola, PANDA)
+        w:Run(3)
+        local active = ns.Summon:ActiveKey()
+        ok(T:Has(active), "the next comes from the Turnus: " .. tostring(active))
+        no(active == turn)
+    end)
+
     test("Flokk lists the Turnus pets: today's in gold, and how each one's day stands", function()
         local w, ola, T = Setup()
         T:Toggle(PANDA); T:Toggle(KITTEN)

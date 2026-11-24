@@ -36,7 +36,6 @@ ns.Summon = Summon
 
 local RETRY_EVERY, RETRY_FOR = 3, 60
 -- Busy states whose end is a trigger (PLAYER_REGEN_ENABLED, dismounting, PLAYER_ALIVE/UNGHOST, standing up, the
--- trade skill window closing): no retries.
 Summon.WAITS_FOR = { combat = true, mounted = true, dead = true, familiar = true, sitting = true, crafting = true }
 local MAX_ATTEMPTS = 3 -- actual summon calls per trigger; each failure shows an error
 
