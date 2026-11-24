@@ -18,12 +18,15 @@ local L = ns.L
 Onboarding.SAY_AFTER = 0.5 -- seconds after the adoption's own line
 
 -- force: said again (/dp fresh), solo: as outside a guild.
+-- A member with no pet at all is told where they come from, not to adopt one (review 2026-11-24 Q18: three in the
+-- guild were).
 function Onboarding:Welcome(force, solo)
     local db = ns.DB.global
     if db.welcomed and not force then return end
     db.welcomed = true
     if ns.Registry:MyPet() and not force then return end -- (an old hand on a new install: nothing to tell)
-    ns.Print(L[(IsInGuild() and not solo) and "welcome.guild" or "welcome.solo"])
+    local guild = IsInGuild() and not solo
+    ns.Print(L[not guild and "welcome.solo" or next(ns.Pets:Owned()) == nil and "welcome.nopets" or "welcome.guild"])
     ns.Print(L["welcome.where"])
 end
 

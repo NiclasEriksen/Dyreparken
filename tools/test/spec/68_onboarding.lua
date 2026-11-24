@@ -102,4 +102,13 @@ return function(test, H)
         ola:Reload(); w:Settle("hello"); w:Run(ola.ns.Onboarding.WELCOME_AFTER)
         ok(ola:Printed(WELCOME, true))
     end)
+
+    -- Review 2026-11-24 Q18: a member with no pets at all was told to adopt one.
+    test("a member with no pets: the welcome says where pets come from, not to adopt one", function()
+        local w = H.World()
+        local ola = w:AddClient("Ola Nord", { pets = {} })
+        w:Settle("hello"); w:Run(ola.ns.Onboarding.WELCOME_AFTER)
+        ok(ola:Printed("Du har ingen kjæledyr ennå: i Parken", true))
+        no(ola:Printed("og adopter et dyr", true))
+    end)
 end

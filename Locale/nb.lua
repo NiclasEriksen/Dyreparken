@@ -88,6 +88,7 @@ L["nick.set"] = "Kallenavnet er nå «{nick}»."
 L["nick.cleared"] = "Kallenavnet er fjernet."
 -- A new player's first steps (Onboarding.lua): once an account, once after the first adoption, the card's "?".
 L["welcome.guild"] = "Velkommen til Dyreparken! Åpne samlingen (Shift+P) og adopter et dyr: det blir guildens, og dere bygger et bånd sammen."
+L["welcome.nopets"] = "Velkommen til Dyreparken! Du har ingen kjæledyr ennå: i Parken (en fane i samlingen, Shift+P) ser du hvor hvert dyr kommer fra, og hvem i guilden som har det."
 L["welcome.solo"] = "Velkommen til Dyreparken! Den er for guilder, der dere adopterer dyr sammen, men båndet med dyrene dine vokser likevel: ha dem ute med deg."
 L["welcome.where"] = "Parken og Prestasjoner er fanene til høyre i samlingen, og " .. COG .. " har innstillingene."
 L["welcome.adopted"] = "Ha {pet} ute med deg: {day} poeng om dagen, mer når dere gjør noe det liker (opptil {max}). Hold over ? på kortet for mer."
