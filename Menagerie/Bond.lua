@@ -11,7 +11,7 @@ local ns = select(2, ...)
 -- Activities done with it out (boss kills, quests, flights, gathering...)
 -- add more: a lot for what it likes (Personality.lua), a little for the
 -- rest, each with a daily cap so nothing can be farmed. The first liked
--- thing each day gets one line of flavor.
+-- thing each day gets one line of flavor (again after a long break: Bond:Rested).
 -- A pet adopted before bonds existed starts with that many points per day
 -- already together, so nobody starts over.
 --
@@ -646,13 +646,15 @@ function Bond:OnActivity(id, n, key)
     -- Everyday activities (not liked, not a trait's moment) share a small pot too.
     local other = capKey == id and not likes[id] and not minor
     if other then room = math.min(room, Scaled(C.BOND_OTHER_TOTAL) - (d.got.other or 0)) end
-    if room <= 0 then return nil end
     -- A small rep gain (a kill's few points) gives its points quietly; the day's line waits for a big one.
     if id == "rep" and (ns.Activity.gained.rep or 0) < C.REP_LINE_MIN then flavor = nil end
+    -- The line before the room (2026-11-26): a like's line is about the pet's day, not the points, so one with
+    -- its cap reached, or the day's 75, still says it (after a break, Bond:Rested, its cap is often reached).
+    Flavor(d, key, flavor)
+    if room <= 0 then return nil end
     local points = math.min(per * n, room)
     d.got[capKey] = (d.got[capKey] or 0) + points
     if other then d.got.other = (d.got.other or 0) + points end
-    Flavor(d, key, flavor)
     return Grant(d, points, key)
 end
 
@@ -826,8 +828,22 @@ function Bond:DayAgain()
     end
 end
 
+-- A long break starts the day's line over (2026-11-26, the user, from the log: the day's line went to a hearth at
+-- 01:43, after a dungeon, and the 10:51 session of nearly three hours had none). The server's day is one; a
+-- player's evening and next morning are two. The line only: points and caps stay the day's. Logged out at
+-- PLAYER_LOGOUT (a /reload too, seconds apart; a crash leaves the last one, so no line again).
+Bond.BREAK = 6 * 3600
+function Bond:Rested()
+    local left, d = ns.DB.char.leftAt, ns.DB.char.bondToday
+    if not (left and d and d.day == ns.Today() and d.pets) or ns.Now() - left < self.BREAK then return end
+    for _, p in pairs(d.pets) do p.flavor = nil end
+    ns.Log("Bond", "back after %.1f h: the day's line again", (ns.Now() - left) / 3600)
+end
+
 function Bond:Init()
     self:CheckComeback() -- (first: the day's visit 30 s in takes what it owes)
+    self:Rested()
+    ns.Events:On("PLAYER_LOGOUT", Bond, function() ns.DB.char.leftAt = ns.Now() end)
     ns.Bus:On("HOLIDAYS", function() Bond:DayAgain() end)
     ns.Bus:On("SENSE", function(kind, s) if kind == "glance" then Bond:Leader(s) end end)
     ns.Sense:Want("glance", Bond)

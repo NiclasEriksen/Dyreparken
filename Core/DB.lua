@@ -140,6 +140,7 @@ local CHAR_DEFAULTS = {
     ownChange = nil,           -- { k, at, who, to }: a copy from someone else took our pet; asked in the journal (Registry, CardActions)
     -- [Bond]
     bondToday = nil,           -- { day, pets = { [petKey] = { got = { [cap] = n }, total } } }: today's points (Ledger)
+    leftAt = nil,              -- when this character last logged out (Bond:Rested: a long break, the day's line again)
     bondGains = {},            -- [petKey] = { gains not yet shown on its card } (Add; BondTrack: TakeGains)
     firsts = {},               -- [petKey] = { [boss name] = true }: bosses it has seen fall with you (First)
     leaders = {},              -- [petKey] = { [leader slug] = true }: your faction's leaders it has met (Leader)
