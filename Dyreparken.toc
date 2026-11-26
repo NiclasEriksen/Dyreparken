@@ -87,6 +87,7 @@ Menagerie\Turnus.lua
 Menagerie\Wish.lua
 Menagerie\Playdate.lua
 Menagerie\Quirks.lua
+Menagerie\Grind.lua
 Menagerie\Fx.lua
 Menagerie\Feats.lua
 Menagerie\Meter.lua

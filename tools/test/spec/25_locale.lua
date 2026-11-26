@@ -25,7 +25,7 @@ return function(test, H)
     -- prefixes, each checked against the runtime tables below.
     local DYNAMIC = { "emote.", "time.", "home.", "bond.level.", "decor.level.", "effect.times.", "activity.",
         "holiday.", "trait.", "effect.activity.", "dislike.", "egg.", "voice.", "settings.", "feat.", "card.unlock.", "first.place.", "first.boss.", "first.leader.",
-        "source.", "park.filter.", "wish.say.", "react.", "unlisted.", "play." }
+        "source.", "park.filter.", "wish.say.", "react.", "unlisted.", "play.", "grind." }
 
     test("ns.T fills named placeholders; a missing key or value shows, never breaks", function()
         local w = H.World()

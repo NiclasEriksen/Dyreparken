@@ -78,6 +78,11 @@ local function Build()
             logs = { { "Activity", "^" .. Esc(id) .. " %+%d" } },
             before = function() local c = char.activity[id]; return c and (c.total or 0) > 0 end })
     end
+    -- Still at it (Grind.lua, 2026-11-26): a farm's hour reaches its day's roll (won or lost, the run is what's new).
+    for id, pace in pairs(ns.Grind.KINDS) do
+        Item({ id = "grind:" .. id, area = "activity", how = ("an hour of %s with a pet out, %d an hour or more"):format(id, pace),
+            logs = { { "Moments", "^grind:" .. Esc(id) .. ": today's roll" }, { "Grind", "^" .. Esc(id) .. " for " } } })
+    end
     for _, e in ipairs(ns.Quirks.EGGS) do
         local how = e.on == "day" and "comes by itself on its day or date"
             or e.on == "*" and "any moment, at its time"

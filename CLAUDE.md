@@ -311,6 +311,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    char.rolls, 2026-11-19: a line's chance is rolled once a day at its first moment, so it's the
                    share of days; rolled at every moment, a 40% landed on nearly every day; an egg's chance as a
                    function stays this moment's own: a new boss, a level)),
+                   Grind (2026-11-26, from the log: a level 60's three hours of rep said two lines: an hour of
+                   farming one activity, liked or not, at Grind.KINDS' pace an hour or more, gets grind.<id>.N, rep
+                   naming the faction; the quirks' 45 minutes, on half the days (Moments.Rolled), once a day each;
+                   not an egg),
                    Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;
@@ -549,6 +553,9 @@ tools/test/        harness.lua (the entry point: simulated clients + network; it
   times a day; the minor dislike is a secret until it happens (a hint at the level-up), then speaks 15%/5%; both
   dimmed in the card's likes line, no new row. "Kjenner deg ut og inn" counts them (char migration 2 took it
   back from those who had it).
+- **The day's liked line after a break** (2026-11-26, the user, from the log): logged out Bond.BREAK (6 h) or more
+  (char.leftAt, PLAYER_LOGOUT), the day's one liked-thing line can come again (Bond:Rested); points and caps stay the
+  day's. The line no longer waits for points left: a like with its cap reached still says it.
 - **Dislikes and easter eggs** (2026-11-09, Menagerie/Quirks.lua): pure flavor, no effect on the bond (an activity
   watched only for a dislike gives no points). Dislikes come from families and a few traits, never override a like,
   and stay secret until one happens (then "liker ikke ..." on the card, char.dislikes). Lines come by chance, at most

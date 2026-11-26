@@ -989,6 +989,32 @@ L["activity.rep.flavor.2"] = "{pet} logrer for de nye vennene deres."
 L["activity.rep.flavor.3"] = "{pet} bukker høflig. De kommer til å huske oss."
 
 ------------------------------------------------------------------------------
+-- Still at it (Menagerie/Grind.lua, 2026-11-26): an hour of one activity, liked or not, once a session.
+-- grind.rep says {faction} (the reputation's name, as the game names it).
+------------------------------------------------------------------------------
+L["grind.rep.1"] = "{pet} har vært med på så mye for {faction} i dag at den nesten regner seg som medlem."
+L["grind.rep.2"] = "{pet} har begynt å lukte litt som {faction}. Det er sikkert et godt tegn."
+L["grind.rep.3"] = "{pet} lurer på om {faction} vet hvor mye den har hjulpet til i dag."
+L["grind.gold.1"] = "{pet} hører myntene klirre i veska di. Den har begynt å telle."
+L["grind.gold.2"] = "{pet} har plukket med seg en mynt også. Den sier ikke hvor den gjemte den."
+L["grind.gold.3"] = "{pet} synes baggen din begynner å bli tung. Kanskje den kan få bære litt?"
+L["grind.herb.1"] = "{pet} kjenner igjen lukta av hver eneste plante her nå. Den peker ut den neste."
+L["grind.herb.2"] = "{pet} har fått pollen på nesa og nyser lykkelig."
+L["grind.herb.3"] = "{pet} har begynt å lete etter herbs selv. Den fant mest gress, men det teller."
+L["grind.mine.1"] = "{pet} har hørt hakka di så lenge at den nynner i takt."
+L["grind.mine.2"] = "{pet} er grå av steinstøv og ser veldig fornøyd ut."
+L["grind.mine.3"] = "{pet} sitter klar ved neste node før du rekker fram."
+L["grind.skin.1"] = "{pet} har sett deg flå så mange at den har begynt å sortere skinnene."
+L["grind.skin.2"] = "{pet} lurer på hvor mange skinn én sekk kan ta."
+L["grind.skin.3"] = "{pet} venter tålmodig ved hvert eneste bytte. Dette kan dere nå."
+L["grind.fish.1"] = "{pet} har sittet ved vannet med deg lenge nå. Den har aldri hatt det så rolig."
+L["grind.fish.2"] = "{pet} følger duppen med blikket. Den vet at det napper før du gjør det."
+L["grind.fish.3"] = "{pet} har gitt navn til alle fiskene dere har fått. Det begynner å bli mange navn."
+L["grind.quest.1"] = "{pet} har mistet tellinga på alle questene i dag. Den er bare glad for å være med."
+L["grind.quest.2"] = "{pet} lurer på om det finnes noen her som ikke trenger hjelp med noe."
+L["grind.quest.3"] = "{pet} føler den ser gule utropstegn over alle hoder nå. Den vet at de vil ha noe av dere."
+
+------------------------------------------------------------------------------
 -- Holidays (the Festglad trait)
 ------------------------------------------------------------------------------
 L["holiday.0101"] = "1. nyttårsdag"

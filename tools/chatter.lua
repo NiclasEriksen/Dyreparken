@@ -68,6 +68,8 @@ for pair in (opt.set or ""):gmatch("[^,]+") do
     if not (id and RATES[id]) then io.stderr:write("--set: unknown activity or rate: ", pair, "\n"); os.exit(2) end
     RATES[id] = tonumber(rate)
 end
+-- What a source names with it, as the game would (Core/Sources.lua: a rep gain's faction).
+local EXTRA = { rep = "Timbermaw Hold" }
 local FIGHT_EVERY, FIGHT_CASTS = 4, 4 -- a fight every 4 minutes, with 4 of the class's casts
 
 local H = require("harness")
@@ -150,7 +152,7 @@ for day = 1, opt.days do
         for minute = 1, math.floor(profile.hours * 60) do
             for id, rate in pairs(RATES) do
                 local n = math.floor(rate / 60) + ((math.random() < (rate / 60) % 1) and 1 or 0)
-                for _ = 1, n do c.ns.Activity:Emit(id) end
+                for _ = 1, n do c.ns.Activity:Emit(id, nil, EXTRA[id]) end
             end
             if minute % FIGHT_EVERY == 0 then
                 c:EnterCombat()
