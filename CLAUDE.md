@@ -317,7 +317,7 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    not an egg; coins looted while rep comes in are the rep farm's, one line, 2026-11-27; kills too, 2026-11-27:
                    a dead NPC still targeted at PLAYER_REGEN_ENABLED (the fight's PARTY_KILLs counted as its kind, up
                    to 10), an hour of them in one zone sharing a word in
-                   their names, "Deadwood", gets grind.mobs naming it, and a rep farm's line names them half the
+                   their names, "Deadwood" (a pair: "Dark Iron"; a kind lower case: "ghoul"), gets grind.mobs naming it, and a rep farm's line names them half the
                    time, grind.repmobs; rep first, then mobs, then coins),
                    Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),

@@ -1014,7 +1014,8 @@ L["grind.quest.1"] = "{pet} har mistet tellinga på alle questene i dag. Den er 
 L["grind.quest.2"] = "{pet} lurer på om det finnes noen her som ikke trenger hjelp med noe."
 L["grind.quest.3"] = "{pet} føler den ser gule utropstegn over alle hoder nå. Den vet at de vil ha noe av dere."
 -- grind.mobs: an hour of killing mobs that share a word in their names (Deadwood Shaman, Deadwood Avenger...);
--- {mobs} is that word, as the game spells it. grind.repmobs: a rep farm's line that names them too.
+-- {mobs} is that word: a clan as the game spells it (Deadwood, Dark Iron), a kind in lower case (ghoul).
+-- grind.repmobs: a rep farm's line that names them too.
 L["grind.mobs.1"] = "{pet} har sett så mange {mobs} i dag at den kjenner dem igjen på lukta."
 L["grind.mobs.2"] = "{pet} lurer på om det finnes noen {mobs} igjen her. Den har sluttet å telle."
 L["grind.mobs.3"] = "{pet} skvetter ikke lenger når en {mobs} dukker opp. Den har sett nok av dem."
