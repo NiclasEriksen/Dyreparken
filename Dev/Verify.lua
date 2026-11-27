@@ -82,6 +82,8 @@ local function Build()
     -- (and a kill's name read after the fight: unknown whether Forever keeps it plain then)
     Item({ id = "grind:kill", area = "api", how = "kill a mob with a pet out and keep it targeted as the fight ends",
         logs = { { "Grind", "^kill " } } })
+    Item({ id = "grind:partykill", area = "api", how = "kill two mobs in one fight, solo, with a pet out (does PARTY_KILL fire solo?)",
+        logs = { { "Grind", "PARTY_KILL [1-9]" } } })
     for id, pace in pairs(ns.Grind.KINDS) do
         Item({ id = "grind:" .. id, area = "activity", how = ("an hour of %s with a pet out, %d an hour or more"):format(id, pace),
             logs = { { "Moments", "^grind:" .. Esc(id) .. ": today's roll" }, { "Grind", "^" .. Esc(id) .. " for " } } })

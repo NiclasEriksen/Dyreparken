@@ -27,7 +27,12 @@ Grind.CHANCE = 0.5
 -- kills' names, in at least COMMON of them, a first word before a last at a tie (clans come first: Deadwood,
 -- Defias, Bloodscalp), never one of STOP (sizes, ages). None that common: no mobs line, and the coins may speak.
 -- What it says: grind.mobs.N ({mobs}); a rep farm's line names them too, half the time (grind.repmobs.N).
+-- A fight's other kills are the same kind as the one targeted at its end (2026-11-27, the user: "if we kill 5
+-- Deadwood mobs in a single fight, it should count as 5 Deadwood"): PARTY_KILL fires for each, its GUIDs secret
+-- (FOREVER_API.md), so it's only counted, heard while a fight is on (at most FIGHT_MAX; none heard: one, the
+-- target's: whether it fires solo isn't known yet).
 Grind.COMMON = 0.5
+Grind.FIGHT_MAX = 10
 Grind.STOP = { the = true, ["of"] = true, elder = true, young = true, greater = true, lesser = true, large = true,
     small = true, giant = true, dire = true, ancient = true, old = true, mature = true }
 
@@ -45,7 +50,7 @@ function Grind.Common(run)
     if best and bn >= Grind.COMMON * run.n then return run.words[best].as end
 end
 
-local function Count(run, name)
+local function Count(run, name, n)
     run.words = run.words or {}
     local seen, i = {}, 0
     for w in name:gmatch("[%a']+") do
@@ -54,7 +59,7 @@ local function Count(run, name)
         if #w >= 3 and not Grind.STOP[l] and not seen[l] then
             seen[l] = true
             local c = run.words[l] or { n = 0, pos = 0, as = w }
-            c.n, c.pos = c.n + 1, c.pos + i
+            c.n, c.pos = c.n + n, c.pos + i * n
             run.words[l] = c
         end
     end
@@ -66,7 +71,8 @@ local function Live(id, key, now)
     return r and r.key == key and now - r.last <= Grind.GAP and r or nil
 end
 
-function Grind:OnActivity(id, key, extra)
+function Grind:OnActivity(id, key, extra, n)
+    n = n or 1
     local pace = self.KINDS[id]
     if not (pace and key) or said[id] then return end
     local now, run = GetTime(), runs[id]
@@ -75,9 +81,9 @@ function Grind:OnActivity(id, key, extra)
         run = { from = now, n = 0, key = key, zone = zone }
         runs[id] = run
     end
-    run.n, run.last = run.n + 1, now
+    run.n, run.last = run.n + n, now
     if id == "mobs" then
-        Count(run, extra)
+        Count(run, extra, n)
     elseif type(extra) == "string" and extra ~= "" then
         run.extra = extra
     end
@@ -133,13 +139,21 @@ function Grind:Init()
     for id in pairs(self.KINDS) do if ns.Activity.KIND[id] then want[id] = true end end
     ns.Activity:WantOnly(Grind, want)
     ns.Bus:On("ACTIVITY", function(id, _, key, _, extra) Grind:OnActivity(id, key, extra) end)
+    local kills = 0 -- (PARTY_KILL in this fight)
+    ns.Events:On("PLAYER_REGEN_DISABLED", Grind, function()
+        kills = 0
+        if ns.Pets:OutKey() then ns.Events:On("PARTY_KILL", Grind, function() kills = kills + 1 end) end
+    end)
     ns.Events:On("PLAYER_REGEN_ENABLED", Grind, function()
-        local key = ns.Pets:OutKey()
+        ns.Events:Off("PARTY_KILL", Grind)
+        local key, heard = ns.Pets:OutKey(), kills
+        kills = 0
         if not key then return end
         local name = Grind.Killed()
         if not name then return end
-        ns.Log("Grind", "kill %s in %s", name, tostring(ns.Plain(GetZoneText())))
-        Grind:OnActivity("mobs", key, name)
+        local n = math.min(math.max(heard, 1), Grind.FIGHT_MAX)
+        ns.Log("Grind", "kill %s x%d in %s (PARTY_KILL %d)", name, n, tostring(ns.Plain(GetZoneText())), heard)
+        Grind:OnActivity("mobs", key, name, n)
     end)
 end
 
