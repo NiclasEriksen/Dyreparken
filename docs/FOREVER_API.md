@@ -729,11 +729,17 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
 - **Racials**: a Tauren knows Plainsrunning (1259918, Forever's own), War Stomp (20549), Endurance (20550) and
   Cultivation (20552) (`IsPlayerSpell`). The other races are unchecked.
 
+## Kills (2026-11-27, solo, Western Plaguelands)
+
+`PARTY_KILL` fires solo, once for each kill (2 in a two-mob pull); once a kill counted 0 (a DoT finishing after the
+fight?). A dead NPC still targeted at `PLAYER_REGEN_ENABLED` reads its name plainly.
+
 ## Sitting, crafting, scenes (read from the saved `/dp probe api` data, 2026-11-24, build 1.60.1 71037)
 
 For `/dp probe watch` (Dev/Watch.lua), which asks the rest in game:
 - **There:** `SitStandOrDescendStart` (the sit key, hookable), `DoEmote`, `JumpOrAscendStart`, `IsFalling`,
   `UnitInVehicle`, `IsStealthed`, `CheckInteractDistance` and `UnitInRange`.
+  `CheckInteractDistance` on a party member is protected in a fight (ADDON_ACTION_BLOCKED, 2026-11-27).
 - **Known events:** `CINEMATIC_START`/`STOP`, `PLAY_MOVIE`, `TRADE_SKILL_SHOW`, `UNIT_ENTERED_VEHICLE`/`EXITED`,
   `PLAYER_CONTROL_LOST`, `ZONE_CHANGED_INDOORS`, `UNIT_SPELLCAST_START`, `UNIT_SPELLCAST_CHANNEL_START` and
   `PET_BATTLE_OPENING_START`.
