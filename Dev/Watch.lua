@@ -267,7 +267,10 @@ function Watch.Range(why)
             n = n + 1
             if n > 10 then return end
             Log("group", "range (%s) %s: distance² %s | in range %s | interact(4) %s | visible %s", why, tostring(name),
-                Try("UnitDistanceSquared", u), Try("UnitInRange", u), Try("CheckInteractDistance", u, 4), Try("UnitIsVisible", u))
+                Try("UnitDistanceSquared", u), Try("UnitInRange", u),
+                -- (protected in a fight: ADDON_ACTION_BLOCKED, the probe, 2026-11-27)
+                ns.Plain(InCombatLockdown()) == true and "combat" or Try("CheckInteractDistance", u, 4),
+                Try("UnitIsVisible", u))
         end
     end
 end
