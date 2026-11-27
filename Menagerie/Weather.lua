@@ -18,6 +18,7 @@ local ns = select(2, ...)
 -- Rain, snow or a sandstorm starting (not under a roof: IsIndoors, nor too light: MIN_INTENSITY) is a moment: Bus
 -- WEATHER (kind, old, intensity), the activity of the same name (a pet can like or dislike it) and Quirks' weather
 -- eggs. The same kind again within AGAIN seconds isn't new (in and out of a rainy zone, a reload): char.weather.
+-- The weather you log in to is only noted (no moment: it didn't start).
 ---@class Dyreparken.Weather
 local Weather = {}
 ns.Weather = Weather
@@ -53,7 +54,10 @@ function Weather:Check(why)
     local old = now
     now = kind
     ns.Log("Weather", "%s -> %s (%.2f, %s)", tostring(old), kind, intensity, why)
-    if kind == "clear" then return end
+    -- Already falling when you log in isn't starting (2026-11-27, the user): the session's first read (at login,
+    -- or a pet's first time out after it) is noted, so it ending and another starting are seen, but no moment
+    -- ("Det begynner å regne" as you log in read wrong).
+    if kind == "clear" or old == nil then return end
     local seen = ns.DB.char.weather or {}
     ns.DB.char.weather = seen
     local t = ns.Now()
