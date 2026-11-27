@@ -127,9 +127,21 @@ return function(test, H)
             return G.Common(runs.mobs)
         end
         eq(Of(DEADWOOD), "Deadwood")
-        eq(Of({ "Elder Mottled Boar", "Mottled Boar", "Mottled Boar" }), "Mottled", "a first word before a last; Elder isn't one")
+        eq(Of({ "Elder Mottled Boar", "Mottled Boar", "Mottled Boar" }), "Boar", "Elder and Mottled are looks")
+        eq(Of({ "Bloodscalp Hunter", "Bloodscalp Hunter" }), "Bloodscalp", "a tie: a first word before a last")
         eq(Of({ "Timbermaw Shaman", "Timbermaw Ursa", "Timbermaw Shaman" }), "Timbermaw", "Shaman in two of three, Timbermaw in all")
         eq(Of({ "Felpaw Wolf", "Deadwood Shaman", "Irontree Stomper", "Jadefire Satyr" }), nil, "nothing in half of them")
+        -- The probe, 2026-11-27, Andorhal: an adjective is never the word, so this mixed bag shares none.
+        local andorhal = {}
+        for name, n in pairs({ ["Skeletal Acolyte"] = 7, ["Skeletal Executioner"] = 6, ["Rotting Ghoul"] = 3,
+            ["Soulless Ghoul"] = 3, ["Freezing Ghoul"] = 1, Skeleton = 1, ["Diseased Wolf"] = 1 }) do
+            for _ = 1, n do andorhal[#andorhal + 1] = name end
+        end
+        eq(Of(andorhal), nil, "Skeletal in 13 of 22: a look, not a kind")
+        eq(Of({ "Rotting Ghoul", "Soulless Ghoul", "Freezing Ghoul" }), "Ghoul", "the ghouls alone: Ghoul")
+        eq(Of({ "Dark Iron Dwarf", "Dark Iron Geologist" }), "Iron")
+        eq(Of({ "Scarlet Monk", "Scarlet Zealot", "Scarlet Defender" }), "Scarlet", "a crusade's name stays")
+        eq(Of({ "Venom Web Spider", "Dalaran Hatchling", "Ironbeak Hatchling" }), "Hatchling", "-ling is a noun")
     end)
 
     test("an hour of Deadwood: a line naming them; the coins say nothing after; a corpse only, an enemy only", function()

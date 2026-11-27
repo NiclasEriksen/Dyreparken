@@ -25,7 +25,7 @@ Grind.CHANCE = 0.5
 -- a kill is the fight's end (PLAYER_REGEN_ENABLED) with a dead NPC still targeted, read then, out of combat. A run of
 -- them stays in one zone (a camp's subzones flip as you walk: the probe, 2026-11-26). Its word: the one in the most
 -- kills' names, in at least COMMON of them, a first word before a last at a tie (clans come first: Deadwood,
--- Defias, Bloodscalp), never one of STOP (sizes, ages). None that common: no mobs line, and the coins may speak.
+-- Defias, Bloodscalp), never one of STOP (sizes, ages, colours) nor an adjective's ending (ADJ). None that common: no mobs line, and the coins may speak.
 -- What it says: grind.mobs.N ({mobs}); a rep farm's line names them too, half the time (grind.repmobs.N).
 -- A fight's other kills are the same kind as the one targeted at its end (2026-11-27, the user: "if we kill 5
 -- Deadwood mobs in a single fight, it should count as 5 Deadwood"): PARTY_KILL fires for each, its GUIDs secret
@@ -34,7 +34,18 @@ Grind.CHANCE = 0.5
 Grind.COMMON = 0.5
 Grind.FIGHT_MAX = 10
 Grind.STOP = { the = true, ["of"] = true, elder = true, young = true, greater = true, lesser = true, large = true,
-    small = true, giant = true, dire = true, ancient = true, old = true, mature = true }
+    small = true, giant = true, dire = true, ancient = true, old = true, mature = true,
+    -- (a look, not a kind: the probe, 2026-11-27, Andorhal's Skeletal Acolytes and Executioners would have been
+    -- "så mange Skeletal". Scarlet stays: a crusade's name)
+    dark = true, black = true, red = true, green = true, blue = true, white = true, grey = true, gray = true,
+    rabid = true, feral = true, savage = true, mangy = true, wild = true, vile = true, foul = true, frenzied = true }
+-- An adjective by its ending (Skeletal, Rotting, Diseased, Soulless, Venomous): never the word. -ling is a noun
+-- (Hatchling, Darkling).
+Grind.ADJ = { "ed$", "al$", "less$", "ous$", "ful$", "[^l]ing$" }
+local function Adjective(l)
+    for _, e in ipairs(Grind.ADJ) do if l:find(e) then return true end end
+    return false
+end
 
 local runs, said = {}, {} -- (a session's: id -> { from, last, n, key, extra, zone, words }; id -> true once decided)
 
@@ -56,7 +67,7 @@ local function Count(run, name, n)
     for w in name:gmatch("[%a']+") do
         i = i + 1
         local l = w:lower()
-        if #w >= 3 and not Grind.STOP[l] and not seen[l] then
+        if #w >= 3 and not Grind.STOP[l] and not Adjective(l) and not seen[l] then
             seen[l] = true
             local c = run.words[l] or { n = 0, pos = 0, as = w }
             c.n, c.pos = c.n + n, c.pos + i * n
