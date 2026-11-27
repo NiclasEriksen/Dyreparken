@@ -718,7 +718,10 @@ level 34, in Grom'gol, with their own Brown Prairie Dog out and targeted.
   the event also comes when you walk into another zone's weather (Weather.lua reads at zone changes too). It does
   (later the same day, a flight Un'Goro, Tanaris, Thousand Needles, the Barrens, Mulgore): a second or so after
   ZONE_CHANGED_NEW_AREA, sometimes twice. A sandstorm reads `{type=3, intensity=0.59}` (Tanaris), rain 0.81 (the
-  Barrens). Snow not seen yet.
+  Barrens). **Snow** (2026-11-26, 1.60.1 71139, a flight path into Winterspring): `WEATHER_CHANGED` two seconds after
+  ZONE_CHANGED_NEW_AREA still read clear, and 80 s later (over Everlook) `{type=2, intensity=1}`; five minutes on, an
+  event with no change of kind: `{type=2, intensity=0.62}`. **Intensity does move within a spell**, and the event
+  comes for it.
 - **Addon links in chat work**: a printed `|cff71d5ff|Haddon:Dyreparken:<data>|h[text]|h|r` is clickable, and the click
   reaches `EventRegistry:RegisterCallback("SetItemRef", fn, owner)` as `(owner, link, text, button)` with
   link `"addon:Dyreparken:<data>"`, as on retail; `hooksecurefunc("SetItemRef")` and the chat frame's
@@ -754,6 +757,11 @@ For `/dp probe watch` (Dev/Watch.lua), which asks the rest in game:
   it couldn't see (a chair); the harness has no UnitStandState any more (H.MISSING). Seen working in game at 15:11.
 - **Summon cooldown:** a second `SummonPetByGUID` within ~0.7 s of the first is dropped silently: no UI error.
   "Spell is not ready yet." (type 61) is a spell's cooldown, not the companion's.
+- **UI_ERROR_MESSAGE's type 57 is any failed cast**, not one error (2026-11-26, 71139, an hour of shaman combat):
+  "You can't do that yet" (66 times), "Invalid target", "Interrupted", "You do not have an active Fire Totem.",
+  "Your target must be below 35% health." all came as 57, as "You must be standing to do that" did. Match the text
+  against the global string (Summon.lua does), never the type. Others: 61 not ready, 173 and 402 out of range, 280
+  another action in progress, 282 facing the wrong way, 358 not enough mana, 858 too far to interact.
 - **Mounts:** a ground mount keeps the pet out.
 - **Flight paths:** the game takes the pet at `PLAYER_CONTROL_LOST` and summons it back itself ~0.3 s after
   `PLAYER_CONTROL_GAINED`, with no call.
