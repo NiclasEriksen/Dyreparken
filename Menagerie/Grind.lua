@@ -33,10 +33,15 @@ function Grind:OnActivity(id, key, extra)
     if type(extra) == "string" and extra ~= "" then run.extra = extra end
     local span = now - run.from
     if span < self.SPAN or run.n < pace * span / 3600 then return end
+    -- One farm, one line (2026-11-27, the user: "you don't really grind gold, you grind items ... if there's
+    -- reputation rewards, it's probably a reputation farm"): coins looted with rep coming in are the rep farm's.
+    local rep = runs.rep
+    if id == "gold" and rep and rep.key == key and now - rep.last <= self.GAP then return end
     if ns.Personality:Dislikes(key)[id] then return end
     -- (busy: the next time it happens asks again)
     if ns.Moments:Pending() or not ns.Moments:Ready("quirk") then return end
     said[id] = true
+    if id == "rep" then said.gold = true end -- (its coins were the same farm)
     local day = "grind:" .. id
     if not ns.Moments.Rolled(day, ns.Settings:Chance(self.CHANCE, "flavor")) then return end
     local text = ns.PickLine("grind." .. id, { pet = ns.Registry:NameOf(key), faction = run.extra })

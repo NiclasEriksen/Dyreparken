@@ -828,11 +828,11 @@ function Bond:DayAgain()
     end
 end
 
--- A long break starts the day's line over (2026-11-26, the user, from the log: the day's line went to a hearth at
+-- A long break (BREAK) starts the day's line over (2026-11-26, the user, from the log: the day's line went to a hearth at
 -- 01:43, after a dungeon, and the 10:51 session of nearly three hours had none). The server's day is one; a
 -- player's evening and next morning are two. The line only: points and caps stay the day's. Logged out at
 -- PLAYER_LOGOUT (a /reload too, seconds apart; a crash leaves the last one, so no line again).
-Bond.BREAK = 6 * 3600
+Bond.BREAK = 5 * 3600 -- (6 until 2026-11-27, the user: 5 "for now", not to cause too much spam; 3.4 h apart kept it)
 function Bond:Rested()
     local left, d = ns.DB.char.leftAt, ns.DB.char.bondToday
     if not (left and d and d.day == ns.Today() and d.pets) or ns.Now() - left < self.BREAK then return end

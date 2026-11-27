@@ -85,4 +85,18 @@ return function(test, H)
         no(d().flavor, "six hours away: the day's line again")
         eq(#ola:Log("back after"), 1)
     end)
+    test("coins with rep coming in are the rep farm's: one line, the rep's", function()
+        local w, ola = Setup()
+        for _ = 1, 70 do
+            ola.ns.Activity:Emit("gold", 1)
+            ola.ns.Activity:Emit("rep", 1, "Timbermaw Hold")
+            w:Run(60)
+        end
+        w:RunTimers()
+        ok(ola:PrintedLine("grind.rep", { pet = "Panda Cub", faction = "Timbermaw Hold" }), "the rep's line")
+        no(ola:PrintedLine("grind.gold", { pet = "Panda Cub" }), "not the coins'")
+        ola.ns.DB.char.quirkAt = nil
+        Grind(w, ola, "gold", 70, 50)
+        no(ola:PrintedLine("grind.gold", { pet = "Panda Cub" }), "the same farm: not later either")
+    end)
 end
