@@ -39,6 +39,7 @@
 ---@field Fight Dyreparken.Fight Menagerie/Fight.lua
 ---@field Fx Dyreparken.Fx Menagerie/Fx.lua
 ---@field Games Dyreparken.Games Games/Framework.lua
+---@field Grind Dyreparken.Grind Menagerie/Grind.lua
 ---@field Guild Dyreparken.Guild Core/Guild.lua
 ---@field Holidays Dyreparken.Holidays Menagerie/Holidays.lua
 ---@field IsSecret any Core/Init.lua
