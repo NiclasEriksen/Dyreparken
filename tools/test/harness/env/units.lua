@@ -74,6 +74,9 @@ return function(c, env, S)
     end
     env.C_Secrets.ShouldUnitIdentityBeSecret = function(u) return c.units[u] ~= nil and c.units[u].secret == true end
     env.UnitIsPlayer = function(u) local x = Who(u); return x ~= nil and x.player == true end
+    -- (a unit a test put there: who.dead, a corpse still targeted; who.controlled, a player's pet)
+    env.UnitIsDead = function(u) local x = Who(u); return x ~= nil and x.dead == true end
+    env.UnitPlayerControlled = function(u) local x = Who(u); return x ~= nil and (x.player == true or x.controlled == true) end
     env.UnitClass = function(u)
         local x = Who(u)
         if not (x and x.class) then return nil end

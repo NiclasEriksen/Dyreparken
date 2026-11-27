@@ -99,4 +99,76 @@ return function(test, H)
         Grind(w, ola, "gold", 70, 50)
         no(ola:PrintedLine("grind.gold", { pet = "Panda Cub" }), "the same farm: not later either")
     end)
+    -- A fight over with this mob dead and still targeted (Grind.Killed).
+    local function Kill(ola, name, who)
+        ola.units.target = { name = name, who = who or { dead = true, reaction = 2 } }
+        ola:Fire("PLAYER_REGEN_ENABLED")
+    end
+    local function Kills(w, ola, names, n, every, rep)
+        for i = 1, n do
+            Kill(ola, names[(i - 1) % #names + 1])
+            ola.ns.Activity:Emit("gold", 1)
+            if rep then ola.ns.Activity:Emit("rep", 1, rep) end
+            w:Run(every)
+        end
+        w:RunTimers()
+    end
+    local DEADWOOD = { "Deadwood Shaman", "Deadwood Avenger", "Deadwood Den Watcher", "Deadwood Pathfinder" }
+
+    test("the word the mobs share: the most kills', half of them at least, a first word at a tie, no sizes", function()
+        local w, ola = Setup()
+        local G = ola.ns.Grind
+        local function Of(names)
+            local runs = G:Runs()
+            runs.mobs = nil
+            for _, name in ipairs(names) do
+                w:Run(1); G:OnActivity("mobs", PANDA, name)
+            end
+            return G.Common(runs.mobs)
+        end
+        eq(Of(DEADWOOD), "Deadwood")
+        eq(Of({ "Elder Mottled Boar", "Mottled Boar", "Mottled Boar" }), "Mottled", "a first word before a last; Elder isn't one")
+        eq(Of({ "Timbermaw Shaman", "Timbermaw Ursa", "Timbermaw Shaman" }), "Timbermaw", "Shaman in two of three, Timbermaw in all")
+        eq(Of({ "Felpaw Wolf", "Deadwood Shaman", "Irontree Stomper", "Jadefire Satyr" }), nil, "nothing in half of them")
+    end)
+
+    test("an hour of Deadwood: a line naming them; the coins say nothing after; a corpse only, an enemy only", function()
+        local w, ola = Setup()
+        Kills(w, ola, DEADWOOD, 70, 60)
+        ok(ola:PrintedLine("grind.mobs", { pet = "Panda Cub", mobs = "Deadwood" }), "the mobs' line")
+        no(ola:PrintedLine("grind.gold", { pet = "Panda Cub" }), "not the coins'")
+        local G = ola.ns.Grind
+        ola.units.target = { name = "Deadwood Shaman", who = { reaction = 2 } }
+        eq(G.Killed(), nil, "alive: no kill")
+        ola.units.target = { name = "Kari Berg", who = { dead = true, player = true } }
+        eq(G.Killed(), nil, "a player")
+        ola.units.target = { name = "Thrall's Wolf", who = { dead = true, controlled = true, reaction = 2 } }
+        eq(G.Killed(), nil, "someone's pet")
+        ola.units.target = { name = "Timbermaw Warder", who = { dead = true, reaction = 5 } }
+        eq(G.Killed(), nil, "a friendly one")
+        ola.units.target = nil
+        eq(G.Killed(), nil, "no target")
+    end)
+
+    test("a rep farm's kills: the rep's line, naming the mobs half the time; never mobs named as the faction", function()
+        local w, ola = Setup()
+        Kills(w, ola, DEADWOOD, 70, 60, "Timbermaw Hold")
+        ok(ola:PrintedLine("grind.repmobs", { pet = "Panda Cub", faction = "Timbermaw Hold", mobs = "Deadwood" }), "both named")
+        no(ola:PrintedLine("grind.mobs", { pet = "Panda Cub", mobs = "Deadwood" }), "one farm, one line")
+        local w2, kari = Setup()
+        Kills(w2, kari, { "Timbermaw Shaman", "Timbermaw Ursa" }, 70, 60, "Timbermaw Hold")
+        ok(kari:PrintedLine("grind.rep", { pet = "Panda Cub", faction = "Timbermaw Hold" }), "the plain rep line")
+    end)
+
+    test("kills that share no word: no mobs line, the coins' farm then; another zone starts the run over", function()
+        local w, ola = Setup()
+        Kills(w, ola, { "Felpaw Wolf", "Irontree Stomper", "Jadefire Satyr", "Warpwood Moss Flayer" }, 70, 60)
+        no(ola:Printed("{mobs}", true))
+        ok(ola:PrintedLine("grind.gold", { pet = "Panda Cub" }), "a farm all the same")
+        local w2, kari = Setup()
+        Kills(w2, kari, DEADWOOD, 40, 60)
+        kari:Travel("Winterspring")
+        Kills(w2, kari, DEADWOOD, 30, 60)
+        no(kari:PrintedLine("grind.mobs", { pet = "Panda Cub", mobs = "Deadwood" }), "40 minutes, then 30 elsewhere")
+    end)
 end

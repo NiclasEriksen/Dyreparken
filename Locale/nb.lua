@@ -1013,6 +1013,15 @@ L["grind.fish.3"] = "{pet} har gitt navn til alle fiskene dere har fått. Det be
 L["grind.quest.1"] = "{pet} har mistet tellinga på alle questene i dag. Den er bare glad for å være med."
 L["grind.quest.2"] = "{pet} lurer på om det finnes noen her som ikke trenger hjelp med noe."
 L["grind.quest.3"] = "{pet} føler den ser gule utropstegn over alle hoder nå. Den vet at de vil ha noe av dere."
+-- grind.mobs: an hour of killing mobs that share a word in their names (Deadwood Shaman, Deadwood Avenger...);
+-- {mobs} is that word, as the game spells it. grind.repmobs: a rep farm's line that names them too.
+L["grind.mobs.1"] = "{pet} har sett så mange {mobs} i dag at den kjenner dem igjen på lukta."
+L["grind.mobs.2"] = "{pet} lurer på om det finnes noen {mobs} igjen her. Den har sluttet å telle."
+L["grind.mobs.3"] = "{pet} skvetter ikke lenger når en {mobs} dukker opp. Den har sett nok av dem."
+L["grind.mobs.4"] = "{pet} tror at {mobs} snakker om dere nå. Og ikke på en hyggelig måte."
+L["grind.repmobs.1"] = "{pet} tror {faction} kommer til å like at det blir færre {mobs} her."
+L["grind.repmobs.2"] = "{pet} holder tellinga for {faction}: mange {mobs} færre i dag."
+L["grind.repmobs.3"] = "{pet} har lært seg forskjell på {faction} og {mobs} nå. Det tok litt tid."
 
 ------------------------------------------------------------------------------
 -- Holidays (the Festglad trait)

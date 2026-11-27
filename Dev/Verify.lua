@@ -79,6 +79,9 @@ local function Build()
             before = function() local c = char.activity[id]; return c and (c.total or 0) > 0 end })
     end
     -- Still at it (Grind.lua, 2026-11-26): a farm's hour reaches its day's roll (won or lost, the run is what's new).
+    -- (and a kill's name read after the fight: unknown whether Forever keeps it plain then)
+    Item({ id = "grind:kill", area = "api", how = "kill a mob with a pet out and keep it targeted as the fight ends",
+        logs = { { "Grind", "^kill " } } })
     for id, pace in pairs(ns.Grind.KINDS) do
         Item({ id = "grind:" .. id, area = "activity", how = ("an hour of %s with a pet out, %d an hour or more"):format(id, pace),
             logs = { { "Moments", "^grind:" .. Esc(id) .. ": today's roll" }, { "Grind", "^" .. Esc(id) .. " for " } } })

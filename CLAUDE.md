@@ -314,7 +314,10 @@ Menagerie/         Pets (journal access, pet keys, OutKey: the pet out now, prob
                    Grind (2026-11-26, from the log: a level 60's three hours of rep said two lines: an hour of
                    farming one activity, liked or not, at Grind.KINDS' pace an hour or more, gets grind.<id>.N, rep
                    naming the faction; the quirks' 45 minutes, on half the days (Moments.Rolled), once a day each;
-                   not an egg; coins looted while rep comes in are the rep farm's, one line, 2026-11-27),
+                   not an egg; coins looted while rep comes in are the rep farm's, one line, 2026-11-27; kills too, 2026-11-27:
+                   a dead NPC still targeted at PLAYER_REGEN_ENABLED, an hour of them in one zone sharing a word in
+                   their names, "Deadwood", gets grind.mobs naming it, and a rep farm's line names them half the
+                   time, grind.repmobs; rep first, then mobs, then coins),
                    Holidays (the game's holidays from the calendar, today's, by event id: Lunar Festival, Love is in the Air,
                    Noblegarden, Midsummer, Harvest Festival, Hallow's End, Winter Veil; not the Darkmoon Faire, too often),
                    Personality (likes, and two traits per species from Data/Traits.lua;
