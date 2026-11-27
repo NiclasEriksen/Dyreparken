@@ -133,14 +133,45 @@ function Wish:Extra(key, day)
     return id
 end
 
--- What the pet wishes for on a day ("YYYYMMDD"): the wish's id, and its zone for a trip.
-function Wish:For(key, day)
+-- What the pet wishes for on a day ("YYYYMMDD"): the wish's id, and its zone for a trip. Never yesterday's again
+-- (2026-11-27, the user, from the log: a guildmate's /klapp two days running, given neither day): the same draw
+-- as yesterday's wish takes another of its choices. Yesterday's is the one saved when it was ours (char.wish), else
+-- drawn the same way, REPEAT_DEPTH days back at most (a run of repeats that long is too rare to matter).
+Wish.REPEAT_DEPTH = 3
+function Wish:For(key, day, depth)
+    local id, zone = self:Drawn(key, day)
+    depth = depth or self.REPEAT_DEPTH
+    if depth <= 0 then return id, zone end
+    local before, w = ns.DayBefore(day), ns.DB.char.wish
+    local was, wasZone
+    if w and w.day == before and w.pet == key then
+        was, wasZone = w.id, w.zone
+    else
+        was, wasZone = self:For(key, before, depth - 1)
+    end
+    if id ~= was or zone ~= wasZone then return id, zone end
+    local rest = {}
+    for _, c in ipairs(self:Choices(key)) do if c ~= was then rest[#rest + 1] = c end end
+    if #rest == 0 then return id, zone end
+    return rest[Hash("again " .. day .. " " .. key) % #rest + 1]
+end
+
+-- A pat's day by the day's rolls alone, the same on every client (MayWishPat): not a camp's or a sleeping bag's,
+-- and not the day after one (the no-repeat rule, by the rolls, so a guildmate's client knows it too).
+local function PatRoll(self, key, day)
+    local roll = Hash("camp " .. day .. " " .. key) % self.CAMP_EVERY
+    if roll == 0 and ns.Activity:Available("camp") then return false end
+    if roll == 1 and Sleeper(key) and ns.Activity:Available("rested") then return false end
+    return Hash("pat " .. day .. " " .. key) % self.PAT_EVERY == 0 and ns.Activity:Available("patted") == true
+end
+local function PatDay(self, key, day) return PatRoll(self, key, day) and not PatRoll(self, key, ns.DayBefore(day)) end
+
+-- The day's draw, before the no-repeat rule (For).
+function Wish:Drawn(key, day)
     local roll = Hash("camp " .. day .. " " .. key) % self.CAMP_EVERY
     if roll == 0 and ns.Activity:Available("camp") then return "camp" end
     if roll == 1 and Sleeper(key) and ns.Activity:Available("rested") then return "rested" end
-    if Hash("pat " .. day .. " " .. key) % self.PAT_EVERY == 0 and ns.Activity:Available("patted") and self.Company() then
-        return "patted"
-    end
+    if PatDay(self, key, day) and self.Company() then return "patted" end
     local extra, zone = self:Extra(key, day)
     if extra then return extra, zone end
     local choices = self:Choices(key)
@@ -149,13 +180,9 @@ end
 
 -- Whether a guildmate's adopted pet may wish for a pat today (review 2026-11-24 Q25, the user: "Kan ønske seg en
 -- klapp"). The day's rolls are For's, the same on every client; only the owner's company (Company: char.company) is
--- theirs alone, so this can rule a pat wish out, never be sure of one. Keep it in step with For's first rolls.
+-- theirs alone, so this can rule a pat wish out, never be sure of one. PatDay is Drawn's own rolls.
 function Wish:MayWishPat(key, day)
-    day = day or ns.Today()
-    local roll = Hash("camp " .. day .. " " .. key) % self.CAMP_EVERY
-    if roll == 0 and ns.Activity:Available("camp") then return false end
-    if roll == 1 and Sleeper(key) and ns.Activity:Available("rested") then return false end
-    return Hash("pat " .. day .. " " .. key) % self.PAT_EVERY == 0 and ns.Activity:Available("patted") == true
+    return PatDay(self, key, day or ns.Today())
 end
 -- (a guildmate's pet, adopted by them: the line for their tooltips; nil when it can't be today)
 function Wish:PatHint(key)

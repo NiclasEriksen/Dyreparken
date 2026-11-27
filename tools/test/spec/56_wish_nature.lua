@@ -299,4 +299,23 @@ return function(test, H)
         end
         ok(n >= W.MIN_CHOICES, "several wishes in a month: " .. n)
     end)
+    test("never yesterday's wish again (2026-11-27: a pat two days running): the saved one, else drawn", function()
+        local w, ola, kari, W = Setup()
+        ola.ns.DB.char.company = ola.ns.Now() -- (a pat can be drawn)
+        local day = ola.ns.Today()
+        local repeats, pats = 0, 0
+        for d = 1, 400 do
+            local t = ola.ns.Now() + d * 86400
+            local a, az = W:For(PANDA, ola.ns.Today(t - 86400))
+            local b, bz = W:For(PANDA, ola.ns.Today(t))
+            if a == b and az == bz and #W:Choices(PANDA) > 1 then repeats = repeats + 1 end
+            if a == "patted" and b == "patted" then pats = pats + 1 end
+        end
+        eq(pats, 0, "no pat two days running")
+        ok(repeats <= 4, "a repeat only past REPEAT_DEPTH's reach (" .. repeats .. " in 400 days)")
+        -- Yesterday's saved wish is the one it differs from, whatever the draw says.
+        local drawn = W:Drawn(PANDA, day)
+        ola.ns.DB.char.wish = { day = ola.ns.DayBefore(day), pet = PANDA, id = drawn, done = true }
+        no(W:For(PANDA, day) == drawn and #W:Choices(PANDA) > 1, "not yesterday's, saved")
+    end)
 end

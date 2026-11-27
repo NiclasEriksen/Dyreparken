@@ -151,6 +151,7 @@ return function(test, H)
         w:Run(40)
         local function Quest() ola:Fire("QUEST_TURNED_IN", 1) end
         ola.ns.Bond.First = function() end -- (no first-kill bonus mixed in: 28_multibond.lua tests firsts)
+        ola.ns.DB.char.wish = { done = true, pet = PANDA, day = ola.ns.Today() } -- (nor a wish for quests)
         local start = ola:Points(PANDA)
         Quest()
         eq(ola:Points(PANDA), start + 1, "solo, outdoors: just a quest")
